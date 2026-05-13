@@ -192,6 +192,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Dockerfile:    "Dockerfile",
 		DockerContext: ".",
 		WatchPaths:    nil,
+		AutoDeploy:    true,
 		CreatedAt:     now,
 		UpdatedAt:     sql.NullInt64{Valid: false},
 	})
@@ -199,20 +200,21 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 
 	// Insert default app runtime settings for this (app, environment) pair.
 	err = db.Query.UpsertAppRuntimeSettings(ctx, s.DB.RW(), db.UpsertAppRuntimeSettingsParams{
-		WorkspaceID:     req.WorkspaceID,
-		AppID:           req.AppID,
-		EnvironmentID:   req.ID,
-		Port:            8080,
-		CpuMillicores:   100,
-		MemoryMib:       128,
-		StorageMib:      0,
-		Command:         nil,
-		Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
-		SentinelConfig:  []byte("{}"),
-		OpenapiSpecPath: sql.NullString{Valid: false},
-		CreatedAt:       now,
-		UpdatedAt:       sql.NullInt64{Valid: false},
+		WorkspaceID:      req.WorkspaceID,
+		AppID:            req.AppID,
+		EnvironmentID:    req.ID,
+		Port:             8080,
+		CpuMillicores:    100,
+		MemoryMib:        128,
+		StorageMib:       0,
+		Command:          nil,
+		Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
+		UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
+		SentinelConfig:   []byte("{}"),
+		OpenapiSpecPath:  sql.NullString{Valid: false},
+		CreatedAt:        now,
+		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
 
@@ -277,6 +279,7 @@ func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest
 		Dockerfile:    "",
 		DockerContext: "",
 		WatchPaths:    nil,
+		AutoDeploy:    true,
 		CreatedAt:     now,
 		UpdatedAt:     sql.NullInt64{Valid: false},
 	})
@@ -284,20 +287,21 @@ func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest
 
 	// Seed default runtime settings
 	err = db.Query.UpsertAppRuntimeSettings(ctx, s.DB.RW(), db.UpsertAppRuntimeSettingsParams{
-		WorkspaceID:     req.WorkspaceID,
-		AppID:           req.ID,
-		EnvironmentID:   environmentID,
-		Port:            8080,
-		CpuMillicores:   250,
-		MemoryMib:       256,
-		StorageMib:      0,
-		Command:         nil,
-		Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
-		SentinelConfig:  []byte("{}"),
-		OpenapiSpecPath: sql.NullString{Valid: false},
-		CreatedAt:       now,
-		UpdatedAt:       sql.NullInt64{Valid: false},
+		WorkspaceID:      req.WorkspaceID,
+		AppID:            req.ID,
+		EnvironmentID:    environmentID,
+		Port:             8080,
+		CpuMillicores:    250,
+		MemoryMib:        256,
+		StorageMib:       0,
+		Command:          nil,
+		Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
+		UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
+		SentinelConfig:   []byte("{}"),
+		OpenapiSpecPath:  sql.NullString{Valid: false},
+		CreatedAt:        now,
+		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
 
@@ -350,6 +354,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		UpdatedAt:                     req.UpdatedAt,
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
+		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
@@ -379,9 +384,9 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		IdentityID:         sql.NullString{String: "", Valid: false},
 		Meta:               sql.NullString{String: "", Valid: false},
 		Expires:            sql.NullTime{Time: time.Time{}, Valid: false},
-		RemainingRequests:  sql.NullInt32{Int32: 0, Valid: false},
+		RemainingRequests:  sql.NullInt64{Int64: 0, Valid: false},
 		RefillDay:          sql.NullInt16{Int16: 0, Valid: false},
-		RefillAmount:       sql.NullInt32{Int32: 0, Valid: false},
+		RefillAmount:       sql.NullInt64{Int64: 0, Valid: false},
 		PendingMigrationID: sql.NullString{Valid: false, String: ""},
 	}
 
@@ -432,7 +437,7 @@ type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
 	KeySpaceID     string
-	Remaining      *int32
+	Remaining      *int64
 	IdentityID     *string
 	Meta           *string
 	Expires        *time.Time
@@ -442,7 +447,7 @@ type CreateKeyRequest struct {
 
 	Recoverable bool
 
-	RefillAmount *int32
+	RefillAmount *int64
 	RefillDay    *int16
 
 	Permissions []CreatePermissionRequest
@@ -476,8 +481,8 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		Meta:               sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
 		IdentityID:         sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
 		Expires:            sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Time{}), Valid: req.Expires != nil},
-		RemainingRequests:  sql.NullInt32{Int32: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
-		RefillAmount:       sql.NullInt32{Int32: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
+		RemainingRequests:  sql.NullInt64{Int64: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
+		RefillAmount:       sql.NullInt64{Int64: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
 		RefillDay:          sql.NullInt16{Int16: ptr.SafeDeref(req.RefillDay, 0), Valid: req.RefillDay != nil},
 		PendingMigrationID: sql.NullString{Valid: false, String: ""},
 	})
@@ -553,8 +558,8 @@ type CreateRatelimitRequest struct {
 	Name        string
 	WorkspaceID string
 	AutoApply   bool
-	Duration    int64
-	Limit       int32
+	Duration    uint64
+	Limit       uint64
 	IdentityID  *string
 	KeyID       *string
 }
@@ -767,5 +772,83 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		Description: dbtype.NullString{Valid: req.Description != nil, String: ptr.SafeDeref(req.Description, "")},
 		CreatedAtM:  createdAt,
 		UpdatedAtM:  sql.NullInt64{Valid: false, Int64: 0},
+	}
+}
+
+type CreateRegionRequest struct {
+	Name     string
+	Platform string
+}
+
+func (s *Seeder) CreateRegion(ctx context.Context, req CreateRegionRequest) db.Region {
+	id := uid.New(uid.RegionPrefix)
+
+	err := db.Query.UpsertRegion(ctx, s.DB.RW(), db.UpsertRegionParams{
+		ID:       id,
+		Name:     req.Name,
+		Platform: req.Platform,
+	})
+	require.NoError(s.t, err)
+
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.DB.RO(), db.FindRegionByPlatformAndNameParams{
+		Platform: req.Platform,
+		Name:     req.Name,
+	})
+	require.NoError(s.t, err)
+
+	return region
+}
+
+type CreateInstanceRequest struct {
+	DeploymentID string
+	WorkspaceID  string
+	ProjectID    string
+	AppID        string
+	RegionID     string
+	Address      string
+}
+
+func (s *Seeder) CreateInstance(ctx context.Context, req CreateInstanceRequest) db.Instance {
+	id := uid.New("inst")
+	k8sName := uid.New("k8s")
+
+	err := db.Query.UpsertInstance(ctx, s.DB.RW(), db.UpsertInstanceParams{
+		ID:            id,
+		DeploymentID:  req.DeploymentID,
+		WorkspaceID:   req.WorkspaceID,
+		ProjectID:     req.ProjectID,
+		AppID:         req.AppID,
+		RegionID:      req.RegionID,
+		K8sName:       k8sName,
+		Address:       req.Address,
+		CpuMillicores: 100,
+		MemoryMib:     128,
+		Status:        db.InstancesStatusRunning,
+	})
+	require.NoError(s.t, err)
+
+	return db.Instance{
+		Pk:            0,
+		ID:            id,
+		DeploymentID:  req.DeploymentID,
+		WorkspaceID:   req.WorkspaceID,
+		ProjectID:     req.ProjectID,
+		AppID:         req.AppID,
+		RegionID:      req.RegionID,
+		K8sName:       k8sName,
+		Address:       req.Address,
+		CpuMillicores: 100,
+		MemoryMib:     128,
+		StorageMib:    0,
+		Status:        db.InstancesStatusRunning,
+		// Mirrors the column default applied by UpsertInstance: a fresh
+		// instance has restartCount=0 and no terminations or waiting
+		// reasons. ctrl's RecordInstanceExit / RecordInstanceCrashLoopBackOff
+		// keep this in sync as events arrive.
+		ContainerStatus: dbtype.ContainerStatus{
+			RestartCount:         0,
+			LastTerminationState: nil,
+			Waiting:              nil,
+		},
 	}
 }

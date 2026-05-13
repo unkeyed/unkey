@@ -1,10 +1,14 @@
 "use client";
+import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
 import { SettingsZone, SettingsZoneRow, toast } from "@unkey/ui";
-import ms from "ms";
 import { useRouter } from "next/navigation";
 
-export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
+export const CancelAlert: React.FC<{
+  cancelAt?: number;
+  disabled?: boolean;
+  disabledReason?: string;
+}> = (props) => {
   const router = useRouter();
   const trpcUtils = trpc.useUtils();
   const uncancelSubscription = trpc.stripe.uncancelSubscription.useMutation({
@@ -35,29 +39,34 @@ export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
     return null;
   }
 
+  const description =
+    props.disabled && props.disabledReason ? (
+      props.disabledReason
+    ) : (
+      <>
+        Your subscription ends in
+        <span className="text-warning-12 font-medium">
+          {" "}
+          {formatMs(timeRemaining, { long: true })}
+        </span>{" "}
+        on{" "}
+        <span className="text-warning-12 font-medium">
+          {new Date(props.cancelAt).toLocaleDateString()}
+        </span>
+        .
+      </>
+    );
+
   return (
     <SettingsZone variant="warning" title="Cancellation Scheduled">
       <SettingsZoneRow
         title="Subscription ending"
-        description={
-          <>
-            Your subscription ends in
-            <span className="text-warning-12 font-medium">
-              {" "}
-              {ms(timeRemaining, { long: true })}
-            </span>{" "}
-            on{" "}
-            <span className="text-warning-12 font-medium">
-              {new Date(props.cancelAt).toLocaleDateString()}
-            </span>
-            .
-          </>
-        }
+        description={description}
         action={{
           label: "Resubscribe",
           onClick: () => uncancelSubscription.mutate(),
           loading: uncancelSubscription.isLoading,
-          disabled: uncancelSubscription.isLoading,
+          disabled: uncancelSubscription.isLoading || Boolean(props.disabled),
         }}
       />
     </SettingsZone>

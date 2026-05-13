@@ -23,6 +23,16 @@ const STATUS_STYLES = {
     },
     focusRing: "focus:ring-accent-7",
   },
+  info: {
+    base: "text-info-11 bg-info-2",
+    hover: "hover:bg-info-3",
+    selected: "bg-info-3",
+    badge: {
+      default: "bg-info-4 text-info-11 group-hover:bg-info-5",
+      selected: "bg-info-5 text-info-11 hover:bg-info-5",
+    },
+    focusRing: "focus:ring-info-7",
+  },
   warning: {
     base: "text-warning-11 bg-warning-2",
     hover: "hover:bg-warning-3",
@@ -46,11 +56,14 @@ const STATUS_STYLES = {
 };
 
 export const getStatusStyle = (status: number): StatusStyle => {
-  if (status >= 500) {
+  if (!Number.isInteger(status) || status < 100 || status >= 500) {
     return STATUS_STYLES.error;
   }
   if (status >= 400) {
     return STATUS_STYLES.warning;
+  }
+  if (status >= 300) {
+    return STATUS_STYLES.info;
   }
   return STATUS_STYLES.success;
 };
@@ -75,19 +88,8 @@ export const getRowClassName = (
   isLive?: boolean,
   realtimeLogs?: SentinelLogsResponse[],
 ): string => {
-  // Early validation
   if (!log?.request_id) {
     throw new Error("Log must have a valid request_id");
-  }
-
-  if (
-    !Number.isInteger(log.response_status) ||
-    log.response_status < 100 ||
-    log.response_status > 599
-  ) {
-    throw new Error(
-      `Invalid response_status: ${log.response_status}. Must be a valid HTTP status code.`,
-    );
   }
 
   const style = getStatusStyle(log.response_status);

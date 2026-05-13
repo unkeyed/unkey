@@ -132,7 +132,7 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
                   color={isEnabling ? "default" : "danger"}
                   size="lg"
                   onCheckedChange={field.onChange}
-                  required
+                  requirement="required"
                   label={
                     isEnabling
                       ? "I want to enable this key and allow verification"

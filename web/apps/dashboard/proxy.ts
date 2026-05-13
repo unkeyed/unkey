@@ -40,7 +40,12 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/api/auth/refresh",
     "/success",
     "/_next/*",
-    "/integrations/github/callback",
+    // /integrations/github/callback is intentionally NOT public: the page
+    // calls trpc.github.registerInstallation under the user's session, and
+    // marking it public would let an unauthenticated visitor reach the page
+    // with a phishing-friendly URL. The page now requires an authenticated
+    // session and verifies a server-signed `state` HMAC.
+    "/integrations/domain-connect/callback",
   ];
 
   // Check if the current path is in the public paths list

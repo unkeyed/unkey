@@ -1,4 +1,4 @@
-import { mysqlDrizzle, schema, sql } from "@unkey/db";
+import { drizzle, schema, sql } from "@unkey/db";
 import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 
@@ -9,7 +9,7 @@ async function main() {
 
   const conn = await mysql.createConnection(process.env.DRIZZLE_DATABASE_URL);
   await conn.ping();
-  const db = mysqlDrizzle(conn, { schema, mode: "default" });
+  const db = drizzle(conn, { schema, mode: "default" });
 
   // 1. Get all projects with their environments and apps
   const projects = await db.query.projects.findMany({

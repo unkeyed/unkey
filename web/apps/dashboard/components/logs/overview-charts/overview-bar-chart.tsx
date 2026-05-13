@@ -60,6 +60,7 @@ export function OverviewBarChart({
   granularity,
 }: OverviewBarChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const chartAreaRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
 
   // Track if we're currently dragging for selection
@@ -120,13 +121,26 @@ export function OverviewBarChart({
     return null;
   };
 
-  // Handle mouse down on container
+  // Check if a data point has any actual data (non-zero values)
+  const hasData = (index: number): boolean => {
+    if (!data || index < 0 || index >= data.length) {
+      return false;
+    }
+    const item = data[index];
+    const primary = item[labels.primaryKey];
+    const secondary = item[labels.secondaryKey];
+    const primaryNum = typeof primary === "number" ? primary : 0;
+    const secondaryNum = typeof secondary === "number" ? secondary : 0;
+    return primaryNum + secondaryNum > 0;
+  };
+
+  // Handle mouse down on chart area
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!enableSelection || !chartRef.current) {
+    if (!enableSelection || !chartAreaRef.current) {
       return;
     }
 
-    const point = getDataPointFromEvent(e, chartRef.current);
+    const point = getDataPointFromEvent(e, chartAreaRef.current);
     if (!point) {
       return;
     }
@@ -142,13 +156,18 @@ export function OverviewBarChart({
     });
   };
 
-  // Handle mouse move on container
+  // Handle mouse move on chart area
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!enableSelection || !isDragging.current || !dragStartData.current || !chartRef.current) {
+    if (
+      !enableSelection ||
+      !isDragging.current ||
+      !dragStartData.current ||
+      !chartAreaRef.current
+    ) {
       return;
     }
 
-    const point = getDataPointFromEvent(e, chartRef.current);
+    const point = getDataPointFromEvent(e, chartAreaRef.current);
     if (!point) {
       return;
     }
@@ -172,6 +191,16 @@ export function OverviewBarChart({
       currentSelection.end !== undefined &&
       onSelectionChange
     ) {
+      const isSingleClick = currentSelection.start === currentSelection.end;
+
+      // For single clicks, only trigger if the bar has data
+      if (isSingleClick && !hasData(Number(currentSelection.start))) {
+        isDragging.current = false;
+        dragStartData.current = null;
+        setSelection({ start: "", end: "", startTimestamp: undefined, endTimestamp: undefined });
+        return;
+      }
+
       if (
         currentSelection.startTimestamp !== undefined &&
         currentSelection.endTimestamp !== undefined
@@ -203,39 +232,25 @@ export function OverviewBarChart({
   if (isError) {
     return <OverviewChartError labels={labels} />;
   }
-  if (isLoading) {
+  if (isLoading || !data) {
     return <OverviewChartLoader labels={labels} />;
   }
 
-  // Calculate totals based on the provided keys
-  const totalCount = (data ?? []).reduce(
-    (acc, crr) => acc + (crr[labels.primaryKey] as number) + (crr[labels.secondaryKey] as number),
-    0,
-  );
+  const toNumber = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) ? value : 0;
 
-  // Show empty state when there's no data
+  // Calculate totals based on the provided keys
+  const primaryCount = data.reduce((acc, crr) => acc + toNumber(crr[labels.primaryKey]), 0);
+  const secondaryCount = data.reduce((acc, crr) => acc + toNumber(crr[labels.secondaryKey]), 0);
+  const totalCount = primaryCount + secondaryCount;
+
+  // Show empty state only after data has loaded and is genuinely empty
   if (totalCount === 0) {
     return <OverviewChartEmpty labels={labels} />;
   }
 
-  const primaryCount = (data ?? []).reduce(
-    (acc, crr) => acc + (crr[labels.primaryKey] as number),
-    0,
-  );
-  const secondaryCount = (data ?? []).reduce(
-    (acc, crr) => acc + (crr[labels.secondaryKey] as number),
-    0,
-  );
-
   return (
-    <div
-      className="flex flex-col h-full"
-      ref={chartRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-    >
+    <div className="flex flex-col h-full" ref={chartRef}>
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
           <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
@@ -265,7 +280,14 @@ export function OverviewBarChart({
           </div>
         </div>
       </div>
-      <div className="flex-1 min-h-0">
+      <div
+        className={`flex-1 min-h-0${enableSelection ? " cursor-pointer" : ""}`}
+        ref={chartAreaRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      >
         <ChartContainer config={config} className="w-full h-full aspect-auto">
           <BarChart
             data={data}

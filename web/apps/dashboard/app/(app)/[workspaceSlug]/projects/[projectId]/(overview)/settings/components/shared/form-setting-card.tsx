@@ -6,7 +6,7 @@ import { SelectedConfig } from "./selected-config";
 type EditableSettingCardProps = {
   icon: React.ReactNode;
   title: string;
-  description: string;
+  description: React.ReactNode;
   border?: SettingCardBorder;
 
   displayValue: React.ReactNode;
@@ -14,6 +14,7 @@ type EditableSettingCardProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   children: React.ReactNode;
   stickyHeader?: React.ReactNode;
+  footerLeft?: React.ReactNode;
 
   saveState: SaveState;
 
@@ -32,6 +33,7 @@ export const FormSettingCard = ({
   onSubmit,
   children,
   stickyHeader,
+  footerLeft,
   saveState,
   ref,
   contentRef,
@@ -78,7 +80,13 @@ export const FormSettingCard = ({
             {children}
           </div>
           {!autoSave && (
-            <div className="px-4 pt-2 pb-4 flex justify-end">
+            <div
+              className={cn(
+                "px-4 pt-2 pb-4 flex items-center gap-3",
+                footerLeft ? "justify-between" : "justify-end",
+              )}
+            >
+              {footerLeft}
               <InfoTooltip
                 content={saveState.status === "disabled" ? saveState.reason : undefined}
                 disabled={

@@ -10,7 +10,7 @@ export default function ApiPage(props: { params: Promise<{ apiId: string }> }) {
   const workspace = useWorkspaceNavigation();
 
   return (
-    <div className="min-h-screen">
+    <div>
       <ApisNavbar
         apiId={apiId}
         activePage={{

@@ -14,7 +14,6 @@ type ControlCloudProps<TFilter extends FilterValue> = {
   updateFilters: (filters: TFilter[]) => void;
   formatFieldName: (field: string) => string;
   formatValue?: (value: string | number, field: string) => string;
-  historicalWindow?: number;
 };
 
 export const ControlCloud = <TFilter extends FilterValue>({
@@ -23,31 +22,24 @@ export const ControlCloud = <TFilter extends FilterValue>({
   updateFilters,
   formatFieldName,
   formatValue = defaultFormatValue,
-  historicalWindow = 12 * 60 * 60 * 1000,
 }: ControlCloudProps<TFilter>) => {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
-  useKeyboardShortcut("option+shift+a", () => {
-    const timestamp = Date.now();
-    updateFilters([
-      {
-        field: "endTime",
-        value: timestamp,
-        id: crypto.randomUUID(),
-        operator: "is",
-      },
-      {
-        field: "startTime",
-        value: timestamp - historicalWindow,
-        id: crypto.randomUUID(),
-        operator: "is",
-      },
-    ] as TFilter[]);
-  });
+  const handleClearFilters = useCallback(() => {
+    updateFilters([]);
+    setFocusedIndex(null);
+  }, [updateFilters]);
 
-  useKeyboardShortcut("option+shift+s", () => {
+  const handleFocusFilters = useCallback(() => {
+    if (filters.length === 0) {
+      return;
+    }
     setFocusedIndex(0);
-  });
+  }, [filters.length]);
+
+  useKeyboardShortcut("option+shift+a", handleClearFilters);
+
+  useKeyboardShortcut("option+shift+s", handleFocusFilters);
 
   const handleRemoveFilter = useCallback(
     (id: string) => {
@@ -132,6 +124,11 @@ export const ControlCloud = <TFilter extends FilterValue>({
     <div
       className="px-3 py-2 w-full flex items-center min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap group"
       onKeyDown={handleKeyDown}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setFocusedIndex(null);
+        }
+      }}
     >
       {filters.map((filter, index) => (
         <ControlPill
@@ -146,19 +143,31 @@ export const ControlCloud = <TFilter extends FilterValue>({
         />
       ))}
       <div className="flex items-center px-2 py-1 gap-2 ml-auto max-md:hidden">
-        <div className="flex items-center gap-2">
-          <span className="text-gray-9 text-[13px]">Clear filters</span>
-          <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
+        <button
+          type="button"
+          onClick={handleClearFilters}
+          className="group/clear flex items-center gap-2 cursor-pointer transition-colors"
+        >
+          <span className="text-gray-9 group-hover/clear:text-gray-12 text-[13px] transition-colors">
+            Clear filters
+          </span>
+          <div className="max-w-0 opacity-0 group-hover/clear:max-w-[100px] group-hover/clear:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
             <KeyboardButton shortcut="⌥+⇧+A" />
           </div>
-        </div>
+        </button>
         <div className="w-px h-4 bg-gray-4 mr-2" />
-        <div className="flex items-center gap-2">
-          <span className="text-gray-9 text-[13px]">Focus filters</span>
-          <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
+        <button
+          type="button"
+          onClick={handleFocusFilters}
+          className="group/nav flex items-center gap-2 cursor-pointer transition-colors"
+        >
+          <span className="text-gray-9 group-hover/nav:text-gray-12 text-[13px] transition-colors">
+            Navigate filters
+          </span>
+          <div className="max-w-0 opacity-0 group-hover/nav:max-w-[100px] group-hover/nav:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
             <KeyboardButton shortcut="⌥+⇧+S" />
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );

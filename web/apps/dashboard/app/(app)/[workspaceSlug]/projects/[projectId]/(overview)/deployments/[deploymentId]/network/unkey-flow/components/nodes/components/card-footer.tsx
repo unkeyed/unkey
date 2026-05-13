@@ -1,30 +1,31 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { Bolt, ChartActivity, Focus } from "@unkey/icons";
-import type { SentinelNode } from "../types";
+import { ChartActivity, Microchip, Ram } from "@unkey/icons";
+import type { RegionNode } from "../types";
 import { MetricPill } from "./metric-pill";
 
-type SentinelCardFooterProps = {
-  type: "sentinel";
+// Region cards show only an aggregate RPS pill; per-resource metrics
+// (cpu, memory) live on the child instance nodes.
+type RegionCardFooterProps = {
+  type: "region";
   rps?: number;
-  cpu?: number;
-  memory?: number;
 };
 
 type InstanceCardFooterProps = {
   type: "instance";
-  flagCode: SentinelNode["metadata"]["flagCode"];
+  flagCode: RegionNode["metadata"]["flagCode"];
   rps?: number;
   cpu?: number;
   memory?: number;
 };
 
-type CardFooterProps = SentinelCardFooterProps | InstanceCardFooterProps;
+type CardFooterProps = RegionCardFooterProps | InstanceCardFooterProps;
 
 export function CardFooter(props: CardFooterProps) {
-  const { type, rps, cpu, memory } = props;
-  const flagCode = type === "instance" ? props.flagCode : undefined;
-  const isSentinel = type === "sentinel";
+  const rps = props.rps;
+  const flagCode = props.type === "instance" ? props.flagCode : undefined;
+  const cpu = props.type === "instance" ? props.cpu : undefined;
+  const memory = props.type === "instance" ? props.memory : undefined;
 
   return (
     <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-[14px]">
@@ -42,15 +43,13 @@ export function CardFooter(props: CardFooterProps) {
             const parts = formatCpuParts(cpu);
             return (
               <MetricPill
-                icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
+                icon={<Microchip iconSize="sm-medium" className="shrink-0" />}
                 value={
                   <>
                     <span className="font-medium">{parts.value}</span> {parts.unit}
                   </>
                 }
-                tooltip={
-                  isSentinel ? "CPU allocated to this sentinel" : "CPU allocated to this instance"
-                }
+                tooltip="CPU allocated to this instance"
               />
             );
           })()}
@@ -59,17 +58,13 @@ export function CardFooter(props: CardFooterProps) {
             const parts = formatMemoryParts(memory);
             return (
               <MetricPill
-                icon={<Focus iconSize="sm-regular" className="shrink-0" />}
+                icon={<Ram iconSize="sm-regular" className="shrink-0" />}
                 value={
                   <>
                     <span className="font-medium">{parts.value}</span> {parts.unit}
                   </>
                 }
-                tooltip={
-                  isSentinel
-                    ? "Memory allocated to this sentinel"
-                    : "Memory allocated to this instance"
-                }
+                tooltip="Memory allocated to this instance"
               />
             );
           })()}

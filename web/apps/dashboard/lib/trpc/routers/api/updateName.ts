@@ -9,7 +9,10 @@ import { workspaceProcedure } from "../../trpc";
 export const updateApiName = workspaceProcedure
   .input(
     z.object({
-      name: z.string().min(3, "API names must contain at least 3 characters"),
+      name: z
+        .string()
+        .min(3, "API names must contain at least 3 characters")
+        .max(256, "API names cannot exceed 256 characters"),
       apiId: z.string(),
       workspaceId: z.string(),
     }),

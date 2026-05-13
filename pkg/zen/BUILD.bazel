@@ -49,6 +49,7 @@ go_test(
     size = "small",
     srcs = [
         "auth_test.go",
+        "limited_writer_test.go",
         "middleware_metrics_test.go",
         "middleware_timeout_test.go",
         "redact_test.go",

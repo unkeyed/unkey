@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertAppRuntimeSettings is the base query for bulk insert
-const bulkUpsertAppRuntimeSettings = `INSERT INTO app_runtime_settings ( workspace_id, app_id, environment_id, port, cpu_millicores, memory_mib, storage_mib, command, healthcheck, shutdown_signal, sentinel_config, openapi_spec_path, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertAppRuntimeSettings = `INSERT INTO app_runtime_settings ( workspace_id, app_id, environment_id, port, cpu_millicores, memory_mib, storage_mib, command, healthcheck, shutdown_signal, upstream_protocol, sentinel_config, openapi_spec_path, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
     memory_mib = VALUES(memory_mib),
@@ -17,6 +17,7 @@ const bulkUpsertAppRuntimeSettings = `INSERT INTO app_runtime_settings ( workspa
     command = VALUES(command),
     healthcheck = VALUES(healthcheck),
     shutdown_signal = VALUES(shutdown_signal),
+    upstream_protocol = VALUES(upstream_protocol),
     sentinel_config = VALUES(sentinel_config),
     openapi_spec_path = VALUES(openapi_spec_path),
     updated_at = VALUES(updated_at)`
@@ -31,7 +32,7 @@ func (q *BulkQueries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertAppRuntimeSettings, strings.Join(valueClauses, ", "))
@@ -49,6 +50,7 @@ func (q *BulkQueries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg
 		allArgs = append(allArgs, arg.Command)
 		allArgs = append(allArgs, arg.Healthcheck)
 		allArgs = append(allArgs, arg.ShutdownSignal)
+		allArgs = append(allArgs, arg.UpstreamProtocol)
 		allArgs = append(allArgs, arg.SentinelConfig)
 		allArgs = append(allArgs, arg.OpenapiSpecPath)
 		allArgs = append(allArgs, arg.CreatedAt)

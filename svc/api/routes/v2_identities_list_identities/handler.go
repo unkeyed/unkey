@@ -115,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Id:        r.ID,
 				Name:      r.Name,
 				Limit:     int64(r.Limit),
-				Duration:  r.Duration,
+				Duration:  int64(r.Duration),
 				AutoApply: r.AutoApply,
 			})
 		}

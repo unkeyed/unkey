@@ -3,10 +3,10 @@ import { VirtualTable } from "@/components/virtual-table";
 import type { Column } from "@/components/virtual-table/types";
 import { collection } from "@/lib/collections";
 import { formatNumber } from "@/lib/fmt";
+import { formatMs } from "@/lib/ms";
 import { cn } from "@/lib/utils";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Badge, CopyButton, Empty, InfoTooltip } from "@unkey/ui";
-import ms from "ms";
 import { useState } from "react";
 import { IdentifierDialog } from "../_components/identifier-dialog";
 import { LastUsedCell } from "./last-used-cell";
@@ -126,7 +126,7 @@ export const OverridesTable = ({ namespaceId }: Props) => {
                 STATUS_STYLES.default.badge.default,
               )}
             >
-              {formatNumber(override.limit)}/{ms(override.duration)}
+              {formatNumber(override.limit)}/{formatMs(override.duration)}
             </Badge>
           </div>
           {/*<span className="text-content-subtle">/</span>
@@ -137,7 +137,7 @@ export const OverridesTable = ({ namespaceId }: Props) => {
                 STATUS_STYLES.default.badge.default,
               )}
             >
-              {ms(override.duration)}
+              {formatMs(override.duration)}
             </Badge>
           </div>*/}
         </div>

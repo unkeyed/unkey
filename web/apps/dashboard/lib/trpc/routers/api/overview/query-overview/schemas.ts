@@ -4,6 +4,7 @@ export const apiOverview = z.object({
   id: z.string(),
   name: z.string(),
   keyspaceId: z.string().nullable(),
+  keyCount: z.number(),
 });
 
 export type ApiOverview = z.infer<typeof apiOverview>;

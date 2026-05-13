@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 // Standard histogram buckets for latency metrics in seconds
@@ -38,7 +38,7 @@ var (
 	// Example usage:
 	//   metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
 	//   metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
-	UsagelimiterDecisions = promauto.NewCounterVec(
+	UsagelimiterDecisions = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "usagelimiter",
@@ -54,7 +54,7 @@ var (
 	// Example usage:
 	//   metrics.UsagelimiterReplayOperations.WithLabelValues("success").Inc()
 	//   metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
-	UsagelimiterReplayOperations = promauto.NewCounterVec(
+	UsagelimiterReplayOperations = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "usagelimiter",
@@ -71,7 +71,7 @@ var (
 	//   defer func(start time.Time) {
 	//       metrics.UsagelimiterReplayLatency.Observe(time.Since(start).Seconds())
 	//   }(time.Now())
-	UsagelimiterReplayLatency = promauto.NewHistogram(
+	UsagelimiterReplayLatency = lazy.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "usagelimiter",

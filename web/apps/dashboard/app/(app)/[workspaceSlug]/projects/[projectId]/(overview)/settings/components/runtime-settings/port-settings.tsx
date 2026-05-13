@@ -54,7 +54,7 @@ export const Port = () => {
     >
       <SettingField>
         <FormInput
-          required
+          requirement="required"
           type="number"
           onWheelCapture={(e) => {
             //@ts-expect-error there is no other way to prevent scroll here

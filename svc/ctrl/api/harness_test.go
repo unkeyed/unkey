@@ -19,8 +19,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"golang.org/x/net/http2"
@@ -33,11 +34,12 @@ type webhookHarnessConfig struct {
 }
 
 type webhookHarness struct {
-	ctx     context.Context
-	CtrlURL string
-	DB      db.Database
-	Seed    *seed.Seeder
-	Secret  string
+	ctx       context.Context
+	CtrlURL   string
+	DB        db.Database
+	Seed      *seed.Seeder
+	Secret    string
+	AuthToken string
 }
 
 func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
@@ -46,7 +48,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	t.Cleanup(cancel)
 
-	restateCfg := dockertest.Restate(t)
+	restateCfg := containers.Restate(t)
 
 	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 	for _, service := range cfg.Services {
@@ -73,7 +75,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	registration := &restateRegistration{adminURL: restateCfg.AdminURL, registerAs: fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)}
 	require.NoError(t, registration.register(ctx))
 
-	mysqlCfg := dockertest.MySQL(t)
+	mysqlCfg := containers.MySQL(t)
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
@@ -92,12 +94,13 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		secret = uid.New("whsec")
 	}
 
+	authToken := uid.New("ctrl_test")
 	apiConfig := Config{
 		InstanceID:     "test",
 		Region:         "local",
 		HttpPort:       ctrlPort,
 		PrometheusPort: 0,
-		AuthToken:      "",
+		AuthToken:      authToken,
 
 		DefaultDomain:  "",
 		RegionalDomain: "",
@@ -133,11 +136,12 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	}, 10*time.Second, 200*time.Millisecond)
 
 	return &webhookHarness{
-		ctx:     ctx,
-		CtrlURL: ctrlURL,
-		DB:      database,
-		Seed:    seeder,
-		Secret:  secret,
+		ctx:       ctx,
+		CtrlURL:   ctrlURL,
+		DB:        database,
+		Seed:      seeder,
+		Secret:    secret,
+		AuthToken: authToken,
 	}
 }
 
@@ -161,7 +165,11 @@ func (h *webhookHarness) ConnectClient() *http.Client {
 }
 
 func (h *webhookHarness) ConnectOptions() []connect.ClientOption {
-	return []connect.ClientOption{}
+	return []connect.ClientOption{
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": "Bearer " + h.AuthToken,
+		})),
+	}
 }
 
 func (h *webhookHarness) RequestContext() context.Context {

@@ -17,12 +17,18 @@ const (
 	IdentityPrefix            Prefix = "id"
 	RatelimitPrefix           Prefix = "rl"
 	AuditLogPrefix            Prefix = "log"
+	CorrelationPrefix         Prefix = "cor"
 	InstancePrefix            Prefix = "ins"
 	SentinelPrefix            Prefix = "s"
 	CiliumNetworkPolicyPrefix Prefix = "net"
 	ClusterPrefix             Prefix = "cls"
 	RegionPrefix              Prefix = "rgn"
 	OrgPrefix                 Prefix = "org"
+
+	// Portal prefixes
+	PortalSessionTokenPrefix Prefix = "pst"
+	PortalSessionPrefix      Prefix = "ps"
+	PortalConfigPrefix       Prefix = "pc"
 
 	// Control plane prefixes
 	OpenApiSpecPrefix    Prefix = "oas"

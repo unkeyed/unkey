@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
 	sharedconfig "github.com/unkeyed/unkey/pkg/config"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api"
 )
@@ -19,10 +19,10 @@ import (
 // TestContextCancellation verifies that the API server responds properly to context cancellation
 func TestContextCancellation(t *testing.T) {
 
-	// Use testcontainers for dynamic service management
-	mysqlCfg := dockertest.MySQL(t)
+	// Use test-owned containers for dynamic service management.
+	mysqlCfg := containers.MySQL(t)
 	dbDsn := mysqlCfg.DSN
-	redisUrl := dockertest.Redis(t)
+	redisUrl := containers.Redis(t)
 
 	// Create ephemeral listener
 	ln, err := net.Listen("tcp", ":0")
@@ -35,11 +35,13 @@ func TestContextCancellation(t *testing.T) {
 	config := api.Config{
 		Platform:   "test",
 		Image:      "test",
-		Listener:   ln,
 		Region:     "test-region",
 		Clock:      nil, // Will use real clock
 		InstanceID: uid.New(uid.InstancePrefix),
 		RedisURL:   redisUrl,
+		Test: api.TestConfig{
+			Listener: ln,
+		},
 		Database: sharedconfig.DatabaseConfig{
 			Primary: dbDsn,
 		},

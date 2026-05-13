@@ -73,6 +73,12 @@ export const useBreadcrumbConfig = ({
       segment: "env-vars",
     },
     {
+      id: "sentinel-policies",
+      label: "Sentinel Policies",
+      href: `${basePath}/${projectId}/sentinel-policies`,
+      segment: "sentinel-policies",
+    },
+    {
       id: "settings",
       label: "Settings",
       href: `${basePath}/${projectId}/settings`,
@@ -107,7 +113,6 @@ export const useBreadcrumbConfig = ({
       id: "project",
       children: activeProject?.name || projectId,
       href: `${basePath}/${projectId}`,
-      isIdentifier: true,
       shouldRender: true,
       active: false,
       isLast: false,
@@ -150,11 +155,9 @@ export const useBreadcrumbConfig = ({
       id: "deployment-detail",
       children: shortenId(deploymentId || ""),
       href: `${basePath}/${projectId}/deployments/${deploymentId}`,
-      isIdentifier: true,
       shouldRender: Boolean(deploymentId),
       active: Boolean(deploymentId),
       isLast: Boolean(deploymentId),
-      className: "font-mono",
     },
   ];
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"regexp"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // Service implements the CustomDomainService ConnectRPC API. It coordinates
@@ -29,6 +31,7 @@ type Service struct {
 	restateAdmin               *restateadmin.Client
 	cnameDomain                string
 	domainConnectPrivateKeyPEM []byte
+	bearer                     string
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -44,6 +47,8 @@ type Config struct {
 	// DomainConnectPrivateKeyPEM is the PEM-encoded RSA private key for signing
 	// Domain Connect redirect URLs. If empty, Domain Connect is disabled.
 	DomainConnectPrivateKeyPEM []byte
+	// Bearer is the preshared token that callers must provide in the Authorization header.
+	Bearer string
 }
 
 // New creates a new [Service] with the given configuration.
@@ -55,6 +60,7 @@ func New(cfg Config) *Service {
 		restateAdmin:                            cfg.RestateAdmin,
 		cnameDomain:                             cfg.CnameDomain,
 		domainConnectPrivateKeyPEM:              cfg.DomainConnectPrivateKeyPEM,
+		bearer:                                  cfg.Bearer,
 	}
 }
 
@@ -74,6 +80,10 @@ func (s *Service) AddCustomDomain(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.AddCustomDomainRequest],
 ) (*connect.Response[ctrlv1.AddCustomDomainResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	domain := req.Msg.GetDomain()
 
 	// Validate domain format
@@ -104,13 +114,18 @@ func (s *Service) AddCustomDomain(
 	if len(s.domainConnectPrivateKeyPEM) > 0 {
 		logger.Info("running domain connect discovery", "domain", domain)
 
-		// Build redirect URL back to project settings
+		// Build redirect URL back to project settings via the public Domain Connect
+		// callback. Going through a public path keeps the return navigation working
+		// even though the SameSite=Strict session cookie is dropped on the cross-site
+		// redirect from the DNS provider — the callback page does a same-site client
+		// redirect to the (authenticated) settings page, which carries the cookie.
 		var redirectURL string
 		ws, wsErr := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
 		if wsErr != nil {
 			logger.Warn("failed to fetch workspace for redirect URL", "error", wsErr)
 		} else {
-			redirectURL = fmt.Sprintf("https://app.unkey.com/%s/projects/%s/settings", ws.Slug, req.Msg.GetProjectId())
+			settingsPath := fmt.Sprintf("/%s/projects/%s/settings", ws.Slug, req.Msg.GetProjectId())
+			redirectURL = fmt.Sprintf("https://app.unkey.com/integrations/domain-connect/callback?to=%s", url.QueryEscape(settingsPath))
 		}
 
 		result, dcErr := domainconnect.Discover(ctx, domain, s.domainConnectPrivateKeyPEM, map[string]string{
@@ -186,6 +201,10 @@ func (s *Service) DeleteCustomDomain(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteCustomDomainRequest],
 ) (*connect.Response[ctrlv1.DeleteCustomDomainResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	// Find the domain scoped to workspace
 	domain, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
@@ -246,6 +265,10 @@ func (s *Service) RetryVerification(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.RetryVerificationRequest],
 ) (*connect.Response[ctrlv1.RetryVerificationResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	// Find the domain scoped to workspace
 	domain, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),

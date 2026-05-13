@@ -10,6 +10,7 @@ CREATE TABLE `app_runtime_settings` (
 	`command` json NOT NULL DEFAULT ('[]'),
 	`healthcheck` json,
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
+	`upstream_protocol` enum('http1','h2c') NOT NULL DEFAULT 'http1',
 	`sentinel_config` longblob NOT NULL,
 	`openapi_spec_path` varchar(512),
 	`created_at` bigint NOT NULL,

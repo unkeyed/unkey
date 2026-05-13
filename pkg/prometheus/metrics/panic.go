@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
@@ -16,7 +16,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.PanicsTotal.WithLabelValues("handleVerifyKey", "/v1/keys.verifyKey").Inc()
-	PanicsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	PanicsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "internal",
 		Name:      "panics_total",

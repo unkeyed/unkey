@@ -177,6 +177,19 @@ type HeartbeatConfig struct {
 	// When set, a heartbeat is sent after successful sync runs.
 	// Optional - if empty, no heartbeat is sent.
 	KeyLastUsedSyncURL string `toml:"key_last_used_sync_url"`
+
+	// AuditLogExportURL is the Checkly heartbeat URL for audit log export runs.
+	// When set, a heartbeat is sent after successful drains of the MySQL outbox
+	// into ClickHouse. Optional - if empty, no heartbeat is sent.
+	AuditLogExportURL string `toml:"audit_log_export_url"`
+
+	// AuditLogBackfillURL is the Checkly heartbeat URL for audit log backfill
+	// runs. When set, a heartbeat is sent after each backfill pass through the
+	// legacy audit_log table. Optional - if empty, no heartbeat is sent. Once
+	// the backfill finishes (cursor caught up to legacy tail) the heartbeat
+	// keeps firing on noop runs, which is the right signal: silence means the
+	// VO is wedged.
+	AuditLogBackfillURL string `toml:"audit_log_backfill_url"`
 }
 
 // SlackConfig holds Slack webhook URLs for notifications.
@@ -222,10 +235,6 @@ type Config struct {
 	// BuildPlatformStr defines the target architecture for container builds.
 	// Format: "linux/amd64", "linux/arm64". Only "linux" OS supported.
 	BuildPlatformStr string `toml:"build_platform" config:"default=linux/amd64"`
-
-	// SentinelImage is the container image used for new sentinel deployments.
-	// Overrides default sentinel image with custom build or registry.
-	SentinelImage string `toml:"sentinel_image" config:"default=ghcr.io/unkeyed/unkey:local"`
 
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".

@@ -45,11 +45,7 @@ export const CreateKeyDialog = ({
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
-  const [createdKeyData, setCreatedKeyData] = useState<{
-    key: string;
-    id: string;
-    name?: string;
-  } | null>(null);
+  const [createdKeyData, setCreatedKeyData] = useState<{ key: string } | null>(null);
   const [dialogKey, setDialogKey] = useState(0);
 
   const methods = usePersistedForm<FormValues>(
@@ -90,12 +86,8 @@ export const CreateKeyDialog = ({
   );
 
   const key = useCreateKey((data) => {
-    if (data?.key && data?.keyId) {
-      setCreatedKeyData({
-        key: data.key,
-        id: data.keyId,
-        name: data.name,
-      });
+    if (data?.key) {
+      setCreatedKeyData({ key: data.key });
       setSuccessDialogOpen(true);
     }
 
@@ -104,15 +96,17 @@ export const CreateKeyDialog = ({
     reset(getDefaultValues());
     setIsSettingsOpen(false);
     resetValidSteps();
-    // Force dialog to remount and reset to initial state (general section)
-    setDialogKey((prev) => prev + 1);
+    requestAnimationFrame(() => {
+      setDialogKey((prev) => prev + 1);
+    });
   });
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       saveCurrentValues();
-      // Reset to general step when closing, so next time it opens on the first step
-      setDialogKey((prev) => prev + 1);
+      requestAnimationFrame(() => {
+        setDialogKey((prev) => prev + 1);
+      });
     }
     setIsSettingsOpen(open);
   };
@@ -146,10 +140,6 @@ export const CreateKeyDialog = ({
   const handleSuccessDialogClose = () => {
     setSuccessDialogOpen(false);
     setCreatedKeyData(null);
-  };
-
-  const openNewKeyDialog = () => {
-    setIsSettingsOpen(true);
   };
 
   return (
@@ -217,12 +207,9 @@ export const CreateKeyDialog = ({
       {/* Success Dialog */}
       <Suspense fallback={<Loading type="spinner" />}>
         <KeyCreatedSuccessDialog
-          apiId={apiId}
-          keyspaceId={keyspaceId}
           isOpen={successDialogOpen}
           onClose={handleSuccessDialogClose}
           keyData={createdKeyData}
-          onCreateAnother={openNewKeyDialog}
         />
       </Suspense>
     </>

@@ -72,6 +72,10 @@ export const vercelRouter = t.router({
         accessToken: integration.accessToken,
         teamId: integration.vercelTeamId ?? undefined,
       });
+      // Mint a shared correlation so every audit event from this setup
+      // (key.create + N vercelBinding.create per environment) links to
+      // one user action in the audit log drill-down.
+      const correlationId = newId("correlation");
       for (const [environment, apiId] of Object.entries(input.apiIds)) {
         if (!apiId) {
           continue;
@@ -116,6 +120,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
 
@@ -166,6 +171,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
 
@@ -218,6 +224,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
       }
@@ -401,6 +408,9 @@ export const vercelRouter = t.router({
         prefix: "unkey",
         byteLength: 16,
       });
+      // Mint a shared correlation so the key.create + the
+      // vercelBinding.create (or .update) below link to one user action.
+      const correlationId = newId("correlation");
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,
@@ -431,6 +441,7 @@ export const vercelRouter = t.router({
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
+          correlationId,
         });
       });
 
@@ -486,6 +497,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
       } else {
@@ -532,6 +544,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
       }
@@ -622,12 +635,35 @@ export const vercelRouter = t.router({
         teamId: integration.vercelTeamId ?? undefined,
       });
 
+      // Scope by integrationId so we can never mutate a binding that lives
+      // under a different (victim) integration. Filtering only by the
+      // user-supplied projectId previously allowed an attacker who knew a
+      // foreign Vercel project id (visible in deployment URLs and build
+      // logs) to soft-delete the victim's bindings while the actual env var
+      // remained live in Vercel.
       const bindings = await db.query.vercelBindings.findMany({
-        where: and(eq(schema.vercelBindings.projectId, input.projectId)),
+        where: and(
+          eq(schema.vercelBindings.projectId, input.projectId),
+          eq(schema.vercelBindings.integrationId, integration.id),
+        ),
       });
 
       for (const binding of bindings) {
-        await vercel.removeEnvironmentVariable(binding.projectId, binding.vercelEnvId);
+        const result = await vercel.removeEnvironmentVariable(
+          binding.projectId,
+          binding.vercelEnvId,
+        );
+        if (result.err) {
+          // Surface upstream Vercel failures rather than silently soft-deleting
+          // a binding row whose remote env var is still live. The Vercel SDK
+          // returns Result<void, FetchError> and never throws, so without this
+          // check the audit log would record success while the env var
+          // remained in place.
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Failed to remove Vercel environment variable: ${result.err.message}`,
+          });
+        }
         await db.transaction(async (tx) => {
           await tx
             .update(schema.vercelBindings)

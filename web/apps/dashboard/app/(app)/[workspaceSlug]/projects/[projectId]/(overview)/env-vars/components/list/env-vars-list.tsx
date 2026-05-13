@@ -36,20 +36,24 @@ export function EnvVarsList({
   sortBy,
 }: EnvVarsListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const closeEdit = useCallback(() => setEditingId(null), []);
+
+  const openEdit = useCallback(
+    (id: string) => {
+      if (editingId !== null && editingId !== id) {
+        setEditingId(null);
+        requestAnimationFrame(() => setEditingId(id));
+      } else {
+        setEditingId(id);
+      }
+    },
+    [editingId],
+  );
   const deferredQuery = useDeferredValue(searchQuery);
 
   const toggleGroup = useCallback((key: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
+    setExpandedRow((prev) => (prev === key ? "" : key));
   }, []);
 
   const { data: envVarData, isLoading } = useLiveQuery(
@@ -100,15 +104,22 @@ export function EnvVarsList({
     return rows;
   }, [envVarData, environments, deferredQuery, environmentFilter, sortBy]);
 
-  const { selectedIds, toggleRowSelection, isRowSelected, handleBulkDelete, clearSelection } =
-    useRowSelection(displayRows);
+  const {
+    selectedIds,
+    toggleRowSelection,
+    toggleItemSelection,
+    isRowSelected,
+    handleBulkDelete,
+    handleBulkMakeSensitive,
+    clearSelection,
+  } = useRowSelection(displayRows);
 
-  useCloseEditOnGroupCollapse(displayRows, expandedGroups, editingId, setEditingId);
+  useCloseEditOnGroupCollapse(displayRows, expandedRow, editingId, setEditingId);
 
   const { virtualizer, listRefCallback, scrollMargin } = useVirtualList(
     displayRows,
     editingId,
-    expandedGroups,
+    expandedRow,
   );
 
   if (isLoading) {
@@ -154,7 +165,7 @@ export function EnvVarsList({
                     item={row.item}
                     searchQuery={deferredQuery}
                     isEditing={editingId === row.item.id}
-                    onEdit={() => setEditingId(row.item.id)}
+                    onEdit={() => openEdit(row.item.id)}
                     onCloseEdit={closeEdit}
                     isSelected={selectedIds.has(row.item.id)}
                     onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
@@ -163,13 +174,15 @@ export function EnvVarsList({
                 ) : (
                   <GroupRow
                     row={row}
-                    isExpanded={expandedGroups.has(row.key)}
+                    isExpanded={expandedRow === row.key}
                     selected={isRowSelected(row)}
+                    selectedIds={selectedIds}
                     deferredQuery={deferredQuery}
                     editingId={editingId}
                     onToggleGroup={() => toggleGroup(row.key)}
                     onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
-                    onEdit={setEditingId}
+                    onToggleItemSelection={toggleItemSelection}
+                    onEdit={openEdit}
                     onCloseEdit={closeEdit}
                     hasSelection={selectedIds.size > 0}
                   />
@@ -182,6 +195,7 @@ export function EnvVarsList({
       <EnvVarSelectionBar
         selectedCount={selectedIds.size}
         onDelete={handleBulkDelete}
+        onMakeSensitive={handleBulkMakeSensitive}
         onClearSelection={clearSelection}
       />
     </>
@@ -190,7 +204,7 @@ export function EnvVarsList({
 
 function useCloseEditOnGroupCollapse(
   displayRows: DisplayRow[],
-  expandedGroups: Set<string>,
+  expandedRow: string | null,
   editingId: string | null,
   setEditingId: (id: string | null) => void,
 ) {
@@ -199,12 +213,12 @@ function useCloseEditOnGroupCollapse(
       return;
     }
     for (const row of displayRows) {
-      if (row.kind === "group" && !expandedGroups.has(row.key)) {
+      if (row.kind === "group" && expandedRow !== row.key) {
         if (row.items.some((i) => i.id === editingId)) {
           setEditingId(null);
           break;
         }
       }
     }
-  }, [expandedGroups, displayRows, editingId, setEditingId]);
+  }, [expandedRow, displayRows, editingId, setEditingId]);
 }

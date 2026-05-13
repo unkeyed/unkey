@@ -49,7 +49,9 @@ type Result struct {
 func Discover(ctx context.Context, domain string, privateKeyPEM []byte, params map[string]string, redirectURL string) (*Result, error) {
 	cfg, err := discoverConfig(ctx, domain)
 	if err != nil {
-		if errors.Is(err, ErrNoDomainConnectRecord) || errors.Is(err, ErrNoDomainConnectSettings) {
+		if errors.Is(err, ErrNoDomainConnectRecord) ||
+			errors.Is(err, ErrNoDomainConnectSettings) ||
+			errors.Is(err, ErrUnsupportedDomainConnectHost) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("domain connect discovery: %w", err)

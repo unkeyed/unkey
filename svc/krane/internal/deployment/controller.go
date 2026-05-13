@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -12,6 +13,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/internal/keymutex"
+	"github.com/unkeyed/unkey/svc/krane/internal/podstatus"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -41,6 +46,22 @@ type Controller struct {
 	// so we can skip redundant reports during resync. Entries auto-expire
 	// via the cache's TTL, preventing unbounded growth from deleted RSs.
 	fingerprints cache.Cache[string, string]
+
+	// eventDedup deduplicates instance lifecycle events by
+	// (pod_uid, container_name, restart_count, event_kind). The same life
+	// appears on every pod-watch tick until kubelet gc's it; this cache
+	// keeps us from re-emitting the same event over and over. May be nil
+	// in tests or environments without ctrl-side ClickHouse wiring.
+	eventDedup cache.Cache[string, struct{}]
+
+	// reportLocks serializes reportIfChanged per k8s_name so the fingerprint
+	// Get and post-RPC Set can't race with another concurrent event for the
+	// same ReplicaSet and both report the same state.
+	reportLocks keymutex.KeyMutex
+
+	// lagRecorder records pod watch delivery lag, deduplicated per
+	// (pod UID, transition time).
+	lagRecorder *podstatus.LagRecorder
 
 	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	storageClassName string
@@ -79,6 +100,17 @@ type Config struct {
 	// Fingerprints is a cache for deduplicating deployment status reports.
 	Fingerprints cache.Cache[string, string]
 
+	// EventDedup is a cache for deduplicating per-container lifecycle
+	// events (terminations, crashloop_backoff). Optional: when nil, the
+	// instance event capture path is disabled and only the coarse
+	// deployment-status report fires.
+	EventDedup cache.Cache[string, struct{}]
+
+	// ObservedTransitions is a cache keyed by pod UID that records which
+	// ContainersReady transitions have already been sampled, so the lag
+	// histogram isn't skewed by repeat events for the same transition.
+	ObservedTransitions cache.Cache[string, time.Time]
+
 	// StorageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	StorageClassName string
 }
@@ -106,20 +138,30 @@ func New(cfg Config) *Controller {
 		region:           cfg.Region,
 		platform:         cfg.Platform,
 		fingerprints:     cfg.Fingerprints,
+		eventDedup:       cfg.EventDedup,
+		reportLocks:      keymutex.KeyMutex{},
+		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 		storageClassName: cfg.StorageClassName,
 	}
 }
 
 // Start launches the background control loops.
 //
-// The method starts [Controller.runResyncLoop] as a background goroutine and
-// initializes [Controller.runPodWatchLoop]'s Kubernetes watch before returning.
-// Desired state is received externally via the watcher package.
-// If watch initialization fails, Start returns the error.
+// Three independent loops run concurrently:
+//   - [Controller.runActualStateResyncLoop]: periodic safety net for instance
+//     state reporting (complements the real-time pod watch).
+//   - [Controller.runDesiredStateResyncLoop]: periodic reconciliation of desired
+//     state from the control plane (complements the streaming channel).
+//   - [Controller.runPodWatchLoop]: real-time Kubernetes watch for pod events.
 //
+// The actual-state and desired-state loops are decoupled so that slow control
+// plane RPCs cannot delay instance reporting.
+//
+// If watch initialization fails, Start returns the error.
 // All loops continue until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
-	go c.runResyncLoop(ctx)
+	go c.runActualStateResyncLoop(ctx)
+	go c.runDesiredStateResyncLoop(ctx)
 
 	if err := c.runPodWatchLoop(ctx); err != nil {
 		return err
@@ -135,6 +177,10 @@ func (c *Controller) Stop() error {
 	return nil
 }
 
+func (c *Controller) regionKey() *ctrlv1.RegionKey {
+	return &ctrlv1.RegionKey{Platform: c.platform, Name: c.region}
+}
+
 // reportDeploymentStatus reports actual deployment state to the control plane
 // through the circuit breaker. The circuit breaker prevents cascading failures
 // during control plane outages by failing fast after repeated errors.
@@ -142,9 +188,31 @@ func (c *Controller) Stop() error {
 // On success, the fingerprint for this report is cached so that
 // [Controller.reportIfChanged] can skip redundant reports during resync.
 func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
+	status.Region = c.regionKey()
+	start := time.Now()
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
 		return c.cluster.ReportDeploymentStatus(innerCtx, status)
 	})
+	elapsed := time.Since(start)
+	result := "success"
+	if err != nil {
+		result = "error"
+	}
+	metrics.ReportStatusDurationSeconds.WithLabelValues("deployment", result).Observe(elapsed.Seconds())
+	rsName := ""
+	instanceCount := 0
+	if update := status.GetUpdate(); update != nil {
+		rsName = update.GetK8SName()
+		instanceCount = len(update.GetInstances())
+	} else if del := status.GetDelete(); del != nil {
+		rsName = del.GetK8SName()
+	}
+	logger.Info("report deployment status rpc",
+		"replicaSet", rsName,
+		"instances", instanceCount,
+		"duration_ms", elapsed.Milliseconds(),
+		"result", result,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to report deployment status: %w", err)
 	}
@@ -158,6 +226,10 @@ func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.
 
 // reportIfChanged reports deployment status only when the instance list differs
 // from the last successful report. Returns true if a report was sent.
+//
+// Serialized per k8s_name: pod events for the same ReplicaSet are processed
+// concurrently, so the fingerprint Get/RPC/Set window would otherwise race
+// and let two events both pass the dedupe check.
 func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) (bool, error) {
 	update := status.GetUpdate()
 	if update == nil {
@@ -165,8 +237,12 @@ func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportD
 		return true, c.reportDeploymentStatus(ctx, status)
 	}
 
+	unlock := c.reportLocks.Lock(update.GetK8SName())
+	defer unlock()
+
 	fp := instanceFingerprint(update.GetInstances())
 	if prev, hit := c.fingerprints.Get(ctx, update.GetK8SName()); hit == cache.Hit && prev == fp {
+		metrics.ReportDedupedTotal.WithLabelValues("deployment").Inc()
 		return false, nil
 	}
 

@@ -13,7 +13,7 @@ export async function bootstrapDashboard(resources: {
 }) {
   const env = marshalEnv({
     Database: {
-      DATABASE_HOST: "localhost:3900",
+      DATABASE_HOST: "localhost:3306",
       DATABASE_USERNAME: "unkey",
       DATABASE_PASSWORD: "password",
     },

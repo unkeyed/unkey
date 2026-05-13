@@ -1,4 +1,4 @@
-import { apiItemsWithApproxKeyCounts } from "@/app/(app)/[workspaceSlug]/apis/actions";
+import { attachKeyCounts } from "@/app/(app)/[workspaceSlug]/apis/actions";
 import { db, sql } from "@/lib/db";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
@@ -21,15 +21,10 @@ export const overviewApiSearch = workspaceProcedure
           ),
           isNull(table.deletedAtM),
         ),
-      with: {
-        keyAuth: {
-          columns: {
-            sizeApprox: true,
-          },
-        },
-      },
     });
 
-    const apiList = await apiItemsWithApproxKeyCounts(apis);
-    return apiList;
+    return attachKeyCounts(
+      ctx.workspace.id,
+      apis.map((api) => ({ id: api.id, name: api.name, keyAuthId: api.keyAuthId })),
+    );
   });

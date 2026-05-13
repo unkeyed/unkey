@@ -1,8 +1,9 @@
 "use client";
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
-import { SettingsShell } from "@unkey/ui";
+import { SettingsDangerZone, SettingsShell } from "@unkey/ui";
 import { DeleteProject } from "./components/delete-project";
+import { DisconnectGitHub } from "./components/disconnect-github";
 import { DeploymentSettings } from "./deployment-settings";
 import { EnvironmentSettingsProvider } from "./environment-provider";
 export default function SettingsPage() {
@@ -19,7 +20,12 @@ export default function SettingsPage() {
         </div>
         <DeploymentSettings onBeforeNavigate={bypass} />
       </SettingsShell>
-      <DeleteProject />
+      <div className="w-225 mx-auto mt-10 mb-14">
+        <SettingsDangerZone>
+          <DisconnectGitHub />
+          <DeleteProject />
+        </SettingsDangerZone>
+      </div>
     </EnvironmentSettingsProvider>
   );
 }

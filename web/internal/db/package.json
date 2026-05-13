@@ -22,8 +22,8 @@
     "typescript": "5.5.3"
   },
   "dependencies": {
-    "@planetscale/database": "1.19.0",
     "@unkey/id": "workspace:^",
+    "mysql2": "3.10.3",
     "drizzle-orm": "0.45.1"
   }
 }

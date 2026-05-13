@@ -11,7 +11,10 @@ import { OnboardingEnvironmentSettingsInner } from "./environment-inner";
  * Returns null until environments have loaded so prodEnvId is always defined
  * before any live queries run.
  */
-export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChildren) => {
+export const OnboardingEnvironmentSettingsProvider = ({
+  children,
+  onSettingsReady,
+}: PropsWithChildren<{ onSettingsReady: () => void }>) => {
   const { environments, isEnvironmentsLoading } = useProjectData();
 
   const prodEnvId = useMemo(
@@ -25,7 +28,11 @@ export const OnboardingEnvironmentSettingsProvider = ({ children }: PropsWithChi
   }
 
   return (
-    <OnboardingEnvironmentSettingsInner prodEnvId={prodEnvId} environments={environments}>
+    <OnboardingEnvironmentSettingsInner
+      prodEnvId={prodEnvId}
+      environments={environments}
+      onSettingsReady={onSettingsReady}
+    >
       {children}
     </OnboardingEnvironmentSettingsInner>
   );

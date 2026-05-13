@@ -14,7 +14,7 @@ import { Book2, BracketsCurly, Chats, CircleCaretRight, CircleQuestion } from "@
 import { useState } from "react";
 
 export const HelpButton: React.FC = () => {
-  const [_, openFeedback] = useFeedback();
+  const { openFeedback } = useFeedback();
   const [open, setOpen] = useState(false);
 
   return (

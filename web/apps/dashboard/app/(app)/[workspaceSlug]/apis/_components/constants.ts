@@ -1,1 +1,0 @@
-export const DEFAULT_OVERVIEW_FETCH_LIMIT = 9;

@@ -152,15 +152,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			for _, role := range rolesToRemove {
 				roleIds = append(roleIds, role.ID)
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.AuthDisconnectRoleKeyEvent,
-					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorMeta:   map[string]any{},
-					Display:     fmt.Sprintf("Removed role %s from key %s", role.Name, req.KeyId),
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.AuthDisconnectRoleKeyEvent,
+					ActorType:     auditlog.RootKeyActor,
+					ActorID:       auth.Key.ID,
+					ActorName:     "root key",
+					ActorMeta:     map[string]any{},
+					Display:       fmt.Sprintf("Removed role %s from key %s", role.Name, req.KeyId),
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type:        auditlog.KeyResourceType,

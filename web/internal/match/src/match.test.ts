@@ -45,7 +45,7 @@ describe("match", () => {
           callCount++;
           return 1;
         })
-        .with("a", () => {
+        .with("b", () => {
           callCount++;
           return 2;
         })
@@ -155,7 +155,7 @@ describe("match", () => {
     });
 
     it("calls handler with input when unmatched", () => {
-      const result = match("z")
+      const result = match("z" as "a" | "z")
         .with("a", () => 1)
         .otherwise((v) => v);
       expect(result).toBe("z");
@@ -329,5 +329,22 @@ describe("Object.is semantics", () => {
       .with(0, () => "zero")
       .otherwise(() => "neg zero");
     expect(result).toBe("neg zero");
+  });
+});
+
+describe("partial boolean patterns on non-discriminated objects", () => {
+  it("routes correctly to each boolean arm", () => {
+    type Flags = { a: boolean; b: boolean };
+
+    const run = (v: Flags) =>
+      match(v)
+        .with({ a: true }, () => "a-true")
+        .with({ a: false }, () => "a-false")
+        .exhaustive();
+
+    expect(run({ a: true, b: true })).toBe("a-true");
+    expect(run({ a: true, b: false })).toBe("a-true");
+    expect(run({ a: false, b: true })).toBe("a-false");
+    expect(run({ a: false, b: false })).toBe("a-false");
   });
 });

@@ -50,6 +50,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	// Mint a correlation ID so the identity.update audit event plus any
+	// per-ratelimit add/update/delete events that result share one ID
+	// for dashboard drill-down.
+	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
+
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -153,15 +158,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.IdentityUpdateEvent,
-				Display:     fmt.Sprintf("Updated identity %s", identityRow.ID),
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorType:   auditlog.RootKeyActor,
-				ActorMeta:   map[string]any{},
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.IdentityUpdateEvent,
+				Display:       fmt.Sprintf("Updated identity %s", identityRow.ID),
+				ActorID:       auth.Key.ID,
+				ActorName:     "root key",
+				ActorType:     auditlog.RootKeyActor,
+				ActorMeta:     map[string]any{},
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          identityRow.ID,
@@ -219,15 +225,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				// Add audit log for deletion
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.RatelimitDeleteEvent,
-					Display:     fmt.Sprintf("Deleted ratelimit %s", existingRL.ID),
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorType:   auditlog.RootKeyActor,
-					ActorMeta:   map[string]any{},
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.RatelimitDeleteEvent,
+					Display:       fmt.Sprintf("Deleted ratelimit %s", existingRL.ID),
+					ActorID:       auth.Key.ID,
+					ActorName:     "root key",
+					ActorType:     auditlog.RootKeyActor,
+					ActorMeta:     map[string]any{},
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							ID:          identityRow.ID,
@@ -258,34 +265,44 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			rateLimitsToInsert := make([]db.InsertIdentityRatelimitParams, 0)
-			// Update existing ratelimits or create new ones
+			// Update existing ratelimits via UPDATE by ID (row locks only), and
+			// INSERT only truly new rows. This avoids gap-lock contention from
+			// INSERT ... ON DUPLICATE KEY UPDATE that deadlocks under concurrent
+			// bulk identity updates.
 			for name, newRL := range newRatelimitMap {
 				existingRL, exists := existingRatelimitMap[name]
 
 				var ratelimitID string
 				if exists {
 					ratelimitID = existingRL.ID
-					rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
-						ID:          existingRL.ID,
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						IdentityID:  sql.NullString{String: identityRow.ID, Valid: true},
-						Name:        newRL.Name,
-						Limit:       int32(newRL.Limit), // nolint:gosec
-						Duration:    newRL.Duration,
-						AutoApply:   newRL.AutoApply,
-						CreatedAt:   time.Now().UnixMilli(),
+
+					err = db.Query.UpdateRatelimit(ctx, tx, db.UpdateRatelimitParams{
+						ID:        existingRL.ID,
+						Name:      newRL.Name,
+						Limit:     uint64(newRL.Limit),
+						Duration:  uint64(newRL.Duration),
+						AutoApply: newRL.AutoApply,
 					})
+					if err != nil {
+						// nolint:exhaustruct
+						return txResult{}, fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database failed to update ratelimit"),
+							fault.Public("Failed to update ratelimit"),
+						)
+					}
 
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						Event:       auditlog.RatelimitUpdateEvent,
-						Display:     fmt.Sprintf("Updated ratelimit %s", existingRL.ID),
-						ActorID:     auth.Key.ID,
-						ActorName:   "root key",
-						ActorType:   auditlog.RootKeyActor,
-						ActorMeta:   map[string]any{},
-						RemoteIP:    s.Location(),
-						UserAgent:   s.UserAgent(),
+						WorkspaceID:   auth.AuthorizedWorkspaceID,
+						Event:         auditlog.RatelimitUpdateEvent,
+						Display:       fmt.Sprintf("Updated ratelimit %s", existingRL.ID),
+						ActorID:       auth.Key.ID,
+						ActorName:     "root key",
+						ActorType:     auditlog.RootKeyActor,
+						ActorMeta:     map[string]any{},
+						RemoteIP:      s.Location(),
+						UserAgent:     s.UserAgent(),
+						CorrelationID: "",
 						Resources: []auditlog.AuditLogResource{
 							{
 								ID:          identityRow.ID,
@@ -311,23 +328,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						WorkspaceID: auth.AuthorizedWorkspaceID,
 						IdentityID:  sql.NullString{String: identityRow.ID, Valid: true},
 						Name:        newRL.Name,
-						Limit:       int32(newRL.Limit), // nolint:gosec
-						Duration:    newRL.Duration,
+						Limit:       uint64(newRL.Limit),
+						Duration:    uint64(newRL.Duration),
 						CreatedAt:   time.Now().UnixMilli(),
 						AutoApply:   newRL.AutoApply,
 					})
 
 					// Add audit log for creation
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						Event:       auditlog.RatelimitCreateEvent,
-						Display:     fmt.Sprintf("Created ratelimit %s", ratelimitID),
-						ActorID:     auth.Key.ID,
-						ActorName:   "root key",
-						ActorType:   auditlog.RootKeyActor,
-						ActorMeta:   map[string]any{},
-						RemoteIP:    s.Location(),
-						UserAgent:   s.UserAgent(),
+						WorkspaceID:   auth.AuthorizedWorkspaceID,
+						Event:         auditlog.RatelimitCreateEvent,
+						Display:       fmt.Sprintf("Created ratelimit %s", ratelimitID),
+						ActorID:       auth.Key.ID,
+						ActorName:     "root key",
+						ActorType:     auditlog.RootKeyActor,
+						ActorMeta:     map[string]any{},
+						RemoteIP:      s.Location(),
+						UserAgent:     s.UserAgent(),
+						CorrelationID: "",
 						Resources: []auditlog.AuditLogResource{
 							{
 								ID:          identityRow.ID,
@@ -375,7 +393,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Id:        rl.ID,
 					Name:      rl.Name,
 					Limit:     int64(rl.Limit),
-					Duration:  rl.Duration,
+					Duration:  int64(rl.Duration),
 					AutoApply: rl.AutoApply,
 				})
 			}

@@ -4,9 +4,9 @@
 
 // Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
 //
-// The Cluster service enables a central control plane to coordinate deployments and sentinels
+// The Cluster service enables a central control plane to coordinate deployments
 // across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
-// a long-lived watch connection to receive deployment and sentinel configuration events.
+// a long-lived watch connection to receive deployment configuration events.
 //
 // This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
 // a streaming connection to receive incremental updates, enabling real-time deployment
@@ -22,16 +22,45 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/cluster.proto.
  */
 export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiWgodV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QSDgoGcmVnaW9uGAEgASgJEhkKEXZlcnNpb25fbGFzdF9zZWVuGAIgASgEEg4KBnJlcGxheRgDIAEoCCIZChdTeW5jRGVzaXJlZFN0YXRlUmVxdWVzdCLRAQoVRGVwbG95bWVudENoYW5nZUV2ZW50Eg8KB3ZlcnNpb24YASABKAQSLgoKZGVwbG95bWVudBgCIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlSAASKgoIc2VudGluZWwYAyABKAsyFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGVIABJCChVjaWxpdW1fbmV0d29ya19wb2xpY3kYBCABKAsyIS5jdHJsLnYxLkNpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZUgAQgcKBWV2ZW50InUKGEFwcGx5Q2lsaXVtTmV0d29ya1BvbGljeRIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEiAKGGNpbGl1bV9uZXR3b3JrX3BvbGljeV9pZBgDIAEoCRIOCgZwb2xpY3kYBCABKAwiRAoZRGVsZXRlQ2lsaXVtTmV0d29ya1BvbGljeRIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJIp4BChhDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSDwoHdmVyc2lvbhgDIAEoBBIyCgVhcHBseRgBIAEoCzIhLmN0cmwudjEuQXBwbHlDaWxpdW1OZXR3b3JrUG9saWN5SAASNAoGZGVsZXRlGAIgASgLMiIuY3RybC52MS5EZWxldGVDaWxpdW1OZXR3b3JrUG9saWN5SABCBwoFc3RhdGUiTQopR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZVJlcXVlc3QSIAoYY2lsaXVtX25ldHdvcmtfcG9saWN5X2lkGAEgASgJIjUKHkdldERlc2lyZWRTZW50aW5lbFN0YXRlUmVxdWVzdBITCgtzZW50aW5lbF9pZBgBIAEoCSI5CiBHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIrcECh1SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdBI/CgZ1cGRhdGUYASABKAsyLS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZUgAEj8KBmRlbGV0ZRgCIAEoCzItLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuRGVsZXRlSAAa7QIKBlVwZGF0ZRIQCghrOHNfbmFtZRgBIAEoCRJJCglpbnN0YW5jZXMYAiADKAsyNi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZS5JbnN0YW5jZRqFAgoISW5zdGFuY2USEAoIazhzX25hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgDIAEoAxISCgptZW1vcnlfbWliGAQgASgDEk0KBnN0YXR1cxgFIAEoDjI9LmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlLkluc3RhbmNlLlN0YXR1cyJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQAxoaCgZEZWxldGUSEAoIazhzX25hbWUYASABKAlCCAoGY2hhbmdlIiAKHlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXNwb25zZSJsChtSZXBvcnRTZW50aW5lbFN0YXR1c1JlcXVlc3QSEAoIazhzX25hbWUYASABKAkSGgoSYXZhaWxhYmxlX3JlcGxpY2FzGAIgASgFEh8KBmhlYWx0aBgDIAEoDjIPLmN0cmwudjEuSGVhbHRoIh4KHFJlcG9ydFNlbnRpbmVsU3RhdHVzUmVzcG9uc2UifQoNU2VudGluZWxTdGF0ZRIPCgd2ZXJzaW9uGAMgASgEEicKBWFwcGx5GAEgASgLMhYuY3RybC52MS5BcHBseVNlbnRpbmVsSAASKQoGZGVsZXRlGAIgASgLMhcuY3RybC52MS5EZWxldGVTZW50aW5lbEgAQgcKBXN0YXRlIoMBCg9EZXBsb3ltZW50U3RhdGUSDwoHdmVyc2lvbhgDIAEoBBIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFc3RhdGUi1QEKDUFwcGx5U2VudGluZWwSEAoIazhzX25hbWUYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSDgoGYXBwX2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhMKC3NlbnRpbmVsX2lkGAYgASgJEg0KBWltYWdlGAcgASgJEhAKCHJlcGxpY2FzGAggASgFEhYKDmNwdV9taWxsaWNvcmVzGAkgASgDEhIKCm1lbW9yeV9taWIYCiABKAMiIgoORGVsZXRlU2VudGluZWwSEAoIazhzX25hbWUYASABKAkilwYKD0FwcGx5RGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEhQKDHdvcmtzcGFjZV9pZBgDIAEoCRISCgpwcm9qZWN0X2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAxIVCghidWlsZF9pZBgLIAEoCUgAiAEBEicKH2VuY3J5cHRlZF9lbnZpcm9ubWVudF92YXJpYWJsZXMYDCABKAwSDwoHY29tbWFuZBgNIAMoCRIMCgRwb3J0GA4gASgFEhcKD3NodXRkb3duX3NpZ25hbBgPIAEoCRIYCgtoZWFsdGhjaGVjaxgRIAEoDEgBiAEBEg4KBmFwcF9pZBgSIAEoCRIdChBlbnZpcm9ubWVudF9zbHVnGBUgASgJSAKIAQESEwoGcmVnaW9uGBYgASgJSAOIAQESGwoOZ2l0X2NvbW1pdF9zaGEYFyABKAlIBIgBARIXCgpnaXRfYnJhbmNoGBggASgJSAWIAQESFQoIZ2l0X3JlcG8YGSABKAlIBogBARIfChJnaXRfY29tbWl0X21lc3NhZ2UYGiABKAlIB4gBARIvCgthdXRvc2NhbGluZxgbIAEoCzIaLmN0cmwudjEuQXV0b3NjYWxpbmdQb2xpY3kSOQoRZXBoZW1lcmFsX3N0b3JhZ2UYHSABKAsyGS5jdHJsLnYxLkVwaGVtZXJhbFN0b3JhZ2VICIgBAUILCglfYnVpbGRfaWRCDgoMX2hlYWx0aGNoZWNrQhMKEV9lbnZpcm9ubWVudF9zbHVnQgkKB19yZWdpb25CEQoPX2dpdF9jb21taXRfc2hhQg0KC19naXRfYnJhbmNoQgsKCV9naXRfcmVwb0IVChNfZ2l0X2NvbW1pdF9tZXNzYWdlQhQKEl9lcGhlbWVyYWxfc3RvcmFnZSKhAQoRQXV0b3NjYWxpbmdQb2xpY3kSFAoMbWluX3JlcGxpY2FzGAEgASgNEhQKDG1heF9yZXBsaWNhcxgCIAEoDRIaCg1jcHVfdGhyZXNob2xkGAMgASgFSACIAQESHQoQbWVtb3J5X3RocmVzaG9sZBgEIAEoBUgBiAEBQhAKDl9jcHVfdGhyZXNob2xkQhMKEV9tZW1vcnlfdGhyZXNob2xkIjsKEERlbGV0ZURlcGxveW1lbnQSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCSI0ChBIZWFydGJlYXRSZXF1ZXN0Eg4KBnJlZ2lvbhgBIAEoCRIQCghwbGF0Zm9ybRgCIAEoCSITChFIZWFydGJlYXRSZXNwb25zZSpdCgZIZWFsdGgSFgoSSEVBTFRIX1VOU1BFQ0lGSUVEEAASEgoOSEVBTFRIX0hFQUxUSFkQARIUChBIRUFMVEhfVU5IRUFMVEhZEAISEQoNSEVBTFRIX1BBVVNFRBADMpsGCg5DbHVzdGVyU2VydmljZRJiChZXYXRjaERlcGxveW1lbnRDaGFuZ2VzEiYuY3RybC52MS5XYXRjaERlcGxveW1lbnRDaGFuZ2VzUmVxdWVzdBoeLmN0cmwudjEuRGVwbG95bWVudENoYW5nZUV2ZW50MAESVgoQU3luY0Rlc2lyZWRTdGF0ZRIgLmN0cmwudjEuU3luY0Rlc2lyZWRTdGF0ZVJlcXVlc3QaHi5jdHJsLnYxLkRlcGxveW1lbnRDaGFuZ2VFdmVudDABEloKF0dldERlc2lyZWRTZW50aW5lbFN0YXRlEicuY3RybC52MS5HZXREZXNpcmVkU2VudGluZWxTdGF0ZVJlcXVlc3QaFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGUSYwoUUmVwb3J0U2VudGluZWxTdGF0dXMSJC5jdHJsLnYxLlJlcG9ydFNlbnRpbmVsU3RhdHVzUmVxdWVzdBolLmN0cmwudjEuUmVwb3J0U2VudGluZWxTdGF0dXNSZXNwb25zZRJgChlHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlEikuY3RybC52MS5HZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBoYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlEmkKFlJlcG9ydERlcGxveW1lbnRTdGF0dXMSJi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0GicuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVzcG9uc2USewoiR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZRIyLmN0cmwudjEuR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZVJlcXVlc3QaIS5jdHJsLnYxLkNpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZRJCCglIZWFydGJlYXQSGS5jdHJsLnYxLkhlYXJ0YmVhdFJlcXVlc3QaGi5jdHJsLnYxLkhlYXJ0YmVhdFJlc3BvbnNlQosBCgtjb20uY3RybC52MUIMQ2x1c3RlclByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_deployment]);
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiKwoJUmVnaW9uS2V5EhAKCHBsYXRmb3JtGAEgASgJEgwKBG5hbWUYAiABKAkibgodV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QSIgoGcmVnaW9uGAEgASgLMhIuY3RybC52MS5SZWdpb25LZXkSGQoRdmVyc2lvbl9sYXN0X3NlZW4YAiABKAQSDgoGcmVwbGF5GAMgASgIIj0KF1N5bmNEZXNpcmVkU3RhdGVSZXF1ZXN0EiIKBnJlZ2lvbhgBIAEoCzISLmN0cmwudjEuUmVnaW9uS2V5ImEKFURlcGxveW1lbnRDaGFuZ2VFdmVudBIPCgd2ZXJzaW9uGAEgASgEEi4KCmRlcGxveW1lbnQYAiABKAsyGC5jdHJsLnYxLkRlcGxveW1lbnRTdGF0ZUgAQgcKBWV2ZW50Il0KIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EiIKBnJlZ2lvbhgBIAEoCzISLmN0cmwudjEuUmVnaW9uS2V5EhUKDWRlcGxveW1lbnRfaWQYAiABKAki2wQKHVJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0EiIKBnJlZ2lvbhgDIAEoCzISLmN0cmwudjEuUmVnaW9uS2V5Ej8KBnVwZGF0ZRgBIAEoCzItLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlSAASPwoGZGVsZXRlGAIgASgLMi0uY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5EZWxldGVIABrtAgoGVXBkYXRlEhAKCGs4c19uYW1lGAEgASgJEkkKCWluc3RhbmNlcxgCIAMoCzI2LmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlLkluc3RhbmNlGoUCCghJbnN0YW5jZRIQCghrOHNfbmFtZRgBIAEoCRIPCgdhZGRyZXNzGAIgASgJEhYKDmNwdV9taWxsaWNvcmVzGAMgASgDEhIKCm1lbW9yeV9taWIYBCABKAMSTQoGc3RhdHVzGAUgASgOMj0uY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5VcGRhdGUuSW5zdGFuY2UuU3RhdHVzIlsKBlN0YXR1cxIWChJTVEFUVVNfVU5TUEVDSUZJRUQQABISCg5TVEFUVVNfUEVORElORxABEhIKDlNUQVRVU19SVU5OSU5HEAISEQoNU1RBVFVTX0ZBSUxFRBADGhoKBkRlbGV0ZRIQCghrOHNfbmFtZRgBIAEoCUIICgZjaGFuZ2UiIAoeUmVwb3J0RGVwbG95bWVudFN0YXR1c1Jlc3BvbnNlIokECg1JbnN0YW5jZUV2ZW50Eg8KB3BvZF91aWQYASABKAkSEAoIcG9kX25hbWUYAiABKAkSEQoJbm9kZV9uYW1lGAMgASgJEhYKDmNvbnRhaW5lcl9uYW1lGAQgASgJEhQKDGNvbnRhaW5lcl9pZBgFIAEoCRIVCg1yZXN0YXJ0X2NvdW50GAYgASgFEhQKDHdvcmtzcGFjZV9pZBgHIAEoCRISCgpwcm9qZWN0X2lkGAggASgJEg4KBmFwcF9pZBgJIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgKIAEoCRIVCg1kZXBsb3ltZW50X2lkGAsgASgJEgwKBHRpbWUYDCABKAMSGQoRZXZlbnRfZmluZ2VycHJpbnQYDSABKAkSIwoHcnVubmluZxgOIAEoCzIQLmN0cmwudjEuUnVubmluZ0gAEikKCnRlcm1pbmF0ZWQYDyABKAsyEy5jdHJsLnYxLlRlcm1pbmF0ZWRIABIjCgd3YWl0aW5nGBAgASgLMhAuY3RybC52MS5XYWl0aW5nSAASOgoKYXR0cmlidXRlcxgRIAMoCzImLmN0cmwudjEuSW5zdGFuY2VFdmVudC5BdHRyaWJ1dGVzRW50cnkaMQoPQXR0cmlidXRlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFCBwoFc3RhdGUiCQoHUnVubmluZyJQCgpUZXJtaW5hdGVkEhEKCWV4aXRfY29kZRgBIAEoBRIOCgZzaWduYWwYAiABKAUSDgoGcmVhc29uGAMgASgJEg8KB21lc3NhZ2UYBCABKAkiKgoHV2FpdGluZxIOCgZyZWFzb24YASABKAkSDwoHbWVzc2FnZRgCIAEoCSJpChtSZXBvcnRJbnN0YW5jZUV2ZW50c1JlcXVlc3QSJgoGZXZlbnRzGAEgAygLMhYuY3RybC52MS5JbnN0YW5jZUV2ZW50EiIKBnJlZ2lvbhgCIAEoCzISLmN0cmwudjEuUmVnaW9uS2V5Ih4KHFJlcG9ydEluc3RhbmNlRXZlbnRzUmVzcG9uc2UigwEKD0RlcGxveW1lbnRTdGF0ZRIPCgd2ZXJzaW9uGAMgASgEEikKBWFwcGx5GAEgASgLMhguY3RybC52MS5BcHBseURlcGxveW1lbnRIABIrCgZkZWxldGUYAiABKAsyGS5jdHJsLnYxLkRlbGV0ZURlcGxveW1lbnRIAEIHCgVzdGF0ZSKXBgoPQXBwbHlEZXBsb3ltZW50EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEhIKCnByb2plY3RfaWQYBCABKAkSFgoOZW52aXJvbm1lbnRfaWQYBSABKAkSFQoNZGVwbG95bWVudF9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoAxISCgptZW1vcnlfbWliGAogASgDEhUKCGJ1aWxkX2lkGAsgASgJSACIAQESJwofZW5jcnlwdGVkX2Vudmlyb25tZW50X3ZhcmlhYmxlcxgMIAEoDBIPCgdjb21tYW5kGA0gAygJEgwKBHBvcnQYDiABKAUSFwoPc2h1dGRvd25fc2lnbmFsGA8gASgJEhgKC2hlYWx0aGNoZWNrGBEgASgMSAGIAQESDgoGYXBwX2lkGBIgASgJEh0KEGVudmlyb25tZW50X3NsdWcYFSABKAlIAogBARITCgZyZWdpb24YFiABKAlIA4gBARIbCg5naXRfY29tbWl0X3NoYRgXIAEoCUgEiAEBEhcKCmdpdF9icmFuY2gYGCABKAlIBYgBARIVCghnaXRfcmVwbxgZIAEoCUgGiAEBEh8KEmdpdF9jb21taXRfbWVzc2FnZRgaIAEoCUgHiAEBEi8KC2F1dG9zY2FsaW5nGBsgASgLMhouY3RybC52MS5BdXRvc2NhbGluZ1BvbGljeRI5ChFlcGhlbWVyYWxfc3RvcmFnZRgdIAEoCzIZLmN0cmwudjEuRXBoZW1lcmFsU3RvcmFnZUgIiAEBQgsKCV9idWlsZF9pZEIOCgxfaGVhbHRoY2hlY2tCEwoRX2Vudmlyb25tZW50X3NsdWdCCQoHX3JlZ2lvbkIRCg9fZ2l0X2NvbW1pdF9zaGFCDQoLX2dpdF9icmFuY2hCCwoJX2dpdF9yZXBvQhUKE19naXRfY29tbWl0X21lc3NhZ2VCFAoSX2VwaGVtZXJhbF9zdG9yYWdlIqEBChFBdXRvc2NhbGluZ1BvbGljeRIUCgxtaW5fcmVwbGljYXMYASABKA0SFAoMbWF4X3JlcGxpY2FzGAIgASgNEhoKDWNwdV90aHJlc2hvbGQYAyABKAVIAIgBARIdChBtZW1vcnlfdGhyZXNob2xkGAQgASgFSAGIAQFCEAoOX2NwdV90aHJlc2hvbGRCEwoRX21lbW9yeV90aHJlc2hvbGQiOwoQRGVsZXRlRGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJIjYKEEhlYXJ0YmVhdFJlcXVlc3QSIgoGcmVnaW9uGAEgASgLMhIuY3RybC52MS5SZWdpb25LZXkiEwoRSGVhcnRiZWF0UmVzcG9uc2UqXQoGSGVhbHRoEhYKEkhFQUxUSF9VTlNQRUNJRklFRBAAEhIKDkhFQUxUSF9IRUFMVEhZEAESFAoQSEVBTFRIX1VOSEVBTFRIWRACEhEKDUhFQUxUSF9QQVVTRUQQAzLCBAoOQ2x1c3RlclNlcnZpY2USYgoWV2F0Y2hEZXBsb3ltZW50Q2hhbmdlcxImLmN0cmwudjEuV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QaHi5jdHJsLnYxLkRlcGxveW1lbnRDaGFuZ2VFdmVudDABElYKEFN5bmNEZXNpcmVkU3RhdGUSIC5jdHJsLnYxLlN5bmNEZXNpcmVkU3RhdGVSZXF1ZXN0Gh4uY3RybC52MS5EZXBsb3ltZW50Q2hhbmdlRXZlbnQwARJgChlHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlEikuY3RybC52MS5HZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBoYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlEmkKFlJlcG9ydERlcGxveW1lbnRTdGF0dXMSJi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0GicuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVzcG9uc2USYwoUUmVwb3J0SW5zdGFuY2VFdmVudHMSJC5jdHJsLnYxLlJlcG9ydEluc3RhbmNlRXZlbnRzUmVxdWVzdBolLmN0cmwudjEuUmVwb3J0SW5zdGFuY2VFdmVudHNSZXNwb25zZRJCCglIZWFydGJlYXQSGS5jdHJsLnYxLkhlYXJ0YmVhdFJlcXVlc3QaGi5jdHJsLnYxLkhlYXJ0YmVhdFJlc3BvbnNlQosBCgtjb20uY3RybC52MUIMQ2x1c3RlclByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_deployment]);
+
+/**
+ * RegionKey identifies a region on the wire. Every ClusterService RPC scoped
+ * to a single region carries this as its first field.
+ *
+ * @generated from message ctrl.v1.RegionKey
+ */
+export type RegionKey = Message<"ctrl.v1.RegionKey"> & {
+  /**
+   * platform is the infrastructure provider (e.g. "aws", "gcp", "local").
+   *
+   * @generated from field: string platform = 1;
+   */
+  platform: string;
+
+  /**
+   * name is the geographic region name (e.g. "us-east-1").
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message ctrl.v1.RegionKey.
+ * Use `create(RegionKeySchema)` to create a new message.
+ */
+export const RegionKeySchema: GenMessage<RegionKey> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 0);
 
 /**
  * @generated from message ctrl.v1.WatchDeploymentChangesRequest
  */
 export type WatchDeploymentChangesRequest = Message<"ctrl.v1.WatchDeploymentChangesRequest"> & {
   /**
-   * @generated from field: string region = 1;
+   * @generated from field: ctrl.v1.RegionKey region = 1;
    */
-  region: string;
+  region?: RegionKey;
 
   /**
    * @generated from field: uint64 version_last_seen = 2;
@@ -52,12 +81,16 @@ export type WatchDeploymentChangesRequest = Message<"ctrl.v1.WatchDeploymentChan
  * Use `create(WatchDeploymentChangesRequestSchema)` to create a new message.
  */
 export const WatchDeploymentChangesRequestSchema: GenMessage<WatchDeploymentChangesRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 0);
+  messageDesc(file_ctrl_v1_cluster, 1);
 
 /**
  * @generated from message ctrl.v1.SyncDesiredStateRequest
  */
 export type SyncDesiredStateRequest = Message<"ctrl.v1.SyncDesiredStateRequest"> & {
+  /**
+   * @generated from field: ctrl.v1.RegionKey region = 1;
+   */
+  region?: RegionKey;
 };
 
 /**
@@ -65,7 +98,7 @@ export type SyncDesiredStateRequest = Message<"ctrl.v1.SyncDesiredStateRequest">
  * Use `create(SyncDesiredStateRequestSchema)` to create a new message.
  */
 export const SyncDesiredStateRequestSchema: GenMessage<SyncDesiredStateRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 1);
+  messageDesc(file_ctrl_v1_cluster, 2);
 
 /**
  * @generated from message ctrl.v1.DeploymentChangeEvent
@@ -85,18 +118,6 @@ export type DeploymentChangeEvent = Message<"ctrl.v1.DeploymentChangeEvent"> & {
      */
     value: DeploymentState;
     case: "deployment";
-  } | {
-    /**
-     * @generated from field: ctrl.v1.SentinelState sentinel = 3;
-     */
-    value: SentinelState;
-    case: "sentinel";
-  } | {
-    /**
-     * @generated from field: ctrl.v1.CiliumNetworkPolicyState cilium_network_policy = 4;
-     */
-    value: CiliumNetworkPolicyState;
-    case: "ciliumNetworkPolicy";
   } | { case: undefined; value?: undefined };
 };
 
@@ -105,136 +126,19 @@ export type DeploymentChangeEvent = Message<"ctrl.v1.DeploymentChangeEvent"> & {
  * Use `create(DeploymentChangeEventSchema)` to create a new message.
  */
 export const DeploymentChangeEventSchema: GenMessage<DeploymentChangeEvent> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 2);
-
-/**
- * @generated from message ctrl.v1.ApplyCiliumNetworkPolicy
- */
-export type ApplyCiliumNetworkPolicy = Message<"ctrl.v1.ApplyCiliumNetworkPolicy"> & {
-  /**
-   * @generated from field: string k8s_namespace = 1;
-   */
-  k8sNamespace: string;
-
-  /**
-   * @generated from field: string k8s_name = 2;
-   */
-  k8sName: string;
-
-  /**
-   * @generated from field: string cilium_network_policy_id = 3;
-   */
-  ciliumNetworkPolicyId: string;
-
-  /**
-   * @generated from field: bytes policy = 4;
-   */
-  policy: Uint8Array;
-};
-
-/**
- * Describes the message ctrl.v1.ApplyCiliumNetworkPolicy.
- * Use `create(ApplyCiliumNetworkPolicySchema)` to create a new message.
- */
-export const ApplyCiliumNetworkPolicySchema: GenMessage<ApplyCiliumNetworkPolicy> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 3);
-
-/**
- * @generated from message ctrl.v1.DeleteCiliumNetworkPolicy
- */
-export type DeleteCiliumNetworkPolicy = Message<"ctrl.v1.DeleteCiliumNetworkPolicy"> & {
-  /**
-   * @generated from field: string k8s_namespace = 1;
-   */
-  k8sNamespace: string;
-
-  /**
-   * @generated from field: string k8s_name = 2;
-   */
-  k8sName: string;
-};
-
-/**
- * Describes the message ctrl.v1.DeleteCiliumNetworkPolicy.
- * Use `create(DeleteCiliumNetworkPolicySchema)` to create a new message.
- */
-export const DeleteCiliumNetworkPolicySchema: GenMessage<DeleteCiliumNetworkPolicy> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 4);
-
-/**
- * @generated from message ctrl.v1.CiliumNetworkPolicyState
- */
-export type CiliumNetworkPolicyState = Message<"ctrl.v1.CiliumNetworkPolicyState"> & {
-  /**
-   * @generated from field: uint64 version = 3;
-   */
-  version: bigint;
-
-  /**
-   * @generated from oneof ctrl.v1.CiliumNetworkPolicyState.state
-   */
-  state: {
-    /**
-     * @generated from field: ctrl.v1.ApplyCiliumNetworkPolicy apply = 1;
-     */
-    value: ApplyCiliumNetworkPolicy;
-    case: "apply";
-  } | {
-    /**
-     * @generated from field: ctrl.v1.DeleteCiliumNetworkPolicy delete = 2;
-     */
-    value: DeleteCiliumNetworkPolicy;
-    case: "delete";
-  } | { case: undefined; value?: undefined };
-};
-
-/**
- * Describes the message ctrl.v1.CiliumNetworkPolicyState.
- * Use `create(CiliumNetworkPolicyStateSchema)` to create a new message.
- */
-export const CiliumNetworkPolicyStateSchema: GenMessage<CiliumNetworkPolicyState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 5);
-
-/**
- * @generated from message ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest
- */
-export type GetDesiredCiliumNetworkPolicyStateRequest = Message<"ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest"> & {
-  /**
-   * @generated from field: string cilium_network_policy_id = 1;
-   */
-  ciliumNetworkPolicyId: string;
-};
-
-/**
- * Describes the message ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest.
- * Use `create(GetDesiredCiliumNetworkPolicyStateRequestSchema)` to create a new message.
- */
-export const GetDesiredCiliumNetworkPolicyStateRequestSchema: GenMessage<GetDesiredCiliumNetworkPolicyStateRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 6);
-
-/**
- * @generated from message ctrl.v1.GetDesiredSentinelStateRequest
- */
-export type GetDesiredSentinelStateRequest = Message<"ctrl.v1.GetDesiredSentinelStateRequest"> & {
-  /**
-   * @generated from field: string sentinel_id = 1;
-   */
-  sentinelId: string;
-};
-
-/**
- * Describes the message ctrl.v1.GetDesiredSentinelStateRequest.
- * Use `create(GetDesiredSentinelStateRequestSchema)` to create a new message.
- */
-export const GetDesiredSentinelStateRequestSchema: GenMessage<GetDesiredSentinelStateRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 7);
 
 /**
  * @generated from message ctrl.v1.GetDesiredDeploymentStateRequest
  */
 export type GetDesiredDeploymentStateRequest = Message<"ctrl.v1.GetDesiredDeploymentStateRequest"> & {
   /**
-   * @generated from field: string deployment_id = 1;
+   * @generated from field: ctrl.v1.RegionKey region = 1;
+   */
+  region?: RegionKey;
+
+  /**
+   * @generated from field: string deployment_id = 2;
    */
   deploymentId: string;
 };
@@ -244,7 +148,7 @@ export type GetDesiredDeploymentStateRequest = Message<"ctrl.v1.GetDesiredDeploy
  * Use `create(GetDesiredDeploymentStateRequestSchema)` to create a new message.
  */
 export const GetDesiredDeploymentStateRequestSchema: GenMessage<GetDesiredDeploymentStateRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8);
+  messageDesc(file_ctrl_v1_cluster, 4);
 
 /**
  * ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
@@ -253,6 +157,11 @@ export const GetDesiredDeploymentStateRequestSchema: GenMessage<GetDesiredDeploy
  * @generated from message ctrl.v1.ReportDeploymentStatusRequest
  */
 export type ReportDeploymentStatusRequest = Message<"ctrl.v1.ReportDeploymentStatusRequest"> & {
+  /**
+   * @generated from field: ctrl.v1.RegionKey region = 3;
+   */
+  region?: RegionKey;
+
   /**
    * @generated from oneof ctrl.v1.ReportDeploymentStatusRequest.change
    */
@@ -276,7 +185,7 @@ export type ReportDeploymentStatusRequest = Message<"ctrl.v1.ReportDeploymentSta
  * Use `create(ReportDeploymentStatusRequestSchema)` to create a new message.
  */
 export const ReportDeploymentStatusRequestSchema: GenMessage<ReportDeploymentStatusRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 9);
+  messageDesc(file_ctrl_v1_cluster, 5);
 
 /**
  * @generated from message ctrl.v1.ReportDeploymentStatusRequest.Update
@@ -298,7 +207,7 @@ export type ReportDeploymentStatusRequest_Update = Message<"ctrl.v1.ReportDeploy
  * Use `create(ReportDeploymentStatusRequest_UpdateSchema)` to create a new message.
  */
 export const ReportDeploymentStatusRequest_UpdateSchema: GenMessage<ReportDeploymentStatusRequest_Update> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 9, 0);
+  messageDesc(file_ctrl_v1_cluster, 5, 0);
 
 /**
  * @generated from message ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
@@ -335,7 +244,7 @@ export type ReportDeploymentStatusRequest_Update_Instance = Message<"ctrl.v1.Rep
  * Use `create(ReportDeploymentStatusRequest_Update_InstanceSchema)` to create a new message.
  */
 export const ReportDeploymentStatusRequest_Update_InstanceSchema: GenMessage<ReportDeploymentStatusRequest_Update_Instance> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 9, 0, 0);
+  messageDesc(file_ctrl_v1_cluster, 5, 0, 0);
 
 /**
  * @generated from enum ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
@@ -372,7 +281,7 @@ export enum ReportDeploymentStatusRequest_Update_Instance_Status {
  * Describes the enum ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status.
  */
 export const ReportDeploymentStatusRequest_Update_Instance_StatusSchema: GenEnum<ReportDeploymentStatusRequest_Update_Instance_Status> = /*@__PURE__*/
-  enumDesc(file_ctrl_v1_cluster, 9, 0, 0, 0);
+  enumDesc(file_ctrl_v1_cluster, 5, 0, 0, 0);
 
 /**
  * @generated from message ctrl.v1.ReportDeploymentStatusRequest.Delete
@@ -389,7 +298,7 @@ export type ReportDeploymentStatusRequest_Delete = Message<"ctrl.v1.ReportDeploy
  * Use `create(ReportDeploymentStatusRequest_DeleteSchema)` to create a new message.
  */
 export const ReportDeploymentStatusRequest_DeleteSchema: GenMessage<ReportDeploymentStatusRequest_Delete> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 9, 1);
+  messageDesc(file_ctrl_v1_cluster, 5, 1);
 
 /**
  * @generated from message ctrl.v1.ReportDeploymentStatusResponse
@@ -402,105 +311,283 @@ export type ReportDeploymentStatusResponse = Message<"ctrl.v1.ReportDeploymentSt
  * Use `create(ReportDeploymentStatusResponseSchema)` to create a new message.
  */
 export const ReportDeploymentStatusResponseSchema: GenMessage<ReportDeploymentStatusResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 10);
+  messageDesc(file_ctrl_v1_cluster, 6);
 
 /**
- * ReportSentinelStatusRequest reports the actual state of a sentinel from the agent.
- * Used by runActualStateReportLoop to inform the control plane of K8s cluster state.
+ * InstanceEvent describes a single container lifecycle transition observed
+ * by krane's pod watch. The (pod_uid, container_name, restart_count, state)
+ * tuple is the dedupe key on both the krane LRU and the ClickHouse insert.
  *
- * @generated from message ctrl.v1.ReportSentinelStatusRequest
- */
-export type ReportSentinelStatusRequest = Message<"ctrl.v1.ReportSentinelStatusRequest"> & {
-  /**
-   * @generated from field: string k8s_name = 1;
-   */
-  k8sName: string;
-
-  /**
-   * @generated from field: int32 available_replicas = 2;
-   */
-  availableReplicas: number;
-
-  /**
-   * @generated from field: ctrl.v1.Health health = 3;
-   */
-  health: Health;
-};
-
-/**
- * Describes the message ctrl.v1.ReportSentinelStatusRequest.
- * Use `create(ReportSentinelStatusRequestSchema)` to create a new message.
- */
-export const ReportSentinelStatusRequestSchema: GenMessage<ReportSentinelStatusRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 11);
-
-/**
- * @generated from message ctrl.v1.ReportSentinelStatusResponse
- */
-export type ReportSentinelStatusResponse = Message<"ctrl.v1.ReportSentinelStatusResponse"> & {
-};
-
-/**
- * Describes the message ctrl.v1.ReportSentinelStatusResponse.
- * Use `create(ReportSentinelStatusResponseSchema)` to create a new message.
- */
-export const ReportSentinelStatusResponseSchema: GenMessage<ReportSentinelStatusResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 12);
-
-/**
- * SentinelState represents a lifecycle event for an API sentinel configuration.
+ * The `state` oneof mirrors corev1.ContainerState — krane reads exactly
+ * this shape from kubelet, so the mapping is direct and future kubelet
+ * reasons (PullBackOff, ImagePullBackOff, …) slot in under Waiting without
+ * any wire format change.
  *
- * Sentinels are frontline points for services, typically handling routing, load balancing,
- * and API management. The event follows a declarative model where the cluster agent ensures
- * the cluster state matches the desired configuration.
- *
- * @generated from message ctrl.v1.SentinelState
+ * @generated from message ctrl.v1.InstanceEvent
  */
-export type SentinelState = Message<"ctrl.v1.SentinelState"> & {
+export type InstanceEvent = Message<"ctrl.v1.InstanceEvent"> & {
   /**
-   * version is the sentinel-specific resource version for this state update.
-   * Clients should track the max version seen and use it when reconnecting to
-   * the WatchSentinels stream to resume from the correct position.
-   * When returned from GetDesiredSentinelState, this field is not set.
+   * K8s identity of the container life this event is about.
    *
-   * @generated from field: uint64 version = 3;
+   * @generated from field: string pod_uid = 1;
    */
-  version: bigint;
+  podUid: string;
 
   /**
-   * state contains the specific sentinel operation to perform.
-   * Only one state type is set per message, determining the action the agent should take.
+   * @generated from field: string pod_name = 2;
+   */
+  podName: string;
+
+  /**
+   * @generated from field: string node_name = 3;
+   */
+  nodeName: string;
+
+  /**
+   * @generated from field: string container_name = 4;
+   */
+  containerName: string;
+
+  /**
+   * @generated from field: string container_id = 5;
+   */
+  containerId: string;
+
+  /**
+   * @generated from field: int32 restart_count = 6;
+   */
+  restartCount: number;
+
+  /**
+   * Tenant identifiers extracted from pod labels by krane. Field order
+   * matches the canonical hierarchy: workspace > project > app >
+   * environment > deployment.
    *
-   * @generated from oneof ctrl.v1.SentinelState.state
+   * @generated from field: string workspace_id = 7;
+   */
+  workspaceId: string;
+
+  /**
+   * @generated from field: string project_id = 8;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string app_id = 9;
+   */
+  appId: string;
+
+  /**
+   * @generated from field: string environment_id = 10;
+   */
+  environmentId: string;
+
+  /**
+   * @generated from field: string deployment_id = 11;
+   */
+  deploymentId: string;
+
+  /**
+   * When this event happened (unix milliseconds). For Running it's the
+   * container's StartedAt; for Terminated it's FinishedAt; for Waiting
+   * it's when kubelet last published the waiting state.
+   *
+   * @generated from field: int64 time = 12;
+   */
+  time: bigint;
+
+  /**
+   * Stable hash krane computes so the dashboard can group identical
+   * incidents without an aggregate table. Inputs differ by state:
+   *   Running    — (image_id, "running")
+   *   Terminated — (image_id, exit_code, reason, message[:200])
+   *   Waiting    — (image_id, 0, reason, message[:200])
+   *
+   * @generated from field: string event_fingerprint = 13;
+   */
+  eventFingerprint: string;
+
+  /**
+   * Mirrors corev1.ContainerState. Exactly one case is set per event.
+   *
+   * @generated from oneof ctrl.v1.InstanceEvent.state
    */
   state: {
     /**
-     * apply indicates the sentinel should exist with this configuration.
-     * The agent will create the sentinel if it doesn't exist or update it if it does.
-     * This follows the same semantics as "kubectl apply" - declare desired state
-     * and let the agent determine the appropriate action.
-     *
-     * @generated from field: ctrl.v1.ApplySentinel apply = 1;
+     * @generated from field: ctrl.v1.Running running = 14;
      */
-    value: ApplySentinel;
-    case: "apply";
+    value: Running;
+    case: "running";
   } | {
     /**
-     * delete indicates the sentinel should be removed from the cluster.
-     *
-     * @generated from field: ctrl.v1.DeleteSentinel delete = 2;
+     * @generated from field: ctrl.v1.Terminated terminated = 15;
      */
-    value: DeleteSentinel;
-    case: "delete";
+    value: Terminated;
+    case: "terminated";
+  } | {
+    /**
+     * @generated from field: ctrl.v1.Waiting waiting = 16;
+     */
+    value: Waiting;
+    case: "waiting";
   } | { case: undefined; value?: undefined };
+
+  /**
+   * Selected k8s metadata for the event row. Stored verbatim into the
+   * ClickHouse `attributes` Map column. Known keys (krane populates):
+   *   image, image_id, cpu_limit_millicores, memory_limit_mib,
+   *   cpu_request_millicores, memory_request_mib, build_id.
+   * Numbers are stringified so the wire shape matches the column type.
+   *
+   * @generated from field: map<string, string> attributes = 17;
+   */
+  attributes: { [key: string]: string };
 };
 
 /**
- * Describes the message ctrl.v1.SentinelState.
- * Use `create(SentinelStateSchema)` to create a new message.
+ * Describes the message ctrl.v1.InstanceEvent.
+ * Use `create(InstanceEventSchema)` to create a new message.
  */
-export const SentinelStateSchema: GenMessage<SentinelState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 13);
+export const InstanceEventSchema: GenMessage<InstanceEvent> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 7);
+
+/**
+ * Running means the container is healthy and serving. The event itself
+ * timestamps when this life began (InstanceEvent.time = StartedAt). No
+ * per-state metadata beyond identity is needed today; this empty message
+ * is reserved for future signals (process restart count within a single
+ * life, etc.) without an InstanceEvent shape change.
+ *
+ * @generated from message ctrl.v1.Running
+ */
+export type Running = Message<"ctrl.v1.Running"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.Running.
+ * Use `create(RunningSchema)` to create a new message.
+ */
+export const RunningSchema: GenMessage<Running> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 8);
+
+/**
+ * Terminated captures kubelet's ContainerStateTerminated. The container
+ * exited; the metadata explains why.
+ *
+ * @generated from message ctrl.v1.Terminated
+ */
+export type Terminated = Message<"ctrl.v1.Terminated"> & {
+  /**
+   * Process exit code reported by the kernel.
+   *
+   * @generated from field: int32 exit_code = 1;
+   */
+  exitCode: number;
+
+  /**
+   * Signal that delivered the termination, or 0 if the process exited
+   * without a signal. SIGTERM (15) usually means k8s/user requested
+   * shutdown; SIGKILL (9) typically pairs with OOMKilled or grace period
+   * expiry.
+   *
+   * @generated from field: int32 signal = 2;
+   */
+  signal: number;
+
+  /**
+   * Kubelet-supplied label: "OOMKilled", "Error", "Completed",
+   * "ContainerCannotRun", "DeadlineExceeded", …
+   *
+   * @generated from field: string reason = 3;
+   */
+  reason: string;
+
+  /**
+   * Free-form kubelet message; truncated past 200 bytes when fed into
+   * event_fingerprint so retries of the same failure collapse.
+   *
+   * @generated from field: string message = 4;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message ctrl.v1.Terminated.
+ * Use `create(TerminatedSchema)` to create a new message.
+ */
+export const TerminatedSchema: GenMessage<Terminated> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 9);
+
+/**
+ * Waiting captures kubelet's ContainerStateWaiting. Krane currently only
+ * emits when reason == "CrashLoopBackOff", but the type is shaped to
+ * accept any waiting reason kubelet publishes.
+ *
+ * @generated from message ctrl.v1.Waiting
+ */
+export type Waiting = Message<"ctrl.v1.Waiting"> & {
+  /**
+   * Kubelet-supplied label: "CrashLoopBackOff", "ImagePullBackOff",
+   * "ContainerCreating", "ErrImagePull", …
+   *
+   * @generated from field: string reason = 1;
+   */
+  reason: string;
+
+  /**
+   * @generated from field: string message = 2;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message ctrl.v1.Waiting.
+ * Use `create(WaitingSchema)` to create a new message.
+ */
+export const WaitingSchema: GenMessage<Waiting> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 10);
+
+/**
+ * ReportInstanceEventsRequest carries one or more events from a single krane
+ * pod-watch tick. Batching keeps the RPC count low when a pod has multiple
+ * containers (init/main/sidecar) terminating at once.
+ *
+ * @generated from message ctrl.v1.ReportInstanceEventsRequest
+ */
+export type ReportInstanceEventsRequest = Message<"ctrl.v1.ReportInstanceEventsRequest"> & {
+  /**
+   * @generated from field: repeated ctrl.v1.InstanceEvent events = 1;
+   */
+  events: InstanceEvent[];
+
+  /**
+   * region scopes the report to one cluster's krane agent. Same convention as
+   * every other ClusterService RPC (ReportDeploymentStatus, ReportSentinelStatus).
+   *
+   * @generated from field: ctrl.v1.RegionKey region = 2;
+   */
+  region?: RegionKey;
+};
+
+/**
+ * Describes the message ctrl.v1.ReportInstanceEventsRequest.
+ * Use `create(ReportInstanceEventsRequestSchema)` to create a new message.
+ */
+export const ReportInstanceEventsRequestSchema: GenMessage<ReportInstanceEventsRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 11);
+
+/**
+ * @generated from message ctrl.v1.ReportInstanceEventsResponse
+ */
+export type ReportInstanceEventsResponse = Message<"ctrl.v1.ReportInstanceEventsResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.ReportInstanceEventsResponse.
+ * Use `create(ReportInstanceEventsResponseSchema)` to create a new message.
+ */
+export const ReportInstanceEventsResponseSchema: GenMessage<ReportInstanceEventsResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 12);
 
 /**
  * DeploymentState represents a lifecycle event for an application deployment.
@@ -555,107 +642,7 @@ export type DeploymentState = Message<"ctrl.v1.DeploymentState"> & {
  * Use `create(DeploymentStateSchema)` to create a new message.
  */
 export const DeploymentStateSchema: GenMessage<DeploymentState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 14);
-
-/**
- * ApplySentinel contains the desired configuration for a sentinel.
- *
- * The cluster agent will ensure a sentinel exists with this exact configuration, creating it if
- * it doesn't exist or updating it if it does. All fields except namespace are required.
- * The control plane ensures that sentinel_id is unique within the namespace.
- *
- * @generated from message ctrl.v1.ApplySentinel
- */
-export type ApplySentinel = Message<"ctrl.v1.ApplySentinel"> & {
-  /**
-   * @generated from field: string k8s_name = 1;
-   */
-  k8sName: string;
-
-  /**
-   * workspace_id identifies the workspace that owns this sentinel.
-   *
-   * @generated from field: string workspace_id = 2;
-   */
-  workspaceId: string;
-
-  /**
-   * project_id identifies the project within the workspace.
-   *
-   * @generated from field: string project_id = 3;
-   */
-  projectId: string;
-
-  /**
-   * app_id identifies the app within the project.
-   *
-   * @generated from field: string app_id = 4;
-   */
-  appId: string;
-
-  /**
-   * environment_id in which the sentinel should exist.
-   *
-   * @generated from field: string environment_id = 5;
-   */
-  environmentId: string;
-
-  /**
-   * sentinel_id is the unique identifier for this sentinel globally
-   *
-   * @generated from field: string sentinel_id = 6;
-   */
-  sentinelId: string;
-
-  /**
-   * @generated from field: string image = 7;
-   */
-  image: string;
-
-  /**
-   * @generated from field: int32 replicas = 8;
-   */
-  replicas: number;
-
-  /**
-   * @generated from field: int64 cpu_millicores = 9;
-   */
-  cpuMillicores: bigint;
-
-  /**
-   * @generated from field: int64 memory_mib = 10;
-   */
-  memoryMib: bigint;
-};
-
-/**
- * Describes the message ctrl.v1.ApplySentinel.
- * Use `create(ApplySentinelSchema)` to create a new message.
- */
-export const ApplySentinelSchema: GenMessage<ApplySentinel> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 15);
-
-/**
- * DeleteSentinel identifies a sentinel to remove from the cluster.
- *
- * The sentinel and all its resources (pods, services, frontline) will be deleted.
- * In-flight requests may be disrupted unless proper connection draining is configured.
- *
- * @generated from message ctrl.v1.DeleteSentinel
- */
-export type DeleteSentinel = Message<"ctrl.v1.DeleteSentinel"> & {
-  /**
-   * @generated from field: string k8s_name = 1;
-   */
-  k8sName: string;
-};
-
-/**
- * Describes the message ctrl.v1.DeleteSentinel.
- * Use `create(DeleteSentinelSchema)` to create a new message.
- */
-export const DeleteSentinelSchema: GenMessage<DeleteSentinel> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 16);
+  messageDesc(file_ctrl_v1_cluster, 13);
 
 /**
  * ApplyDeployment contains the desired configuration for a deployment.
@@ -842,7 +829,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
  * Use `create(ApplyDeploymentSchema)` to create a new message.
  */
 export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 17);
+  messageDesc(file_ctrl_v1_cluster, 14);
 
 /**
  * AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
@@ -887,7 +874,7 @@ export type AutoscalingPolicy = Message<"ctrl.v1.AutoscalingPolicy"> & {
  * Use `create(AutoscalingPolicySchema)` to create a new message.
  */
 export const AutoscalingPolicySchema: GenMessage<AutoscalingPolicy> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 18);
+  messageDesc(file_ctrl_v1_cluster, 15);
 
 /**
  * DeleteDeployment identifies a deployment to remove from the cluster.
@@ -915,7 +902,7 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  * Use `create(DeleteDeploymentSchema)` to create a new message.
  */
 export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 19);
+  messageDesc(file_ctrl_v1_cluster, 16);
 
 /**
  * HeartbeatRequest is sent periodically by krane agents to register their
@@ -926,18 +913,9 @@ export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*
  */
 export type HeartbeatRequest = Message<"ctrl.v1.HeartbeatRequest"> & {
   /**
-   * region is the geographic region name (e.g. "us-east-1").
-   *
-   * @generated from field: string region = 1;
+   * @generated from field: ctrl.v1.RegionKey region = 1;
    */
-  region: string;
-
-  /**
-   * platform is the infrastructure provider (e.g. "aws", "gcp", "local").
-   *
-   * @generated from field: string platform = 2;
-   */
-  platform: string;
+  region?: RegionKey;
 };
 
 /**
@@ -945,7 +923,7 @@ export type HeartbeatRequest = Message<"ctrl.v1.HeartbeatRequest"> & {
  * Use `create(HeartbeatRequestSchema)` to create a new message.
  */
 export const HeartbeatRequestSchema: GenMessage<HeartbeatRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 20);
+  messageDesc(file_ctrl_v1_cluster, 17);
 
 /**
  * @generated from message ctrl.v1.HeartbeatResponse
@@ -958,10 +936,10 @@ export type HeartbeatResponse = Message<"ctrl.v1.HeartbeatResponse"> & {
  * Use `create(HeartbeatResponseSchema)` to create a new message.
  */
 export const HeartbeatResponseSchema: GenMessage<HeartbeatResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 21);
+  messageDesc(file_ctrl_v1_cluster, 18);
 
 /**
- * Health represents the health state of a resource (sentinel, deployment instance, etc.)
+ * Health represents the health state of a resource (deployment instance, etc.)
  *
  * @generated from enum ctrl.v1.Health
  */
@@ -994,15 +972,12 @@ export const HealthSchema: GenEnum<Health> = /*@__PURE__*/
   enumDesc(file_ctrl_v1_cluster, 0);
 
 /**
- * ClusterService coordinates deployment and sentinel configurations across multiple clusters.
+ * ClusterService coordinates deployment configurations across multiple clusters.
  *
  * Agents in each cluster establish watch streams to receive configuration events
- * from the control plane. The service provides separate streams for deployments and
- * sentinels, each with independent version cursors. This allows the two control loops
- * to operate independently with isolated failure domains.
- *
- * The watch connections are designed to be long-lived with automatic reconnection on failure.
- * When an agent reconnects, it should resume from its last seen version for that resource type.
+ * from the control plane. The watch connections are designed to be long-lived
+ * with automatic reconnection on failure. When an agent reconnects, it should
+ * resume from its last seen version.
  *
  * @generated from service ctrl.v1.ClusterService
  */
@@ -1022,9 +997,9 @@ export const ClusterService: GenService<{
   },
   /**
    * SyncDesiredState streams the full desired state for a region: all running
-   * deployments, active sentinels, and cilium policies. The server closes the
-   * stream after all state has been sent. Krane calls this on startup and
-   * periodically as a safety net to reconcile any drift.
+   * deployments and Cilium policies. The server closes the stream after all
+   * state has been sent. Krane calls this on startup and periodically as a
+   * safety net to reconcile any drift.
    *
    * @generated from rpc ctrl.v1.ClusterService.SyncDesiredState
    */
@@ -1032,28 +1007,6 @@ export const ClusterService: GenService<{
     methodKind: "server_streaming";
     input: typeof SyncDesiredStateRequestSchema;
     output: typeof DeploymentChangeEventSchema;
-  },
-  /**
-   * GetDesiredSentinelState returns the current desired state for a single sentinel.
-   * Used by the resync loop to verify consistency for existing resources.
-   *
-   * @generated from rpc ctrl.v1.ClusterService.GetDesiredSentinelState
-   */
-  getDesiredSentinelState: {
-    methodKind: "unary";
-    input: typeof GetDesiredSentinelStateRequestSchema;
-    output: typeof SentinelStateSchema;
-  },
-  /**
-   * ReportSentinelStatus reports actual sentinel state from the agent to the control plane.
-   * Called when K8s watch events indicate sentinel Deployment changes.
-   *
-   * @generated from rpc ctrl.v1.ClusterService.ReportSentinelStatus
-   */
-  reportSentinelStatus: {
-    methodKind: "unary";
-    input: typeof ReportSentinelStatusRequestSchema;
-    output: typeof ReportSentinelStatusResponseSchema;
   },
   /**
    * GetDesiredDeploymentState returns the current desired state for a single deployment.
@@ -1078,15 +1031,18 @@ export const ClusterService: GenService<{
     output: typeof ReportDeploymentStatusResponseSchema;
   },
   /**
-   * GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
-   * Used by the resync loop to verify consistency for existing resources.
+   * ReportInstanceEvents reports container lifecycle events (starts, exits,
+   * CrashLoopBackOff transitions) from the agent. Krane batches one or more
+   * events per RPC; the control plane writes them to ClickHouse and
+   * denormalizes the latest exit info onto the matching instances row so the
+   * dashboard can render exit reasons without a CH round-trip.
    *
-   * @generated from rpc ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState
+   * @generated from rpc ctrl.v1.ClusterService.ReportInstanceEvents
    */
-  getDesiredCiliumNetworkPolicyState: {
+  reportInstanceEvents: {
     methodKind: "unary";
-    input: typeof GetDesiredCiliumNetworkPolicyStateRequestSchema;
-    output: typeof CiliumNetworkPolicyStateSchema;
+    input: typeof ReportInstanceEventsRequestSchema;
+    output: typeof ReportInstanceEventsResponseSchema;
   },
   /**
    * Heartbeat is called periodically by krane agents to register their cluster

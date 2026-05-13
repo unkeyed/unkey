@@ -473,6 +473,18 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  async deactivateMembership(membershipId: string): Promise<void> {
+    if (!membershipId) {
+      throw new Error("Membership Id is required");
+    }
+
+    try {
+      await this.provider.userManagement.deactivateOrganizationMembership(membershipId);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Invitation Management
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const { orgId, email, role = "basic_member" } = params;
@@ -900,6 +912,30 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return await session.getLogoutUrl();
     } catch (_error) {
       return null;
+    }
+  }
+
+  async revokeSession(sessionToken: string): Promise<void> {
+    if (!sessionToken) {
+      return;
+    }
+
+    try {
+      const session = this.provider.userManagement.loadSealedSession({
+        sessionData: sessionToken,
+        cookiePassword: this.cookiePassword,
+      });
+
+      const authResult = await session.authenticate();
+      if (!authResult.authenticated) {
+        return;
+      }
+
+      await this.provider.userManagement.revokeSession({
+        sessionId: authResult.sessionId,
+      });
+    } catch (_error) {
+      // Swallow revoke failures so logout can always complete client-side.
     }
   }
 

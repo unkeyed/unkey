@@ -2,7 +2,6 @@
 
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { PropsWithChildren } from "react";
-import { useProjectLayout } from "../(overview)/layout-provider";
 
 type ProjectContentWrapperProps = PropsWithChildren<{
   className?: React.ComponentProps<"div">["className"];
@@ -24,13 +23,10 @@ export function ProjectContentWrapper({
   centered = false,
   maxWidth = "960px",
 }: ProjectContentWrapperProps) {
-  const { isDetailsOpen } = useProjectLayout();
-
   return (
     <div
       className={cn(
-        "transition-all duration-300 ease-in-out",
-        isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]",
+        "w-full",
         centered ? "flex justify-center pb-20 px-8" : "flex flex-col",
         className,
       )}

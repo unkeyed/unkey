@@ -100,7 +100,10 @@ export const rbacRouter = t.router({
       }
 
       const key = await db.query.keys.findFirst({
-        where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, input.rootKeyId),
+        where: and(
+          eq(schema.keys.forWorkspaceId, workspace.id),
+          eq(schema.keys.id, input.rootKeyId),
+        ),
         with: {
           permissions: {
             with: {
@@ -127,6 +130,13 @@ export const rbacRouter = t.router({
       }
 
       await db.transaction(async (tx) => {
+        // keysPermissions rows are scoped to the key's owning workspace
+        // (`keys.workspaceId`), which for root keys is Unkey's internal
+        // workspace — not `workspace.id` (the customer's workspace, which
+        // appears as `keys.forWorkspaceId`). Use `permissionRelation.workspaceId`
+        // here so the DELETE matches the actual row. Cross-tenant safety
+        // is already enforced by the `forWorkspaceId === workspace.id` check
+        // on the `key` lookup above.
         await tx
           .delete(schema.keysPermissions)
           .where(
@@ -418,6 +428,10 @@ export const rbacRouter = t.router({
         });
       }
       const roleId = newId("role");
+      // Mint a shared correlation so the role.create event and the N
+      // permission-bind events from the second insertAuditLogs call all
+      // link to one user action in the audit log drill-down.
+      const correlationId = newId("correlation");
       await db.transaction(async (tx) => {
         await tx.insert(schema.roles).values({
           id: roleId,
@@ -445,6 +459,7 @@ export const rbacRouter = t.router({
             userAgent: ctx.audit.userAgent,
             location: ctx.audit.location,
           },
+          correlationId,
         });
 
         if (input.permissionIds && input.permissionIds.length > 0) {
@@ -478,6 +493,7 @@ export const rbacRouter = t.router({
                 userAgent: ctx.audit.userAgent,
                 location: ctx.audit.location,
               },
+              correlationId,
             })),
           );
         }

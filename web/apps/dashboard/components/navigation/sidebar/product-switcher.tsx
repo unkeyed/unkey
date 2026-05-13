@@ -9,7 +9,6 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import type { Product } from "@/hooks/use-product-selection";
 import { useProductSelection } from "@/hooks/use-product-selection";
-import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import type { IconProps } from "@unkey/icons";
 import { Check, ChevronExpandY, CloudUp, Nodes } from "@unkey/icons";
@@ -22,18 +21,13 @@ interface ProductConfig {
   name: string;
   description: string;
   icon: React.ComponentType<IconProps>;
-  disabled: boolean;
 }
 
 interface ProductSwitcherProps {
-  workspace: Workspace;
   currentProduct: Product;
 }
 
-export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
-  workspace,
-  currentProduct: product,
-}) => {
+export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({ currentProduct: product }) => {
   const { isMobile, state } = useSidebar();
   const { switchProduct } = useProductSelection();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -47,14 +41,12 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
       name: "API Management",
       description: "Manage APIs and keys",
       icon: Nodes,
-      disabled: false,
     },
     {
       id: "deploy",
       name: "Deploy",
       description: "Deploy applications",
       icon: CloudUp,
-      disabled: !workspace.betaFeatures?.deployments,
     },
   ];
 
@@ -111,7 +103,6 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
               "flex items-center justify-between gap-2.5 p-2.5 cursor-pointer hover:bg-grayA-3",
               isSelected && "bg-grayA-2",
             )}
-            disabled={prod.disabled}
             onClick={() => {
               switchProduct(prod.id);
             }}
@@ -130,11 +121,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
                 >
                   {prod.name}
                 </span>
-                {prod.disabled ? (
-                  <span className="text-xs text-warning-10">In Private Beta</span>
-                ) : (
-                  <span className="text-xs text-gray-11">{prod.description}</span>
-                )}
+                <span className="text-xs text-gray-11">{prod.description}</span>
               </div>
             </div>
             {isSelected && <Check className="w-4 h-4 text-accent-11" iconSize="sm-medium" />}

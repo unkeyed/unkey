@@ -5,23 +5,38 @@ import type {
 } from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { z } from "zod";
 
-// Define grouped statuses for client filtering
-const GROUPED_DEPLOYMENT_STATUSES = [
+export const GROUPED_DEPLOYMENT_STATUSES = [
   "pending",
-  "deploying", // represents all deploying states
+  "deploying",
   "ready",
   "stopped",
   "failed",
   "skipped",
+  "cancelled",
 ] as const;
 
 const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
 
 export type GroupedDeploymentStatus = (typeof GROUPED_DEPLOYMENT_STATUSES)[number];
 export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
+
+export const DEPLOYMENT_STATUS_META: Record<
+  GroupedDeploymentStatus,
+  { label: string; colorClass: string }
+> = {
+  pending: { label: "Pending", colorClass: "bg-gray-9" },
+  deploying: { label: "Deploying", colorClass: "bg-info-9" },
+  ready: { label: "Ready", colorClass: "bg-success-9" },
+  stopped: { label: "Stopped", colorClass: "bg-gray-9" },
+  failed: { label: "Failed", colorClass: "bg-error-9" },
+  skipped: { label: "Skipped", colorClass: "bg-gray-9" },
+  cancelled: { label: "Cancelled", colorClass: "bg-gray-9" },
+};
+
+const isGroupedDeploymentStatus = (v: string): v is GroupedDeploymentStatus =>
+  v in DEPLOYMENT_STATUS_META;
 
 const allOperators = ["is", "contains"] as const;
 
@@ -42,15 +57,8 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is"],
     validValues: GROUPED_DEPLOYMENT_STATUSES,
-    getColorClass: (value) => {
-      if (value === "completed") {
-        return "bg-success-9";
-      }
-      if (value === "failed") {
-        return "bg-error-9";
-      }
-      return "bg-info-9";
-    },
+    getColorClass: (value) =>
+      isGroupedDeploymentStatus(value) ? DEPLOYMENT_STATUS_META[value].colorClass : "bg-info-9",
   },
   environment: {
     type: "string",
@@ -59,7 +67,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
   },
   branch: {
     type: "string",
-    operators: ["contains"],
+    operators: ["is"],
   },
   startTime: {
     type: "number",
@@ -73,26 +81,6 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is"],
   },
-};
-
-// Mapping function to expand grouped statuses to actual statuses
-export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): DeploymentStatus[] => {
-  switch (groupedStatus) {
-    case "pending":
-      return ["pending"];
-    case "deploying":
-      return ["starting", "building", "deploying", "network", "finalizing"];
-    case "ready":
-      return ["ready"];
-    case "failed":
-      return ["failed"];
-    case "skipped":
-      return ["skipped"];
-    case "stopped":
-      return ["stopped"];
-    default:
-      throw new Error(`Unknown grouped status: ${groupedStatus}`);
-  }
 };
 
 const allFilterFieldNames = Object.keys(

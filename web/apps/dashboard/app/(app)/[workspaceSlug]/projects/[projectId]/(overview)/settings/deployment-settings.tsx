@@ -1,7 +1,8 @@
 "use client";
 
-import { CircleHalfDottedClock, Gear, StackPerspective2 } from "@unkey/icons";
+import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
+import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
@@ -17,9 +18,8 @@ import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
 
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
-
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
-import { Keyspaces } from "./components/sentinel-settings/keyspaces";
+import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
@@ -43,6 +43,7 @@ export const DeploymentSettings = ({
         <RootDirectory />
         <Dockerfile />
         <WatchPaths />
+        <AutoDeploy />
       </SettingCardGroup>
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}
@@ -70,15 +71,7 @@ export const DeploymentSettings = ({
         <SettingCardGroup>
           <CustomDomains />
           <OpenapiSpecPath />
-        </SettingCardGroup>
-      </SettingsGroup>
-      <SettingsGroup
-        icon={<StackPerspective2 iconSize="md-medium" />}
-        title="Sentinel configurations"
-        defaultExpanded={Boolean(sections.sentinel)}
-      >
-        <SettingCardGroup>
-          <Keyspaces />
+          <UpstreamProtocol />
         </SettingCardGroup>
       </SettingsGroup>
     </div>

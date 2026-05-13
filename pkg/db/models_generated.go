@@ -227,6 +227,48 @@ func (ns NullAppRuntimeSettingsShutdownSignal) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsShutdownSignal), nil
 }
 
+type AppRuntimeSettingsUpstreamProtocol string
+
+const (
+	AppRuntimeSettingsUpstreamProtocolHttp1 AppRuntimeSettingsUpstreamProtocol = "http1"
+	AppRuntimeSettingsUpstreamProtocolH2c   AppRuntimeSettingsUpstreamProtocol = "h2c"
+)
+
+func (e *AppRuntimeSettingsUpstreamProtocol) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppRuntimeSettingsUpstreamProtocol(s)
+	case string:
+		*e = AppRuntimeSettingsUpstreamProtocol(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppRuntimeSettingsUpstreamProtocol: %T", src)
+	}
+	return nil
+}
+
+type NullAppRuntimeSettingsUpstreamProtocol struct {
+	AppRuntimeSettingsUpstreamProtocol AppRuntimeSettingsUpstreamProtocol
+	Valid                              bool // Valid is true if AppRuntimeSettingsUpstreamProtocol is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppRuntimeSettingsUpstreamProtocol) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppRuntimeSettingsUpstreamProtocol, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppRuntimeSettingsUpstreamProtocol.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -545,6 +587,8 @@ const (
 	DeploymentsStatusSkipped          DeploymentsStatus = "skipped"
 	DeploymentsStatusAwaitingApproval DeploymentsStatus = "awaiting_approval"
 	DeploymentsStatusStopped          DeploymentsStatus = "stopped"
+	DeploymentsStatusSuperseded       DeploymentsStatus = "superseded"
+	DeploymentsStatusCancelled        DeploymentsStatus = "cancelled"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -580,6 +624,48 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DeploymentsStatus), nil
+}
+
+type DeploymentsUpstreamProtocol string
+
+const (
+	DeploymentsUpstreamProtocolHttp1 DeploymentsUpstreamProtocol = "http1"
+	DeploymentsUpstreamProtocolH2c   DeploymentsUpstreamProtocol = "h2c"
+)
+
+func (e *DeploymentsUpstreamProtocol) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsUpstreamProtocol(s)
+	case string:
+		*e = DeploymentsUpstreamProtocol(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsUpstreamProtocol: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsUpstreamProtocol struct {
+	DeploymentsUpstreamProtocol DeploymentsUpstreamProtocol
+	Valid                       bool // Valid is true if DeploymentsUpstreamProtocol is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsUpstreamProtocol) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsUpstreamProtocol, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsUpstreamProtocol.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsUpstreamProtocol) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsUpstreamProtocol), nil
 }
 
 type FrontlineRoutesSticky string
@@ -711,6 +797,50 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.KeyMigrationsAlgorithm), nil
+}
+
+type SentinelsDeployStatus string
+
+const (
+	SentinelsDeployStatusIdle        SentinelsDeployStatus = "idle"
+	SentinelsDeployStatusProgressing SentinelsDeployStatus = "progressing"
+	SentinelsDeployStatusReady       SentinelsDeployStatus = "ready"
+	SentinelsDeployStatusFailed      SentinelsDeployStatus = "failed"
+)
+
+func (e *SentinelsDeployStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SentinelsDeployStatus(s)
+	case string:
+		*e = SentinelsDeployStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SentinelsDeployStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSentinelsDeployStatus struct {
+	SentinelsDeployStatus SentinelsDeployStatus
+	Valid                 bool // Valid is true if SentinelsDeployStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSentinelsDeployStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SentinelsDeployStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SentinelsDeployStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSentinelsDeployStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SentinelsDeployStatus), nil
 }
 
 type SentinelsDesiredState string
@@ -945,6 +1075,7 @@ type AppBuildSetting struct {
 	Dockerfile    string             `db:"dockerfile"`
 	DockerContext string             `db:"docker_context"`
 	WatchPaths    dbtype.StringSlice `db:"watch_paths"`
+	AutoDeploy    bool               `db:"auto_deploy"`
 	CreatedAt     int64              `db:"created_at"`
 	UpdatedAt     sql.NullInt64      `db:"updated_at"`
 }
@@ -977,21 +1108,22 @@ type AppRegionalSetting struct {
 }
 
 type AppRuntimeSetting struct {
-	Pk              uint64                           `db:"pk"`
-	WorkspaceID     string                           `db:"workspace_id"`
-	AppID           string                           `db:"app_id"`
-	EnvironmentID   string                           `db:"environment_id"`
-	Port            int32                            `db:"port"`
-	CpuMillicores   int32                            `db:"cpu_millicores"`
-	MemoryMib       int32                            `db:"memory_mib"`
-	StorageMib      uint32                           `db:"storage_mib"`
-	Command         dbtype.StringSlice               `db:"command"`
-	Healthcheck     dbtype.NullHealthcheck           `db:"healthcheck"`
-	ShutdownSignal  AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	SentinelConfig  []byte                           `db:"sentinel_config"`
-	OpenapiSpecPath sql.NullString                   `db:"openapi_spec_path"`
-	CreatedAt       int64                            `db:"created_at"`
-	UpdatedAt       sql.NullInt64                    `db:"updated_at"`
+	Pk               uint64                             `db:"pk"`
+	WorkspaceID      string                             `db:"workspace_id"`
+	AppID            string                             `db:"app_id"`
+	EnvironmentID    string                             `db:"environment_id"`
+	Port             int32                              `db:"port"`
+	CpuMillicores    int32                              `db:"cpu_millicores"`
+	MemoryMib        int32                              `db:"memory_mib"`
+	StorageMib       uint32                             `db:"storage_mib"`
+	Command          dbtype.StringSlice                 `db:"command"`
+	Healthcheck      dbtype.NullHealthcheck             `db:"healthcheck"`
+	ShutdownSignal   AppRuntimeSettingsShutdownSignal   `db:"shutdown_signal"`
+	UpstreamProtocol AppRuntimeSettingsUpstreamProtocol `db:"upstream_protocol"`
+	SentinelConfig   []byte                             `db:"sentinel_config"`
+	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
+	CreatedAt        int64                              `db:"created_at"`
+	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
 }
 
 type AuditLog struct {
@@ -1055,6 +1187,16 @@ type CiliumNetworkPolicy struct {
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
+type ClickhouseOutbox struct {
+	Pk          uint64          `db:"pk"`
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	CreatedAt   int64           `db:"created_at"`
+	DeletedAt   sql.NullInt64   `db:"deleted_at"`
+}
+
 type ClickhouseWorkspaceSetting struct {
 	Pk                        uint64        `db:"pk"`
 	WorkspaceID               string        `db:"workspace_id"`
@@ -1102,37 +1244,39 @@ type CustomDomain struct {
 }
 
 type Deployment struct {
-	Pk                            uint64                    `db:"pk"`
-	ID                            string                    `db:"id"`
-	K8sName                       string                    `db:"k8s_name"`
-	WorkspaceID                   string                    `db:"workspace_id"`
-	ProjectID                     string                    `db:"project_id"`
-	EnvironmentID                 string                    `db:"environment_id"`
-	AppID                         string                    `db:"app_id"`
-	Image                         sql.NullString            `db:"image"`
-	BuildID                       sql.NullString            `db:"build_id"`
-	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
-	GitBranch                     sql.NullString            `db:"git_branch"`
-	GitCommitMessage              sql.NullString            `db:"git_commit_message"`
-	GitCommitAuthorHandle         sql.NullString            `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
-	SentinelConfig                []byte                    `db:"sentinel_config"`
-	CpuMillicores                 int32                     `db:"cpu_millicores"`
-	MemoryMib                     int32                     `db:"memory_mib"`
-	StorageMib                    uint32                    `db:"storage_mib"`
-	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
-	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
-	Command                       dbtype.StringSlice        `db:"command"`
-	Port                          int32                     `db:"port"`
-	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
-	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
-	PrNumber                      sql.NullInt64             `db:"pr_number"`
-	ForkRepositoryFullName        sql.NullString            `db:"fork_repository_full_name"`
-	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
-	Status                        DeploymentsStatus         `db:"status"`
-	CreatedAt                     int64                     `db:"created_at"`
-	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
+	Pk                            uint64                      `db:"pk"`
+	ID                            string                      `db:"id"`
+	K8sName                       string                      `db:"k8s_name"`
+	WorkspaceID                   string                      `db:"workspace_id"`
+	ProjectID                     string                      `db:"project_id"`
+	EnvironmentID                 string                      `db:"environment_id"`
+	AppID                         string                      `db:"app_id"`
+	Image                         sql.NullString              `db:"image"`
+	BuildID                       sql.NullString              `db:"build_id"`
+	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
+	GitBranch                     sql.NullString              `db:"git_branch"`
+	GitCommitMessage              sql.NullString              `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString              `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString              `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64               `db:"git_commit_timestamp"`
+	SentinelConfig                []byte                      `db:"sentinel_config"`
+	CpuMillicores                 int32                       `db:"cpu_millicores"`
+	MemoryMib                     int32                       `db:"memory_mib"`
+	StorageMib                    uint32                      `db:"storage_mib"`
+	DesiredState                  DeploymentsDesiredState     `db:"desired_state"`
+	EncryptedEnvironmentVariables []byte                      `db:"encrypted_environment_variables"`
+	Command                       dbtype.StringSlice          `db:"command"`
+	Port                          int32                       `db:"port"`
+	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
+	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
+	Healthcheck                   dbtype.NullHealthcheck      `db:"healthcheck"`
+	PrNumber                      sql.NullInt64               `db:"pr_number"`
+	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
+	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
+	InvocationID                  sql.NullString              `db:"invocation_id"`
+	Status                        DeploymentsStatus           `db:"status"`
+	CreatedAt                     int64                       `db:"created_at"`
+	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
 }
 
 type DeploymentChange struct {
@@ -1252,19 +1396,20 @@ type Identity struct {
 }
 
 type Instance struct {
-	Pk            uint64          `db:"pk"`
-	ID            string          `db:"id"`
-	DeploymentID  string          `db:"deployment_id"`
-	WorkspaceID   string          `db:"workspace_id"`
-	ProjectID     string          `db:"project_id"`
-	AppID         string          `db:"app_id"`
-	RegionID      string          `db:"region_id"`
-	K8sName       string          `db:"k8s_name"`
-	Address       string          `db:"address"`
-	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMib     int32           `db:"memory_mib"`
-	StorageMib    uint32          `db:"storage_mib"`
-	Status        InstancesStatus `db:"status"`
+	Pk              uint64                 `db:"pk"`
+	ID              string                 `db:"id"`
+	DeploymentID    string                 `db:"deployment_id"`
+	WorkspaceID     string                 `db:"workspace_id"`
+	ProjectID       string                 `db:"project_id"`
+	AppID           string                 `db:"app_id"`
+	RegionID        string                 `db:"region_id"`
+	K8sName         string                 `db:"k8s_name"`
+	Address         string                 `db:"address"`
+	CpuMillicores   int32                  `db:"cpu_millicores"`
+	MemoryMib       int32                  `db:"memory_mib"`
+	StorageMib      uint32                 `db:"storage_mib"`
+	Status          InstancesStatus        `db:"status"`
+	ContainerStatus dbtype.ContainerStatus `db:"container_status"`
 }
 
 type Key struct {
@@ -1284,10 +1429,10 @@ type Key struct {
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
 	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
 	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
 	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
 	Environment        sql.NullString `db:"environment"`
 	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
@@ -1354,6 +1499,53 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
 }
 
+type PortalBranding struct {
+	Pk             uint64         `db:"pk"`
+	PortalConfigID string         `db:"portal_config_id"`
+	LogoUrl        sql.NullString `db:"logo_url"`
+	PrimaryColor   sql.NullString `db:"primary_color"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalConfiguration struct {
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	Slug        string         `db:"slug"`
+	AppID       sql.NullString `db:"app_id"`
+	KeyAuthID   sql.NullString `db:"key_auth_id"`
+	Enabled     bool           `db:"enabled"`
+	ReturnUrl   sql.NullString `db:"return_url"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalSession struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
+type PortalSessionToken struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
 type Project struct {
 	Pk               uint64         `db:"pk"`
 	ID               string         `db:"id"`
@@ -1381,6 +1573,7 @@ type Quotas struct {
 	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
 	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
 	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
+	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
 }
 
 type Ratelimit struct {
@@ -1392,9 +1585,20 @@ type Ratelimit struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 	KeyID       sql.NullString `db:"key_id"`
 	IdentityID  sql.NullString `db:"identity_id"`
-	Limit       int32          `db:"limit"`
-	Duration    int64          `db:"duration"`
+	Limit       uint64         `db:"limit"`
+	Duration    uint64         `db:"duration"`
 	AutoApply   bool           `db:"auto_apply"`
+}
+
+type RatelimitBlocklist struct {
+	Pk          uint64 `db:"pk"`
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
+	Identifier  string `db:"identifier"`
+	DurationMs  uint64 `db:"duration_ms"`
+	Sequence    int64  `db:"sequence"`
+	Limit       uint64 `db:"limit"`
+	ExpiresAt   uint64 `db:"expires_at"`
 }
 
 type RatelimitNamespace struct {
@@ -1413,8 +1617,8 @@ type RatelimitOverride struct {
 	WorkspaceID string        `db:"workspace_id"`
 	NamespaceID string        `db:"namespace_id"`
 	Identifier  string        `db:"identifier"`
-	Limit       int32         `db:"limit"`
-	Duration    int32         `db:"duration"`
+	Limit       uint64        `db:"limit"`
+	Duration    uint64        `db:"duration"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
@@ -1457,10 +1661,12 @@ type Sentinel struct {
 	K8sAddress        string                `db:"k8s_address"`
 	RegionID          string                `db:"region_id"`
 	Image             string                `db:"image"`
+	RunningImage      string                `db:"running_image"`
 	DesiredState      SentinelsDesiredState `db:"desired_state"`
 	Health            SentinelsHealth       `db:"health"`
 	DesiredReplicas   int32                 `db:"desired_replicas"`
 	AvailableReplicas int32                 `db:"available_replicas"`
+	DeployStatus      SentinelsDeployStatus `db:"deploy_status"`
 	CpuMillicores     int32                 `db:"cpu_millicores"`
 	MemoryMib         int32                 `db:"memory_mib"`
 	CreatedAt         int64                 `db:"created_at"`

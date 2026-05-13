@@ -22,6 +22,8 @@ export type DomainPriorityContext = {
   domains: ReadonlyArray<Domain>;
   customDomains: ReadonlyArray<CustomDomain>;
   environmentId: string;
+  deploymentId: string;
+  currentDeploymentId: string | null;
 };
 
 export type DomainPriorityResult = {
@@ -31,18 +33,28 @@ export type DomainPriorityResult = {
 };
 
 export function getDomainPriority(ctx: DomainPriorityContext): DomainPriorityResult {
-  const customDisplayDomains: ReadonlyArray<DisplayDomain> = [...ctx.customDomains]
-    .filter((cd) => cd.environmentId === ctx.environmentId && cd.verificationStatus === "verified")
-    .sort((a, b) => a.domain.localeCompare(b.domain))
-    .map((cd) => ({
-      source: "custom" as const,
-      id: cd.id,
-      hostname: cd.domain,
-      url: `https://${cd.domain}`,
-      customDomain: cd,
-    }));
+  const isCurrentDeployment = ctx.deploymentId === ctx.currentDeploymentId;
+
+  const customDisplayDomains: ReadonlyArray<DisplayDomain> = isCurrentDeployment
+    ? [...ctx.customDomains]
+        .filter(
+          (cd) => cd.environmentId === ctx.environmentId && cd.verificationStatus === "verified",
+        )
+        .sort((a, b) => a.domain.localeCompare(b.domain))
+        .map((cd) => ({
+          source: "custom" as const,
+          id: cd.id,
+          hostname: cd.domain,
+          url: `https://${cd.domain}`,
+          customDomain: cd,
+        }))
+    : [];
+
+  // Exclude platform domains that match a verified custom domain to avoid duplicates
+  const customHostnames = new Set(customDisplayDomains.map((cd) => cd.hostname));
 
   const platformDisplayDomains: ReadonlyArray<DisplayDomain> = [...ctx.domains]
+    .filter((d) => !customHostnames.has(d.fullyQualifiedDomainName))
     .sort((a, b) => a.fullyQualifiedDomainName.localeCompare(b.fullyQualifiedDomainName))
     .map((d) => ({
       source: "platform" as const,

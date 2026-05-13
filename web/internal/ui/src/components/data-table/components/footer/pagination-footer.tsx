@@ -37,7 +37,7 @@ export const PaginationFooter = memo(function PaginationFooter({
   const end = Math.min(page * pageSize, totalCount);
   const pageNumbers = useMemo(() => getPageNumbers(page, totalPages), [page, totalPages]);
 
-  if (hide) {
+  if (hide || (!loading && totalCount === 0)) {
     return null;
   }
 
@@ -73,29 +73,18 @@ export const PaginationFooter = memo(function PaginationFooter({
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex z-10 animation-ease-out pointer-events-none",
+        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex flex-col z-10 animation-ease-out pointer-events-none",
         "opacity-100",
       )}
     >
       {loading ? (
         <PaginationFooterSkeleton />
       ) : (
-        <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
-          <div className="flex flex-col w-full animate-ease-in">
+        <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
+          <div className="flex flex-col w-full">
             {/* Header content */}
-            {headerContent && (
-              <div
-                className="transition-all duration-200 animate-fade-in-up"
-                style={{ animationDelay: "0.2s" }}
-              >
-                {headerContent}
-              </div>
-            )}
-
-            <div
-              className="flex w-full justify-between items-center text-[13px] text-grayA-9 p-[18px] transition-all duration-200 animate-fade-in-up"
-              style={{ animationDelay: "0.3s" }}
-            >
+            {headerContent && <div className="flex items-center w-full">{headerContent}</div>}
+            <div className="flex w-full justify-between items-center text-[13px] text-grayA-9 p-[18px] min-h-[60px]">
               {/* Item count */}
               <div className="flex gap-2">
                 <span>Viewing</span>
@@ -108,7 +97,10 @@ export const PaginationFooter = memo(function PaginationFooter({
               </div>
 
               {/* Pagination controls */}
-              <nav aria-label="Pagination navigation" className="flex items-center gap-1">
+              <nav
+                aria-label="Pagination navigation"
+                className="flex items-center justify-center gap-1"
+              >
                 {/* Previous button */}
                 {totalPages === 1 ? null : (
                   <Button
@@ -182,23 +174,23 @@ export const PaginationFooter = memo(function PaginationFooter({
                   </Button>
                 )}
               </nav>
+              {/* Minimize button */}
+              <div
+                className="flex justify-end transition-all duration-200 animate-fade-in-down ml-4 rounded"
+                style={{ animationDelay: "0.1s" }}
+              >
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="[&_svg]:size-6 text-grayA-9 hover:text-grayA-11 transition-all duration-200 rounded transform hover:scale-110"
+                  onClick={() => setIsOpen(false)}
+                  aria-label="Minimize"
+                  title="Minimize"
+                >
+                  <Minimize />
+                </Button>
+              </div>
             </div>
-          </div>
-          {/* Minimize button */}
-          <div
-            className="flex justify-end transition-all duration-200 animate-fade-in-down mr-6 ml-4 rounded"
-            style={{ animationDelay: "0.1s" }}
-          >
-            <Button
-              size="icon"
-              variant="ghost"
-              className="[&_svg]:size-6 text-grayA-9 hover:text-grayA-11 transition-all duration-200 rounded transform hover:scale-110"
-              onClick={() => setIsOpen(false)}
-              aria-label="Minimize"
-              title="Minimize"
-            >
-              <Minimize />
-            </Button>
           </div>
         </div>
       )}

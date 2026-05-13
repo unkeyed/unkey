@@ -5,7 +5,7 @@ import type { DisplayRow } from "../components/list/env-var-item-row";
 export function useVirtualList(
   displayRows: DisplayRow[],
   editingId: string | null,
-  expandedGroups: Set<string>,
+  expandedRow: string | null,
 ) {
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
@@ -44,7 +44,7 @@ export function useVirtualList(
   );
 
   const ROW_HEIGHT = 70;
-  const EDIT_HEIGHT = 400;
+  const EDIT_HEIGHT = 470;
 
   // Pre-calculate row heights so the virtualizer positions items correctly
   // before ResizeObserver measures the DOM. Without this, there's a 1-frame
@@ -58,7 +58,7 @@ export function useVirtualList(
         return row.item.id === editingId ? ROW_HEIGHT + EDIT_HEIGHT : ROW_HEIGHT;
       }
 
-      if (!expandedGroups.has(row.key)) {
+      if (expandedRow !== row.key) {
         return ROW_HEIGHT;
       }
 
@@ -69,7 +69,7 @@ export function useVirtualList(
       }
       return height;
     },
-    [displayRows, editingId, expandedGroups],
+    [displayRows, editingId, expandedRow],
   );
 
   const virtualizer = useVirtualizer({
@@ -84,7 +84,7 @@ export function useVirtualList(
   // biome-ignore lint/correctness/useExhaustiveDependencies: editingId/expandedGroups trigger measurement invalidation so estimateSize is re-consulted
   useEffect(() => {
     virtualizer.measure();
-  }, [editingId, expandedGroups, virtualizer]);
+  }, [editingId, expandedRow, virtualizer]);
 
   return { virtualizer, listRefCallback, scrollMargin };
 }

@@ -1,9 +1,9 @@
+import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { Page2 } from "@unkey/icons";
 import { useMemo, useState } from "react";
-import { useRoleLimits } from "../../../table/hooks/use-role-limits";
 import { RoleWarningCallout } from "../warning-callout";
 import { createPermissionOptions } from "./create-permission-options";
 import { useFetchPermissions } from "./hooks/use-fetch-permissions";
@@ -133,7 +133,7 @@ export const PermissionField = ({
   return (
     <div className="flex flex-col gap-3">
       <FormCombobox
-        optional
+        requirement="optional"
         label="Assign permissions"
         description="Select permissions from your workspace."
         options={selectableOptions}

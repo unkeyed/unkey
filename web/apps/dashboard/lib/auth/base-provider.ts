@@ -113,6 +113,14 @@ export abstract class BaseAuthProvider {
   abstract getSignOutUrl(): Promise<string | null>;
 
   /**
+   * Revokes a session so it can no longer be refreshed or authenticated,
+   * even if the sealed cookie is replayed.
+   *
+   * @param sessionToken - The sealed session token to revoke
+   */
+  abstract revokeSession(sessionToken: string): Promise<void>;
+
+  /**
    * Completes the organization selection process during authentication.
    *
    * @param params - Parameters containing the selected organization ID and pending auth token
@@ -231,6 +239,16 @@ export abstract class BaseAuthProvider {
    * @returns A promise that resolves when the membership is removed
    */
   abstract removeMembership(membershipId: string): Promise<void>;
+
+  /**
+   * Deactivates a user's membership in an organization without deleting it.
+   * Used when a workspace's subscription lapses and team access must be revoked
+   * for non-creator members. The membership can be reactivated later.
+   *
+   * @param membershipId - The ID of the membership to deactivate
+   * @returns A promise that resolves when the membership is deactivated
+   */
+  abstract deactivateMembership(membershipId: string): Promise<void>;
 
   /**
    * Invites a new user to join an organization.

@@ -4,9 +4,9 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useProjectData } from "../../../[projectId]/(overview)/data-provider";
 
-export const ConfigureDeploymentFallback = () => {
+export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: boolean }) => {
   const { isEnvironmentsLoading } = useProjectData();
-  if (!isEnvironmentsLoading) {
+  if (!isEnvironmentsLoading && settingsReady) {
     return null;
   }
 

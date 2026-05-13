@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
 import { workspaceProcedure } from "../../trpc";
 export const createNamespace = workspaceProcedure
@@ -46,7 +45,7 @@ export const createNamespace = workspaceProcedure
       })
       .catch((e) => {
         console.error("Failed to create namespace", e);
-        if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+        if (e instanceof Error && "code" in e && (e as { code: string }).code === "ER_DUP_ENTRY") {
           throw new TRPCError({
             code: "CONFLICT",
             message: `A namespace with name "${input.name}" already exists in this workspace. Please choose a different name.`,

@@ -21,7 +21,9 @@ Each log entry includes a timestamp, a severity level (`ERROR`, `WARN`, `INFO`, 
 
 ## Filter logs
 
-Use the control bar at the top of the page to narrow results by severity, deployment, environment, message content, and time range. Filters can be combined and are persisted in the URL, so you can bookmark or share a filtered view.
+Use the control bar at the top of the page to narrow results by severity, deployment, environment, region, instance, message content, and time range. Filters can be combined and are persisted in the URL, so you can bookmark or share a filtered view.
+
+Region and instance filters are useful when debugging multi-region deployments. Select a specific region to see logs from instances in that location, or filter by instance ID to isolate output from a single replica.
 
 <Frame caption="Logs page showing runtime output filtered by time range">
   <img src="/observability/logs-light.png" alt="Logs page" className="block dark:hidden" />

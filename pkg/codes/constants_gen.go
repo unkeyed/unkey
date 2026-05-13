@@ -153,6 +153,11 @@ const (
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
+	// PortalConfig
+
+	// NotFound indicates the requested portal configuration was not found.
+	UnkeyDataErrorsPortalConfigNotFound URN = "err:unkey:data:portal_config_not_found"
+
 	// Analytics
 
 	// NotConfigured indicates analytics is not configured for the workspace.
@@ -207,6 +212,9 @@ const (
 
 	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
 	UnkeyFrontlineErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
+	// DeploymentNotFound represents a 404 error - the resolved deployment was
+	// not found or did not match the expected environment.
+	UnkeyFrontlineErrorsRoutingDeploymentNotFound URN = "err:unkey:not_found:deployment_not_found"
 	// DeploymentSelectionFailed represents a 500 error - failed to select an available deployment
 	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:unkey:internal_server_error:deployment_selection_failed"
 	// DeploymentDisabled represents a 503 error - all deployments are currently disabled
@@ -222,4 +230,42 @@ const (
 	UnkeyFrontlineErrorsInternalConfigLoadFailed URN = "err:unkey:internal_server_error:config_load_failed"
 	// InstanceLoadFailed represents a 500 error - failed to load instance information
 	UnkeyFrontlineErrorsInternalInstanceLoadFailed URN = "err:unkey:internal_server_error:instance_load_failed"
+	// InvalidConfiguration represents a 500 error - the deployment's policy
+	// configuration could not be parsed.
+	UnkeyFrontlineErrorsInternalInvalidConfiguration URN = "err:unkey:internal_server_error:invalid_configuration"
+
+	// Auth
+
+	// MissingCredentials represents a 401 error - no credentials found in the request.
+	UnkeyFrontlineErrorsAuthMissingCredentials URN = "err:unkey:unauthorized:missing_credentials"
+	// InvalidKey represents a 401 error - key not found, disabled, or expired.
+	UnkeyFrontlineErrorsAuthInvalidKey URN = "err:unkey:unauthorized:invalid_key"
+	// InsufficientPermissions represents a 403 error - the credential lacks
+	// the permissions required by a permission_query.
+	UnkeyFrontlineErrorsAuthInsufficientPermissions URN = "err:unkey:forbidden:insufficient_permissions"
+	// RateLimited represents a 429 error - the credential or its auto-applied
+	// rate limit was exceeded.
+	UnkeyFrontlineErrorsAuthRateLimited URN = "err:unkey:rate_limited:rate_limited"
+
+	// Firewall
+
+	// Denied represents a 403 error - request rejected by a Firewall policy
+	// with action=DENY.
+	UnkeyFrontlineErrorsFirewallDenied URN = "err:unkey:forbidden:firewall_denied"
+
+	// OpenApi
+
+	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
+	UnkeyFrontlineErrorsOpenApiInvalidRequest URN = "err:unkey:bad_request:openapi_validation_failed"
+
+	// ----------------
+	// UnkeyPortalErrors
+	// ----------------
+
+	// Session
+
+	// TokenMissing indicates a portal session token was not provided.
+	UnkeyPortalErrorsSessionTokenMissing URN = "err:unkey:authentication:portal_token_missing"
+	// SessionNotFound indicates the portal session was not found or has expired.
+	UnkeyPortalErrorsSessionSessionNotFound URN = "err:unkey:authentication:portal_session_not_found"
 )

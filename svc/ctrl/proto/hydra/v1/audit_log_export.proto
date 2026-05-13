@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// AuditLogExportService ships rows from the MySQL `audit_log` outbox into the
+// ClickHouse `audit_logs_raw_v1` table.
+//
+// Keyed as a virtual object so Restate serializes invocations automatically:
+// overlapping triggers (e.g. a slow run straddling the next cron tick) queue
+// instead of racing on the same rows. The VO key is always "default"; we don't
+// shard this workload.
+service AuditLogExportService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // RunExport drains the outbox in batches until no unexported rows remain or
+  // the batch size is larger than the returned count. Each batch is its own
+  // restate.Run so a crash mid-drain only replays the last incomplete batch.
+  rpc RunExport(RunExportRequest) returns (RunExportResponse) {}
+}
+
+message RunExportRequest {}
+
+message RunExportResponse {
+  // Number of audit log events (not rows) shipped to ClickHouse in this
+  // invocation. An event with three targets counts as one here and three rows
+  // in ClickHouse.
+  int32 events_exported = 1;
+}

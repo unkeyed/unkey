@@ -6,33 +6,30 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // Heartbeat registers or refreshes a krane agent's cluster and region in the
 // control plane. Agents call this periodically so the control plane knows which
 // regions are available.
 //
-// The method upserts into regions (keyed by region name) and clusters
-// (keyed by region_id), updating the heartbeat timestamp on each call.
+// The method upserts into regions (keyed by the (platform, name) unique index)
+// and clusters (keyed by region_id), updating the heartbeat timestamp on each
+// call.
 func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.HeartbeatRequest]) (*connect.Response[ctrlv1.HeartbeatResponse], error) {
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 
-	regionName := req.Msg.GetRegion()
-	platform := req.Msg.GetPlatform()
-
-	if err := assert.All(
-		assert.NotEmpty(regionName, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
+	if err := validateRegionKey(req.Msg.GetRegion()); err != nil {
 		return nil, err
 	}
 
+	regionName := req.Msg.GetRegion().GetName()
+	platform := req.Msg.GetRegion().GetPlatform()
 	now := time.Now().UnixMilli()
 
 	err := db.Query.UpsertRegion(ctx, s.db.RW(), db.UpsertRegionParams{
@@ -45,9 +42,9 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 		return nil, err
 	}
 
-	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RW(), db.FindRegionByNameAndPlatformParams{
-		Name:     regionName,
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RW(), db.FindRegionByPlatformAndNameParams{
 		Platform: platform,
+		Name:     regionName,
 	})
 	if err != nil {
 		logger.Error("failed to find region", "error", err, "region_id", region.ID)

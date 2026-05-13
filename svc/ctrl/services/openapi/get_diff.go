@@ -9,9 +9,14 @@ import (
 	"github.com/oasdiff/oasdiff/diff"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv1.GetOpenApiDiffRequest]) (*connect.Response[ctrlv1.GetOpenApiDiffResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	// Load old version spec
 	oldSpec, err := s.loadOpenApiSpec(ctx, req.Msg.GetOldDeploymentId())
 	if err != nil {
@@ -30,9 +35,13 @@ func (s *Service) GetOpenApiDiff(ctx context.Context, req *connect.Request[ctrlv
 		))
 	}
 
-	// Parse OpenAPI specs
+	// Parse OpenAPI specs.
+	// Keep IsExternalRefsAllowed at its default (false). The spec bytes
+	// come from tenant-controlled deployments via ScrapeSpec, so allowing
+	// external $ref resolution would let a tenant point a $ref at IMDS,
+	// internal services (Restate admin, ClickHouse, K8s API), or file://
+	// URLs and have ctrl issue the request under its identity.
 	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
 
 	s1, err := loader.LoadFromData(oldSpec)
 	if err != nil {

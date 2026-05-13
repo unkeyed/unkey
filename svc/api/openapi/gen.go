@@ -27,6 +27,7 @@ const (
 const (
 	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
 	BUILDING         V2DeployGetDeploymentResponseDataStatus = "BUILDING"
+	CANCELLED        V2DeployGetDeploymentResponseDataStatus = "CANCELLED"
 	DEPLOYING        V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
 	FAILED           V2DeployGetDeploymentResponseDataStatus = "FAILED"
 	FINALIZING       V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
@@ -36,6 +37,7 @@ const (
 	SKIPPED          V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
 	STARTING         V2DeployGetDeploymentResponseDataStatus = "STARTING"
 	STOPPED          V2DeployGetDeploymentResponseDataStatus = "STOPPED"
+	SUPERSEDED       V2DeployGetDeploymentResponseDataStatus = "SUPERSEDED"
 	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 
@@ -248,7 +250,7 @@ type KeysVerifyKeyCredits struct {
 	// Use 0 for read-only operations or free tier access, higher values for premium features.
 	// Credits are deducted after all security checks pass.
 	// Essential for implementing usage-based pricing with different operation costs.
-	Cost int32 `json:"cost"`
+	Cost int64 `json:"cost"`
 }
 
 // KeysVerifyKeyRatelimit defines model for KeysVerifyKeyRatelimit.
@@ -1651,7 +1653,7 @@ type V2KeysVerifyKeyResponseData struct {
 	// the key has unlimited usage. This value decreases with
 	// each verification (based on the 'cost' parameter) unless explicit credit
 	// refills are configured.
-	Credits *int32 `json:"credits,omitempty"`
+	Credits *int64 `json:"credits,omitempty"`
 
 	// Enabled Indicates if the key is currently enabled. Disabled keys will
 	// always fail verification with `code=DISABLED`. This is useful for implementing
@@ -1969,6 +1971,73 @@ type V2PermissionsListRolesResponseBody struct {
 
 // V2PermissionsListRolesResponseData Array of roles with their assigned permissions.
 type V2PermissionsListRolesResponseData = []Role
+
+// V2PortalCreateSessionRequestBody defines model for V2PortalCreateSessionRequestBody.
+type V2PortalCreateSessionRequestBody struct {
+	// ExternalId The end user's identifier in the customer's system.
+	// Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
+	ExternalId string `json:"externalId"`
+
+	// Permissions List of RBAC tuple permissions defining what the end user can do in the Portal.
+	// Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
+	// Use `*` as resourceId to grant access to all resources of that type.
+	//
+	// Tab visibility is derived from the action segment:
+	// - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
+	// - Analytics tab: `read_analytics`
+	// - Docs tab: visible when any permission is present
+	Permissions []string `json:"permissions"`
+
+	// Preview When true, creates a preview session for testing the portal experience.
+	Preview *bool `json:"preview,omitempty"`
+
+	// Slug The human-readable slug of the portal configuration to create the session against.
+	// Identifies which app's portal the end user will access.
+	// Must be 3-64 characters, lowercase alphanumeric and hyphens only,
+	// must not start or end with a hyphen, and must not contain consecutive hyphens.
+	Slug string `json:"slug"`
+}
+
+// V2PortalCreateSessionResponseBody defines model for V2PortalCreateSessionResponseBody.
+type V2PortalCreateSessionResponseBody struct {
+	Data V2PortalCreateSessionResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalCreateSessionResponseData defines model for V2PortalCreateSessionResponseData.
+type V2PortalCreateSessionResponseData struct {
+	// SessionId The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
+	SessionId string `json:"sessionId"`
+
+	// Url The full portal URL with the session parameter. Redirect the end user to this URL.
+	Url string `json:"url"`
+}
+
+// V2PortalExchangeSessionRequestBody defines model for V2PortalExchangeSessionRequestBody.
+type V2PortalExchangeSessionRequestBody struct {
+	// SessionId The session token ID received from `portal.createSession`.
+	// Must be valid, unexpired, and not previously exchanged.
+	SessionId string `json:"sessionId"`
+}
+
+// V2PortalExchangeSessionResponseBody defines model for V2PortalExchangeSessionResponseBody.
+type V2PortalExchangeSessionResponseBody struct {
+	Data V2PortalExchangeSessionResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalExchangeSessionResponseData defines model for V2PortalExchangeSessionResponseData.
+type V2PortalExchangeSessionResponseData struct {
+	// ExpiresAt Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// Token The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
+	Token string `json:"token"`
+}
 
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing rate limit override. This permanently removes a custom rate limit rule, reverting affected identifiers back to the default rate limits for the namespace.
 //
@@ -2439,6 +2508,12 @@ type PermissionsListPermissionsJSONRequestBody = V2PermissionsListPermissionsReq
 
 // PermissionsListRolesJSONRequestBody defines body for PermissionsListRoles for application/json ContentType.
 type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
+
+// PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
+type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody
+
+// PortalExchangeSessionJSONRequestBody defines body for PortalExchangeSession for application/json ContentType.
+type PortalExchangeSessionJSONRequestBody = V2PortalExchangeSessionRequestBody
 
 // RatelimitDeleteOverrideJSONRequestBody defines body for RatelimitDeleteOverride for application/json ContentType.
 type RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody

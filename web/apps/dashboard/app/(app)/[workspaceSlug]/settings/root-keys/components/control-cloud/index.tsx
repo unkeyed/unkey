@@ -1,6 +1,5 @@
 "use client";
 
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@unkey/ui";
 import type { RootKeysFilterField } from "../../filters.schema";
 import { useFilters } from "../../hooks/use-filters";
@@ -27,7 +26,6 @@ export const RootKeysListControlCloud = () => {
 
   return (
     <ControlCloud
-      historicalWindow={HISTORICAL_DATA_WINDOW}
       formatFieldName={formatFieldName}
       filters={filters}
       removeFilter={removeFilter}

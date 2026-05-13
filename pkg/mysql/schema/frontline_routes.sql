@@ -14,6 +14,8 @@ CREATE TABLE `frontline_routes` (
 	CONSTRAINT `frontline_routes_fully_qualified_domain_name_unique` UNIQUE(`fully_qualified_domain_name`)
 );
 
+CREATE INDEX `project_id_idx` ON `frontline_routes` (`project_id`);
+
 CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);

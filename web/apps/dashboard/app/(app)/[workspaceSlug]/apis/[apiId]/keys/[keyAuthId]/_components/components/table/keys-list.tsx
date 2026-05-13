@@ -175,14 +175,12 @@ export const KeysList = ({
         loading={isInitialLoading}
         disabled={isNavigating}
         headerContent={
-          selectedKeys.size > 0 ? (
-            <SelectionControls
-              selectedKeys={selectedKeys}
-              setSelectedKeys={setSelectedKeys}
-              keys={keys}
-              getSelectedKeysState={getSelectedKeysState}
-            />
-          ) : undefined
+          <SelectionControls
+            selectedKeys={selectedKeys}
+            setSelectedKeys={setSelectedKeys}
+            keys={keys}
+            getSelectedKeysState={getSelectedKeysState}
+          />
         }
       />
     </>

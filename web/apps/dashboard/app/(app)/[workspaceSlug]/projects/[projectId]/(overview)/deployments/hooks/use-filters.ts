@@ -13,10 +13,7 @@ import {
   deploymentListFilterFieldConfig,
 } from "../filters.schema";
 
-const parseAsFilterValArray = parseAsFilterValueArray<DeploymentListFilterOperator>([
-  "is",
-  "contains",
-]);
+const parseAsFilterValArray = parseAsFilterValueArray<DeploymentListFilterOperator>(["is"]);
 
 export const queryParamsPayload = {
   status: parseAsFilterValArray,
@@ -119,9 +116,22 @@ export const useFilters = () => {
     [filters, updateFilters],
   );
 
+  const toggleArrayFilter = useCallback(
+    (field: (typeof arrayFields)[number], value: string) => {
+      const existing = filters.find((f) => f.field === field && f.value === value);
+      if (existing) {
+        updateFilters(filters.filter((f) => f.id !== existing.id));
+      } else {
+        updateFilters([...filters, { field, id: crypto.randomUUID(), operator: "is", value }]);
+      }
+    },
+    [filters, updateFilters],
+  );
+
   return {
     filters,
     removeFilter,
     updateFilters,
+    toggleArrayFilter,
   };
 };

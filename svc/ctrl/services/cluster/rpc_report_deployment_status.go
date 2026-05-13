@@ -7,11 +7,25 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
+
+// deploymentActiveStatuses are the non-terminal statuses where a Deploy
+// handler may be parked on the instances-ready awakeable. If the deployment
+// is outside this set (ready, failed, cancelled, superseded, skipped,
+// stopped, awaiting_approval), there's nothing to notify.
+var deploymentActiveStatuses = map[db.DeploymentsStatus]bool{
+	db.DeploymentsStatusStarting:   true,
+	db.DeploymentsStatusBuilding:   true,
+	db.DeploymentsStatusDeploying:  true,
+	db.DeploymentsStatusNetwork:    true,
+	db.DeploymentsStatusFinalizing: true,
+}
 
 // ReportDeploymentStatus reconciles the observed deployment state reported by a krane agent.
 // This is the feedback loop for convergence: agents report what's actually running so the
@@ -28,30 +42,36 @@ import (
 //
 // Returns CodeUnauthenticated if bearer token is invalid. Database errors during the
 // transaction are returned as-is (not wrapped in Connect error codes).
-func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (*connect.Response[ctrlv1.ReportDeploymentStatusResponse], error) {
+func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (response *connect.Response[ctrlv1.ReportDeploymentStatusResponse], retErr error) {
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		result := "success"
+		if retErr != nil {
+			result = "error"
+		}
+		metrics.ReportDeploymentStatusDurationSeconds.WithLabelValues(result).Observe(elapsed.Seconds())
+		logger.Info("report deployment status: handled",
+			"duration_ms", elapsed.Milliseconds(),
+			"result", result,
+		)
+	}()
+
 	logger.Info("reporting deployment status", "req", req.Msg)
 
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
-	regionName := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
 
-	if err := assert.All(
-		assert.NotEmpty(regionName, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	// TODO: cache this lookup to avoid hitting the database on every status report
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
-		Platform: platform,
-		Name:     regionName,
-	})
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, err
 	}
+
+	// Captured from the Update transaction so we can call NotifyInstancesReady
+	// on the Deploy workflow after the tx commits (and the new state is
+	// visible to the health-check query).
+	var updatedDeployment *db.Deployment
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		switch msg := req.Msg.GetChange().(type) {
@@ -61,6 +81,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				if err != nil {
 					return err
 				}
+				updatedDeployment = &deployment
 
 				staleInstances, err := db.Query.FindInstancesByDeploymentIdAndRegionID(ctx, tx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 					DeploymentID: deployment.ID,
@@ -133,8 +154,133 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		}
 		return nil
 	})
+	if err != nil {
+		return connect.NewResponse(&ctrlv1.ReportDeploymentStatusResponse{}), err
+	}
 
-	return connect.NewResponse(&ctrlv1.ReportDeploymentStatusResponse{}), err
+	// After the tx commits, if an Update just upserted instances for an
+	// active deployment, check whether the per-region healthy threshold is
+	// met and notify the suspended Deploy workflow. This is the feedback
+	// loop that unblocks waitForDeployments's awakeable. Any errors here
+	// are logged but don't fail the RPC — krane retrying wouldn't help, and
+	// the Deploy workflow will eventually hit its own timeout if nobody
+	// ever notifies it.
+	if updatedDeployment != nil && s.restate != nil {
+		s.maybeNotifyInstancesReady(ctx, *updatedDeployment)
+	}
+
+	return connect.NewResponse(&ctrlv1.ReportDeploymentStatusResponse{}), nil
+}
+
+// maybeNotifyInstancesReady checks whether enough regions are healthy for
+// the given deployment and, if so, calls DeployService.NotifyInstancesReady
+// to unblock the suspended Deploy workflow. Best-effort: errors are logged
+// but not returned, gating the thundering herd from concurrent retries.
+func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.Deployment) {
+	if !deploymentActiveStatuses[deployment.Status] {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("inactive_status").Inc()
+		logger.Info("notify instances ready: skipped",
+			"deployment_id", deployment.ID,
+			"outcome", "inactive_status",
+			"status", deployment.Status,
+		)
+		return
+	}
+
+	// Per-region minimum replica requirements.
+	minReplicaRows, err := s.findTopologyMinReplicas(ctx, deployment.ID)
+	if err != nil {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("topology_error").Inc()
+		logger.Error("failed to load deployment topology min replicas",
+			"deployment_id", deployment.ID,
+			"error", err,
+		)
+		return
+	}
+	if len(minReplicaRows) == 0 {
+		// No topology rows yet — nothing to check.
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("topology_missing").Inc()
+		logger.Info("notify instances ready: skipped",
+			"deployment_id", deployment.ID,
+			"outcome", "topology_missing",
+		)
+		return
+	}
+
+	regionMinReplicas := make(map[string]uint32, len(minReplicaRows))
+	for _, row := range minReplicaRows {
+		regionMinReplicas[row.RegionID] = row.AutoscalingReplicasMin
+	}
+	// Mirrors waitForDeployments: requires (numRegions - 1) healthy regions,
+	// minimum 1. Tolerates one full regional outage.
+	requiredRegions := max(len(regionMinReplicas)-1, 1)
+
+	instances, err := db.Query.FindInstancesByDeploymentId(ctx, s.db.RO(), deployment.ID)
+	if err != nil {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("instances_error").Inc()
+		logger.Error("failed to load deployment instances for readiness check",
+			"deployment_id", deployment.ID,
+			"error", err,
+		)
+		return
+	}
+
+	runningPerRegion := make(map[string]uint32)
+	for _, instance := range instances {
+		if instance.Status == db.InstancesStatusRunning {
+			runningPerRegion[instance.RegionID]++
+		}
+	}
+
+	healthyRegions := 0
+	for regionID, minReplicas := range regionMinReplicas {
+		if runningPerRegion[regionID] >= minReplicas {
+			healthyRegions++
+		}
+	}
+
+	if healthyRegions < requiredRegions {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("threshold_not_met").Inc()
+		logger.Info("notify instances ready: threshold not met",
+			"deployment_id", deployment.ID,
+			"outcome", "threshold_not_met",
+			"healthy_regions", healthyRegions,
+			"required_regions", requiredRegions,
+			"region_min_replicas", regionMinReplicas,
+			"running_per_region", runningPerRegion,
+		)
+		return
+	}
+
+	if !s.notifiedReady.AddIfAbsent("deployment:" + deployment.ID) {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("already_notified").Inc()
+		logger.Info("notify instances ready: already notified",
+			"deployment_id", deployment.ID,
+			"outcome", "already_notified",
+		)
+		return
+	}
+
+	_, err = hydrav1.NewDeployServiceIngressClient(s.restate, deployment.ID).
+		NotifyInstancesReady().
+		Send(ctx, &hydrav1.NotifyInstancesReadyRequest{
+			DeploymentId: deployment.ID,
+		})
+	if err != nil {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("restate_error").Inc()
+		logger.Error("failed to notify deploy workflow of instance readiness",
+			"deployment_id", deployment.ID,
+			"error", err,
+		)
+		return
+	}
+	metrics.NotifyInstancesReadyTotal.WithLabelValues("notified").Inc()
+	logger.Info("notify instances ready: sent",
+		"deployment_id", deployment.ID,
+		"outcome", "notified",
+		"healthy_regions", healthyRegions,
+		"required_regions", requiredRegions,
+	)
 }
 
 // ctrlDeploymentStatusToDbStatus maps proto instance status values to database enum values.

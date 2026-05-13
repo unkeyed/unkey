@@ -12,12 +12,15 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/challenge"
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
 	restateServer "github.com/restatedev/sdk-go/server"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -27,12 +30,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogbackfill"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogexport"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
@@ -43,6 +50,9 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/ratelimitblocklistcleanup"
+
+	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
@@ -83,11 +93,11 @@ func Run(ctx context.Context, cfg Config) error {
 	var err error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:     "worker",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			Application:        "worker",
+			InstanceID:         cfg.InstanceID,
+			CloudRegion:        cfg.Region,
+			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			PrometheusGatherer: nil,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -98,13 +108,20 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.AddBaseAttrs(slog.GroupAttrs("instance",
 		slog.String("id", cfg.InstanceID),
 		slog.String("region", cfg.Region),
-		slog.String("version", version.Version),
+		slog.String("version", buildinfo.Version),
 	))
 
 	r := runner.New()
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
+
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("worker")
 
 	// Create vault client for remote vault service
 	var vaultClient vault.VaultServiceClient
@@ -189,6 +206,13 @@ func Run(ctx context.Context, cfg Config) error {
 	// Restate Server - uses logging.GetHandler() for slog integration
 	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 
+	// Shared Restate admin client used both for service registration and
+	// for in-flight invocation cancellation (e.g. superseded sibling cleanup).
+	restateAdminClient := restateadmin.New(restateadmin.Config{
+		BaseURL: cfg.Restate.AdminURL,
+		APIKey:  cfg.Restate.APIKey,
+	})
+
 	buildPlatform, err := cfg.GetBuildPlatform()
 	if err != nil {
 		return fmt.Errorf("invalid build platform: %w", err)
@@ -198,7 +222,6 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
-		SentinelImage: cfg.SentinelImage,
 
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
@@ -207,16 +230,29 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
-		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
+		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
+		// 15 attempts (~5 min total). Short backoffs keep the worst-case
+		// cancel latency low — a user-initiated cancel only lands at the
+		// next attempt boundary, so longer intervals make cancels feel
+		// stuck. 5 minutes total is enough for transient blips; persistent
+		// failures should surface fast rather than retry for half an hour.
+		//
+		// PauseOnMaxAttempts (not Kill) so compensations can still run:
+		// on KILL the invocation is torn down without re-entering the
+		// handler, so the Go defer that fires compensation.Execute never
+		// runs. Individual restate.Run calls should each set
+		// WithMaxRetryDuration so they return TerminalError into Go on
+		// exhaustion — that's the normal path. This service-level policy
+		// is a safety net for failures that escape Run-level bounds.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(1*time.Minute),
+			restate.WithInitialInterval(2*time.Second),
 			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(10*time.Minute),
-			restate.WithMaxAttempts(150),
-			restate.KillOnMaxAttempts(),
+			restate.WithMaxInterval(30*time.Second),
+			restate.WithMaxAttempts(15),
+			restate.PauseOnMaxAttempts(),
 		),
 	))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
@@ -238,21 +274,23 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithIngressPrivate(true),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~1 hour total.
 		// Scraping is best-effort (fire-and-forget from deploy); bound retries to avoid
-		// wasting resources on permanently broken endpoints.
+		// wasting resources on permanently broken endpoints. Pause (not kill) on
+		// exhaustion so any future compensation logic can run via re-entry.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialInterval(1*time.Minute),
 			restate.WithExponentiationFactor(2.0),
 			restate.WithMaxInterval(10*time.Minute),
 			restate.WithMaxAttempts(10),
-			restate.KillOnMaxAttempts(),
+			restate.PauseOnMaxAttempts(),
 		),
 	))
 
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
 		DB:                              database,
 		GitHub:                          ghClient,
+		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
@@ -265,17 +303,30 @@ func Run(ctx context.Context, cfg Config) error {
 		DB: database,
 	})))
 
+	// BuildSlotService is short-lived coordination — AcquireOrWait/Release
+	// journals have no debugging value (each invocation just reads state,
+	// maybe resolves an awakeable, and returns), so keep their retention
+	// minimal.
+	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
+		DB: database,
+	}),
+		restate.WithIngressPrivate(true),
+		restate.WithJournalRetention(1*time.Minute),
+	))
+
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,
 		CnameDomain: cfg.CnameDomain,
 	}),
-		// Retry every 1 minute for up to 24 hours (1440 attempts)
+		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
+		// kill) on exhaustion so compensations remain possible via operator
+		// cancel.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialInterval(1*time.Minute),
 			restate.WithExponentiationFactor(1.0), // Fixed interval, no exponential backoff
 			restate.WithMaxInterval(1*time.Minute),
 			restate.WithMaxAttempts(1440),
-			restate.KillOnMaxAttempts(),
+			restate.PauseOnMaxAttempts(),
 		),
 	))
 
@@ -413,12 +464,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("create key last used sync service: %w", err)
 	}
 	// Retry quickly (deadlocks resolve fast), but cap attempts since this runs on a schedule.
+	// Pause on exhaustion so stuck invocations are visible rather than silently discarded.
 	keyLastUsedRetryPolicy := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.KillOnMaxAttempts(),
+		restate.PauseOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc, keyLastUsedRetryPolicy))
 
@@ -431,6 +483,67 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
 	logger.Info("KeyLastUsedSyncService enabled")
+
+	// Ratelimit blocklist cleanup: prunes expired cross-region propagation
+	// rows. Stateless DELETE — a generous retry policy is fine because the
+	// query is idempotent and the local janitor handles in-memory state
+	// independently.
+	ratelimitBlocklistCleanupSvc, err := ratelimitblocklistcleanup.New(ratelimitblocklistcleanup.Config{
+		DB:    ratelimitdb.New(database.RW(), database.RO()),
+		Clock: clk,
+	})
+	if err != nil {
+		return fmt.Errorf("create ratelimit blocklist cleanup service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewRatelimitBlocklistCleanupServiceServer(ratelimitBlocklistCleanupSvc, keyLastUsedRetryPolicy))
+	logger.Info("RatelimitBlocklistCleanupService enabled")
+
+	// Audit log export: drains the MySQL audit_log outbox into ClickHouse.
+	// Registered as a virtual object so Restate serializes overlapping triggers.
+	var auditLogExportHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.AuditLogExportURL != "" {
+		auditLogExportHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.AuditLogExportURL)
+	}
+	auditLogExportSvc, err := auditlogexport.New(auditlogexport.Config{
+		DB:         database,
+		Clickhouse: ch,
+		Heartbeat:  auditLogExportHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create audit log export service: %w", err)
+	}
+	// Cron-triggered every minute and idempotent: any failure is recovered
+	// by the next tick, not by replaying journals from yesterday. 1h keeps
+	// enough debugging headroom for an oncall to inspect a recent failure
+	// without bloating the journal store with ~1440 dead invocations/day.
+	restateSrv.Bind(hydrav1.NewAuditLogExportServiceServer(auditLogExportSvc,
+		restate.WithJournalRetention(1*time.Hour),
+	))
+	logger.Info("AuditLogExportService enabled")
+
+	// Audit log backfill: chips through legacy audit_log/audit_log_target rows
+	// pre-dual-write into ClickHouse audit_logs_raw_v1. Singleton VO, cron-
+	// triggered, loops within each invocation until the legacy tail is reached.
+	var auditLogBackfillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.AuditLogBackfillURL != "" {
+		auditLogBackfillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.AuditLogBackfillURL)
+	}
+	auditLogBackfillSvc, err := auditlogbackfill.New(auditlogbackfill.Config{
+		DB:         database,
+		Clickhouse: ch,
+		Heartbeat:  auditLogBackfillHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create audit log backfill service: %w", err)
+	}
+	// Singleton VO, cron-triggered every 15min, ~1-2 min per invocation.
+	// Cursor lives in VO state so journal retention only matters for
+	// post-mortem on the most recent invocation. 1h covers a few ticks
+	// without holding a day of journals.
+	restateSrv.Bind(hydrav1.NewAuditLogBackfillServiceServer(auditLogBackfillSvc,
+		restate.WithJournalRetention(1*time.Hour),
+	))
+	logger.Info("AuditLogBackfillService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
@@ -477,26 +590,21 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register with Restate admin API (only if RegisterAs is configured)
 	// In k8s environments, registration is handled externally
 	if cfg.Restate.RegisterAs != "" {
-		adminClient := restateadmin.New(restateadmin.Config{
-			BaseURL: cfg.Restate.AdminURL,
-			APIKey:  cfg.Restate.APIKey,
-		})
 		r.Go(func(ctx context.Context) error {
 			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
-			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs, true); err != nil {
+			if err := restateAdminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs, true); err != nil {
 				logger.Error("failed to register with Restate", "error", err)
 				return err
 			}
 			logger.Info("Successfully registered with Restate")
 			return nil
 		})
-
 	} else {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
 	}
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
-		prom, promErr := prometheus.New()
+		prom, promErr := prometheus.NewWithRegistry(reg)
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}

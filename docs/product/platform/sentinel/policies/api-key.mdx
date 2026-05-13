@@ -13,12 +13,15 @@ The API key authentication policy verifies Unkey API keys before requests reach 
 
 To enable API key authentication for your deployment:
 
-1. Navigate to your project's **Settings** page.
-2. Scroll to the **Sentinel configurations** section.
-3. Select one or more keyspaces to enforce.
-4. Save your changes.
+1. Navigate to your project's **Sentinel Policies** page from the sidebar.
+2. Click **Add policy**.
+3. Select **Key Auth** as the policy type.
+4. Choose one or more keyspaces to verify against.
+5. Optionally configure [match conditions](/platform/sentinel/policies/overview#match-expressions), a custom [key location](#key-location), or a [permission query](#permission-query).
+6. Select which environments (production, preview, or both) to enable the policy for.
+7. Save the policy.
 
-Once configured, the Sentinel verifies every incoming request against the selected keyspaces. Requests without a valid API key receive a `401` response and never reach your app.
+Once configured, the Sentinel verifies every incoming request that matches the policy's conditions against the selected keyspaces. Requests without a valid API key receive a `401` response and never reach your app.
 
 ## How verification works
 
@@ -33,14 +36,24 @@ The Sentinel extracts the API key from the `Authorization` header (as a Bearer t
 
 If all checks pass, the Sentinel produces a [Principal](/platform/sentinel/principal/overview) and forwards the request with the `X-Unkey-Principal` header. See the [API key source](/platform/sentinel/principal/sources/api-key) for the full list of fields your app receives, including roles, permissions, and key metadata.
 
-## Additional configuration
+## Key location
 
-<Tip>
-  The following options are not yet available in the dashboard. Contact [support@unkey.com](mailto:support@unkey.com) to configure them.
-</Tip>
+By default, the Sentinel extracts the API key from the `Authorization` header as a Bearer token. You can override this by adding a custom key location when creating or editing a policy:
 
-- **Custom key locations**: Extract keys from a custom header (for example, `X-API-Key`) or a query parameter instead of the `Authorization` header
-- **Permission queries**: Enforce Unkey RBAC permissions in the Sentinel using AND/OR expressions (for example, `api.keys.create AND billing.read`)
+| Location    | Description                                                                 | Example                         |
+| ----------- | --------------------------------------------------------------------------- | ------------------------------- |
+| Bearer      | Extract from the `Authorization: Bearer <key>` header (default)             | `Authorization: Bearer sk_123`  |
+| Header      | Extract from a custom header, with an optional prefix to strip              | `X-API-Key: sk_123`             |
+| Query param | Extract from a URL query parameter                                          | `?api_key=sk_123`               |
+
+## Permission query
+
+You can enforce Unkey RBAC permissions directly in the Sentinel by setting a permission query on a policy. If the authenticated key lacks the required permissions, the request receives a `403` response before reaching your app.
+
+Permission queries support `AND` and `OR` operators:
+
+- `api.read AND api.write` requires both permissions
+- `api.read OR api.write` requires either permission
 
 ## Error responses
 

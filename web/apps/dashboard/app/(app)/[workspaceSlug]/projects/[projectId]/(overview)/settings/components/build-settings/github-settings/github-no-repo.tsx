@@ -7,13 +7,11 @@ import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel
 export const GitHubNoRepo = ({
   projectId,
   appId,
-  installUrl,
-  onBeforeNavigate,
+  onInstall,
 }: {
   projectId: string;
   appId: string;
-  installUrl: string;
-  onBeforeNavigate?: () => void;
+  onInstall: () => Promise<void> | void;
 }) => {
   const utils = trpc.useUtils();
   const [selectedRepo, setSelectedRepo] = useState("");
@@ -70,7 +68,7 @@ export const GitHubNoRepo = ({
         <ComboboxSkeleton />
       ) : repoOptions.length ? (
         <Combobox
-          className="w-[200px] text-left min-h-8 border-grayA-4"
+          className="w-[200px] text-left h-7 border-grayA-4"
           options={repoOptions}
           value={selectedRepo}
           onSelect={handleSelectRepository}
@@ -80,10 +78,9 @@ export const GitHubNoRepo = ({
         />
       ) : (
         <ManageGitHubAppLink
-          installUrl={installUrl}
+          onInstall={onInstall}
           variant="outline"
           className="ml-0 h-8 px-3 py-2 rounded-lg"
-          onBeforeNavigate={onBeforeNavigate}
           text={
             <>
               <span className="text-gray-9">Import from</span>

@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
@@ -12,7 +12,7 @@ var (
 	// Example usage:
 	//   metrics.CacheHits.WithLabelValues("user_profile").Inc()
 	//   metrics.CacheHits.WithLabelValues("user_profile")
-	CacheReads = promauto.NewCounterVec(
+	CacheReads = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -28,7 +28,7 @@ var (
 	// Example usage:
 	//   metrics.CacheWrites.WithLabelValues("user_profile").Inc()
 	//   metrics.CacheWrites.WithLabelValues("user_profile").Set(float64(writeCount))
-	CacheWrites = promauto.NewGaugeVec(
+	CacheWrites = lazy.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -45,7 +45,7 @@ var (
 	// Example usage:
 	//   metrics.CacheDeleted.WithLabelValues("user_profile", "ttl").Inc()
 	//   metrics.CacheDeleted.WithLabelValues("user_profile", "capacity").Set(float64(evictionCount))
-	CacheDeleted = promauto.NewCounterVec(
+	CacheDeleted = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -60,7 +60,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheSize.WithLabelValues("user_profile").Set(float64(cacheSize))
-	CacheSize = promauto.NewGaugeVec(
+	CacheSize = lazy.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -75,7 +75,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheCapacity.WithLabelValues("user_profile").Set(float64(cacheCapacity))
-	CacheCapacity = promauto.NewGaugeVec(
+	CacheCapacity = lazy.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -90,7 +90,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheRevalidations.WithLabelValues("user_profile").Inc()
-	CacheRevalidations = promauto.NewCounterVec(
+	CacheRevalidations = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -105,7 +105,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheReadsErrorsTotal.WithLabelValues("user_profile").Inc()
-	CacheReadsErrorsTotal = promauto.NewCounterVec(
+	CacheReadsErrorsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",
@@ -120,7 +120,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.CacheRevalidationsErrorsTotal.WithLabelValues("user_profile").Inc()
-	CacheRevalidationsErrorsTotal = promauto.NewCounterVec(
+	CacheRevalidationsErrorsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache",

@@ -2,9 +2,9 @@ syntax = "proto3";
 
 // Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
 //
-// The Cluster service enables a central control plane to coordinate deployments and sentinels
+// The Cluster service enables a central control plane to coordinate deployments
 // across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
-// a long-lived watch connection to receive deployment and sentinel configuration events.
+// a long-lived watch connection to receive deployment configuration events.
 //
 // This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
 // a streaming connection to receive incremental updates, enabling real-time deployment
@@ -15,7 +15,7 @@ import "ctrl/v1/deployment.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
-// Health represents the health state of a resource (sentinel, deployment instance, etc.)
+// Health represents the health state of a resource (deployment instance, etc.)
 enum Health {
   HEALTH_UNSPECIFIED = 0;
   HEALTH_HEALTHY = 1;
@@ -23,15 +23,22 @@ enum Health {
   HEALTH_PAUSED = 3;
 }
 
-// ClusterService coordinates deployment and sentinel configurations across multiple clusters.
+// RegionKey identifies a region on the wire. Every ClusterService RPC scoped
+// to a single region carries this as its first field.
+message RegionKey {
+  // platform is the infrastructure provider (e.g. "aws", "gcp", "local").
+  string platform = 1;
+
+  // name is the geographic region name (e.g. "us-east-1").
+  string name = 2;
+}
+
+// ClusterService coordinates deployment configurations across multiple clusters.
 //
 // Agents in each cluster establish watch streams to receive configuration events
-// from the control plane. The service provides separate streams for deployments and
-// sentinels, each with independent version cursors. This allows the two control loops
-// to operate independently with isolated failure domains.
-//
-// The watch connections are designed to be long-lived with automatic reconnection on failure.
-// When an agent reconnects, it should resume from its last seen version for that resource type.
+// from the control plane. The watch connections are designed to be long-lived
+// with automatic reconnection on failure. When an agent reconnects, it should
+// resume from its last seen version.
 service ClusterService {
   // WatchDeploymentChanges streams incremental resource changes from the
   // deployment_changes outbox table. When version_last_seen is 0, the server
@@ -40,18 +47,10 @@ service ClusterService {
   rpc WatchDeploymentChanges(WatchDeploymentChangesRequest) returns (stream DeploymentChangeEvent);
 
   // SyncDesiredState streams the full desired state for a region: all running
-  // deployments, active sentinels, and cilium policies. The server closes the
-  // stream after all state has been sent. Krane calls this on startup and
-  // periodically as a safety net to reconcile any drift.
+  // deployments and Cilium policies. The server closes the stream after all
+  // state has been sent. Krane calls this on startup and periodically as a
+  // safety net to reconcile any drift.
   rpc SyncDesiredState(SyncDesiredStateRequest) returns (stream DeploymentChangeEvent);
-
-  // GetDesiredSentinelState returns the current desired state for a single sentinel.
-  // Used by the resync loop to verify consistency for existing resources.
-  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
-
-  // ReportSentinelStatus reports actual sentinel state from the agent to the control plane.
-  // Called when K8s watch events indicate sentinel Deployment changes.
-  rpc ReportSentinelStatus(ReportSentinelStatusRequest) returns (ReportSentinelStatusResponse);
 
   // GetDesiredDeploymentState returns the current desired state for a single deployment.
   // Used by the resync loop to verify consistency for existing resources.
@@ -61,10 +60,12 @@ service ClusterService {
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
 
-  // GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
-  // Used by the resync loop to verify consistency for existing resources.
-  rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
-
+  // ReportInstanceEvents reports container lifecycle events (starts, exits,
+  // CrashLoopBackOff transitions) from the agent. Krane batches one or more
+  // events per RPC; the control plane writes them to ClickHouse and
+  // denormalizes the latest exit info onto the matching instances row so the
+  // dashboard can render exit reasons without a CH round-trip.
+  rpc ReportInstanceEvents(ReportInstanceEventsRequest) returns (ReportInstanceEventsResponse);
   // Heartbeat is called periodically by krane agents to register their cluster
   // and region with the control plane. This populates the regions and
   // clusters tables, making regions dynamically discoverable.
@@ -72,7 +73,7 @@ service ClusterService {
 }
 
 message WatchDeploymentChangesRequest {
-  string region = 1;
+  RegionKey region = 1;
   uint64 version_last_seen = 2;
 
   // When true and version_last_seen is 0, replay all changes from the
@@ -80,47 +81,20 @@ message WatchDeploymentChangesRequest {
   bool replay = 3;
 }
 
-message SyncDesiredStateRequest {}
+message SyncDesiredStateRequest {
+  RegionKey region = 1;
+}
 
 message DeploymentChangeEvent {
   uint64 version = 1;
   oneof event {
     DeploymentState deployment = 2;
-    SentinelState sentinel = 3;
-    CiliumNetworkPolicyState cilium_network_policy = 4;
   }
-}
-
-message ApplyCiliumNetworkPolicy {
-  string k8s_namespace = 1;
-  string k8s_name = 2;
-  string cilium_network_policy_id = 3;
-  bytes policy = 4;
-}
-
-message DeleteCiliumNetworkPolicy {
-  string k8s_namespace = 1;
-  string k8s_name = 2;
-}
-message CiliumNetworkPolicyState {
-  uint64 version = 3;
-
-  oneof state {
-    ApplyCiliumNetworkPolicy apply = 1;
-
-    DeleteCiliumNetworkPolicy delete = 2;
-  }
-}
-message GetDesiredCiliumNetworkPolicyStateRequest {
-  string cilium_network_policy_id = 1;
-}
-
-message GetDesiredSentinelStateRequest {
-  string sentinel_id = 1;
 }
 
 message GetDesiredDeploymentStateRequest {
-  string deployment_id = 1;
+  RegionKey region = 1;
+  string deployment_id = 2;
 }
 
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
@@ -148,6 +122,8 @@ message ReportDeploymentStatusRequest {
     string k8s_name = 1;
   }
 
+  RegionKey region = 3;
+
   oneof change {
     Update update = 1;
     Delete delete = 2;
@@ -156,41 +132,105 @@ message ReportDeploymentStatusRequest {
 
 message ReportDeploymentStatusResponse {}
 
-// ReportSentinelStatusRequest reports the actual state of a sentinel from the agent.
-// Used by runActualStateReportLoop to inform the control plane of K8s cluster state.
-message ReportSentinelStatusRequest {
-  string k8s_name = 1;
-  int32 available_replicas = 2;
-  Health health = 3;
-}
-
-message ReportSentinelStatusResponse {}
-
-// SentinelState represents a lifecycle event for an API sentinel configuration.
+// InstanceEvent describes a single container lifecycle transition observed
+// by krane's pod watch. The (pod_uid, container_name, restart_count, state)
+// tuple is the dedupe key on both the krane LRU and the ClickHouse insert.
 //
-// Sentinels are frontline points for services, typically handling routing, load balancing,
-// and API management. The event follows a declarative model where the cluster agent ensures
-// the cluster state matches the desired configuration.
-message SentinelState {
-  // version is the sentinel-specific resource version for this state update.
-  // Clients should track the max version seen and use it when reconnecting to
-  // the WatchSentinels stream to resume from the correct position.
-  // When returned from GetDesiredSentinelState, this field is not set.
-  uint64 version = 3;
+// The `state` oneof mirrors corev1.ContainerState — krane reads exactly
+// this shape from kubelet, so the mapping is direct and future kubelet
+// reasons (PullBackOff, ImagePullBackOff, …) slot in under Waiting without
+// any wire format change.
+message InstanceEvent {
+  // K8s identity of the container life this event is about.
+  string pod_uid = 1;
+  string pod_name = 2;
+  string node_name = 3;
+  string container_name = 4;
+  string container_id = 5;
+  int32 restart_count = 6;
 
-  // state contains the specific sentinel operation to perform.
-  // Only one state type is set per message, determining the action the agent should take.
+  // Tenant identifiers extracted from pod labels by krane. Field order
+  // matches the canonical hierarchy: workspace > project > app >
+  // environment > deployment.
+  string workspace_id = 7;
+  string project_id = 8;
+  string app_id = 9;
+  string environment_id = 10;
+  string deployment_id = 11;
+
+  // When this event happened (unix milliseconds). For Running it's the
+  // container's StartedAt; for Terminated it's FinishedAt; for Waiting
+  // it's when kubelet last published the waiting state.
+  int64 time = 12;
+
+  // Stable hash krane computes so the dashboard can group identical
+  // incidents without an aggregate table. Inputs differ by state:
+  //   Running    — (image_id, "running")
+  //   Terminated — (image_id, exit_code, reason, message[:200])
+  //   Waiting    — (image_id, 0, reason, message[:200])
+  string event_fingerprint = 13;
+
+  // Mirrors corev1.ContainerState. Exactly one case is set per event.
   oneof state {
-    // apply indicates the sentinel should exist with this configuration.
-    // The agent will create the sentinel if it doesn't exist or update it if it does.
-    // This follows the same semantics as "kubectl apply" - declare desired state
-    // and let the agent determine the appropriate action.
-    ApplySentinel apply = 1;
-
-    // delete indicates the sentinel should be removed from the cluster.
-    DeleteSentinel delete = 2;
+    Running running = 14;
+    Terminated terminated = 15;
+    Waiting waiting = 16;
   }
+
+  // Selected k8s metadata for the event row. Stored verbatim into the
+  // ClickHouse `attributes` Map column. Known keys (krane populates):
+  //   image, image_id, cpu_limit_millicores, memory_limit_mib,
+  //   cpu_request_millicores, memory_request_mib, build_id.
+  // Numbers are stringified so the wire shape matches the column type.
+  map<string, string> attributes = 17;
 }
+
+// Running means the container is healthy and serving. The event itself
+// timestamps when this life began (InstanceEvent.time = StartedAt). No
+// per-state metadata beyond identity is needed today; this empty message
+// is reserved for future signals (process restart count within a single
+// life, etc.) without an InstanceEvent shape change.
+message Running {}
+
+// Terminated captures kubelet's ContainerStateTerminated. The container
+// exited; the metadata explains why.
+message Terminated {
+  // Process exit code reported by the kernel.
+  int32 exit_code = 1;
+  // Signal that delivered the termination, or 0 if the process exited
+  // without a signal. SIGTERM (15) usually means k8s/user requested
+  // shutdown; SIGKILL (9) typically pairs with OOMKilled or grace period
+  // expiry.
+  int32 signal = 2;
+  // Kubelet-supplied label: "OOMKilled", "Error", "Completed",
+  // "ContainerCannotRun", "DeadlineExceeded", …
+  string reason = 3;
+  // Free-form kubelet message; truncated past 200 bytes when fed into
+  // event_fingerprint so retries of the same failure collapse.
+  string message = 4;
+}
+
+// Waiting captures kubelet's ContainerStateWaiting. Krane currently only
+// emits when reason == "CrashLoopBackOff", but the type is shaped to
+// accept any waiting reason kubelet publishes.
+message Waiting {
+  // Kubelet-supplied label: "CrashLoopBackOff", "ImagePullBackOff",
+  // "ContainerCreating", "ErrImagePull", …
+  string reason = 1;
+  string message = 2;
+}
+
+// ReportInstanceEventsRequest carries one or more events from a single krane
+// pod-watch tick. Batching keeps the RPC count low when a pod has multiple
+// containers (init/main/sidecar) terminating at once.
+message ReportInstanceEventsRequest {
+  repeated InstanceEvent events = 1;
+  // region scopes the report to one cluster's krane agent. Same convention as
+  // every other ClusterService RPC (ReportDeploymentStatus, ReportSentinelStatus).
+  RegionKey region = 2;
+}
+
+message ReportInstanceEventsResponse {}
 
 // DeploymentState represents a lifecycle event for an application deployment.
 //
@@ -216,42 +256,6 @@ message DeploymentState {
     // delete indicates the deployment should be removed from the cluster.
     DeleteDeployment delete = 2;
   }
-}
-
-// ApplySentinel contains the desired configuration for a sentinel.
-//
-// The cluster agent will ensure a sentinel exists with this exact configuration, creating it if
-// it doesn't exist or updating it if it does. All fields except namespace are required.
-// The control plane ensures that sentinel_id is unique within the namespace.
-message ApplySentinel {
-  string k8s_name = 1;
-  // workspace_id identifies the workspace that owns this sentinel.
-  string workspace_id = 2;
-
-  // project_id identifies the project within the workspace.
-  string project_id = 3;
-
-  // app_id identifies the app within the project.
-  string app_id = 4;
-
-  // environment_id in which the sentinel should exist.
-  string environment_id = 5;
-
-  // sentinel_id is the unique identifier for this sentinel globally
-  string sentinel_id = 6;
-
-  string image = 7;
-  int32 replicas = 8;
-  int64 cpu_millicores = 9;
-  int64 memory_mib = 10;
-}
-
-// DeleteSentinel identifies a sentinel to remove from the cluster.
-//
-// The sentinel and all its resources (pods, services, frontline) will be deleted.
-// In-flight requests may be disrupted unless proper connection draining is configured.
-message DeleteSentinel {
-  string k8s_name = 1;
 }
 
 // ApplyDeployment contains the desired configuration for a deployment.
@@ -364,11 +368,7 @@ message DeleteDeployment {
 // presence. The control plane uses this to populate regions and
 // clusters tables.
 message HeartbeatRequest {
-  // region is the geographic region name (e.g. "us-east-1").
-  string region = 1;
-
-  // platform is the infrastructure provider (e.g. "aws", "gcp", "local").
-  string platform = 2;
+  RegionKey region = 1;
 }
 
 message HeartbeatResponse {}

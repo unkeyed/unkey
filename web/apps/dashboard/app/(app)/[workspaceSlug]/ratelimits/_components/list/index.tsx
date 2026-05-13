@@ -2,8 +2,13 @@ import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { Bookmark } from "@unkey/icons";
 import { Button, CopyButton, Empty } from "@unkey/ui";
+import { useMemo } from "react";
+import { useBatchRatelimitTimeseries } from "../hooks/use-batch-timeseries";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
 import { NamespaceCard } from "./namespace-card";
+import { NamespaceCardSkeleton } from "./skeleton";
+
+const SKELETON_COUNT = 8;
 
 const EXAMPLE_SNIPPET = `curl -XPOST 'https://api.unkey.dev/v2/ratelimit.limit' \\
   -H 'Content-Type: application/json' \\
@@ -20,7 +25,7 @@ export const NamespaceList = () => {
 
   const nameFilter = filters.find((filter) => filter.field === "query")?.value ?? "";
 
-  const { data: namespaces } = useLiveQuery(
+  const { data: namespaces, isLoading: namespacesLoading } = useLiveQuery(
     (q) =>
       q
         .from({ namespace: collection.ratelimitNamespaces })
@@ -28,6 +33,22 @@ export const NamespaceList = () => {
         .orderBy(({ namespace }) => namespace.id, "desc"),
     [nameFilter],
   );
+
+  const namespaceIds = useMemo(() => namespaces.map((ns) => ns.id), [namespaces]);
+  const { timeseriesByNamespace, isLoading, isError } = useBatchRatelimitTimeseries(namespaceIds);
+
+  if (namespacesLoading) {
+    return (
+      <div className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5">
+          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
+            <NamespaceCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (namespaces.length === 0) {
     return (
@@ -49,7 +70,7 @@ export const NamespaceList = () => {
           </div>
           <Empty.Actions className="mt-4 justify-start">
             <a
-              href="https://www.unkey.com/docs/ratelimiting/introduction"
+              href="https://www.unkey.com/docs/platform/ratelimiting/introduction"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -68,7 +89,13 @@ export const NamespaceList = () => {
     <div className="p-4">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5">
         {namespaces.map((namespace) => (
-          <NamespaceCard namespace={namespace} key={namespace.id} />
+          <NamespaceCard
+            namespace={namespace}
+            key={namespace.id}
+            timeseries={timeseriesByNamespace[namespace.id]}
+            isLoading={isLoading}
+            isError={isError}
+          />
         ))}
       </div>
     </div>

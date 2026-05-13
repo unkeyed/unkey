@@ -128,8 +128,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID: auth.AuthorizedWorkspaceID,
 			NamespaceID: nsRow.ID,
 			Identifier:  req.Identifier,
-			Limit:       int32(req.Limit),    // nolint:gosec
-			Duration:    int32(req.Duration), //nolint:gosec
+			Limit:       uint64(req.Limit),    // nolint:gosec
+			Duration:    uint64(req.Duration), //nolint:gosec
 			CreatedAt:   now,
 			UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 		})
@@ -143,15 +143,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		txErr = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.RatelimitSetOverrideEvent,
-				ActorID:     auth.Key.ID,
-				ActorType:   auditlog.RootKeyActor,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
-				Display:     fmt.Sprintf("Set ratelimit override for %s and %s", nsRow.ID, req.Identifier),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.RatelimitSetOverrideEvent,
+				ActorID:       auth.Key.ID,
+				ActorType:     auditlog.RootKeyActor,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				Display:       fmt.Sprintf("Set ratelimit override for %s and %s", nsRow.ID, req.Identifier),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        auditlog.RatelimitOverrideResourceType,

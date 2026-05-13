@@ -3,101 +3,61 @@ package validation
 import (
 	"context"
 	"net/http"
-	"sync"
 
-	"github.com/pb33f/libopenapi"
-	validator "github.com/pb33f/libopenapi-validator"
-	"github.com/pb33f/libopenapi-validator/config"
 	"github.com/unkeyed/unkey/pkg/ctxutil"
-	"github.com/unkeyed/unkey/pkg/fault"
+	core "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-type OpenAPIValidator interface {
-	// Validate reads the request and validates it against the OpenAPI spec
-	//
-	// Returns a BadRequestError if the request is invalid that should be
-	// marshalled and returned to the client.
-	// The second return value is a boolean that is true if the request is valid.
-	Validate(r *http.Request) (openapi.BadRequestErrorResponse, bool)
-}
-
+// Validator wraps the core OpenAPI validator with tracing and
+// API-specific error formatting.
 type Validator struct {
-	validator validator.Validator
+	core *core.Validator
 }
 
+// New creates a Validator backed by the compiled API OpenAPI spec.
 func New() (*Validator, error) {
-	document, err := libopenapi.NewDocument(openapi.Spec)
+	v, err := core.NewFromBytes(openapi.Spec)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create OpenAPI document"))
+		return nil, err
 	}
-
-	v, errors := validator.NewValidator(document, config.WithRegexCache(&sync.Map{}))
-	if len(errors) > 0 {
-		messages := make([]fault.Wrapper, len(errors))
-		for i, e := range errors {
-			messages[i] = fault.Internal(e.Error())
-		}
-		// nolint:wrapcheck
-		return nil, fault.New("failed to create validator", messages...)
-	}
-	valid, docErrors := v.ValidateDocument()
-	if !valid {
-		messages := make([]fault.Wrapper, len(docErrors))
-		for i, e := range docErrors {
-			messages[i] = fault.Internal(e.Message)
-		}
-
-		return nil, fault.New("openapi document is invalid", messages...)
-	}
-
-	return &Validator{
-		validator: v,
-	}, nil
+	return &Validator{core: v}, nil
 }
 
+// Validate checks r against the OpenAPI spec.
+// Returns (_, true) when valid. On failure returns a ready-to-marshal
+// BadRequestErrorResponse and false.
 func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool) {
-	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
-	defer validationSpan.End()
+	_, span := tracing.Start(ctx, "openapi.Validate")
+	defer span.End()
 
-	valid, errors := v.validator.ValidateHttpRequestSync(r)
-
-	if valid {
-		// nolint:exhaustruct
+	result := v.core.Validate(r)
+	if result == nil {
+		//nolint:exhaustruct
 		return openapi.BadRequestErrorResponse{}, true
 	}
-	res := openapi.BadRequestErrorResponse{
+
+	errors := make([]openapi.ValidationError, len(result.Errors))
+	for i, e := range result.Errors {
+		errors[i] = openapi.ValidationError{
+			Message:  e.Message,
+			Location: e.Location,
+			Fix:      e.Fix,
+		}
+	}
+
+	//nolint:exhaustruct
+	return openapi.BadRequestErrorResponse{
 		Meta: openapi.Meta{
 			RequestId: ctxutil.GetRequestID(r.Context()),
 		},
 		Error: openapi.BadRequestErrorDetails{
 			Title:  "Bad Request",
-			Detail: "One or more fields failed validation",
+			Detail: result.Detail,
 			Status: http.StatusBadRequest,
 			Type:   "https://unkey.com/docs/errors/unkey/application/invalid_input",
-			Errors: []openapi.ValidationError{},
+			Errors: errors,
 		},
-	}
-
-	if len(errors) > 0 {
-		err := errors[0]
-		res.Error.Detail = err.Message
-		for _, verr := range err.SchemaValidationErrors {
-			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
-				Message:  verr.Reason,
-				Location: verr.Location,
-				Fix:      nil,
-			})
-		}
-		if len(res.Error.Errors) == 0 {
-			res.Error.Errors = append(res.Error.Errors, openapi.ValidationError{
-				Message:  err.Reason,
-				Location: err.ValidationType,
-				Fix:      &err.HowToFix,
-			})
-		}
-	}
-
-	return res, false
+	}, false
 }

@@ -3,7 +3,9 @@ import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
 // biome-ignore lint/style/useImportType: Reqired for silencing Biome
 import React from "react";
 import { cn } from "../../lib/utils";
+import { InfoTooltip } from "../info-tooltip";
 import { OptionalTag, RequiredTag } from "./form-tags";
+export { DocsTag } from "./form-tags";
 
 export type FormHelperProps = {
   description?: string | React.ReactNode;
@@ -56,22 +58,34 @@ export const FormDescription = ({
           ) : (
             <CircleInfo iconSize="md-medium" className="shrink-0 mt-[3px]" aria-hidden="true" />
           )}
-          <span className="flex-1 text-gray-10">{description}</span>
+          <span
+            className={cn("flex-1", variant === "warning" ? "text-warning-11" : "text-gray-10")}
+          >
+            {description}
+          </span>
         </output>
       ) : null}
     </div>
   );
 };
 
+export type Requirement = "required" | "optional";
+
 export type FormLabelProps = {
   label?: string;
-  required?: boolean;
-  optional?: boolean;
+  requirement?: Requirement;
   hasError?: boolean;
   htmlFor: string;
+  tooltipContent?: string | React.ReactNode;
 };
 
-export const FormLabel = ({ label, required, optional, hasError, htmlFor }: FormLabelProps) => {
+export const FormLabel = ({
+  label,
+  requirement,
+  hasError,
+  htmlFor,
+  tooltipContent,
+}: FormLabelProps) => {
   if (!label) {
     return null;
   }
@@ -83,8 +97,16 @@ export const FormLabel = ({ label, required, optional, hasError, htmlFor }: Form
       className="text-gray-11 text-[13px] flex items-center"
     >
       {label}
-      {required && <RequiredTag hasError={hasError} />}
-      {optional && <OptionalTag />}
+      {requirement === "required" && <RequiredTag hasError={hasError} />}
+      {requirement === "optional" && <OptionalTag />}
+      {tooltipContent && (
+        <InfoTooltip content={tooltipContent} asChild>
+          <span className="ml-1.5 inline-flex items-center text-gray-9 hover:text-gray-11">
+            <CircleInfo iconSize="md-medium" aria-hidden="true" />
+            <span className="sr-only">More info</span>
+          </span>
+        </InfoTooltip>
+      )}
     </label>
   );
 };

@@ -1,11 +1,10 @@
 import type { FilterValue, StringConfig } from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
-import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import { z } from "zod";
 
 const commonStringOperators = ["contains"] as const;
 export const projectsFilterOperatorEnum = z.enum(commonStringOperators);
-export type ProjectsFilterOperator = z.infer<typeof projectsFilterOperatorEnum>;
+type ProjectsFilterOperator = z.infer<typeof projectsFilterOperatorEnum>;
 
 export type FilterFieldConfigs = {
   query: StringConfig<ProjectsFilterOperator>;
@@ -24,15 +23,9 @@ if (allFilterFieldNames.length === 0) {
 }
 
 const [firstFieldName, ...restFieldNames] = allFilterFieldNames;
-export const projectsFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
+const projectsFilterFieldEnum = z.enum([firstFieldName, ...restFieldNames]);
 export const projectsListFilterFieldNames = allFilterFieldNames;
 export type ProjectsFilterField = z.infer<typeof projectsFilterFieldEnum>;
-
-export const filterOutputSchema = createFilterOutputSchema(
-  projectsFilterFieldEnum,
-  projectsFilterOperatorEnum,
-  projectsFilterFieldConfig,
-);
 
 export type AllOperatorsUrlValue = {
   value: string;

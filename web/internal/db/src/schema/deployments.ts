@@ -77,6 +77,9 @@ export const deployments = mysqlTable(
       .notNull()
       .default("SIGTERM"),
 
+    // Protocol sentinel uses to proxy to the instance (snapshotted from app_runtime_settings)
+    upstreamProtocol: mysqlEnum("upstream_protocol", ["http1", "h2c"]).notNull().default("http1"),
+
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
 
@@ -88,6 +91,11 @@ export const deployments = mysqlTable(
 
     // GitHub Deployment ID for status reporting
     githubDeploymentId: bigint("github_deployment_id", { mode: "number" }),
+
+    // Restate invocation ID for the Deploy workflow.
+    // Captured when the workflow is started, used to cancel the invocation
+    // when a user manually aborts the deployment.
+    invocationId: varchar("invocation_id", { length: 256 }),
 
     // Deployment status
     status: mysqlEnum("status", [
@@ -102,6 +110,8 @@ export const deployments = mysqlTable(
       "skipped",
       "awaiting_approval",
       "stopped",
+      "superseded",
+      "cancelled",
     ])
       .notNull()
       .default("pending"),

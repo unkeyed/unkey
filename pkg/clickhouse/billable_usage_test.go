@@ -16,7 +16,8 @@ import (
 )
 
 func TestGetBillableUsageAboveThreshold(t *testing.T) {
-	dsn := containers.ClickHouse(t)
+	chCfg := containers.ClickHouse(t)
+	dsn := chCfg.DSN
 
 	// Create ClickHouse client using the clickhouse package
 	client, err := clickhouse.New(clickhouse.Config{
@@ -247,6 +248,7 @@ func createRatelimits(workspaceID string, count int, timestamp time.Time, passed
 			Limit:       100,
 			Remaining:   remaining,
 			ResetAt:     timestamp.Add(time.Minute).UnixMilli(),
+			Tokens:      1,
 		}
 	}
 	return ratelimits

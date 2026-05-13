@@ -231,7 +231,7 @@ const RegionsSingle = () => {
       <SettingField>
         <FormCombobox
           label="Region"
-          optional
+          requirement="optional"
           options={buildRegionComboboxOptions(unselectedRegions)}
           value=""
           onSelect={addRegion}

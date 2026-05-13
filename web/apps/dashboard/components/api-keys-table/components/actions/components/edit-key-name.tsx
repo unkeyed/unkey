@@ -128,7 +128,7 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
               description="Not customer-facing. Choose a name that is easy to recognize."
               error={errors.name?.message}
               variant="default"
-              optional
+              requirement="optional"
               {...register("name")}
             />
             <FormInput

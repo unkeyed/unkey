@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+import { ChevronRight } from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 import { HighlightMatch } from "../shared/highlight-match";
 import { EnvVarBaseRow } from "./env-var-base-row";
@@ -7,10 +9,12 @@ type GroupRowProps = {
   row: DisplayRow & { kind: "group" };
   isExpanded: boolean;
   selected: boolean | "partial";
+  selectedIds: Set<string>;
   deferredQuery: string;
   editingId: string | null;
   onToggleGroup: () => void;
   onToggleSelection: (shiftKey: boolean) => void;
+  onToggleItemSelection: (itemId: string) => void;
   onEdit: (id: string) => void;
   onCloseEdit: () => void;
   hasSelection: boolean;
@@ -20,10 +24,12 @@ export function GroupRow({
   row,
   isExpanded,
   selected,
+  selectedIds,
   deferredQuery,
   editingId,
   onToggleGroup,
   onToggleSelection,
+  onToggleItemSelection,
   onEdit,
   onCloseEdit,
   hasSelection,
@@ -59,8 +65,15 @@ export function GroupRow({
         </div>
       }
       valueCell={
-        <span className="text-[13px] text-gray-11 transition-colors pl-2">
-          {row.items.length} values ›
+        <span className="flex items-center gap-1.5 text-[13px] text-gray-11 transition-colors pl-2">
+          {row.items.length} values
+          <ChevronRight
+            iconSize="sm-thin"
+            className={cn(
+              "size-[12px] transition-transform duration-200",
+              isExpanded && "rotate-90",
+            )}
+          />
         </span>
       }
       timestamp={row.latestUpdatedAt}
@@ -75,7 +88,9 @@ export function GroupRow({
                 isEditing={editingId === item.id}
                 onEdit={() => onEdit(item.id)}
                 onCloseEdit={onCloseEdit}
-                selectable={false}
+                isSelected={selectedIds.has(item.id)}
+                onToggleSelection={() => onToggleItemSelection(item.id)}
+                hasSelection={hasSelection}
               />
             ))}
           </div>

@@ -1,18 +1,18 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { Checkbox, type CheckboxProps } from "./checkbox";
-import { FormDescription, FormLabel } from "./form-helpers";
+import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
 
 // Hack to populate fumadocs' AutoTypeTable
 type DocumentedFormCheckboxProps = {
   label?: string;
   description?: string | React.ReactNode;
-  required?: boolean;
-  optional?: boolean;
+  requirement?: Requirement;
   error?: string;
   variant?: CheckboxProps["variant"];
   color?: CheckboxProps["color"];
   size?: CheckboxProps["size"];
+  descriptionPosition?: "inline" | "label";
 };
 
 type FormCheckboxProps = Omit<CheckboxProps, "size" | "variant" | "color"> &
@@ -24,17 +24,18 @@ const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
       label,
       description,
       error,
-      required,
+      requirement,
       id,
       className,
-      optional,
       variant = "primary",
       color,
       size = "md",
+      descriptionPosition = "inline",
       ...props
     },
     ref,
   ) => {
+    const descriptionAsTooltip = descriptionPosition === "label";
     const checkboxVariant = error ? "primary" : variant;
     const checkboxColor = error ? "danger" : color;
     const checkboxId = id || React.useId();
@@ -52,23 +53,23 @@ const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
             size={size}
             aria-describedby={error ? errorId : description ? descriptionId : undefined}
             aria-invalid={Boolean(error)}
-            aria-required={required}
+            aria-required={requirement === "required"}
             {...props}
           />
           {label && (
             <div className="flex flex-col gap-1">
               <FormLabel
                 label={label}
-                required={required}
-                optional={optional}
+                requirement={requirement}
                 hasError={Boolean(error)}
                 htmlFor={checkboxId}
+                tooltipContent={descriptionAsTooltip ? description : undefined}
               />
             </div>
           )}
         </div>
         <FormDescription
-          description={description}
+          description={descriptionAsTooltip ? undefined : description}
           error={error}
           variant={color}
           descriptionId={descriptionId}

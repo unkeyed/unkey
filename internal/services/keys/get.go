@@ -2,7 +2,6 @@ package keys
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -114,9 +114,49 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			}
 		}
 
+		// Decode roles / permissions / ratelimits once during cache population so
+		// that cache hits don't re-parse these JSON columns on every verify call.
+		roles, err := db.UnmarshalNullableJSONTo[[]string](row.Roles)
+		if err != nil {
+			return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal roles"))
+		}
+		if roles == nil {
+			roles = []string{}
+		}
+
+		permissions, err := db.UnmarshalNullableJSONTo[[]string](row.Permissions)
+		if err != nil {
+			return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal permissions"))
+		}
+		if permissions == nil {
+			permissions = []string{}
+		}
+
+		ratelimitArr, err := db.UnmarshalNullableJSONTo[[]keysdb.KeyFindForVerificationRatelimit](row.Ratelimits)
+		if err != nil {
+			return keysdb.CachedKeyData{}, fault.Wrap(err, fault.Internal("failed to unmarshal ratelimits"))
+		}
+
+		// Convert rate limits array to map (key name -> config).
+		// Key rate limits take precedence over identity rate limits.
+		ratelimitConfigs := make(map[string]keysdb.KeyFindForVerificationRatelimit, len(ratelimitArr))
+		for _, rl := range ratelimitArr {
+			existing, exists := ratelimitConfigs[rl.Name]
+			if !exists {
+				ratelimitConfigs[rl.Name] = rl
+				continue
+			}
+			if rl.KeyID != "" && existing.IdentityID != "" {
+				ratelimitConfigs[rl.Name] = rl
+			}
+		}
+
 		return keysdb.CachedKeyData{
 			FindKeyForVerificationRow: row,
 			ParsedIPWhitelist:         parsedIPWhitelist,
+			Roles:                     roles,
+			Permissions:               permissions,
+			RatelimitConfigs:          ratelimitConfigs,
 		}, nil
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
@@ -174,58 +214,6 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		return kv, kv.log, nil
 	}
 
-	// The DB returns this in array format and an empty array if not found
-	var roles, permissions []string
-	var ratelimitArr []keysdb.KeyFindForVerificationRatelimit
-
-	// Safely handle roles field
-	rolesBytes, ok := key.Roles.([]byte)
-	if !ok || rolesBytes == nil {
-		roles = []string{} // Default to empty array if nil or wrong type
-	} else {
-		err = json.Unmarshal(rolesBytes, &roles)
-		if err != nil {
-			return nil, emptyLog, fault.Wrap(err, fault.Internal("failed to unmarshal roles"))
-		}
-	}
-
-	// Safely handle permissions field
-	permissionsBytes, ok := key.Permissions.([]byte)
-	if !ok || permissionsBytes == nil {
-		permissions = []string{} // Default to empty array if nil or wrong type
-	} else {
-		err = json.Unmarshal(permissionsBytes, &permissions)
-		if err != nil {
-			return nil, emptyLog, fault.Wrap(err, fault.Internal("failed to unmarshal permissions"))
-		}
-	}
-
-	// Safely handle ratelimits field
-	ratelimitsBytes, ok := key.Ratelimits.([]byte)
-	if !ok || ratelimitsBytes == nil {
-		ratelimitArr = []keysdb.KeyFindForVerificationRatelimit{} // Default to empty array if nil or wrong type
-	} else {
-		err = json.Unmarshal(ratelimitsBytes, &ratelimitArr)
-		if err != nil {
-			return nil, emptyLog, fault.Wrap(err, fault.Internal("failed to unmarshal ratelimits"))
-		}
-	}
-
-	// Convert rate limits array to map (key name -> config)
-	// Key rate limits take precedence over identity rate limits
-	ratelimitConfigs := make(map[string]keysdb.KeyFindForVerificationRatelimit)
-	for _, rl := range ratelimitArr {
-		existing, exists := ratelimitConfigs[rl.Name]
-		if !exists {
-			ratelimitConfigs[rl.Name] = rl
-			continue
-		}
-
-		if rl.KeyID != "" && existing.IdentityID != "" {
-			ratelimitConfigs[rl.Name] = rl
-		}
-	}
-
 	kv := &KeyVerifier{
 		tags:                  []string{},
 		Key:                   key.FindKeyForVerificationRow,
@@ -243,10 +231,10 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 		// By default we assume the key is valid unless proven otherwise
 		Status:            StatusValid,
-		ratelimitConfigs:  ratelimitConfigs,
+		ratelimitConfigs:  key.RatelimitConfigs,
 		parsedIPWhitelist: key.ParsedIPWhitelist, // Use pre-parsed IPs from cache
-		Roles:             roles,
-		Permissions:       permissions,
+		Roles:             key.Roles,
+		Permissions:       key.Permissions,
 		RatelimitResults:  nil,
 	}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { formatCpuParts } from "@/lib/utils/deployment-formatters";
-import { Bolt } from "@unkey/icons";
+import { Microchip } from "@unkey/icons";
 import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
 
 const CPU_OPTIONS = [
@@ -16,7 +16,7 @@ const CPU_OPTIONS = [
 ] as const;
 
 const cpuConfig: ResourceSliderConfig = {
-  icon: <Bolt className="text-gray-12" iconSize="xl-medium" />,
+  icon: <Microchip className="text-gray-12" iconSize="xl-medium" />,
   title: "Max CPU",
   description: "Maximum CPU limit per instance. You are only charged for actual usage.",
   settingDescription:

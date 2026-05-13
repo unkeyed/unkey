@@ -1,15 +1,15 @@
 import React from "react";
 import { cn } from "../../lib/utils";
-import { FormDescription, FormLabel } from "./form-helpers";
+import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
 import { type DocumentedTextareaProps, Textarea, type TextareaProps } from "./textarea";
 
 // Hack to populate fumadocs' AutoTypeTable
 type DocumentedFormTextareaProps = DocumentedTextareaProps & {
   label?: string;
   description?: string | React.ReactNode;
-  required?: boolean;
-  optional?: boolean;
+  requirement?: Requirement;
   error?: string;
+  descriptionPosition?: "inline" | "label";
 };
 
 type FormTextareaProps = TextareaProps & DocumentedFormTextareaProps;
@@ -20,18 +20,19 @@ const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
       label,
       description,
       error,
-      required,
-      optional,
+      requirement,
       id,
       className,
       variant,
       leftIcon,
       rightIcon,
       wrapperClassName,
+      descriptionPosition = "inline",
       ...props
     },
     ref,
   ) => {
+    const descriptionAsTooltip = descriptionPosition === "label";
     const textareaVariant = error ? "error" : variant;
     const textareaId = id || React.useId();
     const descriptionId = `${textareaId}-helper`;
@@ -41,10 +42,10 @@ const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
       <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
         <FormLabel
           label={label}
-          required={required}
-          optional={optional}
+          requirement={requirement}
           hasError={!!error}
           htmlFor={textareaId}
+          tooltipContent={descriptionAsTooltip ? description : undefined}
         />
 
         <Textarea
@@ -56,11 +57,11 @@ const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
           wrapperClassName={wrapperClassName}
           aria-describedby={error ? errorId : description ? descriptionId : undefined}
           aria-invalid={!!error}
-          aria-required={required}
+          aria-required={requirement === "required"}
           {...props}
         />
         <FormDescription
-          description={description}
+          description={descriptionAsTooltip ? undefined : description}
           error={error}
           variant={variant}
           descriptionId={descriptionId}

@@ -89,7 +89,7 @@ const GenericLinkCommand: React.FC<{
 };
 
 const FeedbackCommand: React.FC = () => {
-  const [_, openFeedback] = useFeedback();
+  const { openFeedback } = useFeedback();
 
   return (
     <CommandItem onSelect={() => openFeedback(true)}>

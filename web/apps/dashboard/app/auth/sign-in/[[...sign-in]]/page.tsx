@@ -1,7 +1,7 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
-import { deleteCookie, getCookie } from "@/lib/auth/cookies";
+import { deleteLastUsedOrgCookie, getCookie } from "@/lib/auth/cookies-actions";
 import {
   AuthErrorCode,
   PENDING_SESSION_COOKIE,
@@ -94,7 +94,7 @@ function SignInContent() {
         .then((result) => {
           if (!result.success) {
             // Auto-selection failed - clear last used workspace to prevent retry loop
-            deleteCookie(UNKEY_LAST_ORG_COOKIE).catch(() => {
+            deleteLastUsedOrgCookie().catch(() => {
               // Ignore cookie deletion errors
             });
 
@@ -112,7 +112,7 @@ function SignInContent() {
         })
         .catch((_err) => {
           // Clear last used workspace on error
-          deleteCookie(UNKEY_LAST_ORG_COOKIE).catch(() => {
+          deleteLastUsedOrgCookie().catch(() => {
             // Ignore cookie deletion errors
           });
 

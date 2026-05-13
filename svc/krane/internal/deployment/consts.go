@@ -19,6 +19,14 @@ const (
 	// Requests determine scheduling; limits cap actual usage.
 	resourceRequestFraction = 4 // requests = limits / 4
 
+	// defaultContainerEphemeralStorageMib caps writes to a container's rootfs
+	// (overlayfs writable layer, container logs, unmounted emptyDirs). Without
+	// this, a single pod could fill the node's 50Gi EBS root volume and trigger
+	// disk-pressure eviction of neighbors. Users who need more scratch space
+	// should configure an EphemeralStorage volume, which mounts at /data and is
+	// accounted separately from the rootfs.
+	defaultContainerEphemeralStorageMib = 128
+
 	// defaultCPUTargetUtilization is the average CPU utilization percentage (0-100)
 	// used when no autoscaling policy is attached. When average pod CPU exceeds
 	// this percentage of their requested CPU, the HPA adds replicas.
@@ -27,6 +35,16 @@ const (
 	// scaleDownStabilizationSeconds is how long the HPA waits after load drops
 	// before removing pods. Prevents flapping when traffic is spiky.
 	scaleDownStabilizationSeconds int32 = 60
+
+	// frontlineNamespace is the Kubernetes namespace where frontline pods
+	// run. The per-deployment CiliumNetworkPolicy uses this in fromEndpoints
+	// so only pods inside the frontline namespace can reach the customer
+	// pods. We trust the namespace boundary instead of additionally
+	// matching an "app" label because the prod helm chart and the dev
+	// manifest disagree on label conventions; matching by namespace alone
+	// is also the approach the cluster-wide allow-frontline-to-sentinel
+	// policy in infra/eks-cluster/helm-chart/networking already uses.
+	frontlineNamespace = "frontline"
 )
 
 // untrustedToleration allows deployment pods to be scheduled on nodes tainted

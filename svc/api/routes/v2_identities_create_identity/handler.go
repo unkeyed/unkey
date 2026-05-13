@@ -48,6 +48,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	// Mint a correlation ID so the identity.create audit event plus any
+	// per-ratelimit creation events that result share one ID for
+	// dashboard drill-down.
+	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
+
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -119,15 +124,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.IdentityCreateEvent,
-				Display:     fmt.Sprintf("Created identity %s.", identityID),
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				ActorType:   auditlog.RootKeyActor,
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.IdentityCreateEvent,
+				Display:       fmt.Sprintf("Created identity %s.", identityID),
+				ActorID:       auth.Key.ID,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				ActorType:     auditlog.RootKeyActor,
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          identityID,
@@ -149,22 +155,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					IdentityID:  sql.NullString{String: identityID, Valid: true},
 					Name:        ratelimit.Name,
-					Limit:       int32(ratelimit.Limit), // nolint:gosec
-					Duration:    ratelimit.Duration,
+					Limit:       uint64(ratelimit.Limit),
+					Duration:    uint64(ratelimit.Duration),
 					CreatedAt:   time.Now().UnixMilli(),
 					AutoApply:   ratelimit.AutoApply,
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.RatelimitCreateEvent,
-					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
-					ActorID:     auth.Key.ID,
-					ActorType:   auditlog.RootKeyActor,
-					ActorName:   "root key",
-					ActorMeta:   map[string]any{},
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.RatelimitCreateEvent,
+					Display:       fmt.Sprintf("Created ratelimit %s.", ratelimitID),
+					ActorID:       auth.Key.ID,
+					ActorType:     auditlog.RootKeyActor,
+					ActorName:     "root key",
+					ActorMeta:     map[string]any{},
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type:        auditlog.IdentityResourceType,

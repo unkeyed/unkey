@@ -1,6 +1,7 @@
 import { Switch } from "@/components/ui/switch";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { collection } from "@/lib/collections";
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown, CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
@@ -51,6 +52,7 @@ export const AddEnvVarExpandable = ({
     reset,
     trigger,
     getValues,
+    setValue,
     setFocus,
     setError,
     clearPersistedData,
@@ -60,7 +62,7 @@ export const AddEnvVarExpandable = ({
     `env-vars-add-${projectId}`,
     {
       resolver: zodResolver(envVarsSchema),
-      mode: "onSubmit",
+      mode: "onChange",
       defaultValues: {
         envVars: [createEmptyEntry()],
         environmentId: "__all__",
@@ -70,7 +72,44 @@ export const AddEnvVarExpandable = ({
     "session",
   );
 
+  const createBulk = trpc.deploy.envVar.createBulk.useMutation();
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
+
+  const handlePasteEntries = useCallback(
+    (index: number, entries: { key: string; value: string }[]) => {
+      if (entries.length === 0) {
+        return;
+      }
+      const [first, ...rest] = entries;
+      setValue(`envVars.${index}.key`, first.key);
+      setValue(`envVars.${index}.value`, first.value);
+      if (rest.length > 0) {
+        append(rest.map((e) => ({ key: e.key, value: e.value, description: "" })));
+      }
+      trigger("envVars");
+    },
+    [setValue, append, trigger],
+  );
+
+  const handleRemoveAndFocusPrevious = useCallback(
+    (index: number) => {
+      if (index === 0) {
+        return;
+      }
+      remove(index);
+      requestAnimationFrame(() => {
+        setFocus(`envVars.${index - 1}.value`);
+      });
+    },
+    [remove, setFocus],
+  );
+
+  const handleAdvanceRow = useCallback(() => {
+    append(createEmptyEntry());
+    requestAnimationFrame(() => {
+      setFocus(`envVars.${fields.length}.key`);
+    });
+  }, [append, setFocus, fields.length]);
   const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -138,29 +177,27 @@ export const AddEnvVarExpandable = ({
 
     const targetEnvIds =
       values.environmentId === "__all__" ? environments.map((e) => e.id) : [values.environmentId];
-    const type = values.secret ? "writeonly" : "recoverable";
-    const flatRecords = nonEmpty.flatMap((entry) =>
+    const type = values.secret ? ("writeonly" as const) : ("recoverable" as const);
+    const variables = nonEmpty.flatMap((entry) =>
       targetEnvIds.map((envId) => ({
+        environmentId: envId,
         key: entry.key,
         value: entry.value,
-        description: entry.description,
-        environmentId: envId,
+        type,
+        description: entry.description || null,
       })),
     );
 
-    for (const v of flatRecords) {
-      collection.envVars.insert({
-        id: crypto.randomUUID(),
-        environmentId: v.environmentId,
-        projectId,
-        key: v.key,
-        value: v.value,
-        type,
-        description: v.description || null,
-        updatedAt: Date.now(),
+    try {
+      await createBulk.mutateAsync({ variables });
+      await collection.envVars.utils.refetch();
+      toast.success(`Added ${variables.length} variable(s)`);
+    } catch (err) {
+      toast.error("Failed to create environment variables", {
+        description: err instanceof Error ? err.message : "Unknown error",
       });
+      return;
     }
-    toast.success(`Added ${flatRecords.length} variable(s)`);
 
     clearPersistedData();
     reset({
@@ -237,8 +274,13 @@ export const AddEnvVarExpandable = ({
                   key={field.id}
                   index={index}
                   isOnly={fields.length === 1}
+                  isLast={index === fields.length - 1}
                   register={register}
+                  control={control}
                   onRemove={remove}
+                  onPasteEntries={handlePasteEntries}
+                  onAdvanceRow={handleAdvanceRow}
+                  onRemoveAndFocusPrevious={handleRemoveAndFocusPrevious}
                   errors={errors.envVars}
                 />
               ))}

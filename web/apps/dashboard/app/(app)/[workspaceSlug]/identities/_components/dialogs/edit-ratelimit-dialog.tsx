@@ -1,14 +1,14 @@
 "use client";
 
 import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
-import { useEditRatelimits } from "@/hooks/use-edit-ratelimits";
+import { useEditIdentityRatelimits } from "@/hooks/use-edit-ratelimits";
 import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
-import { type FC, useCallback, useEffect, useState } from "react";
+import { type FC, useCallback, useEffect, useId, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { IdentityInfo } from "./identity-info";
@@ -53,6 +53,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
   open,
   onOpenChange,
 }) => {
+  const formId = useId();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getDefaultValues = useCallback(() => {
@@ -71,7 +72,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
     }
   }, [open, getDefaultValues, methods]);
 
-  const updateRatelimit = useEditRatelimits("identity", () => {
+  const updateRatelimit = useEditIdentityRatelimits(() => {
     onOpenChange(false);
   });
 
@@ -92,7 +93,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
 
   return (
     <FormProvider {...methods}>
-      <form id="edit-identity-ratelimit-form" onSubmit={onSubmit}>
+      <form id={formId} onSubmit={onSubmit}>
         <DialogContainer
           isOpen={open}
           onOpenChange={onOpenChange}
@@ -104,7 +105,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
                 type="submit"
-                form="edit-identity-ratelimit-form"
+                form={formId}
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"

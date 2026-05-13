@@ -1,0 +1,61 @@
+---
+title: "portal_config_not_found"
+description: "No portal configuration matched the provided slug for your workspace. Verify the slug or contact Unkey to provision a portal configuration."
+---
+
+<Danger>`err:unkey:data:portal_config_not_found`</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Portal configuration not found.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "https://unkey.com/docs/errors/unkey/data/portal_config_not_found"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you call `POST /v2/portal.createSession` with a `slug` that does not match a portal configuration in your workspace.
+
+Common causes include:
+
+- Typo in the `slug` value sent from your backend.
+- The portal configuration belongs to a different workspace than the root key you authenticated with.
+- The portal has not yet been provisioned for your workspace. The [Customer Portal](/quickstart/portal) is in early access, and during that period configurations are created by the Unkey team on request.
+
+## How To Fix
+
+1. **Verify the slug**: Double-check that the `slug` in your request matches the slug configured for your portal. Slugs are 3–64 characters, lowercase alphanumeric and hyphens, with no leading or trailing hyphen.
+2. **Check the workspace**: Make sure the root key you are using belongs to the same workspace as the portal configuration.
+3. **Request a configuration**: If you have not yet been onboarded to the Customer Portal, contact the Unkey team to provision one for your workspace.
+
+Example of a correct request:
+
+```bash
+curl -X POST https://api.unkey.com/v2/portal.createSession \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "my-portal",
+    "externalId": "user_123",
+    "permissions": ["api.*.read_key"]
+  }'
+```
+
+## Common Mistakes
+
+- **Slug case sensitivity**: Slugs are lowercase. `My-Portal` will not match `my-portal`.
+- **Wrong root key**: Using a root key from a different workspace returns this error rather than a 401, because the slug lookup is workspace-scoped.
+- **Hyphen rules**: Slugs cannot start or end with a hyphen, and cannot contain underscores or other punctuation.
+
+## Related Errors
+
+- [err:unkey:authentication:portal_token_missing](../authentication/portal_token_missing) - When a portal session token is required but not provided
+- [err:unkey:authentication:portal_session_not_found](../authentication/portal_session_not_found) - When a portal session is invalid, expired, or already used
+- [err:unkey:data:workspace_not_found](./workspace_not_found) - When the workspace itself cannot be resolved

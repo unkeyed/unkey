@@ -349,3 +349,119 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+type testIdentity struct {
+	id         string
+	externalID string
+}
+
+// TestBulkIdentityUpdateDeadlock reproduces a production 5xx spike caused by
+// many identity updates for DIFFERENT identities hitting the API concurrently.
+// INSERT ... ON DUPLICATE KEY UPDATE on the ratelimits table causes gap-lock
+// contention on unique_name_per_identity_idx, leading to MySQL deadlocks (1213).
+//
+// The existing TestUpdateIdentityConcurrentRatelimits only tests concurrent
+// updates to the SAME identity, which the FOR UPDATE lock serializes. This test
+// hits the cross-identity failure mode.
+func TestBulkIdentityUpdateDeadlock(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+	}
+
+	h.Register(route)
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity", "identity.*.update_identity")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	numIdentities := 50
+	rlNames := []string{"rl_a", "rl_b", "rl_c", "rl_d", "rl_e"}
+
+	// Create many distinct identities, each with several ratelimits already
+	// attached, so the concurrent update phase hits the upsert path.
+	identities := make([]testIdentity, numIdentities)
+	for i := range numIdentities {
+		id := uid.New(uid.IdentityPrefix)
+		externalID := fmt.Sprintf("deadlock_test_%d_%s", i, uid.New("test"))
+		err := db.Query.InsertIdentity(ctx, h.DB.RW(), db.InsertIdentityParams{
+			ID:          id,
+			ExternalID:  externalID,
+			WorkspaceID: workspaceID,
+			Environment: "default",
+			CreatedAt:   time.Now().UnixMilli(),
+			Meta:        []byte("{}"),
+		})
+		require.NoError(t, err)
+
+		seedRL := make([]db.InsertIdentityRatelimitParams, len(rlNames))
+		for j, name := range rlNames {
+			seedRL[j] = db.InsertIdentityRatelimitParams{
+				ID:          uid.New(uid.RatelimitPrefix),
+				WorkspaceID: workspaceID,
+				IdentityID:  sql.NullString{String: id, Valid: true},
+				Name:        name,
+				Limit:       100,
+				Duration:    60000,
+				CreatedAt:   time.Now().UnixMilli(),
+				AutoApply:   true,
+			}
+		}
+		err = db.BulkQuery.InsertIdentityRatelimits(ctx, h.DB.RW(), seedRL)
+		require.NoError(t, err)
+
+		identities[i] = testIdentity{id: id, externalID: externalID}
+	}
+
+	// Warm up the validator cache with one request.
+	warmupRL := make([]openapi.RatelimitRequest, len(rlNames))
+	for j, name := range rlNames {
+		warmupRL[j] = openapi.RatelimitRequest{Name: name, Limit: 999, Duration: 60000, AutoApply: true}
+	}
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Identity:   identities[0].externalID,
+		Ratelimits: &warmupRL,
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
+
+	// Fire off concurrent updates for ALL identities at once, multiple rounds.
+	// A single round may succeed via retries; repeated rounds exhaust them.
+	for round := range 3 {
+		g := errgroup.Group{}
+		for i, ident := range identities {
+			g.Go(func() error {
+				ratelimits := make([]openapi.RatelimitRequest, len(rlNames))
+				for j, name := range rlNames {
+					ratelimits[j] = openapi.RatelimitRequest{
+						Name:      name,
+						Limit:     int64(100 + round*1000 + i),
+						Duration:  60000,
+						AutoApply: true,
+					}
+				}
+				req := handler.Request{
+					Identity:   ident.externalID,
+					Ratelimits: &ratelimits,
+				}
+				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+				if res.Status != 200 {
+					body, _ := json.Marshal(res.Body)
+					return fmt.Errorf("round %d identity %s: unexpected status %d: %s", round, ident.externalID, res.Status, string(body))
+				}
+				return nil
+			})
+		}
+
+		err := g.Wait()
+		require.NoError(t, err, "round %d: all concurrent identity updates should succeed without deadlock", round)
+	}
+}

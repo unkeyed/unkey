@@ -95,6 +95,12 @@ spec:
             - containerPort: 3000 # Grafana
             - containerPort: 4317 # OTLP gRPC
             - containerPort: 4318 # OTLP HTTP
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
 
 ---
 apiVersion: v1

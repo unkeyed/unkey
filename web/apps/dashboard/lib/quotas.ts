@@ -13,4 +13,5 @@ export const freeTierQuotas: Omit<Quotas, "workspaceId" | "pk"> = {
   maxCpuMillicoresPerInstance: 2000, // 2 vCPU
   maxMemoryMibPerInstance: 4096, // 4 GiB
   maxStorageMibPerInstance: 10240, // 10 GiB
+  maxConcurrentBuilds: 1,
 };

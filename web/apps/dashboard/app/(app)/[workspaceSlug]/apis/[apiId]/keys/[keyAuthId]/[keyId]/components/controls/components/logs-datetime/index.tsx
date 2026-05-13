@@ -16,14 +16,8 @@ export const LogsDateTime = () => {
     }
   }, [title]);
 
-  // Sync title with filters - reset to default when time filters are removed
-  useEffect(() => {
-    const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
-
-    if (!hasTimeFilters && title !== "Last 12 hours") {
-      setTitle("Last 12 hours");
-    }
-  }, [filters, title]);
+  const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
+  const displayTitle = hasTimeFilters ? (title ?? "Loading...") : "Last 12 hours";
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
@@ -40,6 +34,7 @@ export const LogsDateTime = () => {
     <DatetimePopover
       maxDate={new Date()}
       initialTimeValues={timeValues}
+      initialTitle={displayTitle}
       onDateTimeChange={(startTime, endTime, since) => {
         const activeFilters = filters.filter(
           (f) => !["endTime", "startTime", "since"].includes(f.field),
@@ -74,7 +69,6 @@ export const LogsDateTime = () => {
         }
         updateFilters(activeFilters);
       }}
-      initialTitle={title ?? ""}
       onSuggestionChange={setTitle}
       customOptions={DEFAULT_OPTIONS.filter(
         (option) => !option.value || !option.value.endsWith("m"),
@@ -86,18 +80,16 @@ export const LogsDateTime = () => {
           size="md"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            title ? "" : "opacity-50",
-            title !== "Last 12 hours" ? "bg-gray-4" : "",
+            displayTitle === "Loading..." ? "opacity-50" : "",
+            displayTitle !== "Last 12 hours" ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs by time"
           aria-haspopup="true"
           title="Press 'T' to toggle filters"
-          disabled={!title}
+          disabled={displayTitle === "Loading..."}
         >
           <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px] max-md:hidden">
-            {title ?? "Loading..."}
-          </span>
+          <span className="text-gray-12 font-medium text-[13px] max-md:hidden">{displayTitle}</span>
         </Button>
       </div>
     </DatetimePopover>

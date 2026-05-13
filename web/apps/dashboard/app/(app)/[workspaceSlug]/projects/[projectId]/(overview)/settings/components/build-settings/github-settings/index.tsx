@@ -1,6 +1,9 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
+import { match } from "@unkey/match";
+import { toast } from "@unkey/ui";
+import { useCallback } from "react";
 import { useProjectData } from "../../../../data-provider";
 import { SelectedConfig } from "../../shared/selected-config";
 import { GitHubConnected } from "./github-connected";
@@ -9,14 +12,14 @@ import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel
 
 type GitHubConnectionState =
   | { status: "loading" }
-  | { status: "no-app"; installUrl: string }
-  | { status: "no-repo"; appId: string; installUrl: string }
+  | { status: "no-app"; onInstall: () => Promise<void> }
+  | { status: "no-repo"; appId: string; onInstall: () => Promise<void> }
   | {
       status: "connected";
       appId: string;
       repoFullName: string;
       repositoryId: number;
-      installUrl: string;
+      onInstall: () => Promise<void>;
     };
 
 type GitHubProps = {
@@ -27,8 +30,22 @@ type GitHubProps = {
 export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
   const { projectId } = useProjectData();
 
-  const state = JSON.stringify({ projectId, returnTo: "settings" });
-  const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+  // The state on the GitHub install URL is a server-signed token bound to
+  // this user, workspace, and project. Computing it requires a tRPC round
+  // trip, so we mint it lazily on click rather than in render.
+  const prepareInstallation = trpc.github.prepareInstallation.useMutation();
+  const onInstall = useCallback(async () => {
+    try {
+      const { state } = await prepareInstallation.mutateAsync({
+        projectId,
+        returnTo: "settings",
+      });
+      onBeforeNavigate?.();
+      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
+    }
+  }, [projectId, prepareInstallation, onBeforeNavigate]);
 
   const { data, isLoading } = trpc.github.getInstallations.useQuery(
     { projectId },
@@ -41,64 +58,54 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
     }
     const hasInstallations = (data?.installations?.length ?? 0) > 0;
     if (!hasInstallations) {
-      return { status: "no-app", installUrl };
+      return { status: "no-app", onInstall };
     }
     const appId = data?.appId;
     if (!appId) {
-      return { status: "no-app", installUrl };
+      return { status: "no-app", onInstall };
     }
     const repoFullName = data?.repoConnection?.repositoryFullName;
     if (repoFullName) {
       const repositoryId = data?.repoConnection?.repositoryId ?? 0;
-      return { status: "connected", appId, repoFullName, repositoryId, installUrl };
+      return { status: "connected", appId, repoFullName, repositoryId, onInstall };
     }
-    return { status: "no-repo", appId, installUrl };
+    return { status: "no-repo", appId, onInstall };
   })();
 
-  switch (connectionState.status) {
-    case "loading":
-      return (
-        <GitHubSettingCard chevronState="disabled">
-          <ComboboxSkeleton />
-        </GitHubSettingCard>
-      );
-    // No-app means user haven't connected an app to unkey yet
-    case "no-app":
-      return (
-        <GitHubSettingCard chevronState="disabled">
-          <ManageGitHubAppLink
-            installUrl={connectionState.installUrl}
-            variant="outline"
-            className="px-2.5 py-3 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
-            onBeforeNavigate={onBeforeNavigate}
-          />
-        </GitHubSettingCard>
-      );
-    // User connected to unkey, but haven't selected a repo yet
-    case "no-repo":
-      return (
-        <GitHubNoRepo
-          projectId={projectId}
-          appId={connectionState.appId}
-          installUrl={connectionState.installUrl}
-          onBeforeNavigate={onBeforeNavigate}
+  return match(connectionState)
+    .with({ status: "loading" }, () => (
+      <GitHubSettingCard chevronState="disabled">
+        <ComboboxSkeleton />
+      </GitHubSettingCard>
+    ))
+    .with({ status: "no-app" }, ({ onInstall: install }) => (
+      <GitHubSettingCard chevronState="disabled">
+        <ManageGitHubAppLink
+          onInstall={install}
+          variant="outline"
+          className="px-2.5 py-3 text-gray-12 font-medium text-[13px] hover:bg-grayA-2"
         />
-      );
-    case "connected":
+      </GitHubSettingCard>
+    ))
+    .with({ status: "no-repo" }, ({ appId, onInstall: install }) => (
+      <GitHubNoRepo projectId={projectId} appId={appId} onInstall={install} />
+    ))
+    .with({ status: "connected" }, ({ appId, repoFullName, onInstall: install }) => {
       if (readOnly) {
         return (
           <GitHubSettingCard chevronState="disabled">
-            <SelectedConfig label={<RepoNameLabel fullName={connectionState.repoFullName} />} />
+            <SelectedConfig label={<RepoNameLabel fullName={repoFullName} />} />
           </GitHubSettingCard>
         );
       }
       return (
         <GitHubConnected
-          appId={connectionState.appId}
-          installUrl={connectionState.installUrl}
-          repoFullName={connectionState.repoFullName}
-          onBeforeNavigate={onBeforeNavigate}
+          projectId={projectId}
+          appId={appId}
+          onInstall={install}
+          repoFullName={repoFullName}
         />
       );
-  }
+    })
+    .exhaustive();
 };

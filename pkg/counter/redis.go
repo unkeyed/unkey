@@ -76,6 +76,10 @@ type RedisConfig struct {
 //   - Counter: Redis implementation of the Counter interface
 //   - error: Any errors during initialization
 func NewRedis(config RedisConfig) (Counter, error) {
+	return newRedis(config, 1*time.Second, 500*time.Millisecond, 500*time.Millisecond)
+}
+
+func newRedis(config RedisConfig, dialTimeout time.Duration, readTimeout time.Duration, writeTimeout time.Duration) (Counter, error) {
 	err := assert.All(
 		assert.NotEmpty(config.RedisURL, "Redis URL must not be empty"),
 	)
@@ -91,9 +95,9 @@ func NewRedis(config RedisConfig) (Counter, error) {
 	// Use aggressive timeouts so requests fail fast when Redis is slow or
 	// unreachable, rather than blocking for the go-redis defaults (5s dial,
 	// 3s read/write). See https://github.com/unkeyed/unkey/issues/4891.
-	opts.DialTimeout = 1 * time.Second
-	opts.ReadTimeout = 500 * time.Millisecond
-	opts.WriteTimeout = 500 * time.Millisecond
+	opts.DialTimeout = dialTimeout
+	opts.ReadTimeout = readTimeout
+	opts.WriteTimeout = writeTimeout
 
 	rdb := redis.NewClient(opts)
 	logger.Debug("pinging redis")

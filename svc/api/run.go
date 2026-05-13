@@ -22,8 +22,11 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -34,10 +37,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/routes"
@@ -60,10 +63,10 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("id", cfg.InstanceID),
 		slog.String("platform", cfg.Platform),
 		slog.String("region", cfg.Region),
-		slog.String("version", version.Version),
+		slog.String("version", buildinfo.Version),
 	))
 
-	if cfg.TestMode {
+	if cfg.Test.Enabled {
 		logger.AddBaseAttrs(slog.Bool("testmode", true))
 	}
 	if cfg.TLSConfig != nil {
@@ -72,15 +75,22 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("api")
+
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:     "api",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			Application:        "api",
+			InstanceID:         cfg.InstanceID,
+			CloudRegion:        cfg.Region,
+			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			PrometheusGatherer: reg,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -103,7 +113,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	if cfg.Observability.Metrics != nil {
-		prom, promErr := prometheus.New()
+		prom, promErr := prometheus.NewWithRegistry(reg)
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
@@ -175,7 +185,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Caches will be created after invalidation consumer is set up
 	srv, err := zen.New(zen.Config{
 		Flags: &zen.Flags{
-			TestMode: cfg.TestMode,
+			TestMode: cfg.Test.Enabled,
 		},
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
@@ -195,16 +205,22 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
-	ctr, err := counter.NewRedis(counter.RedisConfig{
-		RedisURL: cfg.RedisURL,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create counter: %w", err)
+	var ctr counter.Counter
+	if cfg.Test.Counter != nil {
+		ctr = cfg.Test.Counter
+	} else {
+		ctr, err = counter.NewRedis(counter.RedisConfig{
+			RedisURL: cfg.RedisURL,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create counter: %w", err)
+		}
 	}
 
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
+		DB:      db.ToMySQL(database),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
@@ -214,19 +230,19 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(rlSvc.Close)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
-			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
 				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			})
 			if err != nil {
 				return 0, false, err
 			}
-			return limit.Int32, limit.Valid, nil
+			return limit.Int64, limit.Valid, nil
 		},
-		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int64) error {
 			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
 				ID:      keyID,
-				Credits: sql.NullInt32{Int32: cost, Valid: true},
+				Credits: sql.NullInt64{Int64: cost, Valid: true},
 			})
 		},
 		Counter: ctr,
@@ -379,22 +395,24 @@ func Run(ctx context.Context, cfg Config) error {
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		PortalBaseURL:              cfg.PortalBaseURL,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,
 			Region: cfg.Region,
 		})
 
-	if cfg.Listener == nil {
+	listener := cfg.Test.Listener
+	if listener == nil {
 		// Create listener from HttpPort (production)
-		cfg.Listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
+		listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if err != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.HttpPort, err)
 		}
 	}
 
 	r.Go(func(ctx context.Context) error {
-		serveErr := srv.Serve(ctx, cfg.Listener)
+		serveErr := srv.Serve(ctx, listener)
 		if serveErr != nil && !errors.Is(serveErr, context.Canceled) && !errors.Is(serveErr, http.ErrServerClosed) {
 			return fmt.Errorf("server failed: %w", serveErr)
 		}

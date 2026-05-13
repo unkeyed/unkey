@@ -290,6 +290,17 @@ export class LocalAuthProvider extends BaseAuthProvider {
     throw new Error(`Membership ${membershipId} not found`);
   }
 
+  async deactivateMembership(membershipId: string): Promise<void> {
+    if (!membershipId) {
+      throw new Error("Membership Id is required");
+    }
+
+    if (membershipId === this.membership.id) {
+      throw new Error("Cannot deactivate the default membership");
+    }
+    throw new Error(`Membership ${membershipId} not found`);
+  }
+
   // Invitation Management - No-op methods
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const { orgId, email } = params;
@@ -465,6 +476,10 @@ export class LocalAuthProvider extends BaseAuthProvider {
 
   async getSignOutUrl(): Promise<string | null> {
     return "/auth/sign-in";
+  }
+
+  async revokeSession(_sessionToken: string): Promise<void> {
+    // No-op: local provider has no server-side session to revoke.
   }
 
   // OAuth Methods

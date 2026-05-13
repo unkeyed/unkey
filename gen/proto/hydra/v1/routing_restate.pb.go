@@ -14,9 +14,19 @@ import (
 )
 
 // RoutingServiceClient is the client API for hydra.v1.RoutingService service.
+//
+// RoutingService manages the routing layer for an environment. The VO is
+// keyed by env_id so all routing-related state changes (route assignments
+// and live-deployment swaps) for an environment are serialized.
 type RoutingServiceClient interface {
-	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment.
 	AssignFrontlineRoutes(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse]
+	// SwapLiveDeployment atomically reassigns the given frontline routes AND
+	// updates apps.current_deployment_id to point at the target deployment,
+	// returning the previously-live deployment ID. Setting set_rollback_flag
+	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
+	// work like scheduling the previous deployment for standby.
+	SwapLiveDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse]
 }
 
 type routingServiceClient struct {
@@ -41,12 +51,26 @@ func (c *routingServiceClient) AssignFrontlineRoutes(opts ...sdk_go.ClientOption
 	return sdk_go.WithRequestType[*AssignFrontlineRoutesRequest](sdk_go.Object[*AssignFrontlineRoutesResponse](c.ctx, "hydra.v1.RoutingService", c.key, "AssignFrontlineRoutes", cOpts...))
 }
 
+func (c *routingServiceClient) SwapLiveDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*SwapLiveDeploymentRequest](sdk_go.Object[*SwapLiveDeploymentResponse](c.ctx, "hydra.v1.RoutingService", c.key, "SwapLiveDeployment", cOpts...))
+}
+
 // RoutingServiceIngressClient is the ingress client API for hydra.v1.RoutingService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type RoutingServiceIngressClient interface {
-	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment.
 	AssignFrontlineRoutes() ingress.Requester[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse]
+	// SwapLiveDeployment atomically reassigns the given frontline routes AND
+	// updates apps.current_deployment_id to point at the target deployment,
+	// returning the previously-live deployment ID. Setting set_rollback_flag
+	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
+	// work like scheduling the previous deployment for standby.
+	SwapLiveDeployment() ingress.Requester[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse]
 }
 
 type routingServiceIngressClient struct {
@@ -68,12 +92,27 @@ func (c *routingServiceIngressClient) AssignFrontlineRoutes() ingress.Requester[
 	return ingress.NewRequester[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse](c.client, c.serviceName, "AssignFrontlineRoutes", &c.key, &codec)
 }
 
+func (c *routingServiceIngressClient) SwapLiveDeployment() ingress.Requester[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse](c.client, c.serviceName, "SwapLiveDeployment", &c.key, &codec)
+}
+
 // RoutingServiceServer is the server API for hydra.v1.RoutingService service.
 // All implementations should embed UnimplementedRoutingServiceServer
 // for forward compatibility.
+//
+// RoutingService manages the routing layer for an environment. The VO is
+// keyed by env_id so all routing-related state changes (route assignments
+// and live-deployment swaps) for an environment are serialized.
 type RoutingServiceServer interface {
-	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
+	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment.
 	AssignFrontlineRoutes(ctx sdk_go.ObjectContext, req *AssignFrontlineRoutesRequest) (*AssignFrontlineRoutesResponse, error)
+	// SwapLiveDeployment atomically reassigns the given frontline routes AND
+	// updates apps.current_deployment_id to point at the target deployment,
+	// returning the previously-live deployment ID. Setting set_rollback_flag
+	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
+	// work like scheduling the previous deployment for standby.
+	SwapLiveDeployment(ctx sdk_go.ObjectContext, req *SwapLiveDeploymentRequest) (*SwapLiveDeploymentResponse, error)
 }
 
 // UnimplementedRoutingServiceServer should be embedded to have
@@ -85,6 +124,9 @@ type UnimplementedRoutingServiceServer struct{}
 
 func (UnimplementedRoutingServiceServer) AssignFrontlineRoutes(ctx sdk_go.ObjectContext, req *AssignFrontlineRoutesRequest) (*AssignFrontlineRoutesResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method AssignFrontlineRoutes not implemented"), 501)
+}
+func (UnimplementedRoutingServiceServer) SwapLiveDeployment(ctx sdk_go.ObjectContext, req *SwapLiveDeploymentRequest) (*SwapLiveDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method SwapLiveDeployment not implemented"), 501)
 }
 func (UnimplementedRoutingServiceServer) testEmbeddedByValue() {}
 
@@ -106,5 +148,6 @@ func NewRoutingServiceServer(srv RoutingServiceServer, opts ...sdk_go.ServiceDef
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.RoutingService", sOpts...)
 	router = router.Handler("AssignFrontlineRoutes", sdk_go.NewObjectHandler(srv.AssignFrontlineRoutes))
+	router = router.Handler("SwapLiveDeployment", sdk_go.NewObjectHandler(srv.SwapLiveDeployment))
 	return router
 }

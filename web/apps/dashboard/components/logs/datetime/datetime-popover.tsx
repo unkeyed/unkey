@@ -32,6 +32,7 @@ interface DatetimePopoverProps extends PropsWithChildren {
   singleDateMode?: boolean; // Props for single date selection
   minDate?: Date; // Props to set a minimum selectable date
   maxDate?: Date; // Props to set a maximum selectable date
+  align?: "start" | "center" | "end";
 }
 
 type TimeRangeType = {
@@ -50,6 +51,7 @@ export const DatetimePopover = ({
   singleDateMode = false,
   minDate,
   maxDate,
+  align = "start",
 }: DatetimePopoverProps) => {
   // Default to false (desktop) to prevent hydration mismatches
   const isMobile = useIsMobile({ defaultValue: false });
@@ -85,14 +87,19 @@ export const DatetimePopover = ({
   });
 
   useEffect(() => {
+    const noTimeFilters = !since && !startTime && !endTime;
     const newTitle = since
       ? (OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER)
-      : startTime
+      : startTime || endTime
         ? CUSTOM_PLACEHOLDER
         : initialTitle;
 
     onSuggestionChange(newTitle);
-  }, [since, startTime, initialTitle, onSuggestionChange, OPTIONS]);
+
+    if (noTimeFilters) {
+      setSuggestions(OPTIONS.map((s) => ({ ...s, checked: false })));
+    }
+  }, [since, startTime, endTime, initialTitle, onSuggestionChange, OPTIONS]);
 
   const handleSuggestionChange = (id: number) => {
     if (id === CURRENT_CUSTOM_OPTION_ID) {
@@ -263,7 +270,7 @@ export const DatetimePopover = ({
           </PopoverTrigger>
           <PopoverContent
             className="flex w-full bg-gray-1 dark:bg-black shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
-            align="start"
+            align={align}
           >
             <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
               {customHeader || (

@@ -1,4 +1,3 @@
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@unkey/ui";
 import type { PermissionsFilterField } from "../../filters.schema";
 import { useFilters } from "../../hooks/use-filters";
@@ -24,7 +23,6 @@ export const PermissionsListControlCloud = () => {
 
   return (
     <ControlCloud
-      historicalWindow={HISTORICAL_DATA_WINDOW}
       formatFieldName={formatFieldName}
       filters={filters}
       removeFilter={removeFilter}

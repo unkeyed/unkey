@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // envSpec defines the slug and human-readable description for a default environment.
@@ -32,7 +33,7 @@ func (s *Service) CreateApp(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateAppRequest],
 ) (*connect.Response[ctrlv1.CreateAppResponse], error) {
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 	if err := assert.All(
@@ -87,6 +88,7 @@ func (s *Service) CreateApp(
 				Dockerfile:    "",
 				DockerContext: "",
 				WatchPaths:    nil,
+				AutoDeploy:    true,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {
@@ -94,20 +96,21 @@ func (s *Service) CreateApp(
 			}
 
 			if txErr := db.Query.UpsertAppRuntimeSettings(txCtx, tx, db.UpsertAppRuntimeSettingsParams{
-				WorkspaceID:     workspaceID,
-				AppID:           appID,
-				EnvironmentID:   envID,
-				Port:            0,
-				CpuMillicores:   0,
-				MemoryMib:       0,
-				StorageMib:      0,
-				Command:         dbtype.StringSlice{},
-				Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-				ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
-				SentinelConfig:  []byte("{}"),
-				OpenapiSpecPath: sql.NullString{Valid: false},
-				CreatedAt:       now,
-				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:      workspaceID,
+				AppID:            appID,
+				EnvironmentID:    envID,
+				Port:             0,
+				CpuMillicores:    0,
+				MemoryMib:        0,
+				StorageMib:       0,
+				Command:          dbtype.StringSlice{},
+				Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+				ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
+				UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
+				SentinelConfig:   []byte("{}"),
+				OpenapiSpecPath:  sql.NullString{Valid: false},
+				CreatedAt:        now,
+				UpdatedAt:        sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {
 				return fmt.Errorf("upsert %s runtime settings: %w", env.slug, txErr)
 			}

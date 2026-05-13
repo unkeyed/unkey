@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // CreateProject creates a project and a default app with environments
@@ -20,7 +21,7 @@ func (s *Service) CreateProject(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateProjectRequest],
 ) (*connect.Response[ctrlv1.CreateProjectResponse], error) {
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 	if err := assert.All(

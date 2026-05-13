@@ -201,7 +201,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	remaining := key.Key.RemainingRequests
 	if remaining.Valid {
-		keyData.Credits = ptr.P(remaining.Int32)
+		keyData.Credits = ptr.P(remaining.Int64)
 	}
 
 	if key.Key.Meta.Valid {

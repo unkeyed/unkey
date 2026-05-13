@@ -7,12 +7,22 @@ import (
 
 type Service struct {
 	ctrlv1connect.UnimplementedOpenApiServiceHandler
-	db db.Database
+	db     db.Database
+	bearer string
 }
 
-func New(database db.Database) *Service {
+// Config holds the configuration for creating a new [Service].
+type Config struct {
+	// Database provides read access to OpenAPI specs.
+	Database db.Database
+	// Bearer is the preshared token that callers must provide in the Authorization header.
+	Bearer string
+}
+
+func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedOpenApiServiceHandler: ctrlv1connect.UnimplementedOpenApiServiceHandler{},
-		db:                                 database,
+		db:                                 cfg.Database,
+		bearer:                             cfg.Bearer,
 	}
 }

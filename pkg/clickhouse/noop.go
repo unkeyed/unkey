@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
 
 // noop implements the ClickHouse interface but discards all operations.
@@ -36,6 +37,11 @@ func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentR
 // GetKeyLastUsedBatchPartitioned implements the Querier interface but always returns an empty slice.
 func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
 	return nil, nil
+}
+
+// InsertAuditLogs implements the Querier interface but discards the input.
+func (n *noop) InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error {
+	return nil
 }
 
 func (n *noop) Conn() ch.Conn {

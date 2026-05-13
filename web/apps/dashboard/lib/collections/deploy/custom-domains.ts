@@ -4,6 +4,7 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { domains } from "./domains";
 import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const verificationStatusSchema = z.enum(["pending", "verifying", "verified", "failed"]);
@@ -84,14 +85,33 @@ export const customDomains = createCollection<CustomDomain, string>(
         success: (data) => ({
           message: "Domain added",
           description: `Add a DNS record pointing to ${data.targetCname}`,
+          duration: 10_000,
         }),
-        error: (err) => ({
-          message: "Failed to add domain",
-          description: err.message,
-        }),
+        error: (err) => {
+          const data = (err as { data?: { code?: string } }).data;
+          const message = err instanceof Error ? err.message : "";
+
+          if (data?.code === "CONFLICT") {
+            return {
+              message: "Domain already in use",
+              description: "This domain is already registered.",
+              ...(message && {
+                action: {
+                  label: "View",
+                  onClick: () => window.open(message, "_blank"),
+                },
+              }),
+            };
+          }
+          return {
+            message: "Failed to add domain",
+            description: message,
+          };
+        },
       });
 
       await mutation;
+      await customDomains.utils.refetch();
     },
     onDelete: async ({ transaction }) => {
       const original = transaction.mutations[0].original;
@@ -111,6 +131,7 @@ export const customDomains = createCollection<CustomDomain, string>(
       });
 
       await deleteMutation;
+      await domains.utils.refetch();
     },
   }),
 );

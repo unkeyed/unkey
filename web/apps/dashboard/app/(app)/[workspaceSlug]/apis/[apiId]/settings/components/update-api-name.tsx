@@ -15,7 +15,11 @@ import {
 export const dynamic = "force-dynamic";
 
 const formSchema = z.object({
-  apiName: z.string().trim().min(3, "Name is required and should be at least 3 characters"),
+  apiName: z
+    .string()
+    .trim()
+    .min(3, "Name is required and should be at least 3 characters")
+    .max(256, "Name cannot exceed 256 characters"),
   apiId: z.string(),
   workspaceId: z.string(),
 });

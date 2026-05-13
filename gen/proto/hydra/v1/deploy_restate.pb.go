@@ -17,8 +17,18 @@ import (
 //
 // DeployService orchestrates the lifecycle of application deployments as
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash. Workflows are keyed by app_id to allow concurrent
-// deployments across different apps within the same project.
+// any step after a crash.
+//
+// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
+// that lifecycle operations within a single environment are serialized
+// (preventing e.g. a rollback from racing with an in-flight deploy) while
+// different environments of the same app — e.g. production vs preview — can
+// deploy in parallel. This means a production push never waits behind a
+// preview build. Workspace-wide concurrency is separately enforced by
+// BuildSlotService.
+//
+// ScaleDownIdlePreviewDeployments is a global cron job and uses a fixed
+// sentinel key since it does not relate to any single environment.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -47,6 +57,19 @@ type DeployServiceClient interface {
 	// deployment to standby that has received zero requests in the last 6 hours.
 	// Intended to be called by a cron job.
 	ScaleDownIdlePreviewDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse]
+	// NotifyInstancesReady is called by the control plane (from
+	// ReportDeploymentStatus) when enough instances have become healthy across
+	// the required regions. It resolves the awakeable stored by a suspended
+	// Deploy workflow, unblocking it so the deployment can proceed to the
+	// network/finalize phases.
+	//
+	// SHARED so it can run concurrently with a suspended Deploy on the same VO
+	// key. The DeployService VO is keyed by {app_id}:{environment_id} which is
+	// shared across every deployment in that environment — the handler
+	// verifies the request's deployment_id matches the one currently awaiting,
+	// so a late status report from a previous deployment never resolves the
+	// awakeable of a newer one.
+	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
 type deployServiceClient struct {
@@ -95,6 +118,14 @@ func (c *deployServiceClient) ScaleDownIdlePreviewDeployments(opts ...sdk_go.Cli
 	return sdk_go.WithRequestType[*ScaleDownIdlePreviewDeploymentsRequest](sdk_go.Object[*ScaleDownIdlePreviewDeploymentsResponse](c.ctx, "hydra.v1.DeployService", c.key, "ScaleDownIdlePreviewDeployments", cOpts...))
 }
 
+func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*NotifyInstancesReadyRequest](sdk_go.Object[*NotifyInstancesReadyResponse](c.ctx, "hydra.v1.DeployService", c.key, "NotifyInstancesReady", cOpts...))
+}
+
 // DeployServiceIngressClient is the ingress client API for hydra.v1.DeployService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -118,6 +149,19 @@ type DeployServiceIngressClient interface {
 	// deployment to standby that has received zero requests in the last 6 hours.
 	// Intended to be called by a cron job.
 	ScaleDownIdlePreviewDeployments() ingress.Requester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse]
+	// NotifyInstancesReady is called by the control plane (from
+	// ReportDeploymentStatus) when enough instances have become healthy across
+	// the required regions. It resolves the awakeable stored by a suspended
+	// Deploy workflow, unblocking it so the deployment can proceed to the
+	// network/finalize phases.
+	//
+	// SHARED so it can run concurrently with a suspended Deploy on the same VO
+	// key. The DeployService VO is keyed by {app_id}:{environment_id} which is
+	// shared across every deployment in that environment — the handler
+	// verifies the request's deployment_id matches the one currently awaiting,
+	// so a late status report from a previous deployment never resolves the
+	// awakeable of a newer one.
+	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
 type deployServiceIngressClient struct {
@@ -154,14 +198,29 @@ func (c *deployServiceIngressClient) ScaleDownIdlePreviewDeployments() ingress.R
 	return ingress.NewRequester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse](c.client, c.serviceName, "ScaleDownIdlePreviewDeployments", &c.key, &codec)
 }
 
+func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.key, &codec)
+}
+
 // DeployServiceServer is the server API for hydra.v1.DeployService service.
 // All implementations should embed UnimplementedDeployServiceServer
 // for forward compatibility.
 //
 // DeployService orchestrates the lifecycle of application deployments as
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash. Workflows are keyed by app_id to allow concurrent
-// deployments across different apps within the same project.
+// any step after a crash.
+//
+// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
+// that lifecycle operations within a single environment are serialized
+// (preventing e.g. a rollback from racing with an in-flight deploy) while
+// different environments of the same app — e.g. production vs preview — can
+// deploy in parallel. This means a production push never waits behind a
+// preview build. Workspace-wide concurrency is separately enforced by
+// BuildSlotService.
+//
+// ScaleDownIdlePreviewDeployments is a global cron job and uses a fixed
+// sentinel key since it does not relate to any single environment.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -190,6 +249,19 @@ type DeployServiceServer interface {
 	// deployment to standby that has received zero requests in the last 6 hours.
 	// Intended to be called by a cron job.
 	ScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error)
+	// NotifyInstancesReady is called by the control plane (from
+	// ReportDeploymentStatus) when enough instances have become healthy across
+	// the required regions. It resolves the awakeable stored by a suspended
+	// Deploy workflow, unblocking it so the deployment can proceed to the
+	// network/finalize phases.
+	//
+	// SHARED so it can run concurrently with a suspended Deploy on the same VO
+	// key. The DeployService VO is keyed by {app_id}:{environment_id} which is
+	// shared across every deployment in that environment — the handler
+	// verifies the request's deployment_id matches the one currently awaiting,
+	// so a late status report from a previous deployment never resolves the
+	// awakeable of a newer one.
+	NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
 }
 
 // UnimplementedDeployServiceServer should be embedded to have
@@ -210,6 +282,9 @@ func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.ObjectContext, req *P
 }
 func (UnimplementedDeployServiceServer) ScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method ScaleDownIdlePreviewDeployments not implemented"), 501)
+}
+func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
 }
 func (UnimplementedDeployServiceServer) testEmbeddedByValue() {}
 
@@ -234,5 +309,6 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
 	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
 	router = router.Handler("ScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.ScaleDownIdlePreviewDeployments))
+	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
 	return router
 }

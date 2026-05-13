@@ -65,6 +65,13 @@ func (c *CachedClock) Now() time.Time {
 	return time.Unix(0, c.nanos.Load())
 }
 
+// NewTicker delegates to [time.NewTicker]. Cached time is only an
+// optimization for Now reads; ticker scheduling still runs against the
+// system clock so periodic work fires on real wall-time intervals.
+func (c *CachedClock) NewTicker(d time.Duration) Ticker {
+	return &realTicker{t: time.NewTicker(d)}
+}
+
 // Close stops the background goroutine that updates the cached time.
 // After calling Close, the clock will continue to return the last cached time
 // but will no longer update. This method should be called to clean up resources

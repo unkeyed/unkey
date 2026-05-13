@@ -168,7 +168,10 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           expandable={
             isPrebuilt ? null : (
               <div className="bg-grayA-2">
-                <DeploymentBuildStepsTable steps={buildSteps.data?.steps ?? []} />
+                <DeploymentBuildStepsTable
+                  steps={buildSteps.data?.steps ?? []}
+                  isLoading={buildSteps.isLoading}
+                />
               </div>
             )
           }
@@ -188,9 +191,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
                 />
               </div>
             ) : null
-          }
-          defaultExpanded={
-            Boolean(deploying && !deploying.endedAt) || deployingStep.status === "error"
           }
         />
         <DeploymentStep

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -29,7 +29,7 @@ func New(t *testing.T) *Harness {
 
 	ctx := context.Background()
 
-	mysqlCfg := dockertest.MySQL(t)
+	mysqlCfg := containers.MySQL(t)
 	mysqlHostDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{
@@ -138,6 +138,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		StorageMib:                    0,
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
@@ -166,9 +167,9 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	})
 	require.NoError(h.t, err)
 
-	region, err := db.Query.FindRegionByNameAndPlatform(ctx, h.DB.RO(), db.FindRegionByNameAndPlatformParams{
-		Name:     req.Region,
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, h.DB.RO(), db.FindRegionByPlatformAndNameParams{
 		Platform: "test",
+		Name:     req.Region,
 	})
 	require.NoError(h.t, err)
 
@@ -254,20 +255,28 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 	}
 
 	err := db.Query.InsertSentinel(ctx, h.DB.RW(), db.InsertSentinelParams{
-		ID:                sentinelID,
-		WorkspaceID:       workspaceID,
-		EnvironmentID:     env.ID,
-		ProjectID:         project.ID,
-		K8sAddress:        "http://localhost:8080",
+		ID:              sentinelID,
+		WorkspaceID:     workspaceID,
+		EnvironmentID:   env.ID,
+		ProjectID:       project.ID,
+		K8sAddress:      "http://localhost:8080",
+		K8sName:         k8sName,
+		RegionID:        req.RegionID,
+		Image:           "sentinel:1.0",
+		DesiredReplicas: 1,
+		CpuMillicores:   100,
+		MemoryMib:       128,
+		CreatedAt:       h.Now(),
+	})
+	require.NoError(h.t, err)
+
+	// Seed observed state so tests can route to the sentinel.
+	err = db.Query.UpdateSentinelObservedState(ctx, h.DB.RW(), db.UpdateSentinelObservedStateParams{
 		K8sName:           k8sName,
-		RegionID:          req.RegionID,
-		Image:             "sentinel:1.0",
-		Health:            db.SentinelsHealthHealthy,
-		DesiredReplicas:   1,
+		RunningImage:      "sentinel:1.0",
 		AvailableReplicas: 1,
-		CpuMillicores:     100,
-		MemoryMib:         128,
-		CreatedAt:         h.Now(),
+		Health:            db.SentinelsHealthHealthy,
+		UpdatedAt:         sql.NullInt64{Valid: true, Int64: h.Now()},
 	})
 	require.NoError(h.t, err)
 
