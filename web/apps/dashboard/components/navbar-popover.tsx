@@ -1,12 +1,13 @@
 "use client";
 import { DisabledWrapper } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/disabled-wrapper";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { useFlag } from "@/lib/flags/provider";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretRight } from "@unkey/icons";
 import { KeyboardButton, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
-import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
+import React, { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 
 export type QuickNavItem = {
   id: string;
@@ -39,7 +40,23 @@ type QuickNavPopoverProps = {
   virtualizationThreshold?: number;
 };
 
-export const QuickNavPopover = ({
+export const QuickNavPopover = (props: PropsWithChildren<QuickNavPopoverProps>) => {
+  const newNavigation = useFlag("newNavigation");
+  if (newNavigation) {
+    return <QuickNavLabel>{props.children}</QuickNavLabel>;
+  }
+  return <QuickNavPopoverLegacy {...props} />;
+};
+
+const QuickNavLabel = ({ children }: PropsWithChildren) => {
+  if (React.isValidElement<{ children?: React.ReactNode }>(children)) {
+    const inner = React.Children.toArray(children.props.children);
+    return <>{inner[0] ?? null}</>;
+  }
+  return <>{children}</>;
+};
+
+const QuickNavPopoverLegacy = ({
   children,
   items,
   title = "Navigate to...",

@@ -16,3 +16,15 @@ export const helloWorld = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+export const newNavigation = flag<boolean, Entities>({
+  key: "new-navigation",
+  description: "Renders the redesigned top breadcrumb header and contextual sidebar",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
