@@ -173,7 +173,7 @@ export function buildApiLinks(
       href: keyAuthId ? `${base}/keys/${keyAuthId}` : base,
       icon: Key,
       isActive: page === "keys",
-      disabled: !keyAuthId && page !== "keys",
+      disabled: !keyAuthId,
     },
     {
       key: "settings",
