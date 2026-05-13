@@ -11,10 +11,10 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Contributing",
+        "tab": "Development",
         "groups": [
           {
-            "group": "Contributing",
+            "group": "Internal workflow",
             "pages": [
               "contributing/how-to-contribute",
               "contributing/local/development",
