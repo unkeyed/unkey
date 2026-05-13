@@ -1,6 +1,6 @@
 "use client";
 
-import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
+import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
@@ -19,7 +19,7 @@ const deleteIdentityFormSchema = z.object({
 type DeleteIdentityFormValues = z.infer<typeof deleteIdentityFormSchema>;
 
 type DeleteIdentityDialogProps = {
-  identity: z.infer<typeof IdentityResponseSchema>;
+  identity: IdentityForActions;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };

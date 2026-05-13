@@ -5,15 +5,14 @@ import { useEditIdentityRatelimits } from "@/hooks/use-edit-ratelimits";
 import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
-import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
+import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
 import { type FC, useCallback, useEffect, useId, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import type { z } from "zod";
 import { IdentityInfo } from "./identity-info";
 
-type Identity = z.infer<typeof IdentityResponseSchema>;
+type Identity = IdentityForActions;
 
 interface EditRatelimitDialogProps {
   identity: Identity;
@@ -72,6 +71,13 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
     }
   }, [open, getDefaultValues, methods]);
 
+  // RHF's `formState.isValid` is unreliable with discriminated-union
+  // resolvers, so derive validity directly from the schema. `methods.watch()`
+  // in render subscribes the component to all value changes (including
+  // useFieldArray operations), so this re-runs on every form update.
+  methods.watch();
+  const isFormValid = ratelimitSchema.safeParse(methods.getValues()).success;
+
   const updateRatelimit = useEditIdentityRatelimits(() => {
     onOpenChange(false);
   });
@@ -109,7 +115,7 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={isSubmitting}
+                disabled={!isFormValid || isSubmitting}
                 loading={isSubmitting}
               >
                 Update ratelimit

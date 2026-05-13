@@ -4,7 +4,7 @@ import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import { metadataSchema } from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
-import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
+import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { type FC, useCallback, useEffect, useId, useState } from "react";
@@ -12,10 +12,8 @@ import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { IdentityInfo } from "../dialogs/identity-info";
 
-type Identity = z.infer<typeof IdentityResponseSchema>;
-
 interface EditMetadataDialogProps {
-  identity: Identity;
+  identity: IdentityForActions;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
