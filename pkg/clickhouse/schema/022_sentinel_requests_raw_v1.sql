@@ -2,6 +2,14 @@ CREATE TABLE sentinel_requests_raw_v1 (
   request_id String,
   -- unix milli
   time Int64 CODEC(Delta, LZ4),
+  -- When the row landed in ClickHouse. Drives the logdrain coordinator
+  -- cursor's watermark: producer-set `time` is corrupted by sentinel pod
+  -- clock skew and any retransmits, so a cursor on `time` silently drops
+  -- late-arriving rows from before the cursor. CH-side `now64()` is
+  -- monotonic on a single replica (we accept ms-scale drift across
+  -- replicas, which the coordinator's `inserted_at < now() - SAFETY_LAG`
+  -- watermark absorbs).
+  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta(8), LZ4),
   workspace_id String,
   environment_id String,
   project_id String,

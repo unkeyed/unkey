@@ -49,8 +49,15 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.SentinelRequest], cl
 			req := s.Request()
 
 			buf.Buffer(schema.SentinelRequest{
-				RequestID:       tracking.RequestID,
-				Time:            tracking.StartTime.UnixMilli(),
+				RequestID: tracking.RequestID,
+				Time:      tracking.StartTime.UnixMilli(),
+				// InsertedAt mirrors what the table's server-side
+				// DEFAULT would produce; we set it explicitly because
+				// AppendStruct sends every struct field, and a zero
+				// value here would override the DEFAULT. Producer
+				// clock is NTP-synced and the logdrain cursor's
+				// watermark absorbs the millisecond-scale drift.
+				InsertedAt:      clk.Now().UnixMilli(),
 				WorkspaceID:     tracking.WorkspaceID,
 				EnvironmentID:   tracking.EnvironmentID,
 				ProjectID:       tracking.ProjectID,

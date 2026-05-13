@@ -16,6 +16,10 @@ poll_interval = "2s"
 batch_window = "30s"
 max_batch_records = 1000
 pause_after_failures = 10
+# Tight dev safety lag so seeded rows show up at the receiver quickly.
+# Prod default is 30s; dev gets 1s because the local CH single-replica
+# has no visibility-lag pathology to absorb.
+safety_lag = "1s"
 replicas = 1
 
 [database]

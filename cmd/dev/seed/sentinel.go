@@ -245,6 +245,7 @@ func (s *SentinelSeeder) generateRequests(
 		s.sentinelRequests.Buffer(schema.SentinelRequest{
 			RequestID:       uid.New("req"),
 			Time:            timestamp.UnixMilli(),
+			InsertedAt:      timestamp.UnixMilli(),
 			WorkspaceID:     deployment.WorkspaceID,
 			ProjectID:       deployment.ProjectID,
 			DeploymentID:    deployment.ID,

@@ -125,6 +125,7 @@ func Run(ctx context.Context, cfg Config) error {
 		PauseAfterFailures:    cfg.PauseAfterFailures,
 		MaxGroupsPerShard:     cfg.MaxGroupsPerShard,
 		MaxDrainsPerWorkspace: cfg.MaxDrainsPerWorkspace,
+		SafetyLag:             cfg.SafetyLag,
 		Ordinal:               ordinal,
 		ShardStart:            shardStart,
 		ShardEnd:              shardEnd,

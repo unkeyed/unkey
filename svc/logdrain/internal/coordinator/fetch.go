@@ -32,6 +32,14 @@ import (
 // the comparison is against a stored column rather than a computed
 // expression, so the optimizer doesn't have to inline cityHash64 for
 // every row.
+// `inserted_at < now64() - safety_lag_ms` is the safety watermark: it stops
+// the cursor from outrunning a row that's stamped at T but isn't visible
+// yet on every CH replica (SharedMergeTree is eventually consistent
+// across replicas in CH Cloud, and `now64()` drifts by single-digit ms
+// across nodes). Without it, the next iteration's `inserted_at >
+// prev_watermark` predicate would skip a late-visible row whose
+// inserted_at is older than the just-advanced cursor. The trade is a
+// baseline drain lag equal to `safety_lag_ms` (default 30s).
 const runtimeQuery = `
 SELECT
   inserted_at, log_id,
@@ -43,6 +51,7 @@ FROM default.runtime_logs_raw_v2
 WHERE workspace_id = {workspace_id:String}
   AND environment_id = {environment_id:String}
   AND ({project_id:String} = '' OR project_id = {project_id:String})
+  AND inserted_at < toUnixTimestamp64Milli(now64(3)) - {safety_lag_ms:Int64}
   AND (
     inserted_at > {prev_watermark:Int64}
     OR (inserted_at = {prev_watermark:Int64}
@@ -52,15 +61,21 @@ ORDER BY inserted_at, log_id
 LIMIT {max_rows:UInt32}
 `
 
-// requestQuery uses the same prune-friendly OR-form as runtimeQuery:
-// `time > T` is sort-key-prefix prunable, the request_id clause only
-// fires inside the granule(s) at exactly `time = T`. request_id is a
-// stored String column already unique per row, so unlike the prior
-// cityHash64(request_id) form it doesn't force the optimizer to inline
-// a hash on every row.
+// requestQuery uses the same prune-friendly OR-form as runtimeQuery, but
+// the watermark column is `inserted_at` (added in the 20260513 migration)
+// rather than producer-set `time`. The reasons are the same as for the
+// watermark on runtimeQuery, plus a sentinel-specific one: `time` is set
+// by the sentinel pod's local clock and can be reordered relative to
+// CH-side ingest by clock skew or retransmits. The sort key on v1 is
+// (workspace_id, project_id, environment_id, time, deployment_id), so
+// the WHERE prefix prunes by workspace/project/env but `ORDER BY
+// inserted_at` forces CH to sort within matched granules. We accept that
+// cost in v1 — drains are low-traffic at launch. Promote to
+// sentinel_requests_raw_v2 with a cursor-aligned sort key once any single
+// drain pushes more than ~1 MB/s.
 const requestQuery = `
 SELECT
-  time, request_id,
+  inserted_at, time, request_id,
   workspace_id, project_id, environment_id,
   deployment_id, instance_id, instance_address,
   region, platform, method, host, path, response_status,
@@ -69,12 +84,13 @@ FROM default.sentinel_requests_raw_v1
 WHERE workspace_id = {workspace_id:String}
   AND environment_id = {environment_id:String}
   AND ({project_id:String} = '' OR project_id = {project_id:String})
+  AND inserted_at < toUnixTimestamp64Milli(now64(3)) - {safety_lag_ms:Int64}
   AND (
-    time > {prev_watermark:Int64}
-    OR (time = {prev_watermark:Int64}
+    inserted_at > {prev_watermark:Int64}
+    OR (inserted_at = {prev_watermark:Int64}
         AND request_id > {prev_last_id:String})
   )
-ORDER BY time, request_id
+ORDER BY inserted_at, request_id
 LIMIT {max_rows:UInt32}
 `
 
@@ -148,17 +164,19 @@ func toRequestRecord(r requestRow) sinks.Record {
 		WorkspaceID:   r.WorkspaceID,
 		ProjectID:     r.ProjectID,
 		EnvironmentID: r.EnvironmentID,
-		// AppID and K8sPodName don't apply to request rows —
-		// sentinel observes the proxy edge, not the workload pod.
+		// AppID and K8sPodName don't apply to request rows.
+		// Sentinel observes the proxy edge, not the workload pod.
 		AppID:        "",
 		K8sPodName:   "",
 		DeploymentID: r.DeploymentID,
 		Region:       r.Region,
 		Platform:     r.Platform,
 		Body:         fmt.Sprintf("%s %s %d", r.Method, r.Path, r.ResponseStatus),
-		// Sentinel rows have no separate ingest timestamp; `time`
-		// is what the (time, request_id) cursor pairs with.
-		CursorTimeMs: r.Time,
+		// CursorTimeMs is `inserted_at` (CH's ingest timestamp),
+		// matching the runtime side. The per-drain fan-out
+		// compares (CursorTimeMs, LastID) against the drain's
+		// individual cursor.
+		CursorTimeMs: r.InsertedAt,
 		// request_id doubles as the cursor tiebreaker and the
 		// Idempotency-Key for providers that support per-event
 		// dedup.
@@ -203,6 +221,7 @@ func runCursorQuery[T any](
 		"prev_watermark": strconv.FormatInt(cur.timeMs, 10),
 		"prev_last_id":   cur.lastID,
 		"max_rows":       strconv.Itoa(c.cfg.MaxBatchRecords),
+		"safety_lag_ms":  strconv.FormatInt(c.cfg.SafetyLag.Milliseconds(), 10),
 	})
 	if err != nil {
 		metrics.ClickHouseQueryErrors.WithLabelValues(classifyCHError(err)).Inc()

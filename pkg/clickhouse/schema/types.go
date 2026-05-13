@@ -283,8 +283,14 @@ type InstanceEventV1 struct {
 // This tracks requests routed through sentinel proxy to deployment instances
 // with deployment routing, performance breakdown, and error categorization.
 type SentinelRequest struct {
-	RequestID       string              `ch:"request_id" json:"request_id"`
-	Time            int64               `ch:"time" json:"time"`
+	RequestID string `ch:"request_id" json:"request_id"`
+	Time      int64  `ch:"time" json:"time"`
+	// InsertedAt is when the row landed in ClickHouse (milliseconds since
+	// epoch). The frontline writer sets it from the local clock; the
+	// column also has a CH-side DEFAULT so SELECTs ignore the value when
+	// they don't reference it. Drives the logdrain coordinator's cursor
+	// watermark.
+	InsertedAt      int64               `ch:"inserted_at" json:"inserted_at"`
 	WorkspaceID     string              `ch:"workspace_id" json:"workspace_id"`
 	EnvironmentID   string              `ch:"environment_id" json:"environment_id"`
 	ProjectID       string              `ch:"project_id" json:"project_id"`

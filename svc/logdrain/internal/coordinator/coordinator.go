@@ -57,9 +57,16 @@ type Config struct {
 	PauseAfterFailures    int
 	MaxGroupsPerShard     int
 	MaxDrainsPerWorkspace int
-	Ordinal               int
-	ShardStart            int
-	ShardEnd              int
+	// SafetyLag is the watermark gap the coordinator enforces between
+	// CH's `now64()` and the newest row it reads. Rows whose `inserted_at
+	// >= now64() - SafetyLag` are deferred to the next tick. The gap
+	// absorbs CH replica visibility lag, single-digit ms clock drift
+	// across CH nodes, and any future async-insert buffering. Drains
+	// inherit it as a baseline latency floor.
+	SafetyLag  time.Duration
+	Ordinal    int
+	ShardStart int
+	ShardEnd   int
 }
 
 // drainListCacheKey is the only key used in drainListCache. The cache is

@@ -234,6 +234,7 @@ func generateRequest(buf *batch.BatchProcessor[schema.SentinelRequest], t drainT
 				buf.Buffer(schema.SentinelRequest{
 					RequestID:       fmt.Sprintf("req_%s_%d_%d", t.drainID, count, time.Now().UnixNano()),
 					Time:            now + int64(count*200),
+					InsertedAt:      time.Now().UnixMilli(),
 					WorkspaceID:     t.workspaceID,
 					ProjectID:       projectFor(t),
 					EnvironmentID:   env,

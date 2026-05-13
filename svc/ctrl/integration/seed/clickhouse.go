@@ -245,6 +245,7 @@ func (s *ClickHouseSeeder) InsertSentinelRequests(ctx context.Context, workspace
 			requests[j] = schema.SentinelRequest{
 				RequestID:       uid.New(uid.RequestPrefix),
 				Time:            timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
+				InsertedAt:      timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
 				WorkspaceID:     workspaceID,
 				ProjectID:       projectID,
 				EnvironmentID:   environmentID,

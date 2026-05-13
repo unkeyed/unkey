@@ -46,6 +46,14 @@ type Config struct {
 	// poll. Provider sinks chunk further to honour their own batch size limits.
 	MaxBatchRecords int `toml:"max_batch_records" config:"default=5000,min=100"`
 
+	// SafetyLag is the watermark the coordinator enforces between
+	// CH's `now64()` and the newest row it reads. Rows whose
+	// `inserted_at >= now64() - SafetyLag` are deferred to the next
+	// tick. The gap absorbs CH replica visibility lag, single-digit ms
+	// clock drift across CH nodes, and any future async-insert
+	// buffering. Acts as a baseline latency floor on every drain.
+	SafetyLag time.Duration `toml:"safety_lag" config:"default=30s,min=1s"`
+
 	// PauseAfterFailures is the consecutive-failure threshold after which a
 	// drain auto-pauses. paused_reason is set on log_drain_state and the
 	// dashboard surfaces the verbatim provider error. Operators resume

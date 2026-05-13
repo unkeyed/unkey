@@ -31,11 +31,14 @@ type runtimeRow struct {
 }
 
 // requestRow is the projected ClickHouse row used for cursor pagination of
-// sentinel_requests_raw_v1. sentinel has no inserted_at column, so the
-// watermark is `time` and the per-row tiebreaker is `request_id` — a
-// stored String column already unique per row, so the cursor compares
-// it directly without an inline cityHash64.
+// sentinel_requests_raw_v1. `inserted_at` (CH-side ingest timestamp, added
+// in the 20260513 migration) drives the watermark. Producer-set `time` is
+// corrupted by sentinel pod clock skew and any retransmits, so a cursor
+// on `time` would silently drop rows that land with a `time` value behind
+// the cursor. `request_id` is a stored String column already unique per
+// row; the cursor compares it directly without an inline cityHash64.
 type requestRow struct {
+	InsertedAt      int64  `ch:"inserted_at"`
 	Time            int64  `ch:"time"`
 	RequestID       string `ch:"request_id"`
 	WorkspaceID     string `ch:"workspace_id"`
