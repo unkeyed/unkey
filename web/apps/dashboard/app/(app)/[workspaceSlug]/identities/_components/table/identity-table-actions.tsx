@@ -12,7 +12,8 @@ import { EditMetadataDialog } from "./edit-metadata-dialog";
 export const IdentityTableActions = ({
   identity,
   children,
-}: PropsWithChildren<{ identity: IdentityForActions }>) => {
+  onDeleted,
+}: PropsWithChildren<{ identity: IdentityForActions; onDeleted?: () => void }>) => {
   const [isEditMetadataOpen, setIsEditMetadataOpen] = useState(false);
   const [isEditRatelimitOpen, setIsEditRatelimitOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -99,6 +100,7 @@ export const IdentityTableActions = ({
         identity={identity}
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
+        onDeleted={onDeleted}
       />
     </>
   );
