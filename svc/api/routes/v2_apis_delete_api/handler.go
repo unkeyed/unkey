@@ -142,8 +142,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Meta:        map[string]any{},
 				},
 			},
-			RemoteIP:  s.Location(),
-			UserAgent: s.UserAgent(),
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			CorrelationID: "",
 		}})
 		if err != nil {
 			return err

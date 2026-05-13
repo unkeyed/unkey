@@ -16,11 +16,18 @@ export function DeploymentNetworkSection() {
 
   const { deployment } = useDeployment();
 
-  const { currentRps, timeseries: rpsTimeseries } = useDeploymentRps(deployment.id);
-  const { currentLatency, timeseries: latencyTimeseries } = useDeploymentLatency(
-    deployment.id,
-    latencyPercentile,
-  );
+  const {
+    currentRps,
+    timeseries: rpsTimeseries,
+    isLoading: isRpsLoading,
+    isError: isRpsError,
+  } = useDeploymentRps(deployment.id);
+  const {
+    currentLatency,
+    timeseries: latencyTimeseries,
+    isLoading: isLatencyLoading,
+    isError: isLatencyError,
+  } = useDeploymentLatency(deployment.id, latencyPercentile);
 
   return (
     <Section>
@@ -46,6 +53,8 @@ export function DeploymentNetworkSection() {
             timeWindow={{
               chart: "Last 6h",
             }}
+            isLoading={isLatencyLoading}
+            isError={isLatencyError}
           />
           <MetricCard
             icon={ChartActivity}
@@ -58,6 +67,8 @@ export function DeploymentNetworkSection() {
             timeWindow={{
               chart: "Last 6h",
             }}
+            isLoading={isRpsLoading}
+            isError={isRpsError}
           />
         </div>
       </div>

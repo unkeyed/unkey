@@ -9,10 +9,10 @@ Use integration tests to cover behavior across service boundaries, real database
 
 ## Container patterns
 
-Use `pkg/dockertest` for isolated, per-test containers. Use shared containers only when startup cost is prohibitive, and ensure data cleanup between tests.
+Use `pkg/testutil/containers` for isolated, per-test containers. Helpers register cleanup with `t.Cleanup` immediately after creating a container, so failed readiness checks don't leak resources. Run tests that use these helpers through Bazel so schema runfiles are available.
 
 ```go
-redisURL := dockertest.Redis(t)
+redisURL := containers.Redis(t)
 ```
 
 ## Test harness

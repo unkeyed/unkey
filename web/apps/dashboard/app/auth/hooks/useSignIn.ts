@@ -1,4 +1,4 @@
-import { getCookie } from "@/lib/auth/cookies";
+import { getCookie } from "@/lib/auth/cookies-actions";
 import {
   AuthErrorCode,
   type AuthErrorResponse,

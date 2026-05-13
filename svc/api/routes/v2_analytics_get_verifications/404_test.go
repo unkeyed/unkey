@@ -11,7 +11,7 @@ import (
 )
 
 func Test404_KeySpaceNotFound(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	_ = h.CreateApi(seed.CreateApiRequest{

@@ -20,14 +20,14 @@ go_library(
 
 go_test(
     name = "counter_test",
-    size = "small",
+    size = "large",
     srcs = [
         "memory_test.go",
         "redis_test.go",
     ],
     embed = [":counter"],
     deps = [
-        "//pkg/dockertest",
+        "//pkg/testutil/containers",
         "//pkg/uid",
         "@com_github_stretchr_testify//require",
     ],

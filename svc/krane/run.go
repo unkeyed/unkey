@@ -153,6 +153,21 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
 	}
 
+	// Cache for deduplicating per-container lifecycle events keyed by
+	// (pod_uid, container_name, restart_count, event_kind). The same life
+	// is visible on every pod-watch tick until kubelet GCs the pod, so
+	// dedup must outlive the eviction grace period to be useful.
+	instanceEventDedupCache, err := cache.New(cache.Config[string, struct{}]{
+		Fresh:    1 * time.Hour,
+		Stale:    2 * time.Hour,
+		MaxSize:  100_000,
+		Resource: "instance_event_dedup",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create instance event dedup cache: %w", err)
+	}
+
 	// Cache for deduplicating pod watch lag samples per (pod UID,
 	// transition time). Entries auto-expire so deleted pods don't
 	// leak memory.
@@ -177,6 +192,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Vault:               vaultClient,
 		Registry:            registryCfg,
 		Fingerprints:        fingerprintCache,
+		EventDedup:          instanceEventDedupCache,
 		ObservedTransitions: deploymentTransitionsCache,
 		StorageClassName:    cfg.StorageClassName,
 	})

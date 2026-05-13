@@ -771,7 +771,7 @@ func (w *Workflow) configureRouting(
 	_, err = hydrav1.NewRoutingServiceClient(ctx, environment.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
-		FrontlineRouteIds: routeIDs,
+		FrontlineRouteIds: append(routeIDs, existingRouteIDs...),
 	})
 	if err != nil {
 		return fault.Wrap(
