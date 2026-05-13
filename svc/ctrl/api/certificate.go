@@ -39,7 +39,7 @@ func (c *certificateBootstrap) run(ctx context.Context) {
 			logger.Error("Failed to list regions for certificate bootstrap", "error", err)
 		} else {
 			for _, region := range regions {
-				domain := fmt.Sprintf("*.%s.%s", region.Name, c.regionalDomain)
+				domain := fmt.Sprintf("*.%s.%s.%s", region.Name, region.Platform, c.regionalDomain)
 				c.bootstrapDomain(ctx, domain)
 			}
 		}
