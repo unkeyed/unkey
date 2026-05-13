@@ -1,12 +1,15 @@
+> [!IMPORTANT]
+> Unkey is not accepting external pull requests at this time. Pull requests from people outside the Unkey team will not be reviewed or merged.
+
 ## What does this PR do?
 
 <!-- Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context. List any dependencies that are required for this change. -->
 
 Fixes # (issue)
 
-_If there is not an issue for this, please create one first. This is used to tracking purposes and also helps us understand why this PR exists_
+_If there is not an issue for this, create one first. This is used for tracking purposes and helps us understand why this PR exists._
 
-<!-- If there isn't an issue for this PR, please re-review our Contributing Guide and create an issue -->
+<!-- If there isn't an issue for this PR, review the internal workflow guide and create an issue. -->
 
 ## Type of change
 
@@ -28,12 +31,12 @@ _If there is not an issue for this, please create one first. This is used to tra
 
 ## Checklist
 
-<!-- We're starting to get more and more contributions. Please help us making this efficient for all of us and go through this checklist. Please tick off what you did  -->
+<!-- Complete this checklist before requesting review. -->
 
 ### Required
 
 - [ ] Filled out the "How to test" section in this PR
-- [ ] Read [Contributing Guide](./CONTRIBUTING.md)
+- [ ] Read [Internal Workflow Guide](./CONTRIBUTING.md)
 - [ ] Self-reviewed my own code
 - [ ] Commented on my code in hard-to-understand areas
 - [ ] Ran `pnpm build`
