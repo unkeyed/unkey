@@ -194,13 +194,6 @@
             "pages": ["infra/index"]
           },
           {
-            "group": "Clusters",
-            "pages": [
-              "infra/clusters/delete-cluster",
-              "infra/clusters/scheduling"
-            ]
-          },
-          {
             "group": "ClickHouse",
             "pages": [
               "infra/clickhouse/index",
