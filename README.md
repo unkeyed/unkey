@@ -28,13 +28,13 @@
 
 Please find the license under the [LICENSE](./LICENSE) file.
 
-## Contributing
+## Pull requests
 
-**Unkey is not accepting open source contributions at this time.**
+**Unkey is not accepting external pull requests at this time.**
 
-We've made the decision to pause external contributions while the team focuses on platform direction and stability. Issues and pull requests opened against this repository will not be reviewed or merged.
+Unkey has paused external code contributions while the team focuses on platform direction and stability. Pull requests opened by people outside the Unkey team will not be reviewed or merged.
 
-This repository remains public and source-available so you can read the code, fork it under the terms of the AGPL, and self-host. We may revisit this policy in the future — any change will be announced here.
+Issues remain open for bug reports, feature requests, and documentation feedback. This repository remains public and source-available so you can read the code, fork it under the terms of the AGPL, and self-host. Unkey may revisit this policy in the future, and any change will be announced here.
 
 If you've found a security issue, please email [security@unkey.com](mailto:security@unkey.com) instead of opening a public issue.
 

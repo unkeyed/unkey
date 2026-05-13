@@ -1,3 +1,6 @@
+"use client";
+
+import { useFlag } from "@/lib/flags/provider";
 import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -59,34 +62,38 @@ const NavbarUser = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 NavbarUser.displayName = "GlobalNavbar.User";
 
 const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
-  ({ children, href, className, active, isLast, noop, ...props }, ref) => (
-    <li className="flex items-center gap-3">
-      {noop ? (
-        <span className={cn("text-sm", active ? "text-accent-12" : "text-accent-10", className)}>
-          {children}
-        </span>
-      ) : (
-        <Link
-          ref={ref}
-          href={href}
-          className={cn(
-            "text-sm transition-colors",
-            active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",
-            className,
-          )}
-          {...(active || isLast ? { "aria-current": "page" } : {})}
-          {...props}
-        >
-          {children}
-        </Link>
-      )}
-      {!isLast && (
-        <div className="text-accent-10" aria-hidden="true">
-          /
-        </div>
-      )}
-    </li>
-  ),
+  ({ children, href, className, active, isLast, noop, ...props }, ref) => {
+    const newNavigation = useFlag("newNavigation");
+    const renderAsLabel = noop || newNavigation;
+    return (
+      <li className="flex items-center gap-3">
+        {renderAsLabel ? (
+          <span className={cn("text-sm", active ? "text-accent-12" : "text-accent-10", className)}>
+            {children}
+          </span>
+        ) : (
+          <Link
+            ref={ref}
+            href={href}
+            className={cn(
+              "text-sm transition-colors",
+              active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",
+              className,
+            )}
+            {...(active || isLast ? { "aria-current": "page" } : {})}
+            {...props}
+          >
+            {children}
+          </Link>
+        )}
+        {!isLast && (
+          <div className="text-accent-10" aria-hidden="true">
+            /
+          </div>
+        )}
+      </li>
+    );
+  },
 );
 BreadcrumbsLink.displayName = "GlobalNavbar.Breadcrumbs.Link";
 
@@ -106,7 +113,9 @@ BreadcrumbsEllipsis.displayName = "GlobalNavbar.Breadcrumbs.Ellipsis";
 
 const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.ReactNode }>(
   ({ children, className, icon, ...props }, ref) => {
+    const newNavigation = useFlag("newNavigation");
     const childrenArray = React.Children.toArray(children);
+    const visibleChildren = newNavigation ? childrenArray.slice(-1) : childrenArray;
     return (
       <nav ref={ref} aria-label="breadcrumb" className={cn("flex", className)} {...props}>
         <ol className="flex items-center gap-3">
@@ -118,7 +127,7 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.Reac
               {icon}
             </Button>
           </li>
-          {childrenArray.map((child, index) => {
+          {visibleChildren.map((child, index) => {
             if (!React.isValidElement(child)) {
               return null;
             }
@@ -127,7 +136,7 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.Reac
               if (typeof childProps === "object" && childProps !== null) {
                 const enhancedProps = {
                   ...childProps,
-                  isLast: index === childrenArray.length - 1,
+                  isLast: index === visibleChildren.length - 1,
                   key: child.key || `breadcrumb-${index}`,
                 };
                 return React.cloneElement(child, enhancedProps);
@@ -148,6 +157,7 @@ Breadcrumbs.Ellipsis = BreadcrumbsEllipsis;
 
 export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
   ({ children, className, ...props }, ref) => {
+    const newNavigation = useFlag("newNavigation");
     const childrenArray = React.Children.toArray(children);
     const breadcrumbs = childrenArray.find(
       (child) => React.isValidElement(child) && child.type === Breadcrumbs,
@@ -158,6 +168,8 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
     const user = childrenArray.find(
       (child) => React.isValidElement(child) && child.type === NavbarUser,
     );
+
+    const renderUser = !newNavigation;
 
     return (
       <nav
@@ -171,7 +183,7 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
         {breadcrumbs}
         <div className="flex-1" />
         {actions}
-        {user || <NavbarUser />}
+        {renderUser && (user || <NavbarUser />)}
       </nav>
     );
   },
