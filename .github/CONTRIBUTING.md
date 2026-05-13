@@ -1,5 +1,9 @@
-# Contributing to Unkey
+# Pull request policy
 
-Contributions are what makes the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**. To ensure the best possible outcome for everyone, please read this guide carefully before starting work.
+Unkey is not accepting external pull requests at this time.
 
-Our contributions guide can be found here: [engineering.unkey.com/docs/contributing](https://engineering.unkey.com/docs/contributing)
+Pull requests opened by people outside the Unkey team will not be reviewed or merged. Issues remain open for bug reports, feature requests, and documentation feedback. This repository remains public and source-available so you can read the code, fork it under the terms of the AGPL, and self-host.
+
+If you've found a security issue, email [security@unkey.com](mailto:security@unkey.com) instead of opening a public issue.
+
+Internal workflow guidelines live at [engineering.unkey.com/docs/contributing](https://engineering.unkey.com/docs/contributing).
