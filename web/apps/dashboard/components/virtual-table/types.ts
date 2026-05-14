@@ -63,6 +63,7 @@ export type VirtualTableProps<TTableData> = {
     headerContent?: React.ReactNode;
     hasMore?: boolean;
     hide?: boolean;
+    minRowsForFooter?: number;
   };
   renderSkeletonRow?: (props: {
     columns: Column<TTableData>[];

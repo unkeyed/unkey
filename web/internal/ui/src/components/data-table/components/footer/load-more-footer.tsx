@@ -4,6 +4,8 @@ import { useCallback, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
 
+const DEFAULT_MIN_ROWS_FOR_FOOTER = 10;
+
 export interface LoadMoreFooterComponentProps {
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
@@ -16,6 +18,7 @@ export interface LoadMoreFooterComponentProps {
   hide?: boolean;
   countInfoText?: React.ReactNode;
   headerContent?: React.ReactNode;
+  minRowsForFooter?: number;
 }
 
 /**
@@ -33,6 +36,7 @@ export function LoadMoreFooter({
   countInfoText,
   hide,
   headerContent,
+  minRowsForFooter = DEFAULT_MIN_ROWS_FOR_FOOTER,
 }: LoadMoreFooterComponentProps) {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -47,6 +51,10 @@ export function LoadMoreFooter({
   }, []);
 
   if (hide) {
+    return null;
+  }
+
+  if (!hasMore && totalCount <= minRowsForFooter) {
     return null;
   }
 
