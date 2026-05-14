@@ -70,9 +70,7 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
               tags: {
                 source: "react_query",
                 query_type: "mutation",
-                trpc_path: Array.isArray(mutationKey?.[0])
-                  ? mutationKey[0].join(".")
-                  : "unknown",
+                trpc_path: Array.isArray(mutationKey?.[0]) ? mutationKey[0].join(".") : "unknown",
               },
             });
           },

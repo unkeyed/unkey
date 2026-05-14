@@ -43,8 +43,8 @@ export default function RootError({
         Something went wrong
       </h1>
       <p style={{ marginBottom: "1.5rem", opacity: 0.7 }}>
-        Our team has been notified. You can try again, or refresh the page. If this error
-        continues you can reach out to{" "}
+        Our team has been notified. You can try again, or refresh the page. If this error continues
+        you can reach out to{" "}
         <a href="mailto:support@unkey.com" style={{ textDecoration: "underline" }}>
           support@unkey.com
         </a>
