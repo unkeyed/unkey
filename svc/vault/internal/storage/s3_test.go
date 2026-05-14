@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 )
 
 // TestS3_PutAndGet verifies basic put and get operations against real S3.
@@ -308,7 +308,7 @@ func TestS3_ContextCancellation(t *testing.T) {
 func newTestS3Storage(t *testing.T) Storage {
 	t.Helper()
 
-	s3Config := dockertest.S3(t)
+	s3Config := containers.S3(t)
 
 	// Use a unique bucket name per test to ensure isolation
 	bucketName := fmt.Sprintf("test-%d", time.Now().UnixNano())

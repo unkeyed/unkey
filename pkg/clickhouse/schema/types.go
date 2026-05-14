@@ -1,6 +1,8 @@
 package schema
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
@@ -306,4 +308,49 @@ type SentinelRequest struct {
 	TotalLatency    int64               `ch:"total_latency" json:"total_latency"`
 	InstanceLatency int64               `ch:"instance_latency" json:"instance_latency"`
 	SentinelLatency int64               `ch:"sentinel_latency" json:"sentinel_latency"`
+}
+
+// AuditLogV1 represents one logical audit event in audit_logs_raw_v1.
+// Targets are stored as parallel Nested arrays (TargetTypes[i] pairs with
+// TargetIDs[i] / TargetNames[i] / TargetMetas[i]). All four slices MUST be
+// the same length.
+//
+// Source distinguishes platform-emitted events ("platform", default) from
+// customer-emitted events ("customer", once that surface ships).
+//
+// Time fields are unix-milli (Int64), matching the rest of Unkey's CH
+// tables. Meta fields are json.RawMessage so the writer can pass already-
+// encoded JSON bytes through without re-marshaling, and so the JSON column
+// type in CH stores them natively (not as escaped strings).
+type AuditLogV1 struct {
+	EventID     string `ch:"event_id" json:"event_id"`
+	Time        int64  `ch:"time" json:"time"`
+	InsertedAt  int64  `ch:"inserted_at" json:"inserted_at"`
+	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
+	Bucket      string `ch:"bucket" json:"bucket"`
+	Source      string `ch:"source" json:"source"`
+
+	Event       string `ch:"event" json:"event"`
+	Description string `ch:"description" json:"description"`
+
+	ActorType string          `ch:"actor_type" json:"actor_type"`
+	ActorID   string          `ch:"actor_id" json:"actor_id"`
+	ActorName string          `ch:"actor_name" json:"actor_name"`
+	ActorMeta json.RawMessage `ch:"actor_meta" json:"actor_meta"`
+
+	RemoteIP  string          `ch:"remote_ip" json:"remote_ip"`
+	UserAgent string          `ch:"user_agent" json:"user_agent"`
+	Meta      json.RawMessage `ch:"meta" json:"meta"`
+
+	TargetTypes []string          `ch:"targets.type" json:"targets.type"`
+	TargetIDs   []string          `ch:"targets.id" json:"targets.id"`
+	TargetNames []string          `ch:"targets.name" json:"targets.name"`
+	TargetMetas []json.RawMessage `ch:"targets.meta" json:"targets.meta"`
+
+	// CorrelationID groups rows that came out of one logical user action.
+	// Empty for single-event flows; auto-minted by the audit log Insert
+	// service when the caller batches >1 events; settable via
+	// auditlog.WithCorrelation(ctx, ...) for flows that fan out across
+	// multiple Insert calls.
+	CorrelationID string `ch:"correlation_id" json:"correlation_id"`
 }

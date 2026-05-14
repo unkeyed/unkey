@@ -9,7 +9,7 @@ import (
 )
 
 func Test401_NoAuthHeader(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	route := &Handler{
 		DB:                         h.DB,
@@ -32,7 +32,7 @@ func Test401_NoAuthHeader(t *testing.T) {
 }
 
 func Test401_InvalidRootKey(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	route := &Handler{
 		DB:                         h.DB,

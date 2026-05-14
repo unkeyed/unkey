@@ -253,6 +253,11 @@ const (
 	// with action=DENY.
 	UnkeyFrontlineErrorsFirewallDenied URN = "err:unkey:forbidden:firewall_denied"
 
+	// OpenApi
+
+	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
+	UnkeyFrontlineErrorsOpenApiInvalidRequest URN = "err:unkey:bad_request:openapi_validation_failed"
+
 	// ----------------
 	// UnkeyPortalErrors
 	// ----------------

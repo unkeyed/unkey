@@ -13,7 +13,7 @@ import (
 )
 
 func Test503_ClickHouseConnectionFailure(t *testing.T) {
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	_ = h.CreateApi(seed.CreateApiRequest{

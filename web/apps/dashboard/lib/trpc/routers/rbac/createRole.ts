@@ -22,6 +22,11 @@ export const createRole = workspaceProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const roleId = newId("role");
+    // Mint a shared correlation so the role.create event and the N
+    // authorization.connect_role_and_permission events from the second
+    // insertAuditLogs call below all link to one user action in the
+    // dashboard's audit log drill-down.
+    const correlationId = newId("correlation");
     await db
       .transaction(async (tx) => {
         const existing = await tx.query.roles.findFirst({
@@ -71,6 +76,7 @@ export const createRole = workspaceProcedure
             userAgent: ctx.audit.userAgent,
             location: ctx.audit.location,
           },
+          correlationId,
         });
 
         if (input.permissionIds && input.permissionIds.length > 0) {
@@ -104,6 +110,7 @@ export const createRole = workspaceProcedure
                 userAgent: ctx.audit.userAgent,
                 location: ctx.audit.location,
               },
+              correlationId,
             })),
           );
         }

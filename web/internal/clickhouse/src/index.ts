@@ -1,6 +1,9 @@
+import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { getBuildStepLogs, getBuildSteps } from "./build-steps";
 import { Client, type Inserter, Noop, type Querier } from "./client";
+import { getInstanceEvents } from "./instance-events";
+export { instanceEventKind, type InstanceEventKind } from "./instance-events";
 import {
   getDailyActiveKeysTimeseries,
   getFifteenMinutelyActiveKeysTimeseries,
@@ -381,10 +384,20 @@ export class ClickHouse {
       logs: getRuntimeLogs(this.querier),
     };
   }
+  public get instanceEvents() {
+    return {
+      list: getInstanceEvents(this.querier),
+    };
+  }
   public get buildSteps() {
     return {
       getSteps: getBuildSteps(this.querier),
       getLogs: getBuildStepLogs(this.querier),
+    };
+  }
+  public get auditLogs() {
+    return {
+      logs: getAuditLogs(this.querier),
     };
   }
 }

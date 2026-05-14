@@ -305,15 +305,22 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
                 const separator = item as SeparatorItem;
                 if (separator.isSeparator) {
+                  // Custom content lets callers (e.g. the runtime-logs
+                  // event timeline) render a per-event banner inline. The
+                  // default branch keeps the legacy "Live" rendering for
+                  // tables that only ever insert one separator at the top.
+                  const defaultContent = (
+                    <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
+                      <CircleCaretRight className="size-3" />
+                      Live
+                    </div>
+                  );
                   return (
                     <Fragment key={`row-group-${virtualRow.key}`}>
                       <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
                       <tr key={`content-${virtualRow.key}`}>
                         <td colSpan={columns.length} className="p-0">
-                          <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                            <CircleCaretRight className="size-3" />
-                            Live
-                          </div>
+                          {separator.content ?? defaultContent}
                         </td>
                       </tr>
                     </Fragment>

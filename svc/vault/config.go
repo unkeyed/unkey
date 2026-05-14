@@ -1,6 +1,8 @@
 package vault
 
 import (
+	"errors"
+
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
@@ -12,6 +14,17 @@ type EncryptionConfig struct {
 	// PreviousMasterKey is an optional old key retained for decrypting
 	// existing data during key rotation.
 	PreviousMasterKey *string `toml:"previous_master_key"`
+}
+
+// StorageConfig selects the backend used to persist encrypted secrets.
+// Exactly one of S3 or Disk must be set.
+type StorageConfig struct {
+	// S3 configures an S3-compatible object storage backend. See [S3Config].
+	S3 *S3Config `toml:"s3"`
+
+	// Disk configures a local filesystem backend, intended for local
+	// development. See [DiskConfig].
+	Disk *DiskConfig `toml:"disk"`
 }
 
 // S3Config configures the S3-compatible object storage backend used by vault to
@@ -29,6 +42,16 @@ type S3Config struct {
 
 	// AccessKeySecret is the secret access key for authenticating with S3.
 	AccessKeySecret string `toml:"access_key_secret" config:"required,nonempty"`
+}
+
+// DiskConfig configures a local filesystem storage backend. Encrypted secrets
+// are written under Path using the same key layout as the S3 backend. Use
+// this for local development to avoid running a minio container; do not use
+// in production.
+type DiskConfig struct {
+	// Path is the directory where encrypted secrets are persisted. Created
+	// on startup if it does not already exist.
+	Path string `toml:"path" config:"required,nonempty"`
 }
 
 // Config holds the complete configuration for the vault service. It is designed
@@ -55,16 +78,22 @@ type Config struct {
 	// Encryption holds the master keys for encrypting and decrypting data.
 	Encryption EncryptionConfig `toml:"encryption"`
 
-	// S3 configures the S3-compatible storage backend. See [S3Config].
-	S3 S3Config `toml:"s3"`
+	// Storage selects the persistence backend. Exactly one of [storage.s3]
+	// or [storage.disk] must be set.
+	Storage StorageConfig `toml:"storage"`
 
 	// Observability configures tracing, logging, and metrics. See [config.Observability].
 	Observability config.Observability `toml:"observability"`
 }
 
 // Validate implements [config.Validator] so that [config.Load] calls it
-// automatically after tag-level validation. All constraints are expressed
-// through struct tags, so this method has nothing additional to check.
+// automatically after tag-level validation.
 func (c *Config) Validate() error {
+	if c.Storage.S3 == nil && c.Storage.Disk == nil {
+		return errors.New("storage: must set either [storage.s3] or [storage.disk]")
+	}
+	if c.Storage.S3 != nil && c.Storage.Disk != nil {
+		return errors.New("storage: set only one of [storage.s3] or [storage.disk]")
+	}
 	return nil
 }

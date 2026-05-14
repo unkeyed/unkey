@@ -27,3 +27,17 @@ var _ Clock = &RealClock{}
 func (c *RealClock) Now() time.Time {
 	return time.Now()
 }
+
+// NewTicker delegates to [time.NewTicker]. The returned ticker is a
+// thin adapter around [time.Ticker] and shares its drop-on-slow-consumer
+// semantics.
+func (c *RealClock) NewTicker(d time.Duration) Ticker {
+	return &realTicker{t: time.NewTicker(d)}
+}
+
+type realTicker struct {
+	t *time.Ticker
+}
+
+func (r *realTicker) C() <-chan time.Time { return r.t.C }
+func (r *realTicker) Stop()               { r.t.Stop() }

@@ -54,9 +54,11 @@ func (s *service) flushBlocklistBatch(ctx context.Context, events []db.Blocklist
 
 // startBlocklistSync schedules runBlocklistSyncOnce to run on a fixed
 // interval. Each tick pulls the active set from the read replica and merges
-// it into local counter state.
+// it into local counter state. Drives the schedule off s.clock so tests
+// using a [clock.TestClock] observe sync ticks aligned with simulated
+// time instead of racing real wall time.
 func (s *service) startBlocklistSync() {
-	repeat.Every(blocklistSyncInterval, s.runBlocklistSyncOnce)
+	repeat.EveryClock(s.clock, blocklistSyncInterval, s.runBlocklistSyncOnce)
 }
 
 // runBlocklistSyncOnce fetches every still-active propagation row and uses

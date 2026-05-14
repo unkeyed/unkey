@@ -43,3 +43,10 @@ func (c *MonotonicClock) Now() time.Time {
 	}
 	return c.anchor.Add(time.Since(c.anchor))
 }
+
+// NewTicker delegates to [time.NewTicker]. The monotonic anchor only
+// affects the wall-clock value of Now reads; ticker cadence comes from
+// the system clock.
+func (c *MonotonicClock) NewTicker(d time.Duration) Ticker {
+	return &realTicker{t: time.NewTicker(d)}
+}

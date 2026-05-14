@@ -16,7 +16,8 @@ import (
 )
 
 func TestGetBillableUsageAboveThreshold(t *testing.T) {
-	dsn := containers.ClickHouse(t)
+	chCfg := containers.ClickHouse(t)
+	dsn := chCfg.DSN
 
 	// Create ClickHouse client using the clickhouse package
 	client, err := clickhouse.New(clickhouse.Config{

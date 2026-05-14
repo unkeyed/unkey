@@ -7,7 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1/vaultv1connect",
-        "//pkg/dockertest",
+        "//pkg/testutil/containers",
         "//svc/vault/internal/storage",
         "//svc/vault/internal/vault",
         "//svc/vault/keys",

@@ -49,7 +49,6 @@ go_test(
         "//internal/services/ratelimit/db",
         "//pkg/clock",
         "//pkg/counter",
-        "//pkg/dockertest",
         "//pkg/mysql",
         "//pkg/testutil/containers",
         "//pkg/uid",
