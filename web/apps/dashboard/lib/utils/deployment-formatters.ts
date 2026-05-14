@@ -1,5 +1,19 @@
 export type FormattedParts = { value: string; unit: string };
 
+export function bytesToMib(bytes: number): number {
+  if (bytes <= 0) {
+    return 0;
+  }
+  return Math.round(bytes / (1024 * 1024));
+}
+
+export function formatTooltipPercent(p: number): string {
+  if (!Number.isFinite(p) || p <= 0) {
+    return "0%";
+  }
+  return p < 1 ? `${p.toFixed(2)}%` : p < 10 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
+}
+
 export function formatCpuParts(millicores: number): FormattedParts {
   if (millicores === 0) {
     return { value: "—", unit: "" };
