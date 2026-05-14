@@ -20,3 +20,21 @@ jobs:
     schedule: "* * * * *"
     urlPath: "hydra.v1.RatelimitBlocklistCleanupService/RunCleanup/send"
     idempotencyKey: "ratelimit-blocklist-cleanup-$(date -u +%Y-%m-%dT%H:%M)"
+
+  audit-log-export:
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.AuditLogExportService/default/RunExport/send"
+    idempotencyKey: "audit-log-export-$(date -u +%Y-%m-%dT%H:%M)"
+
+  # Backfill chips through legacy audit_log rows pre-dual-write into CH.
+  # Loops to exhaustion within each invocation; daily is plenty. Once the
+  # cursor catches up to the legacy tail, runs become noops and the
+  # heartbeat keeps firing.
+  # Drains 500k legacy audit_log rows per invocation
+  # (batchLimit=5000 × maxPagesPerInvocation=100). Runs every 15 min so
+  # a multi-million-row backfill catches up in <2 days; once last_pk
+  # reaches cutoff_pk every subsequent run is a noop in milliseconds.
+  audit-log-backfill:
+    schedule: "*/15 * * * *"
+    urlPath: "hydra.v1.AuditLogBackfillService/default/RunBackfill/send"
+    idempotencyKey: "audit-log-backfill-$(date -u +%Y-%m-%dT%H:%M)"

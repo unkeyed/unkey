@@ -1,3 +1,5 @@
+import type { LastExit } from "@/lib/types/deploy";
+
 type HealthStatus = "normal" | "unhealthy" | "health_syncing" | "unknown" | "disabled";
 
 type BaseNode = {
@@ -37,6 +39,11 @@ type InstanceNode = BaseNode & {
     type: "instance";
     description: string;
     k8sName?: string;
+    // Most recent exit info denormalized from the instances row in
+    // PlanetScale. Null when the pod has never reported a termination
+    // (healthy first-life pods). The details panel renders this so the
+    // user sees "OOMKilled · exit=137" instead of a generic spinner.
+    lastExit: LastExit | null;
   } & BaseMetrics;
 };
 
@@ -88,9 +95,9 @@ type NodeSize = { width: number; height: number };
  */
 const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
   origin: { width: 70, height: 20 },
-  region: { width: DEFAULT_NODE_WIDTH, height: 70 },
-  instance: { width: DEFAULT_NODE_WIDTH, height: 70 },
-  skeleton: { width: DEFAULT_NODE_WIDTH, height: 70 },
+  region: { width: 282, height: 100 },
+  instance: { width: 282, height: 100 },
+  skeleton: { width: 282, height: 100 },
 } as const;
 
 export type {

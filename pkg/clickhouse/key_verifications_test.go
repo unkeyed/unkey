@@ -21,7 +21,8 @@ import (
 
 func TestKeyVerifications(t *testing.T) {
 	t.Parallel()
-	dsn := containers.ClickHouse(t)
+	chCfg := containers.ClickHouse(t)
+	dsn := chCfg.DSN
 
 	opts, err := ch.ParseDSN(dsn)
 	require.NoError(t, err)

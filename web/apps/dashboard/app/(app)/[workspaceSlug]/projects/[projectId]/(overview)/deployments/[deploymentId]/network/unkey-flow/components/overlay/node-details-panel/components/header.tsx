@@ -14,7 +14,7 @@ export const NodeDetailsPanelHeader = ({
   subSection,
 }: Props) => {
   return (
-    <div className="flex items-start justify-between w-full px-3 pt-3 pb-4 gap-3">
+    <div className="flex items-start justify-between w-full px-3 pt-5 pb-4 gap-3">
       <CardHeader
         type={subSection.type}
         variant="panel"

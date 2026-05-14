@@ -17,6 +17,7 @@ go_library(
         "//pkg/testutil/containers",
         "//svc/api",
         "//svc/api/internal/testutil/seed",
+        "//svc/vault/testutil",
         "@com_github_stretchr_testify//require",
     ],
 )

@@ -168,10 +168,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	latency := time.Since(t0).Milliseconds()
 	if s.ShouldLogRequestToClickHouse() {
+		nowMillis := time.Now().UnixMilli()
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
 			RequestID:   s.RequestID(),
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Time:        time.Now().UnixMilli(),
+			Time:        nowMillis,
 			NamespaceID: ns.ID,
 			Identifier:  req.Identifier,
 			Passed:      result.Success,
@@ -276,15 +277,16 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, auth *key
 
 			auditErr := h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 				{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.RatelimitNamespaceCreateEvent,
-					Display:     "Created ratelimit namespace " + name,
-					ActorID:     auth.Key.ID,
-					ActorName:   auth.Key.Name.String,
-					ActorMeta:   map[string]any{},
-					ActorType:   auditlog.RootKeyActor,
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.RatelimitNamespaceCreateEvent,
+					Display:       "Created ratelimit namespace " + name,
+					ActorID:       auth.Key.ID,
+					ActorName:     auth.Key.Name.String,
+					ActorMeta:     map[string]any{},
+					ActorType:     auditlog.RootKeyActor,
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							ID:          id,

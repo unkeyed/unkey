@@ -40,7 +40,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   unhealthy: {
     label: "Unhealthy",
     icon: TriangleWarning2,
-    message: "Instance failed or sentinel health check failing.",
+    message: "Instance crashed or unavailable.",
     showBanner: true,
     colors: {
       dotBg: "bg-error-9",

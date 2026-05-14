@@ -38,7 +38,7 @@ func formatHeader(key, value string) string {
 // Example:
 //
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
+//	    []zen.Middleware{zen.WithMetrics(eventBuffer, info)},
 //	    route,
 //	)
 func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo) Middleware {
