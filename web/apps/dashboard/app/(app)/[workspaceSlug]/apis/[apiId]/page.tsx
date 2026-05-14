@@ -10,7 +10,7 @@ export default function ApiPage(props: { params: Promise<{ apiId: string }> }) {
   const workspace = useWorkspaceNavigation();
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <ApisNavbar
         apiId={apiId}
         activePage={{
