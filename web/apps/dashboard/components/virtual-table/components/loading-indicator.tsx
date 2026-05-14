@@ -1,9 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useCallback, useState } from "react";
-
-const DEFAULT_MIN_ROWS_FOR_FOOTER = 10;
+import { useCallback, useRef, useState } from "react";
 
 type LoadMoreFooterProps = {
   onLoadMore?: () => void;
@@ -17,7 +15,6 @@ type LoadMoreFooterProps = {
   hide?: boolean;
   countInfoText?: React.ReactNode;
   headerContent?: React.ReactNode;
-  minRowsForFooter?: number;
 };
 
 export const LoadMoreFooter = ({
@@ -31,9 +28,12 @@ export const LoadMoreFooter = ({
   countInfoText,
   hide,
   headerContent,
-  minRowsForFooter = DEFAULT_MIN_ROWS_FOR_FOOTER,
 }: LoadMoreFooterProps) => {
   const [isOpen, setIsOpen] = useState(true);
+  const hadMoreRef = useRef(hasMore);
+  if (hasMore) {
+    hadMoreRef.current = true;
+  }
 
   const shouldShow = !!onLoadMore;
 
@@ -49,7 +49,7 @@ export const LoadMoreFooter = ({
     return null;
   }
 
-  if (!hasMore && totalCount <= minRowsForFooter) {
+  if (!hasMore && !hadMoreRef.current) {
     return null;
   }
 

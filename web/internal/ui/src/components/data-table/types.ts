@@ -81,7 +81,6 @@ export interface LoadMoreFooterProps {
   hide?: boolean;
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
-  minRowsForFooter?: number;
 }
 
 /**
