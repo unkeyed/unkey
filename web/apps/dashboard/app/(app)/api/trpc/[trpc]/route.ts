@@ -1,5 +1,6 @@
 import { createContext } from "@/lib/trpc/context";
 import { router } from "@/lib/trpc/routers";
+import { wasReportedToSentry } from "@/lib/trpc/trpc";
 import * as Sentry from "@sentry/nextjs";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
@@ -16,10 +17,14 @@ async function handler(req: Request) {
       req,
       createContext,
       onError({ error, path, type }) {
-        // Per-procedure errors. The procedure-level middleware already decides what to
-        // log; we only need to forward unexpected (non-tRPC-classified) failures here
-        // because `Sentry.trpcMiddleware` runs *inside* the procedure pipeline and may
-        // miss errors thrown during input parsing or context creation.
+        // We only forward failures the procedure-level middleware did not already
+        // capture — those are errors thrown outside the procedure pipeline (input
+        // parsing, context bootstrapping). `handleTRPCError` flags any error it
+        // captured via `markReportedToSentry`, so we skip it here to avoid emitting
+        // the same event twice.
+        if (wasReportedToSentry(error)) {
+          return;
+        }
         if (!error.code || error.code === "INTERNAL_SERVER_ERROR") {
           Sentry.captureException(error, {
             tags: { trpc_path: path ?? "unknown", trpc_type: type },

@@ -50,7 +50,12 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
               tags: {
                 source: "react_query",
                 query_type: "query",
-                trpc_path: query.queryKey?.join(".") ?? "unknown",
+                // tRPC react-query keys are nested: [['path','segments'], { input, type }].
+                // Joining the outer array stringifies the inner array and input object,
+                // producing useless tag values like "path,segments.[object Object]".
+                trpc_path: Array.isArray(query.queryKey?.[0])
+                  ? query.queryKey[0].join(".")
+                  : "unknown",
               },
             });
           },
@@ -60,11 +65,14 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
             if (!shouldReportToSentry(error)) {
               return;
             }
+            const mutationKey = mutation.options.mutationKey;
             Sentry.captureException(error, {
               tags: {
                 source: "react_query",
                 query_type: "mutation",
-                trpc_path: mutation.options.mutationKey?.join(".") ?? "unknown",
+                trpc_path: Array.isArray(mutationKey?.[0])
+                  ? mutationKey[0].join(".")
+                  : "unknown",
               },
             });
           },

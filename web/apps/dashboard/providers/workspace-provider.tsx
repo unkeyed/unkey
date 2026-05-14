@@ -80,10 +80,10 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
   useEffect(() => {
     if (user?.id) {
       Sentry.setUser({ id: user.id });
-      Sentry.setTag("org_id", user.orgId ?? undefined);
+      Sentry.setTag("org_id", user.orgId ?? "none");
     } else {
       Sentry.setUser(null);
-      Sentry.setTag("org_id", undefined);
+      Sentry.setTag("org_id", "none");
     }
   }, [user?.id, user?.orgId]);
 
@@ -92,8 +92,8 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
       Sentry.setTag("workspace_id", workspace.id);
       Sentry.setTag("workspace_tier", workspace.tier ?? "unknown");
     } else {
-      Sentry.setTag("workspace_id", undefined);
-      Sentry.setTag("workspace_tier", undefined);
+      Sentry.setTag("workspace_id", "none");
+      Sentry.setTag("workspace_tier", "none");
     }
   }, [workspace?.id, workspace?.tier]);
 
