@@ -47,6 +47,18 @@ const enhancedErrorMiddleware = t.middleware(({ next, ctx, path, input }) => {
     timestamp: startTime,
   };
 
+  // Push identity onto Sentry's current isolation scope so any error captured during
+  // this request — whether by the procedure itself, by `Sentry.trpcMiddleware`, or by
+  // an unhandled promise from a nested awaited call — carries who/where without us
+  // having to re-thread context through every captureException site.
+  Sentry.getCurrentScope().setUser(ctx.user?.id ? { id: ctx.user.id } : null);
+  Sentry.getCurrentScope().setTags({
+    trpc_procedure: path,
+    request_id: requestId,
+    workspace_id: (ctx.workspace?.id as string | undefined) ?? "none",
+    org_id: ctx.tenant?.id ?? "none",
+  });
+
   // Log request start with context information
   logOperation(
     "debug",
@@ -165,6 +177,22 @@ function handleTRPCError(
       },
       requestContext,
     );
+
+    // `Sentry.trpcMiddleware` only sees errors that flow back through its `next()`
+    // call — it can miss errors thrown by middlewares running outside its frame
+    // (input validation, context bootstrapping). Capture explicitly so unexpected
+    // tRPC failures are never invisible, with the per-request context attached.
+    Sentry.captureException(error, {
+      tags: {
+        source: "trpc_server",
+        trpc_procedure: path,
+        trpc_error_code: errorInfo?.code ?? "unknown",
+      },
+      extra: {
+        request_id: requestContext.requestId,
+        response_time_ms: duration,
+      },
+    });
   }
 }
 

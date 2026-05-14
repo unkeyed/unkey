@@ -2,6 +2,7 @@ import { acceptInvitationAndSwitchOrg, getCurrentUser } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { updateSession } from "@/lib/auth/sessions";
 import type { Invitation } from "@/lib/auth/types";
+import * as Sentry from "@sentry/nextjs";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -38,7 +39,11 @@ export async function POST(request: NextRequest) {
     let invitation: Invitation | null;
     try {
       invitation = await auth.getInvitation(invitationToken);
-    } catch (_error) {
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { handler: "accept_invitation", stage: "lookup" },
+        level: "warning",
+      });
       return NextResponse.json(
         { success: false, error: "Invalid or expired invitation token" },
         { status: 400 },
@@ -93,6 +98,9 @@ export async function POST(request: NextRequest) {
 
       return response;
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: { handler: "accept_invitation", stage: "accept" },
+      });
       return NextResponse.json(
         {
           success: false,
@@ -101,7 +109,10 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-  } catch (_error) {
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { handler: "accept_invitation", stage: "outer" },
+    });
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

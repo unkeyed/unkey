@@ -58,37 +58,19 @@ export function createErrorFilter(options: ErrorFilterOptions = {}): BeforeSendH
   const { logFilteredErrors = true, additionalFilters = [], contextProvider } = options;
 
   return (event, hint) => {
-    const error = hint.originalException;
+    // The filter must NEVER throw — if it does, Sentry drops the event silently and we
+    // lose visibility into real errors. Wrap the entire body in a try/catch and fail open.
+    try {
+      const error = hint.originalException;
 
-    // Handle missing exception
-    if (!error) {
-      return event;
-    }
-
-    // Classify the error to determine how to handle it
-    const classification = classifyError(error);
-
-    // Check if this error should be filtered by tRPC classification
-    if (classification.isExpected && classification.errorInfo) {
-      if (logFilteredErrors) {
-        // Create context for structured logging
-        const baseContext = contextProvider?.() || {};
-        const context = createLogContext({
-          ...baseContext,
-          timestamp: Date.now(),
-        });
-
-        // Log the filtered error using structured logging
-        logTRPCError(classification.errorInfo, context);
+      // No exception attached (e.g. message events, transactions). Let Sentry handle it.
+      if (!error) {
+        return event;
       }
 
-      // Return null to prevent Sentry error reporting
-      return null;
-    }
+      const classification = classifyError(error);
 
-    // Check additional custom filters
-    for (const filter of additionalFilters) {
-      if (filter(error)) {
+      if (classification.isExpected && classification.errorInfo) {
         if (logFilteredErrors) {
           const baseContext = contextProvider?.() || {};
           const context = createLogContext({
@@ -96,24 +78,43 @@ export function createErrorFilter(options: ErrorFilterOptions = {}): BeforeSendH
             timestamp: Date.now(),
           });
 
-          logOperation(
-            "info",
-            "Error filtered by custom filter",
-            {
-              error_type: error instanceof Error ? error.constructor.name : typeof error,
-              error_message: error instanceof Error ? error.message : "Unknown error",
-            },
-            context,
-          );
+          logTRPCError(classification.errorInfo, context);
         }
 
         return null;
       }
-    }
 
-    // For unexpected errors, preserve the original event for Sentry reporting
-    // This ensures that genuine issues are still tracked and debugged
-    return event;
+      for (const filter of additionalFilters) {
+        if (filter(error)) {
+          if (logFilteredErrors) {
+            const baseContext = contextProvider?.() || {};
+            const context = createLogContext({
+              ...baseContext,
+              timestamp: Date.now(),
+            });
+
+            logOperation(
+              "info",
+              "Error filtered by custom filter",
+              {
+                error_type: error instanceof Error ? error.constructor.name : typeof error,
+                error_message: error instanceof Error ? error.message : "Unknown error",
+              },
+              context,
+            );
+          }
+
+          return null;
+        }
+      }
+
+      return event;
+    } catch (filterError) {
+      // Fail open: if classification or logging blew up, still report the original event
+      // so we don't silently drop errors. Surface the filter failure to console.
+      console.error("[sentry] error filter threw — sending event anyway", filterError);
+      return event;
+    }
   };
 }
 

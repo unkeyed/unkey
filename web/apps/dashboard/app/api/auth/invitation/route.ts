@@ -1,6 +1,7 @@
 import { processPostAuthInvitation } from "@/lib/auth";
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
+import * as Sentry from "@sentry/nextjs";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -48,7 +49,8 @@ export async function POST(request: NextRequest) {
       success: true,
       organizationId: result.organizationId,
     });
-  } catch (_error) {
+  } catch (error) {
+    Sentry.captureException(error, { tags: { handler: "auth_invitation" } });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500, headers: { "Cache-Control": "no-store" } },
