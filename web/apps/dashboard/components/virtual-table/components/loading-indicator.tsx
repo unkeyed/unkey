@@ -30,6 +30,7 @@ export const LoadMoreFooter = ({
   headerContent,
 }: LoadMoreFooterProps) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [hasLoadedMore, setHasLoadedMore] = useState(false);
 
   const shouldShow = !!onLoadMore;
 
@@ -41,7 +42,12 @@ export const LoadMoreFooter = ({
     setIsOpen(true);
   }, []);
 
-  if (hide) {
+  const handleLoadMore = useCallback(() => {
+    setHasLoadedMore(true);
+    onLoadMore?.();
+  }, [onLoadMore]);
+
+  if (hide || (!hasMore && !hasLoadedMore)) {
     return null;
   }
 
@@ -115,7 +121,7 @@ export const LoadMoreFooter = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onLoadMore}
+                onClick={handleLoadMore}
                 loading={isFetchingNextPage}
                 disabled={isFetchingNextPage || !hasMore}
                 className="transition-all"
