@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type LoadMoreFooterProps = {
   onLoadMore?: () => void;
@@ -31,6 +31,14 @@ export const LoadMoreFooter = ({
 }: LoadMoreFooterProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [hasLoadedMore, setHasLoadedMore] = useState(false);
+  const prevTotalCountRef = useRef(totalCount);
+
+  useEffect(() => {
+    if (totalCount < prevTotalCountRef.current) {
+      setHasLoadedMore(false);
+    }
+    prevTotalCountRef.current = totalCount;
+  }, [totalCount]);
 
   const shouldShow = !!onLoadMore;
 
