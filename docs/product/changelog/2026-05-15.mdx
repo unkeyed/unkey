@@ -1,0 +1,29 @@
+---
+title: "May 15, 2026"
+description: "Per-workspace retention for audit and analytics logs, plus dashboard polish."
+noindex: true
+---
+
+## New features
+
+### Per-workspace retention for audit and analytics logs
+
+Audit logs and analytics tables now honor each workspace's configured retention window, with retention enforced natively in our storage layer. Free-tier workspaces default to 30 days; paid plans get the longer window from your billing entitlement. Older events are archived to long-term storage instead of disappearing. See [Audit logs](/audit-log/introduction) and [Logs](/observability/logs).
+
+## Updates
+
+### Consolidated runtime metrics charts
+
+The runtime metrics view in node details has been tightened up — shared formatters across CPU, memory, disk, and network; consistent icons; area charts for the metrics where they make more sense; and a cleaner empty state when an instance has no data yet. See [Metrics](/observability/metrics).
+
+### Workspace switcher polish
+
+The workspace switcher dropdown is narrower, has tighter separator spacing, and drops the heavy shadow override — it now matches the rest of the dashboard dropdowns.
+
+## Bug fixes
+
+- The dashboard Switch component is now readable in dark mode, and the unchecked track has better contrast in both themes.
+- Frontline now generates the right certificate domain name for newly bound deployments.
+- Frontline middleware handles client-gone and upstream errors cleanly instead of surfacing them as 5xx noise.
+- Fixed a regression where parts of the dashboard were reading from the wrong data source after the audit-log migration.
+- Dashboard preview proxy is working again for local development against staging environments.
