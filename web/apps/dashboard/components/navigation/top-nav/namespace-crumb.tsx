@@ -17,7 +17,7 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
   );
   const namespaces = namespacesQuery.data ?? [];
   const current = namespaces.find((n) => n.id === namespaceId);
-  const loading = !current && namespaces.length === 0;
+  const loading = namespacesQuery.isLoading;
 
   const items: CrumbPopoverItem[] = namespaces.map((n) => ({
     id: n.id,

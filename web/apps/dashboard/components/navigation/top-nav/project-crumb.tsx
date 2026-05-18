@@ -17,7 +17,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
   );
   const projects = projectsQuery.data ?? [];
   const current = projects.find((p) => p.id === projectId);
-  const loading = !current && projects.length === 0;
+  const loading = projectsQuery.isLoading;
 
   const items: CrumbPopoverItem[] = projects.map((p) => ({
     id: p.id,
