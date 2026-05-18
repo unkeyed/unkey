@@ -14,6 +14,7 @@ type CrumbProps = {
   searchPlaceholder: string;
   emptyText: string;
   footer: CrumbPopoverFooter;
+  loading?: boolean;
 };
 
 export function Crumb({
@@ -25,6 +26,7 @@ export function Crumb({
   searchPlaceholder,
   emptyText,
   footer,
+  loading = false,
 }: CrumbProps) {
   return (
     <div className="flex min-w-0 items-center gap-0.5">
@@ -33,7 +35,11 @@ export function Crumb({
         className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
       >
         {icon}
-        <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
+        {loading ? (
+          <span aria-hidden="true" className="h-3 w-20 rounded-sm bg-gray-4 animate-pulse" />
+        ) : (
+          <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
+        )}
       </Link>
       <CrumbPopover
         items={items}

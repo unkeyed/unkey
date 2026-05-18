@@ -12,6 +12,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
 
   const apiName = data?.currentApi?.name ?? apiId;
   const siblings = data?.workspaceApis ?? [];
+  const loading = !data;
 
   const items: CrumbPopoverItem[] = siblings.map((api) => ({
     id: api.id,
@@ -23,6 +24,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
     <Crumb
       icon={<Nodes className="size-3.5 text-accent-11" iconSize="sm-regular" />}
       label={apiName}
+      loading={loading}
       href={`/${workspace.slug}/apis/${apiId}`}
       items={items}
       currentId={apiId}

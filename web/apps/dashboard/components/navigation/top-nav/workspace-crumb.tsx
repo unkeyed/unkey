@@ -10,7 +10,7 @@ import { useMemo } from "react";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
-export function WorkspaceCrumb() {
+export function WorkspaceCrumb({ href }: { href: string }) {
   const workspace = useWorkspaceNavigation();
   const { data: user } = trpc.user.getCurrentUser.useQuery();
   const { data: memberships } = trpc.user.listMemberships.useQuery(user?.id ?? "", {
@@ -69,7 +69,7 @@ export function WorkspaceCrumb() {
         </Avatar>
       }
       label={workspace.name}
-      href={`/${workspace.slug}`}
+      href={href}
       items={items}
       currentId={workspace.orgId}
       searchPlaceholder="Find workspace..."
