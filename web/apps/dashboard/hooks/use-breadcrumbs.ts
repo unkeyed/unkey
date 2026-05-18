@@ -10,15 +10,16 @@ export type BreadcrumbDescriptor =
   | { type: "namespace"; namespaceId: string }
   | { type: "identity"; identityId: string };
 
+type RouteParams = {
+  projectId?: string;
+  apiId?: string;
+  namespaceId?: string;
+  identityId?: string;
+};
+
 export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   const workspace = useWorkspaceNavigation();
-  const params = useParams<{
-    workspaceSlug?: string;
-    projectId?: string;
-    apiId?: string;
-    namespaceId?: string;
-    identityId?: string;
-  }>();
+  const params = useParams<RouteParams>();
 
   const workspaceHref = resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
@@ -37,15 +38,7 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   return crumbs;
 }
 
-function resolveWorkspaceHref(
-  slug: string,
-  params: {
-    projectId?: string;
-    apiId?: string;
-    namespaceId?: string;
-    identityId?: string;
-  },
-): string {
+function resolveWorkspaceHref(slug: string, params: RouteParams): string {
   if (params.apiId) {
     return `/${slug}/apis`;
   }
