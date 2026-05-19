@@ -28,7 +28,7 @@ export const ProjectsList = () => {
         <div
           className="grid gap-4"
           style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 350px))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))",
           }}
         >
           {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
