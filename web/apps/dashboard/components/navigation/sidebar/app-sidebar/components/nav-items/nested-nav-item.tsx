@@ -255,7 +255,7 @@ export const NestedNavItem = ({
                   "transition-transform duration-200 text-gray-9 w-[9px]! h-[9px]!",
                   (isSubItem ? isChildrenOpen : isOpen) ? "rotate-90" : "rotate-0",
                 )}
-                iconSize="sm-bold"
+                iconSize="sm-regular"
               />
             </div>
           )}

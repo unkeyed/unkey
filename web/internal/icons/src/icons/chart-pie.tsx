@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function ChartPie({ iconSize = "xl-thin", ...props }: IconProps) {
+export function ChartPie({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (

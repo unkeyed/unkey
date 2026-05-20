@@ -22,12 +22,12 @@ export const LogFooter = ({ log }: Props) => {
       </div>
     ) : log.auditLog.actor.type === "key" ? (
       <div className="flex items-center gap-2">
-        <Key iconSize="sm-thin" />
+        <Key iconSize="sm-medium" />
         <span className="font-mono text-xs">{log.auditLog.actor.id}</span>
       </div>
     ) : (
       <div className="flex items-center gap-2">
-        <MathFunction iconSize="sm-thin" />
+        <MathFunction iconSize="sm-medium" />
         <span className="font-mono text-xs">{log.auditLog.actor.id}</span>
       </div>
     );

@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function DoubleChevronLeft({ iconSize = "xl-thin", filled, ...props }: IconProps) {
+export function DoubleChevronLeft({ iconSize = "xl-medium", filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg

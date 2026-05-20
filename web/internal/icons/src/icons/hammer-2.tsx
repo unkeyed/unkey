@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function Hammer2({ iconSize = "xl-thin", filled, ...props }: IconProps) {
+export function Hammer2({ iconSize = "xl-medium", filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (

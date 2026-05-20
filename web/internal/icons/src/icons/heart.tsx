@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function Heart({ iconSize = "xl-thin", filled, ...props }: IconProps) {
+export function Heart({ iconSize = "xl-medium", filled, ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (

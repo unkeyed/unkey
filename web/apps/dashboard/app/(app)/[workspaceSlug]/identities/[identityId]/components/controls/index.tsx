@@ -82,7 +82,7 @@ export function IdentityDetailsLogsControls({
                     className="text-xs"
                     variant={totalKeys > 0 ? "enabled" : "disabled"}
                     text={formatNumber(totalKeys)}
-                    icon={<Key iconSize="sm-thin" />}
+                    icon={<Key iconSize="sm-medium" />}
                   />
                 </motion.div>
               </div>

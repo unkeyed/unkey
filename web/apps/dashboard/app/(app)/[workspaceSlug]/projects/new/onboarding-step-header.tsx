@@ -26,7 +26,7 @@ const iconItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
   { icon: null, opacity: "opacity-60" },
   { icon: <Harddrive className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
   { icon: <Location2 className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-80" },
-  { icon: <CloudUp className="size-9" iconSize="md-thin" />, large: true, opacity: "opacity-90" },
+  { icon: <CloudUp className="size-9" iconSize="md-medium" />, large: true, opacity: "opacity-90" },
   { icon: <HeartPulse className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-80" },
   { icon: <Nodes2 className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
   { icon: null, opacity: "opacity-60" },

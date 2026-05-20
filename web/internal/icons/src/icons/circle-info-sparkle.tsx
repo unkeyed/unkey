@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function CircleInfoSparkle({ iconSize = "lg-thin", ...props }: IconProps) {
+export function CircleInfoSparkle({ iconSize = "lg-medium", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (

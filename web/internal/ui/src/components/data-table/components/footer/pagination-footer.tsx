@@ -63,7 +63,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                 </span>
               </>
             )}
-            <Maximize iconSize="lg-thin" />
+            <Maximize iconSize="lg-medium" />
           </div>
         </button>
       </div>

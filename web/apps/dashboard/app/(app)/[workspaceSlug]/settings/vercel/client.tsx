@@ -131,9 +131,9 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                         >
                           <div className="flex items-center w-full md:w-1/5">
                             {binding ? (
-                              <Link4 iconSize="md-thin" className="rotate-90" />
+                              <Link4 iconSize="md-medium" className="rotate-90" />
                             ) : (
-                              <Unlink iconSize="md-thin" className="rotate-90" />
+                              <Unlink iconSize="md-medium" className="rotate-90" />
                             )}
                             <span className="text-xs text-content">{envLabel}</span>
                           </div>

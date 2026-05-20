@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function Github({ iconSize = "xl-thin", ...props }: IconProps) {
+export function Github({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize } = sizeMap[iconSize];
 
   return (

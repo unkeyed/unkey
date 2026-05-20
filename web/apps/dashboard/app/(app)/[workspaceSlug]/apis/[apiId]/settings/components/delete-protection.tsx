@@ -122,7 +122,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               target="_blank"
               rel="noopener noreferrer"
               href="https://www.unkey.com/docs/security/delete-protection"
-              icon={<ArrowUpRight iconSize="sm-thin" />}
+              icon={<ArrowUpRight iconSize="sm-medium" />}
             />
           </p>
           <form id="delete-protection-form" onSubmit={handleSubmit(onSubmit)}>
