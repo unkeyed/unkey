@@ -5,7 +5,10 @@ go_library(
     srcs = ["every.go"],
     importpath = "github.com/unkeyed/unkey/pkg/repeat",
     visibility = ["//visibility:public"],
-    deps = ["//pkg/prometheus/metrics"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/prometheus/metrics",
+    ],
 )
 
 go_test(
@@ -13,5 +16,9 @@ go_test(
     size = "small",
     srcs = ["every_test.go"],
     embed = [":repeat"],
-    deps = ["@com_github_stretchr_testify//assert"],
+    deps = [
+        "//pkg/clock",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
 )

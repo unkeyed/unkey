@@ -17,7 +17,8 @@ import (
 )
 
 func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
-	dsn := containers.ClickHouse(t)
+	chCfg := containers.ClickHouse(t)
+	dsn := chCfg.DSN
 
 	opts, err := ch.ParseDSN(dsn)
 	require.NoError(t, err)

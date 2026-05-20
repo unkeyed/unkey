@@ -22,8 +22,8 @@ import (
 func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 	t.Parallel()
 
-	dsn := containers.ClickHouse(t)
-	opts, err := ch.ParseDSN(dsn)
+	cfg := containers.ClickHouse(t)
+	opts, err := ch.ParseDSN(cfg.DSN)
 	require.NoError(t, err)
 
 	conn, err := ch.Open(opts)

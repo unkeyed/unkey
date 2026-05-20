@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -229,7 +230,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
@@ -289,7 +290,7 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
@@ -511,7 +512,13 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("create audit log export service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewAuditLogExportServiceServer(auditLogExportSvc))
+	// Cron-triggered every minute and idempotent: any failure is recovered
+	// by the next tick, not by replaying journals from yesterday. 1h keeps
+	// enough debugging headroom for an oncall to inspect a recent failure
+	// without bloating the journal store with ~1440 dead invocations/day.
+	restateSrv.Bind(hydrav1.NewAuditLogExportServiceServer(auditLogExportSvc,
+		restate.WithJournalRetention(1*time.Hour),
+	))
 	logger.Info("AuditLogExportService enabled")
 
 	// Audit log backfill: chips through legacy audit_log/audit_log_target rows
@@ -529,7 +536,13 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("create audit log backfill service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewAuditLogBackfillServiceServer(auditLogBackfillSvc))
+	// Singleton VO, cron-triggered every 15min, ~1-2 min per invocation.
+	// Cursor lives in VO state so journal retention only matters for
+	// post-mortem on the most recent invocation. 1h covers a few ticks
+	// without holding a day of journals.
+	restateSrv.Bind(hydrav1.NewAuditLogBackfillServiceServer(auditLogBackfillSvc,
+		restate.WithJournalRetention(1*time.Hour),
+	))
 	logger.Info("AuditLogBackfillService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint

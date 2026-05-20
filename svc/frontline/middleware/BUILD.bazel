@@ -4,6 +4,7 @@ go_library(
     name = "middleware",
     srcs = [
         "clickhouse_logging.go",
+        "client_gone.go",
         "observability.go",
         "sanitize_headers.go",
     ],
@@ -27,9 +28,14 @@ go_library(
 
 go_test(
     name = "middleware_test",
-    srcs = ["sanitize_headers_test.go"],
+    srcs = [
+        "client_gone_test.go",
+        "observability_test.go",
+        "sanitize_headers_test.go",
+    ],
     embed = [":middleware"],
     deps = [
+        "//pkg/codes",
         "//pkg/zen",
         "@com_github_stretchr_testify//require",
     ],
