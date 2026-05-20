@@ -72,7 +72,7 @@ export const sentinelLogsRequestSchema = z.object({
   workspaceId: z.string(),
   projectId: z.string(),
   deploymentId: z.string().nullable().default(null),
-  environmentId: z.string().nullable().default(null),
+  environmentId: z.array(z.string()).default([]),
   limit: z.number().int().positive().default(50),
   startTime: z.number().int().default(0),
   endTime: z.number().int().default(0),
@@ -144,8 +144,8 @@ export function getSentinelLogs(ch: Querier) {
       AND (CASE WHEN {deploymentId: Nullable(String)} IS NOT NULL
            THEN position(deployment_id, {deploymentId: Nullable(String)}) > 0
            ELSE TRUE END)
-      AND (CASE WHEN {environmentId: Nullable(String)} IS NOT NULL
-           THEN position(environment_id, {environmentId: Nullable(String)}) > 0
+      AND (CASE WHEN length({environmentId: Array(String)}) > 0
+           THEN environment_id IN {environmentId: Array(String)}
            ELSE TRUE END)
       -- Class codes (200,300,400,500) match via intDiv: intDiv(404,100)*100=400.
       -- Specific codes (401,503) match via exact IN; their class won't be in the array.

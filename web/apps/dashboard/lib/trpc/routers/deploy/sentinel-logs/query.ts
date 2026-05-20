@@ -26,6 +26,11 @@ export const querySentinelLogs = workspaceProcedure
         where: (table, { and, eq }) =>
           and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
         columns: { id: true },
+        with: {
+          environments: {
+            columns: { id: true, slug: true },
+          },
+        },
       });
 
       if (!project) {
@@ -36,6 +41,14 @@ export const querySentinelLogs = workspaceProcedure
       }
 
       const transformedInputs = transformSentinelLogsFilters(input);
+
+      // Default to production environment when client sends no environmentId filter.
+      // Falls back to the first environment if no env is slugged "production".
+      if (transformedInputs.environmentId.length === 0 && project.environments.length > 0) {
+        const prod =
+          project.environments.find((e) => e.slug === "production") ?? project.environments[0];
+        transformedInputs.environmentId = [prod.id];
+      }
 
       const { logsQuery, totalQuery } = await clickhouse.sentinel.logs({
         workspaceId: ctx.workspace.id,
