@@ -1,7 +1,7 @@
+import type { RatelimitOverviewFilterValue } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/filters.schema";
+import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { BarsFilter } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import type { RatelimitOverviewFilterValue } from "../../../filters.schema";
-import { useFilters } from "../../../hooks/use-filters";
 
 type FilterPair = {
   status?: "blocked" | "passed";

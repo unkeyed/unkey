@@ -575,6 +575,7 @@ export const ratelimitOverviewLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.int().nullable(),
+  page: z.int().min(1).optional(),
 
   sorts: z
     .array(
@@ -731,12 +732,18 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         `request_id ${timeDirection}`,
       ].join(", ") || "last_request_time DESC"; // Fallback if empty
 
-    // Create cursor condition based on time direction
-    let cursorCondition: string;
+    // Page-based pagination wins over the legacy cursorTime path. When `page`
+    // is set we paginate via OFFSET against the deterministic ORDER BY above;
+    // the cursorTime branch below is only taken if no page is provided and
+    // the caller still wants the older cursor-based behavior.
+    const usePageBased = typeof args.page === "number";
 
-    // For first page or no cursor provided
-    if (args.cursorTime) {
-      // For subsequent pages, use cursor based on time direction
+    let cursorCondition: string;
+    if (usePageBased) {
+      cursorCondition = `
+  AND ({cursorTime: Nullable(UInt64)} IS NULL OR {cursorTime: Nullable(UInt64)} IS NOT NULL)
+  `;
+    } else if (args.cursorTime) {
       if (timeDirection === "ASC") {
         cursorCondition = `
     AND (time > {cursorTime: Nullable(UInt64)})
@@ -751,6 +758,11 @@ export function getRatelimitOverviewLogs(ch: Querier) {
   AND ({cursorTime: Nullable(UInt64)} IS NULL)
   `;
     }
+
+    const page = args.page ?? 1;
+    const offset = usePageBased ? (page - 1) * args.limit : 0;
+    parameters.offset = offset;
+    paramSchemaExtension.offset = z.int();
 
     const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
     const query = ch.query({
@@ -789,15 +801,19 @@ SELECT
     passed_count,
     blocked_count,
     passed_tokens,
-    total_tokens
+    total_tokens,
+    count() OVER () as total_count
 FROM aggregated_data
 ORDER BY ${orderByClause}
-LIMIT {limit: Int}`,
+LIMIT {limit: Int}
+OFFSET {offset: Int}`,
       params: extendedParamsSchema,
-      schema: ratelimitOverviewLogs,
+      schema: ratelimitOverviewLogs.extend({
+        total_count: z.int(),
+      }),
     });
 
-    const countQuery = ch.query({
+    const countOnlyQuery = ch.query({
       query: `
 SELECT
     count(DISTINCT identifier) as total_count
@@ -813,9 +829,45 @@ WHERE workspace_id = {workspaceId: String}
       }),
     });
 
+    const sharedResult = query(parameters);
+
+    const logsQuery = (async () => {
+      const result = await sharedResult;
+      if (result.err) {
+        return result;
+      }
+      return {
+        err: result.err,
+        val: (result.val ?? []).map((row) => ({
+          time: row.time,
+          identifier: row.identifier,
+          request_id: row.request_id,
+          passed_count: row.passed_count,
+          blocked_count: row.blocked_count,
+          passed_tokens: row.passed_tokens,
+          total_tokens: row.total_tokens,
+        })),
+      };
+    })();
+
+    // Common case (paged result has rows): total ships per row via
+    // `count() OVER ()`. Edge case (page past end / no matches): the window
+    // function emits no rows, so fall through to a dedicated count query so
+    // the UI can clamp the page.
+    const countQuery = (async () => {
+      const result = await sharedResult;
+      if (result.err) {
+        return { err: result.err, val: undefined };
+      }
+      if (result.val && result.val.length > 0) {
+        return { err: undefined, val: [{ total_count: result.val[0].total_count }] };
+      }
+      return countOnlyQuery(parameters);
+    })();
+
     return {
-      logsQuery: query(parameters),
-      countQuery: countQuery(parameters),
+      logsQuery,
+      countQuery,
     };
   };
 }

@@ -40,7 +40,10 @@ export const getStatusStyle = (log: RatelimitOverviewLog): StatusStyle => {
   return calculateBlockedPercentage(log) ? STATUS_STYLES.blocked : STATUS_STYLES.success;
 };
 
-export const getRowClassName = (log: RatelimitOverviewLog, selectedLog: RatelimitOverviewLog) => {
+export const getRowClassName = (
+  log: RatelimitOverviewLog,
+  selectedLog: RatelimitOverviewLog | null,
+) => {
   const hasMoreBlocked = calculateBlockedPercentage(log);
   const style = getStatusStyle(log);
   const isSelected = selectedLog?.request_id === log.request_id;

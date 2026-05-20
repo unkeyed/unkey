@@ -37,6 +37,7 @@ export function transformFilters(
     endTime,
     identifiers,
     cursorTime: params.cursor ?? null,
+    page: params.page,
     status,
     sorts, // Add sorts to the returned params
   };
