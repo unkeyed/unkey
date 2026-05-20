@@ -43,7 +43,7 @@ const Y_GUTTER_PX = 36;
 // Tooltip row value. `value` is the primary (bold) number, `unit` the
 // immediate suffix ("MiB"), and `hint` a muted trailing annotation used
 // for secondary context like "(17%)" next to memory values.
-type ValueParts = { value: string; unit?: string; hint?: string };
+export type ValueParts = { value: string; unit?: string; hint?: string };
 
 type Props = {
   data: AreaChartPoint[];
@@ -67,6 +67,7 @@ type Props = {
   // always reads as 24h of x-axis even when the deployment is only
   // 1h old), so the tick labels change visibly between windows.
   xAxisDomain?: [number, number];
+  hideAxes?: boolean;
 };
 
 export function AreaTimeseriesChart({
@@ -81,6 +82,7 @@ export function AreaTimeseriesChart({
   formatYTick = formatYAxisCompactBytes,
   axisFloor = 1024,
   xAxisDomain,
+  hideAxes,
 }: Props) {
   const chartId = useId().replace(/:/g, "");
   const [shouldAnimate, setShouldAnimate] = useState(true);
@@ -101,7 +103,9 @@ export function AreaTimeseriesChart({
   }
   const isEmpty = !data.length || data.every((p) => configKeys.every((k) => !(Number(p[k]) > 0)));
   if (isEmpty) {
-    return <ChartEmpty variant="wave" color={sectionColor} height={height} message="No data" />;
+    return (
+      <ChartEmpty variant="wave" color={sectionColor} height={height} message="No activity yet" />
+    );
   }
 
   // Evenly-spaced Y-axis ticks at 0 / ⅓ / ⅔ / top. We compute them ourselves
@@ -177,7 +181,14 @@ export function AreaTimeseriesChart({
       className={cn("!flex-col aspect-auto w-full", chartContainerClassname)}
       style={{ height, width: "100%" }}
     >
-      <AreaChart data={data} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
+      <AreaChart
+        data={data}
+        margin={
+          hideAxes
+            ? { top: 4, right: 0, bottom: 0, left: 0 }
+            : { top: 16, right: 8, bottom: 0, left: 0 }
+        }
+      >
         <defs>
           {configKeys.map((key) => (
             <linearGradient
@@ -216,41 +227,39 @@ export function AreaTimeseriesChart({
             </linearGradient>
           ))}
         </defs>
-        <CartesianGrid
-          vertical={false}
-          stroke="var(--gray-4)"
-          strokeDasharray="3 3"
-          strokeOpacity={0.6}
-        />
+        {!hideAxes && (
+          <CartesianGrid
+            vertical={false}
+            stroke="var(--gray-4)"
+            strokeDasharray="3 3"
+            strokeOpacity={0.6}
+          />
+        )}
         <XAxis
           dataKey="originalTimestamp"
           type="number"
-          // Anchor to the caller-provided window range when we have
-          // enough data to draw something readable there. Otherwise let
-          // the axis contract to the data's extent so a handful of
-          // points don't drown in an empty week-wide axis.
           domain={effectiveDomain ?? ["dataMin", "dataMax"]}
           allowDataOverflow={Boolean(effectiveDomain)}
           scale="time"
           tickFormatter={xTickFormatter}
-          tick={{ fill: "var(--gray-10)", fontSize: 10 }}
+          tick={hideAxes ? false : { fill: "var(--gray-10)", fontSize: 10 }}
           tickLine={false}
           axisLine={false}
           ticks={xTicks}
-          // minTickGap is only meaningful when we let recharts pick ticks;
-          // when we force explicit ticks it has no effect. Keep it as a
-          // fallback for the unanchored path.
           minTickGap={48}
+          hide={hideAxes}
         />
-        <YAxis
-          width={Y_GUTTER_PX}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={formatYTick}
-          tick={{ fill: "var(--gray-10)", fontSize: 10 }}
-          ticks={yTicks}
-          domain={yDomain}
-        />
+        {!hideAxes && (
+          <YAxis
+            width={Y_GUTTER_PX}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={formatYTick}
+            tick={{ fill: "var(--gray-10)", fontSize: 10 }}
+            ticks={yTicks}
+            domain={yDomain}
+          />
+        )}
         <ChartTooltip
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}

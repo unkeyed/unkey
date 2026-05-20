@@ -132,11 +132,11 @@
   }
 
   html {
-    @apply scroll-smooth;
+    @apply scroll-smooth overscroll-none;
   }
 
   body {
-    @apply bg-background text-content;
+    @apply bg-background text-content overscroll-none;
   }
 
   /* Sonner toast styling */

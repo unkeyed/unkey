@@ -1,13 +1,17 @@
-import { ChartEmpty } from "@/components/logs/chart/chart-states";
-import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 import type { IconProps } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ComponentType } from "react";
 import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
-import { ChartWaveLoading } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart/components/chart-wave-loading";
+import {
+  type AreaChartPoint,
+  AreaTimeseriesChart,
+  type ValueParts,
+} from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart/area-timeseries-chart";
 import { MetricSelect } from "./metric-select";
 
-type MetricType = "latency" | "rps";
+type MetricType = "latency" | "rps" | "cpu" | "memory";
+
+type ChartVariant = "bar" | "area";
 
 type MetricConfig = {
   label: string;
@@ -15,6 +19,7 @@ type MetricConfig = {
   iconBg: string;
   iconText: string;
   unit: string;
+  chartVariant: ChartVariant;
   percentiles?: string[];
 };
 
@@ -25,14 +30,32 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
     iconBg: "bg-bronze-3",
     iconText: "text-bronze-11",
     unit: "ms",
+    chartVariant: "area",
     percentiles: ["p50", "p75", "p90", "p95", "p99"],
   },
   rps: {
     label: "RPS",
-    color: "var(--brand-8)",
-    iconBg: "bg-brand-3",
-    iconText: "text-brand-11",
+    color: "var(--accent-8)",
+    iconBg: "bg-accent-3",
+    iconText: "text-accent-11",
     unit: "req/s",
+    chartVariant: "bar",
+  },
+  cpu: {
+    label: "CPU",
+    color: "var(--feature-8)",
+    iconBg: "bg-feature-3",
+    iconText: "text-feature-11",
+    unit: "%",
+    chartVariant: "area",
+  },
+  memory: {
+    label: "Memory",
+    color: "var(--info-8)",
+    iconBg: "bg-info-3",
+    iconText: "text-info-11",
+    unit: "%",
+    chartVariant: "area",
   },
 };
 
@@ -41,17 +64,19 @@ type MetricCardProps = {
   metricType: MetricType;
   currentValue: number;
   secondaryValue?: {
-    numeric: number;
+    numeric: number | string;
     unit: string;
   };
-  chartData: { data?: TimeseriesData[]; dataKey: string };
+  chartData: { data?: AreaChartPoint[]; dataKey: string };
   percentile?: string;
   onPercentileChange?: (value: string) => void;
   timeWindow?: {
     chart: string;
   };
+  xAxisDomain?: [number, number];
   isLoading?: boolean;
   isError?: boolean;
+  formatTooltipValue?: (value: number) => ValueParts;
 };
 
 export function MetricCard({
@@ -62,9 +87,11 @@ export function MetricCard({
   chartData,
   percentile,
   onPercentileChange,
+  xAxisDomain,
   timeWindow,
   isLoading = false,
   isError = false,
+  formatTooltipValue,
 }: MetricCardProps) {
   const config = METRIC_CONFIGS[metricType];
   const parts = formatMetricParts(metricType, currentValue, config.unit);
@@ -113,15 +140,24 @@ export function MetricCard({
           background: `linear-gradient(to top, color-mix(in srgb, ${config.color} 6%, transparent), transparent)`,
         }}
       >
-        {isError ? (
-          <ChartEmpty
-            variant="wave"
-            color={config.color}
+        {config.chartVariant === "area" ? (
+          <AreaTimeseriesChart
+            chartContainerClassname="px-[14px]"
+            data={chartData.data ?? []}
+            config={{
+              [chartData.dataKey]: {
+                label: config.label,
+                color: config.color,
+              },
+            }}
             height={50}
-            message={`Failed to load ${config.label.toLowerCase()} metrics`}
+            isLoading={isLoading}
+            isError={isError}
+            formatTooltipValue={formatTooltipValue}
+            axisFloor={0}
+            xAxisDomain={xAxisDomain}
+            hideAxes
           />
-        ) : isLoading ? (
-          <ChartWaveLoading height={50} color={config.color} />
         ) : (
           <LogsTimeseriesBarChart
             chartContainerClassname="px-[14px] border-gray-3"
@@ -133,8 +169,9 @@ export function MetricCard({
               },
             }}
             height={50}
-            isLoading={false}
-            isError={false}
+            isLoading={isLoading}
+            isError={isError}
+            formatTooltipValue={formatTooltipValue}
           />
         )}
         {timeWindow?.chart && (
@@ -145,11 +182,14 @@ export function MetricCard({
   );
 }
 
-function formatMetricParts(
+export function formatMetricParts(
   type: MetricType,
   value: number,
   defaultUnit: string,
 ): { value: string; unit: string } {
+  if (type === "cpu" || type === "memory") {
+    return { value: `${Math.round(value)}`, unit: "%" };
+  }
   if (type === "latency") {
     if (value < 1000) {
       return { value: `${Math.round(value * 10) / 10}`, unit: "ms" };
