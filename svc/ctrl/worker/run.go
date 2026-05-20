@@ -293,20 +293,20 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
-	projectSvc, err := workerproject.New(workerproject.Config{
+	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
+		DB: database,
+	})))
+	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
+		DB: database,
+	})))
+	envSvc, err := workerenvironment.New(workerenvironment.Config{
 		DB:    database,
 		Admin: restateAdminClient,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create project worker service: %w", err)
+		return fmt.Errorf("failed to create environment worker service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectSvc))
-	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
-		DB: database,
-	})))
-	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(workerenvironment.New(workerenvironment.Config{
-		DB: database,
-	})))
+	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(envSvc))
 
 	// BuildSlotService is short-lived coordination — AcquireOrWait/Release
 	// journals have no debugging value (each invocation just reads state,

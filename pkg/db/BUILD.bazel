@@ -156,7 +156,7 @@ go_library(
         "deployment_find_latest_ready_by_app_and_env.sql_generated.go",
         "deployment_has_newer_pending.sql_generated.go",
         "deployment_insert.sql_generated.go",
-        "deployment_list_active_by_project.sql_generated.go",
+        "deployment_list_active_by_environment.sql_generated.go",
         "deployment_list_by_environment_id_and_status.sql_generated.go",
         "deployment_list_older_active_for_dedup.sql_generated.go",
         "deployment_status.go",
