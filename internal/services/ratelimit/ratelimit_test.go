@@ -12,7 +12,7 @@ import (
 )
 
 // TestRatelimit_SlidingWindowDecision locks in the math of the sliding window
-// algorithm. Each case pre-seeds the current and previous window counters and
+// algorithm. Each case pre-seeds the current and previous counters and
 // picks a req.Time that produces the desired elapsed fraction, so the decision
 // path runs against exactly the inputs under test.
 func TestRatelimit_SlidingWindowDecision(t *testing.T) {
@@ -50,9 +50,8 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = svc.Close() })
 
-			// Per-test workspace ID so the construction-time blocklist sync
-			// can't pollute these counters from rows another test wrote to
-			// the shared MySQL.
+			// Per-test workspace ID so background global sync can't pollute
+			// these counters from rows another test wrote to the shared MySQL.
 			ws := uid.New(uid.WorkspacePrefix)
 			duration := time.Minute
 			durationMs := duration.Milliseconds()

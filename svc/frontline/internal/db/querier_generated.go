@@ -6,6 +6,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
@@ -53,13 +54,19 @@ type Querier interface {
 	// with region metadata for instance-aware routing decisions.
 	//
 	//  SELECT
-	//    i.pk, i.id, i.deployment_id, i.workspace_id, i.project_id, i.app_id, i.region_id, i.k8s_name, i.address, i.cpu_millicores, i.memory_mib, i.storage_mib, i.status,
+	//    i.pk, i.id, i.deployment_id, i.workspace_id, i.project_id, i.app_id, i.region_id, i.k8s_name, i.address, i.cpu_millicores, i.memory_mib, i.storage_mib, i.status, i.container_status,
 	//    r.name AS region_name,
 	//    r.platform AS region_platform
 	//  FROM instances i
 	//  INNER JOIN regions r ON i.region_id = r.id
 	//  WHERE i.deployment_id = ?
 	FindInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]FindInstancesByDeploymentIDRow, error)
+	// FindOpenApiSpecByDeploymentID returns the scraped OpenAPI spec for a
+	// deployment. Frontline uses this to hydrate openapi policies that don't
+	// carry an inline spec.
+	//
+	//  SELECT content FROM openapi_specs WHERE deployment_id = ?
+	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) ([]byte, error)
 }
 
 var _ Querier = (*Queries)(nil)

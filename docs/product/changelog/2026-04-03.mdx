@@ -12,11 +12,11 @@ Deployments now automatically scale based on CPU utilization. When you configure
 
 ### Dedicated environment variables page
 
-Environment variables now have their own dedicated page in the dashboard instead of being nested inside deployment settings. The new page includes a slide-out panel for editing, drag-and-drop reordering, and persistence that protects against accidental data loss if you close a dialog or refresh the page. Variables with the same key across multiple environments are automatically grouped into expandable rows to reduce clutter. You can also change an existing variable's target environment directly — no need to delete and re-create it.
+Environment variables now have their own dedicated page in the dashboard instead of being nested inside deployment settings. The new page includes a slide-out panel for editing, drag-and-drop reordering, and persistence that protects against accidental data loss if you close a dialog or refresh the page. Variables with the same key across multiple environments are automatically grouped into expandable rows to reduce clutter. You can also change an existing variable's target environment directly, no need to delete and re-create it.
 
 ### Apex domain support
 
-Custom domains now support apex (root) domains in addition to subdomains. The system automatically detects whether your domain is an apex or subdomain and chooses the appropriate verification method — TXT records for apex domains using CNAME flattening or ALIAS records, and CNAME records for subdomains. See the [custom domains documentation](/networking/domains) for setup instructions.
+Custom domains now support apex (root) domains in addition to subdomains. The system automatically detects whether your domain is an apex or subdomain and chooses the appropriate verification method, TXT records for apex domains using CNAME flattening or ALIAS records, and CNAME records for subdomains. See the [custom domains documentation](/networking/domains) for setup instructions.
 
 ### Bulk delete environment variables
 

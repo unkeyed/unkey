@@ -41,6 +41,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	// Mint a correlation ID so the identity.delete audit event plus any
+	// cascade events (per-ratelimit cleanup, per-key disconnects) share
+	// one ID for dashboard drill-down.
+	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
+
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -153,15 +158,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.IdentityDeleteEvent,
-				Display:     fmt.Sprintf("Deleted identity %s.", identity.ID),
-				ActorID:     auth.Key.ID,
-				ActorType:   auditlog.RootKeyActor,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.IdentityDeleteEvent,
+				Display:       fmt.Sprintf("Deleted identity %s.", identity.ID),
+				ActorID:       auth.Key.ID,
+				ActorType:     auditlog.RootKeyActor,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          identity.ID,
@@ -176,15 +182,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		for _, rl := range ratelimits {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.RatelimitDeleteEvent,
-				Display:     fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
-				ActorID:     auth.Key.ID,
-				ActorType:   auditlog.RootKeyActor,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.RatelimitDeleteEvent,
+				Display:       fmt.Sprintf("Deleted ratelimit %s.", rl.ID),
+				ActorID:       auth.Key.ID,
+				ActorType:     auditlog.RootKeyActor,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        auditlog.IdentityResourceType,

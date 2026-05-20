@@ -9,23 +9,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
-	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 
 	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 )
 
-// newTestDB returns a [mysql.MySQL] handle for the shared docker-compose
-// MySQL (managed externally via `make up`). Connection is closed on
-// t.Cleanup. Used by unit tests that need to satisfy [Config.DB] but don't
-// exercise the blocklist itself.
+// newTestDB returns a [mysql.MySQL] handle for a per-test MySQL container.
+// Connection is closed on t.Cleanup. Used by unit tests that need to satisfy
+// [Config.DB] but don't exercise cross-region count propagation directly.
 func newTestDB(t testing.TB) DB {
 	t.Helper()
 
 	cfg := containers.MySQL(t)
 	database, err := mysql.New(mysql.Config{
-		PrimaryDSN:  cfg.FormatDSN(),
+		PrimaryDSN:  cfg.DSN,
 		ReadOnlyDSN: "",
 	})
 	require.NoError(t, err)
@@ -86,9 +84,8 @@ func (c *failingCounter) Increment(_ context.Context, _ string, _ int64, _ ...ti
 // Each test gets independent service instances against the same data
 // plane; that's the multi-region scenario the integration tests assert.
 //
-// Uses dockertest.MySQL rather than containers.MySQL so each test gets
-// its own isolated table state. The integration tests assert on row
-// counts and table contents, which would race under a shared database.
+// Uses a per-test MySQL container so tests that assert on row counts and table
+// contents don't race through shared state.
 type integrationTestEnv struct {
 	t    *testing.T
 	db   DB
@@ -98,7 +95,7 @@ type integrationTestEnv struct {
 func newIntegrationTestEnv(t *testing.T) *integrationTestEnv {
 	t.Helper()
 
-	cfg := dockertest.MySQL(t)
+	cfg := containers.MySQL(t)
 	database, err := mysql.New(mysql.Config{
 		PrimaryDSN:  cfg.DSN,
 		ReadOnlyDSN: "",
@@ -120,7 +117,7 @@ func (e *integrationTestEnv) newRegion(clk clock.Clock) *service {
 }
 
 // newRegionAs builds a ratelimit service tagged with regionTag. Multi-
-// region tests use distinct tags so each region's window-counts rows live
+// region tests use distinct tags so each region's global-counters rows live
 // in their own (workspace, ..., region) bucket and the pull loop's
 // region != self predicate makes each region see the others' contributions.
 func (e *integrationTestEnv) newRegionAs(clk clock.Clock, regionTag string) *service {

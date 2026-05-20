@@ -41,7 +41,7 @@ type Policy struct {
 	// Human-friendly label displayed in the dashboard and audit logs.
 	// Does not affect policy behavior.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	// When false, sentinel skips this policy entirely during evaluation.
+	// When false, frontline skips this policy entirely during evaluation.
 	// This allows operators to toggle policies on and off without modifying
 	// or removing the underlying configuration, which is useful during
 	// incidents, gradual rollouts, and debugging.

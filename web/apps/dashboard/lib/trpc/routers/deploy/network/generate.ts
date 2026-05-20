@@ -2,7 +2,7 @@ import type {
   DeploymentNode,
   HealthStatus,
   InstanceNode,
-  SentinelNode,
+  RegionNode,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -12,6 +12,9 @@ import { mapRegionToFlag } from "./utils";
 const healthStatusSchema = z.enum(["normal", "unhealthy", "health_syncing", "unknown", "disabled"]);
 
 const generatorConfigSchema = z.object({
+  // Field names kept as `sentinels` / `instancesPerSentinel` to match the
+  // existing dev tree-generator UI sliders. Semantically these are now
+  // regions and instances per region.
   sentinels: z.number().min(1).max(7),
   instancesPerSentinel: z.object({
     min: z.number().min(0).max(20),
@@ -67,12 +70,11 @@ export const generateDeploymentTree = workspaceProcedure
         label: "INTERNET",
         direction: input.regionDirection ?? "horizontal",
         metadata: { type: "origin" },
-        children: selectedRegions.map((regionId): SentinelNode => {
+        children: selectedRegions.map((regionId): RegionNode => {
           const instanceCount = getRandomInt(
             input.instancesPerSentinel.min,
             input.instancesPerSentinel.max,
           );
-          const totalInstances = getRandomInt(20, 40);
           const regionHealth = getRandomHealth();
 
           return {
@@ -80,13 +82,9 @@ export const generateDeploymentTree = workspaceProcedure
             label: regionId,
             direction: input.instanceDirection ?? "horizontal",
             metadata: {
-              type: "sentinel",
+              type: "region",
               flagCode: mapRegionToFlag(regionId),
-              instances: totalInstances,
-              replicas: 2,
-              cpu: getRandomInt(200, 2000),
-              memory: getRandomInt(256, 2048),
-              latency: "—",
+              instances: instanceCount,
               health: regionHealth,
             },
             children: Array.from({ length: instanceCount }, (_, i): InstanceNode => {
@@ -98,11 +96,14 @@ export const generateDeploymentTree = workspaceProcedure
                 metadata: {
                   type: "instance",
                   description: "Instance replica",
-                  replicas: 2,
                   cpu: getRandomInt(100, 1000),
                   memory: getRandomInt(128, 1024),
                   latency: "—",
                   health: getRandomHealth(),
+                  // Generated mock tree never has crashes; live tree fills
+                  // this in from the instances row when ctrl has recorded
+                  // exit info.
+                  lastExit: null,
                 },
               };
             }),

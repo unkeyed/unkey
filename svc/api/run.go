@@ -396,6 +396,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		PortalBaseURL:              cfg.PortalBaseURL,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

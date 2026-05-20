@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
 	keyauthExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
+	openapiExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	ratelimitExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/ratelimit"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -42,6 +43,7 @@ type Engine struct {
 	keyAuth     *keyauthExec.Executor
 	rateLimiter *ratelimitExec.Executor
 	firewall    *firewallExec.Executor
+	openapi     *openapiExec.Executor
 	regexCache  *regexCache
 }
 
@@ -61,10 +63,16 @@ func New(cfg Config) (*Engine, error) {
 	); err != nil {
 		return nil, err
 	}
+	openapi, err := openapiExec.New(cfg.Clock)
+	if err != nil {
+		return nil, fmt.Errorf("create openapi executor: %w", err)
+	}
+
 	return &Engine{
 		keyAuth:     keyauthExec.New(cfg.KeyService, cfg.Clock),
 		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
 		firewall:    firewallExec.New(),
+		openapi:     openapi,
 		regexCache:  newRegexCache(),
 	}, nil
 }
@@ -170,6 +178,18 @@ func (e *Engine) Evaluate(
 			}
 
 			engineEvaluationsTotal.WithLabelValues("firewall", "noop").Inc()
+
+		case *frontlinev1.Policy_Openapi:
+			t := time.Now()
+			execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
+			engineEvaluationDuration.WithLabelValues("openapi").Observe(time.Since(t).Seconds())
+
+			if execErr != nil {
+				engineEvaluationsTotal.WithLabelValues("openapi", "rejected").Inc()
+				return result, execErr
+			}
+
+			engineEvaluationsTotal.WithLabelValues("openapi", "success").Inc()
 
 		default:
 			continue

@@ -9,38 +9,15 @@ import (
 )
 
 type Querier interface {
-	// BlocklistDeleteExpired removes rows whose grace period has passed and
+	// GlobalCountersDeleteExpired removes rows whose grace period has passed and
 	// returns the number of rows deleted so the caller can surface it for
 	// observability. Called by an external Restate cron, not the ratelimit
 	// service itself.
 	//
-	//  DELETE FROM ratelimit_blocklist
+	//  DELETE FROM ratelimit_global_counters
 	//  WHERE expires_at < ?
-	BlocklistDeleteExpired(ctx context.Context, cutoff uint64) (int64, error)
-	// BlocklistListActive returns every still-active denial for the sync loop to
-	// apply locally. The result set is bounded by unique violators currently in
-	// their TTL window; the expires_at index keeps the scan cheap.
-	//
-	//  SELECT
-	//      workspace_id,
-	//      namespace,
-	//      identifier,
-	//      duration_ms,
-	//      sequence,
-	//      `limit`,
-	//      expires_at
-	//  FROM ratelimit_blocklist
-	//  WHERE expires_at > ?
-	BlocklistListActive(ctx context.Context, now uint64) ([]BlocklistListActiveRow, error)
-	// WindowCountsDeleteExpired removes rows whose grace period has passed and
-	// returns the number of rows deleted so the caller can surface it for
-	// observability. Called by an external Restate cron, not the ratelimit
-	// service itself.
-	//
-	//  DELETE FROM ratelimit_window_counts
-	//  WHERE expires_at < ?
-	WindowCountsDeleteExpired(ctx context.Context, cutoff uint64) (int64, error)
-	// WindowCountsImported returns the sum of foreign-region contributions for
+	GlobalCountersDeleteExpired(ctx context.Context, cutoff uint64) (int64, error)
+	// GlobalCountersImported returns the sum of foreign-region contributions for
 	// every still-active window cell, with each region's row excluded from its
 	// own caller. Receivers fold the returned `imported` directly into
 	// counterEntry.imported via atomicMax; aggregation runs in MySQL because
@@ -55,11 +32,11 @@ type Querier interface {
 	//      duration_ms,
 	//      sequence,
 	//      CAST(SUM(count) AS SIGNED) AS imported
-	//  FROM ratelimit_window_counts
+	//  FROM ratelimit_global_counters
 	//  WHERE expires_at > ?
 	//    AND region != ?
 	//  GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
-	WindowCountsImported(ctx context.Context, arg WindowCountsImportedParams) ([]WindowCountsImportedRow, error)
+	GlobalCountersImported(ctx context.Context, arg GlobalCountersImportedParams) ([]GlobalCountersImportedRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -2,7 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { DEPLOYMENTS_DEFAULT_LIMIT, type Deployment } from "@/lib/collections/deploy/deployments";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
@@ -65,7 +65,8 @@ export const ProjectDataProvider = ({
       q
         .from({ deployment: collection.deployments })
         .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .orderBy(({ deployment }) => deployment.createdAt, "desc"),
+        .orderBy(({ deployment }) => deployment.createdAt, "desc")
+        .limit(DEPLOYMENTS_DEFAULT_LIMIT),
     [projectId],
   );
 

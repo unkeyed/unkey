@@ -36,7 +36,7 @@ type checkState struct {
 	source        string
 }
 
-// prepareCheck loads both window counters for a request and fetches from
+// prepareCheck loads both counters for a request and fetches from
 // Redis when strict mode is active for this identifier after a recent
 // denial.
 func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkState {
@@ -142,7 +142,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			// rate-limit window so later requests in this region converge on
 			// Redis's view of the count without waiting for the next replay.
 			s.setStrictUntil(cs.strictKey, req.Time.Add(req.Duration).UnixMilli())
-			metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 			span.SetAttributes(attribute.Bool("passed", false))
 			return RatelimitResponse{
 				Success:   false,
@@ -155,8 +155,8 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 		if cs.cur.val.CompareAndSwap(curCount, curCount+req.Cost) {
 			s.replayBuffer.Buffer(req)
-			cs.cur.markAboveFloor(curCount+req.Cost, req.Limit)
-			metrics.RatelimitDecision.WithLabelValues(cs.source, "passed").Inc()
+			cs.cur.observeGlobalPushLimit(req.Limit)
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "passed").Inc()
 			span.SetAttributes(attribute.Bool("passed", true))
 			return RatelimitResponse{
 				Success:   true,
@@ -175,7 +175,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		"identifier", req.Identifier,
 	)
 	metrics.RatelimitCASExhausted.Inc()
-	metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
+	metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 	span.SetAttributes(attribute.Bool("passed", false))
 	return RatelimitResponse{
 		Success:   false,
@@ -220,6 +220,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	// so each goroutine sees its own increment reflected.
 	newCounts := make([]int64, len(reqs))
 	for i, req := range reqs {
+		checks[i].cur.speculative.Add(req.Cost)
 		newCounts[i] = checks[i].cur.val.Add(req.Cost)
 	}
 
@@ -242,6 +243,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	if !allPassed {
 		for i, req := range reqs {
 			checks[i].cur.val.Add(-req.Cost)
+			checks[i].cur.speculative.Add(-req.Cost)
 			// For each individual failure, set strict mode on its tuple so
 			// later requests in this region force a Redis fetch and converge
 			// with other instances' views of the count.
@@ -250,10 +252,11 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 			}
 		}
 	} else {
-		// Increments stuck. Mark any entry that crossed the utilization
-		// floor so the cross-region push goroutine picks it up.
+		// Increments stuck. Record each entry's global-push threshold so
+		// the push goroutine can evaluate the live counter value later.
 		for i, req := range reqs {
-			checks[i].cur.markAboveFloor(newCounts[i], req.Limit)
+			checks[i].cur.observeGlobalPushLimit(req.Limit)
+			checks[i].cur.speculative.Add(-req.Cost)
 		}
 	}
 
@@ -290,9 +293,9 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 
 		if individualPassed {
-			metrics.RatelimitDecision.WithLabelValues(checks[i].source, "passed").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, checks[i].source, "passed").Inc()
 		} else {
-			metrics.RatelimitDecision.WithLabelValues(checks[i].source, "denied").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, checks[i].source, "denied").Inc()
 		}
 	}
 

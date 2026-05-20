@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -26,7 +27,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -38,8 +38,9 @@ import (
 )
 
 // Harness provides a complete integration test environment with real dependencies.
-// It manages Docker containers for MySQL, Redis, ClickHouse, and S3, seeds baseline
-// test data, and exposes all services needed to test API endpoints.
+// It manages a Docker container for MySQL, seeds baseline test data, and exposes
+// all services needed to test API endpoints. Redis and ClickHouse are opt-in via
+// [HarnessConfig].
 //
 // The exported fields provide direct access to services when tests need to verify
 // side effects or set up complex scenarios beyond what the helper methods offer.
@@ -71,20 +72,49 @@ type Harness struct {
 	seeder                     *seed.Seeder
 }
 
-// NewHarness creates a fully initialized test harness with all dependencies started.
-// Container startup is parallelized, and the database is seeded with baseline data
-// including a root workspace and key space. The harness is tied to the test lifecycle
-// and containers are cleaned up when the test completes.
-func NewHarness(t *testing.T) *Harness {
+// HarnessConfig controls which optional Docker-backed dependencies are started.
+// Zero value starts MySQL only, uses an in-memory counter, and no-op analytics
+// buffers.
+type HarnessConfig struct {
+	Redis      bool
+	ClickHouse bool
+}
+
+// NewHarness creates a fully initialized test harness wired against fresh
+// test-owned containers. Docker dependencies are started on demand and removed
+// automatically by t.Cleanup.
+func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	clk := clock.NewTestClock()
+	cfg := HarnessConfig{
+		Redis:      false,
+		ClickHouse: false,
+	}
+	for _, c := range configs {
+		cfg.Redis = cfg.Redis || c.Redis
+		cfg.ClickHouse = cfg.ClickHouse || c.ClickHouse
+	}
 
-	// Start all services in parallel first
-	containers.StartAllServices(t)
+	var wg sync.WaitGroup
+	var mysqlCfg containers.MySQLConfig
+	var redisUrl string
+	var chCfg containers.ClickHouseConfig
 
-	mysqlCfg := containers.MySQL(t)
-	mysqlDSN := mysqlCfg.FormatDSN()
+	wg.Go(func() {
+		mysqlCfg = containers.MySQL(t)
+	})
+	if cfg.Redis {
+		wg.Go(func() {
+			redisUrl = containers.Redis(t)
+		})
+	}
+	if cfg.ClickHouse {
+		wg.Go(func() {
+			chCfg = containers.ClickHouse(t)
+		})
+	}
+	wg.Wait()
 
-	redisUrl := dockertest.Redis(t)
+	mysqlDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,
@@ -111,44 +141,58 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
-	// Get ClickHouse connection string
-	chDSN := containers.ClickHouse(t)
+	var ch clickhouse.ClickHouse
+	var keyVerifications *batch.BatchProcessor[schema.KeyVerification]
+	var ratelimitsfer *batch.BatchProcessor[schema.Ratelimit]
+	if cfg.ClickHouse {
+		var err error
+		chClient, err := clickhouse.New(clickhouse.Config{
+			URL: chCfg.DSN,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, chClient.Close()) })
+		ch = chClient
 
-	// Create real ClickHouse client
-	ch, err := clickhouse.New(clickhouse.Config{
-		URL: chDSN,
-	})
-	require.NoError(t, err)
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+			Name:          "key_verifications",
+			BatchSize:     10,
+			BufferSize:    100,
+			FlushInterval: 100 * time.Millisecond,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		t.Cleanup(keyVerifications.Close)
 
-	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
-		Name:          "key_verifications",
-		BatchSize:     10,
-		BufferSize:    100,
-		FlushInterval: 100 * time.Millisecond,
-		Consumers:     2,
-		Drop:          true,
-		OnFlushError:  nil,
-	})
-	t.Cleanup(keyVerifications.Close)
-
-	ratelimitsfer := clickhouse.NewBuffer[schema.Ratelimit](ch, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
-		Name:          "ratelimits",
-		BatchSize:     10,
-		BufferSize:    100,
-		FlushInterval: 100 * time.Millisecond,
-		Consumers:     2,
-		Drop:          true,
-		OnFlushError:  nil,
-	})
-	t.Cleanup(ratelimitsfer.Close)
+		ratelimitsfer = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+			Name:          "ratelimits",
+			BatchSize:     10,
+			BufferSize:    100,
+			FlushInterval: 100 * time.Millisecond,
+			Consumers:     2,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		t.Cleanup(ratelimitsfer.Close)
+	} else {
+		keyVerifications = batch.NewNoop[schema.KeyVerification]()
+		t.Cleanup(keyVerifications.Close)
+		ratelimitsfer = batch.NewNoop[schema.Ratelimit]()
+		t.Cleanup(ratelimitsfer.Close)
+	}
 
 	validator, err := validation.New()
 	require.NoError(t, err)
 
-	ctr, err := counter.NewRedis(counter.RedisConfig{
-		RedisURL: redisUrl,
-	})
-	require.NoError(t, err)
+	ctr := counter.NewMemory()
+	if cfg.Redis {
+		var err error
+		ctr, err = counter.NewRedis(counter.RedisConfig{
+			RedisURL: redisUrl,
+		})
+		require.NoError(t, err)
+	}
+	t.Cleanup(func() { require.NoError(t, ctr.Close()) })
 
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
@@ -182,15 +226,18 @@ func NewHarness(t *testing.T) *Harness {
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	v := vault.NewConnectVaultServiceClient(testVault.Client)
 
-	// Create analytics connection manager
-	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
-		SettingsCache: caches.ClickhouseSetting,
-		Database:      database,
-		Clock:         clk,
-		BaseURL:       chDSN,
-		Vault:         v,
-	})
-	require.NoError(t, err)
+	analyticsConnManager := analytics.NewNoopConnectionManager()
+	if cfg.ClickHouse {
+		var err error
+		analyticsConnManager, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
+			SettingsCache: caches.ClickhouseSetting,
+			Database:      database,
+			Clock:         clk,
+			BaseURL:       chCfg.DSN,
+			Vault:         v,
+		})
+		require.NoError(t, err)
+	}
 
 	// Create seeder
 	seeder := seed.New(t, database, v)
@@ -480,6 +527,7 @@ func WithRetentionDays(days int32) SetupAnalyticsOption {
 // retention. Tests that query analytics data must call this before making requests.
 func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOption) {
 	ctx := context.Background()
+	require.NotNil(h.t, h.ClickHouse, "testutil.NewHarness must be called with testutil.HarnessConfig{ClickHouse: true} before SetupAnalytics")
 
 	// Defaults
 	config := setupAnalyticsConfig{

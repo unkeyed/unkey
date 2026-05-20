@@ -1,96 +1,99 @@
 ---
 title: What is Unkey?
-description: "Unkey is an API development platform for key management, rate limiting, analytics, and authorization. Learn how it helps you ship APIs faster."
+description: "Unkey is a globally distributed API platform that ships a Dockerfile to production with built-in key issuance, rate limiting, and analytics."
 ---
 
-Unkey is the API development platform that handles the infrastructure you'd rather not build yourself: **API key management**, **rate limiting**, and **usage tracking** — all with global performance and zero servers to manage.
+**Ship APIs, not infrastructure.**
 
-<CardGroup cols={3}>
-  <Card title="API Keys" icon="key">
-    Issue, verify, and revoke keys with metadata, expiration, and usage limits
-    built in.
+Push a Dockerfile, get a production API. Unkey builds the image, runs it across your chosen regions, and routes every request through Sentinel for API key authentication, rate limiting, and IP rules before it hits your code. Domains, rollbacks, and analytics are handled. You write the application; we run it.
+
+<CardGroup cols={2}>
+  <Card title="Deploy" icon="rocket" href="/build-and-deploy/overview">
+    Push to GitHub or run `unkey deploy`. Multi-region, instant rollbacks, automatic domains, preview environments.
   </Card>
-  <Card title="Rate Limiting" icon="gauge-high">
-    Protect any endpoint from abuse — standalone or attached to API keys.
+  <Card title="Sentinel" icon="shield-halved" href="/platform/sentinel/overview">
+    API key authentication, rate limiting, and IP policies running in front of your app. No middleware to write.
   </Card>
-  <Card title="Usage Tracking" icon="chart-line">
-    Know who's using your API, how much, and when — with analytics out of the
-    box.
+  <Card title="API keys" icon="key" href="/platform/apis/introduction">
+    Issue, verify, revoke. Usage limits, expiration, metadata, identities. Use standalone or attached to a deployment.
+  </Card>
+  <Card title="Analytics" icon="chart-line" href="/platform/analytics/overview">
+    Who's using your API, how much, when. Built in, queryable, no pipeline to build.
   </Card>
 </CardGroup>
 
 ## Why Unkey?
 
-Building API infrastructure from scratch means managing databases, Redis clusters, edge caching, and analytics pipelines. Unkey handles all of that so you can focus on your actual product.
+Shipping an API used to mean stitching together a runtime, a CDN, a key store, a Redis for rate limits, an analytics pipeline, and the auth middleware to glue them. Unkey is one platform that runs all of it on servers we operate, so you can focus on the actual API.
 
-| DIY Approach                          | With Unkey                |
-| ------------------------------------- | ------------------------- |
-| Set up key storage, hashing, rotation | `unkey.keys.create()`     |
-| Deploy Redis for rate limiting        | `unkey.ratelimit.limit()` |
-| Build usage tracking & dashboards     | Built-in analytics        |
-| Manage infrastructure globally        | Globally distributed      |
+| Without Unkey | With Unkey |
+| --- | --- |
+| Provision servers, configure load balancers, manage TLS | `git push` or `unkey deploy` |
+| Build key storage, hashing, rotation, revocation | Attached to your app or called via SDK |
+| Stand up Redis for rate limiting | `unkey.ratelimit.limit()` |
+| Wire up usage tracking and dashboards | Built-in analytics |
 
 <Note>
-  Unkey never stores your API keys in plain text. We hash them before storage,
-  so even if our database were compromised, your keys stay safe.
+  Unkey never stores API keys in plain text. Keys are SHA-256 hashed before storage, so even if our database were compromised your keys stay safe.
 </Note>
 
 ## What can you build?
 
 <AccordionGroup>
-  <Accordion title="Protect a public API" icon="shield-halved">
-    Issue API keys to your users, verify them on every request, and automatically reject invalid or expired keys.
-    
+  <Accordion title="Ship a production API from a Dockerfile" icon="rocket">
+    Connect a GitHub repository or run `unkey deploy`. Unkey builds your image, runs it across your chosen regions, and assigns domains automatically. Every push to your default branch goes to production; every other branch gets a preview environment.
+
+    ```bash
+    unkey deploy ghcr.io/acme/payments-api:v1.2.3 \
+      --project payments \
+      --root-key $UNKEY_ROOT_KEY
+    ```
+  </Accordion>
+
+  <Accordion title="Authenticate every request before it hits your app" icon="shield-halved">
+    Sentinel sits in front of your deployment and enforces API key checks, rate limits, and IP rules. No SDK call required from inside your app: invalid requests are rejected before they reach your code.
+
     ```ts
-    const { meta, data } = await unkey.keys.verify({ key: "sk_123..." });
+    // Inside your app, the request is already authenticated.
+    // Identity and quota info arrive on request headers.
+    const userId = req.headers["x-unkey-identity"];
+    ```
+  </Accordion>
+
+  <Accordion title="Issue API keys to your customers" icon="key">
+    Issue keys with prefixes, expiration, usage credits, rate limits, and arbitrary metadata. Verify them with one SDK call, attached to a deployment or standalone.
+
+    ```ts
+    const { meta, data } = await unkey.keys.verifyKey({ key: "sk_..." });
     if (!data.valid) return new Response("Unauthorized", { status: 401 });
     ```
   </Accordion>
-  
+
   <Accordion title="Rate limit anything" icon="gauge">
-    Limit requests per user, per IP, per endpoint — or any identifier you choose. No Redis required.
-    
+    Per-user, per-IP, per-endpoint, per-anything. Globally distributed, no Redis, attached to a key or completely standalone.
+
     ```ts
-    const { success } = await limiter.limit(userId);
+    const { success } = await unkey.ratelimit.limit({
+      namespace: "api.requests",
+      identifier: userId,
+      limit: 100,
+      duration: 60_000,
+    });
     if (!success) return new Response("Too many requests", { status: 429 });
     ```
   </Accordion>
-  
+
   <Accordion title="Usage-based billing" icon="receipt">
-    Track API usage per customer with credit limits and automatic refills. Perfect for tiered pricing.
-    
+    Issue keys with monthly credits and automatic refills. Verification consumes credits, so usage-based pricing is one config object away.
+
     ```ts
-    // Create a key with 1000 credits/month that refills automatically
-    try {
-      const { meta, data } = await unkey.keys.create({
-        apiId: "api_...",
-        credits: {
-          remaining: 1000,
-          refill: { amount: 1000, refillDay: 1 }
-        }
-      });
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
-    ```
-  </Accordion>
-  
-  <Accordion title="Multi-tenant rate limits" icon="building">
-    Use Identities to group keys under users or organizations, sharing rate limits across all their keys.
-    
-    ```ts
-    // All keys for this identity share the same rate limit pool
-    try {
-      const { meta, data } = await unkey.keys.create({
-        apiId: "api_...",
-        externalId: "org_acme",
-        ratelimits: [{ name: "requests", limit: 10000, duration: 3600000 }]
-      });
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
+    const { meta, data } = await unkey.keys.createKey({
+      apiId: "api_...",
+      credits: {
+        remaining: 10000,
+        refill: { interval: "monthly", amount: 10000 }
+      }
+    });
     ```
   </Accordion>
 </AccordionGroup>
@@ -98,53 +101,47 @@ Building API infrastructure from scratch means managing databases, Redis cluster
 ## Get started
 
 <CardGroup cols={2}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart/quickstart">
-    Create your first API and verify a key in under 5 minutes.
+  <Card title="Deploy your first app" icon="rocket" href="/quickstart/deploy">
+    Connect a GitHub repository (or push a Docker image) and have a live URL in minutes.
+  </Card>
+  <Card title="Issue your first API key" icon="key" href="/quickstart/quickstart">
+    Create an API, generate a key, and verify it with curl or your favorite SDK.
   </Card>
   <Card title="Framework guides" icon="code" href="/quickstart/apis/nextjs">
-    Step-by-step guides for Next.js, Bun, Express, Hono, and more.
+    Step-by-step recipes for Next.js, Bun, Express, Hono, FastAPI, Go.
+  </Card>
+  <Card title="Cookbook" icon="book" href="/cookbook/index">
+    Ready-to-copy patterns: per-user limits, tiered subscriptions, usage billing.
   </Card>
 </CardGroup>
 
 ## Choose your path
 
 <CardGroup cols={2}>
-  <Card
-    title="I need API key authentication"
-    icon="key"
-    href="/platform/apis/introduction"
-  >
-    Issue keys to users, verify on requests, track usage per key.
+  <Card title="I want to ship an API" icon="rocket" href="/build-and-deploy/overview">
+    Deploy from GitHub or CLI. Multi-region, rollbacks, preview environments, Sentinel in front.
   </Card>
-  <Card
-    title="I need rate limiting"
-    icon="gauge-high"
-    href="/platform/ratelimiting/introduction"
-  >
-    Protect endpoints from abuse without managing Redis infrastructure.
+  <Card title="I just need API keys or rate limits" icon="key" href="/platform/apis/introduction">
+    Use the SDK directly from any backend, no deployment required.
   </Card>
-  <Card title="I need both" icon="bolt" href="/quickstart/quickstart">
-    Start with API keys — rate limiting can be added per-key or standalone.
+  <Card title="I'm migrating from another solution" icon="arrows-rotate" href="/platform/apis/migrations/introduction">
+    Bring existing keys over without disrupting your users.
   </Card>
-  <Card
-    title="I'm migrating from another solution"
-    icon="arrows-rotate"
-    href="/platform/apis/migrations/introduction"
-  >
-    Bring existing keys to Unkey without disrupting your users.
+  <Card title="I want both" icon="bolt" href="/quickstart/deploy">
+    Start by deploying. Add API key auth and rate limits as policies on the deployment.
   </Card>
 </CardGroup>
 
 ## Join the community
 
-Questions? Ideas? Just want to hang out with other API builders?
+Questions, ideas, or just want to talk to other API builders?
 
 <CardGroup cols={3}>
   <Card title="Discord" icon="discord" href="https://unkey.com/discord">
     Chat with the team and community
   </Card>
   <Card title="GitHub" icon="github" href="https://github.com/unkeyed/unkey">
-    Star us, report issues, contribute
+    Star the repo and file issues
   </Card>
   <Card title="Twitter / X" icon="x-twitter" href="https://x.com/unkeydev">
     Follow for updates

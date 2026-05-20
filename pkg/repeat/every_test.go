@@ -8,7 +8,42 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/unkeyed/unkey/pkg/clock"
 )
+
+func TestEveryClock_FiresOnSimulatedTime(t *testing.T) {
+	clk := clock.NewTestClock(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+
+	var counter atomic.Int32
+	stop := EveryClock(clk, 10*time.Second, func() {
+		counter.Add(1)
+	})
+	defer stop()
+
+	// EveryClock fires fn() once before entering the ticker loop, so
+	// give the launcher goroutine a beat to land that initial call
+	// before we measure.
+	require.Eventually(t, func() bool {
+		return counter.Load() >= 1
+	}, time.Second, 5*time.Millisecond)
+
+	// Six 10s ticks worth of simulated time should produce six more
+	// invocations on top of the initial call. Tick blocks per-send
+	// until each due tick is received, but the consumer's fn runs
+	// asynchronously, so processing-complete is reached just after
+	// Tick returns.
+	clk.Tick(60 * time.Second)
+	require.Eventually(t, func() bool {
+		return counter.Load() == 7
+	}, time.Second, 5*time.Millisecond)
+
+	clk.Tick(30 * time.Second)
+	require.Eventually(t, func() bool {
+		return counter.Load() == 10
+	}, time.Second, 5*time.Millisecond)
+}
 
 func TestEvery_BasicFunctionality(t *testing.T) {
 	t.Run("calls function repeatedly", func(t *testing.T) {

@@ -1,4 +1,4 @@
-export * from "./sentinel-node";
+export * from "./region-node";
 export * from "./instance-node";
 
 export * from "./skeleton-node/skeleton-layout";
@@ -8,7 +8,7 @@ export * from "./origin-node";
 
 export {
   isOriginNode,
-  isSentinelNode,
+  isRegionNode,
   isInstanceNode,
   isSkeletonNode,
   type DeploymentNode,

@@ -125,6 +125,12 @@ Stripe billing:
 STRIPE_SECRET_KEY=<your Stripe secret key>
 ```
 
+### Feature flags
+
+You don't need Vercel Flags setup to run dashboard code that imports `@/lib/flags`. When `FLAGS` is missing, the dashboard uses the noop adapter and resolves each flag to its declared `defaultValue`.
+
+If you're adding flags, testing remote targeting rules, or using Vercel Toolbar overrides, ask Andreas for the dev values of `FLAGS` and `FLAGS_SECRET`. Add them to `web/apps/dashboard/.env`. They're stable, so you set them once and forget. See [Feature flags](/contributing/tooling/feature-flags) for the rest of the workflow.
+
 ## Seed local data
 
 ```bash

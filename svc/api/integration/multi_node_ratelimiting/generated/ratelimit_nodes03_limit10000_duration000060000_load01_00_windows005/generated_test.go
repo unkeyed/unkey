@@ -4,6 +4,7 @@ package ratelimit_nodes03_limit10000_duration000060000_load01_00_windows005
 import (
 	"testing"
 
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	run "github.com/unkeyed/unkey/svc/api/integration/multi_node_ratelimiting"
 )
@@ -11,7 +12,8 @@ import (
 func TestIntegration_RateLimit_Nodes03_Limit10000_Duration000060000_Load01_00_Windows005(t *testing.T) {
 
 	h := integration.New(t, integration.Config{
-		NumNodes: 3,
+		NumNodes:  3,
+		TestClock: clock.NewTestClock(),
 	})
 
 	run.RunRateLimitTest(

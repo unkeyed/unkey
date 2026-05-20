@@ -1,9 +1,9 @@
 ---
 title: Overview
-description: "Protect any API endpoint from abuse with Unkey's serverless rate limiting. No Redis or infrastructure required — just a single API call."
+description: "Protect any API endpoint from abuse with Unkey's globally distributed rate limiting. No Redis or infrastructure required, just a single API call."
 ---
 
-Rate limiting controls how many requests a user, IP, or any identifier can make in a given time window. Unkey provides globally distributed rate limiting that works at the edge — without you managing Redis, Upstash, or any infrastructure.
+Rate limiting controls how many requests a user, IP, or any identifier can make in a given time window. Unkey provides globally distributed rate limiting that runs across our network, without you managing Redis, Upstash, or any infrastructure.
 
 ## When to use rate limiting
 
@@ -70,7 +70,7 @@ export async function handler(req: Request) {
     });
   }
 
-  // Request allowed — continue with your logic
+  // Request allowed, continue with your logic
   return new Response(`Hello! ${remaining} requests remaining.`);
 }
 ```
@@ -98,7 +98,7 @@ Unkey offers two ways to rate limit:
 | **Standalone**   | Any endpoint, public or private | You call `limiter.limit()` with any identifier                        |
 | **Key-attached** | API key authenticated endpoints | Rate limits are configured per-key and checked during `keys.verify()` |
 
-**Standalone** is what this section covers — it works anywhere, with or without API keys.
+**Standalone** is what this section covers, it works anywhere, with or without API keys.
 
 **Key-attached** rate limits are configured when you [create API keys](/platform/apis/features/ratelimiting/overview) and are automatically enforced during verification.
 
@@ -117,12 +117,16 @@ Unkey offers two ways to rate limit:
 
 <Accordion title="Globally distributed" icon="globe">
   Requests are processed across our globally distributed infrastructure. Your
-  rate limits are checked close to your users, not in a single region.
+  rate limits are checked close to your users, not in a single region. When an
+  identifier exceeds its limit in one region, every other region starts denying
+  it within seconds — so abuse can't be amplified by hitting multiple
+  geographies. See [cross-region denial
+  propagation](/platform/ratelimiting/modes#cross-region-denial-propagation).
 </Accordion>
 
 <Accordion title="Performance at scale" icon="gauge-high">
   See real-time performance metrics at
-  [ratelimit.unkey.com](https://ratelimit.unkey.com) — our global latency and
+  [ratelimit.unkey.com](https://ratelimit.unkey.com), our global latency and
   throughput benchmarks updated live.
 </Accordion>
 
@@ -137,7 +141,7 @@ Unkey offers two ways to rate limit:
 </Accordion>
 
   <Accordion title="Analytics built in" icon="chart-line">
-    See which identifiers are hitting limits, when, and how often — in your
+    See which identifiers are hitting limits, when, and how often, in your
     Unkey dashboard.
   </Accordion>
 </AccordionGroup>
@@ -152,7 +156,7 @@ Unkey offers two ways to rate limit:
   </Step>
   <Step title="Install the SDK">```bash npm install @unkey/ratelimit ```</Step>
   <Step title="Add to your code">
-    See the [framework guides](/quickstart) for complete examples with Next.js,
+    See the [framework guides](/quickstart/quickstart) for complete examples with Next.js,
     Bun, Express, or Hono.
   </Step>
 </Steps>

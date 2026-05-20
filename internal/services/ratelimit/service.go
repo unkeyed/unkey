@@ -3,6 +3,7 @@ package ratelimit
 import (
 	"context"
 	"errors"
+	"math"
 	"sync"
 	"sync/atomic"
 
@@ -72,6 +73,12 @@ type counterEntry struct {
 	// globalCount to get the global count.
 	val atomic.Int64
 
+	// speculative tracks RatelimitMany increments that have been applied to val
+	// but are not committed yet. The global push loop subtracts this value before
+	// writing to MySQL so an all-or-nothing batch that later rolls back cannot
+	// leak its temporary count into ratelimit_global_counters.
+	speculative atomic.Int64
+
 	// once gates the first call to fetch so concurrent callers on a cold
 	// entry block inside Do until hydration returns, closing the race
 	// where LoadOrStore would hand out a zero-valued counter to late
@@ -93,14 +100,13 @@ type counterEntry struct {
 	// goroutine via atomicMax; the request path only reads it.
 	globalCount atomic.Int64
 
-	// aboveFloor latches to true once the entry's val first reaches
-	// globalUtilizationFloor of req.Limit on a passing request. The push
-	// goroutine skips entries with aboveFloor=false. Pull-created entries
-	// (no local traffic yet) start at false and stay there until a
-	// request actually consumes against this region. Once true, stays
-	// true for the lifetime of the entry; the next sequence rotation
-	// creates a fresh entry with aboveFloor=false again.
-	aboveFloor atomic.Bool
+	// globalPushThreshold is the minimum local count worth sharing with
+	// other regions for this cell. It is derived from the observed request
+	// limit and globalUtilizationFloor. The push goroutine compares the
+	// live val against this threshold, so counts that cross the floor later
+	// through Redis/origin convergence are still eligible to flush. A zero
+	// value means no request has observed a limit for this entry yet.
+	globalPushThreshold atomic.Int64
 
 	// lastPushed is the val written by the previous successful
 	// cross-region push. The push goroutine skips entries whose val
@@ -115,30 +121,37 @@ type counterEntry struct {
 	fetch func(context.Context) int64
 }
 
-// markAboveFloor latches the aboveFloor flag to true when the post-cost
-// val first reaches the utilization floor. Called from the request path
-// after a successful CAS (Ratelimit) or after the all-passed check
-// (RatelimitMany), with the request's authoritative limit. The pre-Load
-// guard avoids a redundant atomic Store on subsequent requests once the
-// flag is already set.
-func (e *counterEntry) markAboveFloor(val, limit int64) {
-	if e.aboveFloor.Load() {
-		return
+// observeGlobalPushLimit records the count threshold at which this entry's
+// local value becomes worth sharing globally. If the same window cell is
+// observed with multiple limits, keep the lowest threshold so propagation is
+// conservative. The request path calls this after a committed increment; the
+// push path later evaluates the current val against the stored threshold.
+func (e *counterEntry) observeGlobalPushLimit(limit int64) {
+	threshold := int64(math.Ceil(globalUtilizationFloor * float64(limit)))
+	if threshold < 1 {
+		threshold = 1
 	}
-	if float64(val) >= globalUtilizationFloor*float64(limit) {
-		e.aboveFloor.Store(true)
+
+	for range maxCASRetries {
+		cur := e.globalPushThreshold.Load()
+		if cur != 0 && cur <= threshold {
+			return
+		}
+		if e.globalPushThreshold.CompareAndSwap(cur, threshold) {
+			return
+		}
 	}
+	logger.Error("global push threshold update retries exhausted")
 }
 
-// shouldPush is true when the entry has both crossed the utilization
-// floor and grown past what we last successfully pushed. The push
-// goroutine uses it to decide whether to include the entry in the next
-// bulk upsert. Both checks are necessary: aboveFloor is the latching
-// gate that excludes pull-created or low-utilization entries; the
-// lastPushed comparison is the change filter that excludes entries with
-// no new state to share.
-func (e *counterEntry) shouldPush(val int64) bool {
-	return e.aboveFloor.Load() && val > e.lastPushed.Load()
+// shouldPushGlobalCount is true when the entry's live local count has reached
+// the observed global-push threshold and grown past what we last successfully
+// pushed. Both checks are necessary: the threshold excludes pull-created or
+// low-utilization entries; lastPushed excludes entries with no new state to
+// share.
+func (e *counterEntry) shouldPushGlobalCount(val int64) bool {
+	threshold := e.globalPushThreshold.Load()
+	return threshold > 0 && val >= threshold && val > e.lastPushed.Load()
 }
 
 // Hydrate populates val from the bound fetcher exactly once. The fetched
@@ -175,7 +188,7 @@ func (e *counterEntry) Hydrate(ctx context.Context) {
 // workers push local increments to Redis and CAS-merge the global count
 // back into the local atomic counter.
 //
-// Cross-region awareness comes from ratelimit_window_counts: each region
+// Cross-region awareness comes from ratelimit_global_counters: each region
 // periodically flushes its own count for each active window into a row
 // keyed by (workspace, namespace, identifier, duration, sequence, region),
 // and a periodic sync sums other regions' rows into counterEntry.globalCount.
@@ -205,7 +218,7 @@ type service struct {
 	// region share state through Redis, and a forced fetch on the request
 	// path drains any lag between an instance's local view and the
 	// region's Redis-backed truth. Cross-region convergence is a separate
-	// concern handled by ratelimit_window_counts.
+	// concern handled by ratelimit_global_counters.
 	strictUntils sync.Map
 
 	// origin is the distributed source-of-truth counter (typically Redis).
@@ -224,13 +237,13 @@ type service struct {
 	// from Config.DB. Always non-nil; Config.DB is required.
 	db *db.Database
 
-	// region tags every row this service writes to ratelimit_window_counts
+	// region tags every row this service writes to ratelimit_global_counters
 	// and is the predicate the pull loop uses to filter out own-region rows
 	// when reading. Constant for the lifetime of the service.
 	region string
 
 	// globalCircuitBreaker wraps the periodic bulk upsert for the
-	// cross-region ratelimit_window_counts table. When tripped, the flush
+	// cross-region ratelimit_global_counters table. When tripped, the flush
 	// logs and discards the batch so a sick database does not stall
 	// subsequent ticks or back-pressure denials on the request path.
 	globalCircuitBreaker circuitbreaker.CircuitBreaker[any]
@@ -251,7 +264,7 @@ type Config struct {
 	// Counter is the distributed counter backend (typically Redis).
 	Counter counter.Counter
 
-	// DB drives cross-region count sharing via ratelimit_window_counts:
+	// DB drives cross-region count sharing via ratelimit_global_counters:
 	// each region periodically flushes its own observed count for active
 	// windows, and a pull goroutine reads the rows from other regions and
 	// folds the sum into local counterEntry.globalCount. Required;
@@ -263,7 +276,7 @@ type Config struct {
 
 	// Region identifies the running fleet for cross-region count sharing.
 	// Sourced from UNKEY_REGION at process start. Used as the row-key
-	// partition for own writes to ratelimit_window_counts and the filter
+	// partition for own writes to ratelimit_global_counters and the filter
 	// for skipping own-region rows on read. Required; [New] returns
 	// [ErrRegionRequired] if empty.
 	Region string
@@ -274,7 +287,7 @@ type Config struct {
 // The service starts 8 background goroutines to process the replay buffer,
 // synchronizing local rate limit state with Redis. It also starts a janitor
 // to clean up expired counters, plus a push goroutine that emits per-region
-// counts to ratelimit_window_counts and a pull goroutine that pulls and sums
+// counts to ratelimit_global_counters and a pull goroutine that pulls and sums
 // other regions' contributions.
 //
 // Returns [ErrDBRequired] if config.DB is nil or [ErrRegionRequired] if
@@ -335,7 +348,7 @@ func (s *service) Close() error {
 // zero-valued counter while another goroutine is mid-fetch.
 //
 // Counters created here are attributed to traffic via RatelimitWindowsCreated.
-// The window-counts sync uses [findOrCreateCounter] directly so its
+// The global-counters sync uses [findOrCreateCounter] directly so its
 // insertions land on a separate metric and don't inflate the traffic-driven
 // counter.
 func (s *service) loadCounter(key counterKey) *counterEntry {
@@ -365,7 +378,7 @@ func (s *service) loadStrictUntil(key strictKey) int64 {
 func (s *service) setStrictUntil(key strictKey, untilMs int64) {
 	val, _ := s.strictUntils.LoadOrStore(key, &atomic.Int64{})
 	atomicMax(val.(*atomic.Int64), untilMs)
-	metrics.RatelimitStrictModeActivations.Inc()
+	metrics.RatelimitStrictModeActivations.WithLabelValues(key.workspaceID).Inc()
 }
 
 // findOrCreateCounter returns the entry for the given key, creating one if

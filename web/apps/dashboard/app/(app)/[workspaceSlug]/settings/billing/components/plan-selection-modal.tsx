@@ -95,9 +95,10 @@ export const PlanSelectionModal = ({
 
     setIsLoading(true);
     if (isChangingPlan && currentProductId) {
-      // Update existing subscription
+      // Update existing subscription. The current product is derived from
+      // the existing subscription server-side, so we no longer need to send
+      // `oldProductId` from the client.
       await updateSubscription.mutateAsync({
-        oldProductId: currentProductId,
         newProductId: selectedProductId,
       });
     } else {

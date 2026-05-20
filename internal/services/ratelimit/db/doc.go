@@ -1,12 +1,10 @@
 // Package db provides MySQL access for the ratelimit service's cross-region
-// denial propagation. It is intentionally narrow: only the queries needed to
-// upsert, list, and clean up rows in ratelimit_blocklist live here.
+// count propagation. It is intentionally narrow: only the queries needed to
+// upsert, import, and clean up rows in ratelimit_global_counters live here.
 //
-// The service writes one row per (workspace, namespace, identifier, duration)
-// when a node sees an identifier breach a limit for the first time in a
-// window. Every region polls the table on a fixed interval and uses each row
-// to inflate the local sliding-window counter so the same identifier is also
-// denied in regions that have not yet seen the abuse traffic firsthand.
+// Each region periodically writes its local count for active sliding-window
+// cells. Other regions poll the table, sum foreign-region rows, and fold that
+// value into local sliding-window math.
 //
 // # Code Generation
 //

@@ -17,7 +17,7 @@ func (s *service) startJanitor() {
 // runJanitorOnce performs a single cleanup pass. It prevents unbounded
 // memory growth from two sources:
 //
-//   - Sliding-window counters whose window ended more than 3x its duration
+//   - Sliding-counters whose window ended more than 3x its duration
 //     ago.
 //   - Strict-mode deadlines that are already in the past.
 //

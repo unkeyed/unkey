@@ -1,6 +1,6 @@
 ---
 title: Next.js
-description: "Add serverless rate limiting to your Next.js API routes using Unkey. Protect endpoints from abuse with configurable limits, no Redis needed."
+description: "Step-by-step Next.js rate limiting tutorial with @unkey/ratelimit. Throttle API routes and return 429 responses without provisioning Redis."
 ---
 
 ## What you'll build
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 4. Request allowed — do your thing
+  // 4. Request allowed, do your thing
   return NextResponse.json({ message: "Hello!", remaining }, { headers });
 }
 ```

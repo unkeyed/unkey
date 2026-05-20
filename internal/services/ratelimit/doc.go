@@ -17,43 +17,17 @@ local increments via INCRBY and CAS-merge the global count back into the local a
 
 # Cross-region propagation
 
-When the service is configured with a DB (see [Config.DB]), denials propagate
-across regions through MySQL. On the strict-mode transition (the first denial
-in a window), the service writes one row to ratelimit_blocklist; a periodic
-pull goroutine on every node reads the active set and inflates the local
-counter for each row's originating sequence. Receivers therefore deny the same
-identifier without seeing its abusive traffic firsthand. Sliding-window decay
-handles the bleed into the next window automatically.
+When the service is configured with a DB (see [Config.DB]), regions share
+sliding-window counters through ratelimit_global_counters. Each region periodically
+flushes its own observed count for active window cells, keyed by region. Each
+region also periodically imports the sum of other regions' rows and folds that
+foreign count into the local sliding-window math.
 
-Two filters gate emission. Sub-minute windows (see minPropagationDuration)
-rotate before the row reaches receivers across the 1s flush + 10s sync path,
-so they're skipped — local strict mode still applies. And denials where the
-user has consumed less than half their limit before this request's cost are
-not propagated; those typically come from a single oversized request, and
-broadcasting them would globally block a user who still has plenty of
-legitimate quota left. The threshold stops at half so heavy-usage cases
-(e.g., used=8 of 10, requests cost=3) still propagate.
-
-# Known limitation: spread-evenly traffic
-
-The propagation channel is denial-driven: a region only writes to MySQL when
-its own local counter trips the limit. Because Redis is per-region in this
-deployment, replay only converges counts within a region — there is no
-mechanism today that aggregates counts across regions when no single region
-hits its limit alone.
-
-Concretely: with N regions and traffic spread perfectly evenly, each region
-sees total/N. If the customer's limit is L and total is X·L globally, each
-region locally sees X·L/N. For X < N, no region's local count ever crosses
-L, so no region denies, and the propagation channel never fires. The customer
-effectively gets up to N·L globally before any single region trips. This
-matters most for low-N attacks against high-replica deployments.
-
-Closing this needs a different mechanism than denial propagation — periodic
-per-region count reporting through the same MySQL channel, with receivers
-summing across regions and adding the remote contribution into the
-sliding-window math. That work is deferred; the current channel handles the
-"burst to one region" case (the common attack shape) correctly.
+The push path has two write-reduction filters. It only emits entries whose
+current local count has changed since the last successful push, and whose
+observed count has reached globalUtilizationFloor of the request limit. This
+keeps low-value, low-utilization counters from turning into MySQL write load
+while still sharing counts once they can affect another region's decision.
 
 # Rate Limit Algorithm
 
@@ -64,7 +38,7 @@ The sliding window implementation:
  3. Calculates effective request count: 100% of current window + weighted portion
     of previous window based on elapsed time in the current window.
  4. If the effective count exceeds the limit, denies the request.
- 5. Otherwise, atomically increments the current window counter and buffers
+ 5. Otherwise, atomically increments the current counter and buffers
     the request for async replay to Redis.
 
 # Thread Safety

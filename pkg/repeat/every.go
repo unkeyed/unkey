@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
@@ -23,6 +24,13 @@ import (
 // becomes 1. Beyond 1.0 the lower bound on the jittered duration goes
 // non-positive, which is meaningless for a periodic timer.
 func Every(d time.Duration, fn func(), jitter ...float64) func() {
+	return EveryClock(clock.New(), d, fn, jitter...)
+}
+
+// EveryClock is like [Every] but drives fixed-cadence schedules from the
+// supplied [clock.Clock]. Tests can pass a [clock.TestClock] so simulated
+// time advances drive the firing schedule instead of racing real wall time.
+func EveryClock(c clock.Clock, d time.Duration, fn func(), jitter ...float64) func() {
 	jitterFraction := 0.0
 	if len(jitter) > 0 {
 		jitterFraction = jitter[0]
@@ -47,13 +55,26 @@ func Every(d time.Duration, fn func(), jitter ...float64) func() {
 
 	go func() {
 		fnWithRecovery()
+		if jitterFraction <= 0 {
+			t := c.NewTicker(d)
+			defer t.Stop()
+			for {
+				select {
+				case <-t.C():
+					fnWithRecovery()
+				case <-done:
+					return
+				}
+			}
+		}
+
 		// Tick scheduling is anchored to absolute target times so a slow
 		// fn does not drift the cadence. The next tick is computed from
 		// the previous scheduled tick, never from "now after fn returned",
 		// so a fn that takes T does not push the period to d+T. The timer
 		// fires at the original target wall-clock, regardless of how long
 		// fn ran.
-		next := time.Now().Add(jitterDuration(d, jitterFraction))
+		next := c.Now().Add(jitterDuration(d, jitterFraction))
 		for {
 			timer := time.NewTimer(time.Until(next))
 			select {
@@ -69,7 +90,7 @@ func Every(d time.Duration, fn func(), jitter ...float64) func() {
 				// re-anchor the schedule to `now + d`, which mirrors the
 				// way time.Ticker drops ticks via its single-slot
 				// channel buffer when the receiver is slow.
-				if now := time.Now(); now.After(next) {
+				if now := c.Now(); now.After(next) {
 					next = now.Add(jitterDuration(d, jitterFraction))
 				}
 			case <-done:

@@ -1,0 +1,124 @@
+package validation
+
+import (
+	"net/http"
+	"sync"
+
+	"github.com/pb33f/libopenapi"
+	validator "github.com/pb33f/libopenapi-validator"
+	"github.com/pb33f/libopenapi-validator/config"
+	validatorErrors "github.com/pb33f/libopenapi-validator/errors"
+	"github.com/pb33f/libopenapi-validator/helpers"
+	"github.com/unkeyed/unkey/pkg/fault"
+)
+
+// ValidationError represents a single field-level validation failure.
+// Fix is non-nil when the validator can suggest a concrete correction.
+type ValidationError struct {
+	Message  string
+	Location string
+	Fix      *string
+}
+
+// Result holds the validation outcome when a request is invalid.
+// A nil *Result means the request passed validation.
+type Result struct {
+	Detail string
+	Errors []ValidationError
+}
+
+// Validator validates HTTP requests against an OpenAPI specification.
+type Validator struct {
+	validator validator.Validator
+}
+
+// NewFromBytes creates a Validator from a raw OpenAPI spec.
+// Returns an error if the spec cannot be parsed or is itself invalid.
+func NewFromBytes(spec []byte) (*Validator, error) {
+	document, err := libopenapi.NewDocument(spec)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to create OpenAPI document"))
+	}
+
+	v, errors := validator.NewValidator(document, config.WithRegexCache(&sync.Map{}))
+	if len(errors) > 0 {
+		messages := make([]fault.Wrapper, len(errors))
+		for i, e := range errors {
+			messages[i] = fault.Internal(e.Error())
+		}
+		return nil, fault.New("failed to create validator", messages...)
+	}
+
+	valid, docErrors := v.ValidateDocument()
+	if !valid {
+		messages := make([]fault.Wrapper, len(docErrors))
+		for i, e := range docErrors {
+			messages[i] = fault.Internal(e.Message)
+		}
+		return nil, fault.New("openapi document is invalid", messages...)
+	}
+
+	return &Validator{validator: v}, nil
+}
+
+// Validate checks r against the OpenAPI spec.
+// Returns nil when the request is valid; returns a *Result describing
+// the failures otherwise.
+func (v *Validator) Validate(r *http.Request) *Result {
+	valid, errors := v.validator.ValidateHttpRequestSync(r)
+
+	if !valid {
+		errors = filterIgnoredSecurityErrors(errors)
+		valid = len(errors) == 0
+	}
+
+	if valid {
+		return nil
+	}
+
+	result := &Result{
+		Detail: "One or more fields failed validation",
+		Errors: []ValidationError{},
+	}
+
+	if len(errors) > 0 {
+		err := errors[0]
+		result.Detail = err.Message
+		for _, verr := range err.SchemaValidationErrors {
+			result.Errors = append(result.Errors, ValidationError{
+				Message:  verr.Reason,
+				Location: verr.KeywordLocation,
+				Fix:      nil,
+			})
+		}
+		if len(result.Errors) == 0 {
+			howToFix := err.HowToFix
+			result.Errors = append(result.Errors, ValidationError{
+				Message:  err.Reason,
+				Location: err.ValidationType,
+				Fix:      &howToFix,
+			})
+		}
+	}
+
+	return result
+}
+
+// filterIgnoredSecurityErrors drops OpenAPI security-scheme errors that our
+// handlers already produce richer messages for. Specifically:
+//
+//   - "scheme mismatch" (added in libopenapi-validator v0.13): the handler's
+//     bearer parser returns a more useful "missing 'Bearer ' prefix" error.
+//
+// A missing Authorization header is still surfaced by the validator so that
+// the existing 400 invalid_input contract is preserved.
+func filterIgnoredSecurityErrors(errs []*validatorErrors.ValidationError) []*validatorErrors.ValidationError {
+	filtered := make([]*validatorErrors.ValidationError, 0, len(errs))
+	for _, e := range errs {
+		if e.ValidationType == helpers.SecurityValidation && e.Reason == "Authorization header had incorrect scheme" {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	return filtered
+}

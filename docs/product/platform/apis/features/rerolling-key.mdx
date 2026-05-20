@@ -48,9 +48,27 @@ The original key remains active for a configurable grace period:
 - Set to `0` for immediate revocation
 - Common grace periods: 1 hour (3600000ms), 24 hours (86400000ms), 7 days (604800000ms)
 
-## Making a Reroll Request
+## Rotate a key from the dashboard
 
-To reroll a key, make a `POST` request to `/v2/keys.rerollKey`:
+You can rotate any active API key directly from the keys table without writing code.
+
+1. Open the API and navigate to its **Keys** tab.
+2. Click the actions menu (**...**) on the key row and select **Rotate key**.
+3. Choose how long the old key should remain valid:
+   - **Revoke immediately**
+   - **1 minute**, **15 minutes**, **1 hour**, **6 hours**, or **24 hours**
+4. Click **Rotate key**.
+5. Copy the new key secret from the success dialog and deliver it to the user. The plaintext is shown only once.
+
+The new key inherits the original key's permissions, metadata, rate limits, credits, identity, and expiration (if any). The old key keeps verifying until the grace period elapses, then is revoked automatically. The grace period never extends past the original key's existing expiration.
+
+<Note>
+  Expired keys cannot be rotated. The **Rotate key** action is disabled for keys that are past their `expires` timestamp.
+</Note>
+
+## Rotate a key with the API
+
+To reroll a key programmatically, make a `POST` request to `/v2/keys.rerollKey`:
 
 ```bash
 curl --request POST \

@@ -13,12 +13,12 @@ import (
 
 // globalPushInterval is the cadence at which the push goroutine walks
 // the counters map and emits eligible rows to the cross-region
-// ratelimit_window_counts table. Lower values tighten cross-region
+// ratelimit_global_counters table. Lower values tighten cross-region
 // propagation latency at the cost of more writes.
 const globalPushInterval = 10 * time.Second
 
 // globalPullInterval is how often each region pulls the active set of
-// other regions' counts from ratelimit_window_counts and merges them into
+// other regions' counts from ratelimit_global_counters and merges them into
 // local globalCount state. Lower values tighten cross-region propagation
 // latency at the cost of more reads; higher values let local state lag
 // the global picture during bursts.
@@ -26,7 +26,7 @@ const globalPullInterval = 10 * time.Second
 
 // globalUtilizationFloor is the fraction of the per-row limit that an
 // entry's local count must reach before its state is shared with other
-// regions through ratelimit_window_counts. Below this fraction the entry
+// regions through ratelimit_global_counters. Below this fraction the entry
 // cannot meaningfully change a remote region's deny decision, so writing
 // it to the cross-region table is wasted MySQL load. Trading coverage
 // against write rate is a global property of the system, not a
@@ -47,7 +47,7 @@ const globalPushTimeout = 10 * time.Second
 
 // startGlobalPush schedules runGlobalPushOnce on the package
 // push cadence. Each tick walks the local counters map and writes
-// eligible rows to the cross-region ratelimit_window_counts table in one
+// eligible rows to the cross-region ratelimit_global_counters table in one
 // bulk upsert. Jitter spreads the push across instances so a fleet
 // starting in lockstep does not converge on the same MySQL write
 // timestamp.
@@ -72,29 +72,32 @@ func (s *service) runGlobalPushOnce() {
 
 	// rows and pushedEntries are parallel slices: rows[i] is the upsert
 	// payload for pushedEntries[i]. They are separate because the bulk
-	// upsert wants []db.WindowCountsUpsertParams while the post-success
+	// upsert wants []db.GlobalCountersUpsertParams while the post-success
 	// commit wants the *counterEntry handle. Indexing both by the same
 	// position avoids a redundant allocation.
-	var rows []db.WindowCountsUpsertParams
+	var rows []db.GlobalCountersUpsertParams
 	var pushedEntries []*counterEntry
 
 	s.counters.Range(func(k, v any) bool {
 		key := k.(counterKey)
 		entry := v.(*counterEntry)
 
-		val := entry.val.Load()
-		// shouldPush gates on both the utilization floor and the
-		// change filter. Pull-created entries with no local traffic
-		// fail aboveFloor; quiet entries with unchanged val fail the
+		val := entry.val.Load() - entry.speculative.Load()
+		if val <= 0 {
+			return true
+		}
+		// shouldPushGlobalCount gates on both the observed threshold and
+		// the change filter. Pull-created entries with no local traffic
+		// have no threshold; quiet entries with unchanged val fail the
 		// lastPushed comparison. The lastPushed comparison uses `<`
-		// (i.e. val > lastPushed inside shouldPush) so a transient
-		// regression from a RatelimitMany rollback doesn't leak a
-		// write that the receiver's GREATEST would no-op anyway.
-		if !entry.shouldPush(val) {
+		// (i.e. val > lastPushed inside shouldPushGlobalCount) so a
+		// transient regression from a RatelimitMany rollback doesn't leak
+		// a write that the receiver's GREATEST would no-op anyway.
+		if !entry.shouldPushGlobalCount(val) {
 			return true
 		}
 
-		rows = append(rows, db.WindowCountsUpsertParams{
+		rows = append(rows, db.GlobalCountersUpsertParams{
 			WorkspaceID: key.workspaceID,
 			Namespace:   key.namespace,
 			Identifier:  key.identifier,
@@ -117,7 +120,7 @@ func (s *service) runGlobalPushOnce() {
 	defer cancel()
 
 	_, err := s.globalCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-		return nil, s.db.BulkUpsertWindowCounts(ctx, rows)
+		return nil, s.db.BulkUpsertGlobalCounters(ctx, rows)
 	})
 	if err != nil {
 		metrics.RatelimitGlobalPushErrors.Inc()
@@ -162,7 +165,7 @@ func (s *service) runGlobalPullOnce() {
 
 	nowMs := s.clock.Now().UnixMilli()
 
-	rows, err := s.db.RO().WindowCountsImported(ctx, db.WindowCountsImportedParams{
+	rows, err := s.db.RO().GlobalCountersImported(ctx, db.GlobalCountersImportedParams{
 		Now:        uint64(nowMs),
 		SelfRegion: s.region,
 	})

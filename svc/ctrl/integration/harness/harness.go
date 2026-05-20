@@ -6,6 +6,8 @@ package harness
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -24,9 +26,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
@@ -85,6 +87,7 @@ type Option func(*harnessOpts)
 
 type harnessOpts struct {
 	diskMySQL bool
+	timeout   time.Duration
 }
 
 // WithDiskMySQL starts MySQL with disk-backed storage instead of the default
@@ -95,26 +98,40 @@ func WithDiskMySQL() Option {
 	}
 }
 
+// WithTimeout overrides the default harness context timeout.
+func WithTimeout(timeout time.Duration) Option {
+	return func(o *harnessOpts) {
+		o.timeout = timeout
+	}
+}
+
 // New creates a new test harness with all services started and registered.
 // All resources are automatically cleaned up when the test completes.
 func New(t *testing.T, opts ...Option) *Harness {
 	t.Helper()
 
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
 	var o harnessOpts
 	for _, opt := range opts {
 		opt(&o)
 	}
+	if o.timeout == 0 {
+		o.timeout = 120 * time.Second
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
 	t.Cleanup(cancel)
 
 	start := time.Now()
 
 	// Start all containers in parallel
 	var wg sync.WaitGroup
-	var restateCfg dockertest.RestateConfig
-	var mysqlCfg dockertest.MySQLConfig
-	var chCfg dockertest.ClickHouseConfig
+	var restateCfg containers.RestateConfig
+	var mysqlCfg containers.MySQLConfig
+	var chCfg containers.ClickHouseConfig
 	var testVault *vaulttestutil.TestVault
 
 	wg.Add(4)
@@ -122,25 +139,25 @@ func New(t *testing.T, opts ...Option) *Harness {
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		restateCfg = dockertest.Restate(t)
+		restateCfg = containers.Restate(t)
 		t.Logf("Restate started in %s", time.Since(s))
 	}()
 
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		var mysqlOpts []dockertest.MySQLOpt
+		var mysqlOpts []containers.MySQLOpt
 		if o.diskMySQL {
-			mysqlOpts = append(mysqlOpts, dockertest.WithDiskStorage())
+			mysqlOpts = append(mysqlOpts, containers.WithDiskStorage())
 		}
-		mysqlCfg = dockertest.MySQL(t, mysqlOpts...)
+		mysqlCfg = containers.MySQL(t, mysqlOpts...)
 		t.Logf("MySQL started in %s", time.Since(s))
 	}()
 
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		chCfg = dockertest.ClickHouse(t)
+		chCfg = containers.ClickHouse(t)
 		t.Logf("ClickHouse started in %s", time.Since(s))
 	}()
 
@@ -203,7 +220,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.com",
 		Vault:         vaultClient,
-		SentinelImage: "test-sentinel:latest",
 
 		GitHub:                          nil,
 		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},

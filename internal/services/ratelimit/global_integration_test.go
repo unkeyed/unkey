@@ -7,10 +7,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/counter"
 )
 
 // rawCountRow is the per-region row shape stored in MySQL. Tests use
-// it for inspection because the production WindowCountsImported query
+// it for inspection because the production GlobalCountersImported query
 // returns pre-aggregated sums, which is correct for the pull loop but
 // hides the per-region detail needed to assert which region wrote what.
 type rawCountRow struct {
@@ -25,7 +26,7 @@ type rawCountRow struct {
 	UpdatedAt   uint64
 }
 
-// listAllRows returns every row in ratelimit_window_counts
+// listAllRows returns every row in ratelimit_global_counters
 // regardless of region or expiry. Tests bypass the production query
 // (which aggregates and filters out the caller's own region) so they can
 // assert which region wrote what.
@@ -34,7 +35,7 @@ func (e *integrationTestEnv) listAllRows() []rawCountRow {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	rows, err := e.db.RO().QueryContext(ctx,
-		"SELECT workspace_id, namespace, identifier, duration_ms, sequence, region, count, expires_at, updated_at FROM ratelimit_window_counts")
+		"SELECT workspace_id, namespace, identifier, duration_ms, sequence, region, count, expires_at, updated_at FROM ratelimit_global_counters")
 	require.NoError(e.t, err)
 	defer func() { _ = rows.Close() }()
 	var out []rawCountRow
@@ -87,7 +88,7 @@ func (e *integrationTestEnv) waitForRow(workspaceID, namespace, identifier, regi
 		}
 		found = row
 		return true
-	}, 3*time.Second, 50*time.Millisecond, "expected window-counts row from region %q", region)
+	}, 3*time.Second, 50*time.Millisecond, "expected global-counters row from region %q", region)
 	return found
 }
 
@@ -207,7 +208,142 @@ func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 	require.Never(t, func() bool {
 		return env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 	}, 2*time.Second, 100*time.Millisecond,
-		"sub-floor utilization must not write a window-counts row")
+		"sub-floor utilization must not write a global-counters row")
+}
+
+// TestGlobal_PushUsesConvergedLocalCount asserts that push eligibility is
+// based on the live local counter, not a request-path latch. Two instances in
+// the same region can each stay below the utilization floor locally while
+// Redis convergence raises one instance's val above the floor; that converged
+// value must still flush cross-region.
+func TestGlobal_PushUsesConvergedLocalCount(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	clk := clock.NewTestClock()
+	sharedCounter := counter.NewMemory()
+	regionA1, err := New(Config{
+		Clock:   clk,
+		Counter: sharedCounter,
+		DB:      env.db,
+		Region:  "region-a",
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = regionA1.Close() })
+	regionA2, err := New(Config{
+		Clock:   clk,
+		Counter: sharedCounter,
+		DB:      env.db,
+		Region:  "region-a",
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = regionA2.Close() })
+
+	const (
+		workspaceID = "ws_test"
+		namespace   = "ns"
+		identifier  = "user-converged"
+		limit       = int64(10)
+	)
+	duration := time.Minute
+	ctx := context.Background()
+
+	makeReq := func() RatelimitRequest {
+		return RatelimitRequest{
+			WorkspaceID: workspaceID,
+			Namespace:   namespace,
+			Identifier:  identifier,
+			Limit:       limit,
+			Duration:    duration,
+			Cost:        1,
+			Time:        clk.Now(),
+		}
+	}
+
+	// Each instance accepts 4/10 locally, below the 0.5 utilization floor.
+	// Their shared Redis origin converges the region total to 8/10.
+	for range 4 {
+		resp, reqErr := regionA1.Ratelimit(ctx, makeReq())
+		require.NoError(t, reqErr)
+		require.True(t, resp.Success)
+	}
+	for range 4 {
+		resp, reqErr := regionA2.Ratelimit(ctx, makeReq())
+		require.NoError(t, reqErr)
+		require.True(t, resp.Success)
+	}
+
+	curKey := counterKey{
+		workspaceID: workspaceID,
+		namespace:   namespace,
+		identifier:  identifier,
+		durationMs:  duration.Milliseconds(),
+		sequence:    calculateSequence(clk.Now(), duration),
+	}
+	require.Eventually(t, func() bool {
+		for _, region := range []*service{regionA1, regionA2} {
+			entry, ok := region.counters.Load(curKey)
+			if ok && entry.(*counterEntry).val.Load() >= 8 {
+				return true
+			}
+		}
+		return false
+	}, 3*time.Second, 50*time.Millisecond, "expected Redis replay to converge local count above the push floor")
+
+	regionA1.runGlobalPushOnce()
+	regionA2.runGlobalPushOnce()
+
+	row := env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
+	require.Equal(t, uint64(8), row.Count, "push must use the converged local count")
+}
+
+func TestGlobal_PushIgnoresSpeculativeBatchIncrements(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	clk := clock.NewTestClock()
+	region := env.newRegionAs(clk, "region-a")
+
+	const (
+		workspaceID = "ws_test"
+		namespace   = "ns"
+		identifier  = "user-speculative"
+		limit       = int64(10)
+	)
+	duration := time.Minute
+
+	resp, err := region.Ratelimit(context.Background(), RatelimitRequest{
+		WorkspaceID: workspaceID,
+		Namespace:   namespace,
+		Identifier:  identifier,
+		Limit:       limit,
+		Duration:    duration,
+		Cost:        6,
+		Time:        clk.Now(),
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success)
+
+	curKey := counterKey{
+		workspaceID: workspaceID,
+		namespace:   namespace,
+		identifier:  identifier,
+		durationMs:  duration.Milliseconds(),
+		sequence:    calculateSequence(clk.Now(), duration),
+	}
+	entryValue, ok := region.counters.Load(curKey)
+	require.True(t, ok)
+	entry := entryValue.(*counterEntry)
+
+	entry.speculative.Add(6)
+	region.runGlobalPushOnce()
+	require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
+		"in-flight RatelimitMany increments must not be pushed")
+
+	entry.speculative.Add(-6)
+	region.runGlobalPushOnce()
+	row := env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
+	require.Equal(t, uint64(6), row.Count)
 }
 
 // TestGlobal_AtFloorPushes is the inverse of the previous test: at
@@ -448,7 +584,7 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 	require.Never(t, func() bool {
 		return env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 	}, 2*time.Second, 100*time.Millisecond,
-		"cold oversized denial must not write a window-counts row")
+		"cold oversized denial must not write a global-counters row")
 }
 
 // TestGlobal_EntriesCreatedOnSync asserts that the pull goroutine

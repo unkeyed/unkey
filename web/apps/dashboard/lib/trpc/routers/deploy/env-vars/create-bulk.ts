@@ -1,17 +1,18 @@
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { and, db, eq, inArray, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
-import { Vault } from "@/lib/vault";
+import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { workspaceProcedure } from "../../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().VAULT_URL,
-  token: env().VAULT_TOKEN,
-});
+const vault = createVaultClient(VaultService);
+
+// Cap per-request fanout into Vault encrypt + DB inserts to stop authenticated
+// users from amplifying one tRPC call into thousands of internal requests.
+const MAX_BULK_ENV_VARS = 100;
 
 const bulkEnvVarInputSchema = z.object({
   environmentId: z.string(),
@@ -22,9 +23,10 @@ const bulkEnvVarInputSchema = z.object({
 });
 
 export const createBulkEnvVars = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
   .input(
     z.object({
-      variables: z.array(bulkEnvVarInputSchema).min(1),
+      variables: z.array(bulkEnvVarInputSchema).min(1).max(MAX_BULK_ENV_VARS),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -43,32 +45,37 @@ export const createBulkEnvVars = workspaceProcedure
 
     const envMap = new Map(envRecords.map((e) => [e.id, e]));
 
-    const encryptedVars = await Promise.all(
-      input.variables.map(async (v) => {
-        const environment = envMap.get(v.environmentId);
-        if (!environment) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: `Environment ${v.environmentId} not found`,
-          });
-        }
-        const { encrypted } = await vault.encrypt({
-          keyring: v.environmentId,
-          data: v.value,
-        });
+    // Group by keyring (environmentId) so each encryptBulk call uses one DEK, avoids concurrent S3 PutObject on the same key
+    const grouped = Map.groupBy(input.variables, (v) => v.environmentId);
 
-        return {
-          id: newId("environmentVariable"),
-          workspaceId: ctx.workspace.id,
-          appId: environment.appId,
-          environmentId: v.environmentId,
-          key: v.key,
-          value: encrypted,
-          type: v.type,
-          description: v.description ?? null,
-        };
-      }),
-    );
+    const encryptedVars = (
+      await Promise.all(
+        grouped.entries().map(async ([environmentId, vars]) => {
+          const environment = envMap.get(environmentId);
+          if (!environment) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Environment ${environmentId} not found`,
+            });
+          }
+
+          const tagged = vars.map((v) => [newId("environmentVariable"), v] as const);
+          const items = Object.fromEntries(tagged.map(([id, v]) => [id, v.value]));
+          const result = await vault.encryptBulk({ keyring: environmentId, items });
+
+          return tagged.map(([id, v]) => ({
+            id,
+            workspaceId: ctx.workspace.id,
+            appId: environment.appId,
+            environmentId,
+            key: v.key,
+            value: result.items[id].encrypted,
+            type: v.type,
+            description: v.description ?? null,
+          }));
+        }),
+      )
+    ).flat();
 
     await db.insert(schema.appEnvironmentVariables).values(encryptedVars);
   });

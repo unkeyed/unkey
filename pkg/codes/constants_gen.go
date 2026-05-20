@@ -153,6 +153,11 @@ const (
 	// NotFound indicates the requested audit log was not found.
 	UnkeyDataErrorsAuditLogNotFound URN = "err:unkey:data:audit_log_not_found"
 
+	// PortalConfig
+
+	// NotFound indicates the requested portal configuration was not found.
+	UnkeyDataErrorsPortalConfigNotFound URN = "err:unkey:data:portal_config_not_found"
+
 	// Analytics
 
 	// NotConfigured indicates analytics is not configured for the workspace.
@@ -247,4 +252,20 @@ const (
 	// Denied represents a 403 error - request rejected by a Firewall policy
 	// with action=DENY.
 	UnkeyFrontlineErrorsFirewallDenied URN = "err:unkey:forbidden:firewall_denied"
+
+	// OpenApi
+
+	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
+	UnkeyFrontlineErrorsOpenApiInvalidRequest URN = "err:unkey:bad_request:openapi_validation_failed"
+
+	// ----------------
+	// UnkeyPortalErrors
+	// ----------------
+
+	// Session
+
+	// TokenMissing indicates a portal session token was not provided.
+	UnkeyPortalErrorsSessionTokenMissing URN = "err:unkey:authentication:portal_token_missing"
+	// SessionNotFound indicates the portal session was not found or has expired.
+	UnkeyPortalErrorsSessionSessionNotFound URN = "err:unkey:authentication:portal_session_not_found"
 )

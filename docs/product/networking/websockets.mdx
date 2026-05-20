@@ -1,0 +1,47 @@
+---
+title: WebSockets
+description: "Deploy WebSocket servers on Unkey with long-lived connections, no request timeouts, and Sentinel auth and rate limits applied to the upgrade."
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+## Using WebSockets
+
+WebSockets work out of the box. There is nothing to enable in the dashboard or the CLI. Bind your WebSocket server to the port your app exposes and deploy as usual.
+
+A minimal Node.js example using [`ws`](https://github.com/websockets/ws):
+
+```ts
+import { WebSocketServer } from "ws";
+
+const wss = new WebSocketServer({ port: 8080 });
+
+wss.on("connection", (socket) => {
+  socket.on("message", (data) => {
+    socket.send(`echo: ${data}`);
+  });
+});
+```
+
+Connect from a client using either the wildcard or custom domain assigned to your deployment. Always use `wss://` — plaintext `ws://` is not redirected.
+
+```ts
+const ws = new WebSocket("wss://myapp-api-acme.unkey.app/ws");
+
+ws.onopen = () => ws.send("hello");
+ws.onmessage = (event) => console.log(event.data);
+```
+
+## Headers and routing
+
+The standard proxy headers documented in [Request lifecycle](/networking/public-networking#request-headers) are added to the upgrade request, so your app can identify the original client IP, host, and deployment ID before it accepts the WebSocket.
+
+Routing rules apply to the upgrade request the same way they apply to any HTTP request: the `Host` header determines which deployment receives the connection, and Sentinel policies run before the upgrade is forwarded. A request that fails [authentication](/platform/sentinel/authentication) or [rate limiting](/platform/sentinel/policies/rate-limiting) is rejected before it ever becomes a WebSocket.
+
+## Limits
+
+- Only HTTP/1.1 upgrades are forwarded today. Clients that negotiate WebSockets over HTTP/2 fall back to HTTP/1.1 automatically.
+- If the upstream instance is unreachable, the upgrade fails with `503 Service Unavailable` instead of hanging.
+- Idle connections are still subject to your app's own keepalive and timeout configuration. Send periodic ping frames if you want to keep an otherwise-idle session alive.

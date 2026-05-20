@@ -2,20 +2,21 @@
 
 import { trpc } from "@/lib/trpc/client";
 import {
+  bytesToMib,
   formatBytesPerSecondParts,
   formatCpuParts,
   formatMemoryParts,
-  formatNetworkBytesParts,
   formatStorageParts,
+  formatTooltipPercent,
 } from "@/lib/utils/deployment-formatters";
 import type { TimeWindow } from "@unkey/clickhouse";
 import {
   ArrowOppositeDirectionY,
-  Bolt,
   ChevronExpandY,
-  Focus,
   Grid,
   Harddrive,
+  Microchip,
+  Ram,
 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
@@ -32,12 +33,6 @@ import {
 // scanning at most ~1 minute of raw data per workspace+resource. ~2.3 q/s
 // per open panel, well within budget.
 const REFETCH_INTERVAL_MS = 3_000;
-
-// Heimdall isn't shipped yet, so cpu/memory/disk/network charts would
-// render as empty timeseries. Hide them until the metering pipeline lands.
-// Queries still fire — the tables exist and return empty, so there's
-// nothing to gate at the network layer.
-const RUNTIME_METRICS_ENABLED = false;
 
 const WINDOW_LABELS: Record<TimeWindow, string> = {
   "15m": "Past 15 minutes",
@@ -91,11 +86,10 @@ const WINDOW_MS: Record<TimeWindow, number> = {
 // ─── main ─────────────────────────────────────────────────────────────
 
 type ResourceMetricsProps = {
-  resourceType: "deployment" | "sentinel";
   resourceId: string;
   // When > 0 the deployment has ephemeral storage provisioned, so the disk
-  // chart is worth showing. For sentinel nodes and disk-less deployments
-  // we skip it entirely, avoiding a flat-line chart with no data to read.
+  // chart is worth showing. For disk-less deployments we skip it entirely,
+  // avoiding a flat-line chart with no data to read.
   storageMib?: number;
   // K8s pod name. Set when the panel is scoped to a single instance; all
   // queries filter `instance_id = instanceName` so the charts show that
@@ -103,13 +97,8 @@ type ResourceMetricsProps = {
   instanceName?: string;
 };
 
-export function ResourceMetrics({
-  resourceType,
-  resourceId,
-  storageMib,
-  instanceName,
-}: ResourceMetricsProps) {
-  const params = { resourceType, resourceId, instanceName };
+export function ResourceMetrics({ resourceId, storageMib, instanceName }: ResourceMetricsProps) {
+  const params = { resourceId, instanceName };
   const [window, setWindow] = useState<TimeWindow>("1h");
   const showDateInTooltip = WINDOWS_NEEDING_DATE.includes(window);
   const diskEnabled = (storageMib ?? 0) > 0;
@@ -129,7 +118,11 @@ export function ResourceMetrics({
   );
   const disk = trpc.deploy.metrics.getDeploymentDiskTimeseries.useQuery(
     { ...params, window },
-    { refetchInterval: REFETCH_INTERVAL_MS, enabled: diskEnabled, keepPreviousData: true },
+    {
+      refetchInterval: REFETCH_INTERVAL_MS,
+      enabled: diskEnabled,
+      keepPreviousData: true,
+    },
   );
   const networkEgress = trpc.deploy.metrics.getDeploymentNetworkEgressTimeseries.useQuery(
     { ...params, window },
@@ -151,27 +144,18 @@ export function ResourceMetrics({
     refetchInterval: REFETCH_INTERVAL_MS,
   });
 
-  const cpuUsedMilli = Math.round(summary.data?.current_cpu_millicores ?? 0);
-  const cpuAllocatedMilli = Math.round(summary.data?.cpu_allocated_millicores ?? 0);
-  const memUsedBytes = summary.data?.current_memory_bytes ?? 0;
-  const memAllocatedBytes = summary.data?.memory_allocated_bytes ?? 0;
-  const diskUsedBytes = summary.data?.current_disk_used_bytes ?? 0;
+  const summaryData = summary.data;
+  const cpuUsedMilli = Math.round(summaryData?.current_cpu_millicores ?? 0);
+  const cpuAllocatedMilli = Math.round(summaryData?.cpu_allocated_millicores ?? 0);
+  const memUsedBytes = summaryData?.current_memory_bytes ?? 0;
+  const memAllocatedBytes = summaryData?.memory_allocated_bytes ?? 0;
+  const diskUsedBytes = summaryData?.current_disk_used_bytes ?? 0;
   const diskAllocatedBytes = (storageMib ?? 0) * 1024 * 1024;
-  const instanceCount = summary.data?.active_instances ?? 0;
+  const instanceCount = summaryData?.active_instances ?? 0;
 
-  // Anchor every chart's x-axis to [now - window, now] so switching
-  // "Past hour" → "Past day" visibly re-scales the axis even when data
-  // only covers a fraction of the selected window. Recomputed each
-  // render; the 3s refetch cadence means the axis slides imperceptibly.
   const nowMs = Date.now();
   const xAxisDomain: [number, number] = [nowMs - WINDOW_MS[window], nowMs];
 
-  // Window-transition loading: distinguishes a user-initiated window
-  // switch (show loading skeletons so we don't render stale data on a
-  // new axis) from the 3s periodic refetch (keepPreviousData keeps old
-  // data visible, no flicker). We flip `isWindowTransition=true` on
-  // every window change and clear it once all relevant queries have
-  // finished fetching the new window's data.
   const [isWindowTransition, setIsWindowTransition] = useState(false);
   const prevWindowRef = useRef(window);
   useEffect(() => {
@@ -193,41 +177,31 @@ export function ResourceMetrics({
     }
   }, [isWindowTransition, anyFetching]);
 
-  // Instance-scoped panel hides the instances chart, so with the runtime
-  // metrics flag off there's nothing left to render — skip the empty
-  // "Runtime metrics" header + window selector entirely.
-  if (!RUNTIME_METRICS_ENABLED && isInstanceScoped) {
-    return null;
-  }
-
   return (
     <div>
-      <div className="flex flex-col px-4 w-full gap-2">
-        <div className="flex items-center gap-3 w-full">
-          <div className="text-gray-9 text-xs whitespace-nowrap">Runtime metrics</div>
-          <div className="h-0.5 bg-grayA-3 rounded-xs flex-1" />
-        </div>
-        <div className="flex justify-end w-full">
-          <Select value={window} onValueChange={(v) => setWindow(v as TimeWindow)}>
-            <SelectTrigger
-              className="bg-transparent rounded-full flex items-center gap-1 border-0 h-auto min-h-0! p-0! focus:border-none focus:ring-0 hover:bg-grayA-2 transition-colors justify-normal text-gray-11 text-xs"
-              rightIcon={<ChevronExpandY className="text-accent-8 size-3" />}
-            >
-              <SelectValue className="text-xs" />
-            </SelectTrigger>
-            <SelectContent className="min-w-[160px]">
-              {WINDOW_OPTIONS.map((option) => (
-                <SelectItem
-                  key={option}
-                  value={option}
-                  className="cursor-pointer hover:bg-grayA-3 data-highlighted:bg-grayA-2 text-xs"
-                >
-                  {WINDOW_LABELS[option]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="flex items-center gap-3 px-4 pt-4 w-full">
+        <div className="text-gray-10 text-xs whitespace-nowrap">Runtime metrics</div>
+        <div className="flex-1 min-w-0 border-t border-grayA-3" />
+        <Select value={window} onValueChange={(v) => setWindow(v as TimeWindow)}>
+          <SelectTrigger
+            wrapperClassName="w-fit shrink-0"
+            className="h-7 min-h-0! rounded-lg border-grayA-4 bg-transparent shadow-sm text-gray-12 text-xs focus:ring-0"
+            rightIcon={<ChevronExpandY className="absolute right-2.5 text-gray-9 size-3" />}
+          >
+            <SelectValue className="text-xs" />
+          </SelectTrigger>
+          <SelectContent className="min-w-[160px]">
+            {WINDOW_OPTIONS.map((option) => (
+              <SelectItem
+                key={option}
+                value={option}
+                className="cursor-pointer hover:bg-grayA-3 data-highlighted:bg-grayA-2 text-xs"
+              >
+                {WINDOW_LABELS[option]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {!isInstanceScoped && (
@@ -241,146 +215,87 @@ export function ResourceMetrics({
         />
       )}
 
-      {RUNTIME_METRICS_ENABLED && (
-        <>
-          <CpuSection
-            points={cpu.data}
-            usedMilli={cpuUsedMilli}
-            allocatedMilli={cpuAllocatedMilli}
-            isLoading={cpu.isLoading || isWindowTransition}
-            isError={cpu.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
+      <CpuSection
+        points={cpu.data}
+        usedMilli={cpuUsedMilli}
+        allocatedMilli={cpuAllocatedMilli}
+        isLoading={cpu.isLoading || isWindowTransition}
+        isError={cpu.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+        isFirst={isInstanceScoped}
+      />
 
-          <MemorySection
-            points={memory.data}
-            usedBytes={memUsedBytes}
-            allocatedBytes={memAllocatedBytes}
-            isLoading={memory.isLoading || isWindowTransition}
-            isError={memory.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
+      <MemorySection
+        points={memory.data}
+        usedBytes={memUsedBytes}
+        allocatedBytes={memAllocatedBytes}
+        isLoading={memory.isLoading || isWindowTransition}
+        isError={memory.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+      />
 
-          {diskEnabled && (
-            <DiskSection
-              points={disk.data}
-              usedBytes={diskUsedBytes}
-              allocatedBytes={diskAllocatedBytes}
-              isLoading={disk.isLoading || isWindowTransition}
-              isError={disk.isError}
-              showDateInTooltip={showDateInTooltip}
-              xAxisDomain={xAxisDomain}
-            />
-          )}
-
-          <NetworkSection
-            egressPoints={networkEgress.data}
-            ingressPoints={networkIngress.data}
-            isLoading={networkEgress.isLoading || networkIngress.isLoading || isWindowTransition}
-            isError={networkEgress.isError || networkIngress.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
-        </>
+      {diskEnabled && (
+        <DiskSection
+          points={disk.data}
+          usedBytes={diskUsedBytes}
+          allocatedBytes={diskAllocatedBytes}
+          isLoading={disk.isLoading || isWindowTransition}
+          isError={disk.isError}
+          showDateInTooltip={showDateInTooltip}
+          xAxisDomain={xAxisDomain}
+        />
       )}
+
+      <NetworkSection
+        egressPoints={networkEgress.data}
+        ingressPoints={networkIngress.data}
+        isLoading={networkEgress.isLoading || networkIngress.isLoading || isWindowTransition}
+        isError={networkEgress.isError || networkIngress.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+      />
     </div>
   );
 }
 
 // ─── formatting ───────────────────────────────────────────────────────
 
-function bytesToMib(bytes: number): number {
-  if (bytes <= 0) {
-    return 0;
-  }
-  return Math.round(bytes / (1024 * 1024));
-}
-
-function percent(used: number, allocated: number): string | null {
-  if (!allocated || allocated <= 0) {
-    return null;
-  }
-  return formatTooltipPercent((used / allocated) * 100);
-}
-
-// Shared formatter for percent strings so tooltip + header agree.
-function formatTooltipPercent(p: number): string {
-  if (!Number.isFinite(p) || p <= 0) {
-    return "0%";
-  }
-  return p < 1 ? `${p.toFixed(2)}%` : p < 10 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
-}
-
 // ─── display ──────────────────────────────────────────────────────────
 
-type CpuUsageValueProps = {
-  usedMilli: number;
-  allocatedMilli: number;
-  percent: string | null;
-};
+function UtilizationBar({
+  used,
+  allocated,
+  color,
+  usedLabel,
+  allocatedLabel,
+}: {
+  used: number;
+  allocated: number;
+  color: string;
+  usedLabel: string;
+  allocatedLabel: string;
+}) {
+  const ratio = allocated > 0 ? Math.min(used / allocated, 1) : 0;
+  const pct = Math.round(ratio * 100);
 
-// CPU: show utilization % primary. Raw millicores are noise for most users.
-// they want to know "am I approaching my limit?". Allocation shown in the
-// friendly fraction format (1/4, 1/2, 1 vCPU) so it's instantly recognizable.
-function CpuUsageValue({ usedMilli, allocatedMilli, percent }: CpuUsageValueProps) {
-  const allocated = formatCpuParts(allocatedMilli);
   return (
-    <div className="flex items-baseline gap-1.5 text-[13px] tabular-nums">
-      <span className="text-gray-12 font-medium">{percent ?? `${usedMilli}m`}</span>
-      {allocatedMilli > 0 && (
-        <span className="text-grayA-9 text-[11px]">
-          of {allocated.value} {allocated.unit}
-        </span>
-      )}
-    </div>
-  );
-}
-
-type MemoryUsageValueProps = {
-  usedBytes: number;
-  allocatedBytes: number;
-  percent: string | null;
-};
-
-// Memory: show actual used value + percent in parentheses. "43 MiB (17%)".
-// Denominator is context, not worth the visual weight.
-function MemoryUsageValue({ usedBytes, allocatedBytes, percent }: MemoryUsageValueProps) {
-  const used = formatMemoryParts(bytesToMib(usedBytes));
-  return (
-    <div className="flex items-baseline gap-1.5 text-[13px] tabular-nums">
-      <span>
-        <span className="text-gray-12 font-medium">{used.value}</span>
-        <span className="font-normal text-grayA-10"> {used.unit}</span>
-      </span>
-      {percent && allocatedBytes > 0 && (
-        <span className="text-grayA-9 text-[11px]">({percent})</span>
-      )}
-    </div>
-  );
-}
-
-type DiskUsageValueProps = {
-  usedBytes: number;
-  allocatedBytes: number;
-  percent: string | null;
-};
-
-// Disk: same treatment as memory: "212 MiB (4%)". Denominator shown as
-// a parenthetical percent because users care about "am I close to full?",
-// not the raw allocation (which is static config they already set).
-function DiskUsageValue({ usedBytes, allocatedBytes, percent }: DiskUsageValueProps) {
-  const used = formatStorageParts(bytesToMib(usedBytes));
-  return (
-    <div className="flex items-baseline gap-1.5 text-[13px] tabular-nums">
-      <span>
-        <span className="text-gray-12 font-medium">{used.value}</span>
-        {used.unit && <span className="font-normal text-grayA-10"> {used.unit}</span>}
-      </span>
-      {percent && allocatedBytes > 0 && (
-        <span className="text-grayA-9 text-[11px]">({percent})</span>
-      )}
+    <div className="flex items-center gap-2 text-[12px] tabular-nums">
+      <span className="text-gray-12 font-medium">{usedLabel}</span>
+      <span className="text-grayA-9">/</span>
+      <span className="text-grayA-9">{allocatedLabel}</span>
+      <div className="w-[80px] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)] bg-grayA-2 dark:bg-grayA-3">
+        <div
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${pct}%`,
+            backgroundColor: color,
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
+          }}
+        />
+      </div>
+      <span className="text-gray-11 font-medium">{pct}%</span>
     </div>
   );
 }
@@ -414,15 +329,27 @@ function NetworkSection({
   const ingress = summarizeRateSeries(ingressPoints);
   const data = mergeNetworkSeries(egressPoints, ingressPoints);
   return (
-    <div className="flex flex-col gap-3 px-4 w-full mt-5">
+    <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
+        <div className="bg-error-3 text-error-11 rounded-md size-[22px] items-center flex justify-center">
           <ArrowOppositeDirectionY iconSize="sm-regular" className="shrink-0" />
         </div>
-        <span className="text-gray-11 text-xs">Network</span>
-        <div className="ml-auto flex items-center gap-4">
-          <NetworkStat label="Egress" color={EGRESS_COLOR} {...egress} />
-          <NetworkStat label="Ingress" color={INGRESS_COLOR} {...ingress} />
+        <span className="text-gray-12 text-[13px]">Network</span>
+        <div className="ml-auto flex items-center gap-3 text-[12px] tabular-nums">
+          <span className="flex items-center gap-1">
+            <span className="text-error-9">↑</span>
+            <span className="text-gray-12 font-medium">
+              {formatBytesPerSecondParts(egress.peak).value}
+            </span>
+            <span className="text-grayA-10">{formatBytesPerSecondParts(egress.peak).unit}</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="text-success-9">↓</span>
+            <span className="text-gray-12 font-medium">
+              {formatBytesPerSecondParts(ingress.peak).value}
+            </span>
+            <span className="text-grayA-10">{formatBytesPerSecondParts(ingress.peak).unit}</span>
+          </span>
         </div>
       </div>
       <AreaTimeseriesChart
@@ -431,7 +358,7 @@ function NetworkSection({
           network_ingress: { label: "Ingress", color: INGRESS_COLOR },
           network_egress: { label: "Egress", color: EGRESS_COLOR },
         }}
-        height={140}
+        height={200}
         isLoading={isLoading}
         isError={isError}
         showDateInTooltip={showDateInTooltip}
@@ -473,12 +400,12 @@ function InstancesSection({
     active_instances: p.y,
   }));
   return (
-    <div className="flex flex-col gap-3 px-4 w-full mt-5">
+    <div className="flex flex-col gap-3 px-4 w-full mt-6">
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
+        <div className="bg-error-3 text-error-11 rounded-md size-[22px] items-center flex justify-center">
           <Grid iconSize="sm-regular" className="shrink-0" />
         </div>
-        <span className="text-gray-11 text-xs">Active instances</span>
+        <span className="text-gray-12 text-[13px]">Active instances</span>
         <div className="ml-auto">
           <span className="text-gray-12 font-medium text-[13px] tabular-nums">
             {currentCount}
@@ -489,7 +416,7 @@ function InstancesSection({
       <AreaTimeseriesChart
         data={data}
         config={{ active_instances: { label: "Instances", color: INSTANCES_COLOR } }}
-        height={140}
+        height={200}
         isLoading={isLoading}
         isError={isError}
         showDateInTooltip={showDateInTooltip}
@@ -518,12 +445,9 @@ type CpuSectionProps = {
   isError?: boolean;
   showDateInTooltip?: boolean;
   xAxisDomain: [number, number];
+  isFirst?: boolean;
 };
 
-// CpuSection renders the cpu-millicores timeseries as an area chart so it
-// reads the same as disk/network. The tooltip primary value is utilization
-// % when allocation is known; raw millicores ride along in the muted hint
-// slot so the user can still see the absolute number on hover.
 function CpuSection({
   points,
   usedMilli,
@@ -532,30 +456,39 @@ function CpuSection({
   isError,
   showDateInTooltip,
   xAxisDomain,
+  isFirst,
 }: CpuSectionProps) {
   const data: AreaChartPoint[] = (points ?? []).map((p) => ({
     originalTimestamp: p.x,
     cpu_usage: p.y,
   }));
   return (
-    <div className="flex flex-col gap-3 px-4 w-full mt-5">
+    <div
+      className={
+        isFirst
+          ? "flex flex-col gap-3 px-4 w-full mt-6"
+          : "flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2"
+      }
+    >
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
-          <Bolt iconSize="sm-regular" className="shrink-0" />
+        <div className="bg-feature-3 text-feature-11 rounded-md size-[22px] items-center flex justify-center">
+          <Microchip iconSize="sm-regular" className="shrink-0" />
         </div>
-        <span className="text-gray-11 text-xs">CPU usage</span>
+        <span className="text-gray-12 text-[13px]">CPU usage</span>
         <div className="ml-auto">
-          <CpuUsageValue
-            usedMilli={usedMilli}
-            allocatedMilli={allocatedMilli}
-            percent={percent(usedMilli, allocatedMilli)}
+          <UtilizationBar
+            used={usedMilli}
+            allocated={allocatedMilli}
+            color={CPU_COLOR}
+            usedLabel={`${usedMilli}m`}
+            allocatedLabel={`${formatCpuParts(allocatedMilli).value} ${formatCpuParts(allocatedMilli).unit}`}
           />
         </div>
       </div>
       <AreaTimeseriesChart
         data={data}
         config={{ cpu_usage: { label: "CPU", color: CPU_COLOR } }}
-        height={140}
+        height={200}
         isLoading={isLoading}
         isError={isError}
         showDateInTooltip={showDateInTooltip}
@@ -566,12 +499,13 @@ function CpuSection({
           const pct = formatTooltipPercent((millicores / allocatedMilli) * 100);
           return { value: pct, hint: `${Math.round(millicores)}m` };
         }}
-        // Millicores: 1 vCPU = 1000m. 100m baseline keeps the range
-        // reasonable for idle pods while letting spikes register.
         axisFloor={100}
-        // Y-axis hidden on CPU — "34m" (millicores) reads as confusing
-        // clutter for most users. Tooltip shows a friendlier "%" + "(Nm)".
-        hideYAxis
+        formatYTick={(v) => {
+          if (v === 0 || allocatedMilli <= 0) {
+            return "";
+          }
+          return `${Math.round((v / allocatedMilli) * 100)}%`;
+        }}
         xAxisDomain={xAxisDomain}
       />
     </div>
@@ -605,24 +539,26 @@ function MemorySection({
     memory_usage: p.y,
   }));
   return (
-    <div className="flex flex-col gap-3 px-4 w-full mt-5">
+    <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
-          <Focus iconSize="sm-regular" className="shrink-0" />
+        <div className="bg-info-3 text-info-11 rounded-md size-[22px] items-center flex justify-center">
+          <Ram iconSize="sm-regular" className="shrink-0" />
         </div>
-        <span className="text-gray-11 text-xs">Memory usage</span>
+        <span className="text-gray-12 text-[13px]">Memory usage</span>
         <div className="ml-auto">
-          <MemoryUsageValue
-            usedBytes={usedBytes}
-            allocatedBytes={allocatedBytes}
-            percent={percent(usedBytes, allocatedBytes)}
+          <UtilizationBar
+            used={usedBytes}
+            allocated={allocatedBytes}
+            color={MEMORY_COLOR}
+            usedLabel={`${formatMemoryParts(bytesToMib(usedBytes)).value} ${formatMemoryParts(bytesToMib(usedBytes)).unit}`}
+            allocatedLabel={`${formatMemoryParts(bytesToMib(allocatedBytes)).value} ${formatMemoryParts(bytesToMib(allocatedBytes)).unit}`}
           />
         </div>
       </div>
       <AreaTimeseriesChart
         data={data}
         config={{ memory_usage: { label: "Memory", color: MEMORY_COLOR } }}
-        height={140}
+        height={200}
         isLoading={isLoading}
         isError={isError}
         showDateInTooltip={showDateInTooltip}
@@ -673,22 +609,27 @@ function DiskSection({
     originalTimestamp: p.x,
     disk_usage: p.y,
   }));
-  const pct = percent(usedBytes, allocatedBytes);
   return (
-    <div className="flex flex-col gap-3 px-4 w-full mt-5">
+    <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
+        <div className="bg-warning-3 text-warning-11 rounded-md size-[22px] items-center flex justify-center">
           <Harddrive iconSize="sm-regular" className="shrink-0" />
         </div>
-        <span className="text-gray-11 text-xs">Disk usage</span>
+        <span className="text-gray-12 text-[13px]">Disk usage</span>
         <div className="ml-auto">
-          <DiskUsageValue usedBytes={usedBytes} allocatedBytes={allocatedBytes} percent={pct} />
+          <UtilizationBar
+            used={usedBytes}
+            allocated={allocatedBytes}
+            color={DISK_COLOR}
+            usedLabel={`${formatStorageParts(bytesToMib(usedBytes)).value} ${formatStorageParts(bytesToMib(usedBytes)).unit}`}
+            allocatedLabel={`${formatStorageParts(bytesToMib(allocatedBytes)).value} ${formatStorageParts(bytesToMib(allocatedBytes)).unit}`}
+          />
         </div>
       </div>
       <AreaTimeseriesChart
         data={data}
         config={{ disk_usage: { label: "Disk", color: DISK_COLOR } }}
-        height={140}
+        height={200}
         isLoading={isLoading}
         isError={isError}
         showDateInTooltip={showDateInTooltip}
@@ -706,45 +647,6 @@ function DiskSection({
         axisFloor={1024 * 1024}
         xAxisDomain={xAxisDomain}
       />
-    </div>
-  );
-}
-
-// Compact per-direction stat: "Egress · 12.3 MiB/s · 450 MiB total".
-// Peak is the headline (idle pods often show 0 current rate; peak actually
-// answers "how bursty was this pod?"). Total is labeled explicitly so the
-// eye doesn't pair the bare "450 MiB" with the rate and read them as two
-// values of the same metric — they're different quantities (rate × window
-// = total) and the `total` suffix keeps that obvious.
-function NetworkStat({
-  label,
-  color,
-  peak,
-  total,
-}: {
-  label: string;
-  color: string;
-  peak: number;
-  total: number;
-}) {
-  const peakParts = formatBytesPerSecondParts(peak);
-  const totalParts = formatNetworkBytesParts(total);
-  return (
-    <div className="flex items-baseline gap-1.5 text-[12px] tabular-nums">
-      <span
-        className="inline-block rounded-[2px] size-2 translate-y-[1px]"
-        style={{ backgroundColor: color }}
-        aria-hidden
-      />
-      <span className="text-grayA-11">{label}</span>
-      <span className="text-gray-12 font-medium">{peakParts.value}</span>
-      {peakParts.unit && <span className="font-normal text-grayA-10">{peakParts.unit}</span>}
-      {total > 0 && (
-        <span className="text-grayA-9 text-[11px] whitespace-nowrap">
-          · {totalParts.value}
-          {totalParts.unit && ` ${totalParts.unit}`} total
-        </span>
-      )}
     </div>
   );
 }

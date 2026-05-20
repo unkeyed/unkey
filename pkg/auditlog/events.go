@@ -70,4 +70,8 @@ const (
 
 	// Audit log bucket events
 	AuditLogBucketCreateEvent AuditLogEvent = "auditLogBucket.create"
+
+	// Portal events
+	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
+	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
 )

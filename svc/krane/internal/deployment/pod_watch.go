@@ -121,6 +121,13 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		"ready_lag_seconds", podstatus.ReadyLagSeconds(pod),
 	)
 
+	// Capture per-container lifecycle events independent of the coarse
+	// status report below. Runs before any early-return path so a missing
+	// ReplicaSet, transient RS-get failure, or buildDeploymentStatus error
+	// doesn't suppress exit/crashloop events the dashboard needs to show.
+	// Best-effort: errors are logged inside, never returned.
+	c.reportInstanceEvents(ctx, pod)
+
 	rsName := owningReplicaSet(pod)
 	if rsName == "" {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "skipped_no_rs").Inc()

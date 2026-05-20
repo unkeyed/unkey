@@ -15,19 +15,17 @@ var _ ctrl.ClusterServiceClient = (*MockClusterClient)(nil)
 //
 // Each method has an optional function field that tests can set to customize
 // behavior. If the function is nil, the method returns a sensible default.
-// The mock also records ReportDeploymentStatus and ReportSentinelStatus calls
-// so tests can verify the controller reported the correct status.
+// The mock records ReportDeploymentStatus calls so tests can verify the
+// controller reported the correct status.
 type MockClusterClient struct {
-	WatchDeploymentChangesFunc             func(context.Context, *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
-	GetDesiredSentinelStateFunc            func(context.Context, *ctrlv1.GetDesiredSentinelStateRequest) (*ctrlv1.SentinelState, error)
-	ReportSentinelStatusFunc               func(context.Context, *ctrlv1.ReportSentinelStatusRequest) (*ctrlv1.ReportSentinelStatusResponse, error)
-	GetDesiredDeploymentStateFunc          func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error)
-	ReportDeploymentStatusFunc             func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error)
-	GetDesiredCiliumNetworkPolicyStateFunc func(context.Context, *ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest) (*ctrlv1.CiliumNetworkPolicyState, error)
-	HeartbeatFunc                          func(context.Context, *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error)
-	SyncDesiredStateFunc                   func(context.Context, *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
-	ReportDeploymentStatusCalls            []*ctrlv1.ReportDeploymentStatusRequest
-	ReportSentinelStatusCalls              []*ctrlv1.ReportSentinelStatusRequest
+	WatchDeploymentChangesFunc    func(context.Context, *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
+	GetDesiredDeploymentStateFunc func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error)
+	ReportDeploymentStatusFunc    func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error)
+	ReportInstanceEventsFunc      func(context.Context, *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error)
+	HeartbeatFunc                 func(context.Context, *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error)
+	SyncDesiredStateFunc          func(context.Context, *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
+	ReportDeploymentStatusCalls   []*ctrlv1.ReportDeploymentStatusRequest
+	ReportInstanceEventsCalls     []*ctrlv1.ReportInstanceEventsRequest
 }
 
 func (m *MockClusterClient) WatchDeploymentChanges(ctx context.Context, req *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
@@ -35,21 +33,6 @@ func (m *MockClusterClient) WatchDeploymentChanges(ctx context.Context, req *ctr
 		return m.WatchDeploymentChangesFunc(ctx, req)
 	}
 	return nil, nil
-}
-
-func (m *MockClusterClient) GetDesiredSentinelState(ctx context.Context, req *ctrlv1.GetDesiredSentinelStateRequest) (*ctrlv1.SentinelState, error) {
-	if m.GetDesiredSentinelStateFunc != nil {
-		return m.GetDesiredSentinelStateFunc(ctx, req)
-	}
-	return &ctrlv1.SentinelState{}, nil
-}
-
-func (m *MockClusterClient) ReportSentinelStatus(ctx context.Context, req *ctrlv1.ReportSentinelStatusRequest) (*ctrlv1.ReportSentinelStatusResponse, error) {
-	m.ReportSentinelStatusCalls = append(m.ReportSentinelStatusCalls, req)
-	if m.ReportSentinelStatusFunc != nil {
-		return m.ReportSentinelStatusFunc(ctx, req)
-	}
-	return &ctrlv1.ReportSentinelStatusResponse{}, nil
 }
 
 func (m *MockClusterClient) GetDesiredDeploymentState(ctx context.Context, req *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error) {
@@ -67,11 +50,12 @@ func (m *MockClusterClient) ReportDeploymentStatus(ctx context.Context, req *ctr
 	return &ctrlv1.ReportDeploymentStatusResponse{}, nil
 }
 
-func (m *MockClusterClient) GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest) (*ctrlv1.CiliumNetworkPolicyState, error) {
-	if m.GetDesiredCiliumNetworkPolicyStateFunc != nil {
-		return m.GetDesiredCiliumNetworkPolicyStateFunc(ctx, req)
+func (m *MockClusterClient) ReportInstanceEvents(ctx context.Context, req *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error) {
+	m.ReportInstanceEventsCalls = append(m.ReportInstanceEventsCalls, req)
+	if m.ReportInstanceEventsFunc != nil {
+		return m.ReportInstanceEventsFunc(ctx, req)
 	}
-	return &ctrlv1.CiliumNetworkPolicyState{}, nil
+	return &ctrlv1.ReportInstanceEventsResponse{}, nil
 }
 
 func (m *MockClusterClient) Heartbeat(ctx context.Context, req *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error) {

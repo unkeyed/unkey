@@ -1,7 +1,7 @@
 "use client";
 
-import { SecretKey } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/secret-key";
-import { Check, CircleInfo, Key2 } from "@unkey/icons";
+import { KeySecretSection } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-secret-section";
+import { Check, Key2 } from "@unkey/icons";
 import { ConfirmPopover, Dialog, DialogContent, DialogTitle, VisuallyHidden } from "@unkey/ui";
 import { ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
@@ -41,9 +41,9 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
         <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
           <div className="py-4 mt-[30px]">
             <div className="flex gap-4">
-              <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
-              <div className="border border-grayA-4 rounded-[10px] size-14" />
-              <div className="border border-grayA-4 rounded-[10px] size-14 flex items-center justify-center relative">
+              <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
+              <div className="border border-grayA-4 rounded-[14px] size-14" />
+              <div className="border border-grayA-4 rounded-[14px] size-14 flex items-center justify-center relative">
                 <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 top-0" />
                 <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                 <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
@@ -53,8 +53,8 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
                   <Check iconSize="sm-bold" aria-hidden="true" focusable={false} />
                 </div>
               </div>
-              <div className="border border-grayA-4 rounded-[10px] size-14" />
-              <div className="border border-grayA-4 rounded-[10px] size-14 opacity-35" />
+              <div className="border border-grayA-4 rounded-[14px] size-14" />
+              <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
             </div>
           </div>
           <div className="mt-5 flex flex-col gap-2 items-center">
@@ -68,41 +68,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
           <div className="p-1 w-full my-8">
             <div className="h-px bg-grayA-3 w-full" />
           </div>
-
-          <div className="flex flex-col gap-2 items-start w-full">
-            <div className="text-gray-12 text-sm font-semibold">
-              {ROOT_KEY_MESSAGES.UI.ROOT_KEY}
-            </div>
-            <SecretKey
-              value={keyValue}
-              title={ROOT_KEY_MESSAGES.UI.ROOT_KEY}
-              className="bg-white dark:bg-black "
-            />
-            <div className="text-gray-9 text-[13px] flex items-center gap-1.5">
-              <CircleInfo
-                className="text-accent-9"
-                iconSize="sm-regular"
-                aria-hidden="true"
-                focusable={false}
-              />
-              <span className="flex items-center gap-1">
-                {ROOT_KEY_MESSAGES.UI.COPY_SAVE_KEY}
-                <a
-                  href="https://www.unkey.com/docs/security/recovering-keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-info-11 hover:underline"
-                >
-                  {ROOT_KEY_MESSAGES.UI.LEARN_MORE}
-                </a>
-              </span>
-            </div>
-          </div>
-          <div className="mt-6">
-            <div className="mt-4 text-center text-gray-10 text-xs leading-6">
-              {ROOT_KEY_MESSAGES.UI.ALL_SET}
-            </div>
-          </div>
+          <KeySecretSection keyValue={keyValue} title="Root Key" className="w-full" />
         </div>
         <ConfirmPopover
           isOpen={isConfirmOpen}
@@ -119,8 +85,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             align: "end",
             sideOffset: 5,
             alignOffset: 30,
-            // Let the popover auto-focus internally to meet WCAG 2.4.3/2.1.1
-            // onOpenAutoFocus: (e) => e.preventDefault(),
+            onOpenAutoFocus: (e) => e.preventDefault(),
           }}
         />
       </DialogContent>

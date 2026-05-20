@@ -68,65 +68,7 @@ export const ratelimitOverridesRelations = relations(ratelimitOverrides, ({ one 
 }));
 
 /**
- * Cross-region propagation of rate-limit denials.
- *
- * When a node denies a request for the first time in a window, it writes a row
- * here. Every node in every region polls this table periodically and uses each
- * row to inflate its local counter for the matching key, so the denial bleeds
- * into the receiving region's sliding-window math without a Redis roundtrip.
- *
- * Rows are short-lived: cleanup is done by an external cron deleting where
- * `expires_at < now`.
- *
- * The unique key (workspaceId, namespace, identifier, durationMs) lets the
- * write path use ON DUPLICATE KEY UPDATE to dedup concurrent writers from
- * multiple regions seeing the same offender at the same time.
- */
-export const ratelimitBlocklist = mysqlTable(
-  "ratelimit_blocklist",
-  {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // workspaceId is varchar(191) instead of the project-wide 256 because the
-    // unique index spans five columns (the four key fields plus sequence) and
-    // MySQL caps total index key size at 3072 bytes under utf8mb4. Real
-    // workspace IDs are ~22 chars, so 191 is comfortable.
-    workspaceId: varchar("workspace_id", { length: 191 }).notNull(),
-    namespace: varchar("namespace", { length: 255 }).notNull(),
-    identifier: varchar("identifier", { length: 255 }).notNull(),
-    durationMs: bigint("duration_ms", { mode: "number", unsigned: true }).notNull(),
-    /**
-     * Sliding-window sequence the originating denial fell into. Part of the
-     * unique key so each (key, sequence) gets its own row — sequence
-     * advancement creates a new row rather than mutating an existing one.
-     * Receivers inflate the exact sequence stored here, not whichever
-     * sequence their clock currently maps to, so the sliding-window decay
-     * math matches the originating region's state.
-     */
-    sequence: bigint("sequence", { mode: "number" }).notNull(),
-    limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
-    /**
-     * Unix-millis cutoff after which the row is no longer relevant to any
-     * region's sliding-window math. Computed application-side as
-     * (sequence + 2) * duration_ms — end of the window after the originating
-     * one, since the inflated counter contributes as cur in `sequence` and
-     * as prev in `sequence + 1`. Used by the cleanup cron only.
-     */
-    expiresAt: bigint("expires_at", { mode: "number", unsigned: true }).notNull(),
-  },
-  (table) => [
-    uniqueIndex("unique_propagation_key").on(
-      table.workspaceId,
-      table.namespace,
-      table.identifier,
-      table.durationMs,
-      table.sequence,
-    ),
-    index("expires_at_idx").on(table.expiresAt),
-  ],
-);
-
-/**
- * Cross-region sharing of sliding-window counts (G-Counter).
+ * Cross-region sharing of global rate-limit counters.
  *
  * Each region periodically flushes its own observed count for each active
  * sliding-window cell into a row keyed by (workspace, namespace, identifier,
@@ -135,34 +77,29 @@ export const ratelimitBlocklist = mysqlTable(
  * `imported` count, which the local sliding-window math adds on top of its
  * own count to make a globally-aware deny decision.
  *
- * The shape replaces ratelimit_blocklist's verdict-shaped propagation. Where
- * blocklist said "this region denied, you should too," window_counts says
- * "this region has seen N requests, factor that into your math." Sharing the
- * actual quantity lets receivers reach the same deny decision the originator
- * did without the over-block failure modes of inflating to limit on denial.
+ * Sharing the actual quantity lets receivers reach the same deny decision the
+ * originator did without the over-block failure modes of verdict propagation.
  *
  * The unique key includes `region` so each region writes its own row;
  * concurrent writers within a region collapse via ON DUPLICATE KEY UPDATE
  * count = GREATEST(count, VALUES(count)). Aggregation across regions is SUM
  * over the rows for the same window cell.
  */
-export const ratelimitWindowCounts = mysqlTable(
-  "ratelimit_window_counts",
+export const ratelimitGlobalCounters = mysqlTable(
+  "ratelimit_global_counters",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    // workspaceId at varchar(191) for the same reason as ratelimitBlocklist:
-    // the unique index now spans six columns (the four key fields plus
-    // sequence and region), and MySQL caps total index key size at 3072
-    // bytes under utf8mb4.
+    // workspaceId is varchar(191) instead of the project-wide 256 because the
+    // unique index spans six columns (the four key fields plus sequence and
+    // region), and MySQL caps total index key size at 3072 bytes under utf8mb4.
     workspaceId: varchar("workspace_id", { length: 191 }).notNull(),
     namespace: varchar("namespace", { length: 255 }).notNull(),
     identifier: varchar("identifier", { length: 255 }).notNull(),
     durationMs: bigint("duration_ms", { mode: "number", unsigned: true }).notNull(),
     /**
-     * Sliding-window sequence this row's count belongs to. Same role as in
-     * ratelimit_blocklist: receivers apply the row to the exact sequence
-     * stored here, so sliding-window decay math stays consistent with the
-     * originating region.
+     * Sliding-window sequence this row's count belongs to. Receivers apply the
+     * row to the exact sequence stored here, so sliding-window decay math stays
+     * consistent with the originating region.
      */
     sequence: bigint("sequence", { mode: "number" }).notNull(),
     /**
@@ -185,8 +122,7 @@ export const ratelimitWindowCounts = mysqlTable(
     count: bigint("count", { mode: "number", unsigned: true }).notNull(),
     /**
      * Unix-millis cutoff after which the row is no longer relevant to any
-     * region's sliding-window math. Same derivation as
-     * ratelimit_blocklist.expires_at: (sequence + 2) * duration_ms.
+     * region's sliding-window math: (sequence + 2) * duration_ms.
      */
     expiresAt: bigint("expires_at", { mode: "number", unsigned: true }).notNull(),
     /**

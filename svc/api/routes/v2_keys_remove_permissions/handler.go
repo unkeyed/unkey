@@ -164,15 +164,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			for _, permission := range permissionsToRemove {
 				idsToRemove = append(idsToRemove, permission.ID)
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.AuthDisconnectPermissionKeyEvent,
-					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorMeta:   map[string]any{},
-					Display:     fmt.Sprintf("Removed permission %s from key %s", permission.Name, req.KeyId),
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.AuthDisconnectPermissionKeyEvent,
+					ActorType:     auditlog.RootKeyActor,
+					ActorID:       auth.Key.ID,
+					ActorName:     "root key",
+					ActorMeta:     map[string]any{},
+					Display:       fmt.Sprintf("Removed permission %s from key %s", permission.Name, req.KeyId),
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type:        auditlog.KeyResourceType,

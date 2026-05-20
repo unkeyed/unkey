@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   Empty,
+  InfoTooltip,
   SettingCard,
   SettingCardGroup,
   SettingsDangerZone,
@@ -23,10 +24,19 @@ import { Usage } from "./components/usage";
 
 const MAX_QUOTA = 150000;
 
+const ADMIN_ONLY_TOOLTIP = "Admin access required to manage billing";
+
 export const Client: React.FC = () => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const [showPlanModal, setShowPlanModal] = useState(false);
+
+  // Server-side `requireWorkspaceAdmin` enforces this on every billing
+  // mutation; we mirror it on the client purely for UX so non-admin members
+  // get a clear "admin required" affordance instead of a request that fails
+  // with FORBIDDEN.
+  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const isAdmin = currentUser?.role === "admin";
 
   // Fetch billing info using new tRPC route
   // Query is automatically keyed by workspace context and will refetch on workspace change
@@ -116,6 +126,8 @@ export const Client: React.FC = () => {
               <CurrentPlanCard
                 currentProduct={currentProduct}
                 onChangePlan={() => setShowPlanModal(true)}
+                disabled={!isAdmin}
+                disabledReason={ADMIN_ONLY_TOOLTIP}
               />
               <Usage quota={currentProduct?.quotas?.requestsPerMonth ?? MAX_QUOTA} />
               <SettingCard
@@ -123,16 +135,21 @@ export const Client: React.FC = () => {
                 description="Manage payment methods and see your invoices."
               >
                 <div className="w-full flex h-full items-center justify-end gap-4">
-                  <Button
-                    variant="outline"
-                    className="py-2 px-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
-                    aria-label="Open billing portal"
-                    onClick={() => {
-                      router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
-                    }}
-                  >
-                    Open Portal
-                  </Button>
+                  <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+                    <span>
+                      <Button
+                        variant="outline"
+                        className="py-2 px-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
+                        aria-label="Open billing portal"
+                        disabled={!isAdmin}
+                        onClick={() => {
+                          router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
+                        }}
+                      >
+                        Open Portal
+                      </Button>
+                    </span>
+                  </InfoTooltip>
                 </div>
               </SettingCard>
             </SettingCardGroup>
@@ -155,16 +172,21 @@ export const Client: React.FC = () => {
                 contentWidth="w-full lg:w-[320px]"
               >
                 <div className="flex justify-end w-full">
-                  <Button
-                    variant="outline"
-                    className="px-3 py-2 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
-                    aria-label="Add payment method"
-                    onClick={() => {
-                      router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
-                    }}
-                  >
-                    Add payment method
-                  </Button>
+                  <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+                    <span>
+                      <Button
+                        variant="outline"
+                        className="px-3 py-2 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
+                        aria-label="Add payment method"
+                        disabled={!isAdmin}
+                        onClick={() => {
+                          router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
+                        }}
+                      >
+                        Add payment method
+                      </Button>
+                    </span>
+                  </InfoTooltip>
                 </div>
               </SettingCard>
               <Usage quota={currentProduct?.quotas?.requestsPerMonth ?? MAX_QUOTA} />
@@ -172,11 +194,15 @@ export const Client: React.FC = () => {
           </div>
         )}
 
-        <CancelAlert cancelAt={subscription?.cancelAt} />
+        <CancelAlert
+          cancelAt={subscription?.cancelAt}
+          disabled={!isAdmin}
+          disabledReason={ADMIN_ONLY_TOOLTIP}
+        />
 
         {allowCancel ? (
           <SettingsDangerZone>
-            <CancelPlan />
+            <CancelPlan disabled={!isAdmin} disabledReason={ADMIN_ONLY_TOOLTIP} />
           </SettingsDangerZone>
         ) : null}
       </SettingsShell>

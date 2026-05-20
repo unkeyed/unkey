@@ -40,7 +40,11 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/api/auth/refresh",
     "/success",
     "/_next/*",
-    "/integrations/github/callback",
+    // /integrations/github/callback is intentionally NOT public: the page
+    // calls trpc.github.registerInstallation under the user's session, and
+    // marking it public would let an unauthenticated visitor reach the page
+    // with a phishing-friendly URL. The page now requires an authenticated
+    // session and verifies a server-signed `state` HMAC.
     "/integrations/domain-connect/callback",
   ];
 
@@ -82,12 +86,30 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
       return NextResponse.redirect(signInUrl);
     }
 
-    // Set the current path as a header so server components can read it for redirect purposes
-    headers.set("x-current-path", url.pathname + url.search);
-
-    return NextResponse.next({
-      headers: headers,
+    // Custom headers (session, x-current-path) must be added to the *request*
+    // headers so server components see them via `headers()`. Setting them as
+    // response headers via `NextResponse.next({ headers })` corrupts Next.js
+    // 16's router state parsing during soft navigation.
+    const requestHeaders = new Headers(req.headers);
+    headers.forEach((value, key) => {
+      if (key.toLowerCase() === "set-cookie") {
+        return;
+      }
+      requestHeaders.set(key, value);
     });
+    requestHeaders.set("x-current-path", url.pathname + url.search);
+
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+
+    // Set-Cookie must remain on the response, not be forwarded to the request.
+    const setCookies = headers.getSetCookie?.() ?? [];
+    for (const cookie of setCookies) {
+      response.headers.append("Set-Cookie", cookie);
+    }
+
+    return response;
   } catch (error) {
     console.error("Middleware error:", error);
     const signInUrl = new URL(SIGN_IN_URL, url);

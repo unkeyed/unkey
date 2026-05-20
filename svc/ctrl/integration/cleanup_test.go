@@ -23,7 +23,7 @@ import (
 
 // TestProjectDeletion_CleansUpAllData verifies the full project → app →
 // environment deletion cascade by running the actual Restate virtual objects
-// against a real Restate server (via testcontainers).
+// against a real Restate server.
 //
 // It seeds a project with a full resource tree, then calls ProjectService/Delete
 // through the Restate ingress and asserts that every table is cleaned up.

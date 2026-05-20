@@ -93,21 +93,22 @@ var (
 	// RatelimitDecision counts rate-limit decisions.
 	//
 	// Labels:
+	//   - workspace_id: the workspace the request was attributed to.
 	//   - source: "local" when the decision used only in-memory counters;
 	//     "origin" when a cold-window or strict-mode Redis fetch was required.
 	//   - outcome: "passed" (request allowed) or "denied" (limit exceeded).
 	//
 	// Example usage:
-	//   metrics.RatelimitDecision.WithLabelValues("local", "passed").Inc()
-	//   metrics.RatelimitDecision.WithLabelValues("origin", "denied").Inc()
+	//   metrics.RatelimitDecision.WithLabelValues(workspaceID, "local", "passed").Inc()
+	//   metrics.RatelimitDecision.WithLabelValues(workspaceID, "origin", "denied").Inc()
 	RatelimitDecision = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "decisions_total",
-			Help:      "Total number of rate-limit decisions, labeled by source (local|origin) and outcome (passed|denied).",
+			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
 		},
-		[]string{"source", "outcome"},
+		[]string{"workspace_id", "source", "outcome"},
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS
@@ -126,22 +127,25 @@ var (
 		},
 	)
 
-	// RatelimitStrictModeActivations counts how often a denial triggered
-	// strict mode for a (workspace, namespace, identifier, duration) tuple.
-	// Until the deadline passes, subsequent requests on that tuple force a
-	// synchronous origin fetch to converge local state with the region's
-	// Redis-backed truth. Spikes correlate with sustained denial pressure
-	// and an increase in origin-fetch latency on the hot path.
+	// RatelimitStrictModeActivations counts how often a denial triggered strict
+	// mode for a (workspace, namespace, identifier, duration) tuple. Until the
+	// deadline passes, subsequent requests on that tuple force a synchronous
+	// origin fetch to converge local state. Spikes correlate with sustained
+	// denial pressure and an increase in origin-fetch latency on the hot path.
+	//
+	// Labels:
+	//   - workspace_id: the workspace whose tuple entered strict mode.
 	//
 	// Example usage:
-	//   metrics.RatelimitStrictModeActivations.Inc()
-	RatelimitStrictModeActivations = lazy.NewCounter(
+	//   metrics.RatelimitStrictModeActivations.WithLabelValues(workspaceID).Inc()
+	RatelimitStrictModeActivations = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "strict_mode_activations_total",
-			Help:      "Total number of denials that raised the strict-mode deadline for a rate-limit tuple.",
+			Help:      "Total number of denials that raised the strict-mode deadline for a rate-limit tuple, labeled by workspace_id.",
 		},
+		[]string{"workspace_id"},
 	)
 )
 
@@ -211,9 +215,9 @@ var (
 // region can fold cross-region traffic into its sliding-window math.
 var (
 	// RatelimitGlobalPushTotal counts rows successfully upserted to
-	// ratelimit_window_counts by the cross-region push. Reflects
+	// ratelimit_global_counters by the cross-region push. Reflects
 	// throughput of the count-sharing channel; combined with the active
-	// window count it characterizes write pressure on MySQL.
+	// global counter it characterizes write pressure on MySQL.
 	//
 	// Example usage:
 	//   metrics.RatelimitGlobalPushTotal.Add(float64(len(batch)))
@@ -222,7 +226,7 @@ var (
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "global_push_total",
-			Help:      "Total number of rows written to the cross-region ratelimit_window_counts table.",
+			Help:      "Total number of rows written to the cross-region ratelimit_global_counters table.",
 		},
 	)
 
@@ -244,7 +248,7 @@ var (
 	)
 
 	// RatelimitGlobalPullRowsApplied counts rows pulled from
-	// ratelimit_window_counts and applied to local
+	// ratelimit_global_counters and applied to local
 	// counterEntry.globalCount on each pull tick. Idempotent across
 	// ticks: applying the same row twice is a no-op via atomicMax on the
 	// per-key sum.
@@ -261,7 +265,7 @@ var (
 	)
 
 	// RatelimitGlobalPullErrors counts pull ticks that failed to read
-	// ratelimit_window_counts. Local globalCount state remains as it
+	// ratelimit_global_counters. Local globalCount state remains as it
 	// was at the previous successful sync.
 	//
 	// Example usage:
