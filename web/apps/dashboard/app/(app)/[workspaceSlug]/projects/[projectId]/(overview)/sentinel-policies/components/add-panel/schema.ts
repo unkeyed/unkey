@@ -2,6 +2,7 @@ import {
   type FirewallPolicy,
   type KeyauthPolicy,
   type MatchExpr,
+  type OpenapiPolicy,
   type RateLimitIdentifier,
   type RatelimitPolicy,
   SENTINEL_LIMITS,
@@ -168,10 +169,16 @@ const firewallFormSchema = z.object({
   action: firewallActionSchema,
 });
 
+const openapiFormSchema = z.object({
+  ...basePolicyFields,
+  type: z.literal("openapi"),
+});
+
 export const policyFormSchema = z.discriminatedUnion("type", [
   keyauthFormSchema,
   ratelimitFormSchema,
   firewallFormSchema,
+  openapiFormSchema,
 ]);
 export type PolicyFormValues = z.infer<typeof policyFormSchema>;
 export type PolicyType = PolicyFormValues["type"];
@@ -180,6 +187,7 @@ export const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "keyauth", label: "Key Auth" },
   { value: "ratelimit", label: "Rate Limit" },
   { value: "firewall", label: "Firewall" },
+  { value: "openapi", label: "OpenAPI Validation" },
 ];
 
 export function getDefaultCondition(
@@ -226,6 +234,10 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       ...base,
       type: "firewall" as const,
       action: "ACTION_DENY" as const,
+    }))
+    .with("openapi", () => ({
+      ...base,
+      type: "openapi" as const,
     }))
     .exhaustive();
 }
@@ -306,12 +318,12 @@ function toRateLimitIdentifier(
 export function toSentinelPolicy(
   values: PolicyFormValues,
   existingId?: string,
-): KeyauthPolicy | RatelimitPolicy | FirewallPolicy {
+): KeyauthPolicy | RatelimitPolicy | FirewallPolicy | OpenapiPolicy {
   const id = existingId ?? crypto.randomUUID();
   const matchExprs = values.matchConditions.map(toMatchExpr);
 
   return match(values)
-    .returnType<KeyauthPolicy | RatelimitPolicy | FirewallPolicy>()
+    .returnType<KeyauthPolicy | RatelimitPolicy | FirewallPolicy | OpenapiPolicy>()
     .with({ type: "keyauth" }, (v) => {
       const locations = v.locations.map((loc) =>
         match(loc.locationType)
@@ -357,6 +369,14 @@ export function toSentinelPolicy(
       enabled: true,
       type: "firewall" as const,
       firewall: { action: v.action },
+      match: matchExprs,
+    }))
+    .with({ type: "openapi" }, (v) => ({
+      id,
+      name: v.name,
+      enabled: true,
+      type: "openapi" as const,
+      openapi: {},
       match: matchExprs,
     }))
     .exhaustive();
@@ -497,5 +517,11 @@ export function fromSentinelPolicy(
         action: p.firewall.action,
       };
     })
+    .with({ type: "openapi" }, (p) => ({
+      type: "openapi" as const,
+      name: p.name,
+      environmentId,
+      matchConditions,
+    }))
     .exhaustive();
 }

@@ -22,7 +22,7 @@ Unkey Deploy takes a Dockerfile and gives you a running application with automat
     Previous deployments stay running so [rollbacks](/build-and-deploy/rollbacks) are instant. No rebuild required.
   </Card>
   <Card title="Sentinel" icon="shield-halved">
-    API key authentication, rate limiting, and IP rules run at the edge before requests reach your app.
+    API key authentication, rate limiting, and IP rules run in front of your app before requests reach it.
   </Card>
   <Card title="Build logs" icon="terminal">
     Stream build and runtime logs in real time from the dashboard.
@@ -56,14 +56,14 @@ Unkey builds your image, deploys it to your configured regions, and assigns doma
 ## Three ways to deploy
 
 <CardGroup cols={3}>
-  <Card title="GitHub push" icon="github">
+  <Card title="GitHub push" icon="github" href="/build-and-deploy/github">
     Connect a repository and deploy automatically on every push. Default branch goes to production, other branches go to preview.
   </Card>
-  <Card title="CLI" icon="terminal">
+  <Card title="CLI" icon="terminal" href="/build-and-deploy/cli">
     Deploy a pre-built Docker image with `unkey deploy`. Useful for CI/CD pipelines and custom build systems.
   </Card>
-  <Card title="Dashboard" icon="browser">
-    Trigger a deployment manually from a specific commit or branch.
+  <Card title="Dashboard" icon="browser" href="/build-and-deploy/github#deploy-from-a-fork-manually">
+    Trigger a deployment manually from a branch, commit, pull request URL, or [fork](/build-and-deploy/github#deploy-from-a-fork-manually).
   </Card>
 </CardGroup>
 
@@ -81,6 +81,20 @@ Unkey builds your image, deploys it to your configured regions, and assigns doma
     href="/build-and-deploy/github"
   >
     Full setup walkthrough with screenshots
+  </Card>
+  <Card
+    title="Deploy with the CLI"
+    icon="terminal"
+    href="/build-and-deploy/cli"
+  >
+    Ship pre-built Docker images from CI or your machine
+  </Card>
+  <Card
+    title="CLI vs GitHub integration"
+    icon="code-compare"
+    href="/build-and-deploy/cli-vs-github"
+  >
+    Pick the right path for your team
   </Card>
   <Card
     title="Deployment lifecycle"

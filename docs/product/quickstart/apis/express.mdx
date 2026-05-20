@@ -53,11 +53,12 @@ Create `index.js` with a protected route:
 
 ```js index.js
 const express = require("express");
-const { verifyKey } = require("@unkey/api");
+const { Unkey } = require("@unkey/api");
 require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
 // Public route
 app.get("/", (req, res) => {
@@ -76,7 +77,7 @@ app.get("/secret", async (req, res) => {
 
   // 2. Verify with Unkey
   try {
-    const { meta, data } = await verifyKey({ key });
+    const { data } = await unkey.keys.verifyKey({ key });
 
     if (!data.valid) {
       // Key is invalid, expired, rate limited, etc.
@@ -86,7 +87,7 @@ app.get("/secret", async (req, res) => {
       });
     }
 
-    // 3. Key is valid — return protected data
+    // 3. Key is valid, return protected data
     res.json({
       message: "Welcome to the secret route!",
       keyId: data.keyId,
@@ -175,7 +176,9 @@ After successful verification, `data` contains:
 For cleaner code, extract verification into middleware:
 
 ```js middleware/auth.js
-const { verifyKey } = require("@unkey/api");
+const { Unkey } = require("@unkey/api");
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
 async function unkeyAuth(req, res, next) {
   const key = req.headers.authorization?.replace("Bearer ", "");
@@ -185,7 +188,7 @@ async function unkeyAuth(req, res, next) {
   }
 
   try {
-    const { meta, data } = await verifyKey({ key });
+    const { data } = await unkey.keys.verifyKey({ key });
 
     if (!data.valid) {
       return res.status(401).json({ error: "Invalid API key" });
@@ -265,6 +268,6 @@ app.get("/another-secret", unkeyAuth, (req, res) => {
   <Accordion title="TypeScript version?">
     The code above uses CommonJS. For TypeScript, install types and use imports:
     ```bash npm install -D typescript @types/express @types/node ``` ```ts
-    import express from "express"; import {verifyKey} from "@unkey/api"; ```
+    import express from "express"; import { Unkey } from "@unkey/api"; ```
   </Accordion>
 </AccordionGroup>

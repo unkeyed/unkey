@@ -115,7 +115,7 @@ func TestKeyDeleteForbidden(t *testing.T) {
 		IdentityID:        sql.NullString{Valid: false},
 		Meta:              sql.NullString{Valid: false},
 		Expires:           sql.NullTime{Valid: false},
-		RemainingRequests: sql.NullInt32{Valid: true, Int32: 100},
+		RemainingRequests: sql.NullInt64{Valid: true, Int64: 100},
 	})
 	require.NoError(t, err)
 

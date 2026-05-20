@@ -11,14 +11,14 @@ import {
   NodeDetailsPanel,
   OriginNode,
   ProjectDetails,
+  RegionNode,
   SKELETON_TREE,
-  SentinelNode,
   SkeletonNode,
   TreeConnectionLine,
   TreeLayout,
   isInstanceNode,
   isOriginNode,
-  isSentinelNode,
+  isRegionNode,
   isSkeletonNode,
 } from "./unkey-flow";
 
@@ -51,7 +51,11 @@ export function DeploymentNetworkView({
       overlay={
         <>
           {showNodeDetails && (
-            <NodeDetailsPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
+            <NodeDetailsPanel
+              node={selectedNode}
+              deploymentId={deployment.id}
+              onClose={() => setSelectedNode(null)}
+            />
           )}
 
           {showProjectDetails && <ProjectDetails />}
@@ -68,7 +72,10 @@ export function DeploymentNetworkView({
     >
       <TreeLayout
         data={currentTree}
-        nodeSpacing={{ x: 75, y: 100 }}
+        nodeSpacing={{ x: 20, y: 50 }}
+        layoutConfig={{
+          layout: { verticalOffset: -15, verticalSiblingSpacing: 0.5, horizontalIndent: 35 },
+        }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
         renderNode={(node, parent) => renderDeploymentNode(node, parent, deployment.id)}
         renderConnection={(path, parent, child) => (
@@ -93,13 +100,13 @@ function renderDeploymentNode(
     return <OriginNode node={node} />;
   }
 
-  if (isSentinelNode(node)) {
-    return <SentinelNode node={node} deploymentId={deploymentId} />;
+  if (isRegionNode(node)) {
+    return <RegionNode node={node} deploymentId={deploymentId} />;
   }
 
   if (isInstanceNode(node)) {
-    if (!parent || !isSentinelNode(parent)) {
-      throw new Error("Instance node requires parent sentinel");
+    if (!parent || !isRegionNode(parent)) {
+      throw new Error("Instance node requires parent region");
     }
     return (
       <InstanceNode node={node} flagCode={parent.metadata.flagCode} deploymentId={deploymentId} />

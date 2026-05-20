@@ -36,7 +36,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	// Get target deployment
 	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(stepCtx, w.db.RO(), req.GetTargetDeploymentId())
-	}, restate.WithName("finding target deployment"))
+	}, restate.WithName("finding target deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, fault.Wrap(
@@ -50,7 +50,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	// Get app from deployment's app_id
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
 		return db.Query.FindAppById(stepCtx, w.db.RO(), targetDeployment.AppID)
-	}, restate.WithName("finding app"))
+	}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, fault.Wrap(
@@ -95,7 +95,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 					db.FrontlineRoutesStickyEnvironment,
 				},
 			})
-		}, restate.WithName("finding frontlineRoutes for promotion"))
+		}, restate.WithName("finding frontlineRoutes for promotion"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if findErr != nil {
 			return nil, fault.Wrap(findErr, fault.Public("Failed to find routes for promotion"))
 		}
@@ -147,7 +147,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 				EnvironmentID: targetDeployment.EnvironmentID,
 				ExcludeID:     targetDeployment.ID,
 			})
-		}, restate.WithName("finding old deployment to schedule for standby"))
+		}, restate.WithName("finding old deployment to schedule for standby"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Public("Failed to find old deployment to schedule for standby"))
 		}

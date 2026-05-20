@@ -8,7 +8,7 @@ noindex: true
 
 ### Unkey CLI
 
-A new command-line interface gives you direct access to the full Unkey API from your terminal. Manage API keys, configure rate limits, set permissions, query analytics, and more — all without leaving the command line.
+A new command-line interface gives you direct access to the full Unkey API from your terminal. Manage API keys, configure rate limits, set permissions, query analytics, and more, all without leaving the command line.
 
 Authenticate once with `unkey auth login`, and all subsequent commands use your stored credentials automatically. You can also pass a root key per-command or via the `UNKEY_ROOT_KEY` environment variable.
 
@@ -44,7 +44,7 @@ To use a build-time variable, mount it as a secret in your `RUN` instruction:
 # syntax=docker/dockerfile:1
 FROM node:20-alpine
 
-# Mount NPM_TOKEN as a secret during install — it won't appear in the image layers
+# Mount NPM_TOKEN as a secret during install, it won't appear in the image layers
 RUN --mount=type=secret,id=NPM_TOKEN \
     NPM_TOKEN=$(cat /run/secrets/NPM_TOKEN) \
     npm install --registry https://registry.npmjs.org/
@@ -60,13 +60,13 @@ CMD ["node", "dist/index.js"]
 
 ### OpenAPI diff viewer
 
-A new OpenAPI Diff page lets you compare the OpenAPI spec between any two deployments. Select two deployments side-by-side to see added, removed, and changed endpoints with method-specific badges. Changes are categorized by severity — breaking, warning, or informational — so you can quickly identify regressions before promoting a deployment.
+A new OpenAPI Diff page lets you compare the OpenAPI spec between any two deployments. Select two deployments side-by-side to see added, removed, and changed endpoints with method-specific badges. Changes are categorized by severity, breaking, warning, or informational, so you can quickly identify regressions before promoting a deployment.
 
 To enable the diff viewer, set the path to your OpenAPI spec file (for example, `/openapi.yaml`) in your project's environment settings. Once configured, the project overview shows a compact diff indicator between your current and latest preview deployment, with a link to the full comparison page.
 
 ### Configurable production branch
 
-You can now choose which Git branch triggers production deployments. Navigate to your project's deployment settings to find the new **Production branch** setting. Select any branch from your connected repository — pushes to that branch deploy to the production environment, while all other branches deploy to preview.
+You can now choose which Git branch triggers production deployments. Navigate to your project's deployment settings to find the new **Production branch** setting. Select any branch from your connected repository, pushes to that branch deploy to the production environment, while all other branches deploy to preview.
 
 Previously, production deployments were always triggered by the repository's default branch. Now you can set it to any branch, such as `release` or `stable`, to match your team's workflow.
 
@@ -76,7 +76,7 @@ Deployments triggered by non-collaborators (such as fork-based pull requests) no
 
 ### Watch paths
 
-You can now configure glob patterns (e.g., `src/**`, `**/*.go`) in your deployment settings to control which file changes trigger builds. When no files in a push match your watch paths, the deployment is skipped — and the dashboard shows a dedicated skipped view explaining why.
+You can now configure glob patterns (e.g., `src/**`, `**/*.go`) in your deployment settings to control which file changes trigger builds. When no files in a push match your watch paths, the deployment is skipped, and the dashboard shows a dedicated skipped view explaining why.
 
 ### On-demand deployments
 
@@ -84,7 +84,7 @@ You can now trigger a deployment manually from the dashboard by selecting a bran
 
 ### Environment selector for on-demand deployments
 
-When triggering a deployment manually from the dashboard, you can now choose which environment to deploy to. A dropdown lets you select the target environment — such as production, staging, or preview — instead of always deploying to the default. This gives you more control when redeploying or testing changes across environments.
+When triggering a deployment manually from the dashboard, you can now choose which environment to deploy to. A dropdown lets you select the target environment, such as production, staging, or preview, instead of always deploying to the default. This gives you more control when redeploying or testing changes across environments.
 
 ### Deployment status on GitHub PRs
 
@@ -138,7 +138,7 @@ app.use((req, res, next) => {
 
 ### Improved keys overview table
 
-The keys overview table in the dashboard now supports column sorting, keyboard navigation, and inline row selection. Click any row to open a details panel showing outcome distribution, roles, and permissions — without leaving the page. The table also loads faster with built-in skeleton states and a cleaner empty state.
+The keys overview table in the dashboard now supports column sorting, keyboard navigation, and inline row selection. Click any row to open a details panel showing outcome distribution, roles, and permissions, without leaving the page. The table also loads faster with built-in skeleton states and a cleaner empty state.
 
 ### Improved root keys table
 

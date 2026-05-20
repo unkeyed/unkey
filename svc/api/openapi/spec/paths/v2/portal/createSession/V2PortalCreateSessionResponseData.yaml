@@ -1,0 +1,17 @@
+type: object
+required:
+  - sessionId
+  - url
+properties:
+  sessionId:
+    type: string
+    description: |
+      The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
+    example: pst_abc123def456
+  url:
+    type: string
+    format: uri
+    description: |
+      The full portal URL with the session parameter. Redirect the end user to this URL.
+    example: "https://portal.unkey.com/?session=pst_abc123def456"
+additionalProperties: false

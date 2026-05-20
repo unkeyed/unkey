@@ -3,62 +3,16 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"strings"
-	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/metrics"
 	"go.opentelemetry.io/otel/attribute"
-)
-
-var (
-	frontlineRequestsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "requests_total",
-			Help:      "Total number of requests processed by frontline",
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	frontlineRequestDuration = lazy.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "request_duration_seconds",
-			Help:      "Request duration in seconds",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	frontlineActiveRequests = lazy.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "active_requests",
-			Help:      "Number of requests currently being processed",
-		},
-		[]string{"region"},
-	)
-
-	frontlineRequestErrorsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "request_errors_total",
-			Help:      "Total number of request errors by error type.",
-		},
-		[]string{"error_type"},
-	)
 )
 
 type ErrorResponse struct {
@@ -76,72 +30,35 @@ type errorPageInfo struct {
 	Message string
 }
 
-func categorizeErrorTypeFrontline(urn codes.URN, statusCode int, hasError bool) string {
-	if statusCode >= 200 && statusCode < 300 {
-		return "none"
-	}
-
-	if hasError {
-
-		//nolint:exhaustive
-		switch urn {
-		case codes.Frontline.Proxy.GatewayTimeout.URN():
-			return "customer"
-
-		case codes.Frontline.Internal.InternalServerError.URN(),
-			codes.Frontline.Internal.ConfigLoadFailed.URN(),
-			codes.Frontline.Internal.InstanceLoadFailed.URN(),
-			codes.Frontline.Routing.ConfigNotFound.URN(),
-			codes.Frontline.Routing.DeploymentSelectionFailed.URN(),
-			codes.Frontline.Proxy.ServiceUnavailable.URN(),
-			codes.Frontline.Routing.NoRunningInstances.URN():
-			return "platform"
-
-		case codes.User.BadRequest.ClientClosedRequest.URN(),
-			codes.User.BadRequest.RequestTimeout.URN():
-			return "user"
-		}
-
-		if statusCode >= 500 {
-			return "platform"
-		}
-
-		if statusCode >= 400 {
-			return "user"
-		}
-
-	} else if statusCode >= 400 {
-		return "customer"
-	}
-
-	return "unknown"
-}
-
-func WithObservability(region string, renderer errorpage.Renderer) zen.Middleware {
+// WithObservability is the request-level observability middleware. It owns:
+//
+//   - tracing span for the request
+//   - error rendering (HTML page or JSON, based on Accept header)
+//   - emission of unkey_frontline_requests_total
+//
+// Per-component latency lives on the package that owns the work: routing
+// in router, upstream timing in proxy. There is no platform-overhead
+// histogram here — alert on routing/upstream latency separately.
+func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
-			startTime := time.Now()
+			metrics.InflightRequests.Inc()
+			defer metrics.InflightRequests.Dec()
 
-			// Start trace span for the request
 			ctx, span := tracing.Start(ctx, "frontline.proxy")
 			span.SetAttributes(
 				attribute.String("request_id", s.RequestID()),
 				attribute.String("host", s.Request().Host),
 				attribute.String("method", s.Request().Method),
 				attribute.String("path", s.Request().URL.Path),
-				attribute.String("region", region),
 			)
 			defer span.End()
-
-			frontlineActiveRequests.WithLabelValues(region).Inc()
-			defer frontlineActiveRequests.WithLabelValues(region).Dec()
 
 			err := next(ctx, s)
 
 			statusCode := s.StatusCode()
-			var errorType string
-			var urn codes.URN
 			hasError := err != nil
+			var urn codes.URN
 
 			if hasError {
 				tracing.RecordError(span, err)
@@ -161,14 +78,10 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 				pageInfo := getErrorPageInfoFrontline(urn)
 				statusCode = pageInfo.Status
 
-				errorType = categorizeErrorTypeFrontline(urn, statusCode, hasError)
-
 				userMessage := pageInfo.Message
 				if userMessage == "" {
 					userMessage = fault.UserFacingMessage(err)
 				}
-
-				title := pageInfo.Title
 
 				if pageInfo.Status == http.StatusInternalServerError {
 					logger.Error("frontline error",
@@ -197,7 +110,7 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 				} else {
 					htmlBody, renderErr := renderer.Render(errorpage.Data{
 						StatusCode: pageInfo.Status,
-						Title:      title,
+						Title:      pageInfo.Title,
 						Message:    userMessage,
 						ErrorCode:  string(code.URN()),
 						DocsURL:    code.DocsURL(),
@@ -217,33 +130,30 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 				}
 
 				if writeErr != nil {
-					logger.Error("failed to write error response", "error", writeErr.Error())
+					if isClientGone(writeErr) {
+						// Client disconnected before we could flush the error
+						// page. Not actionable — don't alert on it.
+						logger.Debug("client gone before error response was written",
+							"error", writeErr.Error(),
+							"requestId", s.RequestID(),
+						)
+					} else {
+						logger.Error("failed to write error response", "error", writeErr.Error())
+					}
 				}
-			} else {
-				errorType = categorizeErrorTypeFrontline("", statusCode, hasError)
 			}
 
-			duration := time.Since(startTime).Seconds()
-			statusStr := strconv.Itoa(statusCode)
-
-			// Add final status to span
 			span.SetAttributes(
 				attribute.Int("status_code", statusCode),
-				attribute.String("error_type", errorType),
+				attribute.String("code", string(urn)),
 			)
 
 			logger.Info("frontline request",
-				"status_code", statusStr,
-				"error_type", errorType,
-				"duration_seconds", duration,
-				"region", region,
+				"status_code", statusCode,
+				"code", string(urn),
 			)
 
-			frontlineRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
-			frontlineRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
-			if errorType != "none" {
-				frontlineRequestErrorsTotal.WithLabelValues(errorType).Inc()
-			}
+			metrics.RequestsTotal.WithLabelValues(metrics.StatusClass(statusCode), string(urn)).Inc()
 
 			return nil
 		}
@@ -258,6 +168,45 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Status:  499,
 			Title:   "Client Closed Request",
 			Message: "The client closed the connection before the request completed.",
+		}
+	case codes.User.BadRequest.RequestTimeout.URN():
+		// Frontline acts as a gateway: a request-processing deadline that
+		// fires here means upstream took too long. Surface as 504, not 500,
+		// so it doesn't trigger server-error alerting.
+		return errorPageInfo{
+			Status:  http.StatusGatewayTimeout,
+			Title:   http.StatusText(http.StatusGatewayTimeout),
+			Message: "The request took too long to process. Please try again later.",
+		}
+	case codes.User.BadRequest.RequestBodyTooLarge.URN():
+		return errorPageInfo{
+			Status:  http.StatusRequestEntityTooLarge,
+			Title:   http.StatusText(http.StatusRequestEntityTooLarge),
+			Message: "The request body exceeds the maximum allowed size.",
+		}
+	case codes.User.BadRequest.RequestBodyUnreadable.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Title:   http.StatusText(http.StatusBadRequest),
+			Message: "The request body could not be read.",
+		}
+	case codes.Auth.Authentication.Missing.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Title:   http.StatusText(http.StatusUnauthorized),
+			Message: "Authentication required.",
+		}
+	case codes.Auth.Authentication.Malformed.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Title:   http.StatusText(http.StatusUnauthorized),
+			Message: "The authentication credentials are malformed.",
+		}
+	case codes.App.Validation.InvalidInput.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Title:   http.StatusText(http.StatusBadRequest),
+			Message: "",
 		}
 	case codes.Frontline.Routing.ConfigNotFound.URN():
 		return errorPageInfo{
@@ -285,51 +234,73 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Message: "The request took too long to process. Please try again later.",
 		}
 
-	// Sentinel errors passed through from upstream — preserve the original status/message.
-	case codes.Sentinel.Routing.DeploymentNotFound.URN():
+	// Engine errors — keyauth / firewall denials produced in-process.
+	// Status comes from the code's HTTP semantics (CategoryUnauthorized → 401,
+	// CategoryForbidden → 403, CategoryRateLimited → 429), not from upstream.
+	case codes.Frontline.Auth.MissingCredentials.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Title:   http.StatusText(http.StatusUnauthorized),
+			Message: "Authentication required. Please provide a valid API key.",
+		}
+	case codes.Frontline.Auth.InvalidKey.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Title:   http.StatusText(http.StatusUnauthorized),
+			Message: "Authentication failed. The provided API key is invalid.",
+		}
+	case codes.Frontline.Auth.InsufficientPermissions.URN():
+		return errorPageInfo{
+			Status:  http.StatusForbidden,
+			Title:   http.StatusText(http.StatusForbidden),
+			Message: "Access denied. The API key does not have the required permissions.",
+		}
+	case codes.Frontline.Auth.RateLimited.URN():
+		return errorPageInfo{
+			Status:  http.StatusTooManyRequests,
+			Title:   http.StatusText(http.StatusTooManyRequests),
+			Message: "Rate limit exceeded. Please try again later.",
+		}
+	case codes.Frontline.Firewall.Denied.URN():
+		return errorPageInfo{
+			Status:  http.StatusForbidden,
+			Title:   http.StatusText(http.StatusForbidden),
+			Message: "Forbidden",
+		}
+	case codes.Frontline.OpenApi.InvalidRequest.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Title:   http.StatusText(http.StatusBadRequest),
+			Message: "",
+		}
+
+	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,
+	// no instances in any region).
+	case codes.Frontline.Routing.DeploymentNotFound.URN():
 		return errorPageInfo{
 			Status:  http.StatusNotFound,
 			Title:   http.StatusText(http.StatusNotFound),
 			Message: "The requested deployment could not be found.",
 		}
-	case codes.Sentinel.Routing.NoRunningInstances.URN():
+	case codes.Frontline.Routing.NoRunningInstances.URN():
 		return errorPageInfo{
 			Status:  http.StatusServiceUnavailable,
 			Title:   http.StatusText(http.StatusServiceUnavailable),
 			Message: "No running instances are available to handle this request.",
 		}
-	case codes.Sentinel.Routing.InstanceSelectionFailed.URN():
+	case codes.Frontline.Routing.DeploymentSelectionFailed.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,
 			Title:   http.StatusText(http.StatusInternalServerError),
 			Message: "Failed to select an instance to handle your request.",
 		}
-	case codes.Sentinel.Proxy.SentinelTimeout.URN():
-		return errorPageInfo{
-			Status:  http.StatusGatewayTimeout,
-			Title:   http.StatusText(http.StatusGatewayTimeout),
-			Message: "The request took too long to process. Please try again later.",
-		}
-	case codes.Sentinel.Proxy.BadGateway.URN(),
-		codes.Sentinel.Proxy.ProxyForwardFailed.URN():
-		return errorPageInfo{
-			Status:  http.StatusBadGateway,
-			Title:   http.StatusText(http.StatusBadGateway),
-			Message: "Unable to connect to an instance. Please try again in a few moments.",
-		}
-	case codes.Sentinel.Proxy.ServiceUnavailable.URN():
-		return errorPageInfo{
-			Status:  http.StatusServiceUnavailable,
-			Title:   http.StatusText(http.StatusServiceUnavailable),
-			Message: "The service is temporarily unavailable. Please try again later.",
-		}
-	case codes.Sentinel.Internal.InvalidConfiguration.URN():
+	case codes.Frontline.Internal.InvalidConfiguration.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,
 			Title:   http.StatusText(http.StatusInternalServerError),
-			Message: "The sentinel is misconfigured. Please contact support at support@unkey.com.",
+			Message: "The deployment configuration is invalid. Please contact support at support@unkey.com.",
 		}
-	case codes.Sentinel.Internal.InternalServerError.URN():
+	case codes.Frontline.Internal.InternalServerError.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,
 			Title:   http.StatusText(http.StatusInternalServerError),

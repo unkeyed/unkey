@@ -1,6 +1,9 @@
+import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { getBuildStepLogs, getBuildSteps } from "./build-steps";
 import { Client, type Inserter, Noop, type Querier } from "./client";
+import { getInstanceEvents } from "./instance-events";
+export { instanceEventKind, type InstanceEventKind } from "./instance-events";
 import {
   getDailyActiveKeysTimeseries,
   getFifteenMinutelyActiveKeysTimeseries,
@@ -86,15 +89,23 @@ import {
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
+import {
+  getResourceCpuTimeseries,
+  getResourceDiskTimeseries,
+  getResourceInstanceCountTimeseries,
+  getResourceMemoryTimeseries,
+  getResourceNetworkEgressTimeseries,
+  getResourceNetworkIngressTimeseries,
+  getResourceSummary,
+} from "./resources";
+export { TIME_WINDOWS, type TimeWindow } from "./resources";
 import { getRuntimeLogs } from "./runtime-logs";
 import {
-  getDeploymentLatency,
-  getDeploymentLatencyTimeseries,
-  getDeploymentRps,
+  getDeploymentLatencyWithTimeseries,
   getDeploymentRpsTimeseries,
   getInstanceRps,
+  getRegionRps,
   getSentinelLogs,
-  getSentinelRps,
 } from "./sentinel";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
@@ -342,18 +353,29 @@ export class ClickHouse {
       insert: insertSDKTelemetry(this.inserter),
     };
   }
+  public get resources() {
+    return {
+      summary: getResourceSummary(this.querier),
+      cpu: { timeseries: getResourceCpuTimeseries(this.querier) },
+      memory: { timeseries: getResourceMemoryTimeseries(this.querier) },
+      disk: { timeseries: getResourceDiskTimeseries(this.querier) },
+      instances: { timeseries: getResourceInstanceCountTimeseries(this.querier) },
+      network: {
+        egress: { timeseries: getResourceNetworkEgressTimeseries(this.querier) },
+        ingress: { timeseries: getResourceNetworkIngressTimeseries(this.querier) },
+      },
+    };
+  }
   public get sentinel() {
     return {
       logs: getSentinelLogs(this.querier),
       rps: {
-        bySentinel: getSentinelRps(this.querier),
         byInstance: getInstanceRps(this.querier),
-        byDeployment: getDeploymentRps(this.querier),
+        byRegion: getRegionRps(this.querier),
         timeseries: getDeploymentRpsTimeseries(this.querier),
       },
       latency: {
-        byDeployment: getDeploymentLatency(this.querier),
-        timeseries: getDeploymentLatencyTimeseries(this.querier),
+        withTimeseries: getDeploymentLatencyWithTimeseries(this.querier),
       },
     };
   }
@@ -362,10 +384,20 @@ export class ClickHouse {
       logs: getRuntimeLogs(this.querier),
     };
   }
+  public get instanceEvents() {
+    return {
+      list: getInstanceEvents(this.querier),
+    };
+  }
   public get buildSteps() {
     return {
       getSteps: getBuildSteps(this.querier),
       getLogs: getBuildStepLogs(this.querier),
+    };
+  }
+  public get auditLogs() {
+    return {
+      logs: getAuditLogs(this.querier),
     };
   }
 }

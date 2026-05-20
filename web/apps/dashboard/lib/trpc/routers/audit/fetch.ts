@@ -22,9 +22,8 @@ import { transformFilters } from "./utils";
 const LIMIT = 50;
 const MAX_LIMIT = 200;
 
-// In-memory cache for audit log count queries to avoid re-counting on every page navigation
 const countCache = new Map<string, { count: number; timestamp: number }>();
-const COUNT_CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+const COUNT_CACHE_TTL = 1000 * 60 * 5;
 
 function getCountCacheKey(workspaceId: string, params: Omit<AuditQueryLogsParams, "workspaceId">) {
   return JSON.stringify({
@@ -56,6 +55,11 @@ const AuditLogsResponse = z.object({
 
 type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
 
+// Reads audit logs from the legacy MySQL `audit_log` table while the
+// ClickHouse backfill catches up. Writers still dual-write to MySQL +
+// the clickhouse_outbox, so MySQL is the complete source of truth; CH
+// only has rows from the moment the export drainer started shipping.
+// Flip back to clickhouse.auditLogs.logs() once the backfill is done.
 export const fetchAuditLog = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(auditLogsQueryPayload)
@@ -70,13 +74,18 @@ export const fetchAuditLog = workspaceProcedure
     const cacheKey = getCountCacheKey(ctx.workspace.id, params);
     const cachedCount = getCachedCount(cacheKey);
 
+    // Tiebreak on pk so the workspace_id_bucket_time_idx composite covers
+    // the sort: InnoDB stores pk as the implicit trailing column in every
+    // secondary index, so ORDER BY (time, pk) avoids a filesort. id is
+    // unique and monotonic-with-insert like pk, so pagination stability
+    // is preserved.
     const [totalCount, logs] = await (cachedCount !== null
       ? Promise.all([
           cachedCount,
           db.query.auditLog.findMany({
             where: and(...whereConditions),
             with: { targets: true },
-            orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
+            orderBy: (table, { desc }) => [desc(table.time), desc(table.pk)],
             limit: pageSize,
             offset,
           }),
@@ -94,7 +103,7 @@ export const fetchAuditLog = workspaceProcedure
           db.query.auditLog.findMany({
             where: and(...whereConditions),
             with: { targets: true },
-            orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
+            orderBy: (table, { desc }) => [desc(table.time), desc(table.pk)],
             limit: pageSize,
             offset,
           }),

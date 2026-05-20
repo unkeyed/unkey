@@ -42,26 +42,24 @@ export async function unkeyAuth(
 
   const apiKey = authHeader.slice(7);
 
-  // 2. Verify with Unkey
-  const { meta, data, error } = await unkey.keys.verifyKey({
-    key: apiKey,
-  });
-
-  // 3. Handle errors
-  if (error) {
-    console.error("Unkey error:", error);
+  let data;
+  try {
+    // 2. Verify with Unkey (throws on transport/SDK errors)
+    ({ data } = await unkey.keys.verifyKey({ key: apiKey }));
+  } catch (err) {
+    console.error("Unkey error:", err);
     return res
       .status(503)
       .json({ error: "Authentication service unavailable" });
   }
 
-  // 4. Check validity
+  // 3. Check validity
   if (!data.valid) {
     const status = data.code === "RATE_LIMITED" ? 429 : 401;
     return res.status(status).json({ error: data.code });
   }
 
-  // 5. Attach to request and continue
+  // 4. Attach to request and continue
   req.unkey = data;
   next();
 }
@@ -83,13 +81,13 @@ app.get("/health", (req, res) => {
 // Protected routes
 app.get("/api/data", unkeyAuth, (req, res) => {
   // Access verification result
-  const { identity, meta, remaining } = req.unkey!;
+  const { identity, meta, credits } = req.unkey!;
 
   res.json({
     message: "Access granted",
     user: identity?.externalId,
     plan: meta?.plan,
-    creditsRemaining: remaining,
+    creditsRemaining: credits,
   });
 });
 
@@ -128,11 +126,10 @@ export async function unkeyAuth(
     return res.status(401).json({ error: "Missing API key" });
   }
 
-  const { meta, data, error } = await unkey.keys.verifyKey({
-    key: authHeader.slice(7),
-  });
-
-  if (error) {
+  let data;
+  try {
+    ({ data } = await unkey.keys.verifyKey({ key: authHeader.slice(7) }));
+  } catch {
     return res.status(503).json({ error: "Service unavailable" });
   }
 
@@ -181,12 +178,13 @@ export function requirePermission(permission: string) {
       return res.status(401).json({ error: "Missing API key" });
     }
 
-    const { meta, data, error } = await unkey.keys.verifyKey({
-      key: authHeader.slice(7),
-      permissions: permission, // Check for this permission
-    });
-
-    if (error) {
+    let data;
+    try {
+      ({ data } = await unkey.keys.verifyKey({
+        key: authHeader.slice(7),
+        permissions: permission, // Check for this permission
+      }));
+    } catch {
       return res.status(503).json({ error: "Service unavailable" });
     }
 
@@ -259,13 +257,14 @@ export function createAuthMiddleware(options: AuthOptions = {}) {
       return res.status(401).json({ error: "Missing API key" });
     }
 
-    const { meta, data, error } = await unkey.keys.verifyKey({
-      key: apiKey,
-      permissions,
-    });
-
-    if (error) {
-      return onError(req, res, error);
+    let data;
+    try {
+      ({ data } = await unkey.keys.verifyKey({
+        key: apiKey,
+        permissions,
+      }));
+    } catch (err) {
+      return onError(req, res, err as Error);
     }
 
     if (!data.valid) {
@@ -310,21 +309,9 @@ export async function unkeyAuth(
   }
 
   try {
-    const { meta, data, error } = await unkey.keys.verifyKey({
+    const { data } = await unkey.keys.verifyKey({
       key: apiKey,
     });
-
-    if (error) {
-      // Log for monitoring
-      console.error("Unkey verification error:", error);
-
-      // Option 1: Fail closed (more secure)
-      return res.status(503).json({ error: "Authentication unavailable" });
-
-      // Option 2: Fail open (better availability, less secure)
-      // console.warn("Allowing request due to Unkey unavailability");
-      // return next();
-    }
 
     if (!data.valid) {
       return res.status(401).json({ error: data.code });
@@ -333,8 +320,15 @@ export async function unkeyAuth(
     req.unkey = data;
     next();
   } catch (e) {
-    console.error("Unexpected auth error:", e);
-    return res.status(503).json({ error: "Authentication service error" });
+    // Log for monitoring
+    console.error("Unkey verification error:", e);
+
+    // Option 1: Fail closed (more secure)
+    return res.status(503).json({ error: "Authentication unavailable" });
+
+    // Option 2: Fail open (better availability, less secure)
+    // console.warn("Allowing request due to Unkey unavailability");
+    // return next();
   }
 }
 ```

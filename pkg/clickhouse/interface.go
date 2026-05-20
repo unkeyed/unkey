@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
 
 type Querier interface {
@@ -40,6 +41,12 @@ type Querier interface {
 	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
 	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
 	GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error)
+
+	// InsertAuditLogs synchronously writes a batch of audit log rows to
+	// audit_logs_raw_v1. Used by the AuditLogExport outbox worker — returns
+	// only after ClickHouse confirms the insert so the caller can safely
+	// mark the source MySQL rows as exported.
+	InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error
 }
 
 type ClickHouse interface {

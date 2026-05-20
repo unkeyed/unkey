@@ -37,10 +37,13 @@ import (
 // or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
 // and Image must be non-empty; CpuMillicores and MemoryMib must be > 0.
 //
-// The namespace is created automatically if it doesn't exist, along with a
-// CiliumNetworkPolicy restricting ingress to matching sentinels. Pods run with gVisor
-// isolation (RuntimeClass "gvisor") since they execute untrusted user code, and are
-// scheduled on Karpenter-managed untrusted nodes with zone-spread constraints.
+// The namespace is created automatically if it doesn't exist. After the
+// ReplicaSet is applied a CiliumNetworkPolicy is installed in the same
+// namespace, owned by the ReplicaSet, that permits ingress only from
+// frontline pods on the deployment's container port. Pods run with gVisor
+// isolation (RuntimeClass "gvisor") since they execute untrusted user code,
+// and are scheduled on Karpenter-managed untrusted nodes with zone-spread
+// constraints.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
 	logger.Info("applying deployment",
@@ -59,6 +62,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		assert.NotEmpty(req.GetImage(), "Image is required"),
 		assert.Greater(req.GetCpuMillicores(), int64(0), "CPU millicores must be greater than 0"),
 		assert.Greater(req.GetMemoryMib(), int64(0), "MemoryMib must be greater than 0"),
+		assert.Greater(req.GetPort(), int32(0), "Port must be greater than 0"),
 		assert.GreaterOrEqual(req.GetAutoscaling().GetMinReplicas(), uint32(1), "Autoscaling min_replicas must be at least 1"),
 		assert.GreaterOrEqual(req.GetAutoscaling().GetMaxReplicas(), req.GetAutoscaling().GetMinReplicas(), "Autoscaling max_replicas must be >= min_replicas"),
 	)
@@ -127,12 +131,14 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", max(req.GetCpuMillicores()/resourceRequestFraction, 1))),
-				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", max(req.GetMemoryMib()/resourceRequestFraction, 1))),
+				corev1.ResourceCPU:              resource.MustParse(fmt.Sprintf("%dm", max(req.GetCpuMillicores()/resourceRequestFraction, 1))),
+				corev1.ResourceMemory:           resource.MustParse(fmt.Sprintf("%dMi", max(req.GetMemoryMib()/resourceRequestFraction, 1))),
+				corev1.ResourceEphemeralStorage: resource.MustParse(fmt.Sprintf("%dMi", max(defaultContainerEphemeralStorageMib/resourceRequestFraction, 1))),
 			},
 			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", req.GetCpuMillicores())),
-				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", req.GetMemoryMib())),
+				corev1.ResourceCPU:              resource.MustParse(fmt.Sprintf("%dm", req.GetCpuMillicores())),
+				corev1.ResourceMemory:           resource.MustParse(fmt.Sprintf("%dMi", req.GetMemoryMib())),
+				corev1.ResourceEphemeralStorage: resource.MustParse(fmt.Sprintf("%dMi", defaultContainerEphemeralStorageMib)),
 			},
 		},
 	}
@@ -239,7 +245,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},
-			MinReadySeconds: 30,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: fmt.Sprintf("%s-", req.GetK8SName()),
@@ -298,6 +303,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
 		return fmt.Errorf("failed to ensure HPA: %w", err)
+	}
+
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, applied); err != nil {
+		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
 	}
 
 	status, err := c.buildDeploymentStatus(ctx, applied)

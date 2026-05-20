@@ -1,0 +1,200 @@
+---
+title: 'Customer Portal'
+description: 'Give your end users a self-service portal for API keys, analytics, and docs'
+---
+
+The Customer Portal is a white-labeled web app you can offer to your end users. They get key management, usage analytics, and API documentation — without you building any UI.
+
+Authentication uses a Stripe-style session flow: your backend creates a session, redirects the user, and the portal handles the rest.
+
+<Note>
+The portal is in development. Key management, analytics, and docs pages are placeholder UI for now.
+</Note>
+
+## How it works
+
+```
+Your Backend                    Unkey API                     Portal
+    │                              │                            │
+    ├─ POST /v2/portal.createSession ─►│                        │
+    │◄── sessionId + portal URL ───┤                            │
+    │                              │                            │
+    ├─ Redirect user to portal URL ─────────────────────────────►│
+    │                              │◄─ POST /v2/portal.exchangeSession ─┤
+    │                              │──── browser session token ──►│
+    │                              │                            │
+    │                              │◄── Direct API calls ───────┤
+```
+
+1. Your backend authenticates the user in your own system
+2. Your backend calls `POST /v2/portal.createSession` with a root key
+3. You redirect the user to the returned portal URL
+4. The portal exchanges the session ID for a 24-hour browser session
+5. The browser calls Unkey API directly with the session token
+
+## 1. Configure a portal
+
+Enable the Customer Portal for your workspace in the Unkey dashboard.
+
+<Note>
+Dashboard configuration UI is coming soon. During early access, reach out to the Unkey team to get your portal configured.
+</Note>
+
+When configuring your portal, you'll choose a slug — a short, human-readable identifier like `my-portal` or `billing-dashboard`. Use this slug when creating sessions.
+
+Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, and cannot start or end with a hyphen.
+
+Optionally, you can customize branding with your logo and brand colors.
+
+## 2. Create a session
+
+When your user wants to access the portal, create a session from your backend:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/portal.createSession \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "my-portal",
+    "externalId": "user_123",
+    "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]
+  }'
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.UNKEY_ROOT_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    slug: "my-portal",
+    externalId: "user_123",
+    permissions: ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"],
+  }),
+});
+
+const { data } = await response.json();
+// data.sessionId  — short-lived token (15 min)
+// data.url        — full portal URL with session param
+// data.expiresAt  — expiry timestamp (unix ms)
+```
+
+```go Go
+// Use your preferred HTTP client
+body := map[string]any{
+    "slug":        "my-portal",
+    "externalId":  "user_123",
+    "permissions": []string{"api.*.read_key", "api.*.create_key", "api.*.read_analytics"},
+}
+```
+
+</CodeGroup>
+
+The response:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "sessionId": "pst_xxx",
+    "url": "https://portal.unkey.com/?session=pst_xxx",
+    "expiresAt": 1742000000000
+  }
+}
+```
+
+### Required parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `slug` | `string` | Human-readable identifier for your portal configuration |
+| `externalId` | `string` | Your user's identifier in your system |
+| `permissions` | `string[]` | Controls which portal tabs are visible |
+
+### Optional parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `preview` | `boolean` | Shows a "Preview mode" banner — useful for testing as a specific user |
+
+```bash
+curl -X POST https://api.unkey.com/v2/portal.createSession \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "my-portal",
+    "externalId": "user_123",
+    "permissions": ["api.*.read_key", "api.*.read_analytics"],
+    "preview": true
+  }'
+```
+
+## 3. Redirect your user
+
+Send the user to the portal URL. The session ID is valid for 15 minutes and can only be used once.
+
+```typescript
+// In your backend route handler
+return Response.redirect(data.url, 302);
+```
+
+The portal will:
+1. Exchange the session ID for a 24-hour browser session
+2. Set an httpOnly cookie
+3. Redirect to the first visible tab based on permissions
+
+## Permissions and tabs
+
+Permissions use the RBAC tuple format `{resourceType}.{resourceId}.{action}`. Use `*` as the resourceId to grant access to all resources of that type.
+
+Tab visibility is derived from the action segment (third part) of each permission:
+
+| Action | Tab |
+|--------|-----|
+| `read_key`, `create_key`, `update_key`, `delete_key` | API Keys |
+| `read_analytics` | Analytics |
+| Any permission present | Documentation |
+
+Examples:
+- `api.*.read_key` → shows the Keys tab
+- `api.api_123.create_key` → shows the Keys tab (specific resource)
+- `api.*.read_analytics` → shows the Analytics tab
+- Docs tab is visible whenever at least one permission is present
+
+The API requires at least one permission. An empty permissions array is rejected with HTTP 400.
+
+## Session lifecycle
+
+| Token | Lifetime | Usage |
+|-------|----------|-------|
+| Session ID (`pst_xxx`) | 15 minutes | Single-use, exchanged for browser session |
+| Browser session | 24 hours | Stored as httpOnly cookie, used for API calls |
+
+When the browser session expires:
+- If `return_url` is set on the portal config → redirects to `{return_url}?reason=session_expired`
+- Otherwise → shows a "Session expired" error page
+
+## Branding
+
+The portal supports basic white-labeling:
+
+| Setting | Default |
+|---------|---------|
+| Primary color | `#2563eb` |
+| Logo | None |
+
+Logo URLs must be HTTPS.
+
+## Error responses
+
+| Scenario | Status | Message |
+|----------|--------|---------|
+| Missing or invalid JSON body | 400 | `Bad Request` |
+| Invalid root key | 401 | `Unauthorized` |
+| Portal disabled | 403 | `Portal is disabled.` |
+| Portal config not found | 404 | `Portal configuration not found.` |
+| Invalid/expired/used session on exchange | 401 | `Session is invalid, expired, or has already been used.` |

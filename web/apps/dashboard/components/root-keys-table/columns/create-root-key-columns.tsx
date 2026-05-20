@@ -1,8 +1,10 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
+import { Page2 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
-  AssignedItemsCell,
+  AssignedCountCell,
+  ExpiresCell,
   HiddenValueCell,
   LastUpdatedCell,
   RootKeyNameCell,
@@ -28,6 +30,7 @@ export const ROOT_KEY_COLUMN_IDS = {
   PERMISSIONS: { id: "permissions", accessorKey: "permissions", header: "Permissions" },
   CREATED_AT: { id: "created_at", accessorKey: "created_at", header: "Created At" },
   LAST_UPDATED: { id: "last_updated", accessorKey: "last_updated", header: "Last Updated" },
+  EXPIRES: { id: "expires", accessorKey: "expires", header: "Expires" },
   ACTION: { id: "action", accessorKey: "action", header: "Action" },
 } as const;
 
@@ -49,7 +52,10 @@ export const createRootKeyColumns = ({
       </SortableHeader>
     ),
     meta: {
-      width: "20%",
+      width: {
+        min: 170,
+        max: 400,
+      },
       headerClassName: "pl-[18px]",
     },
     cell: ({ row }) => {
@@ -64,7 +70,10 @@ export const createRootKeyColumns = ({
     header: ROOT_KEY_COLUMN_IDS.KEY.header,
     enableSorting: false,
     meta: {
-      width: "18%",
+      width: {
+        min: 170,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const rootKey = row.original;
@@ -91,14 +100,19 @@ export const createRootKeyColumns = ({
     header: ROOT_KEY_COLUMN_IDS.PERMISSIONS.header,
     enableSorting: false,
     meta: {
-      width: "15%",
+      width: {
+        min: 170,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const rootKey = row.original;
       return (
-        <AssignedItemsCell
+        <AssignedCountCell
+          count={rootKey.permissionSummary.total}
+          icon={<Page2 iconSize="md-medium" className="opacity-50" />}
+          singularLabel="Permission"
           isSelected={rootKey.id === selectedRootKeyId}
-          permissionSummary={rootKey.permissionSummary}
         />
       );
     },
@@ -113,7 +127,10 @@ export const createRootKeyColumns = ({
       </SortableHeader>
     ),
     meta: {
-      width: "14%",
+      width: {
+        min: 140,
+        max: 300,
+      },
     },
     cell: ({ row }) => {
       const rootKey = row.original;
@@ -134,7 +151,10 @@ export const createRootKeyColumns = ({
       </SortableHeader>
     ),
     meta: {
-      width: "20%",
+      width: {
+        min: 140,
+        max: 300,
+      },
     },
     cell: ({ row }) => {
       const rootKey = row.original;
@@ -147,10 +167,35 @@ export const createRootKeyColumns = ({
     },
   },
   {
+    id: ROOT_KEY_COLUMN_IDS.EXPIRES.id,
+    accessorKey: ROOT_KEY_COLUMN_IDS.EXPIRES.accessorKey,
+    sortDescFirst: true,
+    header: ({ header }) => (
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.EXPIRES.id} header={header}>
+        {ROOT_KEY_COLUMN_IDS.EXPIRES.header}
+      </SortableHeader>
+    ),
+    meta: {
+      width: {
+        min: 140,
+        max: 300,
+      },
+    },
+    cell: ({ row }) => {
+      const rootKey = row.original;
+      return (
+        <ExpiresCell expiresAt={rootKey.expires} isSelected={rootKey.id === selectedRootKeyId} />
+      );
+    },
+  },
+  {
     id: ROOT_KEY_COLUMN_IDS.ACTION.id,
     header: "",
     meta: {
-      width: "auto",
+      width: {
+        min: 140,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const rootKey = row.original;

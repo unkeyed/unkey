@@ -121,6 +121,146 @@ var (
 			Buckets:   []float64{0.1, 0.5, 1, 2, 5, 10, 30, 60},
 		},
 	)
+
+	// PodWatchEventsTotal counts pod watch events and their disposition for
+	// both the deployment and sentinel controllers.
+	//
+	// Labels:
+	//   - "component": "deployment" or "sentinel"
+	//   - "event_type": k8s watch event type ("added", "modified", "deleted")
+	//   - "outcome": "reported", "deduped", "skipped_no_rs", "skipped_rs_gone",
+	//                "skipped_no_deployment", "error"
+	PodWatchEventsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "pod_watch_events_total",
+			Help:      "Pod watch events received by krane controllers.",
+		},
+		[]string{"component", "event_type", "outcome"},
+	)
+
+	// PodWatchDeliveryLagSeconds measures time between the kubelet publishing
+	// ContainersReady=True on a pod and krane first observing it via the
+	// real-time watch.
+	//
+	// Only emitted from the watch path (see observePodReadyLagOnTransition):
+	// observing lag from the resync or list-sync paths would re-sample the
+	// same static LastTransitionTime on every pass and report pod age as
+	// "lag". The drift signal ("resync had to correct something the watch
+	// missed") lives on [ResyncCorrectionsTotal].
+	//
+	// Labels:
+	//   - "component": "deployment" or "sentinel"
+	//   - "source": "watch" (real-time) — kept as a label for future
+	//               resync-sourced samples.
+	PodWatchDeliveryLagSeconds = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "pod_watch_delivery_lag_seconds",
+			Help:      "Lag between pod ContainersReady=True and krane observing it via the watch.",
+			Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60},
+		},
+		[]string{"component", "source"},
+	)
+
+	// PodWatchReconnectsTotal counts pod watch reconnect attempts by reason.
+	// Events arriving during the 1-5s reconnect backoff are dropped and fall
+	// to the resync loop, so a high rate here correlates with lag spikes
+	// on the "resync" label of PodWatchDeliveryLagSeconds.
+	//
+	// Labels:
+	//   - "component": "deployment" or "sentinel"
+	//   - "reason": "channel_closed", "error"
+	PodWatchReconnectsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "pod_watch_reconnects_total",
+			Help:      "Pod watch reconnect attempts by reason.",
+		},
+		[]string{"component", "reason"},
+	)
+
+	// ReportStatusDurationSeconds measures krane-side latency of the
+	// ReportDeploymentStatus and ReportSentinelStatus RPCs, including
+	// circuit breaker overhead.
+	//
+	// Labels:
+	//   - "component": "deployment" or "sentinel"
+	//   - "result": "success", "error"
+	ReportStatusDurationSeconds = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "report_status_duration_seconds",
+			Help:      "Duration of ReportDeploymentStatus / ReportSentinelStatus calls from krane.",
+			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5},
+		},
+		[]string{"component", "result"},
+	)
+
+	// ReportDedupedTotal counts reportIfChanged invocations that were skipped
+	// because the fingerprint matched the last successful report.
+	//
+	// Labels:
+	//   - "component": "deployment" or "sentinel"
+	ReportDedupedTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "report_deduped_total",
+			Help:      "Status reports skipped by fingerprint dedup.",
+		},
+		[]string{"component"},
+	)
+
+	// InstanceEventsEmittedTotal counts container lifecycle events
+	// successfully reported to the control plane.
+	//
+	// Labels:
+	//   - "kind": "terminated" or "crashloop_backoff"
+	//   - "reason": kubelet-supplied reason ("OOMKilled", "Error",
+	//     "ContainerCannotRun", "CrashLoopBackOff", ...)
+	InstanceEventsEmittedTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "instance_events_emitted_total",
+			Help:      "Container lifecycle events successfully reported via ReportInstanceEvents.",
+		},
+		[]string{"kind", "reason"},
+	)
+
+	// InstanceEventsDedupDroppedTotal counts events dropped by the
+	// in-memory LRU because the same (pod_uid, container_name,
+	// restart_count, event_kind) tuple was already reported. Healthy
+	// counter — every pod-watch tick after the first will hit dedup.
+	//
+	// Labels:
+	//   - "kind": "terminated" or "crashloop_backoff"
+	InstanceEventsDedupDroppedTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "instance_events_dedup_dropped_total",
+			Help:      "Container lifecycle events skipped because the LRU already saw them.",
+		},
+		[]string{"kind"},
+	)
+
+	// InstanceEventsReportFailuresTotal counts ReportInstanceEvents RPC
+	// transport failures. Should track the existing krane→ctrl RPC
+	// failure rate; a divergence means something specific to this RPC.
+	InstanceEventsReportFailuresTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "instance_events_report_failures_total",
+			Help:      "ReportInstanceEvents RPC transport failures.",
+		},
+	)
 )
 
 // RecordReconcile records a reconciliation operation result. Intended for use

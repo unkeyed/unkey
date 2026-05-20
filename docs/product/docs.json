@@ -16,6 +16,7 @@
       "claude"
     ]
   },
+  "description": "Unkey API development platform. Deploy and secure APIs instantly, route traffic through global gateways, and understand usage in one place.",
   "favicon": "/unkey.png",
   "fonts": {
     "family": "Geist"
@@ -67,8 +68,9 @@
             "group": "Getting Started",
             "pages": [
               "introduction",
-              "quickstart/quickstart",
               "quickstart/deploy",
+              "quickstart/quickstart",
+              "quickstart/portal",
               "glossary"
             ]
           },
@@ -211,7 +213,10 @@
               "build-and-deploy/overview",
               "build-and-deploy/deployments",
               "build-and-deploy/github",
+              "build-and-deploy/cli",
+              "build-and-deploy/cli-vs-github",
               "builds/overview",
+              "builds/dockerfile-prompt",
               "environments/overview",
               "build-and-deploy/regions",
               "build-and-deploy/rollbacks",
@@ -226,6 +231,7 @@
               "networking/domains",
               "networking/private-networking",
               "networking/public-networking",
+              "networking/websockets",
               "networking/wildcard-domains"
             ]
           },
@@ -294,7 +300,6 @@
                   "cookbook/go-gin-middleware",
                   "cookbook/go-echo-middleware",
                   "cookbook/fastapi-auth",
-                  "cookbook/python-flask-auth",
                   "cookbook/usage-billing",
                   "cookbook/tiered-subscriptions"
                 ]
@@ -320,8 +325,7 @@
                     "group": "Cookbook",
                     "pages": [
                       "cookbook/per-user-ratelimit",
-                      "cookbook/endpoint-ratelimit",
-                      "cookbook/python-fastapi-ratelimit"
+                      "cookbook/endpoint-ratelimit"
                     ]
                   }
                 ]
@@ -462,7 +466,9 @@
                     "pages": [
                       "errors/unkey/authentication/key_not_found",
                       "errors/unkey/authentication/malformed",
-                      "errors/unkey/authentication/missing"
+                      "errors/unkey/authentication/missing",
+                      "errors/unkey/authentication/portal_session_not_found",
+                      "errors/unkey/authentication/portal_token_missing"
                     ]
                   },
                   {
@@ -489,6 +495,7 @@
                       "errors/unkey/data/migration_not_found",
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
+                      "errors/unkey/data/portal_config_not_found",
                       "errors/unkey/data/project_not_found",
                       "errors/unkey/data/ratelimit_namespace_gone",
                       "errors/unkey/data/ratelimit_namespace_not_found",

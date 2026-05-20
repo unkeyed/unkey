@@ -80,15 +80,23 @@ UNKEY_ROOT_KEY=unkey_...
 
 ## Rotate a root key
 
-To rotate a root key without downtime:
+Rotation issues a new root key with the same permissions as the original and schedules the old key to expire after a grace period you choose. Use it for routine credential rotation or to replace a leaked key without downtime.
 
-1. Create a new root key with the same permissions as the existing one.
-2. Update your application's environment variables with the new key.
-3. Deploy the change.
-4. Verify the new key is working by checking your application logs or the Unkey audit log.
-5. Delete the old root key.
+1. Navigate to **Settings > Root Keys**.
+2. Click the actions menu (**...**) on the key row.
+3. Select **Rotate root key**.
+4. Choose a grace period for the old key:
+   - **Revoke immediately** – revoke the old key as soon as the new one is created.
+   - **1 minute**, **15 minutes**, **1 hour**, **6 hours**, or **24 hours** – keep the old key valid for that long so deployed services keep working while you roll out the new key.
+5. Click **Rotate key**.
+6. Copy the new key secret from the success dialog and store it. The plaintext is shown only once.
+7. Update your application's environment variables with the new key and deploy.
 
-Both keys are valid simultaneously, so your application continues to work throughout the process.
+The new key inherits the original permissions and any expiration that was already set. The old key continues to verify until the grace period elapses, then it is revoked automatically. Expired keys cannot be rotated; create a new key instead.
+
+<Tip>
+  Choose a grace period that covers your slowest deploy. If a service still uses the old key after the grace period ends, it will receive an `EXPIRED` response.
+</Tip>
 
 ## Best practices
 

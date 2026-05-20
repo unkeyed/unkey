@@ -95,15 +95,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.APICreateEvent,
-				Display:     fmt.Sprintf("Created API %s", apiId),
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				ActorType:   auditlog.RootKeyActor,
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.APICreateEvent,
+				Display:       fmt.Sprintf("Created API %s", apiId),
+				ActorID:       auth.Key.ID,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				ActorType:     auditlog.RootKeyActor,
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          apiId,

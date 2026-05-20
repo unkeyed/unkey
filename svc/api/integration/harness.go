@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/api"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
 
 // ApiConfig holds configuration for dynamic API container creation
@@ -38,7 +39,9 @@ type Harness struct {
 	cancel        context.CancelFunc
 	instanceAddrs []string
 	Seed          *seed.Seeder
+	Clock         *clock.TestClock
 	dbDSN         string
+	chDSN         string
 	DB            db.Database
 	CH            clickhouse.ClickHouse
 	apiCluster    *ApiCluster
@@ -53,6 +56,11 @@ type Harness struct {
 type Config struct {
 	// NumNodes is the number of API nodes to create in the cluster
 	NumNodes int
+
+	// TestClock, when set, is shared by every API node in the harness. Tests
+	// that advance simulated time must use this instead of a local clock so
+	// request handlers and background services observe the same time.
+	TestClock *clock.TestClock
 }
 
 // New creates a new cluster test harness
@@ -62,26 +70,18 @@ func New(t *testing.T, config Config) *Harness {
 	require.Greater(t, config.NumNodes, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Get service configurations
-	clickhouseHostDSN := containers.ClickHouse(t)
+	// Spin up MySQL and ClickHouse once per harness; all in-process API
+	// nodes share these.
+	mysqlCfg := containers.MySQL(t)
+	chCfg := containers.ClickHouse(t)
 
-	// Create real ClickHouse client
 	ch, err := clickhouse.New(clickhouse.Config{
-		URL: clickhouseHostDSN,
+		URL: chCfg.DSN,
 	})
 	require.NoError(t, err)
 
-	mysqlHostCfg := containers.MySQL(t)
-	mysqlHostCfg.DBName = "unkey"
-	mysqlHostDSN := mysqlHostCfg.FormatDSN()
-
-	// For docker DSN, use docker service name
-	mysqlDockerCfg := containers.MySQL(t)
-	mysqlDockerCfg.Addr = "mysql:3306"
-	mysqlDockerCfg.DBName = "unkey"
-	mysqlDockerDSN := mysqlDockerCfg.FormatDSN()
 	db, err := db.New(db.Config{
-		PrimaryDSN:  mysqlHostDSN,
+		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
 	})
 	require.NoError(t, err)
@@ -92,7 +92,9 @@ func New(t *testing.T, config Config) *Harness {
 		cancel:        cancel,
 		instanceAddrs: []string{},
 		Seed:          seed.New(t, db, nil),
-		dbDSN:         mysqlHostDSN,
+		Clock:         config.TestClock,
+		dbDSN:         mysqlCfg.DSN,
+		chDSN:         chCfg.DSN,
 		DB:            db,
 		CH:            ch,
 		apiCluster:    nil, // Will be set later
@@ -104,8 +106,8 @@ func New(t *testing.T, config Config) *Harness {
 	// Create dynamic API container cluster
 	cluster := h.RunAPI(ApiConfig{
 		Nodes:         config.NumNodes,
-		MysqlDSN:      mysqlDockerDSN,
-		ClickhouseDSN: clickhouseHostDSN,
+		MysqlDSN:      mysqlCfg.DSN,
+		ClickhouseDSN: chCfg.DSN,
 	})
 	h.apiCluster = cluster
 	h.instanceAddrs = cluster.Addrs
@@ -131,10 +133,12 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		cluster.Addrs[i] = fmt.Sprintf("http://%s", ln.Addr().String())
 
 		// Create API config for this node using host connections
-		mysqlHostCfg := containers.MySQL(h.t)
-		mysqlHostCfg.DBName = "unkey"
-		clickhouseHostDSN := containers.ClickHouse(h.t)
-		vaultURL, vaultToken := containers.Vault(h.t)
+		testVault := vaulttestutil.StartTestVaultWithMemory(h.t)
+		apiClock := clock.Clock(clock.New())
+		if h.Clock != nil {
+			apiClock = h.Clock
+		}
+
 		apiConfig := api.Config{
 			HttpPort:   7070,
 			Platform:   "test",
@@ -142,7 +146,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			RedisURL:   "", // Ignored: Test.Counter overrides the backend.
 			Region:     "test",
 			InstanceID: fmt.Sprintf("test-node-%d", i),
-			Clock:      clock.New(),
+			Clock:      apiClock,
 			Test: api.TestConfig{
 				Enabled:  true,
 				Counter:  h.counter,
@@ -151,18 +155,20 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			TLSConfig:          nil,
 			MaxRequestBodySize: 0,
 			Database: sharedconfig.DatabaseConfig{
-				Primary:         mysqlHostCfg.FormatDSN(),
+				Primary:         h.dbDSN,
 				ReadonlyReplica: "",
 			},
 			ClickHouse: api.ClickHouseConfig{
-				URL:          clickhouseHostDSN,
+				URL:          h.chDSN,
 				AnalyticsURL: "",
 			},
 			Observability: sharedconfig.Observability{
 				Tracing: nil,
+
+				// our tests were drowning in logs, so we disable them ehre
 				Logging: &sharedconfig.LoggingConfig{
-					SampleRate:    1.0,
-					SlowThreshold: time.Second,
+					SampleRate:    0,
+					SlowThreshold: time.Hour,
 				},
 				Metrics: &sharedconfig.MetricsConfig{
 					PrometheusPort: 0,
@@ -174,8 +180,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				KeyFile:  "",
 			},
 			Vault: sharedconfig.VaultConfig{
-				URL:   vaultURL,
-				Token: vaultToken,
+				URL:   testVault.URL,
+				Token: testVault.Token,
 			},
 			Control: sharedconfig.ControlConfig{
 				URL:   "http://control:7091",
@@ -186,7 +192,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				Password: "password",
 				Port:     0,
 			},
-			Gossip: nil,
+			Gossip:        nil,
+			PortalBaseURL: "https://portal.test.local",
 		}
 
 		// Start API server in goroutine

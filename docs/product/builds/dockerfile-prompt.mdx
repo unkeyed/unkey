@@ -1,0 +1,185 @@
+---
+title: Generate a Dockerfile with AI
+description: "Copy this prompt into Claude Code, Cursor, Windsurf, or any coding agent to generate a Dockerfile and .dockerignore for your app or monorepo that runs correctly on Unkey Deploy."
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+If you're not comfortable writing a Dockerfile from scratch, hand the prompt below to a coding agent. It tells the agent to first inspect your repository and then produce a Dockerfile plus a `.dockerignore` that respect Unkey Deploy's runtime constraints (reading `PORT`, handling `SIGTERM`, build secrets via mount).
+
+## How to use it
+
+Open your repository in your coding agent of choice (Claude Code, Cursor, Windsurf, Codex, or similar), start a fresh conversation, and paste the prompt verbatim. The agent will ask clarifying questions if anything about your project is ambiguous (for example, which app in a monorepo you're deploying) before writing any files.
+
+Once the files land in your repo, push to the branch connected to your Unkey project. Review the [Dockerfile path](/platform/apps/settings#dockerfile) and [root directory](/platform/apps/settings#root-directory) settings in your app so the build picks the right context.
+
+## The prompt
+
+````
+You're helping create a Dockerfile for an application that will be deployed on
+Unkey Deploy (https://unkey.com/docs/build-and-deploy/overview). Before writing
+anything, inspect the repository so the Dockerfile matches how the app is
+actually built and run.
+
+## Rule: never assume, always ask
+
+If anything is ambiguous, stop and ask the user. Do not guess. This includes
+(but is not limited to):
+
+- Which app in a monorepo should be deployed.
+- Which Node/Python/Go/Bun/etc. version to target if the repo doesn't pin one.
+- Which package manager to use if multiple lockfiles exist.
+- Which command starts the app, if there are several plausible scripts.
+- Which port the app listens on, if it isn't clearly set from `PORT`.
+- Whether the build needs secrets, and which ones.
+- Whether the app writes to disk at runtime, and where.
+
+Ask one question at a time. Wait for the answer, then ask the next one.
+Batching several questions into a single message makes it hard for the user
+to answer each in detail, and they often miss or skip some. A wrong
+assumption here means the build succeeds but the deploy fails, and the user
+has to debug a running container to figure out why.
+
+## Step 1: Inspect the repo
+
+Identify:
+- Language and runtime version (Node.js, Bun, Python, Go, Rust, Java, etc.).
+- Package manager and lockfile (npm, pnpm, yarn, poetry, uv, pip, cargo, go mod).
+- Build tool and output directory (next, vite, tsc, esbuild, turbo, go build,
+  cargo build, etc.).
+- The start command and the port the app listens on. Check for `process.env.PORT`,
+  `os.getenv("PORT")`, config files, or framework defaults.
+- Monorepo tooling (pnpm/npm/yarn workspaces, Turborepo, Nx, Lerna, Cargo
+  workspaces, Go workspaces). If present, ask which app we're dockerizing and
+  figure out which internal packages it depends on.
+- Any existing Dockerfile or container config to preserve intent from.
+
+## Step 2: Respect Unkey Deploy's runtime constraints
+
+These are not general Docker guidance. The image will not run correctly without
+them.
+
+1. Listen on the `PORT` environment variable (default 8080). Unkey injects
+   `PORT` at startup. Do not hardcode a port.
+2. Handle `SIGTERM` for graceful shutdown. Use the exec form for `CMD`
+   (for example `CMD ["node", "dist/index.js"]`) so the app process is PID 1
+   and receives signals directly instead of a shell swallowing them.
+3. Scratch and ephemeral storage:
+   - `/tmp`: small, memory-backed scratch space, always available.
+   - `/data`: available only if ephemeral storage is configured. The mount
+     path is exposed in the `UNKEY_EPHEMERAL_DISK_PATH` env var.
+4. Build-time secrets come from a mounted file, never `ARG` or `ENV` for
+   the values themselves. If the build needs secrets (private package
+   tokens, codegen against a real DB URL), consume them like this:
+
+   ARG UNKEY_SECRETS_ID
+   RUN --mount=type=secret,id=${UNKEY_SECRETS_ID},target=/run/secrets/.env \
+       set -a && . /run/secrets/.env && set +a && \
+       <your build command>
+
+   `UNKEY_SECRETS_ID` is a build argument Unkey injects. Declare
+   `ARG UNKEY_SECRETS_ID` in every stage that mounts the secret; ARG
+   values are not inherited across stages.
+
+   `ARG` and `ENV` values for actual secret content are visible in
+   `docker history` and leak into the final image. Don't use them that
+   way.
+
+## Step 3: Apply these best practices
+
+- Multi-stage build: one stage for dependencies and build, a minimal final
+  stage with only the runtime artifacts. Keeps the image small and keeps
+  build tools out of production.
+- Pin the base image to a specific version (for example `node:22-alpine`,
+  not `node:latest`).
+- Cache dependency installs. Copy only the manifest files (`package.json`,
+  lockfile, `go.mod`, `Cargo.toml`, etc.) first, install, then copy the rest
+  of the source. Reordering kills the cache.
+- Prefer slim or distroless base images when the runtime is compatible.
+- Run as a non-root user (`USER node`, `USER nobody`, or a dedicated user
+  you create). Non-root is cheap extra defense.
+- One foreground process. No supervisord, no `&`, no wrapper shell scripts
+  that background the app.
+
+## Step 4: Monorepo handling
+
+If the project is a monorepo:
+- Do not assume any folder convention. Monorepos put apps under `apps/`,
+  `packages/`, `services/`, `cmd/`, or anywhere else. Read the repo's own
+  workspace config (pnpm `workspace:`, npm/yarn `workspaces`, `turbo.json`,
+  `nx.json`, `go.work`, `Cargo.toml` workspace members) to find the real
+  paths. If more than one candidate fits what the user described, ask which
+  one to deploy.
+- Ship only the target app and its workspace dependencies. Use the
+  monorepo's pruning tool: `pnpm deploy`, `turbo prune`, Nx's `build
+  --prod`, or equivalent. Do not COPY the whole monorepo into the image.
+- Place the Dockerfile next to the app you're deploying (wherever that
+  actually lives in the repo), and keep the build context at the repo root
+  so workspace packages resolve correctly.
+- In the summary, tell the user the exact **Root directory** and
+  **Dockerfile** values to set in Unkey's app settings, using the real paths
+  you used.
+
+## Step 5: Write a .dockerignore
+
+Create a `.dockerignore` next to the Dockerfile's build context. Always exclude:
+
+.git
+.gitignore
+node_modules
+.next
+dist
+build
+out
+coverage
+.env
+.env.*
+*.log
+.DS_Store
+.vscode
+.idea
+README.md
+Dockerfile
+.dockerignore
+
+Add language- and framework-specific entries based on what you found (for
+example `target/` for Rust, `__pycache__/` and `.venv/` for Python, `vendor/`
+for Go if `go mod vendor` isn't used, `.turbo/` for Turborepo). A lean build
+context makes builds faster and prevents `.env` files or other local state
+from accidentally shipping in the image.
+
+## Output
+
+Produce:
+1. A `Dockerfile` at a path that matches the repo's real layout. Do not
+   invent a folder structure. Place it next to the app you're deploying.
+2. A matching `.dockerignore` at the correct build-context root.
+3. A short note listing the exact values to configure in Unkey's app
+   settings, using the real paths you used:
+   - Root directory
+   - Dockerfile path
+   - Port (if the app doesn't listen on 8080)
+   - Start command (only if the Dockerfile's `CMD` should be overridden at
+     the platform level; usually leave this empty)
+````
+
+## What to check before deploying
+
+After the agent finishes, skim the result for these specifics:
+
+The `CMD` instruction uses the exec form (JSON array, not a bare string), so your app receives `SIGTERM` directly when Unkey drains an instance. Any `RUN` step that needs a secret uses the `--mount=type=secret,id=${UNKEY_SECRETS_ID},target=/run/secrets/.env` pattern with `ARG UNKEY_SECRETS_ID` declared in the same stage, rather than `ARG` or `ENV` for the values themselves. The base image is pinned to a specific version and your final stage is slim enough that it doesn't carry the whole build toolchain.
+
+If any of those are wrong, ask the agent to fix them directly. The prompt is short enough to tweak and re-run if your project has an unusual shape.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Builds" icon="hammer" href="/builds/overview">
+    How Unkey turns your Dockerfile into a container image, including build-time secrets and caching.
+  </Card>
+  <Card title="App settings" icon="gear" href="/platform/apps/settings">
+    Configure the Dockerfile path, root directory, port, and runtime options that pair with this Dockerfile.
+  </Card>
+</CardGroup>

@@ -14,6 +14,10 @@ jobs:
   detect_changes:
     if: (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request'
     uses: ./.depot/workflows/job_detect_changes.yaml
+  format_check:
+    name: Format check
+    if: (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request'
+    uses: ./.depot/workflows/job_fmt_check.yaml
   test_packages:
     name: Test Packages
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && (needs.detect_changes.outputs.packages == 'true' || needs.detect_changes.outputs.dependencies == 'true')
@@ -23,6 +27,11 @@ jobs:
     name: Bazel
     uses: ./.depot/workflows/job_bazel.yaml
     secrets: inherit
+  bpf_drift:
+    name: eBPF Drift
+    if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.go == 'true'
+    needs: [detect_changes]
+    uses: ./.depot/workflows/job_bpf_drift.yaml
   test_dashboard:
     name: Test Dashboard
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.dashboard == 'true'
@@ -33,3 +42,9 @@ jobs:
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.workflows == 'true'
     needs: [detect_changes]
     uses: ./.depot/workflows/job_validate_workflows.yaml
+  pscale_pr:
+    name: PlanetScale PR Branch
+    if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.db_schema == 'true'
+    needs: [detect_changes]
+    uses: ./.depot/workflows/job_pscale_pr.yaml
+    secrets: inherit

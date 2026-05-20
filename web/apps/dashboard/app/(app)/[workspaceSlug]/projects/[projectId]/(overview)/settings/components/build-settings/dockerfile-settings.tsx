@@ -104,6 +104,8 @@ export const Dockerfile = () => {
             "Dockerfile location used for docker build. Changes apply on next deploy."
           }
           options={options}
+          wrapperClassName="max-w-[calc(var(--setting-w)-1rem)]"
+          className="max-w-[calc(var(--setting-w)-1rem)]"
           value={currentDockerfile}
           onSelect={(val) => setValue("dockerfile", val, { shouldValidate: true })}
           creatable

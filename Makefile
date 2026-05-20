@@ -14,10 +14,11 @@ install-brew-tools: ## Install Homebrew tools if they don't exist
 	@command -v minikube >/dev/null 2>&1 || { echo "Installing minikube..."; brew install minikube; }
 	@command -v bazel >/dev/null 2>&1 || { echo "Installing bazel..."; brew install bazelisk; }
 	@command -v dprint >/dev/null 2>&1 || { echo "Installing dprint..."; brew install dprint; }
+	@command -v ngrok >/dev/null 2>&1 || { echo "Installing ngrok..."; brew install ngrok; }
 
 .PHONY: install
 install: install-go ## Install all dependencies
-	pnpm --dir=web install --frozen-lockfile
+	cd web && pnpm install --frozen-lockfile
 
 
 
@@ -38,6 +39,19 @@ generate-sql:
 	@rm -rf ./web/internal/db/out
 
 
+.PHONY: pscale-branch
+pscale-branch: ## Create PlanetScale branch + run drizzle migration (BRANCH=name [FROM=staging])
+	@if [ -z "$(BRANCH)" ]; then echo "Error: BRANCH is required (e.g., make pscale-branch BRANCH=florian-scratch)"; exit 1; fi
+	@FROM="$${FROM:-staging}"; \
+	pscale branch create unkey "$(BRANCH)" --org unkey --from "$$FROM" --wait \
+		|| pscale branch show unkey "$(BRANCH)" --org unkey >/dev/null; \
+	PW=$$(pscale password create unkey "$(BRANCH)" "local-$$(date +%s)" --org unkey --format json); \
+	USER=$$(echo "$$PW" | jq -r '.username | @uri'); \
+	PASS=$$(echo "$$PW" | jq -r '.plain_text | @uri'); \
+	HOST=$$(echo "$$PW" | jq -r '.access_host_url | @uri'); \
+	DRIZZLE_DATABASE_URL="mysql://$$USER:$$PASS@$$HOST/unkey?ssl={}" \
+		pnpm --dir=web/internal/db run migrate
+
 .PHONY: nuke-docker
 nuke-docker: ## Stop all containers and clean up Docker system
 	docker stop $$(docker ps -aq)
@@ -55,27 +69,14 @@ fmt: fmt-yaml ## Format code
 	go fmt ./...
 	go tool buf format -w
 
-	pnpm --dir=web fmt
+	cd web && pnpm fmt
 
-.PHONY: pull
-pull: ## Pull latest Docker images for services
-	@docker compose -f ./dev/docker-compose.yaml pull
-
-.PHONY: up
-up: pull ## Start all infrastructure services
-	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel restate ctrl-api --wait
-
-.PHONY: clean
-clean: ## Stop and remove all services with volumes
-	@docker compose -f ./dev/docker-compose.yaml down --volumes
-
-.PHONY: build-web
-build-web: ## Build web services
-	pnpm --dir=web build
 
 .PHONY: build
-build:  ## Build all artifacts
+build:  ## Build all artifacts (binaries land in ./bin)
 	bazel build //...
+	@mkdir -p bin
+	@cp -f "$$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey && chmod +w bin/unkey
 
 .PHONY: bazel
 bazel: ## Sync BUILD.bazel
@@ -83,28 +84,34 @@ bazel: ## Sync BUILD.bazel
 	bazel run //:gazelle
 
 .PHONY: generate
-generate: generate-sql ## Generate code from protobuf and other sources
+generate: generate-sql ## Generate code from protobuf and other sources (NOT eBPF, see generate-bpf)
 	rm -rf ./gen || true
 	rm ./pkg/db/*_generated.go || true
 	go generate ./...
 	go run ./tools/exportoneof ./gen/proto
 	bazel run //:gazelle
 	go fmt ./...
-	pnpm --dir=web fmt
+	cd web && pnpm fmt
+
+.PHONY: generate-bpf
+generate-bpf: ## Compile the heimdall eBPF program and regenerate Go bindings (uses pinned clang/Go in docker for bytewise reproducibility across hosts)
+	@docker build --platform=linux/amd64 -q -t unkey-bpf-gen -f svc/heimdall/internal/network/bpf/Dockerfile.gen svc/heimdall/internal/network/bpf >/dev/null
+	@docker run --rm --platform=linux/amd64 -v "$$PWD:/work" -w /work unkey-bpf-gen \
+		go generate -tags bpf_generate ./svc/heimdall/internal/network/...
 
 .PHONY: test
-test: oci-load ## Run tests with bazel
-	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 vault --wait
+test: oci-load clean-docker-test ## Run tests with bazel
 	bazel test //...
 	make clean-docker-test
 
 .PHONY: clean-docker-test
 clean-docker-test: ## Clean up dangling test containers
+	@docker rm -vf $$(docker ps -q -f label="owner=testutil-containers") > /dev/null 2>&1 || true
 	@docker rm -vf $$(docker ps -q -f label="owner=dockertest") > /dev/null 2>&1 || true
 
 .PHONY: tunnel
 tunnel: ## Forward ports 80/443 to frontline for *.unkey.local (run in separate terminal)
-	@sudo -v && ( while sudo -n true 2>/dev/null; do sleep 50; done & ) && while true; do sudo kubectl port-forward -n unkey svc/frontline 443:443 80:80 2>/dev/null; echo "port-forward exited, reconnecting..."; sleep 1; done
+	@sudo -v && ( while sudo -n true 2>/dev/null; do sleep 50; done & ) && while true; do sudo kubectl port-forward -n frontline svc/frontline 443:443 80:80 2>/dev/null; echo "port-forward exited, reconnecting..."; sleep 1; done
 
 .PHONY: dev
 dev: ## Start dev environment
@@ -118,18 +125,18 @@ dev: ## Start dev environment
 .PHONY: down
 down: ## Stop tilt (keeps cluster)
 	@tilt down -f ./dev/Tiltfile
-
-.PHONY: nuke
-nuke: ## Delete minikube cluster entirely
 	@minikube delete
 
 .PHONY: oci-load
 oci-load: build ## Build and load OCI images into Docker
 	bazel run //:oci_load_unkey
 
-.PHONY: local-dashboard
-local-dashboard: install oci-load ## Run local development setup for dashboard
-	pnpm --dir=web/apps/dashboard local
+.PHONY: dashboard
+dashboard: build oci-load ## Run local development setup for dashboard
+	@test -f web/apps/dashboard/.env || cp web/apps/dashboard/dev/.env.template web/apps/dashboard/.env
+	@docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait
+	@bin/unkey dev seed local
+	@cd web/apps/dashboard && pnpm dev
 
 .PHONY: build-local-image
 build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp TAG=latest)

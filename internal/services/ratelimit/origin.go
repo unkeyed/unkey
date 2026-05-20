@@ -100,10 +100,11 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	durationMs := req.Duration.Milliseconds()
 	sequence := calculateSequence(req.Time, req.Duration)
 	key := counterKey{
-		name:       req.Name,
-		identifier: req.Identifier,
-		durationMs: durationMs,
-		sequence:   sequence,
+		workspaceID: req.WorkspaceID,
+		namespace:   req.Namespace,
+		identifier:  req.Identifier,
+		durationMs:  durationMs,
+		sequence:    sequence,
 	}
 
 	newCounter, err := s.originCircuitBreaker.Do(ctx, func(innerCtx context.Context) (int64, error) {

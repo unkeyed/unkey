@@ -36,6 +36,11 @@ export const ratelimitLogsTimeseriesDataPoint = z.object({
   y: z.object({
     passed: z.int().prefault(0),
     total: z.int().prefault(0),
+    // total_tokens = sum of tokens across all decisions in the bucket.
+    // passed_tokens = sum of tokens for decisions where passed=true.
+    // Blocked tokens are derived in the UI as total_tokens - passed_tokens.
+    passed_tokens: z.int().prefault(0),
+    total_tokens: z.int().prefault(0),
   }),
 });
 
@@ -142,7 +147,9 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
       toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${interval.step}) AS DateTime64(3))) as x,
       map(
         'passed', sum(passed),
-        'total', sum(total)
+        'total', sum(total),
+        'passed_tokens', sum(passed_tokens),
+        'total_tokens', sum(total_tokens)
       ) as y
     FROM ${interval.table}
     ${whereClause}
@@ -572,7 +579,15 @@ export const ratelimitOverviewLogsParams = z.object({
   sorts: z
     .array(
       z.object({
-        column: z.enum(["time", "avg_latency", "p99_latency", "blocked", "passed"]),
+        column: z.enum([
+          "time",
+          "avg_latency",
+          "p99_latency",
+          "blocked",
+          "passed",
+          "passed_tokens",
+          "blocked_tokens",
+        ]),
         direction: z.enum(["asc", "desc"]),
       }),
     )
@@ -585,6 +600,12 @@ export const ratelimitOverviewLogs = z.object({
   request_id: z.string(),
   passed_count: z.int(),
   blocked_count: z.int(),
+  // total_tokens = sum of tokens across all decisions for the identifier in
+  // the window. passed_tokens = sum of tokens for decisions where passed=true.
+  // Blocked tokens are derived in the UI as total_tokens - passed_tokens so
+  // the table reconciles with the bar chart's blocked-tokens series.
+  passed_tokens: z.int().prefault(0),
+  total_tokens: z.int().prefault(0),
   // avg_latency: z.number().int(),
   // p99_latency: z.number().int(),
   override: z
@@ -653,6 +674,8 @@ export function getRatelimitOverviewLogs(ch: Querier) {
       ["p99_latency", "p99_latency"],
       ["passed", "passed_count"],
       ["blocked", "blocked_count"],
+      ["passed_tokens", "passed_tokens"],
+      ["blocked_tokens", "blocked_tokens"],
     ]);
 
     const orderBy =
@@ -676,7 +699,15 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     const hasP99LatencySort = args.sorts?.some((s) => s.column === "p99_latency");
     const hasPassedSort = args.sorts?.some((s) => s.column === "passed");
     const hasBlockedSort = args.sorts?.some((s) => s.column === "blocked");
-    const hasCustomSort = hasAvgLatencySort || hasP99LatencySort || hasPassedSort || hasBlockedSort;
+    const hasPassedTokensSort = args.sorts?.some((s) => s.column === "passed_tokens");
+    const hasBlockedTokensSort = args.sorts?.some((s) => s.column === "blocked_tokens");
+    const hasCustomSort =
+      hasAvgLatencySort ||
+      hasP99LatencySort ||
+      hasPassedSort ||
+      hasBlockedSort ||
+      hasPassedTokensSort ||
+      hasBlockedTokensSort;
 
     // Get explicit time sort if it exists
     const timeSort = args.sorts?.find((s) => s.column === "time");
@@ -728,7 +759,8 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         request_id,
         time,
         identifier,
-        toUInt8(passed) as status
+        toUInt8(passed) as status,
+        tokens
     FROM default.ratelimits_raw_v2
     WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
@@ -743,7 +775,10 @@ aggregated_data AS (
         max(time) as last_request_time,
         max(request_id) as last_request_id,
         countIf(status = 1) as passed_count,
-        countIf(status = 0) as blocked_count
+        countIf(status = 0) as blocked_count,
+        sumIf(tokens, status = 1) as passed_tokens,
+        sum(tokens) as total_tokens,
+        greatest(sum(tokens) - sumIf(tokens, status = 1), 0) as blocked_tokens
     FROM filtered_ratelimits
     GROUP BY identifier
 )
@@ -752,7 +787,9 @@ SELECT
     last_request_time as time,
     last_request_id as request_id,
     passed_count,
-    blocked_count
+    blocked_count,
+    passed_tokens,
+    total_tokens
 FROM aggregated_data
 ORDER BY ${orderByClause}
 LIMIT {limit: Int}`,

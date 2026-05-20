@@ -11,7 +11,7 @@ type Data struct {
 	// Message is a longer explanation shown to the user.
 	Message string
 
-	// ErrorCode is the URN-style error code (e.g. "err:sentinel:unauthorized:invalid_key").
+	// ErrorCode is the URN-style error code (e.g. "err:unkey:unauthorized:invalid_key").
 	ErrorCode string
 
 	// DocsURL links to documentation for this error code. Empty if unavailable.

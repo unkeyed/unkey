@@ -59,7 +59,7 @@ func (w *Workflow) DeploymentStep(
 			}
 			return nil
 		})
-	}, restate.WithName(fmt.Sprintf("starting step: %s", step)))
+	}, restate.WithName(fmt.Sprintf("starting step: %s", step)), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (w *Workflow) DeploymentStep(
 			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			Error:        sql.NullString{Valid: stepErr != nil, String: truncateString(fault.UserFacingMessage(stepErr), 512)},
 		})
-	}, restate.WithName(fmt.Sprintf("ending step: %s", step)))
+	}, restate.WithName(fmt.Sprintf("ending step: %s", step)), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return err
 	}

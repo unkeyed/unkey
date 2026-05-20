@@ -2,9 +2,36 @@ package frontline
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/config"
 )
+
+// ClickHouseConfig configures connections to ClickHouse for analytics storage.
+// When URL is empty, a no-op analytics backend is used.
+type ClickHouseConfig struct {
+	// URL is the ClickHouse connection string.
+	URL string `toml:"url"`
+
+	// BatchSize is the maximum number of items to collect before flushing to ClickHouse.
+	// Applies to all event buffers (frontline requests, key verifications).
+	BatchSize int `toml:"batch_size" config:"default=5000,min=1"`
+
+	// BufferSize is the capacity of the channel buffer holding incoming items.
+	// When full, new items are silently dropped.
+	BufferSize int `toml:"buffer_size" config:"default=10000,min=1"`
+
+	// Consumers is the number of goroutines that drain each buffer.
+	Consumers int `toml:"consumers" config:"default=1,min=1"`
+}
+
+// RedisConfig configures the Redis connection used for rate limiting and
+// usage limiting in the policy engine.
+type RedisConfig struct {
+	// URL is the Redis connection string. When empty, an in-memory counter
+	// is used as fallback (rate limits are not shared across replicas).
+	URL string `toml:"url"`
+}
 
 // Config holds the complete configuration for the frontline server. It is
 // designed to be loaded from a TOML file using [config.Load]:
@@ -22,13 +49,15 @@ type Config struct {
 	// Set at runtime; not read from the config file.
 	Image string `toml:"-"`
 
-	// ChallengePort is the TCP port the HTTP challenge server binds to.
-	// Used for ACME HTTP-01 challenges (Let's Encrypt).
-	ChallengePort int `toml:"challenge_port" config:"default=7070,min=1,max=65535"`
+	// HttpPort is the TCP port the plain-HTTP listener binds to. It serves
+	// ACME HTTP-01 challenges (Let's Encrypt) and 308-redirects everything
+	// else to https://.
+	HttpPort int `toml:"http_port" config:"default=7070,min=1,max=65535"`
 
-	// HttpPort is the TCP port the HTTP frontline server binds to.
-	// Serves general traffic over HTTPS by default.
-	HttpPort int `toml:"http_port" config:"default=7443,min=1,max=65535"`
+	// HttpsPort is the TCP port the HTTPS frontline server binds to. It
+	// terminates TLS, runs the policy engine, and forwards customer traffic
+	// to a deployment instance (or to a peer frontline in another region).
+	HttpsPort int `toml:"https_port" config:"default=7443,min=1,max=65535"`
 
 	// Platform identifies the cloud provider
 	// ie: aws, gcp, local
@@ -58,9 +87,23 @@ type Config struct {
 	// See [config.TLS].
 	TLS *config.TLS `toml:"tls"`
 
-	// DatabaseURL is the connection string for the MySQL database.
-	// It should be a globally load balanced endpoint and only requires read access.
-	DatabaseURL string `toml:"database_url" config:"required"`
+	// Database configures the MySQL primary + readonly replica. The
+	// routing/cert lookups read from the readonly replica; the policy
+	// engine uses the primary for credit decrements during key
+	// verification. See [config.DatabaseConfig].
+	Database config.DatabaseConfig `toml:"database"`
+
+	// ClickHouse configures analytics storage for request-level events.
+	// See [ClickHouseConfig].
+	ClickHouse ClickHouseConfig `toml:"clickhouse"`
+
+	// Redis configures the Redis connection for distributed rate limiting
+	// and usage limiting. Optional — falls back to in-memory when empty.
+	Redis RedisConfig `toml:"redis"`
+
+	// RequestTimeout is the maximum duration for proxied requests before the
+	// context is cancelled and a 504 is returned.
+	RequestTimeout time.Duration `toml:"request_timeout" config:"default=15m"`
 
 	Observability config.Observability `toml:"observability"`
 

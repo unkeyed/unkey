@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -29,7 +29,7 @@ func New(t *testing.T) *Harness {
 
 	ctx := context.Background()
 
-	mysqlCfg := dockertest.MySQL(t)
+	mysqlCfg := containers.MySQL(t)
 	mysqlHostDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{
@@ -167,9 +167,9 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	})
 	require.NoError(h.t, err)
 
-	region, err := db.Query.FindRegionByNameAndPlatform(ctx, h.DB.RO(), db.FindRegionByNameAndPlatformParams{
-		Name:     req.Region,
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, h.DB.RO(), db.FindRegionByPlatformAndNameParams{
 		Platform: "test",
+		Name:     req.Region,
 	})
 	require.NoError(h.t, err)
 

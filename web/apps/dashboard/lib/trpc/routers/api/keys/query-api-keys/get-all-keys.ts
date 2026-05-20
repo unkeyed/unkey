@@ -1,6 +1,6 @@
 import type { AllOperatorsUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { type SQL, and, count, db, eq, isNull, like, or, sql } from "@/lib/db";
+import { type SQL, and, count, db, eq, gt, isNull, like, or, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { identities, keys as keysSchema } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -142,7 +142,11 @@ export async function getAllKeys({
     // Helper function to build the filter conditions (without cursor)
     // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
     const buildFilterConditions = (key: any, helpers: any): SQL<unknown> => {
-      const conditions = [helpers.eq(key.keyAuthId, keyspaceId), helpers.isNull(key.deletedAtM)];
+      const conditions = [
+        helpers.eq(key.keyAuthId, keyspaceId),
+        helpers.isNull(key.deletedAtM),
+        helpers.or(helpers.isNull(key.expires), helpers.gt(key.expires, new Date())),
+      ];
 
       // Apply tag-based key filtering if we have filtered key IDs
       if (tagFilteredKeyIds !== null) {
@@ -280,7 +284,7 @@ export async function getAllKeys({
     const [countResult] = await db
       .select({ count: count() })
       .from(keysSchema)
-      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql, like, or }));
+      .where(buildFilterConditions(keysSchema, { and, isNull, eq, sql, like, or, gt }));
 
     const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({

@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		responseRatelimits = append(responseRatelimits, openapi.RatelimitResponse{
 			Name:      r.Name,
 			Limit:     int64(r.Limit),
-			Duration:  r.Duration,
+			Duration:  int64(r.Duration),
 			Id:        r.ID,
 			AutoApply: r.AutoApply,
 		})

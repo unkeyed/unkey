@@ -1,91 +1,48 @@
-// Package containers provides testing utilities for integration tests with docker-compose services.
+// Package containers provides lightweight Docker container management for integration tests.
 //
-// This package simplifies integration testing by providing pre-configured connections
-// to services managed by docker-compose. Instead of dynamically discovering service
-// ports (which is slow), it uses hardcoded port mappings that match the docker-compose
-// configuration for consistent and fast test execution.
+// This package uses the Docker SDK directly to spin up containers dynamically,
+// avoiding the overhead of external tools like docker-compose or testcontainers.
+// Containers are automatically cleaned up when tests complete via t.Cleanup.
 //
-// The package was designed for scenarios where tests need to connect to real external
-// services like MySQL, Redis, ClickHouse, S3/MinIO, and OTEL collectors. It provides
-// both host configurations (for test runners connecting from outside containers) and
-// docker configurations (for services running inside the docker-compose network).
+// # Requirements
 //
-// # Key Design Decisions
+// Tests using this package MUST be run via Bazel:
 //
-// We chose hardcoded ports over dynamic discovery because dynamic port discovery
-// using docker-compose commands added significant overhead to test execution
-// (hundreds of milliseconds per service). Since our docker-compose configuration
-// uses fixed port mappings, hardcoding them provides the same functionality with
-// zero runtime overhead.
+//	bazel test //pkg/testutil/containers:containers_test
+//
+// Running via `go test` directly is not supported and will fail with an error.
 //
 // # Key Types
 //
-// The main entry points are the service configuration functions: [MySQL], [Redis],
-// [ClickHouse], [S3], and [OTEL]. Each returns appropriate configuration objects
-// or clients for connecting to the respective services.
+// The main entry point is through service functions like [Redis], which start
+// containers and return connection information. For lower-level access, [Container]
+// provides metadata about running containers including port mappings.
 //
-// Configuration objects include [S3Config] for S3/MinIO settings and [OTELConfig]
-// for OpenTelemetry endpoint configuration.
+// Container readiness is determined by [WaitStrategy] implementations. The package
+// provides [TCPWait] for TCP port-based health checks, created via [NewTCPWait].
 //
 // # Usage
 //
-// Basic setup in integration tests:
+// Each service function starts a container and returns connection information:
 //
-//	func TestDatabaseOperations(t *testing.T) {
-//		containers.StartAllServices(t) // No-op, services managed externally
-//
-//		hostCfg, dockerCfg := dockertest.MySQL(t)
-//		db, err := sql.Open("mysql", hostCfg.FormatDSN())
-//		require.NoError(t, err)
-//		defer db.Close()
-//
-//		// Run your database tests...
+//	func TestRedisIntegration(t *testing.T) {
+//	    redisURL := containers.Redis(t)
+//	    // redisURL is "redis://localhost:{randomPort}"
+//	    // Container is automatically removed when test completes
 //	}
 //
-// Multiple services example:
+// # Design
 //
-//	func TestFullIntegration(t *testing.T) {
-//		// Get MySQL connection
-//		hostCfg, _ := dockertest.MySQL(t)
-//		db, err := sql.Open("mysql", hostCfg.FormatDSN())
-//		require.NoError(t, err)
-//		defer db.Close()
+// Containers are created per test request for isolation. Each container:
+//   - Uses a random host port to avoid conflicts
+//   - Waits for the service to be ready before returning
+//   - Is automatically removed via t.Cleanup
 //
-//		// Get Redis client
-//		redisClient, hostAddr, _ := containers.Redis(t)
-//		defer redisClient.Close()
+// # Available Services
 //
-//		// Get S3 configuration
-//		s3Config := containers.S3(t)
-//
-//		// Run integration tests with all services...
-//	}
-//
-// # Service Port Configuration
-//
-// The package uses these hardcoded port mappings that must match your docker-compose.yaml:
-//
-//   - MySQL: 3306
-//   - Redis: 6379
-//   - ClickHouse: 9000
-//   - S3/MinIO: 3902
-//   - OTEL HTTP: 4318
-//   - OTEL gRPC: 4317
-//   - Grafana: 3000
-//
-// # Prerequisites
-//
-// Tests using this package require:
-//   - docker-compose services running before test execution
-//   - Port mappings in docker-compose.yaml matching the hardcoded constants
-//   - Network connectivity from test runner to localhost on the specified ports
-//
-// # Host vs Docker Configurations
-//
-// Most service functions return two configurations:
-//   - Host configuration: For connecting from the test runner (uses localhost:port)
-//   - Docker configuration: For services running inside docker-compose network (uses service:port)
-//
-// Use host configuration in your tests, and docker configuration when configuring
-// services that run inside the docker-compose network and need to connect to each other.
+// Currently supported:
+//   - [MySQL]: MySQL with dev schema preloaded
+//   - [Redis]: Redis 8.0 container
+//   - [S3]: MinIO S3-compatible object storage
+//   - [Restate]: Restate server (ingress + admin)
 package containers

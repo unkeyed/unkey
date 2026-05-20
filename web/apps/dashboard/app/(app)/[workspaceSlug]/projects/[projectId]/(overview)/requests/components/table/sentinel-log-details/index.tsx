@@ -1,9 +1,14 @@
 "use client";
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
+import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/deployment-id-link";
+import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/deployment-status-badge";
+import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/dotted-link";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
 import { collection } from "@/lib/collections";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
 import { shortenId } from "@/lib/shorten-id";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
@@ -22,26 +27,30 @@ type Props = {
 
 export const SentinelLogDetails = ({ distanceToTop }: Props) => {
   const { setSelectedLog, selectedLog: log } = useSentinelLogsContext();
-  const { projectId } = useProjectData();
+  const { projectId, project } = useProjectData();
 
   const handleClose = () => {
     setSelectedLog(null);
   };
 
+  const deploymentId = log?.deployment_id;
   const { data } = useLiveQuery(
     (q) => {
+      if (!deploymentId) {
+        return null;
+      }
       return q
         .from({ deployment: collection.deployments })
         .where(({ deployment }) => eq(deployment.projectId, projectId))
         .join({ environment: collection.environments }, ({ deployment, environment }) =>
           eq(deployment.environmentId, environment.id),
         )
-        .where(({ deployment }) => eq(deployment.id, log?.deployment_id));
+        .where(({ deployment }) => eq(deployment.id, deploymentId));
     },
-    [projectId, log?.deployment_id],
+    [projectId, deploymentId],
   );
-  const deployment = data.at(0)?.deployment;
-  const environment = data.at(0)?.environment;
+  const deployment = data?.at(0)?.deployment;
+  const environment = data?.at(0)?.environment;
 
   if (!log) {
     // Shouldn't happen
@@ -50,54 +59,59 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
 
   return (
     <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
-      <LogDetails.Header onClose={handleClose}>
-        <SentinelLogHeader log={log} onClose={handleClose} />
+      <LogDetails.Header>
+        <SentinelLogHeader log={log} />
       </LogDetails.Header>
 
-      <LogDetails.Section delay={150}>
+      <LogDetails.Section>
+        <LogSection
+          title="Deployment Information"
+          details={formatDeploymentInfo(
+            log,
+            deployment,
+            environment,
+            deployment?.forkRepositoryFullName || project?.repositoryFullName,
+          )}
+        />
+      </LogDetails.Section>
+
+      <LogDetails.Section>
         <LogSection
           title="Request Header"
           details={log.request_headers.length ? log.request_headers : EMPTY_TEXT}
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={200}>
+      <LogDetails.Section>
         <LogSection
           title="Request Body"
           details={formatBody(log.request_body, log.request_headers)}
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={250}>
+      <LogDetails.Section>
         <LogSection
           title="Response Header"
           details={log.response_headers.length ? log.response_headers : EMPTY_TEXT}
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={300}>
+      <LogDetails.Section>
         <LogSection
           title="Response Body"
           details={formatBody(log.response_body, log.response_headers)}
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={350}>
+      <LogDetails.Section>
         <LogSection title="Latency Breakdown" details={formatLatencyMetrics(log)} />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={400}>
-        <LogSection
-          title="Deployment Information"
-          details={formatDeploymentInfo(log, deployment, environment)}
-        />
-      </LogDetails.Section>
-
-      <LogDetails.Section delay={450}>
+      <LogDetails.Section>
         <LogSection title="Meta" details={formatMetaInfo(log)} />
       </LogDetails.Section>
 
-      <LogDetails.Spacer delay={500} />
+      <LogDetails.Spacer />
     </LogDetails>
   );
 };
@@ -105,11 +119,10 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
 // Custom header for sentinel logs
 const SentinelLogHeader = ({
   log,
-  onClose,
 }: {
   log: SentinelLogsResponse;
-  onClose: () => void;
 }) => {
+  const { onClose } = LogDetails.useContext();
   return (
     <div className="border-b flex justify-between items-center border-gray-4 h-[45px] px-4 py-2">
       <div className="flex gap-2 items-center min-w-0">
@@ -133,7 +146,7 @@ const SentinelLogHeader = ({
         <button
           type="button"
           onClick={onClose}
-          className="text-grayA-9 hover:text-grayA-11 transition-colors"
+          className="text-grayA-9 hover:text-grayA-11 transition-colors cursor-pointer"
           aria-label="Close"
         >
           <svg
@@ -155,6 +168,9 @@ const SentinelLogHeader = ({
     </div>
   );
 };
+
+const isDeploymentStatus = (status: string): status is DeploymentStatus =>
+  DEPLOYMENT_STATUSES.some((candidate) => candidate === status);
 
 const getHeaderValue = (headers: string[], name: string): string | null => {
   const lower = name.toLowerCase();
@@ -247,16 +263,14 @@ const formatDeploymentInfo = (
       }
     | undefined,
   environment: { slug: string } | undefined,
+  sourceRepo: string | null | undefined,
 ): React.ReactNode => {
   if (!deployment) {
     return (
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-gray-11">Deployment ID:</span>
-          <div className="flex items-center gap-2">
-            <span className="font-mono">{shortenId(log.deployment_id)}</span>
-            <CopyButton value={log.deployment_id} variant="ghost" className="h-4 w-4" />
-          </div>
+          <DeploymentIdLink deploymentId={log.deployment_id} />
         </div>
         <div className="text-xs text-grayA-10 mt-1">(Deployment details not found)</div>
       </div>
@@ -273,10 +287,7 @@ const formatDeploymentInfo = (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Deployment ID:</span>
-        <div className="flex items-center gap-2">
-          <span className="font-mono">{shortenId(log.deployment_id)}</span>
-          <CopyButton value={log.deployment_id} variant="ghost" className="h-4 w-4" />
-        </div>
+        <DeploymentIdLink deploymentId={log.deployment_id} />
       </div>
 
       {environment && (
@@ -293,7 +304,17 @@ const formatDeploymentInfo = (
           <span className="text-gray-11">Branch:</span>
           <div className="flex items-center gap-1.5">
             <CodeBranch iconSize="sm-regular" className="text-grayA-10 shrink-0" />
-            <span className="font-mono truncate max-w-[200px]">{deployment.gitBranch}</span>
+            {sourceRepo ? (
+              <DottedLink
+                href={`https://github.com/${sourceRepo}/tree/${deployment.gitBranch}`}
+                copyValue={deployment.gitBranch}
+                external
+              >
+                <span className="font-mono truncate max-w-[200px]">{deployment.gitBranch}</span>
+              </DottedLink>
+            ) : (
+              <span className="font-mono truncate max-w-[200px]">{deployment.gitBranch}</span>
+            )}
           </div>
         </div>
       )}
@@ -303,8 +324,17 @@ const formatDeploymentInfo = (
           <span className="text-gray-11">Commit:</span>
           <div className="flex items-center gap-1.5">
             <CodeCommit iconSize="sm-regular" className="text-grayA-10 shrink-0" />
-            <span className="font-mono">{shortSha}</span>
-            <CopyButton value={deployment.gitCommitSha} variant="ghost" className="h-4 w-4" />
+            {sourceRepo ? (
+              <DottedLink
+                href={`https://github.com/${sourceRepo}/commit/${deployment.gitCommitSha}`}
+                copyValue={deployment.gitCommitSha}
+                external
+              >
+                <span className="font-mono">{shortSha}</span>
+              </DottedLink>
+            ) : (
+              <span className="font-mono">{shortSha}</span>
+            )}
           </div>
         </div>
       )}
@@ -339,23 +369,10 @@ const formatDeploymentInfo = (
         </div>
       )}
 
-      {deployment.status && (
+      {deployment.status && isDeploymentStatus(deployment.status) && (
         <div className="flex items-center justify-between">
           <span className="text-gray-11">Status:</span>
-          <Badge
-            variant={
-              deployment.status === "ready"
-                ? "success"
-                : deployment.status === "failed"
-                  ? "error"
-                  : deployment.status === "building" || deployment.status === "deploying"
-                    ? "warning"
-                    : "secondary"
-            }
-            className="text-xs"
-          >
-            {deployment.status}
-          </Badge>
+          <DeploymentStatusBadge status={deployment.status} />
         </div>
       )}
     </div>

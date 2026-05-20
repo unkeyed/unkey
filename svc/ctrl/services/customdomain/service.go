@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"regexp"
 	"time"
 
@@ -113,13 +114,18 @@ func (s *Service) AddCustomDomain(
 	if len(s.domainConnectPrivateKeyPEM) > 0 {
 		logger.Info("running domain connect discovery", "domain", domain)
 
-		// Build redirect URL back to project settings
+		// Build redirect URL back to project settings via the public Domain Connect
+		// callback. Going through a public path keeps the return navigation working
+		// even though the SameSite=Strict session cookie is dropped on the cross-site
+		// redirect from the DNS provider — the callback page does a same-site client
+		// redirect to the (authenticated) settings page, which carries the cookie.
 		var redirectURL string
 		ws, wsErr := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
 		if wsErr != nil {
 			logger.Warn("failed to fetch workspace for redirect URL", "error", wsErr)
 		} else {
-			redirectURL = fmt.Sprintf("https://app.unkey.com/%s/projects/%s/settings", ws.Slug, req.Msg.GetProjectId())
+			settingsPath := fmt.Sprintf("/%s/projects/%s/settings", ws.Slug, req.Msg.GetProjectId())
+			redirectURL = fmt.Sprintf("https://app.unkey.com/integrations/domain-connect/callback?to=%s", url.QueryEscape(settingsPath))
 		}
 
 		result, dcErr := domainconnect.Discover(ctx, domain, s.domainConnectPrivateKeyPEM, map[string]string{

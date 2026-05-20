@@ -1,21 +1,11 @@
+import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
-import { formatDuration, intervalToDuration } from "date-fns";
 
-type EntityType = "key" | "identity";
-
-export function useEditRatelimits(
-  entityType: "key",
-  onSuccess?: () => void,
-): ReturnType<typeof trpc.key.update.ratelimit.useMutation>;
-export function useEditRatelimits(
-  entityType: "identity",
-  onSuccess?: () => void,
-): ReturnType<typeof trpc.identity.update.ratelimit.useMutation>;
-export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void) {
+export function useEditKeyRatelimits(onSuccess?: () => void) {
   const trpcUtils = trpc.useUtils();
 
-  const updateKeyRatelimit = trpc.key.update.ratelimit.useMutation({
+  return trpc.key.update.ratelimit.useMutation({
     onSuccess(data, variables) {
       let description = "";
 
@@ -25,9 +15,7 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
         if (rulesCount === 1) {
           const rule = variables.ratelimit.data[0];
           const refillInterval = typeof rule.refillInterval === "number" ? rule.refillInterval : 0;
-          description = `Your key ${data.keyId} has been updated with a limit of ${
-            rule.limit
-          } requests per ${formatInterval(refillInterval)}`;
+          description = `Your key ${data.keyId} has been updated with a limit of ${rule.limit} requests per ${formatMs(refillInterval, { long: true })}`;
         } else {
           description = `Your key ${data.keyId} has been updated with ${rulesCount} rate limit rules`;
         }
@@ -41,33 +29,18 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
       });
 
       trpcUtils.api.keys.list.invalidate();
-      if (onSuccess) {
-        onSuccess();
-      }
+      onSuccess?.();
     },
     onError(err) {
-      if (err.data?.code === "NOT_FOUND") {
-        toast.error("Key Update Failed", {
-          description: "Unable to find the key. Please refresh and try again.",
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while updating your key. Please try again later or contact support at support.unkey.dev",
-        });
-      } else {
-        toast.error("Failed to Update Key Limits", {
-          description: err.message || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+      handleError(err.data?.code, err.message, "key");
     },
   });
+}
 
-  const updateIdentityRatelimit = trpc.identity.update.ratelimit.useMutation({
+export function useEditIdentityRatelimits(onSuccess?: () => void) {
+  const trpcUtils = trpc.useUtils();
+
+  return trpc.identity.update.ratelimit.useMutation({
     onSuccess(data, variables) {
       let description = "";
 
@@ -77,9 +50,7 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
         if (rulesCount === 1) {
           const rule = variables.ratelimit.data[0];
           const refillInterval = typeof rule.refillInterval === "number" ? rule.refillInterval : 0;
-          description = `Identity ${data.identityId} has been updated with a limit of ${
-            rule.limit
-          } requests per ${formatInterval(refillInterval)}`;
+          description = `Identity ${data.identityId} has been updated with a limit of ${rule.limit} requests per ${formatMs(refillInterval, { long: true })}`;
         } else {
           description = `Identity ${data.identityId} has been updated with ${rulesCount} rate limit rules`;
         }
@@ -93,55 +64,37 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
       });
 
       trpcUtils.identity.query.invalidate();
-      if (onSuccess) {
-        onSuccess();
-      }
+      onSuccess?.();
     },
     onError(err) {
-      if (err.data?.code === "NOT_FOUND") {
-        toast.error("Identity Update Failed", {
-          description: "Unable to find the identity. Please refresh and try again.",
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while updating your identity. Please try again later or contact support at support.unkey.dev",
-        });
-      } else {
-        toast.error("Failed to Update Identity Limits", {
-          description: err.message || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+      handleError(err.data?.code, err.message, "identity");
     },
   });
-
-  return entityType === "key" ? updateKeyRatelimit : updateIdentityRatelimit;
 }
 
-const formatInterval = (milliseconds: number): string => {
-  if (milliseconds < 1000) {
-    return `${milliseconds}ms`;
-  }
+function handleError(
+  code: string | undefined,
+  message: string | undefined,
+  entity: "key" | "identity",
+) {
+  const label = entity === "key" ? "Key" : "Identity";
+  const entityName = entity === "key" ? "key" : "identity";
 
-  const duration = intervalToDuration({ start: 0, end: milliseconds });
-
-  // Customize the format for different time ranges
-  if (milliseconds < 60000) {
-    // Less than a minute
-    return formatDuration(duration, { format: ["seconds"] });
+  if (code === "NOT_FOUND") {
+    toast.error(`${label} Update Failed`, {
+      description: `Unable to find the ${entityName}. Please refresh and try again.`,
+    });
+  } else if (code === "INTERNAL_SERVER_ERROR") {
+    toast.error("Server Error", {
+      description: `We encountered an issue while updating your ${entityName}. Please try again later or contact support at support.unkey.dev`,
+    });
+  } else {
+    toast.error(`Failed to Update ${label} Limits`, {
+      description: message || "An unexpected error occurred. Please try again later.",
+      action: {
+        label: "Contact Support",
+        onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+      },
+    });
   }
-  if (milliseconds < 3600000) {
-    // Less than an hour
-    return formatDuration(duration, { format: ["minutes", "seconds"] });
-  }
-  if (milliseconds < 86400000) {
-    // Less than a day
-    return formatDuration(duration, { format: ["hours", "minutes"] });
-  }
-  // Days or more
-  return formatDuration(duration, { format: ["days", "hours"] });
-};
+}

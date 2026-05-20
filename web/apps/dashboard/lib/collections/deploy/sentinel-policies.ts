@@ -218,6 +218,12 @@ function dispatchCreate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
+    .with({ type: "openapi" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.openapi.create.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .exhaustive();
 }
 
@@ -241,6 +247,12 @@ function dispatchUpdate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
+    .with({ type: "openapi" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.openapi.update.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .exhaustive();
 }
 
@@ -260,6 +272,12 @@ function dispatchDelete(environmentId: string, policy: SentinelPolicy): Promise<
     )
     .with({ type: "firewall" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.firewall.delete.mutate({
+        environmentId,
+        policyId: p.id,
+      }),
+    )
+    .with({ type: "openapi" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.openapi.delete.mutate({
         environmentId,
         policyId: p.id,
       }),

@@ -59,7 +59,7 @@ Keyspace IDs appear in analytics queries as `key_space_id` and in Sentinel confi
 
 Each key is composed of a prefix and a random portion:
 
-```
+```text
 sk_live_abc123def456ghi789
 └─────┘ └──────────────────┘
  prefix   random (base58-encoded)
@@ -88,7 +88,7 @@ Deleting an API permanently removes the API, its keyspace, and all associated ke
 
 | Page                                                                | Description                            |
 | ------------------------------------------------------------------- | -------------------------------------- |
-| [API key management](/platform/apis/introduction)                   | Issue, verify, and manage keys         |
+| [API keys](/platform/apis/introduction)                   | Issue, verify, and manage keys         |
 | [Rate limiting](/platform/apis/features/ratelimiting/overview)      | Per-key rate limits                    |
 | [Authorization](/platform/apis/features/authorization/introduction) | Roles and permissions                  |
 | [Analytics](/platform/analytics/overview)                           | Query verification data by keyspace    |

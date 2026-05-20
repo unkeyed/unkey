@@ -9,6 +9,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 type AcmeChallengesChallengeType string
@@ -1073,6 +1075,7 @@ type AppBuildSetting struct {
 	Dockerfile    string          `db:"dockerfile"`
 	DockerContext string          `db:"docker_context"`
 	WatchPaths    json.RawMessage `db:"watch_paths"`
+	AutoDeploy    bool            `db:"auto_deploy"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
@@ -1114,7 +1117,7 @@ type AppRuntimeSetting struct {
 	MemoryMib        int32                              `db:"memory_mib"`
 	StorageMib       uint32                             `db:"storage_mib"`
 	Command          json.RawMessage                    `db:"command"`
-	Healthcheck      json.RawMessage                    `db:"healthcheck"`
+	Healthcheck      []byte                             `db:"healthcheck"`
 	ShutdownSignal   AppRuntimeSettingsShutdownSignal   `db:"shutdown_signal"`
 	UpstreamProtocol AppRuntimeSettingsUpstreamProtocol `db:"upstream_protocol"`
 	SentinelConfig   []byte                             `db:"sentinel_config"`
@@ -1124,37 +1127,37 @@ type AppRuntimeSetting struct {
 }
 
 type AuditLog struct {
-	Pk          uint64          `db:"pk"`
-	ID          string          `db:"id"`
-	WorkspaceID string          `db:"workspace_id"`
-	Bucket      string          `db:"bucket"`
-	BucketID    string          `db:"bucket_id"`
-	Event       string          `db:"event"`
-	Time        int64           `db:"time"`
-	Display     string          `db:"display"`
-	RemoteIp    sql.NullString  `db:"remote_ip"`
-	UserAgent   sql.NullString  `db:"user_agent"`
-	ActorType   string          `db:"actor_type"`
-	ActorID     string          `db:"actor_id"`
-	ActorName   sql.NullString  `db:"actor_name"`
-	ActorMeta   json.RawMessage `db:"actor_meta"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	Bucket      string         `db:"bucket"`
+	BucketID    string         `db:"bucket_id"`
+	Event       string         `db:"event"`
+	Time        int64          `db:"time"`
+	Display     string         `db:"display"`
+	RemoteIp    sql.NullString `db:"remote_ip"`
+	UserAgent   sql.NullString `db:"user_agent"`
+	ActorType   string         `db:"actor_type"`
+	ActorID     string         `db:"actor_id"`
+	ActorName   sql.NullString `db:"actor_name"`
+	ActorMeta   []byte         `db:"actor_meta"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
 type AuditLogTarget struct {
-	Pk          uint64          `db:"pk"`
-	WorkspaceID string          `db:"workspace_id"`
-	BucketID    string          `db:"bucket_id"`
-	Bucket      string          `db:"bucket"`
-	AuditLogID  string          `db:"audit_log_id"`
-	DisplayName string          `db:"display_name"`
-	Type        string          `db:"type"`
-	ID          string          `db:"id"`
-	Name        sql.NullString  `db:"name"`
-	Meta        json.RawMessage `db:"meta"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
+	Pk          uint64         `db:"pk"`
+	WorkspaceID string         `db:"workspace_id"`
+	BucketID    string         `db:"bucket_id"`
+	Bucket      string         `db:"bucket"`
+	AuditLogID  string         `db:"audit_log_id"`
+	DisplayName string         `db:"display_name"`
+	Type        string         `db:"type"`
+	ID          string         `db:"id"`
+	Name        sql.NullString `db:"name"`
+	Meta        []byte         `db:"meta"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 }
 
 type Certificate struct {
@@ -1182,6 +1185,16 @@ type CiliumNetworkPolicy struct {
 	Policy        json.RawMessage `db:"policy"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
+}
+
+type ClickhouseOutbox struct {
+	Pk          uint64          `db:"pk"`
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	CreatedAt   int64           `db:"created_at"`
+	DeletedAt   sql.NullInt64   `db:"deleted_at"`
 }
 
 type ClickhouseWorkspaceSetting struct {
@@ -1256,7 +1269,7 @@ type Deployment struct {
 	Port                          int32                       `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
-	Healthcheck                   json.RawMessage             `db:"healthcheck"`
+	Healthcheck                   []byte                      `db:"healthcheck"`
 	PrNumber                      sql.NullInt64               `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
@@ -1371,31 +1384,32 @@ type HorizontalAutoscalingPolicy struct {
 }
 
 type Identity struct {
-	Pk          uint64          `db:"pk"`
-	ID          string          `db:"id"`
-	ExternalID  string          `db:"external_id"`
-	WorkspaceID string          `db:"workspace_id"`
-	Environment string          `db:"environment"`
-	Meta        json.RawMessage `db:"meta"`
-	Deleted     bool            `db:"deleted"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
+	Pk          uint64        `db:"pk"`
+	ID          string        `db:"id"`
+	ExternalID  string        `db:"external_id"`
+	WorkspaceID string        `db:"workspace_id"`
+	Environment string        `db:"environment"`
+	Meta        []byte        `db:"meta"`
+	Deleted     bool          `db:"deleted"`
+	CreatedAt   int64         `db:"created_at"`
+	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
 
 type Instance struct {
-	Pk            uint64          `db:"pk"`
-	ID            string          `db:"id"`
-	DeploymentID  string          `db:"deployment_id"`
-	WorkspaceID   string          `db:"workspace_id"`
-	ProjectID     string          `db:"project_id"`
-	AppID         string          `db:"app_id"`
-	RegionID      string          `db:"region_id"`
-	K8sName       string          `db:"k8s_name"`
-	Address       string          `db:"address"`
-	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMib     int32           `db:"memory_mib"`
-	StorageMib    uint32          `db:"storage_mib"`
-	Status        InstancesStatus `db:"status"`
+	Pk              uint64                 `db:"pk"`
+	ID              string                 `db:"id"`
+	DeploymentID    string                 `db:"deployment_id"`
+	WorkspaceID     string                 `db:"workspace_id"`
+	ProjectID       string                 `db:"project_id"`
+	AppID           string                 `db:"app_id"`
+	RegionID        string                 `db:"region_id"`
+	K8sName         string                 `db:"k8s_name"`
+	Address         string                 `db:"address"`
+	CpuMillicores   int32                  `db:"cpu_millicores"`
+	MemoryMib       int32                  `db:"memory_mib"`
+	StorageMib      uint32                 `db:"storage_mib"`
+	Status          InstancesStatus        `db:"status"`
+	ContainerStatus dbtype.ContainerStatus `db:"container_status"`
 }
 
 type Key struct {
@@ -1415,10 +1429,10 @@ type Key struct {
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
 	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
 	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
 	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
 	Environment        sql.NullString `db:"environment"`
 	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
@@ -1485,6 +1499,53 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
 }
 
+type PortalBranding struct {
+	Pk             uint64         `db:"pk"`
+	PortalConfigID string         `db:"portal_config_id"`
+	LogoUrl        sql.NullString `db:"logo_url"`
+	PrimaryColor   sql.NullString `db:"primary_color"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalConfiguration struct {
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	Slug        string         `db:"slug"`
+	AppID       sql.NullString `db:"app_id"`
+	KeyAuthID   sql.NullString `db:"key_auth_id"`
+	Enabled     bool           `db:"enabled"`
+	ReturnUrl   sql.NullString `db:"return_url"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalSession struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
+type PortalSessionToken struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
 type Project struct {
 	Pk               uint64         `db:"pk"`
 	ID               string         `db:"id"`
@@ -1524,9 +1585,20 @@ type Ratelimit struct {
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
 	KeyID       sql.NullString `db:"key_id"`
 	IdentityID  sql.NullString `db:"identity_id"`
-	Limit       int32          `db:"limit"`
-	Duration    int64          `db:"duration"`
+	Limit       uint64         `db:"limit"`
+	Duration    uint64         `db:"duration"`
 	AutoApply   bool           `db:"auto_apply"`
+}
+
+type RatelimitBlocklist struct {
+	Pk          uint64 `db:"pk"`
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
+	Identifier  string `db:"identifier"`
+	DurationMs  uint64 `db:"duration_ms"`
+	Sequence    int64  `db:"sequence"`
+	Limit       uint64 `db:"limit"`
+	ExpiresAt   uint64 `db:"expires_at"`
 }
 
 type RatelimitNamespace struct {
@@ -1545,8 +1617,8 @@ type RatelimitOverride struct {
 	WorkspaceID string        `db:"workspace_id"`
 	NamespaceID string        `db:"namespace_id"`
 	Identifier  string        `db:"identifier"`
-	Limit       int32         `db:"limit"`
-	Duration    int32         `db:"duration"`
+	Limit       uint64        `db:"limit"`
+	Duration    uint64        `db:"duration"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
@@ -1639,7 +1711,7 @@ type Workspace struct {
 	StripeCustomerID     sql.NullString  `db:"stripe_customer_id"`
 	StripeSubscriptionID sql.NullString  `db:"stripe_subscription_id"`
 	BetaFeatures         json.RawMessage `db:"beta_features"`
-	Subscriptions        json.RawMessage `db:"subscriptions"`
+	Subscriptions        []byte          `db:"subscriptions"`
 	Enabled              bool            `db:"enabled"`
 	DeleteProtection     sql.NullBool    `db:"delete_protection"`
 	CreatedAtM           int64           `db:"created_at_m"`

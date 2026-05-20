@@ -38,7 +38,7 @@ func (w *Workflow) skipIfSuperseded(
 			CreatedAt:     deployment.CreatedAt,
 			DeploymentID:  deployment.ID,
 		})
-	}, restate.WithName("check for newer active deployment"))
+	}, restate.WithName("check for newer active deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return false, fault.Wrap(err, fault.Public("Failed to check for newer deployments."))
 	}
@@ -67,7 +67,7 @@ func (w *Workflow) skipIfSuperseded(
 			EndedAt:      now,
 			Error:        sql.NullString{Valid: true, String: "superseded by newer commit"},
 		})
-	}, restate.WithName("mark deployment superseded")); err != nil {
+	}, restate.WithName("mark deployment superseded"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 		return false, fault.Wrap(err, fault.Public("Failed to mark deployment as superseded."))
 	}
 

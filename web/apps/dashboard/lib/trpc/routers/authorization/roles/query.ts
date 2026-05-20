@@ -1,5 +1,5 @@
-import { rolesQueryPayload } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/table/query-logs.schema";
 import type { RolesFilterOperator } from "@/app/(app)/[workspaceSlug]/authorization/roles/filters.schema";
+import { rolesQueryPayload } from "@/components/roles-table/schema/roles.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
@@ -11,16 +11,30 @@ export const roleBasic = z.object({
   name: z.string(),
   description: z.string(),
   lastUpdated: z.number(),
+  assignedKeys: z.number(),
+  assignedPermissions: z.number(),
 });
 
 export type RoleBasic = z.infer<typeof roleBasic>;
 
 const rolesResponse = z.object({
   roles: z.array(roleBasic),
-  hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.int().nullish(),
 });
+
+// Maps sortBy field names to SQL column references
+const SORT_FIELD_TO_INNER_SQL: Record<string, string> = {
+  name: "name",
+  lastUpdated: "updated_at_m",
+};
+const SORT_FIELD_TO_OUTER_SQL: Record<string, string> = {
+  name: "r.name",
+  lastUpdated: "r.updated_at_m",
+  assignedKeys: "assigned_keys",
+  assignedPermissions: "assigned_permissions",
+};
+
+const COMPUTED_SORT_FIELDS = new Set(["assignedKeys", "assignedPermissions"]);
 
 export const queryRoles = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -28,7 +42,13 @@ export const queryRoles = workspaceProcedure
   .output(rolesResponse)
   .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
-    const { cursor, name, description, keyName, keyId, permissionSlug, permissionName } = input;
+    const page = input.page ?? 1;
+    const pageSize = input.limit ?? DEFAULT_LIMIT;
+    const sortBy = input.sortBy ?? "lastUpdated";
+    const sortOrder = input.sortOrder ?? "desc";
+    const { name, description, keyName, keyId, permissionSlug, permissionName } = input;
+
+    const offset = (page - 1) * pageSize;
 
     // Build filter conditions
     const nameFilter = buildFilterConditions(name, "name");
@@ -52,23 +72,54 @@ export const queryRoles = workspaceProcedure
     if (total === 0) {
       return {
         roles: [],
-        hasMore: false,
         total: 0,
-        nextCursor: undefined,
       };
     }
 
+    const direction = sortOrder === "asc" ? sql`ASC` : sql`DESC`;
+    const isComputedSort = COMPUTED_SORT_FIELDS.has(sortBy);
+
+    // For direct field sorts, apply LIMIT/OFFSET in the inner query.
+    // For computed field sorts, we must apply LIMIT/OFFSET in the outer query
+    // because the computed values aren't available in the inner query.
+    const innerOrderColumn = sql.raw(SORT_FIELD_TO_INNER_SQL[sortBy] ?? "updated_at_m");
+    const outerOrderColumn = sql.raw(SORT_FIELD_TO_OUTER_SQL[sortBy] ?? "r.updated_at_m");
+
+    // Break ties on `id` so rows with equal sort keys (e.g. same updated_at_m)
+    // don't shuffle between pages.
     const result = await db.execute(sql`
-      SELECT id, name, description, updated_at_m
-      FROM roles
-      WHERE workspace_id = ${workspaceId}
-        ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
-        ${nameFilter}
-        ${descriptionFilter}
-        ${keyFilter}
-        ${permissionFilter}
-      ORDER BY updated_at_m DESC
-      LIMIT ${DEFAULT_LIMIT + 1}
+      SELECT
+        r.id,
+        r.name,
+        r.description,
+        r.updated_at_m,
+        COALESCE(kr_count.total_keys, 0) AS assigned_keys,
+        COALESCE(rp_count.total_permissions, 0) AS assigned_permissions
+      FROM (
+        SELECT id, name, description, updated_at_m
+        FROM roles
+        WHERE workspace_id = ${workspaceId}
+          ${nameFilter}
+          ${descriptionFilter}
+          ${keyFilter}
+          ${permissionFilter}
+        ORDER BY ${innerOrderColumn} ${direction}, id ${direction}
+        ${isComputedSort ? sql`` : sql`LIMIT ${pageSize} OFFSET ${offset}`}
+      ) r
+      LEFT JOIN (
+        SELECT role_id, COUNT(*) AS total_keys
+        FROM keys_roles
+        WHERE workspace_id = ${workspaceId}
+        GROUP BY role_id
+      ) kr_count ON kr_count.role_id = r.id
+      LEFT JOIN (
+        SELECT role_id, COUNT(*) AS total_permissions
+        FROM roles_permissions
+        WHERE workspace_id = ${workspaceId}
+        GROUP BY role_id
+      ) rp_count ON rp_count.role_id = r.id
+      ORDER BY ${outerOrderColumn} ${direction}, r.id ${direction}
+      ${isComputedSort ? sql`LIMIT ${pageSize} OFFSET ${offset}` : sql``}
     `);
 
     const rows = result[0] as unknown as {
@@ -76,26 +127,22 @@ export const queryRoles = workspaceProcedure
       name: string;
       description: string | null;
       updated_at_m: number;
+      assigned_keys: number;
+      assigned_permissions: number;
     }[];
 
-    const hasMore = rows.length > DEFAULT_LIMIT;
-    const items = hasMore ? rows.slice(0, -1) : rows;
-
-    const rolesResponseData: RoleBasic[] = items.map((row) => ({
+    const rolesResponseData: RoleBasic[] = rows.map((row) => ({
       roleId: row.id,
       name: row.name || "",
       description: row.description || "",
       lastUpdated: Number(row.updated_at_m) || 0,
+      assignedKeys: Number(row.assigned_keys) || 0,
+      assignedPermissions: Number(row.assigned_permissions) || 0,
     }));
 
     return {
       roles: rolesResponseData,
-      hasMore,
       total: Number(total) || 0,
-      nextCursor:
-        hasMore && items.length > 0
-          ? Number(items[items.length - 1].updated_at_m) || undefined
-          : undefined,
     };
   });
 

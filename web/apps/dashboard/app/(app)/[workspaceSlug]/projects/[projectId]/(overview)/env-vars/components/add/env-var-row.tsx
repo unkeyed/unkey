@@ -1,18 +1,79 @@
 import { Plus, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
-import type { FieldErrors, UseFormRegister } from "react-hook-form";
+import type { ClipboardEvent, KeyboardEvent } from "react";
+import { useCallback } from "react";
+import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
+import { useWatch } from "react-hook-form";
+import { parseEnvText } from "../../hooks/use-drop-zone";
 import type { EnvVarsFormValues } from "./schema";
 
 type EnvVarRowProps = {
   index: number;
   isOnly: boolean;
   register: UseFormRegister<EnvVarsFormValues>;
+  control: Control<EnvVarsFormValues>;
   onRemove: (index: number) => void;
+  onPasteEntries: (index: number, entries: { key: string; value: string }[]) => void;
+  onAdvanceRow: () => void;
+  onRemoveAndFocusPrevious: (index: number) => void;
+  isLast: boolean;
   errors?: FieldErrors<EnvVarsFormValues>["envVars"];
 };
 
-export const EnvVarRow = ({ index, isOnly, register, onRemove, errors }: EnvVarRowProps) => {
+export const EnvVarRow = ({
+  index,
+  isOnly,
+  register,
+  control,
+  onRemove,
+  onPasteEntries,
+  onAdvanceRow,
+  onRemoveAndFocusPrevious,
+  isLast,
+  errors,
+}: EnvVarRowProps) => {
   const fieldErrors = errors?.[index];
+  const value = useWatch({ control, name: `envVars.${index}.value` });
+  const hasSpaces = value?.trim().includes(" ");
+
+  const handleKeyPaste = useCallback(
+    (e: ClipboardEvent<HTMLInputElement>) => {
+      const text = e.clipboardData.getData("text/plain");
+      if (!text.includes("=")) {
+        return;
+      }
+      const { entries } = parseEnvText(text);
+      if (entries.length === 0) {
+        return;
+      }
+      e.preventDefault();
+      onPasteEntries(index, entries);
+    },
+    [index, onPasteEntries],
+  );
+
+  const handleKeyKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Backspace" && !isOnly && e.currentTarget.value === "") {
+        e.preventDefault();
+        onRemoveAndFocusPrevious(index);
+      }
+    },
+    [index, isOnly, onRemoveAndFocusPrevious],
+  );
+
+  const handleValueKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && !e.shiftKey && isLast) {
+        e.preventDefault();
+        onAdvanceRow();
+      }
+    },
+    [isLast, onAdvanceRow],
+  );
+
+  const keyRegistration = register(`envVars.${index}.key`);
+  const valueRegistration = register(`envVars.${index}.value`);
 
   return (
     <div className="flex flex-col gap-3">
@@ -23,14 +84,19 @@ export const EnvVarRow = ({ index, isOnly, register, onRemove, errors }: EnvVarR
           className="flex-1 [&_input]:font-mono"
           placeholder="CLIENT_KEY..."
           error={fieldErrors?.key?.message}
-          {...register(`envVars.${index}.key`)}
+          {...keyRegistration}
+          onPaste={handleKeyPaste}
+          onKeyDown={handleKeyKeyDown}
         />
         <FormInput
           label="Value"
           className="flex-1 [&_input]:font-mono"
           placeholder="value"
           error={fieldErrors?.value?.message}
-          {...register(`envVars.${index}.value`)}
+          variant={!fieldErrors?.value && hasSpaces ? "warning" : undefined}
+          description={!fieldErrors?.value && hasSpaces ? "Value contains spaces" : undefined}
+          {...valueRegistration}
+          onKeyDown={handleValueKeyDown}
         />
         {!isOnly && (
           <Button

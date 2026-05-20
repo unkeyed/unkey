@@ -1,4 +1,6 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
+import { FlagsProvider } from "@/lib/flags/provider";
+import { resolveAll } from "@/lib/flags/resolve";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import { GeistMono } from "geist/font/mono";
@@ -6,6 +8,8 @@ import { GeistSans } from "geist/font/sans";
 import "@unkey/ui/css";
 import "@/styles/tailwind.css";
 import * as Sentry from "@sentry/nextjs";
+import { Analytics } from "@vercel/analytics/next";
+import { VercelToolbar } from "@vercel/toolbar/next";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import type React from "react";
@@ -16,10 +20,10 @@ import { ThemeProvider } from "./theme-provider";
 export function generateMetadata(): Metadata {
   return {
     metadataBase: new URL("https://unkey.dev"),
-    title: "Open Source API Authentication",
+    title: "Dashboard | Unkey",
     description: "Build better APIs faster",
     openGraph: {
-      title: "Open Source API Authentication",
+      title: "Dashboard | Unkey",
       description: "Build better APIs faster ",
       url: "https://app.unkey.com",
       siteName: "app.unkey.com",
@@ -43,6 +47,22 @@ export function generateMetadata(): Metadata {
         "max-snippet": -1,
       },
     },
+    icons: {
+      icon: [
+        { url: "/favicon/favicon.ico" },
+        {
+          url: "/favicon/favicon-light.svg",
+          media: "(prefers-color-scheme: light)",
+          type: "image/svg+xml",
+        },
+        {
+          url: "/favicon/favicon-dark.svg",
+          media: "(prefers-color-scheme: dark)",
+          type: "image/svg+xml",
+        },
+      ],
+      shortcut: "/favicon/favicon.ico",
+    },
     other: {
       ...Sentry.getTraceData(),
     },
@@ -53,11 +73,12 @@ const Feedback = dynamic(() =>
   import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
 );
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const flags = await resolveAll();
   return (
     <html
       lang="en"
@@ -65,23 +86,27 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full antialiased">
-        <ReactQueryProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <WorkspaceProvider>
-              <Toaster />
-              {children}
-              <CommandMenu />
-              <Suspense fallback={null}>
-                <Feedback />
-              </Suspense>
-            </WorkspaceProvider>
-          </ThemeProvider>
-        </ReactQueryProvider>
+        <FlagsProvider value={flags}>
+          <ReactQueryProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <WorkspaceProvider>
+                <Toaster />
+                {children}
+                <CommandMenu />
+                <Suspense fallback={null}>
+                  <Feedback />
+                </Suspense>
+                <Analytics />
+                {process.env.NODE_ENV === "development" && <VercelToolbar />}
+              </WorkspaceProvider>
+            </ThemeProvider>
+          </ReactQueryProvider>
+        </FlagsProvider>
       </body>
     </html>
   );

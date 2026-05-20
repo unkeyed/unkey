@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type LoadMoreFooterProps = {
   onLoadMore?: () => void;
@@ -30,6 +30,15 @@ export const LoadMoreFooter = ({
   headerContent,
 }: LoadMoreFooterProps) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [hasLoadedMore, setHasLoadedMore] = useState(false);
+  const prevTotalCountRef = useRef(totalCount);
+
+  useEffect(() => {
+    if (totalCount < prevTotalCountRef.current) {
+      setHasLoadedMore(false);
+    }
+    prevTotalCountRef.current = totalCount;
+  }, [totalCount]);
 
   const shouldShow = !!onLoadMore;
 
@@ -41,7 +50,12 @@ export const LoadMoreFooter = ({
     setIsOpen(true);
   }, []);
 
-  if (hide) {
+  const handleLoadMore = useCallback(() => {
+    setHasLoadedMore(true);
+    onLoadMore?.();
+  }, [onLoadMore]);
+
+  if (hide || (!hasMore && !hasLoadedMore)) {
     return null;
   }
 
@@ -115,7 +129,7 @@ export const LoadMoreFooter = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onLoadMore}
+                onClick={handleLoadMore}
                 loading={isFetchingNextPage}
                 disabled={isFetchingNextPage || !hasMore}
                 className="transition-all"

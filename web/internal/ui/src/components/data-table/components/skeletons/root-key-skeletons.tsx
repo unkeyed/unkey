@@ -1,15 +1,13 @@
 import { ChartActivity2, Dots, Key2, Page2 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
+import { DashedBadgeSkeleton } from "./dashed-badge-skeleton";
+import { NameColumnSkeleton } from "./name-column-skeleton";
 
 export const RootKeyColumnSkeleton = () => (
-  <div className="flex flex-col items-start px-[18px]">
-    <div className="flex gap-4 items-center">
-      <div className="size-5 rounded-sm flex items-center justify-center border border-grayA-3 bg-grayA-3 animate-pulse">
-        <Key2 iconSize="sm-regular" className="text-gray-12 opacity-50" />
-      </div>
-      <div className="h-4 w-24 bg-grayA-3 rounded-sm animate-pulse" />
-    </div>
-  </div>
+  <NameColumnSkeleton
+    icon={<Key2 iconSize="sm-regular" className="text-gray-12 opacity-50" />}
+    lines={1}
+  />
 );
 
 export const CreatedAtColumnSkeleton = () => (
@@ -25,12 +23,7 @@ export const KeyColumnSkeleton = () => (
 );
 
 export const PermissionsColumnSkeleton = () => (
-  <div className="flex flex-col gap-1 max-w-[200px]">
-    <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
-      <Page2 className="size-3 opacity-50" iconSize="md-medium" />
-      <div className="h-2 w-20 bg-grayA-3 rounded-sm animate-pulse" />
-    </div>
-  </div>
+  <DashedBadgeSkeleton icon={<Page2 iconSize="md-medium" className="opacity-50" />} />
 );
 
 export const LastUpdatedColumnSkeleton = () => (
