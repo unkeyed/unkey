@@ -2265,6 +2265,16 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	// Returns deployments still in a non-terminal status. The project delete
+	// workflow uses this to cancel in-flight Restate invocations before the
+	// cascade drops their rows; the NOT IN list mirrors the terminal set in
+	// deployment_update_status_if_active.sql so the two queries stay aligned.
+	//
+	//  SELECT id, invocation_id
+	//  FROM deployments
+	//  WHERE project_id = ?
+	//    AND status NOT IN ('ready', 'failed', 'skipped', 'stopped', 'superseded', 'cancelled')
+	ListActiveDeploymentsByProjectId(ctx context.Context, db DBTX, projectID string) ([]ListActiveDeploymentsByProjectIdRow, error)
 	// ListAllCiliumNetworkPoliciesByRegion returns cilium network policies for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//

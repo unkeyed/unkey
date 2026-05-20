@@ -294,7 +294,8 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
-		DB: database,
+		DB:    database,
+		Admin: restateAdminClient,
 	})))
 	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
 		DB: database,
