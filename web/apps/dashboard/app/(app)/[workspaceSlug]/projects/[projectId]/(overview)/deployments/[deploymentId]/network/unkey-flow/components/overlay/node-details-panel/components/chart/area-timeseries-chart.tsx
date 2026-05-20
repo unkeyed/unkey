@@ -7,7 +7,6 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useId, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
-import { LogsChartError } from "./components/logs-chart-error";
 
 export type AreaChartPoint = { originalTimestamp: number } & {
   [k: string]: number | undefined;
@@ -91,12 +90,20 @@ export function AreaTimeseriesChart({
     return () => clearTimeout(timer);
   }, []);
 
-  if (isError) {
-    return <LogsChartError />;
-  }
   const configKeys = Object.keys(config);
   const firstKey = configKeys[0];
   const sectionColor = config[firstKey]?.color;
+
+  if (isError) {
+    return (
+      <ChartEmpty
+        variant="wave"
+        color="hsl(var(--error-9))"
+        height={height}
+        message="Could not retrieve logs"
+      />
+    );
+  }
 
   if (isLoading) {
     return <ChartWaveLoading height={height} color={sectionColor} />;

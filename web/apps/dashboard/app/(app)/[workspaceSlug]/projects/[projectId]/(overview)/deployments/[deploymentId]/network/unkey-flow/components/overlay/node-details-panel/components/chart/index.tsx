@@ -15,7 +15,6 @@ import { useId, useMemo } from "react";
 import { Bar, BarChart } from "recharts";
 import type { ValueParts } from "./area-timeseries-chart";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
-import { LogsChartError } from "./components/logs-chart-error";
 
 export type TooltipValueParts = ValueParts;
 
@@ -62,12 +61,19 @@ export function LogsTimeseriesBarChart({
   const isEmpty =
     !data || data.length === 0 || data.every((p) => configKeys.every((k) => !(Number(p[k]) > 0)));
 
-  if (isError) {
-    return <LogsChartError />;
-  }
-
   const firstKey = Object.keys(config)[0];
   const sectionColor = config[firstKey]?.color;
+
+  if (isError) {
+    return (
+      <ChartEmpty
+        variant="wave"
+        color="hsl(var(--error-9))"
+        height={height}
+        message="Could not retrieve logs"
+      />
+    );
+  }
 
   if (isLoading) {
     return <ChartWaveLoading height={height} color={sectionColor} />;
