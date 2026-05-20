@@ -13,9 +13,7 @@ import (
 
 // projectDeletedMessage is stamped onto in-flight deployment steps when a
 // project is being deleted. The project (and its deployment views) are
-// gone by the time anyone could look, so this is never user-visible. It
-// exists for DB forensics: when someone later asks "why did this
-// deployment end up cancelled?" the answer is one query away.
+// gone by the time anyone could look, so this is never user-visible.
 const projectDeletedMessage = "Project deleted"
 
 // Delete removes a project by cancelling any in-flight deployment
@@ -89,6 +87,9 @@ func (s *Service) cancelActiveDeployments(ctx restate.ObjectContext, projectID s
 		"count", len(deploymentIDs),
 	)
 
+	// DB errors below are non-fatal: even if we fail to flip the row state
+	// here, the env-level cascade (DeleteDeploymentsByEnvironmentId) drops
+	// the row anyway. We continue so the Restate-side cancel still fires.
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 		return db.Query.EndActiveDeploymentStepsForDeployments(runCtx, s.db.RW(), db.EndActiveDeploymentStepsForDeploymentsParams{
@@ -115,13 +116,6 @@ func (s *Service) cancelActiveDeployments(ctx restate.ObjectContext, projectID s
 			"project_id", projectID,
 			"error", err,
 		)
-	}
-
-	if s.admin == nil {
-		logger.Warn("restate admin client not configured; skipping invocation cancel",
-			"project_id", projectID,
-		)
-		return nil
 	}
 
 	for _, d := range active {

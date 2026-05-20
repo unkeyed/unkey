@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/restate/admin",

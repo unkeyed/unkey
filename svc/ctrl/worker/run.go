@@ -293,10 +293,14 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
-	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
+	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:    database,
 		Admin: restateAdminClient,
-	})))
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create project worker service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectSvc))
 	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
 		DB: database,
 	})))
