@@ -38,7 +38,7 @@ export const ratelimitQueryOverviewLogsPayload = z.object({
       ),
     })
     .nullable(),
-  cursor: z.number().nullable().optional().nullable(),
+  cursor: z.number().nullable().optional(),
   page: z.int().min(1).optional().default(1),
   sorts: z
     .array(

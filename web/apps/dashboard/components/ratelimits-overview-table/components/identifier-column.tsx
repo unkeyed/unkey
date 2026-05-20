@@ -4,23 +4,19 @@ import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { calculateBlockedPercentage } from "../utils/calculate-blocked-percentage";
+import { isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 
 type IdentifierColumnProps = {
   log: RatelimitOverviewLog;
 };
 
-const PERCENTAGE_MULTIPLIER = 100;
-const FULLY_BLOCKED_PERCENTAGE = 100;
-
 export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const style = getStatusStyle(log);
-  const hasMoreBlocked = calculateBlockedPercentage(log);
+  const hasMoreBlocked = isMostlyBlocked(log);
   const totalRequests = log.blocked_count + log.passed_count;
-  const blockRate =
-    totalRequests > 0 ? (log.blocked_count / totalRequests) * PERCENTAGE_MULTIPLIER : 0;
-  const isFullyBlocked = blockRate === FULLY_BLOCKED_PERCENTAGE;
+  const blockedPercent = totalRequests > 0 ? (log.blocked_count / totalRequests) * 100 : 0;
+  const isFullyBlocked = blockedPercent === 100;
 
   return (
     <div className="flex gap-6 items-center pl-2 min-w-0">
@@ -32,7 +28,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
               "All requests have been blocked in this timeframe"
             ) : (
               <>
-                More than {Math.round(blockRate)}% of requests have been
+                More than {Math.round(blockedPercent)}% of requests have been
                 <br />
                 blocked in this timeframe
               </>
@@ -75,7 +71,9 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
             {log.identifier}
           </div>
         </InfoTooltip>
-        {log.override && <OverrideIndicator log={log} style={style} />}
+        {log.override && (
+          <OverrideIndicator log={log} style={style} hasMoreBlocked={hasMoreBlocked} />
+        )}
       </div>
     </div>
   );
@@ -84,9 +82,10 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
 type OverrideIndicatorProps = {
   log: RatelimitOverviewLog;
   style: ReturnType<typeof getStatusStyle>;
+  hasMoreBlocked: boolean;
 };
 
-const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
+const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProps) => (
   <InfoTooltip
     variant="muted"
     content={
@@ -121,7 +120,7 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
       <div
         className={cn(
           "size-[6px] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-          calculateBlockedPercentage(log) ? "bg-orange-10 hover:bg-orange-11" : "bg-warning-10",
+          hasMoreBlocked ? "bg-orange-10 hover:bg-orange-11" : "bg-warning-10",
         )}
       />
     </div>

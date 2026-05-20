@@ -1,9 +1,13 @@
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 
-export const calculateBlockedPercentage = (log: RatelimitOverviewLog) => {
-  const totalRequests = log.blocked_count + log.passed_count;
-  const blockRate = totalRequests > 0 ? (log.blocked_count / totalRequests) * 100 : 0;
-  const hasMoreBlocked = blockRate > 60;
+// Above this share of blocked traffic the identifier is flagged visually
+// (warning icon + tinted row) so high-block clients are scannable at a glance.
+const BLOCKED_WARNING_THRESHOLD = 0.6;
 
-  return hasMoreBlocked;
+export const isMostlyBlocked = (log: RatelimitOverviewLog): boolean => {
+  const totalRequests = log.blocked_count + log.passed_count;
+  if (totalRequests === 0) {
+    return false;
+  }
+  return log.blocked_count / totalRequests > BLOCKED_WARNING_THRESHOLD;
 };

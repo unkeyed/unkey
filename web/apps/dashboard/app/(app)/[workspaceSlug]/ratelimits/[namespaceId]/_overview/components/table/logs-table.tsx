@@ -43,8 +43,6 @@ export const RatelimitOverviewLogsTable = ({
 
   const columns = useMemo(() => createRatelimitsOverviewColumns({ namespaceId }), [namespaceId]);
 
-  // The TanStack column id "time" maps to the server sort field "time"; for
-  // the other sortable columns they happen to share names.
   const sorting: SortingState = useMemo(
     () =>
       sorts.length > 0

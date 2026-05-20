@@ -56,12 +56,12 @@ export function useRatelimitsOverviewListPaginated({
         }
 
         case "status": {
-          if (typeof filter.value !== "string") {
+          if (filter.value !== "blocked" && filter.value !== "passed") {
             return;
           }
           params.status?.filters.push({
             operator: "is",
-            value: filter.value as "blocked" | "passed",
+            value: filter.value,
           });
           break;
         }

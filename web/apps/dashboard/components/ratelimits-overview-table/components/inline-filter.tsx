@@ -1,4 +1,7 @@
-import type { RatelimitOverviewFilterValue } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/filters.schema";
+import type {
+  RatelimitOverviewFilterField,
+  RatelimitOverviewFilterValue,
+} from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { BarsFilter } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
@@ -8,6 +11,10 @@ type FilterPair = {
   identifiers?: string;
 };
 
+// Time-range filters are preserved when applying an inline filter; everything
+// else gets replaced by the new pair so the table doesn't accumulate stale rules.
+const TIME_FIELDS: readonly RatelimitOverviewFilterField[] = ["startTime", "endTime", "since"];
+
 export const InlineFilter = ({
   filterPair,
   content,
@@ -16,13 +23,8 @@ export const InlineFilter = ({
   content: string;
 }) => {
   const { filters, updateFilters } = useFilters();
-  const fields = Object.entries(filterPair)
-    .filter(([_, value]) => value !== undefined)
-    .map(([key]) => key as keyof FilterPair);
 
-  const activeFilters = filters.filter((f) =>
-    ["startTime", "endTime", "since"].includes(f.field as keyof FilterPair),
-  );
+  const activeFilters = filters.filter((f) => TIME_FIELDS.includes(f.field));
 
   return (
     <InfoTooltip
@@ -32,18 +34,24 @@ export const InlineFilter = ({
     >
       <button
         onClick={() => {
-          updateFilters([
-            ...activeFilters,
-            ...fields.map(
-              (field) =>
-                ({
-                  field,
-                  id: crypto.randomUUID(),
-                  operator: "is",
-                  value: filterPair[field] as string,
-                }) satisfies RatelimitOverviewFilterValue,
-            ),
-          ]);
+          const pairFilters: RatelimitOverviewFilterValue[] = [];
+          if (filterPair.identifiers !== undefined) {
+            pairFilters.push({
+              field: "identifiers",
+              id: crypto.randomUUID(),
+              operator: "is",
+              value: filterPair.identifiers,
+            });
+          }
+          if (filterPair.status !== undefined) {
+            pairFilters.push({
+              field: "status",
+              id: crypto.randomUUID(),
+              operator: "is",
+              value: filterPair.status,
+            });
+          }
+          updateFilters([...activeFilters, ...pairFilters]);
         }}
         type="button"
       >

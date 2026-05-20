@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { calculateBlockedPercentage } from "./calculate-blocked-percentage";
+import { isMostlyBlocked } from "./calculate-blocked-percentage";
 
 type StatusStyle = {
   base: string;
@@ -37,14 +37,14 @@ export const STATUS_STYLES = {
 };
 
 export const getStatusStyle = (log: RatelimitOverviewLog): StatusStyle => {
-  return calculateBlockedPercentage(log) ? STATUS_STYLES.blocked : STATUS_STYLES.success;
+  return isMostlyBlocked(log) ? STATUS_STYLES.blocked : STATUS_STYLES.success;
 };
 
 export const getRowClassName = (
   log: RatelimitOverviewLog,
   selectedLog: RatelimitOverviewLog | null,
 ) => {
-  const hasMoreBlocked = calculateBlockedPercentage(log);
+  const hasMoreBlocked = isMostlyBlocked(log);
   const style = getStatusStyle(log);
   const isSelected = selectedLog?.request_id === log.request_id;
 

@@ -679,46 +679,32 @@ export function getRatelimitOverviewLogs(ch: Querier) {
       ["blocked_tokens", "blocked_tokens"],
     ]);
 
+    // sort.direction is statically "asc" | "desc" via the Zod schema, so the
+    // mapping below is a safe, exhaustive conversion to SQL keywords.
+    const toSqlDirection = (direction: "asc" | "desc"): "ASC" | "DESC" =>
+      direction === "asc" ? "ASC" : "DESC";
+
     const orderBy =
       hasSortingRules && args.sorts
         ? args.sorts.reduce((acc: string[], sort) => {
             const column = allowedColumns.get(sort.column);
             // Only add to ORDER BY if it's an allowed column to prevent injection
             if (column) {
-              const direction =
-                sort.direction.toUpperCase() === "ASC" || sort.direction.toUpperCase() === "DESC"
-                  ? sort.direction.toUpperCase()
-                  : "DESC";
-              acc.push(`${column} ${direction}`);
+              acc.push(`${column} ${toSqlDirection(sort.direction)}`);
             }
             return acc;
           }, [])
         : [];
 
-    // Check if we have custom sorts
-    const hasAvgLatencySort = args.sorts?.some((s) => s.column === "avg_latency");
-    const hasP99LatencySort = args.sorts?.some((s) => s.column === "p99_latency");
-    const hasPassedSort = args.sorts?.some((s) => s.column === "passed");
-    const hasBlockedSort = args.sorts?.some((s) => s.column === "blocked");
-    const hasPassedTokensSort = args.sorts?.some((s) => s.column === "passed_tokens");
-    const hasBlockedTokensSort = args.sorts?.some((s) => s.column === "blocked_tokens");
-    const hasCustomSort =
-      hasAvgLatencySort ||
-      hasP99LatencySort ||
-      hasPassedSort ||
-      hasBlockedSort ||
-      hasPassedTokensSort ||
-      hasBlockedTokensSort;
-
-    // Get explicit time sort if it exists
+    // "Custom" sorts are anything other than `time` — when present, time falls
+    // through to a stable tiebreaker (ASC) so OFFSET pagination stays
+    // deterministic between pages.
+    const hasCustomSort = args.sorts?.some((s) => s.column !== "time") ?? false;
     const timeSort = args.sorts?.find((s) => s.column === "time");
-
-    // If we have custom sort (avg_latency, p99_latency, passed, blocked), always use ASC for better pagination
-    // Otherwise use explicit time direction or default to DESC
-    const timeDirection = hasCustomSort
+    const timeDirection: "ASC" | "DESC" = hasCustomSort
       ? "ASC"
-      : timeSort?.direction.toUpperCase() === "ASC"
-        ? "ASC"
+      : timeSort
+        ? toSqlDirection(timeSort.direction)
         : "DESC";
 
     // Remove any existing time sort from the orderBy array
