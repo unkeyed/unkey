@@ -60,6 +60,11 @@ func (s *Service) VerifyDomain(
 	// Fetch domain - NOT journaled so we get fresh state on each retry
 	dom, err := db.Query.FindCustomDomainById(ctx, s.db.RO(), domainID)
 	if err != nil {
+		// Domain was deleted between scheduling and execution; nothing to verify.
+		// Return terminal error so Restate stops retrying this stale invocation.
+		if db.IsNotFound(err) {
+			return nil, restate.TerminalError(fmt.Errorf("custom domain not found: %s", domainID), 404)
+		}
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 

@@ -3102,6 +3102,13 @@ type Querier interface {
 	//  SET ownership_verified = ?, cname_verified = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateCustomDomainOwnership(ctx context.Context, db DBTX, arg UpdateCustomDomainOwnershipParams) error
+	//UpdateCustomDomainVerificationError
+	//
+	//  UPDATE custom_domains
+	//  SET verification_error = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdateCustomDomainVerificationError(ctx context.Context, db DBTX, arg UpdateCustomDomainVerificationErrorParams) error
 	//UpdateCustomDomainVerificationStatus
 	//
 	//  UPDATE custom_domains
