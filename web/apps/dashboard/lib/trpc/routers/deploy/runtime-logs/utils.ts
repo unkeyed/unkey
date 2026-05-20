@@ -1,6 +1,6 @@
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import type { RuntimeLogsRequestSchema } from "@/lib/schemas/runtime-logs.schema";
-import { getTimestampFromRelative } from "@/lib/utils";
+import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
 import type { RuntimeLogsRequest } from "@unkey/clickhouse/src/runtime-logs";
 
 export type K8sRegionEntry = { k8sPodName: string; region: string };
@@ -24,8 +24,6 @@ export function uniqueK8sRegionEntries(
   return entries;
 }
 
-const DEFAULT_SINCE = "6h";
-
 export function transformFilters(
   params: RuntimeLogsRequestSchema,
 ): Omit<
@@ -36,16 +34,16 @@ export function transformFilters(
   const region = params.region?.filters?.map((f) => f.value) || [];
   const environmentId = params.environmentId?.filters?.map((f) => f.value) || [];
 
-  // Default to last 6h when client sends no time bounds and no relative window.
-  const hasAnyTime = params.since !== null || params.startTime !== null || params.endTime !== null;
-  const sinceValue =
-    params.since !== null && params.since !== "" ? params.since : hasAnyTime ? null : DEFAULT_SINCE;
-
-  let startTime = params.startTime ?? Date.now() - 6 * 60 * 60 * 1000;
-  let endTime = params.endTime ?? Date.now();
-
-  if (sinceValue !== null) {
-    startTime = getTimestampFromRelative(sinceValue);
+  let startTime: number;
+  let endTime: number;
+  if (params.since !== null && params.since !== "") {
+    startTime = getTimestampFromRelative(params.since);
+    endTime = Date.now();
+  } else if (params.startTime !== null && params.endTime !== null) {
+    startTime = params.startTime;
+    endTime = params.endTime;
+  } else {
+    startTime = getTimestampFromRelative(DEFAULT_LOGS_SINCE);
     endTime = Date.now();
   }
 

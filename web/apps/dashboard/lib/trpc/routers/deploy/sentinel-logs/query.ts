@@ -42,8 +42,6 @@ export const querySentinelLogs = workspaceProcedure
 
       const transformedInputs = transformSentinelLogsFilters(input);
 
-      // Default to production environment when client sends no environmentId filter.
-      // Falls back to the first environment if no env is slugged "production".
       if (transformedInputs.environmentId.length === 0 && project.environments.length > 0) {
         const prod =
           project.environments.find((e) => e.slug === "production") ?? project.environments[0];

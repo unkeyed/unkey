@@ -74,15 +74,11 @@ export const queryRuntimeLogs = workspaceProcedure
 
     const transformedInputs = transformFilters(input);
 
-    // Default to the production environment when the client sends no environmentId filter.
-    // Falls back to the first environment if no env is slugged "production".
     if (transformedInputs.environmentId.length === 0) {
       const prod = project.environments.find((e) => e.slug === "production") ?? defaultEnvironment;
       transformedInputs.environmentId = [prod.id];
     }
 
-    // appId stays a single value because all environments in a project share the same app,
-    // but we still resolve it from the first matched environment for correctness.
     const environmentIds = transformedInputs.environmentId;
     const appId =
       project.environments.find((e) => environmentIds.includes(e.id))?.appId ??

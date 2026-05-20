@@ -1,12 +1,9 @@
-import { getTimestampFromRelative } from "@/lib/utils";
+import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
 import type { SentinelLogsRequest } from "@unkey/clickhouse/src/sentinel";
 
-const DEFAULT_SINCE = "6h";
-
 export function transformSentinelLogsFilters(params: Omit<SentinelLogsRequest, "workspaceId">) {
-  // Default to last 6h when client sends no absolute window and no relative window.
   const hasAbsoluteRange = params.startTime !== 0 && params.endTime !== 0;
-  const since = params.since !== "" ? params.since : hasAbsoluteRange ? "" : DEFAULT_SINCE;
+  const since = params.since !== "" ? params.since : hasAbsoluteRange ? "" : DEFAULT_LOGS_SINCE;
 
   let startTime = params.startTime;
   let endTime = params.endTime;
