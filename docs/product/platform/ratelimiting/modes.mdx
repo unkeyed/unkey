@@ -126,6 +126,19 @@ This is useful when different operations have different costs — for example, w
 
 If you don't pass a `cost` value, every request counts as `1` token, so the token columns mirror the request columns.
 
+#### Requests vs. Tokens charts
+
+The namespace overview displays two bar charts side by side, both bucketed by the same time granularity and filterable with the same controls:
+
+| Chart      | What each bar represents                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------------------------- |
+| `REQUESTS` | Count of rate limit checks in the bucket, split into **PASSED** (allowed) and **BLOCKED** (denied)             |
+| `TOKENS`   | Sum of `cost` across rate limit checks in the bucket, split into **PASSED** (deducted) and **BLOCKED** (would have been deducted) |
+
+The two charts diverge whenever requests carry a non-default `cost`. For example, a window with 100 requests where most carry `cost: 5` produces a short bar on the requests chart but a tall bar on the tokens chart — a quick visual signal that a few expensive calls are dominating capacity. When every request uses the default `cost` of `1`, the two charts are identical.
+
+Drag-selecting a range on either chart applies the same time window filter to the logs table below, so you can jump from a token spike straight to the identifiers that caused it.
+
 ## Timeout and fallback
 
 Configure behavior when Unkey is unreachable:
