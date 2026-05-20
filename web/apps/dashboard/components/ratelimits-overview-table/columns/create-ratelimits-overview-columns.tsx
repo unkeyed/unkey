@@ -27,12 +27,14 @@ export const createRatelimitsOverviewColumns = ({
       headerClassName: "pl-12",
     },
     cell: ({ row }) => (
-      <div className="flex gap-3 items-center group/identifier">
+      <div className="flex gap-3 items-center group/identifier min-w-0">
         <IdentifierColumn log={row.original} />
-        <InlineFilter
-          content="Filter by identifier"
-          filterPair={{ identifiers: row.original.identifier }}
-        />
+        <div className="shrink-0">
+          <InlineFilter
+            content="Filter by identifier"
+            filterPair={{ identifiers: row.original.identifier }}
+          />
+        </div>
       </div>
     ),
   },

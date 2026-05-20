@@ -26,6 +26,7 @@ export const InlineFilter = ({
 
   return (
     <InfoTooltip
+      asChild
       variant="inverted"
       content={<span className="text-xs font-medium">{content}</span>}
     >

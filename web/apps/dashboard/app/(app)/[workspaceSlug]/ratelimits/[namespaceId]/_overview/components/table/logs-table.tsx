@@ -15,7 +15,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { type SortFields, sortFields } from "./query-logs.schema";
 
 const TABLE_CONFIG: Partial<DataTableConfig> = {
-  rowHeight: 52,
+  rowHeight: 26,
   layout: "grid",
   rowBorders: true,
   containerPadding: "px-0",

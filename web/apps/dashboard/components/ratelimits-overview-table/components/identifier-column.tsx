@@ -23,7 +23,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const isFullyBlocked = blockRate === FULLY_BLOCKED_PERCENTAGE;
 
   return (
-    <div className="flex gap-6 items-center pl-2">
+    <div className="flex gap-6 items-center pl-2 min-w-0">
       <InfoTooltip
         variant="inverted"
         content={
@@ -40,15 +40,15 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           </div>
         }
       >
-        <div className={cn(hasMoreBlocked ? "flex items-center shrink-0" : "invisible")}>
+        <div className={cn(hasMoreBlocked ? "flex items-center shrink-0" : "invisible shrink-0")}>
           <TriangleWarning2 iconSize="md-medium" />
         </div>
       </InfoTooltip>
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-3 items-center min-w-0">
         <div
           className={cn(
             style.badge.default,
-            "rounded-sm p-1",
+            "rounded-sm p-1 shrink-0",
             hasMoreBlocked ? "" : "group-hover:bg-accent-6",
           )}
         >
@@ -61,11 +61,20 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
             />
           )}
         </div>
-        <div
-          className={cn("font-mono font-medium", hasMoreBlocked ? style.base : "text-accent-12")}
+        <InfoTooltip
+          asChild
+          variant="inverted"
+          content={<span className="font-mono text-xs break-all">{log.identifier}</span>}
         >
-          {log.identifier}
-        </div>
+          <div
+            className={cn(
+              "font-mono font-medium truncate min-w-0",
+              hasMoreBlocked ? style.base : "text-accent-12",
+            )}
+          >
+            {log.identifier}
+          </div>
+        </InfoTooltip>
         {log.override && <OverrideIndicator log={log} style={style} />}
       </div>
     </div>
