@@ -21,7 +21,7 @@ export const ActorCell = ({ log }: ActorCellProps) => {
           </span>
         ) : (
           <>
-            {isKey ? <Key iconSize="sm-thin" /> : <MathFunction iconSize="sm-thin" />}
+            {isKey ? <Key iconSize="sm-medium" /> : <MathFunction iconSize="sm-medium" />}
             <span className="font-mono text-xs truncate secret">{log.auditLog.actor.id}</span>
           </>
         )}

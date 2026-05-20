@@ -29,7 +29,7 @@ export default async function AuthenticatedLayout({
           href="https://www.unkey.com/docs"
           target="_blank"
         >
-          <Page2 iconSize="md-thin" />
+          <Page2 iconSize="md-medium" />
           Documentation
         </Link>
       </nav>

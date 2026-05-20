@@ -68,7 +68,7 @@ export function GroupRow({
         <span className="flex items-center gap-1.5 text-[13px] text-gray-11 transition-colors pl-2">
           {row.items.length} values
           <ChevronRight
-            iconSize="sm-thin"
+            iconSize="sm-medium"
             className={cn(
               "size-[12px] transition-transform duration-200",
               isExpanded && "rotate-90",

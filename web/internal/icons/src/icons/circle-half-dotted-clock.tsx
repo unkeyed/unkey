@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function CircleHalfDottedClock({ iconSize = "xl-thin", ...props }: IconProps) {
+export function CircleHalfDottedClock({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (

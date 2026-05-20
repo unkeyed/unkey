@@ -1,6 +1,6 @@
 import { type IconProps, sizeMap } from "../props";
 
-export function LangRuby({ iconSize = "xl-thin", ...props }: IconProps) {
+export function LangRuby({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize } = sizeMap[iconSize];
 
   return (

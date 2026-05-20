@@ -1,6 +1,6 @@
 import { type IconProps, sizeMap } from "../props";
 
-export function LangJavascript({ iconSize = "xl-thin", ...props }: IconProps) {
+export function LangJavascript({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize } = sizeMap[iconSize];
 
   return (

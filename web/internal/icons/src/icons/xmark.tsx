@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function XMark({ iconSize = "xl-thin", ...rest }: IconProps) {
+export function XMark({ iconSize = "xl-medium", ...rest }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
   return (
     <svg

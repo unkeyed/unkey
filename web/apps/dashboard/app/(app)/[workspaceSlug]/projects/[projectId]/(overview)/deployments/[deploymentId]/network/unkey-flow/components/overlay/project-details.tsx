@@ -31,7 +31,7 @@ export const ProjectDetails = () => {
                     "text-gray-8 transition-transform origin-center",
                     isOpen ? "rotate-180" : "",
                   )}
-                  iconSize="sm-bold"
+                  iconSize="sm-regular"
                 />
               </div>
             </button>

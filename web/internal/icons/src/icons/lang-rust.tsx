@@ -1,6 +1,6 @@
 import { type IconProps, sizeMap } from "../props";
 
-export function LangRust({ iconSize = "xl-thin", ...props }: IconProps) {
+export function LangRust({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize } = sizeMap[iconSize];
 
   return (

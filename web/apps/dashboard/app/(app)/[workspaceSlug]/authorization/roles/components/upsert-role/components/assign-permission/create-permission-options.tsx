@@ -48,7 +48,7 @@ export function createPermissionOptions({
                         <StatusBadge
                           variant="locked"
                           text="Already assigned"
-                          icon={<Lock iconSize="sm-thin" />}
+                          icon={<Lock iconSize="sm-medium" />}
                         />
                       )}
                     </div>

@@ -62,7 +62,7 @@ type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
  * <CircleProgress
  *   value={progress}
  *   total={100}
- *   iconSize="sm-thin"
+ *   iconSize="sm-medium"
  * />
  * ```
  */

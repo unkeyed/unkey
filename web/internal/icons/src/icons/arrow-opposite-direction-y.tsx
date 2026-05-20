@@ -12,7 +12,7 @@
 
 import { type IconProps, sizeMap } from "../props";
 
-export function ArrowOppositeDirectionY({ iconSize = "xl-thin", ...props }: IconProps) {
+export function ArrowOppositeDirectionY({ iconSize = "xl-medium", ...props }: IconProps) {
   const { iconSize: pixelSize, strokeWidth } = sizeMap[iconSize];
 
   return (
