@@ -89,9 +89,6 @@ func (s *Service) cancelActiveDeployments(ctx restate.ObjectContext, projectID s
 		"count", len(deploymentIDs),
 	)
 
-	// First-write-wins on ended_at IS NULL, so the Deploy handler's own
-	// step-end attempts after cancellation are no-ops and our marker
-	// survives.
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 		return db.Query.EndActiveDeploymentStepsForDeployments(runCtx, s.db.RW(), db.EndActiveDeploymentStepsForDeploymentsParams{
@@ -106,9 +103,6 @@ func (s *Service) cancelActiveDeployments(ctx restate.ObjectContext, projectID s
 		)
 	}
 
-	// Flipping to cancelled before invocation cancel means the compensation
-	// chain's UpdateDeploymentStatusIfActive(failed) is a no-op (cancelled
-	// is in the terminal NOT-IN list).
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 		return db.Query.UpdateDeploymentStatusBatch(runCtx, s.db.RW(), db.UpdateDeploymentStatusBatchParams{
