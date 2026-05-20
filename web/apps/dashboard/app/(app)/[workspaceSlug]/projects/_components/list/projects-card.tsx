@@ -40,7 +40,7 @@ export const ProjectCard = ({
   const projectPath = `/${workspace.slug}/projects/${projectId}`;
 
   return (
-    <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       {/* Invisible base clickable layer - covers entire card */}
       <Link
         href={projectPath}
@@ -49,8 +49,8 @@ export const ProjectCard = ({
         onClick={handleLinkClick}
       />
       {/*Top Section*/}
-      <div className="flex gap-4 items-center">
-        <div className="size-10 bg-gray-3 rounded-[10px] flex items-center justify-center shrink-0 shadow-sm shadow-grayA-8/20 dark:ring-1 dark:ring-gray-4 dark:shadow-none">
+      <div className="flex gap-4 items-center min-h-11">
+        <div className="size-10 bg-gray-3 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">
           {isNavigating ? (
             <Loading size={20} className="text-grayA-11" />
           ) : (
@@ -68,7 +68,7 @@ export const ProjectCard = ({
             </Link>
           </InfoTooltip>
           {/*Top Section > Domains/Hostnames*/}
-          {domain && (
+          {domain ? (
             <InfoTooltip content={domain} asChild position={{ align: "start", side: "top" }}>
               <a
                 href={`https://${domain}`}
@@ -79,6 +79,10 @@ export const ProjectCard = ({
                 {domain}
               </a>
             </InfoTooltip>
+          ) : (
+            <span aria-hidden="true" className="text-xs leading-[12px] invisible">
+              &nbsp;
+            </span>
           )}
         </div>
         {/*Top Section > Project actions*/}
@@ -96,24 +100,26 @@ export const ProjectCard = ({
             </Link>
           </InfoTooltip>
         ) : (
-          <div className="text-[13px] text-accent-12 leading-5 opacity-70">No commit info</div>
+          <div className="h-5">
+            <span className="sr-only">No commit info</span>
+          </div>
         )}
 
-        <div className="flex gap-2 items-center min-w-0 justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex gap-2 items-center min-w-0 justify-between min-h-5">
+          <div className="flex items-center gap-3">
             {commitTimestamp ? (
               <TimestampInfo value={commitTimestamp} className="hover:underline whitespace-pre" />
             ) : (
-              <span className="text-xs text-gray-12 truncate max-w-[70px] opacity-70">
-                No deployments
-              </span>
+              <span className="sr-only">No deployments</span>
             )}
-            <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
-            <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
-              <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
-            </InfoTooltip>
+            <div className="flex items-center gap-1">
+              <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
+              <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
+                <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
+              </InfoTooltip>
+            </div>
           </div>
-          {authorAvatar && (
+          {authorAvatar && author ? (
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-10">by</span>
               <Avatar alt="Author avatar" src={authorAvatar} />
@@ -123,6 +129,13 @@ export const ProjectCard = ({
                 </span>
               </InfoTooltip>
             </div>
+          ) : (
+            <>
+              <span className="sr-only">No author</span>
+              <div aria-hidden="true" className="flex items-center gap-2 invisible">
+                <Avatar src={null} alt="" />
+              </div>
+            </>
           )}
         </div>
       </div>
