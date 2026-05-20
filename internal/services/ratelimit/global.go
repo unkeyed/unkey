@@ -70,12 +70,12 @@ func (s *service) startGlobalPush() {
 func (s *service) runGlobalPushOnce() {
 	nowMs := s.clock.Now().UnixMilli()
 
-	// rows and pushedEntries are parallel slices: rows[i] is the upsert
-	// payload for pushedEntries[i]. They are separate because the bulk
-	// upsert wants []db.GlobalCountersUpsertParams while the post-success
-	// commit wants the *counterEntry handle. Indexing both by the same
-	// position avoids a redundant allocation.
-	var rows []db.GlobalCountersUpsertParams
+	// rows and pushedEntries are parallel slices: rows[i] is the generated
+	// upsert params for pushedEntries[i]. They are separate because the bulk
+	// upsert wants database params while the post-success commit wants the
+	// *counterEntry handle. Indexing both by the same position avoids a
+	// redundant allocation.
+	var rows []db.UpsertRatelimitGlobalCountersParams
 	var pushedEntries []*counterEntry
 
 	s.counters.Range(func(k, v any) bool {
@@ -97,7 +97,7 @@ func (s *service) runGlobalPushOnce() {
 			return true
 		}
 
-		rows = append(rows, db.GlobalCountersUpsertParams{
+		rows = append(rows, db.UpsertRatelimitGlobalCountersParams{
 			WorkspaceID: key.workspaceID,
 			Namespace:   key.namespace,
 			Identifier:  key.identifier,

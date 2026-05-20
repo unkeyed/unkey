@@ -37,6 +37,36 @@ type Querier interface {
 	//    AND region != ?
 	//  GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
 	GlobalCountersImported(ctx context.Context, arg GlobalCountersImportedParams) ([]GlobalCountersImportedRow, error)
+	// UpsertRatelimitGlobalCounters records one region's latest observation for a
+	// sliding-window cell. The generated bulk variant is the hot path: conflicts
+	// use GREATEST so concurrent writers for the same region collapse onto the
+	// highest count, which keeps regional observations monotonic within a sequence.
+	//
+	//  INSERT INTO ratelimit_global_counters (
+	//      workspace_id,
+	//      namespace,
+	//      identifier,
+	//      duration_ms,
+	//      sequence,
+	//      region,
+	//      count,
+	//      expires_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      count = GREATEST(count, VALUES(count)),
+	//      updated_at = VALUES(updated_at)
+	UpsertRatelimitGlobalCounters(ctx context.Context, arg UpsertRatelimitGlobalCountersParams) error
 }
 
 var _ Querier = (*Queries)(nil)

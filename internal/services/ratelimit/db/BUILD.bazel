@@ -3,13 +3,16 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "db",
     srcs = [
+        "bulk_global_counters_upsert.sql_generated.go",
         "database.go",
         "doc.go",
         "generate.go",
         "global_counters_delete_expired.sql_generated.go",
         "global_counters_imported.sql_generated.go",
+        "global_counters_upsert.sql_generated.go",
         "global_counters_upsert_bulk.go",
         "models_generated.go",
+        "querier_bulk_generated.go",
         "querier_generated.go",
     ],
     importpath = "github.com/unkeyed/unkey/internal/services/ratelimit/db",
