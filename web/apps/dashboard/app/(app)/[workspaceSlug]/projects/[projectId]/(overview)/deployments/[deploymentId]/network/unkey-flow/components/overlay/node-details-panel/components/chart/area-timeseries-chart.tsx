@@ -96,12 +96,7 @@ export function AreaTimeseriesChart({
 
   if (isError) {
     return (
-      <ChartEmpty
-        variant="wave"
-        color="hsl(var(--error-9))"
-        height={height}
-        message="Could not retrieve logs"
-      />
+      <ChartEmpty variant="wave" tone="error" height={height} message="Could not retrieve data" />
     );
   }
 
