@@ -23,6 +23,7 @@ export function SidebarBody() {
   const links = (() => {
     switch (context.type) {
       case "workspace":
+      case "identity":
         return buildWorkspaceSections(slug, segments);
       case "settings":
         return buildSettingsLinks(slug, segments);
