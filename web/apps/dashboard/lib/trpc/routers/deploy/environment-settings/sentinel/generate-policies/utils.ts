@@ -27,7 +27,7 @@ const llmMatchConditionSchema = z.object({
 // For firewall:  limit/windowMs/identifierSource/identifierValue/locationType/locationName/permissionQuery are ignored.
 const llmPolicySchema = z.object({
   name: z.string(),
-  type: z.enum(["ratelimit", "keyauth", "firewall"]),
+  type: z.enum(["ratelimit", "keyauth", "firewall", "openapi"]),
   matchConditions: z.array(llmMatchConditionSchema),
   // ratelimit fields
   limit: z.number().int().min(0),
@@ -160,6 +160,15 @@ export async function generatePoliciesFromLLM(
         };
       }
 
+      if (p.type === "openapi") {
+        return {
+          type: "openapi",
+          name: p.name,
+          environmentId: "__all__",
+          matchConditions,
+        };
+      }
+
       return {
         type: "ratelimit",
         name: p.name,
@@ -195,7 +204,7 @@ export async function generatePoliciesFromLLM(
 }
 
 function getSystemPrompt(): string {
-  return `You generate sentinel policy configurations (keyauth, ratelimit, and firewall) from natural language descriptions.
+  return `You generate sentinel policy configurations (keyauth, ratelimit, firewall, and openapi) from natural language descriptions.
 
 ## Policy types
 
@@ -215,6 +224,11 @@ function getSystemPrompt(): string {
 - action: "ACTION_DENY" (deny matching requests with 403)
 - Set limit=0, windowMs=0, identifierSource="remoteIp", identifierValue="" for firewall policies
 - Set locationType="bearer", locationName="", permissionQuery="" for firewall policies
+
+### openapi -- validates requests against the project's auto-scraped OpenAPI spec
+- Use when the user asks for request validation, schema validation, contract enforcement, "reject malformed requests", "enforce my OpenAPI spec", "block requests that don't match my contract", "400 on invalid bodies", etc.
+- No configurable fields: the spec is auto-scraped from the project's configured scrape path
+- Set limit=0, windowMs=0, identifierSource="remoteIp", identifierValue="", locationType="bearer", locationName="", permissionQuery="", action="ACTION_DENY" for openapi policies
 
 ## Match conditions
 
@@ -243,6 +257,7 @@ Because conditions AND together, to match ANY of several paths use a SINGLE rege
 - Per-workspace: identifierSource=principalField, identifierValue=workspace_id
 - Per-user: identifierSource=principalField, identifierValue=identity_id
 - Firewall is used when the user wants to block/deny traffic (e.g. block a path, block unauthenticated requests)
+- Openapi is used when the user wants to validate request shape against their API contract; emit it after keyauth when both are requested
 - Scope policies with matchConditions whenever the user mentions a path, method, header, or query param
 
 ## Examples
@@ -279,5 +294,16 @@ Input: "per-key limit 20/min, per-workspace limit 100/min"
 Output: [
   { name: "Per-Key Limit", type: "ratelimit", matchConditions: [], limit: 20, windowMs: 60000, identifierSource: "authenticatedSubject", identifierValue: "", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" },
   { name: "Per-Workspace Limit", type: "ratelimit", matchConditions: [], limit: 100, windowMs: 60000, identifierSource: "principalField", identifierValue: "workspace_id", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" }
+]
+
+Input: "validate all /api requests against my OpenAPI spec"
+Output: [
+  { name: "OpenAPI Validation", type: "openapi", matchConditions: [{ type: "path", mode: "prefix", value: "/api", name: "", methods: [] }], limit: 0, windowMs: 0, identifierSource: "remoteIp", identifierValue: "", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" }
+]
+
+Input: "bearer keyauth, then enforce my OpenAPI contract"
+Output: [
+  { name: "Key Authentication", type: "keyauth", matchConditions: [], locationType: "bearer", locationName: "", permissionQuery: "", limit: 0, windowMs: 0, identifierSource: "remoteIp", identifierValue: "", action: "ACTION_DENY" },
+  { name: "OpenAPI Validation", type: "openapi", matchConditions: [], limit: 0, windowMs: 0, identifierSource: "remoteIp", identifierValue: "", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" }
 ]`;
 }

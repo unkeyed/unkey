@@ -53,11 +53,12 @@ export default function SentinelPoliciesPage() {
 
     // Keyauth without a keyspace can't be saved; keep them in the preview so
     // the user can open each one and pick a keyspace before retrying.
+    // Otherwise clear the preview but leave the panel open so the user can
+    // immediately generate the next batch.
     if (keyauthPolicies.length > 0) {
       setAiPreview(keyauthPolicies);
     } else {
       setAiPreview([]);
-      setIsAiPanelOpen(false);
     }
   };
 

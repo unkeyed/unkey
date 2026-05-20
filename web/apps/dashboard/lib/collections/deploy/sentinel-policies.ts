@@ -115,14 +115,11 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
         }
       };
       const promise = work();
-      toast.promise(promise, {
-        loading: plural ? "Adding sentinel policies..." : "Adding sentinel policy...",
-        success: plural ? "Sentinel policies added" : "Sentinel policy added",
-        error: (err) => ({
-          message: plural ? "Failed to add sentinel policies" : "Failed to add sentinel policy",
+      promise.catch((err) =>
+        toast.error(plural ? "Failed to add sentinel policies" : "Failed to add sentinel policy", {
           description: err instanceof Error ? err.message : "Unknown error",
         }),
-      });
+      );
       await trackSave(promise);
     },
 

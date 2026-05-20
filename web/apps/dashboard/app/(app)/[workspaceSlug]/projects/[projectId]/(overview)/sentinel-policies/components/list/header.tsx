@@ -22,7 +22,7 @@ export function SentinelPoliciesHeader({
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Button size="md" onClick={onGenerateWithAi} variant="outline">
+        <Button size="md" onClick={onGenerateWithAi} variant="outline" className="font-medium">
           <Sparkle3 iconSize="sm-regular" />
           Generate with AI
         </Button>

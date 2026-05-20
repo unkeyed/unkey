@@ -49,7 +49,8 @@ export function AiPolicyPrompt({
         <div className="flex flex-col min-w-0">
           <span className="text-gray-12 font-medium text-base leading-8">Generate with AI</span>
           <span className="text-gray-11 text-[13px] leading-5">
-            Describe what to protect and how: keyauth, rate limits, and firewall.
+            Describe what to protect and how: keyauth, rate limits, firewall, and OpenAPI
+            validation.
           </span>
         </div>
         <InfoTooltip content="Close panel" asChild>
@@ -174,6 +175,9 @@ export function AiPolicyPrompt({
                           {p.type === "firewall" && (
                             <span className="text-[13px] text-gray-10 shrink-0">Deny</span>
                           )}
+                          {p.type === "openapi" && (
+                            <span className="text-[13px] text-gray-10 shrink-0">Auto-scraped</span>
+                          )}
                           <ChevronRight
                             iconSize="sm-regular"
                             className="text-gray-9 shrink-0 ml-auto"
@@ -235,6 +239,7 @@ function formatPolicyTypeLabel(type: PolicyType): string {
     .with("keyauth", () => "Key Auth")
     .with("ratelimit", () => "Rate Limit")
     .with("firewall", () => "Firewall")
+    .with("openapi", () => "OpenAPI Validation")
     .exhaustive();
 }
 
