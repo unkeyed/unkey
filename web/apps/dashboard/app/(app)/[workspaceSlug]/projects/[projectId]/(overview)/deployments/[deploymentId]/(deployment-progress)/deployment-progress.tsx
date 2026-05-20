@@ -141,7 +141,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           {...startingStep}
         />
         <DeploymentStep
-          key={isPrebuilt ? "prebuilt" : "building"}
+          key={isPrebuilt ? "prebuilt" : isFailed ? "building-failed" : "building"}
           icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
           title="Building Image"
           description={match(building)
@@ -175,7 +175,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
               </div>
             )
           }
-          defaultExpanded={!isPrebuilt}
+          defaultExpanded={!isPrebuilt && !isFailed}
         />
         <DeploymentStep
           key={deploying ? "deploying-active" : "deploying-pending"}
@@ -212,6 +212,11 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           redeployOpen={redeployOpen}
           onRedeployClose={() => setRedeployOpen(false)}
           deployment={deployment}
+          rawBuildError={
+            buildSteps.data?.steps.find(
+              (s) => s.step_id?.startsWith("synthetic-build-failure:") && s.error,
+            )?.error ?? null
+          }
         />
       )}
       {network?.completed && (

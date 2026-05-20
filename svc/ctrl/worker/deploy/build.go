@@ -35,6 +35,9 @@ import (
 )
 
 const (
+	// userBuildErrorMaxLen matches the deployment_steps.error 512-char column.
+	userBuildErrorMaxLen = 512
+
 	// defaultCacheKeepGB is the maximum cache size in gigabytes for new Depot
 	// projects. Depot evicts least-recently-used cache entries when exceeded.
 	defaultCacheKeepGB = 25
@@ -111,10 +114,11 @@ type gitBuildParams struct {
 // acquires a remote build machine, and executes the build. BuildKit fetches
 // the repository directly from GitHub using the provided installation token.
 // Build progress is streamed to ClickHouse for observability.
+// retErr is named so the synthetic-step defer below can read it.
 func (w *Workflow) buildDockerImageFromGit(
 	ctx restate.Context,
 	params gitBuildParams,
-) (*buildResult, error) {
+) (_ *buildResult, retErr error) {
 	platform := w.buildPlatform.Platform
 	architecture := w.buildPlatform.Architecture
 
@@ -124,6 +128,20 @@ func (w *Workflow) buildDockerImageFromGit(
 		"project_id", params.ProjectID,
 		"platform", platform,
 		"architecture", architecture)
+
+	// Pre-Solve failures never reach processBuildStatus, so emit a synthetic
+	// row carrying the raw error. Skipped for known errors — those already
+	// have an actionable extracted message, raw text would just add noise.
+	defer func() {
+		if retErr != nil && !isKnownBuildError(retErr) {
+			w.emitSyntheticBuildFailureStep(
+				params.WorkspaceID,
+				params.ProjectID,
+				params.DeploymentID,
+				retErr,
+			)
+		}
+	}()
 
 	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
@@ -581,5 +599,54 @@ func extractUserBuildError(err error) string {
 			return known.message
 		}
 	}
-	return "Build failed. Please check the build logs for details."
+	return fmt.Sprintf("Build failed: %s", truncateString(err.Error(), userBuildErrorMaxLen))
+}
+
+func isKnownBuildError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	for _, known := range knownBuildErrors {
+		if strings.Contains(msg, known.substr) {
+			return true
+		}
+	}
+	return false
+}
+
+// emitSyntheticBuildFailureStep writes a synthetic build_steps_v1 row +
+// build_step_logs_v1 line carrying err. StepID is derived from deploymentID
+// so retries are idempotent.
+func (w *Workflow) emitSyntheticBuildFailureStep(
+	workspaceID, projectID, deploymentID string,
+	err error,
+) {
+	if err == nil {
+		return
+	}
+	now := time.Now().UnixMilli()
+	stepID := fmt.Sprintf("synthetic-build-failure:%s", deploymentID)
+	rawErr := err.Error()
+
+	w.buildSteps.Buffer(schema.BuildStepV1{
+		StartedAt:    now,
+		CompletedAt:  now,
+		WorkspaceID:  workspaceID,
+		ProjectID:    projectID,
+		DeploymentID: deploymentID,
+		StepID:       stepID,
+		Name:         "Build failed before any steps could run",
+		Cached:       false,
+		Error:        truncateString(rawErr, userBuildErrorMaxLen),
+		HasLogs:      true,
+	})
+	w.buildStepLogs.Buffer(schema.BuildStepLogV1{
+		Time:         now,
+		WorkspaceID:  workspaceID,
+		ProjectID:    projectID,
+		DeploymentID: deploymentID,
+		StepID:       stepID,
+		Message:      rawErr,
+	})
 }

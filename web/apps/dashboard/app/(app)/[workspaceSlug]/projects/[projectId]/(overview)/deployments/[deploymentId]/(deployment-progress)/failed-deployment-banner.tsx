@@ -35,6 +35,7 @@ export function FailedDeploymentBanner({
   redeployOpen,
   onRedeployClose,
   deployment,
+  rawBuildError,
 }: {
   steps: StepEntry[];
   settingsUrl: string;
@@ -42,37 +43,46 @@ export function FailedDeploymentBanner({
   redeployOpen: boolean;
   onRedeployClose: () => void;
   deployment: Deployment;
+  /** Raw build error from the synthetic build_steps_v1 row. */
+  rawBuildError?: string | null;
 }) {
   const errorMessage = steps.find((s) => s?.error)?.error ?? "Deployment failed";
   const showSettingsLink = isSettingsRelatedError(errorMessage);
 
   return (
     <div className="flex flex-col gap-3 animate-fade-slide-in">
-      <div className="border border-errorA-4 bg-errorA-2 rounded-[14px] p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-error-11">Deployment failed</span>
-            <span className="text-xs text-gray-11 max-w-150 break-after">
-              {errorMessage}
-              {showSettingsLink && (
-                <>
-                  {" "}
-                  <Link
-                    href={settingsUrl}
-                    className="underline hover:text-gray-12 transition-colors"
-                  >
-                    Go to Settings
-                  </Link>
-                </>
-              )}
-            </span>
+      <div className="border border-errorA-4 bg-errorA-2 rounded-[14px] p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium text-error-11">Deployment failed</span>
+              <span className="text-xs text-gray-11 max-w-150 break-after">
+                {errorMessage}
+                {showSettingsLink && (
+                  <>
+                    {" "}
+                    <Link
+                      href={settingsUrl}
+                      className="underline hover:text-gray-12 transition-colors"
+                    >
+                      Go to Settings
+                    </Link>
+                  </>
+                )}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="primary" size="sm" onClick={onRedeploy} className="px-3">
+              Redeploy
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="primary" size="sm" onClick={onRedeploy} className="px-3">
-            Redeploy
-          </Button>
-        </div>
+        {rawBuildError && (
+          <pre className="text-[11px] leading-snug text-gray-11 bg-grayA-2 border border-grayA-4 rounded-md p-2.5  whitespace-normal max-h-48 overflow-auto">
+            {rawBuildError}
+          </pre>
+        )}
       </div>
       <RedeployDialog
         isOpen={redeployOpen}
