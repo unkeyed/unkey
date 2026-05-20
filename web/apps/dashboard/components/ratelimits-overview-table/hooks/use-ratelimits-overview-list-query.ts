@@ -7,7 +7,6 @@ import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
@@ -139,18 +138,7 @@ export function useRatelimitsOverviewListPaginated({
     }
   }, [normalizedPage, totalPages, queryParams, utils.ratelimit.overview.logs.query]);
 
-  const historicalLogs = useMemo<RatelimitOverviewLog[]>(() => {
-    if (!data) {
-      return [];
-    }
-    // Dedupe by identifier — overview rows aggregate by identifier and a stale
-    // re-render could otherwise yield duplicates.
-    const map = new Map<string, RatelimitOverviewLog>();
-    data.ratelimitOverviewLogs.forEach((log) => {
-      map.set(log.identifier, log);
-    });
-    return Array.from(map.values());
-  }, [data]);
+  const historicalLogs = data?.ratelimitOverviewLogs ?? [];
 
   const onPageChange = useCallback(
     (newPage: number) => {

@@ -574,21 +574,11 @@ export const ratelimitOverviewLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.int().nullable(),
   page: z.int().min(1).optional(),
-
   sorts: z
     .array(
       z.object({
-        column: z.enum([
-          "time",
-          "avg_latency",
-          "p99_latency",
-          "blocked",
-          "passed",
-          "passed_tokens",
-          "blocked_tokens",
-        ]),
+        column: z.enum(["time", "blocked", "passed", "passed_tokens", "blocked_tokens"]),
         direction: z.enum(["asc", "desc"]),
       }),
     )
@@ -607,8 +597,6 @@ export const ratelimitOverviewLogs = z.object({
   // the table reconciles with the bar chart's blocked-tokens series.
   passed_tokens: z.int().prefault(0),
   total_tokens: z.int().prefault(0),
-  // avg_latency: z.number().int(),
-  // p99_latency: z.number().int(),
   override: z
     .object({
       limit: z.int(),
@@ -671,16 +659,12 @@ export function getRatelimitOverviewLogs(ch: Querier) {
 
     const allowedColumns = new Map([
       ["time", "last_request_time"],
-      ["avg_latency", "avg_latency"],
-      ["p99_latency", "p99_latency"],
       ["passed", "passed_count"],
       ["blocked", "blocked_count"],
       ["passed_tokens", "passed_tokens"],
       ["blocked_tokens", "blocked_tokens"],
     ]);
 
-    // sort.direction is statically "asc" | "desc" via the Zod schema, so the
-    // mapping below is a safe, exhaustive conversion to SQL keywords.
     const toSqlDirection = (direction: "asc" | "desc"): "ASC" | "DESC" =>
       direction === "asc" ? "ASC" : "DESC";
 
@@ -688,7 +672,6 @@ export function getRatelimitOverviewLogs(ch: Querier) {
       hasSortingRules && args.sorts
         ? args.sorts.reduce((acc: string[], sort) => {
             const column = allowedColumns.get(sort.column);
-            // Only add to ORDER BY if it's an allowed column to prevent injection
             if (column) {
               acc.push(`${column} ${toSqlDirection(sort.direction)}`);
             }
@@ -696,57 +679,26 @@ export function getRatelimitOverviewLogs(ch: Querier) {
           }, [])
         : [];
 
-    // "Custom" sorts are anything other than `time` — when present, time falls
-    // through to a stable tiebreaker (ASC) so OFFSET pagination stays
-    // deterministic between pages.
-    const hasCustomSort = args.sorts?.some((s) => s.column !== "time") ?? false;
+    // When sorting by a non-time column, time falls through to a stable
+    // tiebreaker (ASC) so OFFSET pagination stays deterministic between pages.
+    const hasNonTimeSort = args.sorts?.some((s) => s.column !== "time") ?? false;
     const timeSort = args.sorts?.find((s) => s.column === "time");
-    const timeDirection: "ASC" | "DESC" = hasCustomSort
+    const timeDirection: "ASC" | "DESC" = hasNonTimeSort
       ? "ASC"
       : timeSort
         ? toSqlDirection(timeSort.direction)
         : "DESC";
 
-    // Remove any existing time sort from the orderBy array
     const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("last_request_time"));
 
-    // Construct final ORDER BY clause with time and request_id always at the end
-    const orderByClause =
-      [
-        ...orderByWithoutTime,
-        `last_request_time ${timeDirection}`,
-        `request_id ${timeDirection}`,
-      ].join(", ") || "last_request_time DESC"; // Fallback if empty
-
-    // Page-based pagination wins over the legacy cursorTime path. When `page`
-    // is set we paginate via OFFSET against the deterministic ORDER BY above;
-    // the cursorTime branch below is only taken if no page is provided and
-    // the caller still wants the older cursor-based behavior.
-    const usePageBased = typeof args.page === "number";
-
-    let cursorCondition: string;
-    if (usePageBased) {
-      cursorCondition = `
-  AND ({cursorTime: Nullable(UInt64)} IS NULL OR {cursorTime: Nullable(UInt64)} IS NOT NULL)
-  `;
-    } else if (args.cursorTime) {
-      if (timeDirection === "ASC") {
-        cursorCondition = `
-    AND (time > {cursorTime: Nullable(UInt64)})
-    `;
-      } else {
-        cursorCondition = `
-    AND (time < {cursorTime: Nullable(UInt64)})
-    `;
-      }
-    } else {
-      cursorCondition = `
-  AND ({cursorTime: Nullable(UInt64)} IS NULL)
-  `;
-    }
+    const orderByClause = [
+      ...orderByWithoutTime,
+      `last_request_time ${timeDirection}`,
+      `request_id ${timeDirection}`,
+    ].join(", ");
 
     const page = args.page ?? 1;
-    const offset = usePageBased ? (page - 1) * args.limit : 0;
+    const offset = (page - 1) * args.limit;
     parameters.offset = offset;
     paramSchemaExtension.offset = z.int();
 
@@ -765,7 +717,6 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
         AND (${identifierConditions})
         AND (${statusCondition})
-        ${cursorCondition}
 ),
 aggregated_data AS (
     SELECT

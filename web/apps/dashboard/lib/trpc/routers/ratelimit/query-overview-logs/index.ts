@@ -9,7 +9,6 @@ import { transformFilters } from "./utils";
 
 const RatelimitOverviewLogsResponse = z.object({
   ratelimitOverviewLogs: z.array(ratelimitOverviewLogs),
-  hasMore: z.boolean(),
   total: z.number(),
 });
 
@@ -47,7 +46,6 @@ export const queryRatelimitOverviewLogs = workspaceProcedure
     const transformedInputs = transformFilters(input);
     const { countQuery, logsQuery } = await clickhouse.ratelimits.overview.logs({
       ...transformedInputs,
-      cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
       namespaceId: ratelimitNamespace.id,
     });
@@ -85,7 +83,6 @@ export const queryRatelimitOverviewLogs = workspaceProcedure
     const response: RatelimitOverviewLogsResponse = {
       ratelimitOverviewLogs: logsWithOverrides,
       total,
-      hasMore: logsWithOverrides.length === input.limit,
     };
 
     return response;
