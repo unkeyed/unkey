@@ -67,7 +67,10 @@ func (s *Service) Delete(
 // stuck invocation doesn't block the rest of the deletion.
 func (s *Service) cancelActiveDeployments(ctx restate.ObjectContext, projectID string) error {
 	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListActiveDeploymentsByProjectIdRow, error) {
-		return db.Query.ListActiveDeploymentsByProjectId(runCtx, s.db.RO(), projectID)
+		return db.Query.ListActiveDeploymentsByProjectId(runCtx, s.db.RO(), db.ListActiveDeploymentsByProjectIdParams{
+			ProjectID:        projectID,
+			TerminalStatuses: db.TerminalDeploymentStatuses,
+		})
 	}, restate.WithName("list active deployments"))
 	if err != nil {
 		return fmt.Errorf("list active deployments: %w", err)

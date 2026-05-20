@@ -159,6 +159,7 @@ go_library(
         "deployment_list_active_by_project.sql_generated.go",
         "deployment_list_by_environment_id_and_status.sql_generated.go",
         "deployment_list_older_active_for_dedup.sql_generated.go",
+        "deployment_status.go",
         "deployment_step_delete_by_environment.sql_generated.go",
         "deployment_step_end.sql_generated.go",
         "deployment_step_end_active_for_deployments.sql_generated.go",
@@ -410,6 +411,7 @@ go_test(
     name = "db_test",
     size = "large",
     srcs = [
+        "deployment_status_test.go",
         "key_data_test.go",
         "retry_test.go",
     ],

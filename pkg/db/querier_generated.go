@@ -2267,14 +2267,15 @@ type Querier interface {
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
 	// Returns deployments still in a non-terminal status. The project delete
 	// workflow uses this to cancel in-flight Restate invocations before the
-	// cascade drops their rows; the NOT IN list mirrors the terminal set in
-	// deployment_update_status_if_active.sql so the two queries stay aligned.
+	// cascade drops their rows. Callers pass db.TerminalDeploymentStatuses so
+	// the terminal set has a single source of truth shared with
+	// UpdateDeploymentStatusIfActive.
 	//
 	//  SELECT id, invocation_id
 	//  FROM deployments
 	//  WHERE project_id = ?
-	//    AND status NOT IN ('ready', 'failed', 'skipped', 'stopped', 'superseded', 'cancelled')
-	ListActiveDeploymentsByProjectId(ctx context.Context, db DBTX, projectID string) ([]ListActiveDeploymentsByProjectIdRow, error)
+	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
+	ListActiveDeploymentsByProjectId(ctx context.Context, db DBTX, arg ListActiveDeploymentsByProjectIdParams) ([]ListActiveDeploymentsByProjectIdRow, error)
 	// ListAllCiliumNetworkPoliciesByRegion returns cilium network policies for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
@@ -3183,12 +3184,14 @@ type Querier interface {
 	// Transition a deployment's status only when its current status is still
 	// "active" (non-terminal). Prevents the Deploy handler's compensation
 	// stack from overwriting a status that was set intentionally by the dedup
-	// path (e.g. superseded) or by a successful completion (ready).
+	// path (e.g. superseded) or by a successful completion (ready). Callers
+	// pass db.TerminalDeploymentStatuses so the terminal set has a single
+	// source of truth shared with ListActiveDeploymentsByProjectId.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
-	//    AND status NOT IN ('ready', 'failed', 'superseded', 'skipped', 'stopped', 'cancelled')
+	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, db DBTX, arg UpdateDeploymentStatusIfActiveParams) error
 	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
 	//

@@ -8,14 +8,20 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
 
 const listActiveDeploymentsByProjectId = `-- name: ListActiveDeploymentsByProjectId :many
 SELECT id, invocation_id
 FROM deployments
 WHERE project_id = ?
-  AND status NOT IN ('ready', 'failed', 'skipped', 'stopped', 'superseded', 'cancelled')
+  AND status NOT IN (/*SLICE:terminal_statuses*/?)
 `
+
+type ListActiveDeploymentsByProjectIdParams struct {
+	ProjectID        string              `db:"project_id"`
+	TerminalStatuses []DeploymentsStatus `db:"terminal_statuses"`
+}
 
 type ListActiveDeploymentsByProjectIdRow struct {
 	ID           string         `db:"id"`
@@ -24,15 +30,27 @@ type ListActiveDeploymentsByProjectIdRow struct {
 
 // Returns deployments still in a non-terminal status. The project delete
 // workflow uses this to cancel in-flight Restate invocations before the
-// cascade drops their rows; the NOT IN list mirrors the terminal set in
-// deployment_update_status_if_active.sql so the two queries stay aligned.
+// cascade drops their rows. Callers pass db.TerminalDeploymentStatuses so
+// the terminal set has a single source of truth shared with
+// UpdateDeploymentStatusIfActive.
 //
 //	SELECT id, invocation_id
 //	FROM deployments
 //	WHERE project_id = ?
-//	  AND status NOT IN ('ready', 'failed', 'skipped', 'stopped', 'superseded', 'cancelled')
-func (q *Queries) ListActiveDeploymentsByProjectId(ctx context.Context, db DBTX, projectID string) ([]ListActiveDeploymentsByProjectIdRow, error) {
-	rows, err := db.QueryContext(ctx, listActiveDeploymentsByProjectId, projectID)
+//	  AND status NOT IN (/*SLICE:terminal_statuses*/?)
+func (q *Queries) ListActiveDeploymentsByProjectId(ctx context.Context, db DBTX, arg ListActiveDeploymentsByProjectIdParams) ([]ListActiveDeploymentsByProjectIdRow, error) {
+	query := listActiveDeploymentsByProjectId
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.ProjectID)
+	if len(arg.TerminalStatuses) > 0 {
+		for _, v := range arg.TerminalStatuses {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:terminal_statuses*/?", strings.Repeat(",?", len(arg.TerminalStatuses))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:terminal_statuses*/?", "NULL", 1)
+	}
+	rows, err := db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
