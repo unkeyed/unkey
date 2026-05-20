@@ -74,9 +74,8 @@ export const sentinelLogsRequestSchema = z.object({
   deploymentId: z.string().nullable().default(null),
   environmentId: z.array(z.string()).default([]),
   limit: z.number().int().positive().default(50),
-  startTime: z.number().int().default(0),
-  endTime: z.number().int().default(0),
-  since: z.string().default(""),
+  startTime: z.int().nullable().default(0),
+  endTime: z.int().nullable().default(0),
   statusCodes: z.array(z.number().int()).nullable().default(null),
   methods: z.array(z.string()).nullable().default(null),
   paths: z

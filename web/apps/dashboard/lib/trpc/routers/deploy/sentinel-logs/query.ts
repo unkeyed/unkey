@@ -40,9 +40,16 @@ export const querySentinelLogs = workspaceProcedure
         });
       }
 
+      if (project.environments.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No environment found for this project",
+        });
+      }
+
       const transformedInputs = transformSentinelLogsFilters(input);
 
-      if (transformedInputs.environmentId.length === 0 && project.environments.length > 0) {
+      if (transformedInputs.environmentId.length === 0) {
         const prod =
           project.environments.find((e) => e.slug === "production") ?? project.environments[0];
         transformedInputs.environmentId = [prod.id];
