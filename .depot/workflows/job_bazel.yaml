@@ -18,10 +18,9 @@ jobs:
           disk-cache: false # we're already using depots remote cache
           # Share repository cache between workflows.
           repository-cache: true
-          bazelrc: |
-            common --remote_cache=https://cache.depot.dev
-            common --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
-            common --remote_local_fallback
+          # Remote cache is auto-configured by Depot's runner via $HOME/.bazelrc.
+          # Do not set `bazelrc:` here — it would overwrite Depot's injected
+          # cache credentials and silently fall back to local builds.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
         with:
