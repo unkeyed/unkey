@@ -25,7 +25,7 @@ export const queryRuntimeLogs = workspaceProcedure
       columns: { id: true },
       with: {
         environments: {
-          columns: { id: true, appId: true },
+          columns: { id: true, appId: true, slug: true },
         },
       },
     });
@@ -74,15 +74,19 @@ export const queryRuntimeLogs = workspaceProcedure
 
     const transformedInputs = transformFilters(input);
 
-    // environmentId is an array filter (empty = all envs via ClickHouse ELSE TRUE).
+    // Default to the production environment when the client sends no environmentId filter.
+    // Falls back to the first environment if no env is slugged "production".
+    if (transformedInputs.environmentId.length === 0) {
+      const prod = project.environments.find((e) => e.slug === "production") ?? defaultEnvironment;
+      transformedInputs.environmentId = [prod.id];
+    }
+
     // appId stays a single value because all environments in a project share the same app,
     // but we still resolve it from the first matched environment for correctness.
     const environmentIds = transformedInputs.environmentId;
     const appId =
-      environmentIds.length > 0
-        ? (project.environments.find((e) => environmentIds.includes(e.id))?.appId ??
-          defaultEnvironment.appId)
-        : defaultEnvironment.appId;
+      project.environments.find((e) => environmentIds.includes(e.id))?.appId ??
+      defaultEnvironment.appId;
 
     const { logsQuery } = await clickhouse.runtimeLogs.logs({
       ...transformedInputs,

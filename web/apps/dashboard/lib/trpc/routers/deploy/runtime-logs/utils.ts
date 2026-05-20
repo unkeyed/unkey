@@ -24,6 +24,8 @@ export function uniqueK8sRegionEntries(
   return entries;
 }
 
+const DEFAULT_SINCE = "6h";
+
 export function transformFilters(
   params: RuntimeLogsRequestSchema,
 ): Omit<
@@ -34,12 +36,16 @@ export function transformFilters(
   const region = params.region?.filters?.map((f) => f.value) || [];
   const environmentId = params.environmentId?.filters?.map((f) => f.value) || [];
 
-  let startTime = params.startTime;
-  let endTime = params.endTime;
+  // Default to last 6h when client sends no time bounds and no relative window.
+  const hasAnyTime = params.since !== null || params.startTime !== null || params.endTime !== null;
+  const sinceValue =
+    params.since !== null && params.since !== "" ? params.since : hasAnyTime ? null : DEFAULT_SINCE;
 
-  const hasRelativeTime = params.since !== "";
-  if (hasRelativeTime) {
-    startTime = getTimestampFromRelative(params.since);
+  let startTime = params.startTime ?? Date.now() - 6 * 60 * 60 * 1000;
+  let endTime = params.endTime ?? Date.now();
+
+  if (sinceValue !== null) {
+    startTime = getTimestampFromRelative(sinceValue);
     endTime = Date.now();
   }
 
