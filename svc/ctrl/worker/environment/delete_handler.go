@@ -115,8 +115,10 @@ func (s *Service) Delete(
 
 // cancelActiveDeployments stamps the cancelled marker on in-flight steps,
 // flips the deployments to status=cancelled, and asks the Restate admin
-// API to abort each invocation. Per-step errors are non-fatal so one
-// stuck invocation doesn't block the rest of the deletion.
+// API to abort each invocation. Step-marker and status-batch DB errors
+// are non-fatal because the cascade below drops the rows anyway, but a
+// CancelInvocation failure leaks the Restate invocation against deleted
+// rows, so we propagate it and let Restate retry the env deletion.
 func (s *Service) cancelActiveDeployments(ctx restate.ObjectContext, envID string) error {
 	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListActiveDeploymentsByEnvironmentIdRow, error) {
 		return db.Query.ListActiveDeploymentsByEnvironmentId(runCtx, s.db.RO(), db.ListActiveDeploymentsByEnvironmentIdParams{
@@ -184,12 +186,7 @@ func (s *Service) cancelActiveDeployments(ctx restate.ObjectContext, envID strin
 		if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return s.admin.CancelInvocation(runCtx, invocationID)
 		}, restate.WithName("cancel invocation "+deploymentID)); err != nil {
-			logger.Error("failed to cancel deployment invocation",
-				"environment_id", envID,
-				"deployment_id", deploymentID,
-				"invocation_id", invocationID,
-				"error", err,
-			)
+			return fmt.Errorf("cancel invocation %s for deployment %s: %w", invocationID, deploymentID, err)
 		}
 	}
 
