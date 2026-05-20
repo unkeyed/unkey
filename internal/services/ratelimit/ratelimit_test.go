@@ -226,3 +226,28 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 	require.Equal(t, int64(0), a.val.Load(), "A counter must be unchanged after batch failure")
 	require.Equal(t, int64(9), b.val.Load(), "B counter must be rolled back after batch failure")
 }
+
+func TestRatelimitMany_DoesNotMutateRequests(t *testing.T) {
+	t.Parallel()
+
+	clk := clock.NewTestClock()
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = svc.Close() })
+
+	reqs := []RatelimitRequest{
+		{
+			WorkspaceID: uid.New(uid.WorkspacePrefix),
+			Namespace:   "ns",
+			Identifier:  "user",
+			Limit:       10,
+			Duration:    time.Minute,
+			Cost:        1,
+		},
+	}
+
+	_, err = svc.RatelimitMany(context.Background(), reqs)
+	require.NoError(t, err)
+	require.True(t, reqs[0].Time.IsZero(), "RatelimitMany must not write normalized timestamps into caller input")
+}

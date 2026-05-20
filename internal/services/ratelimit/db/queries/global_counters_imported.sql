@@ -2,7 +2,7 @@
 -- GlobalCountersImported returns the sum of foreign-region contributions for
 -- every still-active window cell, with each region's row excluded from its
 -- own caller. Receivers fold the returned `imported` directly into
--- counterEntry.imported via atomicMax; aggregation runs in MySQL because
+-- counterEntry.globalCount via atomicMax; aggregation runs in MySQL because
 -- the application only ever uses the sum, so transferring per-region rows
 -- just to collapse them in Go wastes bandwidth and memory. The SUM is cast
 -- to SIGNED so sqlc maps it to int64, matching atomic.Int64 in the caller.

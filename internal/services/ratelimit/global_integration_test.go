@@ -409,6 +409,15 @@ func TestGlobal_PushUsesConvergedLocalCount(t *testing.T) {
 	require.Equal(t, uint64(8), row.Count, "push must use the converged local count")
 }
 
+// TestGlobal_PushIgnoresSpeculativeBatchIncrements covers the small window in
+// [Service.RatelimitMany] where a batch has added its optimistic increments to
+// the local counters but has not yet decided whether the full batch commits.
+// Cross-region push must subtract those speculative increments so a batch that
+// later rolls back cannot publish temporary state to MySQL.
+//
+// The test drives the speculative field directly rather than racing a live
+// RatelimitMany call against the background pusher. The invariant under test is
+// the push-side read of val minus speculative, not scheduler timing.
 func TestGlobal_PushIgnoresSpeculativeBatchIncrements(t *testing.T) {
 	t.Parallel()
 

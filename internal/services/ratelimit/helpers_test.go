@@ -125,6 +125,10 @@ func (e *integrationTestEnv) newRegionAs(clk clock.Clock, regionTag string) *ser
 	return e.newRegionWithCounter(clk, regionTag, counter.NewMemory())
 }
 
+// newRegionWithCounter builds a service with an explicit regional origin.
+// Real deployments have many nodes in one region sharing Redis while other
+// regions use independent Redis clusters, so tests use this helper when they
+// need to model in-region convergence separately from cross-region MySQL sync.
 func (e *integrationTestEnv) newRegionWithCounter(clk clock.Clock, regionTag string, ctr counter.Counter) *service {
 	e.t.Helper()
 	svc, err := New(Config{

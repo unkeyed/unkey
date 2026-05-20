@@ -6,7 +6,7 @@
 // cells. Other regions poll the table, sum foreign-region rows, and fold that
 // value into local sliding-window math.
 //
-// # Code Generation
+// # Code generation
 //
 // Run `make generate` from the repo root to regenerate query code. The
 // pipeline (see generate.go and sqlc.json) clears stale *_generated.go files,

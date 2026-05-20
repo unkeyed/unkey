@@ -10,7 +10,8 @@ atomic.Int64 counter plus a sync.Once that gates the first origin hydration.
 There are no mutexes in the hot path:
 
   - Denials are wait-free: two atomic loads, arithmetic, return.
-  - Allows are lock-free: one atomic add after the check.
+  - Single checks are lock-free: a bounded CAS loop commits the increment.
+  - Batch checks use optimistic atomic adds and roll back the full batch on failure.
 
 Local counters are eventually consistent with Redis. Background replay workers push
 local increments via INCRBY and CAS-merge the global count back into the local atomic.
@@ -28,8 +29,10 @@ current local count has changed since the last successful push, and whose
 observed count has reached globalUtilizationFloor of the request limit. This
 keeps low-value, low-utilization counters from turning into MySQL write load
 while still sharing counts once they can affect another region's decision.
+The floor is stored as a threshold rather than a request-path latch so regional
+Redis convergence can make an entry eligible after the request that created it.
 
-# Rate Limit Algorithm
+# Rate limit algorithm
 
 The sliding window implementation:
 
@@ -38,20 +41,28 @@ The sliding window implementation:
  3. Calculates effective request count: 100% of current window + weighted portion
     of previous window based on elapsed time in the current window.
  4. If the effective count exceeds the limit, denies the request.
- 5. Otherwise, atomically increments the current counter and buffers
-    the request for async replay to Redis.
+ 5. Otherwise, atomically commits the current-window increment and buffers the
+    request for async replay to Redis.
 
-# Thread Safety
+For [Service.RatelimitMany], the package applies all increments first, evaluates
+every requested limit against the post-increment values, then either keeps the
+entire batch or rolls every increment back. The cross-region push subtracts those
+speculative increments while a batch is in flight, so a batch that rolls back
+cannot publish temporary state to ratelimit_global_counters.
+
+# Thread safety
 
 All operations are safe for concurrent use without external synchronization.
 The service uses sync.Map for counter storage and sync/atomic for counter updates.
 
-# Error Handling
+# Error handling
 
 The service handles various error conditions:
   - Invalid configurations (empty identifiers, zero limits, short durations)
   - Redis unavailability (continues with local-only decisions)
   - Circuit breaker trips during sustained Redis failures
+  - MySQL unavailability for cross-region propagation (continues with local and
+    Redis-backed regional decisions)
 
 See the [RatelimitRequest] and [RatelimitResponse] types for the API contract.
 */

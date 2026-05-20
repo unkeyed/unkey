@@ -18,7 +18,7 @@ import (
 // RatelimitGlobalCountersCleanupService prunes expired rows from
 // ratelimit_global_counters so the cross-region propagation table stays bounded.
 //
-// Stateless — safe to invoke at any cadence. Local in-memory state in the
+// Stateless and safe to invoke at any cadence. Local in-memory state in the
 // ratelimit service is cleaned by its own janitor (every minute), and the
 // hot path filters on expires_at > NOW() regardless. This cron exists only
 // to keep the MySQL table small enough that GlobalCountersImported scans cheap
@@ -84,7 +84,7 @@ func (c *ratelimitGlobalCountersCleanupServiceIngressClient) RunCleanup() ingres
 // RatelimitGlobalCountersCleanupService prunes expired rows from
 // ratelimit_global_counters so the cross-region propagation table stays bounded.
 //
-// Stateless — safe to invoke at any cadence. Local in-memory state in the
+// Stateless and safe to invoke at any cadence. Local in-memory state in the
 // ratelimit service is cleaned by its own janitor (every minute), and the
 // hot path filters on expires_at > NOW() regardless. This cron exists only
 // to keep the MySQL table small enough that GlobalCountersImported scans cheap
