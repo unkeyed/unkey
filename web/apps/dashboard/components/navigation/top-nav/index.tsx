@@ -12,6 +12,7 @@ import { UserButton } from "../sidebar/user-button";
 import { ApiCrumb } from "./api-crumb";
 import { CrumbSeparator } from "./crumb";
 import { TopNavFeedbackButton } from "./feedback-button";
+import { IdentityCrumb } from "./identity-crumb";
 import { NamespaceCrumb } from "./namespace-crumb";
 import { ProjectCrumb } from "./project-crumb";
 import { WorkspaceCrumb } from "./workspace-crumb";
@@ -60,13 +61,15 @@ export function TopNav() {
 function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }) {
   switch (descriptor.type) {
     case "workspace":
-      return <WorkspaceCrumb />;
+      return <WorkspaceCrumb href={descriptor.href} />;
     case "project":
       return <ProjectCrumb projectId={descriptor.projectId} />;
     case "api":
       return <ApiCrumb apiId={descriptor.apiId} />;
     case "namespace":
       return <NamespaceCrumb namespaceId={descriptor.namespaceId} />;
+    case "identity":
+      return <IdentityCrumb identityId={descriptor.identityId} />;
   }
 }
 
@@ -80,5 +83,7 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
       return `api:${descriptor.apiId}`;
     case "namespace":
       return `namespace:${descriptor.namespaceId}`;
+    case "identity":
+      return `identity:${descriptor.identityId}`;
   }
 }

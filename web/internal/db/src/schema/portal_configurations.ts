@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { portalBranding } from "./portal_branding";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -18,7 +18,6 @@ export const portalConfigurations = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    index("idx_workspace").on(table.workspaceId),
     uniqueIndex("idx_workspace_slug").on(table.workspaceId, table.slug),
     uniqueIndex("idx_app_id").on(table.appId),
     uniqueIndex("idx_key_auth_id").on(table.keyAuthId),

@@ -8,7 +8,8 @@ export type SectionContext =
   | { type: "authorization" }
   | { type: "project"; projectId: string }
   | { type: "api"; apiId: string }
-  | { type: "namespace"; namespaceId: string };
+  | { type: "namespace"; namespaceId: string }
+  | { type: "identity"; identityId: string };
 
 export function useSectionContext(): SectionContext {
   const segments = useSelectedLayoutSegments();
@@ -16,6 +17,7 @@ export function useSectionContext(): SectionContext {
     apiId?: string;
     projectId?: string;
     namespaceId?: string;
+    identityId?: string;
   }>();
 
   if (params.projectId) {
@@ -26,6 +28,9 @@ export function useSectionContext(): SectionContext {
   }
   if (params.namespaceId) {
     return { type: "namespace", namespaceId: params.namespaceId };
+  }
+  if (params.identityId) {
+    return { type: "identity", identityId: params.identityId };
   }
 
   const section = segments[1];
