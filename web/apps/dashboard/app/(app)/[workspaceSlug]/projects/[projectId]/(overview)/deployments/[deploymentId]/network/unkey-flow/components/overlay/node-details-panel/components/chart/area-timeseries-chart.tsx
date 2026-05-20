@@ -90,15 +90,15 @@ export function AreaTimeseriesChart({
     return () => clearTimeout(timer);
   }, []);
 
-  const configKeys = Object.keys(config);
-  const firstKey = configKeys[0];
-  const sectionColor = config[firstKey]?.color;
-
   if (isError) {
     return (
       <ChartEmpty variant="wave" tone="error" height={height} message="Could not retrieve data" />
     );
   }
+
+  const configKeys = Object.keys(config);
+  const firstKey = configKeys[0];
+  const sectionColor = config[firstKey]?.color;
 
   if (isLoading) {
     return <ChartWaveLoading height={height} color={sectionColor} />;

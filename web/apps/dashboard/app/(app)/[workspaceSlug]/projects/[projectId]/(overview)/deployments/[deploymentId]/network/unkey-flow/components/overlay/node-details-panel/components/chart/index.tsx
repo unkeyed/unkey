@@ -57,18 +57,19 @@ export function LogsTimeseriesBarChart({
   }, [data]);
 
   const chartId = useId().replace(/:/g, "");
-  const configKeys = Object.keys(config);
-  const isEmpty =
-    !data || data.length === 0 || data.every((p) => configKeys.every((k) => !(Number(p[k]) > 0)));
-
-  const firstKey = Object.keys(config)[0];
-  const sectionColor = config[firstKey]?.color;
 
   if (isError) {
     return (
       <ChartEmpty variant="wave" tone="error" height={height} message="Could not retrieve data" />
     );
   }
+
+  const configKeys = Object.keys(config);
+  const isEmpty =
+    !data || data.length === 0 || data.every((p) => configKeys.every((k) => !(Number(p[k]) > 0)));
+
+  const firstKey = configKeys[0];
+  const sectionColor = config[firstKey]?.color;
 
   if (isLoading) {
     return <ChartWaveLoading height={height} color={sectionColor} />;
