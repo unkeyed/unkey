@@ -4,6 +4,24 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@clickhouse/client-web':
+      specifier: 1.11.1
+      version: 1.11.1
+    '@radix-ui/react-tooltip':
+      specifier: 1.2.8
+      version: 1.2.8
+    clsx:
+      specifier: 2.1.1
+      version: 2.1.1
+    mysql2:
+      specifier: 3.10.3
+      version: 3.10.3
+    tailwindcss:
+      specifier: 4.2.1
+      version: 4.2.1
+
 overrides:
   '@radix-ui/react-dialog': 1.1.15
   '@radix-ui/react-popover': 1.1.15
@@ -112,7 +130,7 @@ importers:
         specifier: 1.1.0
         version: 1.1.0(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-tooltip':
-        specifier: 1.2.8
+        specifier: 'catalog:'
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@sentry/nextjs':
         specifier: ^10
@@ -223,7 +241,7 @@ importers:
         specifier: 0.7.0
         version: 0.7.0
       clsx:
-        specifier: 2.1.1
+        specifier: 'catalog:'
         version: 2.1.1
       cmdk:
         specifier: 1.0.0
@@ -244,7 +262,7 @@ importers:
         specifier: 1.2.4
         version: 1.2.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       mysql2:
-        specifier: 3.10.3
+        specifier: 'catalog:'
         version: 3.10.3
       nanoid:
         specifier: ^5.1.6
@@ -289,7 +307,7 @@ importers:
         specifier: 2.5.4
         version: 2.5.4
       tailwindcss:
-        specifier: 4.2.1
+        specifier: 'catalog:'
         version: 4.2.1
       tailwindcss-animate:
         specifier: 1.0.7
@@ -362,7 +380,7 @@ importers:
         specifier: 1.2.4
         version: 1.2.4(@types/react@19.2.4)(react@19.2.4)
       '@radix-ui/react-tooltip':
-        specifier: 1.2.8
+        specifier: 'catalog:'
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-use-controllable-state':
         specifier: 1.2.2
@@ -392,13 +410,13 @@ importers:
         specifier: 0.7.1
         version: 0.7.1
       clsx:
-        specifier: 2.1.1
+        specifier: 'catalog:'
         version: 2.1.1
       lucide-react:
         specifier: 0.465.0
         version: 0.465.0(react@19.2.4)
       mysql2:
-        specifier: 3.10.3
+        specifier: 'catalog:'
         version: 3.10.3
       react:
         specifier: 19.2.4
@@ -416,7 +434,7 @@ importers:
         specifier: 3.4.0
         version: 3.4.0
       tailwindcss:
-        specifier: 4.2.1
+        specifier: 'catalog:'
         version: 4.2.1
       tw-animate-css:
         specifier: 1.4.0
@@ -475,7 +493,7 @@ importers:
   internal/clickhouse:
     dependencies:
       '@clickhouse/client-web':
-        specifier: 1.11.1
+        specifier: 'catalog:'
         version: 1.11.1
       '@unkey/error':
         specifier: workspace:^
@@ -506,7 +524,7 @@ importers:
         specifier: 0.45.1
         version: 0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(mysql2@3.10.3)
       mysql2:
-        specifier: 3.10.3
+        specifier: 'catalog:'
         version: 3.10.3
     devDependencies:
       '@types/node':
@@ -794,7 +812,7 @@ importers:
         specifier: 1.1.0
         version: 1.1.0(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@radix-ui/react-tooltip':
-        specifier: 1.2.8
+        specifier: 'catalog:'
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@radix-ui/react-use-controllable-state':
         specifier: 1.2.2
@@ -812,7 +830,7 @@ importers:
         specifier: 0.7.1
         version: 0.7.1
       clsx:
-        specifier: 2.1.1
+        specifier: 'catalog:'
         version: 2.1.1
       date-fns:
         specifier: 4.1.0
@@ -867,7 +885,7 @@ importers:
         specifier: workspace:^
         version: link:../tsconfig
       tailwindcss:
-        specifier: 4.2.1
+        specifier: 'catalog:'
         version: 4.2.1
       tailwindcss-animate:
         specifier: 1.0.7
@@ -933,7 +951,7 @@ importers:
         specifier: ^1.18.3
         version: 1.18.5
       '@clickhouse/client-web':
-        specifier: 1.11.1
+        specifier: 'catalog:'
         version: 1.11.1
       '@unkey/clickhouse':
         specifier: workspace:^
@@ -951,7 +969,7 @@ importers:
         specifier: ^1.0.34
         version: 1.0.34
       mysql2:
-        specifier: 3.10.3
+        specifier: 'catalog:'
         version: 3.10.3
       tsx:
         specifier: 4.19.1
@@ -978,7 +996,7 @@ importers:
         specifier: 4.0.1
         version: 4.0.1
       mysql2:
-        specifier: 3.10.3
+        specifier: 'catalog:'
         version: 3.10.3
       stripe:
         specifier: 14.23.0
@@ -988,7 +1006,7 @@ importers:
         version: 4.3.5
     devDependencies:
       '@clickhouse/client-web':
-        specifier: 1.11.1
+        specifier: 'catalog:'
         version: 1.11.1
       '@types/node':
         specifier: 20.14.9
@@ -5216,8 +5234,8 @@ packages:
     resolution: {integrity: sha512-lGe34o6EHj9y3Kts9R4ZYs/Gr+6N7MCaMlIFA3F1R2O5/m7K06AxfSeO5530PEERE6/WyEg3lsuyw4GHlPZHog==}
     engines: {node: ^4.5.0 || >= 5.9}
 
-  baseline-browser-mapping@2.10.31:
-    resolution: {integrity: sha512-MujYO3eP72uvmSE0i4wltsodRfIpZATP3jvzRNRGGxgzId7aVocVJJV3nf01qnzzKFGxQVC9bpWxl5cjxTr/7Q==}
+  baseline-browser-mapping@2.10.30:
+    resolution: {integrity: sha512-xjOFN16Ha1+Rz4nFYKqHU/LSB+gx/Vi3yQLX7r7sAW+Wa+8hhF2h4pvqTrTMc8+WcDBEunnUurr46Jvv0jk3Vg==}
     engines: {node: '>=6.0.0'}
     hasBin: true
 
@@ -5804,8 +5822,8 @@ packages:
     resolution: {integrity: sha512-DgOngfDKM2EviOH3Mr9m7ks1q8roetLy/IMmYthAYzbpInMbYc/GS+fWFA3rl1gvwKVsQrVV61fo5emD1y3OJQ==}
     engines: {node: '>=10.2.0'}
 
-  enhanced-resolve@5.21.4:
-    resolution: {integrity: sha512-wE4fDO8OjJhrPFH69HUQStq5oKvGRTNXEyW+k5C/pUQLASSsTu7obd2V3GvCDgPcY9AWjhJ4jz9Kh7iRvrxhJg==}
+  enhanced-resolve@5.21.3:
+    resolution: {integrity: sha512-QyL119InA+XXEkNLNTPCXPugSvOfhwv0JOlGNzvxs0hZaiHLNvXSpudUWsOlsXGWJh8G6ckCScEkVHfX3kw/2Q==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -6648,8 +6666,8 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
-  lru-cache@11.4.0:
-    resolution: {integrity: sha512-W+R+kFL4HgVxONq2bhXPi3bGpzGe/yEhVOp233qw9wCRtgncJ15P3bC+e4zZMu4Cq7d+WAJjXGW0uUkifhcatA==}
+  lru-cache@11.3.6:
+    resolution: {integrity: sha512-Gf/KoL3C/MlI7Bt0PGI9I+TeTC/I6r/csU58N4BSNc4lppLBeKsOdFYkK+dX0ABDUMJNfCHTyPpzwwO21Awd3A==}
     engines: {node: 20 || >=22}
 
   lru-cache@5.1.1:
@@ -6760,11 +6778,11 @@ packages:
   module-details-from-path@1.0.4:
     resolution: {integrity: sha512-EGWKgxALGMgzvxYF1UyGTy0HXX/2vHLkw6+NvDKW2jypWbHpjQuj4UMcqQWXHERJhVGKikolT06G3bcKe4fi7w==}
 
-  motion-dom@12.39.0:
-    resolution: {integrity: sha512-Xn7aAcGDhco/JZTXOub64UmaYn73C6J1Po7Fk+8EvkJsNGTqfhon6UJY53vJKXW5v5Zl8HrYsVxv6oPXeGoGLQ==}
+  motion-dom@12.38.0:
+    resolution: {integrity: sha512-pdkHLD8QYRp8VfiNLb8xIBJis1byQ9gPT3Jnh2jqfFtAsWUA3dEepDlsWe/xMpO8McV+VdpKVcp+E+TGJEtOoA==}
 
-  motion-utils@12.39.0:
-    resolution: {integrity: sha512-8nadJAJjTtqRkmRF36FoJTrywK9nnFmnPwnSMyxaOCU7GDjN9RTMJIxx9De8ErM+vpPhMccr/6fo5WciyQLnMQ==}
+  motion-utils@12.36.0:
+    resolution: {integrity: sha512-eHWisygbiwVvf6PZ1vhaHCLamvkSbPIeAYxWUuL3a2PD/TROgE7FvfHWTIH4vMl798QLfMw15nRqIaRDXTlYRg==}
 
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
@@ -7006,8 +7024,8 @@ packages:
     resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
     engines: {node: '>=4.0.0'}
 
-  pg-protocol@1.14.0:
-    resolution: {integrity: sha512-n5taZ1kO3s9ngDTVxsEznOqCyToTgz0FLuPq0B33COy5pPpuWJpY3/2oRBVETuOgzdqRXfWpM9HIhp2LBBT1BA==}
+  pg-protocol@1.13.0:
+    resolution: {integrity: sha512-zzdvXfS6v89r6v7OcFCHfHlyG/wvry1ALxZo4LqgUoy7W9xhBDMaqOuMiF3qEV45VqsN6rdlcehHrfDtlCPc8w==}
 
   pg-types@2.2.0:
     resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
@@ -11032,7 +11050,7 @@ snapshots:
     dependencies:
       '@react-email/text': 0.1.6(react@18.3.1)
       react: 18.3.1
-      tailwindcss: 4.2.1
+      tailwindcss: 4.3.0
     optionalDependencies:
       '@react-email/body': 0.2.1(react@18.3.1)
       '@react-email/button': 0.2.1(react@18.3.1)
@@ -11383,7 +11401,7 @@ snapshots:
   '@tailwindcss/node@4.2.1':
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      enhanced-resolve: 5.21.4
+      enhanced-resolve: 5.21.3
       jiti: 2.7.0
       lightningcss: 1.31.1
       magic-string: 0.30.21
@@ -11393,7 +11411,7 @@ snapshots:
   '@tailwindcss/node@4.3.0':
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      enhanced-resolve: 5.21.4
+      enhanced-resolve: 5.21.3
       jiti: 2.7.0
       lightningcss: 1.32.0
       magic-string: 0.30.21
@@ -12129,7 +12147,7 @@ snapshots:
   '@types/pg@8.15.6':
     dependencies:
       '@types/node': 25.0.10
-      pg-protocol: 1.14.0
+      pg-protocol: 1.13.0
       pg-types: 2.2.0
 
   '@types/qs@6.15.1': {}
@@ -12633,7 +12651,7 @@ snapshots:
 
   base64id@2.0.0: {}
 
-  baseline-browser-mapping@2.10.31: {}
+  baseline-browser-mapping@2.10.30: {}
 
   bcrypt-pbkdf@1.0.2:
     dependencies:
@@ -12670,7 +12688,7 @@ snapshots:
 
   browserslist@4.28.2:
     dependencies:
-      baseline-browser-mapping: 2.10.31
+      baseline-browser-mapping: 2.10.30
       caniuse-lite: 1.0.30001793
       electron-to-chromium: 1.5.358
       node-releases: 2.0.44
@@ -13141,7 +13159,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  enhanced-resolve@5.21.4:
+  enhanced-resolve@5.21.3:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -13453,8 +13471,8 @@ snapshots:
 
   framer-motion@12.29.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
-      motion-dom: 12.39.0
-      motion-utils: 12.39.0
+      motion-dom: 12.38.0
+      motion-utils: 12.36.0
       tslib: 2.8.1
     optionalDependencies:
       react: 19.2.4
@@ -13960,7 +13978,7 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
-  lru-cache@11.4.0: {}
+  lru-cache@11.3.6: {}
 
   lru-cache@5.1.1:
     dependencies:
@@ -14048,11 +14066,11 @@ snapshots:
 
   module-details-from-path@1.0.4: {}
 
-  motion-dom@12.39.0:
+  motion-dom@12.38.0:
     dependencies:
-      motion-utils: 12.39.0
+      motion-utils: 12.36.0
 
-  motion-utils@12.39.0: {}
+  motion-utils@12.36.0: {}
 
   mrmime@2.0.1: {}
 
@@ -14101,7 +14119,7 @@ snapshots:
     dependencies:
       '@next/env': 16.2.6
       '@swc/helpers': 0.5.15
-      baseline-browser-mapping: 2.10.31
+      baseline-browser-mapping: 2.10.30
       caniuse-lite: 1.0.30001793
       postcss: 8.4.31
       react: 19.2.3
@@ -14127,7 +14145,7 @@ snapshots:
     dependencies:
       '@next/env': 16.2.6
       '@swc/helpers': 0.5.15
-      baseline-browser-mapping: 2.10.31
+      baseline-browser-mapping: 2.10.30
       caniuse-lite: 1.0.30001793
       postcss: 8.4.31
       react: 19.2.4
@@ -14275,7 +14293,7 @@ snapshots:
 
   path-scurry@2.0.2:
     dependencies:
-      lru-cache: 11.4.0
+      lru-cache: 11.3.6
       minipass: 7.1.3
 
   path-to-regexp@6.2.1: {}
@@ -14292,7 +14310,7 @@ snapshots:
 
   pg-int8@1.0.1: {}
 
-  pg-protocol@1.14.0: {}
+  pg-protocol@1.13.0: {}
 
   pg-types@2.2.0:
     dependencies:
@@ -15730,7 +15748,7 @@ snapshots:
       acorn-import-phases: 1.0.4(acorn@8.16.0)
       browserslist: 4.28.2
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.21.4
+      enhanced-resolve: 5.21.3
       es-module-lexer: 2.1.0
       eslint-scope: 5.1.1
       events: 3.3.0
@@ -15770,7 +15788,7 @@ snapshots:
       acorn-import-phases: 1.0.4(acorn@8.16.0)
       browserslist: 4.28.2
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.21.4
+      enhanced-resolve: 5.21.3
       es-module-lexer: 2.1.0
       eslint-scope: 5.1.1
       events: 3.3.0

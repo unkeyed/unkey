@@ -14,13 +14,13 @@
   "devDependencies": {
     "@clack/prompts": "0.7.0",
     "@clickhouse/client": "^1.18.3",
-    "@clickhouse/client-web": "1.11.1",
+    "@clickhouse/client-web": "catalog:",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
     "mitata": "^1.0.34",
-    "mysql2": "3.10.3",
+    "mysql2": "catalog:",
     "tsx": "4.19.1"
   },
   "dependencies": {

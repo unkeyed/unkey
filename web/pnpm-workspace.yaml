@@ -4,13 +4,25 @@ packages:
   - "apps/*"
   - "tools/*"
 
+minimumReleaseAge: 2880
+
 allowBuilds:
-  '@biomejs/biome': true
-  '@sentry/cli': true
+  "@biomejs/biome": true
+  "@sentry/cli": true
   cpu-features: true
   esbuild: true
   sharp: true
   ssh2: true
+
+catalog:
+  zod: 4.3.5
+  mysql2: 3.10.3
+  tailwindcss: 4.2.1
+  clsx: 2.1.1
+  "@radix-ui/react-dialog": 1.1.15
+  "@radix-ui/react-popover": 1.1.15
+  "@radix-ui/react-tooltip": 1.2.8
+  "@clickhouse/client-web": 1.11.1
 
 overrides:
   "@radix-ui/react-dialog": "1.1.15"
