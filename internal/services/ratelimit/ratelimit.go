@@ -139,9 +139,10 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 		if effectiveCount > req.Limit {
 			// Enter strict mode: force origin fetches for the rest of the
-			// rate-limit window so later requests in this region converge on
-			// Redis's view of the count without waiting for the next replay.
-			s.setStrictUntil(cs.strictKey, req.Time.Add(req.Duration).UnixMilli())
+			// rate-limit window so later requests converge on the true count.
+			// Also propagates the denial cross-region on the first denial
+			// per counter entry.
+			s.activateStrictMode(req, &cs, effectiveCount)
 			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 			span.SetAttributes(attribute.Bool("passed", false))
 			return RatelimitResponse{
