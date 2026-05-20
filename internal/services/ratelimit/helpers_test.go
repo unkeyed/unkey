@@ -122,9 +122,14 @@ func (e *integrationTestEnv) newRegion(clk clock.Clock) *service {
 // region != self predicate makes each region see the others' contributions.
 func (e *integrationTestEnv) newRegionAs(clk clock.Clock, regionTag string) *service {
 	e.t.Helper()
+	return e.newRegionWithCounter(clk, regionTag, counter.NewMemory())
+}
+
+func (e *integrationTestEnv) newRegionWithCounter(clk clock.Clock, regionTag string, ctr counter.Counter) *service {
+	e.t.Helper()
 	svc, err := New(Config{
 		Clock:   clk,
-		Counter: counter.NewMemory(),
+		Counter: ctr,
 		DB:      e.db,
 		Region:  regionTag,
 	})

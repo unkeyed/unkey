@@ -168,6 +168,118 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 	require.False(t, resp.Success, "B must deny when combined effective exceeds limit; without sharing this would have passed")
 }
 
+func TestGlobal_RealWorldTwoRegionsWithTwoNodesEach(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	clk := clock.NewTestClock()
+	regionAOrigin := counter.NewMemory()
+	regionBOrigin := counter.NewMemory()
+
+	regionA1 := env.newRegionWithCounter(clk, "region-a", regionAOrigin)
+	regionA2 := env.newRegionWithCounter(clk, "region-a", regionAOrigin)
+	regionB1 := env.newRegionWithCounter(clk, "region-b", regionBOrigin)
+	regionB2 := env.newRegionWithCounter(clk, "region-b", regionBOrigin)
+
+	const (
+		workspaceID = "ws_test"
+		namespace   = "ns"
+		identifier  = "user-real-world"
+		limit       = int64(10)
+	)
+	duration := time.Minute
+	ctx := context.Background()
+
+	makeReq := func() RatelimitRequest {
+		return RatelimitRequest{
+			WorkspaceID: workspaceID,
+			Namespace:   namespace,
+			Identifier:  identifier,
+			Limit:       limit,
+			Duration:    duration,
+			Cost:        1,
+			Time:        clk.Now(),
+		}
+	}
+	curKey := counterKey{
+		workspaceID: workspaceID,
+		namespace:   namespace,
+		identifier:  identifier,
+		durationMs:  duration.Milliseconds(),
+		sequence:    calculateSequence(clk.Now(), duration),
+	}
+
+	// Region A receives traffic on two nodes backed by the same regional origin
+	// counter. This models two API instances sharing one regional Redis while
+	// other regions have independent Redis state.
+	for range 3 {
+		resp, err := regionA1.Ratelimit(ctx, makeReq())
+		require.NoError(t, err)
+		require.True(t, resp.Success)
+	}
+	for range 3 {
+		resp, err := regionA2.Ratelimit(ctx, makeReq())
+		require.NoError(t, err)
+		require.True(t, resp.Success)
+	}
+
+	waitForLocalCount := func(regions []*service, expected int64) *service {
+		t.Helper()
+		var selected *service
+		require.Eventually(t, func() bool {
+			for _, region := range regions {
+				entry, ok := region.counters.Load(curKey)
+				if ok && entry.(*counterEntry).val.Load() >= expected {
+					selected = region
+					return true
+				}
+			}
+			return false
+		}, 3*time.Second, 50*time.Millisecond, "expected regional origin replay to converge local count to %d", expected)
+		if selected == nil {
+			t.Fatalf("expected a selected region after convergence")
+		}
+		return selected
+	}
+
+	// Regional replay should converge at least one A node to the region's total
+	// count, and the global counter row should publish that converged value.
+	waitForLocalCount([]*service{regionA1, regionA2}, 6)
+	regionA1.runGlobalPushOnce()
+	regionA2.runGlobalPushOnce()
+	row := env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
+	require.Equal(t, uint64(6), row.Count)
+
+	// Both B nodes import region A's contribution. They still use their own
+	// regional origin for B-local traffic; MySQL only carries cross-region state.
+	regionB1.runGlobalPullOnce()
+	regionB2.runGlobalPullOnce()
+	for _, region := range []*service{regionB1, regionB2} {
+		entryValue, ok := region.counters.Load(curKey)
+		require.True(t, ok)
+		require.Equal(t, int64(6), entryValue.(*counterEntry).globalCount.Load())
+	}
+
+	for range 2 {
+		resp, err := regionB1.Ratelimit(ctx, makeReq())
+		require.NoError(t, err)
+		require.True(t, resp.Success)
+	}
+	for range 2 {
+		resp, err := regionB2.Ratelimit(ctx, makeReq())
+		require.NoError(t, err)
+		require.True(t, resp.Success)
+	}
+
+	// Once B's regional origin converges its two nodes' local traffic to 4, any
+	// further cost-1 request in B must deny: local 4 + imported 6 + cost 1 = 11.
+	denyRegion := waitForLocalCount([]*service{regionB1, regionB2}, 4)
+	resp, err := denyRegion.Ratelimit(ctx, makeReq())
+	require.NoError(t, err)
+	require.False(t, resp.Success,
+		"region B must deny after combining its own regional count with region A's imported count")
+}
+
 // TestGlobal_BelowUtilizationFloorDoesNotPush asserts the write-side
 // utilization filter that gates emission. An entry whose val/limit is below
 // the floor cannot meaningfully push another region over its limit, so
