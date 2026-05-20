@@ -14,7 +14,7 @@ export function Navigation({ identityId }: NavigationProps): JSX.Element {
   const workspace = useWorkspaceNavigation();
 
   return (
-    <Navbar className="w-full flex justify-between">
+    <Navbar>
       <Navbar.Breadcrumbs icon={<Fingerprint aria-hidden="true" focusable={false} />}>
         <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/identities`}>
           Identities

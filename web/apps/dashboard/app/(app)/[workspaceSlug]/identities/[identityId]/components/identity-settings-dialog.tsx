@@ -15,7 +15,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
 
   if (!identity) {
     return (
-      <NavbarActionButton disabled>
+      <NavbarActionButton variant="outline" disabled>
         <Gear />
         Settings
       </NavbarActionButton>
@@ -23,20 +23,22 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
   }
 
   return (
-    <IdentityTableActions
-      identity={identity}
-      onDeleted={async () => {
-        // Wait for the refetch kicked off by `useDeleteIdentity` to complete
-        // before navigating, so the destination list renders without the
-        // just-deleted row instead of flickering it in then out.
-        await trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" });
-        router.push(`/${workspace.slug}/identities`);
-      }}
-    >
-      <NavbarActionButton>
-        <Gear />
-        Settings
-      </NavbarActionButton>
-    </IdentityTableActions>
+    <div>
+      <IdentityTableActions
+        identity={identity}
+        onDeleted={async () => {
+          // Wait for the refetch kicked off by `useDeleteIdentity` to complete
+          // before navigating, so the destination list renders without the
+          // just-deleted row instead of flickering it in then out.
+          await trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" });
+          router.push(`/${workspace.slug}/identities`);
+        }}
+      >
+        <NavbarActionButton variant="outline">
+          <Gear />
+          Settings
+        </NavbarActionButton>
+      </IdentityTableActions>
+    </div>
   );
 };
