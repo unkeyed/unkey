@@ -1,13 +1,9 @@
 ---
 title: "RateLimit"
-description: "Gateway rate limiting (schema only)"
+description: "Gateway rate limiting policy"
 ---
 
-RateLimit defines gateway-level rate limiting with configurable identifiers. Sentinel delegates rate limit state to Unkey's distributed rate limiting service, providing consistent counts across multiple sentinel instances.
-
-<Note>
-RateLimit is defined in the policy schema but is not executed by the sentinel engine yet.
-</Note>
+RateLimit defines gateway-level rate limiting with configurable identifiers. Frontline executes Sentinel RateLimit policies and delegates counter state to [rate limiting](/architecture/ratelimiting), so policy execution uses the same distributed counters as API and Frontline rate-limit checks.
 
 ## Fields
 

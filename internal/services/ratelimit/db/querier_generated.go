@@ -37,6 +37,22 @@ type Querier interface {
 	//    AND region != ?
 	//  GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
 	GlobalCountersImported(ctx context.Context, arg GlobalCountersImportedParams) ([]GlobalCountersImportedRow, error)
+	// GlobalCountersListAll returns raw per-region global counter rows for tests
+	// that need to assert which region wrote which observation. Production callers
+	// should use GlobalCountersImported instead so MySQL does the aggregation.
+	//
+	//  SELECT
+	//      workspace_id,
+	//      namespace,
+	//      identifier,
+	//      duration_ms,
+	//      sequence,
+	//      region,
+	//      count,
+	//      expires_at,
+	//      updated_at
+	//  FROM ratelimit_global_counters
+	GlobalCountersListAll(ctx context.Context) ([]GlobalCountersListAllRow, error)
 	// UpsertRatelimitGlobalCounters records one region's latest observation for a
 	// sliding-window cell. The generated bulk variant is the hot path: conflicts
 	// use GREATEST so concurrent writers for the same region collapse onto the

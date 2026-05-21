@@ -9,6 +9,7 @@ go_library(
         "generate.go",
         "global_counters_delete_expired.sql_generated.go",
         "global_counters_imported.sql_generated.go",
+        "global_counters_list_all.sql_generated.go",
         "global_counters_upsert.sql_generated.go",
         "global_counters_upsert_bulk.go",
         "models_generated.go",

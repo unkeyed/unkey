@@ -6,61 +6,27 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 )
-
-// rawCountRow is the per-region row shape stored in MySQL. Tests use
-// it for inspection because the production GlobalCountersImported query
-// returns pre-aggregated sums, which is correct for the pull loop but
-// hides the per-region detail needed to assert which region wrote what.
-type rawCountRow struct {
-	WorkspaceID string
-	Namespace   string
-	Identifier  string
-	DurationMs  uint64
-	Sequence    int64
-	Region      string
-	Count       uint64
-	ExpiresAt   uint64
-	UpdatedAt   uint64
-}
 
 // listAllRows returns every row in ratelimit_global_counters
 // regardless of region or expiry. Tests bypass the production query
 // (which aggregates and filters out the caller's own region) so they can
 // assert which region wrote what.
-func (e *integrationTestEnv) listAllRows() []rawCountRow {
+func (e *integrationTestEnv) listAllRows() []rldb.GlobalCountersListAllRow {
 	e.t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	rows, err := e.db.RO().QueryContext(ctx,
-		"SELECT workspace_id, namespace, identifier, duration_ms, sequence, region, count, expires_at, updated_at FROM ratelimit_global_counters")
+	rows, err := e.rldb.RO().GlobalCountersListAll(ctx)
 	require.NoError(e.t, err)
-	defer func() { _ = rows.Close() }()
-	var out []rawCountRow
-	for rows.Next() {
-		var r rawCountRow
-		require.NoError(e.t, rows.Scan(
-			&r.WorkspaceID,
-			&r.Namespace,
-			&r.Identifier,
-			&r.DurationMs,
-			&r.Sequence,
-			&r.Region,
-			&r.Count,
-			&r.ExpiresAt,
-			&r.UpdatedAt,
-		))
-		out = append(out, r)
-	}
-	require.NoError(e.t, rows.Err())
-	return out
+	return rows
 }
 
 // findRow returns the row for (key, region) if present, ok=false
 // otherwise. Used by both positive and negative assertions.
-func (e *integrationTestEnv) findRow(workspaceID, namespace, identifier, region string, durationMs int64) (rawCountRow, bool) {
+func (e *integrationTestEnv) findRow(workspaceID, namespace, identifier, region string, durationMs int64) (rldb.GlobalCountersListAllRow, bool) {
 	e.t.Helper()
 	for _, r := range e.listAllRows() {
 		if r.WorkspaceID == workspaceID && r.Namespace == namespace &&
@@ -69,7 +35,7 @@ func (e *integrationTestEnv) findRow(workspaceID, namespace, identifier, region 
 			return r, true
 		}
 	}
-	return rawCountRow{}, false
+	return rldb.GlobalCountersListAllRow{}, false
 }
 
 // waitForRow blocks until a row from `region` for the matching
@@ -78,9 +44,9 @@ func (e *integrationTestEnv) findRow(workspaceID, namespace, identifier, region 
 // the polling loop covers the case where the periodic push goroutine
 // (running on its own jittered cadence) is the writer. Polling, never
 // goroutine-ticker timing.
-func (e *integrationTestEnv) waitForRow(workspaceID, namespace, identifier, region string, durationMs int64) rawCountRow {
+func (e *integrationTestEnv) waitForRow(workspaceID, namespace, identifier, region string, durationMs int64) rldb.GlobalCountersListAllRow {
 	e.t.Helper()
-	var found rawCountRow
+	var found rldb.GlobalCountersListAllRow
 	require.Eventually(e.t, func() bool {
 		row, ok := e.findRow(workspaceID, namespace, identifier, region, durationMs)
 		if !ok {

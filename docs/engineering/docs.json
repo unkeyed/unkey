@@ -50,7 +50,7 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["architecture/index"]
+            "pages": ["architecture/index", "architecture/ratelimiting"]
           },
           {
             "group": "Services",
@@ -60,7 +60,6 @@
                 "pages": [
                   "architecture/services/api/overview",
                   "architecture/services/api/configuration",
-                  "architecture/services/api/ratelimit",
                   {
                     "group": "API design",
                     "pages": [

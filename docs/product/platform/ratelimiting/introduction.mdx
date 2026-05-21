@@ -1,9 +1,9 @@
 ---
 title: Overview
-description: "Protect any API endpoint from abuse with Unkey's globally distributed rate limiting. No Redis or infrastructure required, just a single API call."
+description: "Protect any API endpoint from abuse with Unkey's globally distributed rate limiting. No infrastructure required, just a single API call."
 ---
 
-Rate limiting controls how many requests a user, IP, or any identifier can make in a given time window. Unkey provides globally distributed rate limiting that runs across our network, without you managing Redis, Upstash, or any infrastructure.
+Rate limiting controls how many requests a user, IP, or any identifier can make in a given time window. Unkey provides globally distributed rate limiting that runs across the Unkey network without infrastructure for you to manage.
 
 ## When to use rate limiting
 
@@ -76,7 +76,7 @@ export async function handler(req: Request) {
 ```
 
 ```bash cURL
-curl -X POST https://api.unkey.com/v2/ratelimits.limit \
+curl -X POST https://api.unkey.com/v2/ratelimit.limit \
   -H "Authorization: Bearer unkey_..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -111,17 +111,16 @@ Unkey offers two ways to rate limit:
 
 <AccordionGroup>
   <Accordion title="No infrastructure to manage" icon="server">
-    No Redis clusters, no Upstash accounts, no connection strings. Just install
-    the SDK and go.
+    No clusters, hosted counter stores, or connection strings. Install the SDK
+    and call the API.
   </Accordion>
 
 <Accordion title="Globally distributed" icon="globe">
   Requests are processed across our globally distributed infrastructure. Your
-  rate limits are checked close to your users, not in a single region. When an
-  identifier exceeds its limit in one region, every other region starts denying
-  it within seconds — so abuse can't be amplified by hitting multiple
-  geographies. See [cross-region denial
-  propagation](/platform/ratelimiting/modes#cross-region-denial-propagation).
+  rate limits are checked close to your users, not in a single region. Regions
+  publish active counters and import counts from other regions, so identifiers
+  approaching their limit converge globally within seconds. See [how rate
+  limiting works](/platform/ratelimiting/how-it-works#share-counts-across-regions).
 </Accordion>
 
 <Accordion title="Performance at scale" icon="gauge-high">
@@ -156,8 +155,10 @@ Unkey offers two ways to rate limit:
   </Step>
   <Step title="Install the SDK">```bash npm install @unkey/ratelimit ```</Step>
   <Step title="Add to your code">
-    See the [framework guides](/quickstart/quickstart) for complete examples with Next.js,
-    Bun, Express, or Hono.
+    See the [Next.js](/quickstart/ratelimiting/nextjs),
+    [Bun](/quickstart/ratelimiting/bun),
+    [Express](/quickstart/ratelimiting/express), or
+    [Hono](/quickstart/ratelimiting/hono) guides for complete examples.
   </Step>
 </Steps>
 
@@ -170,9 +171,9 @@ Unkey offers two ways to rate limit:
   <Card
     title="How it works"
     icon="arrows-split-up-and-left"
-    href="/platform/ratelimiting/modes"
+    href="/platform/ratelimiting/how-it-works"
   >
-    Choose between consistency and speed.
+    Understand global consistency and response behavior.
   </Card>
   <Card
     title="Overrides"
