@@ -180,6 +180,7 @@ export const RootKeyDialog = ({
         typeof document !== "undefined" &&
         createPortal(
           // @dh hacky fix, delete asap
+          // biome-ignore lint/a11y/useKeyWithClickEvents: decorative backdrop (aria-hidden); keyboard close is handled by Radix Esc handling on the dialog.
           <div
             className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs"
             aria-hidden="true"
