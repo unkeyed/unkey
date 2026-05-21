@@ -2,8 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"math/rand/v2"
-	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -68,14 +66,8 @@ const globalPullTimeout = 2 * globalPullInterval
 // bulk upsert. Jitter spreads the push across instances so a fleet
 // starting in lockstep does not converge on the same MySQL write
 // timestamp.
-//
-// scheduleColdStart adds a randomized initial delay before entering the
-// loop: repeat.Every fires its first invocation immediately and only
-// jitters from the second tick onward, which would let a freshly rolled
-// fleet hammer MySQL with every region's first push at the same
-// wall-clock instant.
 func (s *service) startGlobalPush() {
-	stop := scheduleColdStart(globalPushInterval, globalJitter, s.runGlobalPushOnce)
+	stop := repeat.Every(globalPushInterval, s.runGlobalPushOnce, globalJitter)
 	s.stopBackground = append(s.stopBackground, stop)
 }
 
@@ -179,11 +171,8 @@ func (s *service) runGlobalPushOnce() {
 // contributions and merges them into local counterEntry.globalCount
 // via atomicMax. Jitter desynchronizes reads across the fleet so the
 // database is not hit by every region's sync at the same instant.
-//
-// See startGlobalPush for why scheduleColdStart wraps the schedule
-// rather than repeat.Every being called directly.
 func (s *service) startGlobalPull() {
-	stop := scheduleColdStart(globalPullInterval, globalJitter, s.runGlobalPullOnce)
+	stop := repeat.Every(globalPullInterval, s.runGlobalPullOnce, globalJitter)
 	s.stopBackground = append(s.stopBackground, stop)
 }
 
@@ -232,48 +221,4 @@ func (s *service) runGlobalPullOnce() {
 		}
 	}
 	metrics.RatelimitGlobalPullRowsApplied.Add(float64(len(rows)))
-}
-
-// scheduleColdStart wraps [repeat.Every] with a randomized initial delay
-// in [0, d) before entering the loop. repeat.Every fires its first
-// invocation immediately and jitter only takes effect from the second
-// tick onward, so a freshly rolled fleet would otherwise hit MySQL with
-// every instance's first push or pull at the same wall-clock instant.
-//
-// The returned stop function cancels the pending delay if it has not yet
-// elapsed, then stops the started schedule if it has.
-func scheduleColdStart(d time.Duration, jitter float64, fn func()) func() {
-	done := make(chan struct{})
-	initial := time.Duration(rand.Float64() * float64(d))
-
-	var (
-		mu        sync.Mutex
-		innerStop func()
-		cancelled bool
-	)
-
-	go func() {
-		select {
-		case <-time.After(initial):
-		case <-done:
-			return
-		}
-		mu.Lock()
-		defer mu.Unlock()
-		if cancelled {
-			return
-		}
-		innerStop = repeat.Every(d, fn, jitter)
-	}()
-
-	return sync.OnceFunc(func() {
-		close(done)
-		mu.Lock()
-		cancelled = true
-		s := innerStop
-		mu.Unlock()
-		if s != nil {
-			s()
-		}
-	})
 }
