@@ -2265,17 +2265,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
-	// Returns deployments still in a non-terminal status for an environment.
-	// The environment delete workflow uses this to cancel in-flight Restate
-	// invocations before the cascade drops deployment rows. Callers pass
-	// db.TerminalDeploymentStatuses so the terminal set has a single source
-	// of truth shared with UpdateDeploymentStatusIfActive.
-	//
-	//  SELECT id, invocation_id
-	//  FROM deployments
-	//  WHERE environment_id = ?
-	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
-	ListActiveDeploymentsByEnvironmentId(ctx context.Context, db DBTX, arg ListActiveDeploymentsByEnvironmentIdParams) ([]ListActiveDeploymentsByEnvironmentIdRow, error)
 	// ListAllCiliumNetworkPoliciesByRegion returns cilium network policies for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
@@ -2684,6 +2673,19 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, db DBTX, arg ListPreviewEnvironmentsParams) ([]Environment, error)
+	// Returns deployments in a non-terminal (progressing) status for an
+	// environment. The environment delete workflow uses this to cancel
+	// in-flight Restate invocations before the cascade drops deployment
+	// rows. Callers pass db.ProgressingDeploymentStatuses so the
+	// progressing set has a single source of truth; new statuses default
+	// to NOT progressing, so unknown states are skipped rather than
+	// accidentally cancelled.
+	//
+	//  SELECT id, invocation_id
+	//  FROM deployments
+	//  WHERE environment_id = ?
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
+	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, db DBTX, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides

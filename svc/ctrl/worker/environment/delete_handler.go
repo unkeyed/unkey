@@ -32,8 +32,8 @@ func (s *Service) Delete(
 
 	logger.Info("starting environment deletion", "environment_id", envID)
 
-	if err := s.cancelActiveDeployments(ctx, envID); err != nil {
-		return nil, fmt.Errorf("cancel active deployments: %w", err)
+	if err := s.cancelProgressingDeployments(ctx, envID); err != nil {
+		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -113,20 +113,21 @@ func (s *Service) Delete(
 	return &hydrav1.DeleteEnvironmentResponse{}, nil
 }
 
-// cancelActiveDeployments aborts in-flight Restate invocations, then marks
-// the deployments cancelled. Cancel must happen first: if we flipped status
-// up front and a CancelInvocation later failed, the retry's ListActive would
-// skip the now-terminal row and the invocation would leak. DB errors are
-// non-fatal since the cascade drops the rows anyway.
-func (s *Service) cancelActiveDeployments(ctx restate.ObjectContext, envID string) error {
-	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListActiveDeploymentsByEnvironmentIdRow, error) {
-		return db.Query.ListActiveDeploymentsByEnvironmentId(runCtx, s.db.RO(), db.ListActiveDeploymentsByEnvironmentIdParams{
-			EnvironmentID:    envID,
-			TerminalStatuses: db.TerminalDeploymentStatuses,
+// cancelProgressingDeployments aborts in-flight Restate invocations, then
+// marks the deployments cancelled. Cancel must happen first: if we flipped
+// status up front and a CancelInvocation later failed, the retry's
+// ListProgressingDeploymentsByEnvironmentId would skip the now-terminal row
+// and the invocation would leak. DB errors are non-fatal since the cascade
+// drops the rows anyway.
+func (s *Service) cancelProgressingDeployments(ctx restate.ObjectContext, envID string) error {
+	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListProgressingDeploymentsByEnvironmentIdRow, error) {
+		return db.Query.ListProgressingDeploymentsByEnvironmentId(runCtx, s.db.RO(), db.ListProgressingDeploymentsByEnvironmentIdParams{
+			EnvironmentID:       envID,
+			ProgressingStatuses: db.ProgressingDeploymentStatuses,
 		})
-	}, restate.WithName("list active deployments"))
+	}, restate.WithName("list progressing deployments"))
 	if err != nil {
-		return fmt.Errorf("list active deployments: %w", err)
+		return fmt.Errorf("list progressing deployments: %w", err)
 	}
 
 	if len(active) == 0 {
