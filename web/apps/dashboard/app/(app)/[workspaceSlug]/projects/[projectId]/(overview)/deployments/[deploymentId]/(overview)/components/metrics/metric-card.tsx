@@ -98,6 +98,7 @@ export function MetricCard({
   const noData = isError || isLoading;
   const valueText = noData ? "‒" : parts.value;
   const secondaryText = noData ? "‒" : secondaryValue?.numeric;
+  const gradientColor = isError ? "hsl(var(--error-9))" : config.color;
 
   return (
     <div className="border border-gray-4 bg-grayA-1 w-full rounded-[14px] flex flex-col">
@@ -140,7 +141,7 @@ export function MetricCard({
       <div
         className="flex flex-col rounded-b-[14px]"
         style={{
-          background: `linear-gradient(to top, color-mix(in srgb, ${config.color} 6%, transparent), transparent)`,
+          background: `linear-gradient(to top, color-mix(in srgb, ${gradientColor} 6%, transparent), transparent)`,
         }}
       >
         {config.chartVariant === "area" ? (
