@@ -40,12 +40,11 @@ export const ChartEmpty = ({
   height = 50,
   className,
   color,
-  tone = "neutral",
 }: ChartEmptyProps) => {
   const id = useId().replace(/:/g, "");
 
   if (variant === "wave") {
-    const waveColor = color ?? (tone === "error" ? "hsl(var(--error-9))" : "hsl(var(--gray-8))");
+    const waveColor = color || "hsl(var(--gray-8))";
     return (
       <div className={cn("w-full relative", className)} style={{ height }}>
         <svg

@@ -14,6 +14,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useId, useMemo } from "react";
 import { Bar, BarChart } from "recharts";
 import type { ValueParts } from "./area-timeseries-chart";
+import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
 
 export type TooltipValueParts = ValueParts;
@@ -59,9 +60,7 @@ export function LogsTimeseriesBarChart({
   const chartId = useId().replace(/:/g, "");
 
   if (isError) {
-    return (
-      <ChartEmpty variant="wave" tone="error" height={height} message="Could not retrieve data" />
-    );
+    return <ChartError height={height} />;
   }
 
   const configKeys = Object.keys(config);

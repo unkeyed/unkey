@@ -67,5 +67,4 @@ export type ChartEmptyProps = {
   height?: number;
   className?: string;
   color?: string;
-  tone?: "neutral" | "error";
 };

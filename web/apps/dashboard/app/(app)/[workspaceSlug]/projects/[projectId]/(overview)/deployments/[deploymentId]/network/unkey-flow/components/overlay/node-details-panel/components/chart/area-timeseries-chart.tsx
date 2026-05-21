@@ -6,6 +6,7 @@ import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useId, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
 
 export type AreaChartPoint = { originalTimestamp: number } & {
@@ -91,9 +92,7 @@ export function AreaTimeseriesChart({
   }, []);
 
   if (isError) {
-    return (
-      <ChartEmpty variant="wave" tone="error" height={height} message="Could not retrieve data" />
-    );
+    return <ChartError height={height} />;
   }
 
   const configKeys = Object.keys(config);
