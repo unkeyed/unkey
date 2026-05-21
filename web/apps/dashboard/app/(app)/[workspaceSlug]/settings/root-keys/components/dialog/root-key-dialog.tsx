@@ -6,13 +6,13 @@ import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import * as React from "react";
 import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeyDialog } from "./hooks/use-root-key-dialog";
 import type { PermissionScope } from "./permissions";
 import { RootKeySuccess } from "./root-key-success";
+import { useMemo, useState } from "react";
 
 const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
 
@@ -49,7 +49,7 @@ export const RootKeyDialog = ({
   editMode = false,
   existingKey,
 }: RootKeyDialogProps) => {
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleOpenSheet = () => {
     setIsSheetOpen(true);
@@ -89,7 +89,7 @@ export const RootKeyDialog = ({
   const isMutating = key.isLoading || updateName.isLoading || updatePermissions.isLoading;
   const isBusy = isMutating || apisLoading || projectsLoading;
 
-  const apiBadges = React.useMemo(
+  const apiBadges = useMemo(
     () =>
       allApis.map((api) => ({
         id: api.id,
@@ -98,7 +98,7 @@ export const RootKeyDialog = ({
       })),
     [allApis],
   );
-  const projectBadges = React.useMemo(
+  const projectBadges = useMemo(
     () =>
       allProjects.map((project) => ({
         id: project.id,
