@@ -2673,6 +2673,19 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, db DBTX, arg ListPreviewEnvironmentsParams) ([]Environment, error)
+	// Returns deployments in a non-terminal (progressing) status for an
+	// environment. The environment delete workflow uses this to cancel
+	// in-flight Restate invocations before the cascade drops deployment
+	// rows. Callers pass db.ProgressingDeploymentStatuses so the
+	// progressing set has a single source of truth; new statuses default
+	// to NOT progressing, so unknown states are skipped rather than
+	// accidentally cancelled.
+	//
+	//  SELECT id, invocation_id
+	//  FROM deployments
+	//  WHERE environment_id = ?
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
+	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, db DBTX, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
@@ -3173,12 +3186,14 @@ type Querier interface {
 	// Transition a deployment's status only when its current status is still
 	// "active" (non-terminal). Prevents the Deploy handler's compensation
 	// stack from overwriting a status that was set intentionally by the dedup
-	// path (e.g. superseded) or by a successful completion (ready).
+	// path (e.g. superseded) or by a successful completion (ready). Callers
+	// pass db.TerminalDeploymentStatuses so the terminal set has a single
+	// source of truth.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
-	//    AND status NOT IN ('ready', 'failed', 'superseded', 'skipped', 'stopped', 'cancelled')
+	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, db DBTX, arg UpdateDeploymentStatusIfActiveParams) error
 	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
 	//

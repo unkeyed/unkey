@@ -9,8 +9,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// Delete removes a project by delegating all resource cleanup to each app's
-// virtual object, then deleting the project record itself.
+// Delete removes a project by delegating all resource cleanup to each
+// app's virtual object, then deleting the project record itself. In-flight
+// deployments are cancelled inside the environment delete handler (the
+// closest owner of deployment rows), which the app -> environment cascade
+// fans out to.
 //
 // Key: project_id
 func (s *Service) Delete(
