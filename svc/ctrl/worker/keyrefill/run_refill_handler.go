@@ -198,7 +198,7 @@ func parseDateKey(dateKey string) (day int, isLastDay bool, err error) {
 }
 
 // buildOutboxRows creates clickhouse_outbox rows for the refilled keys.
-// Each row carries one auditlog.Event envelope (key + workspace targets)
+// Each row carries one auditlog.Event envelope (key target only;
 // and the AuditLogExportService drainer ships them into ClickHouse
 // audit_logs_raw_v1 on the next tick.
 func buildOutboxRows(keys []db.ListKeysForRefillRow, now int64) ([]db.InsertClickhouseOutboxParams, error) {
