@@ -2,6 +2,8 @@ package ratelimit
 
 import (
 	"context"
+	"math/rand/v2"
+	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -45,14 +47,35 @@ const globalJitter = 0.2
 // never resolved.
 const globalPushTimeout = 10 * time.Second
 
+// globalPushChunkSize bounds rows per BulkUpsertGlobalCounters call so a
+// single tick cannot produce a statement MySQL rejects on prepared-statement
+// parameter count. The driver caps at 65,535 placeholders; with 9 params
+// per row the wholesale failure threshold sits at ~7,280 rows, and
+// `lastPushed` only advances on success — an oversized batch would otherwise
+// rebuild and fail the same way on every subsequent tick. 5,000 leaves
+// headroom for the parameter ceiling and any reasonable max_allowed_packet.
+const globalPushChunkSize = 5_000
+
+// globalPullTimeout caps a single import query. Decoupled from
+// globalPullInterval so a slow MySQL response near the interval boundary
+// does not look like a query failure and flap the error counter on every
+// transient hiccup.
+const globalPullTimeout = 2 * globalPullInterval
+
 // startGlobalPush schedules runGlobalPushOnce on the package
 // push cadence. Each tick walks the local counters map and writes
 // eligible rows to the cross-region ratelimit_global_counters table in one
 // bulk upsert. Jitter spreads the push across instances so a fleet
 // starting in lockstep does not converge on the same MySQL write
 // timestamp.
+//
+// scheduleColdStart adds a randomized initial delay before entering the
+// loop: repeat.Every fires its first invocation immediately and only
+// jitters from the second tick onward, which would let a freshly rolled
+// fleet hammer MySQL with every region's first push at the same
+// wall-clock instant.
 func (s *service) startGlobalPush() {
-	stop := repeat.Every(globalPushInterval, s.runGlobalPushOnce, globalJitter)
+	stop := scheduleColdStart(globalPushInterval, globalJitter, s.runGlobalPushOnce)
 	s.stopBackground = append(s.stopBackground, stop)
 }
 
@@ -119,20 +142,35 @@ func (s *service) runGlobalPushOnce() {
 	ctx, cancel := context.WithTimeout(context.Background(), globalPushTimeout)
 	defer cancel()
 
-	_, err := s.globalCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-		return nil, s.db.BulkUpsertGlobalCounters(ctx, rows)
-	})
-	if err != nil {
-		metrics.RatelimitGlobalPushErrors.Inc()
-		logger.Error("ratelimit cross-region push failed",
-			"error", err.Error(),
-			"batch_size", len(rows),
-		)
-		return
-	}
-	metrics.RatelimitGlobalPushTotal.Add(float64(len(rows)))
-	for i, entry := range pushedEntries {
-		atomicMax(&entry.lastPushed, int64(rows[i].Count))
+	// Chunked write so a large counter set degrades gracefully (more
+	// round-trips) rather than failing wholesale on MySQL's parameter
+	// ceiling. lastPushed commits per successful chunk so partial progress
+	// is retained when a later chunk fails. On error we stop the tick —
+	// the circuit breaker likely tripped, and the next tick will re-emit
+	// whatever did not commit because lastPushed never advanced for it.
+	for start := 0; start < len(rows); start += globalPushChunkSize {
+		end := start + globalPushChunkSize
+		if end > len(rows) {
+			end = len(rows)
+		}
+		chunkRows := rows[start:end]
+		chunkEntries := pushedEntries[start:end]
+
+		_, err := s.globalCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
+			return nil, s.db.BulkUpsertGlobalCounters(ctx, chunkRows)
+		})
+		if err != nil {
+			metrics.RatelimitGlobalPushErrors.Inc()
+			logger.Error("ratelimit cross-region push failed",
+				"error", err.Error(),
+				"batch_size", len(chunkRows),
+			)
+			return
+		}
+		metrics.RatelimitGlobalPushTotal.Add(float64(len(chunkRows)))
+		for i, entry := range chunkEntries {
+			atomicMax(&entry.lastPushed, int64(chunkRows[i].Count))
+		}
 	}
 }
 
@@ -141,8 +179,11 @@ func (s *service) runGlobalPushOnce() {
 // contributions and merges them into local counterEntry.globalCount
 // via atomicMax. Jitter desynchronizes reads across the fleet so the
 // database is not hit by every region's sync at the same instant.
+//
+// See startGlobalPush for why scheduleColdStart wraps the schedule
+// rather than repeat.Every being called directly.
 func (s *service) startGlobalPull() {
-	stop := repeat.Every(globalPullInterval, s.runGlobalPullOnce, globalJitter)
+	stop := scheduleColdStart(globalPullInterval, globalJitter, s.runGlobalPullOnce)
 	s.stopBackground = append(s.stopBackground, stop)
 }
 
@@ -160,7 +201,7 @@ func (s *service) startGlobalPull() {
 // so the traffic-driven cardinality signal is not polluted by
 // cross-region propagation.
 func (s *service) runGlobalPullOnce() {
-	ctx, cancel := context.WithTimeout(context.Background(), globalPullInterval)
+	ctx, cancel := context.WithTimeout(context.Background(), globalPullTimeout)
 	defer cancel()
 
 	nowMs := s.clock.Now().UnixMilli()
@@ -191,4 +232,48 @@ func (s *service) runGlobalPullOnce() {
 		}
 	}
 	metrics.RatelimitGlobalPullRowsApplied.Add(float64(len(rows)))
+}
+
+// scheduleColdStart wraps [repeat.Every] with a randomized initial delay
+// in [0, d) before entering the loop. repeat.Every fires its first
+// invocation immediately and jitter only takes effect from the second
+// tick onward, so a freshly rolled fleet would otherwise hit MySQL with
+// every instance's first push or pull at the same wall-clock instant.
+//
+// The returned stop function cancels the pending delay if it has not yet
+// elapsed, then stops the started schedule if it has.
+func scheduleColdStart(d time.Duration, jitter float64, fn func()) func() {
+	done := make(chan struct{})
+	initial := time.Duration(rand.Float64() * float64(d))
+
+	var (
+		mu        sync.Mutex
+		innerStop func()
+		cancelled bool
+	)
+
+	go func() {
+		select {
+		case <-time.After(initial):
+		case <-done:
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if cancelled {
+			return
+		}
+		innerStop = repeat.Every(d, fn, jitter)
+	}()
+
+	return sync.OnceFunc(func() {
+		close(done)
+		mu.Lock()
+		cancelled = true
+		s := innerStop
+		mu.Unlock()
+		if s != nil {
+			s()
+		}
+	})
 }
