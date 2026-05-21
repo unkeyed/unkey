@@ -118,6 +118,7 @@ export function StreamingTable<T>({
             : data.map((item) => (
                 <Fragment key={keyExtractor(item)}>
                   <tr
+                    data-row-id={keyExtractor(item)}
                     onClick={onRowClick ? () => onRowClick(item) : undefined}
                     onKeyDown={
                       onRowClick
