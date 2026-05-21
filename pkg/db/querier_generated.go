@@ -383,60 +383,6 @@ type Querier interface {
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 	//  WHERE a.id = ?
 	FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
-	// FindAuditLogMaxPK returns MAX(pk) of the legacy audit_log table, used
-	// by the backfill VO to snapshot the cutoff on first invocation. Returns
-	// 0 when the table is empty (COALESCE + CAST keep the call from erroring
-	// on NULL aggregation and force sqlc to infer the result as uint64
-	// instead of interface{}).
-	//
-	//  SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_pk
-	//  FROM audit_log
-	FindAuditLogMaxPK(ctx context.Context, db DBTX) (int64, error)
-	//FindAuditLogTargetByID
-	//
-	//  SELECT audit_log_target.pk, audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.pk, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at
-	//  FROM audit_log_target
-	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
-	//  WHERE audit_log_target.id = ?
-	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
-	// FindAuditLogTargetsForBackfill fetches every target row attached to a set
-	// of audit_log_ids in one query. Called by the backfill VO after
-	// FindAuditLogsForBackfill so we go from "page of N parents" to "page of N
-	// parents with all their targets" in two MySQL reads, never N+1.
-	//
-	// The unique index on (audit_log_id, id) covers the IN-list lookup. Order
-	// by audit_log_id, pk so the VO's grouping pass sees a deterministic
-	// per-event target sequence.
-	//
-	//  SELECT audit_log_id, type, id, name, meta
-	//  FROM audit_log_target
-	//  WHERE audit_log_id IN (/*SLICE:audit_log_ids*/?)
-	//  ORDER BY audit_log_id, pk
-	FindAuditLogTargetsForBackfill(ctx context.Context, db DBTX, auditLogIds []string) ([]FindAuditLogTargetsForBackfillRow, error)
-	// FindAuditLogsForBackfill returns one cursor page of legacy audit_log
-	// rows for the one-shot MySQL -> ClickHouse backfill VO. Ordered by pk so
-	// the cursor advances monotonically; on a crash mid-page the VO replays
-	// the same range from its persisted last_pk, and CH's
-	// non_replicated_deduplication_window collapses the duplicate insert
-	// block.
-	//
-	// The pk <= cutoff bound makes the VO terminate. Rows written after the
-	// backfill snapshotted the legacy tail are already shipped via the live
-	// drainer, so the backfill skips them. Without this bound the cursor
-	// would chase a moving target forever.
-	//
-	// The primary key on `pk` makes this a forward range scan; no extra index
-	// needed. We pull every column the auditlog.Event envelope needs in one
-	// read so the VO does not have to re-query per row.
-	//
-	//  SELECT pk, id, workspace_id, bucket, event, time, display,
-	//         remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta
-	//  FROM audit_log
-	//  WHERE pk > ?
-	//    AND pk <= ?
-	//  ORDER BY pk
-	//  LIMIT ?
-	FindAuditLogsForBackfill(ctx context.Context, db DBTX, arg FindAuditLogsForBackfillParams) ([]FindAuditLogsForBackfillRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
@@ -1487,66 +1433,6 @@ type Querier interface {
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
-	//InsertAuditLog
-	//
-	//  INSERT INTO `audit_log` (
-	//      id,
-	//      workspace_id,
-	//      bucket_id,
-	//      bucket,
-	//      event,
-	//      time,
-	//      display,
-	//      remote_ip,
-	//      user_agent,
-	//      actor_type,
-	//      actor_id,
-	//      actor_name,
-	//      actor_meta,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      CAST(? AS JSON),
-	//      ?
-	//  )
-	InsertAuditLog(ctx context.Context, db DBTX, arg InsertAuditLogParams) error
-	//InsertAuditLogTarget
-	//
-	//  INSERT INTO `audit_log_target` (
-	//      workspace_id,
-	//      bucket_id,
-	//      bucket,
-	//      audit_log_id,
-	//      display_name,
-	//      type,
-	//      id,
-	//      name,
-	//      meta,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      CAST(? AS JSON),
-	//      ?
-	//  )
-	InsertAuditLogTarget(ctx context.Context, db DBTX, arg InsertAuditLogTargetParams) error
 	//InsertCertificate
 	//
 	//  INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
@@ -2312,6 +2198,16 @@ type Querier interface {
 	//  WHERE project_id = ?
 	//  ORDER BY created_at ASC
 	ListAppsByProject(ctx context.Context, db DBTX, projectID string) ([]ListAppsByProjectRow, error)
+	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
+	// workspace, regardless of drainer state. Intended for tests and ad-hoc
+	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
+	// and filters by version).
+	//
+	//  SELECT pk, version, workspace_id, event_id, payload, created_at
+	//  FROM clickhouse_outbox
+	//  WHERE workspace_id = ?
+	//  ORDER BY pk
+	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
 	//ListCustomDomainsByProjectID
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
