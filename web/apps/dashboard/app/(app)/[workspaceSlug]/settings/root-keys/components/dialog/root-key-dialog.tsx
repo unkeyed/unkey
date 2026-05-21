@@ -7,6 +7,7 @@ import { Button } from "@unkey/ui";
 import { FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
@@ -53,10 +54,13 @@ export const RootKeyDialog = ({
   };
 
   const handleDialogOpenChange = (open: boolean) => {
-    onOpenChange(open);
-    if (!open) {
+    // Suppress dialog close while the permission sheet is open — Esc/outside-close events
+    // can otherwise propagate to the (non-modal) outer dialog and close both at once.
+    if (!open && isSheetOpen) {
       setIsSheetOpen(false);
+      return;
     }
+    onOpenChange(open);
   };
 
   const {
@@ -168,7 +172,21 @@ export const RootKeyDialog = ({
 
   return (
     <>
-      {/* Only show creation dialog if no key has been created yet */}
+      {/* The outer dialog is non-modal so its react-remove-scroll doesn't block wheel events
+          inside the sheet (which is portaled outside the dialog's DOM subtree). We render our
+          own backdrop here to replace the modal overlay we lost. */}
+      {!key.data?.key &&
+        isOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          // @dh hacky fix, delete asap
+          <div
+            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs"
+            aria-hidden="true"
+            onClick={() => handleDialogOpenChange(false)}
+          />,
+          document.body,
+        )}
       {!key.data?.key && (
         <DynamicDialogContainer
           isOpen={isOpen}
@@ -178,7 +196,7 @@ export const RootKeyDialog = ({
           className="max-w-[460px]"
           subTitle={subTitle}
           footer={footerContent}
-          modal={true}
+          modal={false}
           preventOutsideClose={isSheetOpen}
         >
           {dialogContent}
