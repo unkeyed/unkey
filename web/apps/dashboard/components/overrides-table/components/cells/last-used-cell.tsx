@@ -1,9 +1,9 @@
+import { STATUS_STYLES } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/table/utils/get-row-class";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
-import { STATUS_STYLES } from "../_overview/components/table/utils/get-row-class";
 
 type LastUsedCellProps = {
   namespaceId: string;
@@ -15,7 +15,7 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
     namespaceId,
     identifier,
   });
-  const badgeRef = useRef<HTMLElement>(null) as React.RefObject<HTMLElement>;
+  const badgeRef = useRef<HTMLElement>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
