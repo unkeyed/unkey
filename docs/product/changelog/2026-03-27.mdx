@@ -27,12 +27,12 @@ unkey api keys verify-key --key=sk_1234abcdef
 Every command supports `--output=json` for scripting and piping to tools like `jq`. See the [CLI documentation](/cli/overview) for the full command reference.
 
 <Warning>
-The CLI is early and provided on a best-effort basis. There are no breaking change guarantees for commands, flags, or output format. The underlying [API](/api-reference/v2/overview) is versioned and stable.
+The CLI is early and provided on a best-effort basis. There are no breaking change guarantees for commands, flags, or output format. The underlying [API](/api-reference/overview) is versioned and stable.
 </Warning>
 
 ### Key last-used tracking
 
-You can now see when each API key was last used for verification. A new `lastUsedAt` field is returned by the `keys.getKey`, `keys.whoami`, and `apis.listKeys` [v2 API](/api-reference/v2/overview) endpoints as a Unix timestamp in milliseconds. The value is approximate, accurate to within a few minutes. Use it to identify stale keys and clean up unused credentials.
+You can now see when each API key was last used for verification. A new `lastUsedAt` field is returned by the `keys.getKey`, `keys.whoami`, and `apis.listKeys` [v2 API](/api-reference/overview) endpoints as a Unix timestamp in milliseconds. The value is approximate, accurate to within a few minutes. Use it to identify stale keys and clean up unused credentials.
 
 ### Build-time environment variables
 
