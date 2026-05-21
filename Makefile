@@ -139,10 +139,10 @@ dashboard: build oci-load ## Run local development setup for dashboard
 	@cd web/apps/dashboard && pnpm dev
 
 .PHONY: build-local-image
-build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp TAG=latest)
+build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp TAG=dev)
 	@if [ -z "$(DOCKERFILE)" ]; then echo "Error: DOCKERFILE is required (e.g., DOCKERFILE=./examples/demo_api/Dockerfile)"; exit 1; fi
 	@if [ -z "$(NAME)" ]; then echo "Error: NAME is required (e.g., NAME=demo_api)"; exit 1; fi
-	$(eval TAG ?= latest)
+	$(eval TAG ?= dev)
 	$(eval CONTEXT ?= $(dir $(DOCKERFILE)))
 	$(eval REGISTRY := $(shell kubectl get configmap local-registry-hosting -n kube-public -o jsonpath='{.data.localRegistryHosting\.v1}' 2>/dev/null | grep '^host:' | awk '{print $$2}'))
 	@if [ -z "$(REGISTRY)" ]; then echo "Error: Could not find local registry. Is minikube running with ctlptl?"; exit 1; fi
