@@ -101,7 +101,11 @@ export default function Layout({ children }: LayoutProps) {
 
   // Show loading state while checking authentication and workspace
   if (isLoading || !user || !workspace) {
-    return <LoadingState message="Loading workspace..." />;
+    return (
+      <div className="h-dvh flex flex-col">
+        <LoadingState message="Loading workspace..." />
+      </div>
+    );
   }
 
   // Combine workspace with quotas for AppSidebar
@@ -120,7 +124,7 @@ export default function Layout({ children }: LayoutProps) {
           <MobileNavDrawer />
           <div className="flex flex-1 overflow-hidden">
             <SidebarV2 className="bg-gray-1 border-grayA-4" />
-            <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
+            <div className="flex-1 overflow-auto">
               <div
                 className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
                 id="layout-wrapper"
@@ -143,7 +147,7 @@ export default function Layout({ children }: LayoutProps) {
           <AppSidebar workspace={workspaceWithQuotas} className="bg-gray-1 border-grayA-4" />
 
           {/* Main content area */}
-          <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
+          <div className="flex-1 overflow-auto">
             <div
               className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
               id="layout-wrapper"
