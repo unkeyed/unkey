@@ -30,7 +30,7 @@ type UpdateDeploymentStatusIfActiveParams struct {
 // stack from overwriting a status that was set intentionally by the dedup
 // path (e.g. superseded) or by a successful completion (ready). Callers
 // pass db.TerminalDeploymentStatuses so the terminal set has a single
-// source of truth shared with ListActiveDeploymentsByProjectId.
+// source of truth.
 //
 //	UPDATE deployments
 //	SET status = ?, updated_at = ?
