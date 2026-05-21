@@ -13,7 +13,7 @@ import {
   runtimeLogsFilterFieldConfig,
 } from "@/lib/schemas/runtime-logs.filter.schema";
 import { parseAsInteger, useQueryStates } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 const parseAsFilterValArray = parseAsFilterValueArray<RuntimeLogsFilterOperator>([
   "is",
@@ -36,17 +36,6 @@ export function useRuntimeLogsFilters() {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
     history: "push",
   });
-
-  // Initialize default "6h" filter on mount if no time filter exists
-  useEffect(() => {
-    if (
-      searchParams.since === null &&
-      searchParams.startTime === null &&
-      searchParams.endTime === null
-    ) {
-      setSearchParams({ since: "6h" });
-    }
-  }, [searchParams, setSearchParams]);
 
   const filters = useMemo(() => {
     const activeFilters: RuntimeLogsFilterValue[] = [];
