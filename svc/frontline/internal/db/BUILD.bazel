@@ -4,6 +4,7 @@ go_library(
     name = "db",
     srcs = [
         "certificate_find_by_hostnames.sql_generated.go",
+        "custom_domain_find_by_domain.sql_generated.go",
         "database.go",
         "doc.go",
         "generate.go",

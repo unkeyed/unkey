@@ -7,6 +7,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
@@ -22,6 +23,7 @@ type Services struct {
 	Engine            policies.Evaluator
 	Clock             clock.Clock
 	AcmeClient        ctrl.AcmeServiceClient
+	DB                db.Querier
 	ErrorPageRenderer errorpage.Renderer
 	RequestTimeout    time.Duration
 	// FrontlineRequests buffers per-request analytics for ClickHouse on the

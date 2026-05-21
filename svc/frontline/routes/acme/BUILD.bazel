@@ -11,8 +11,8 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/mysql",
         "//pkg/zen",
         "//svc/frontline/internal/proxy",
-        "//svc/frontline/internal/router",
     ],
 )
