@@ -51,7 +51,7 @@ go_library(
         "//svc/ctrl/worker/openapi",
         "//svc/ctrl/worker/project",
         "//svc/ctrl/worker/quotacheck",
-        "//svc/ctrl/worker/ratelimitblocklistcleanup",
+        "//svc/ctrl/worker/ratelimitglobalcountercleanup",
         "//svc/ctrl/worker/routing",
         "@com_connectrpc_connect//:connect",
         "@com_github_go_acme_lego_v4//challenge",

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: hydra/v1/ratelimit_blocklist_cleanup.proto
+// source: hydra/v1/ratelimit_global_counters_cleanup.proto
 
 package hydrav1
 
@@ -30,7 +30,7 @@ type RunCleanupRequest struct {
 
 func (x *RunCleanupRequest) Reset() {
 	*x = RunCleanupRequest{}
-	mi := &file_hydra_v1_ratelimit_blocklist_cleanup_proto_msgTypes[0]
+	mi := &file_hydra_v1_ratelimit_global_counters_cleanup_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *RunCleanupRequest) String() string {
 func (*RunCleanupRequest) ProtoMessage() {}
 
 func (x *RunCleanupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_ratelimit_blocklist_cleanup_proto_msgTypes[0]
+	mi := &file_hydra_v1_ratelimit_global_counters_cleanup_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *RunCleanupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunCleanupRequest.ProtoReflect.Descriptor instead.
 func (*RunCleanupRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDescGZIP(), []int{0}
+	return file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDescGZIP(), []int{0}
 }
 
 type RunCleanupResponse struct {
@@ -68,7 +68,7 @@ type RunCleanupResponse struct {
 
 func (x *RunCleanupResponse) Reset() {
 	*x = RunCleanupResponse{}
-	mi := &file_hydra_v1_ratelimit_blocklist_cleanup_proto_msgTypes[1]
+	mi := &file_hydra_v1_ratelimit_global_counters_cleanup_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -80,7 +80,7 @@ func (x *RunCleanupResponse) String() string {
 func (*RunCleanupResponse) ProtoMessage() {}
 
 func (x *RunCleanupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_ratelimit_blocklist_cleanup_proto_msgTypes[1]
+	mi := &file_hydra_v1_ratelimit_global_counters_cleanup_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -93,7 +93,7 @@ func (x *RunCleanupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunCleanupResponse.ProtoReflect.Descriptor instead.
 func (*RunCleanupResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDescGZIP(), []int{1}
+	return file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RunCleanupResponse) GetRowsDeleted() int64 {
@@ -103,39 +103,39 @@ func (x *RunCleanupResponse) GetRowsDeleted() int64 {
 	return 0
 }
 
-var File_hydra_v1_ratelimit_blocklist_cleanup_proto protoreflect.FileDescriptor
+var File_hydra_v1_ratelimit_global_counters_cleanup_proto protoreflect.FileDescriptor
 
-const file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDesc = "" +
+const file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDesc = "" +
 	"\n" +
-	"*hydra/v1/ratelimit_blocklist_cleanup.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x13\n" +
+	"0hydra/v1/ratelimit_global_counters_cleanup.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x13\n" +
 	"\x11RunCleanupRequest\"7\n" +
 	"\x12RunCleanupResponse\x12!\n" +
-	"\frows_deleted\x18\x01 \x01(\x03R\vrowsDeleted2s\n" +
-	" RatelimitBlocklistCleanupService\x12I\n" +
+	"\frows_deleted\x18\x01 \x01(\x03R\vrowsDeleted2x\n" +
+	"%RatelimitGlobalCountersCleanupService\x12I\n" +
 	"\n" +
-	"RunCleanup\x12\x1b.hydra.v1.RunCleanupRequest\x1a\x1c.hydra.v1.RunCleanupResponse\"\x00\x1a\x04\x98\x80\x01\x00B\xa4\x01\n" +
-	"\fcom.hydra.v1B\x1eRatelimitBlocklistCleanupProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
+	"RunCleanup\x12\x1b.hydra.v1.RunCleanupRequest\x1a\x1c.hydra.v1.RunCleanupResponse\"\x00\x1a\x04\x98\x80\x01\x00B\xa9\x01\n" +
+	"\fcom.hydra.v1B#RatelimitGlobalCountersCleanupProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
-	file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDescOnce sync.Once
-	file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDescData []byte
+	file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDescOnce sync.Once
+	file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDescData []byte
 )
 
-func file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDescGZIP() []byte {
-	file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDescOnce.Do(func() {
-		file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDesc), len(file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDesc)))
+func file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDescGZIP() []byte {
+	file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDescOnce.Do(func() {
+		file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDesc), len(file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDesc)))
 	})
-	return file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDescData
+	return file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDescData
 }
 
-var file_hydra_v1_ratelimit_blocklist_cleanup_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_hydra_v1_ratelimit_blocklist_cleanup_proto_goTypes = []any{
+var file_hydra_v1_ratelimit_global_counters_cleanup_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hydra_v1_ratelimit_global_counters_cleanup_proto_goTypes = []any{
 	(*RunCleanupRequest)(nil),  // 0: hydra.v1.RunCleanupRequest
 	(*RunCleanupResponse)(nil), // 1: hydra.v1.RunCleanupResponse
 }
-var file_hydra_v1_ratelimit_blocklist_cleanup_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.RatelimitBlocklistCleanupService.RunCleanup:input_type -> hydra.v1.RunCleanupRequest
-	1, // 1: hydra.v1.RatelimitBlocklistCleanupService.RunCleanup:output_type -> hydra.v1.RunCleanupResponse
+var file_hydra_v1_ratelimit_global_counters_cleanup_proto_depIdxs = []int32{
+	0, // 0: hydra.v1.RatelimitGlobalCountersCleanupService.RunCleanup:input_type -> hydra.v1.RunCleanupRequest
+	1, // 1: hydra.v1.RatelimitGlobalCountersCleanupService.RunCleanup:output_type -> hydra.v1.RunCleanupResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -143,26 +143,26 @@ var file_hydra_v1_ratelimit_blocklist_cleanup_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_hydra_v1_ratelimit_blocklist_cleanup_proto_init() }
-func file_hydra_v1_ratelimit_blocklist_cleanup_proto_init() {
-	if File_hydra_v1_ratelimit_blocklist_cleanup_proto != nil {
+func init() { file_hydra_v1_ratelimit_global_counters_cleanup_proto_init() }
+func file_hydra_v1_ratelimit_global_counters_cleanup_proto_init() {
+	if File_hydra_v1_ratelimit_global_counters_cleanup_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDesc), len(file_hydra_v1_ratelimit_blocklist_cleanup_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDesc), len(file_hydra_v1_ratelimit_global_counters_cleanup_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_hydra_v1_ratelimit_blocklist_cleanup_proto_goTypes,
-		DependencyIndexes: file_hydra_v1_ratelimit_blocklist_cleanup_proto_depIdxs,
-		MessageInfos:      file_hydra_v1_ratelimit_blocklist_cleanup_proto_msgTypes,
+		GoTypes:           file_hydra_v1_ratelimit_global_counters_cleanup_proto_goTypes,
+		DependencyIndexes: file_hydra_v1_ratelimit_global_counters_cleanup_proto_depIdxs,
+		MessageInfos:      file_hydra_v1_ratelimit_global_counters_cleanup_proto_msgTypes,
 	}.Build()
-	File_hydra_v1_ratelimit_blocklist_cleanup_proto = out.File
-	file_hydra_v1_ratelimit_blocklist_cleanup_proto_goTypes = nil
-	file_hydra_v1_ratelimit_blocklist_cleanup_proto_depIdxs = nil
+	File_hydra_v1_ratelimit_global_counters_cleanup_proto = out.File
+	file_hydra_v1_ratelimit_global_counters_cleanup_proto_goTypes = nil
+	file_hydra_v1_ratelimit_global_counters_cleanup_proto_depIdxs = nil
 }

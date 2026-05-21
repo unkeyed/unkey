@@ -1,15 +1,15 @@
-// Package ratelimitblocklistcleanup implements the Restate handler that
-// prunes expired rows from ratelimit_blocklist. The table is the cross-region
-// propagation channel for rate-limit denials; without periodic cleanup it
-// would grow unbounded under sustained abuse and slow down BlocklistListActive
-// scans on every node.
+// Package ratelimitglobalcountercleanup implements the Restate handler that
+// prunes expired rows from ratelimit_global_counters. The table is the
+// cross-region propagation channel for rate-limit counts; without periodic
+// cleanup it would grow unbounded under sustained traffic and slow down
+// GlobalCountersImported scans on every node.
 //
 // The handler is intentionally minimal: a single DELETE under a Restate
 // step. No fan-out, no state. Local in-memory state in the ratelimit service
 // is cleaned by its own janitor, and the hot path filters on expires_at,
 // so the lag between this cron firing and rows actually disappearing is
 // only a storage concern, not a correctness one.
-package ratelimitblocklistcleanup
+package ratelimitglobalcountercleanup
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -19,19 +19,19 @@ import (
 	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 )
 
-// Service implements [hydrav1.RatelimitBlocklistCleanupServiceServer].
+// Service implements [hydrav1.RatelimitGlobalCountersCleanupServiceServer].
 // It owns no state; each invocation is independent.
 type Service struct {
-	hydrav1.UnimplementedRatelimitBlocklistCleanupServiceServer
+	hydrav1.UnimplementedRatelimitGlobalCountersCleanupServiceServer
 	db    *rldb.Database
 	clock clock.Clock
 }
 
-var _ hydrav1.RatelimitBlocklistCleanupServiceServer = (*Service)(nil)
+var _ hydrav1.RatelimitGlobalCountersCleanupServiceServer = (*Service)(nil)
 
 // Config holds dependencies for the cleanup service.
 type Config struct {
-	// DB is the wrapped ratelimit_blocklist database. Must not be nil.
+	// DB is the wrapped ratelimit database. Must not be nil.
 	DB *rldb.Database
 	// Clock provides the cutoff timestamp for expired rows. Optional; defaults
 	// to a real clock. Tests should inject a fake clock to drive cutoffs.
@@ -50,7 +50,7 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	return &Service{
-		UnimplementedRatelimitBlocklistCleanupServiceServer: hydrav1.UnimplementedRatelimitBlocklistCleanupServiceServer{},
+		UnimplementedRatelimitGlobalCountersCleanupServiceServer: hydrav1.UnimplementedRatelimitGlobalCountersCleanupServiceServer{},
 		db:    cfg.DB,
 		clock: cfg.Clock,
 	}, nil

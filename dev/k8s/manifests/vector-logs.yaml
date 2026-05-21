@@ -263,7 +263,7 @@ spec:
       serviceAccountName: vector-logs
       containers:
         - name: vector
-          image: timberio/vector:0.43.1-alpine
+          image: timberio/vector:0.43.1-alpine@sha256:3677b6007e24e88a6b2a42f51c25fda27b6579e7c3b704fb63c770e5be06cd1a
           args: ["--config-dir", "/etc/vector"]
           env:
             - name: VECTOR_LOG

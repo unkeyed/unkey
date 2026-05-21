@@ -1,4 +1,4 @@
-FROM mysql:9.4.0
+FROM mysql:9.4.0@sha256:135bc87cce147c3d28cecb9ad270b814cb52805af7ddeea83bfcaf157d05a6b2
 
 # Copy per-table schema files — MySQL runs .sql files alphabetically.
 COPY pkg/mysql/schema/ /docker-entrypoint-initdb.d/

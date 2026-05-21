@@ -3,8 +3,8 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "ratelimit",
     srcs = [
-        "blocklist.go",
         "doc.go",
+        "global.go",
         "interface.go",
         "janitor.go",
         "keys.go",
@@ -19,7 +19,6 @@ go_library(
         "//internal/services/ratelimit/db",
         "//internal/services/ratelimit/metrics",
         "//pkg/assert",
-        "//pkg/batch",
         "//pkg/buffer",
         "//pkg/circuitbreaker",
         "//pkg/clock",
@@ -37,7 +36,7 @@ go_test(
     size = "large",
     srcs = [
         "atomicmax_test.go",
-        "blocklist_integration_test.go",
+        "global_integration_test.go",
         "helpers_test.go",
         "janitor_test.go",
         "origin_test.go",

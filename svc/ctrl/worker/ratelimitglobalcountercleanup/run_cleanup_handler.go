@@ -1,4 +1,4 @@
-package ratelimitblocklistcleanup
+package ratelimitglobalcountercleanup
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// RunCleanup deletes every ratelimit_blocklist row whose expires_at is in the
-// past relative to s.clock. The DELETE is wrapped in restate.Run so a crash
+// RunCleanup deletes every ratelimit_global_counters row whose expires_at is in
+// the past relative to s.clock. The DELETE is wrapped in restate.Run so a crash
 // or retry replays cleanly: at-least-once delivery on a deterministic DELETE
 // is safe.
 func (s *Service) RunCleanup(
@@ -19,13 +19,13 @@ func (s *Service) RunCleanup(
 	cutoff := s.clock.Now().UnixMilli()
 
 	deleted, err := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
-		return s.db.RW().BlocklistDeleteExpired(rc, uint64(cutoff))
+		return s.db.RW().GlobalCountersDeleteExpired(rc, uint64(cutoff))
 	}, restate.WithName("delete expired"))
 	if err != nil {
-		return nil, fmt.Errorf("delete expired blocklist rows: %w", err)
+		return nil, fmt.Errorf("delete expired global counter rows: %w", err)
 	}
 
-	logger.Info("ratelimit blocklist cleanup complete",
+	logger.Info("ratelimit global counters cleanup complete",
 		"rows_deleted", deleted,
 		"cutoff_ms", cutoff,
 	)
