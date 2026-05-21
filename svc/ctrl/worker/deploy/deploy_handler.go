@@ -107,9 +107,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// set intentionally by the dedup path (superseded) or by a successful
 		// completion (ready). Only transitions from active statuses to failed.
 		return db.Query.UpdateDeploymentStatusIfActive(runCtx, w.db.RW(), db.UpdateDeploymentStatusIfActiveParams{
-			ID:        req.GetDeploymentId(),
-			Status:    db.DeploymentsStatusFailed,
-			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:               req.GetDeploymentId(),
+			Status:           db.DeploymentsStatusFailed,
+			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			TerminalStatuses: db.TerminalDeploymentStatuses,
 		})
 	})
 
