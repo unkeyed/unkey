@@ -107,9 +107,10 @@ func (s *Service) CancelDeployment(
 	// compensation stack will try UpdateDeploymentStatusIfActive(failed),
 	// but cancelled is in the NOT IN list so that update is a no-op.
 	if err := db.Query.UpdateDeploymentStatusIfActive(ctx, s.db.RW(), db.UpdateDeploymentStatusIfActiveParams{
-		ID:        deploymentID,
-		Status:    db.DeploymentsStatusCancelled,
-		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:               deploymentID,
+		Status:           db.DeploymentsStatusCancelled,
+		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		TerminalStatuses: db.TerminalDeploymentStatuses,
 	}); err != nil {
 		logger.Warn("failed to set deployment status to cancelled",
 			"deployment_id", deploymentID,

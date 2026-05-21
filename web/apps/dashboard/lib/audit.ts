@@ -3,7 +3,7 @@ import type { z } from "zod";
 
 import type { MaybeArray } from "@/lib/types";
 import { type Database, type Transaction, schema } from "@unkey/db";
-import type { auditLog, auditLogTarget, clickhouseOutbox } from "@unkey/db/src/schema";
+import type { clickhouseOutbox } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 
 export const AUDIT_LOG_BUCKET = "unkey_mutations";
@@ -101,6 +101,11 @@ type OutboxEventEnvelope = {
   correlation_id?: string;
 };
 
+// insertAuditLogs writes one row per event to the `clickhouse_outbox`
+// MySQL table. The AuditLogExportService worker drains the outbox and
+// ships each row to ClickHouse `audit_logs_raw_v1` on the next cron
+// tick (~every minute). Reuses the caller's transaction when provided
+// so the outbox row commits with the underlying mutation.
 export async function insertAuditLogs(
   db: Transaction | Database,
   logOrLogs: MaybeArray<UnkeyAuditLog>,
@@ -111,14 +116,6 @@ export async function insertAuditLogs(
     return Promise.resolve();
   }
 
-  const auditLogs: (typeof auditLog.$inferInsert)[] = [];
-  const auditLogTargets: (typeof auditLogTarget.$inferInsert)[] = [];
-  // Outbox rows are inserted in the same transaction as the legacy
-  // audit_log + audit_log_target rows so the durability story is
-  // identical: if the underlying mutation commits, the outbox row
-  // commits, and the drainer ships it to ClickHouse on the next tick.
-  // The Go API writer dual-writes the same way; this keeps the dashboard
-  // and API consistent producers of audit_log.v1 envelopes.
   const outboxRows: (typeof clickhouseOutbox.$inferInsert)[] = [];
 
   // Auto-mint a shared correlation ID when the batch carries >1 events.
@@ -132,38 +129,6 @@ export async function insertAuditLogs(
   for (const log of logs) {
     const auditLogId = newId("auditLog");
     const now = Date.now();
-
-    auditLogs.push({
-      id: auditLogId,
-      workspaceId: log.workspaceId,
-      bucketId: "DEPRECATED",
-      bucket: AUDIT_LOG_BUCKET,
-      event: log.event,
-      time: now,
-      display: log.description,
-      remoteIp: log.context.location,
-      userAgent: log.context.userAgent,
-      actorType: log.actor.type,
-      actorId: log.actor.id,
-      actorName: log.actor.name,
-      actorMeta: log.actor.meta,
-    });
-
-    if (log.resources.length > 0) {
-      auditLogTargets.push(
-        ...log.resources.map((r) => ({
-          workspaceId: log.workspaceId,
-          auditLogId,
-          bucketId: "DEPRECATED",
-          bucket: AUDIT_LOG_BUCKET,
-          displayName: "",
-          type: r.type,
-          id: r.id,
-          name: r.name,
-          meta: r.meta,
-        })),
-      );
-    }
 
     const correlationId = log.correlationId ?? sharedCorrelationId;
 
@@ -203,12 +168,6 @@ export async function insertAuditLogs(
       payload: envelope,
       createdAt: now,
     });
-  }
-
-  await db.insert(schema.auditLog).values(auditLogs);
-
-  if (auditLogTargets.length > 0) {
-    await db.insert(schema.auditLogTarget).values(auditLogTargets);
   }
 
   await db.insert(schema.clickhouseOutbox).values(outboxRows);

@@ -1126,40 +1126,6 @@ type AppRuntimeSetting struct {
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
 }
 
-type AuditLog struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Bucket      string         `db:"bucket"`
-	BucketID    string         `db:"bucket_id"`
-	Event       string         `db:"event"`
-	Time        int64          `db:"time"`
-	Display     string         `db:"display"`
-	RemoteIp    sql.NullString `db:"remote_ip"`
-	UserAgent   sql.NullString `db:"user_agent"`
-	ActorType   string         `db:"actor_type"`
-	ActorID     string         `db:"actor_id"`
-	ActorName   sql.NullString `db:"actor_name"`
-	ActorMeta   []byte         `db:"actor_meta"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
-}
-
-type AuditLogTarget struct {
-	Pk          uint64         `db:"pk"`
-	WorkspaceID string         `db:"workspace_id"`
-	BucketID    string         `db:"bucket_id"`
-	Bucket      string         `db:"bucket"`
-	AuditLogID  string         `db:"audit_log_id"`
-	DisplayName string         `db:"display_name"`
-	Type        string         `db:"type"`
-	ID          string         `db:"id"`
-	Name        sql.NullString `db:"name"`
-	Meta        []byte         `db:"meta"`
-	CreatedAt   int64          `db:"created_at"`
-	UpdatedAt   sql.NullInt64  `db:"updated_at"`
-}
-
 type Certificate struct {
 	Pk                  uint64        `db:"pk"`
 	ID                  string        `db:"id"`
@@ -1590,15 +1556,17 @@ type Ratelimit struct {
 	AutoApply   bool           `db:"auto_apply"`
 }
 
-type RatelimitBlocklist struct {
+type RatelimitGlobalCounter struct {
 	Pk          uint64 `db:"pk"`
 	WorkspaceID string `db:"workspace_id"`
 	Namespace   string `db:"namespace"`
 	Identifier  string `db:"identifier"`
 	DurationMs  uint64 `db:"duration_ms"`
 	Sequence    int64  `db:"sequence"`
-	Limit       uint64 `db:"limit"`
+	Region      string `db:"region"`
+	Count       uint64 `db:"count"`
 	ExpiresAt   uint64 `db:"expires_at"`
+	UpdatedAt   uint64 `db:"updated_at"`
 }
 
 type RatelimitNamespace struct {
