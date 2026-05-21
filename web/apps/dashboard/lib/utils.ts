@@ -130,6 +130,8 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
   return throttled;
 }
 
+export const DEFAULT_LOGS_SINCE = "6h";
+
 export const getTimestampFromRelative = (relativeTime: string): number => {
   if (!relativeTime.match(/^(\d+[whdm])+$/)) {
     throw new Error(
