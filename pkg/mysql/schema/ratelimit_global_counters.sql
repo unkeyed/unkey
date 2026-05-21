@@ -15,5 +15,3 @@ CREATE TABLE `ratelimit_global_counters` (
 
 CREATE INDEX `expires_at_idx` ON `ratelimit_global_counters` (`expires_at`);
 
-CREATE INDEX `lookup_idx` ON `ratelimit_global_counters` (`workspace_id`,`namespace`,`identifier`,`duration_ms`,`sequence`);
-
