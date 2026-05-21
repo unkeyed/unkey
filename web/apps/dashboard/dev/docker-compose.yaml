@@ -57,7 +57,7 @@ services:
     networks:
       - default
     container_name: redis
-    image: redis:8.0
+    image: redis:8.0@sha256:ae471bdc20de180beed36e347d170ec0bdf8faa327959ea1f24692f22b05b955
     ports:
       - 6379:6379
     healthcheck:
@@ -71,7 +71,7 @@ services:
     networks:
       - default
     container_name: vault
-    image: unkey/unkey:latest
+    image: unkey/unkey:dev
     pull_policy: never
     command: ["run", "vault", "--config", "/etc/unkey/vault.toml"]
     ports:
@@ -84,7 +84,7 @@ services:
     networks:
       - default
     container_name: restate
-    image: docker.io/restatedev/restate:1.6.0
+    image: docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae
     ports:
       - "8081:8080"
       - "9070:9070"
@@ -92,7 +92,7 @@ services:
   ctrl-api:
     networks:
       - default
-    image: unkey/unkey:latest
+    image: unkey/unkey:dev
     pull_policy: never
     container_name: ctrl-api
     command: ["run", "ctrl", "api", "--config", "/etc/unkey/ctrl-api.toml"]
@@ -111,7 +111,7 @@ services:
   ctrl-worker:
     networks:
       - default
-    image: unkey/unkey:latest
+    image: unkey/unkey:dev
     pull_policy: never
     container_name: ctrl-worker
     command: [
@@ -140,7 +140,7 @@ services:
     networks:
       - default
     container_name: api
-    image: unkey/unkey:latest
+    image: unkey/unkey:dev
     pull_policy: never
     command: ["run", "api", "--config", "/etc/unkey/api.toml"]
     ports:

@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
         - name: vault
-          image: unkey/go:latest
+          image: unkey/go:dev
           args: ["run", "vault", "--config", "/etc/unkey/unkey.toml"]
           ports:
             - name: http

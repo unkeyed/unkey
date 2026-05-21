@@ -258,6 +258,8 @@ k8s_resource('restate-key-last-used-sync', resource_deps=['restate', 'ctrl-worke
 k8s_resource('restate-key-refill', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-quota-check', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-ratelimit-blocklist-cleanup', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-audit-log-export', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-audit-log-backfill', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
 # Build Go binaries locally (auto-detect arch from minikube)
@@ -271,7 +273,7 @@ local_resource(
 
 # Single docker image for all Go services - k8s manifests use `args` to specify which service to run
 docker_build_with_restart(
-    'unkey/go:latest',
+    'unkey/go:dev',
     '..',
     dockerfile='./Dockerfile.tilt',
     entrypoint=['/unkey'],

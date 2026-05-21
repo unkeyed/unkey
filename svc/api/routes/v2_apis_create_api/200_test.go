@@ -81,16 +81,13 @@ func TestCreateApiSuccessfully(t *testing.T) {
 		require.Equal(t, h.Resources().UserWorkspace.ID, keySpace.WorkspaceID)
 		require.False(t, keySpace.DeletedAtM.Valid)
 
-		// Verify the audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.ApiId)
-		require.NoError(t, err)
-		require.GreaterOrEqual(t, len(auditLogs), 1)
-
+		// Verify the audit log was queued in clickhouse_outbox
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.ApiId)
 		var foundCreateEvent bool
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "api.create" {
+		for _, ev := range auditLogs {
+			if ev.Event == "api.create" {
 				foundCreateEvent = true
-				require.Equal(t, h.Resources().UserWorkspace.ID, log.AuditLog.WorkspaceID)
+				require.Equal(t, h.Resources().UserWorkspace.ID, ev.WorkspaceID)
 				break
 			}
 		}

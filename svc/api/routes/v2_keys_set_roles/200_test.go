@@ -184,20 +184,18 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, newRoleID, finalRoles[0].ID)
 
 		// Verify audit logs show both removal and addition
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, keyID)
 		require.NotEmpty(t, auditLogs)
-
 		foundDisconnectEvent := false
 		foundConnectEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.disconnect_role_and_key" {
+		for _, ev := range auditLogs {
+			if ev.Event == "authorization.disconnect_role_and_key" {
 				foundDisconnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Removed role admin_replace_old from key")
+				require.Contains(t, ev.Description, "Removed role admin_replace_old from key")
 			}
-			if log.AuditLog.Event == "authorization.connect_role_and_key" {
+			if ev.Event == "authorization.connect_role_and_key" {
 				foundConnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Added role editor_replace_new to key")
+				require.Contains(t, ev.Description, "Added role editor_replace_new to key")
 			}
 		}
 		require.True(t, foundDisconnectEvent, "Should find a role disconnect audit log event")
@@ -269,15 +267,13 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, finalRoles, 0)
 
 		// Verify audit log shows removal
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, keyID)
 		require.NotEmpty(t, auditLogs)
-
 		foundDisconnectEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.disconnect_role_and_key" {
+		for _, ev := range auditLogs {
+			if ev.Event == "authorization.disconnect_role_and_key" {
 				foundDisconnectEvent = true
-				require.Contains(t, log.AuditLog.Display, "Removed role admin_remove_all from key")
+				require.Contains(t, ev.Description, "Removed role admin_remove_all from key")
 				break
 			}
 		}
@@ -321,11 +317,6 @@ func TestSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Count existing audit logs
-		auditLogsBefore, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		auditLogCountBefore := len(auditLogsBefore)
-
 		// Set roles to the same role (no change)
 		req := handler.Request{
 			KeyId: keyID,
@@ -352,11 +343,14 @@ func TestSuccess(t *testing.T) {
 		require.Len(t, finalRoles, 1)
 		require.Equal(t, roleID, finalRoles[0].ID)
 
-		// Verify no new audit logs were created (no changes)
-		auditLogsAfter, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), keyID)
-		require.NoError(t, err)
-		auditLogCountAfter := len(auditLogsAfter)
-		require.Equal(t, auditLogCountBefore, auditLogCountAfter, "No new audit logs should be created when no changes are made")
+		// Verify no connect/disconnect audit logs were created (no changes).
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, keyID)
+		for _, ev := range auditLogs {
+			require.NotEqual(t, "authorization.connect_role_and_key", ev.Event,
+				"No new connect events should be created when no changes are made")
+			require.NotEqual(t, "authorization.disconnect_role_and_key", ev.Event,
+				"No new disconnect events should be created when no changes are made")
+		}
 	})
 }
 

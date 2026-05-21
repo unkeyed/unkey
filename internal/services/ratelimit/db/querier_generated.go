@@ -9,17 +9,21 @@ import (
 )
 
 type Querier interface {
-	// BlocklistDeleteExpired removes rows whose grace period has passed and
+	// GlobalCountersDeleteExpired removes rows whose grace period has passed and
 	// returns the number of rows deleted so the caller can surface it for
 	// observability. Called by an external Restate cron, not the ratelimit
 	// service itself.
 	//
-	//  DELETE FROM ratelimit_blocklist
+	//  DELETE FROM ratelimit_global_counters
 	//  WHERE expires_at < ?
-	BlocklistDeleteExpired(ctx context.Context, cutoff uint64) (int64, error)
-	// BlocklistListActive returns every still-active denial for the sync loop to
-	// apply locally. The result set is bounded by unique violators currently in
-	// their TTL window; the expires_at index keeps the scan cheap.
+	GlobalCountersDeleteExpired(ctx context.Context, cutoff uint64) (int64, error)
+	// GlobalCountersImported returns the sum of foreign-region contributions for
+	// every still-active window cell, with each region's row excluded from its
+	// own caller. Receivers fold the returned `imported` directly into
+	// counterEntry.globalCount via atomicMax; aggregation runs in MySQL because
+	// the application only ever uses the sum, so transferring per-region rows
+	// just to collapse them in Go wastes bandwidth and memory. The SUM is cast
+	// to SIGNED so sqlc maps it to int64, matching atomic.Int64 in the caller.
 	//
 	//  SELECT
 	//      workspace_id,
@@ -27,11 +31,58 @@ type Querier interface {
 	//      identifier,
 	//      duration_ms,
 	//      sequence,
-	//      `limit`,
-	//      expires_at
-	//  FROM ratelimit_blocklist
+	//      CAST(SUM(count) AS SIGNED) AS imported
+	//  FROM ratelimit_global_counters
 	//  WHERE expires_at > ?
-	BlocklistListActive(ctx context.Context, now uint64) ([]BlocklistListActiveRow, error)
+	//    AND region != ?
+	//  GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
+	GlobalCountersImported(ctx context.Context, arg GlobalCountersImportedParams) ([]GlobalCountersImportedRow, error)
+	// GlobalCountersListAll returns raw per-region global counter rows for tests
+	// that need to assert which region wrote which observation. Production callers
+	// should use GlobalCountersImported instead so MySQL does the aggregation.
+	//
+	//  SELECT
+	//      workspace_id,
+	//      namespace,
+	//      identifier,
+	//      duration_ms,
+	//      sequence,
+	//      region,
+	//      count,
+	//      expires_at,
+	//      updated_at
+	//  FROM ratelimit_global_counters
+	GlobalCountersListAll(ctx context.Context) ([]GlobalCountersListAllRow, error)
+	// UpsertRatelimitGlobalCounters records one region's latest observation for a
+	// sliding-window cell. The generated bulk variant is the hot path: conflicts
+	// use GREATEST so concurrent writers for the same region collapse onto the
+	// highest count, which keeps regional observations monotonic within a sequence.
+	//
+	//  INSERT INTO ratelimit_global_counters (
+	//      workspace_id,
+	//      namespace,
+	//      identifier,
+	//      duration_ms,
+	//      sequence,
+	//      region,
+	//      count,
+	//      expires_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      count = GREATEST(count, VALUES(count)),
+	//      updated_at = VALUES(updated_at)
+	UpsertRatelimitGlobalCounters(ctx context.Context, arg UpsertRatelimitGlobalCountersParams) error
 }
 
 var _ Querier = (*Queries)(nil)

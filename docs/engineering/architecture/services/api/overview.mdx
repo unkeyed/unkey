@@ -24,7 +24,8 @@ Routes that serve internal tooling such as pprof use a reduced stack. The livene
 The API service composes domain services into handlers registered in [`svc/api/routes/register.go`](https://github.com/unkeyed/unkey/blob/main/svc/api/routes/register.go).
 
 - Key service for authentication, authorization, key verification, and mutations.
-- Rate limit service backed by Redis counters.
+- [Rate limiting](/architecture/ratelimiting/overview) for standalone
+  limits, key verification limits, and workspace API throttling.
 - Usage limiter backed by Redis counters and MySQL for credit tracking.
 - Audit log service for write actions.
 - Caches for key, API, and ratelimit namespace lookups.
@@ -33,7 +34,7 @@ The API service composes domain services into handlers registered in [`svc/api/r
 ## Data and storage
 
 - MySQL stores control plane data such as keys, APIs, identities, and permissions.
-- Redis stores counters and rate limiting state.
+- Redis stores regional counters and rate limiting state.
 - ClickHouse stores verification and analytics events.
 
 ClickHouse is optional. When it is not configured, analytics writes become no-ops.

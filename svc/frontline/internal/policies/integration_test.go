@@ -64,6 +64,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		Clock:   clk,
 		Counter: redisCounter,
 		DB:      db.ToMySQL(database),
+		Region:  "test-region",
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = rateLimiter.Close() })

@@ -86,7 +86,7 @@ spec:
             name: ctrl-worker-config
       containers:
         - name: ctrl-worker
-          image: unkey/go:latest
+          image: unkey/go:dev
           args: ["run", "ctrl", "worker", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           ports:
@@ -140,7 +140,7 @@ spec:
               readOnly: true
       initContainers:
         - name: wait-for-dependencies
-          image: busybox:1.36
+          image: busybox:1.36@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
           command:
             [
               "sh",

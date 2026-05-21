@@ -1,0 +1,96 @@
+---
+title: "Global counters"
+description: "How G-Counters power cross-region rate limit convergence"
+---
+
+Global counters let regions share rate limit usage without turning every request into a synchronous global write. The model is a grow-only counter, or G-Counter, with one component per region and window cell.
+
+## G-Counter model
+
+A G-Counter is a conflict-free replicated data type for counts that only increase. It splits one logical count into independently owned components. The global value is the sum of all components.
+
+For rate limiting, each region owns one component for each window cell. The component identity is:
+
+```plaintext
+(workspace, namespace, identifier, duration, sequence, region)
+```
+
+Each region writes only its own component. Region A never writes Region B's component. A component only moves forward inside a sequence.
+
+```mermaid
+flowchart TB
+  subgraph regionA[Region A]
+    aLocal[Regional count: 8]
+    aComponent[Component A: max(old, 8)]
+    aLocal --> aComponent
+  end
+
+  subgraph regionB[Region B]
+    bLocal[Regional count: 5]
+    bComponent[Component B: max(old, 5)]
+    bLocal --> bComponent
+  end
+
+  sum[Global value: A + B]
+  aComponent --> sum
+  bComponent --> sum
+```
+
+The merge rule is simple:
+
+```plaintext
+component = max(component, observedRegionalCount)
+global = sum(all components)
+```
+
+That gives the counter four useful properties.
+
+| Property | Effect |
+| --- | --- |
+| Monotonic | An older delayed publish cannot move a component backward |
+| Idempotent | Publishing or importing the same value twice is harmless |
+| Commutative | Regions can publish and import in different orders |
+| Associative | Components can be aggregated before import |
+
+## Importing without feedback loops
+
+A region imports only foreign components. It adds those foreign counts to local decisions, but it does not publish them again.
+
+```plaintext
+Region A decision = A regional count + imported count from B and C
+Region A publish  = A regional count only
+```
+
+This separation prevents double counting. If Region A published `A + B`, then Region B could import that value and count its own traffic again. The implementation keeps the two values separate as regional count and `globalCount`.
+
+## Why it fits rate limiting
+
+Usage inside one fixed window cell is grow-only. Requests add cost. The cell does not need to decrement while it is active.
+
+Sliding-window behavior comes from reading two cells, weighting the previous one, and letting old cells expire.
+
+```plaintext
+current = currentRegionalCount + currentGlobalCount
+previous = previousRegionalCount + previousGlobalCount
+effective = current + (previous * previousWindowWeight) + cost
+```
+
+The G-Counter resets by identity. A new fixed window has a new sequence, so it has a new set of components. Old components stop mattering when they can no longer contribute to the sliding-window calculation.
+
+## Publish threshold
+
+The `limit` is not part of the G-Counter merge rule. It only decides when a regional count is worth publishing.
+
+Small counts are usually irrelevant to remote decisions, so they stay regional. Once a region uses a meaningful fraction of the limit, the count is published and can affect later decisions elsewhere.
+
+This keeps cross-region writes proportional to useful signal rather than total request volume. The request path still makes local decisions immediately, and global convergence catches up for identifiers that are approaching their limit.
+
+## Invariants
+
+Global counters rely on these invariants:
+
+- Each region owns only its own component.
+- Component values are merged with `max`, never replacement by an older value.
+- Imports exclude the current region's component.
+- Imported count is read by the request path but never republished.
+- A sequence is immutable once it ages out. New windows use new component identities.

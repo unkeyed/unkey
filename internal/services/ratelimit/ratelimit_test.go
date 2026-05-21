@@ -12,7 +12,7 @@ import (
 )
 
 // TestRatelimit_SlidingWindowDecision locks in the math of the sliding window
-// algorithm. Each case pre-seeds the current and previous window counters and
+// algorithm. Each case pre-seeds the current and previous counters and
 // picks a req.Time that produces the desired elapsed fraction, so the decision
 // path runs against exactly the inputs under test.
 func TestRatelimit_SlidingWindowDecision(t *testing.T) {
@@ -45,13 +45,13 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 			t.Parallel()
 
 			clk := clock.NewTestClock()
-			svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+			svc, err := New(Config{
+				Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = svc.Close() })
 
-			// Per-test workspace ID so the construction-time blocklist sync
-			// can't pollute these counters from rows another test wrote to
-			// the shared MySQL.
+			// Per-test workspace ID so background global sync can't pollute
+			// these counters from rows another test wrote to the shared MySQL.
 			ws := uid.New(uid.WorkspacePrefix)
 			duration := time.Minute
 			durationMs := duration.Milliseconds()
@@ -87,13 +87,14 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 }
 
 // TestRatelimit_DenialSetsStrictUntil asserts a denied request sets the
-// strict-mode deadline to req.Time + req.Duration for its (name, identifier,
-// duration) tuple.
+// strict-mode deadline to req.Time + req.Duration for its (workspace,
+// namespace, identifier, duration) tuple.
 func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -122,16 +123,17 @@ func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	require.Equal(t, want, got, "strictUntil should equal req.Time + req.Duration")
 }
 
-// TestRatelimit_StrictModeForcesOriginFetch asserts that once strict mode is
-// active, prepareCheck fetches from origin even when the local windows are
-// warm. We verify the behavior by observing local state converge to a seeded
-// origin value — the only way that can happen is if origin was consulted.
+// TestRatelimit_StrictModeForcesOriginFetch asserts that once strict mode
+// is active, prepareCheck fetches from origin even when the local windows
+// are warm. We verify by observing local state converge to a seeded origin
+// value — the only way that can happen is if origin was consulted.
 func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
 	origin := counter.NewMemory()
-	svc, err := New(Config{Clock: clk, Counter: origin, DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -185,7 +187,8 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -222,4 +225,29 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 
 	require.Equal(t, int64(0), a.val.Load(), "A counter must be unchanged after batch failure")
 	require.Equal(t, int64(9), b.val.Load(), "B counter must be rolled back after batch failure")
+}
+
+func TestRatelimitMany_DoesNotMutateRequests(t *testing.T) {
+	t.Parallel()
+
+	clk := clock.NewTestClock()
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = svc.Close() })
+
+	reqs := []RatelimitRequest{
+		{
+			WorkspaceID: uid.New(uid.WorkspacePrefix),
+			Namespace:   "ns",
+			Identifier:  "user",
+			Limit:       10,
+			Duration:    time.Minute,
+			Cost:        1,
+		},
+	}
+
+	_, err = svc.RatelimitMany(context.Background(), reqs)
+	require.NoError(t, err)
+	require.True(t, reqs[0].Time.IsZero(), "RatelimitMany must not write normalized timestamps into caller input")
 }
