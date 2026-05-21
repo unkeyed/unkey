@@ -1,6 +1,6 @@
 ---
 title: "How rate limiting works"
-description: "Learn how Unkey's global rate limiting works, what response fields mean, and what consistency to expect across regions."
+description: "Learn how Unkey's distributed rate limiting works, what response fields mean, and what consistency to expect across regions."
 ---
 
 Unkey rate limiting checks requests close to your users and shares usage across regions. You get low-latency decisions, regional consistency, and global convergence without managing rate limit infrastructure yourself.
@@ -8,15 +8,6 @@ Unkey rate limiting checks requests close to your users and shares usage across 
 ## Evaluate a request
 
 Each rate limit check answers one question: can this identifier spend the requested cost inside this time window?
-
-```mermaid
-flowchart LR
-  request[Incoming request] --> entry[Protected entry point]
-  entry --> counter[Rate limit check]
-  counter --> decision{Within limit?}
-  decision -->|Yes| allow[Allow request]
-  decision -->|No| deny[Deny request]
-```
 
 You choose the identifier. It can be a user ID, API key ID, IP address, organization ID, or any stable string that represents the actor you want to limit.
 
@@ -40,29 +31,31 @@ For example, with a limit of `100` per minute, a request halfway through the cur
 
 Unkey is globally distributed. A request first affects the node that handles it, then converges within the region, then contributes to the global view for longer windows.
 
-```mermaid
-flowchart TB
-  subgraph regionA[Region A]
-    a1[Node A1]
-    a2[Node A2]
-    regionalA[Regional view]
-    a1 --> regionalA
-    a2 --> regionalA
-  end
-
-  subgraph regionB[Region B]
-    b1[Node B1]
-    b2[Node B2]
-    regionalB[Regional view]
-    b1 --> regionalB
-    b2 --> regionalB
-  end
-
-  global[Global view]
-  regionalA --> global
-  regionalB --> global
-  global --> regionalA
-  global --> regionalB
+```plaintext
+Incoming request
+      │
+      ▼
+╭──────────────────────────────╮
+│ Node that receives request    │
+╰──────────────┬───────────────╯
+               │ local decision stays fast
+               ▼
+╭──────────────────────────────╮
+│ Regional view                 │
+│ Nodes in the region converge  │
+╰──────────────┬───────────────╯
+               │ meaningful usage is shared
+               ▼
+╭──────────────────────────────╮
+│ Global view                   │
+│ Longer windows converge       │
+╰──────────────┬───────────────╯
+               │ remote usage affects future decisions
+               ▼
+╭──────────────────────────────╮
+│ Later rate limit decision     │
+│ Allow or deny                 │
+╰──────────────────────────────╯
 ```
 
 Within a region, nodes converge so a request accepted by one node affects later decisions on neighboring nodes. Across regions, identifiers that are using a meaningful share of their limit are included in the global view and affect later decisions elsewhere.
@@ -97,45 +90,9 @@ Every rate limit check returns the current decision and state.
 
 `remaining` reflects the region's view at decision time. During cross-region propagation, another region may have accepted traffic that isn't reflected yet. Use `success` as the source of truth for the current request.
 
-## Return rate limit headers
-
-Forward rate limit state to your clients so they can back off before they hit the limit.
-
-```typescript
-const { success, limit, remaining, reset } = await limiter.limit(identifier);
-
-const headers = {
-  "RateLimit-Limit": limit.toString(),
-  "RateLimit-Remaining": remaining.toString(),
-  "RateLimit-Reset": reset.toString(),
-};
-
-if (!success) {
-  const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-
-  return new Response("Rate limit exceeded", {
-    status: 429,
-    headers: {
-      ...headers,
-      "Retry-After": retryAfter.toString(),
-    },
-  });
-}
-
-return new Response("OK", { headers });
-```
-
 ## Use cost-based limits
 
-Not every request has the same cost. Pass `cost` when one operation consumes more than one token.
-
-```typescript
-// Normal request, costs 1 token.
-await limiter.limit(userId);
-
-// Expensive request, costs 5 tokens.
-await limiter.limit(userId, { cost: 5 });
-```
+Not every request has the same cost. Use cost-based limits when one operation consumes more than one token.
 
 With a limit of `100` per minute, the identifier can make 100 cost-1 requests, 20 cost-5 requests, or any mix that stays within the same token budget.
 

@@ -24,7 +24,7 @@ Routes that serve internal tooling such as pprof use a reduced stack. The livene
 The API service composes domain services into handlers registered in [`svc/api/routes/register.go`](https://github.com/unkeyed/unkey/blob/main/svc/api/routes/register.go).
 
 - Key service for authentication, authorization, key verification, and mutations.
-- [Rate limiting](/architecture/ratelimiting) for standalone
+- [Rate limiting](/architecture/ratelimiting/overview) for standalone
   limits, key verification limits, and workspace API throttling.
 - Usage limiter backed by Redis counters and MySQL for credit tracking.
 - Audit log service for write actions.

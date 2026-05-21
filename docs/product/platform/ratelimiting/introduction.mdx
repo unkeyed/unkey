@@ -1,9 +1,9 @@
 ---
 title: Overview
-description: "Protect any API endpoint from abuse with Unkey's globally distributed rate limiting. No infrastructure required, just a single API call."
+description: "Protect any API endpoint from abuse with Unkey's distributed rate limiting. No infrastructure required, just a single API call."
 ---
 
-Rate limiting controls how many requests a user, IP, or any identifier can make in a given time window. Unkey provides globally distributed rate limiting that runs across the Unkey network without infrastructure for you to manage.
+Rate limiting controls how many requests a user, IP, or any identifier can make in a given time window. Unkey provides distributed rate limiting that runs across the Unkey network without infrastructure for you to manage.
 
 ## When to use rate limiting
 
@@ -103,22 +103,23 @@ Unkey offers two ways to rate limit:
 **Key-attached** rate limits are configured when you [create API keys](/platform/apis/features/ratelimiting/overview) and are automatically enforced during verification.
 
 <Tip>
-  You can use both! Standalone for public endpoints (login, signup),
-  key-attached for authenticated API calls.
+  You can use both. Standalone rate limits work well for public endpoints such
+  as login and signup. Key-attached rate limits work well for authenticated API
+  calls.
 </Tip>
 
 ## What makes Unkey rate limiting different?
 
 <AccordionGroup>
   <Accordion title="No infrastructure to manage" icon="server">
-    No Redis clusters, no Upstash accounts, no connection strings. Just install
-    the SDK and go.
+    No Redis clusters, no Upstash accounts, no connection strings. Install the
+    SDK and call the API.
   </Accordion>
 
 <Accordion title="Globally distributed" icon="globe">
-  Requests are processed across our globally distributed infrastructure. Your
-  rate limits are checked close to your users, not in a single region. We disseminate data to all regions, so identifiers
-  approaching their limit converge globally within seconds. See [how rate
+  Requests are processed across Unkey's globally distributed infrastructure.
+  Your rate limits are checked close to your users, not in a single region.
+  Identifiers approaching their limit converge globally within seconds. See [how rate
   limiting works](/platform/ratelimiting/how-it-works#share-counts-across-regions).
 </Accordion>
 

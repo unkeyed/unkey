@@ -9,4 +9,4 @@ Frontline is the first Unkey-owned hop for inbound traffic. It owns certificate 
 
 Routing decisions come from the control plane data stored in MySQL. Frontline uses that data to select the correct sentinel for the target environment and to fail over when a region is unavailable.
 
-Frontline also embeds runtime subsystems when policy execution needs them. Rate limit policies use [rate limiting](/architecture/ratelimiting) rather than a Frontline-owned counter implementation.
+Frontline also embeds runtime subsystems when policy execution needs them. Rate limit policies use [rate limiting](/architecture/ratelimiting/overview) rather than a Frontline-owned counter implementation.
