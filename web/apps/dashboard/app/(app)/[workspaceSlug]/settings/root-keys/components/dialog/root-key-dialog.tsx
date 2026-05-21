@@ -6,13 +6,13 @@ import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import { useMemo, useState } from "react";
 import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeyDialog } from "./hooks/use-root-key-dialog";
 import type { PermissionScope } from "./permissions";
 import { RootKeySuccess } from "./root-key-success";
-import { useMemo, useState } from "react";
 
 const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
 
