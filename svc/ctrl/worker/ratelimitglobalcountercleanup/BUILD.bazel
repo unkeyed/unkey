@@ -1,12 +1,12 @@
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "ratelimitblocklistcleanup",
+    name = "ratelimitglobalcountercleanup",
     srcs = [
         "run_cleanup_handler.go",
         "service.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/ratelimitblocklistcleanup",
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/ratelimitglobalcountercleanup",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/hydra/v1:hydra",

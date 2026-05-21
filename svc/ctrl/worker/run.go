@@ -50,7 +50,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/ratelimitblocklistcleanup"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/ratelimitglobalcountercleanup"
 
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
@@ -484,19 +484,19 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
 	logger.Info("KeyLastUsedSyncService enabled")
 
-	// Ratelimit blocklist cleanup: prunes expired cross-region propagation
-	// rows. Stateless DELETE — a generous retry policy is fine because the
-	// query is idempotent and the local janitor handles in-memory state
-	// independently.
-	ratelimitBlocklistCleanupSvc, err := ratelimitblocklistcleanup.New(ratelimitblocklistcleanup.Config{
+	// Ratelimit global-counter cleanup: prunes expired cross-region
+	// propagation rows. Stateless DELETE — a generous retry policy is fine
+	// because the query is idempotent and the local janitor handles
+	// in-memory state independently.
+	ratelimitGlobalCountersCleanupSvc, err := ratelimitglobalcountercleanup.New(ratelimitglobalcountercleanup.Config{
 		DB:    ratelimitdb.New(database.RW(), database.RO()),
 		Clock: clk,
 	})
 	if err != nil {
-		return fmt.Errorf("create ratelimit blocklist cleanup service: %w", err)
+		return fmt.Errorf("create ratelimit global counters cleanup service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewRatelimitBlocklistCleanupServiceServer(ratelimitBlocklistCleanupSvc, keyLastUsedRetryPolicy))
-	logger.Info("RatelimitBlocklistCleanupService enabled")
+	restateSrv.Bind(hydrav1.NewRatelimitGlobalCountersCleanupServiceServer(ratelimitGlobalCountersCleanupSvc, keyLastUsedRetryPolicy))
+	logger.Info("RatelimitGlobalCountersCleanupService enabled")
 
 	// Audit log export: drains the MySQL audit_log outbox into ClickHouse.
 	// Registered as a virtual object so Restate serializes overlapping triggers.

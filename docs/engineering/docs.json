@@ -50,7 +50,18 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["architecture/index"]
+            "pages": [
+              "architecture/index",
+              {
+                "group": "Rate limiting",
+                "pages": [
+                  "architecture/ratelimiting/overview",
+                  "architecture/ratelimiting/request-path",
+                  "architecture/ratelimiting/consistency-model",
+                  "architecture/ratelimiting/global-counters"
+                ]
+              }
+            ]
           },
           {
             "group": "Services",
@@ -60,7 +71,6 @@
                 "pages": [
                   "architecture/services/api/overview",
                   "architecture/services/api/configuration",
-                  "architecture/services/api/ratelimit",
                   {
                     "group": "API design",
                     "pages": [

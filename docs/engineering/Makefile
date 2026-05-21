@@ -1,9 +1,15 @@
-.PHONY: dev
-dev:
-	npx mintlify@4.2.573 dev
+.PHONY: build dev lint
 
-.PHONY: lint
-lint:
-	npx mintlify@4.2.573 broken-links
-	npx mintlify@4.2.573 validate
-	npx mintlify@4.2.573 a11y
+build:
+	@docker build -t unkey-engineering-docs .
+
+dev: build
+	@docker run --rm -it \
+	  -p 3000:3000 \
+	  -v $(CURDIR):/app \
+	  unkey-engineering-docs
+
+lint: build
+	@docker run --rm \
+	  -v $(CURDIR):/app \
+	  unkey-engineering-docs sh -c "mintlify broken-links && mintlify validate && mintlify a11y"
