@@ -11,7 +11,10 @@ import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeyDialog } from "./hooks/use-root-key-dialog";
+import type { PermissionScope } from "./permissions";
 import { RootKeySuccess } from "./root-key-success";
+
+const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
 
 const DynamicDialogContainer = dynamic(
   () =>
@@ -86,6 +89,25 @@ export const RootKeyDialog = ({
   const isMutating = key.isLoading || updateName.isLoading || updatePermissions.isLoading;
   const isBusy = isMutating || apisLoading || projectsLoading;
 
+  const apiBadges = React.useMemo(
+    () =>
+      allApis.map((api) => ({
+        id: api.id,
+        name: api.name,
+        scope: { kind: "api" as const, id: api.id, name: api.name },
+      })),
+    [allApis],
+  );
+  const projectBadges = React.useMemo(
+    () =>
+      allProjects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        scope: { kind: "project" as const, id: project.id, name: project.name },
+      })),
+    [allProjects],
+  );
+
   const removePermission = (permission: UnkeyPermission) =>
     handlePermissionChange(selectedPermissions.filter((p) => p !== permission));
 
@@ -126,28 +148,28 @@ export const RootKeyDialog = ({
         <div className="flex flex-col px-6 py-0 gap-3">
           <PermissionBadgeList
             selectedPermissions={selectedPermissions}
-            scope={{ kind: "workspace" }}
+            scope={WORKSPACE_SCOPE}
             title="Selected from"
             name="Workspace"
             expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
             removePermission={removePermission}
           />
-          {allApis.map((api) => (
+          {apiBadges.map((api) => (
             <PermissionBadgeList
               key={api.id}
               selectedPermissions={selectedPermissions}
-              scope={{ kind: "api", id: api.id, name: api.name }}
+              scope={api.scope}
               title="from"
               name={api.name}
               expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
               removePermission={removePermission}
             />
           ))}
-          {allProjects.map((project) => (
+          {projectBadges.map((project) => (
             <PermissionBadgeList
               key={project.id}
               selectedPermissions={selectedPermissions}
-              scope={{ kind: "project", id: project.id, name: project.name }}
+              scope={project.scope}
               title="from project"
               name={project.name}
               expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}

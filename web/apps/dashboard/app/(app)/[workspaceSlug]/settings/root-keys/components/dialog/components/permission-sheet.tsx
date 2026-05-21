@@ -11,11 +11,14 @@ import {
 } from "@/components/ui/sheet";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissionSheet } from "../hooks/use-permission-sheet";
+import type { PermissionScope } from "../permissions";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
+
+const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
 
 type PermissionSheetProps = {
   apis: { id: string; name: string }[];
@@ -60,6 +63,23 @@ export const PermissionSheet = ({
     editMode,
   });
 
+  const apiScopes = useMemo(
+    () =>
+      apis.map((api) => ({
+        id: api.id,
+        scope: { kind: "api" as const, id: api.id, name: api.name },
+      })),
+    [apis],
+  );
+  const projectScopes = useMemo(
+    () =>
+      projects.map((project) => ({
+        id: project.id,
+        scope: { kind: "project" as const, id: project.id, name: project.name },
+      })),
+    [projects],
+  );
+
   return (
     <Sheet modal={true} open={open} onOpenChange={onOpenChange}>
       <SheetPortal>
@@ -98,38 +118,38 @@ export const PermissionSheet = ({
                           selected={selectedPermissions}
                           searchValue={searchValue}
                           key="workspace"
-                          scope={{ kind: "workspace" }}
+                          scope={WORKSPACE_SCOPE}
                           onPermissionChange={handleWorkspacePermissionChange}
                         />
-                        {apis.length > 0 && (
+                        {apiScopes.length > 0 && (
                           <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
                             {ROOT_KEY_MESSAGES.UI.FROM_APIS}
                           </p>
                         )}
-                        {apis.map((api) => (
+                        {apiScopes.map(({ id, scope }) => (
                           <PermissionContentList
                             selected={selectedPermissions}
                             searchValue={searchValue}
-                            key={api.id}
-                            scope={{ kind: "api", id: api.id, name: api.name }}
+                            key={id}
+                            scope={scope}
                             onPermissionChange={(permissions) =>
-                              handleApiPermissionChange(api.id, permissions)
+                              handleApiPermissionChange(id, permissions)
                             }
                           />
                         ))}
-                        {projects.length > 0 && (
+                        {projectScopes.length > 0 && (
                           <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
                             {ROOT_KEY_MESSAGES.UI.FROM_PROJECTS}
                           </p>
                         )}
-                        {projects.map((project) => (
+                        {projectScopes.map(({ id, scope }) => (
                           <PermissionContentList
                             selected={selectedPermissions}
                             searchValue={searchValue}
-                            key={project.id}
-                            scope={{ kind: "project", id: project.id, name: project.name }}
+                            key={id}
+                            scope={scope}
                             onPermissionChange={(permissions) =>
-                              handleProjectPermissionChange(project.id, permissions)
+                              handleProjectPermissionChange(id, permissions)
                             }
                           />
                         ))}
