@@ -19,6 +19,7 @@ import { SearchPermissions } from "./search-permissions";
 
 type PermissionSheetProps = {
   apis: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;
   loadMore?: () => void;
@@ -31,6 +32,7 @@ type PermissionSheetProps = {
 
 export const PermissionSheet = ({
   apis,
+  projects,
   selectedPermissions,
   onChange,
   loadMore,
@@ -48,9 +50,11 @@ export const PermissionSheet = ({
     hasNoResults,
     handleSearchChange,
     handleApiPermissionChange,
+    handleProjectPermissionChange,
     handleWorkspacePermissionChange,
   } = usePermissionSheet({
     apis,
+    projects,
     selectedPermissions,
     onChange,
     editMode,
@@ -90,15 +94,13 @@ export const PermissionSheet = ({
                       </p>
                     ) : (
                       <>
-                        {/* Workspace Permissions */}
                         <PermissionContentList
                           selected={selectedPermissions}
                           searchValue={searchValue}
                           key="workspace"
-                          type="workspace"
+                          scope={{ kind: "workspace" }}
                           onPermissionChange={handleWorkspacePermissionChange}
                         />
-                        {/* From APIs */}
                         {apis.length > 0 && (
                           <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
                             {ROOT_KEY_MESSAGES.UI.FROM_APIS}
@@ -109,10 +111,25 @@ export const PermissionSheet = ({
                             selected={selectedPermissions}
                             searchValue={searchValue}
                             key={api.id}
-                            type="api"
-                            api={api}
+                            scope={{ kind: "api", id: api.id, name: api.name }}
                             onPermissionChange={(permissions) =>
                               handleApiPermissionChange(api.id, permissions)
+                            }
+                          />
+                        ))}
+                        {projects.length > 0 && (
+                          <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                            {ROOT_KEY_MESSAGES.UI.FROM_PROJECTS}
+                          </p>
+                        )}
+                        {projects.map((project) => (
+                          <PermissionContentList
+                            selected={selectedPermissions}
+                            searchValue={searchValue}
+                            key={project.id}
+                            scope={{ kind: "project", id: project.id, name: project.name }}
+                            onPermissionChange={(permissions) =>
+                              handleProjectPermissionChange(project.id, permissions)
                             }
                           />
                         ))}

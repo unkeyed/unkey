@@ -65,6 +65,8 @@ export const RootKeyDialog = ({
     selectedPermissions,
     allApis,
     apisLoading,
+    allProjects,
+    projectsLoading,
     hasNextPage,
     isFetchingNextPage,
     key,
@@ -82,7 +84,7 @@ export const RootKeyDialog = ({
   });
 
   const isMutating = key.isLoading || updateName.isLoading || updatePermissions.isLoading;
-  const isBusy = isMutating || apisLoading;
+  const isBusy = isMutating || apisLoading || projectsLoading;
 
   const removePermission = (permission: UnkeyPermission) =>
     handlePermissionChange(selectedPermissions.filter((p) => p !== permission));
@@ -124,7 +126,7 @@ export const RootKeyDialog = ({
         <div className="flex flex-col px-6 py-0 gap-3">
           <PermissionBadgeList
             selectedPermissions={selectedPermissions}
-            apiId={ROOT_KEY_CONSTANTS.WORKSPACE}
+            scope={{ kind: "workspace" }}
             title="Selected from"
             name="Workspace"
             expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
@@ -134,9 +136,20 @@ export const RootKeyDialog = ({
             <PermissionBadgeList
               key={api.id}
               selectedPermissions={selectedPermissions}
-              apiId={api.id}
+              scope={{ kind: "api", id: api.id, name: api.name }}
               title="from"
               name={api.name}
+              expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
+              removePermission={removePermission}
+            />
+          ))}
+          {allProjects.map((project) => (
+            <PermissionBadgeList
+              key={project.id}
+              selectedPermissions={selectedPermissions}
+              scope={{ kind: "project", id: project.id, name: project.name }}
+              title="from project"
+              name={project.name}
               expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
               removePermission={removePermission}
             />
@@ -187,6 +200,7 @@ export const RootKeyDialog = ({
       <PermissionSheet
         selectedPermissions={selectedPermissions}
         apis={allApis}
+        projects={allProjects}
         onChange={handlePermissionChange}
         loadMore={fetchMoreApis}
         hasNextPage={hasNextPage}
