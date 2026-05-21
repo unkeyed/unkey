@@ -37,7 +37,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogbackfill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -525,30 +524,6 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithJournalRetention(1*time.Hour),
 	))
 	logger.Info("AuditLogExportService enabled")
-
-	// Audit log backfill: chips through legacy audit_log/audit_log_target rows
-	// pre-dual-write into ClickHouse audit_logs_raw_v1. Singleton VO, cron-
-	// triggered, loops within each invocation until the legacy tail is reached.
-	var auditLogBackfillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.Heartbeat.AuditLogBackfillURL != "" {
-		auditLogBackfillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.AuditLogBackfillURL)
-	}
-	auditLogBackfillSvc, err := auditlogbackfill.New(auditlogbackfill.Config{
-		DB:         database,
-		Clickhouse: ch,
-		Heartbeat:  auditLogBackfillHeartbeat,
-	})
-	if err != nil {
-		return fmt.Errorf("create audit log backfill service: %w", err)
-	}
-	// Singleton VO, cron-triggered every 15min, ~1-2 min per invocation.
-	// Cursor lives in VO state so journal retention only matters for
-	// post-mortem on the most recent invocation. 1h covers a few ticks
-	// without holding a day of journals.
-	restateSrv.Bind(hydrav1.NewAuditLogBackfillServiceServer(auditLogBackfillSvc,
-		restate.WithJournalRetention(1*time.Hour),
-	))
-	logger.Info("AuditLogBackfillService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

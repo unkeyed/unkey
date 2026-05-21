@@ -11,7 +11,7 @@ import {
   logsFilterFieldConfig as sentinelLogsFilterFieldConfig,
 } from "@/lib/schemas/logs.filter.schema";
 import { parseAsInteger, useQueryStates } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 // Constants
 const parseAsFilterValArray = parseAsFilterValueArray<SentinelLogsFilterOperator>([
@@ -38,17 +38,6 @@ export const useSentinelLogsFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
     history: "push",
   });
-
-  // Set default time filter if none exists
-  useEffect(() => {
-    if (
-      searchParams.since === null &&
-      searchParams.startTime === null &&
-      searchParams.endTime === null
-    ) {
-      setSearchParams({ since: "6h" });
-    }
-  }, [searchParams, setSearchParams]);
 
   const filters = useMemo(() => {
     const activeFilters: SentinelLogsFilterValue[] = [];
