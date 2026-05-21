@@ -111,14 +111,13 @@ Unkey offers two ways to rate limit:
 
 <AccordionGroup>
   <Accordion title="No infrastructure to manage" icon="server">
-    No clusters, hosted counter stores, or connection strings. Install the SDK
-    and call the API.
+    No Redis clusters, no Upstash accounts, no connection strings. Just install
+    the SDK and go.
   </Accordion>
 
 <Accordion title="Globally distributed" icon="globe">
   Requests are processed across our globally distributed infrastructure. Your
-  rate limits are checked close to your users, not in a single region. Regions
-  publish active counters and import counts from other regions, so identifiers
+  rate limits are checked close to your users, not in a single region. We disseminate data to all regions, so identifiers
   approaching their limit converge globally within seconds. See [how rate
   limiting works](/platform/ratelimiting/how-it-works#share-counts-across-regions).
 </Accordion>
