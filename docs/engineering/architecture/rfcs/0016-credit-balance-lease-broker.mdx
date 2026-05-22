@@ -1,0 +1,432 @@
+---
+title: 0016 Credit Balance Lease Broker
+description: Replace Redis usagelimiter with a per-key serialized MySQL ledger that hands out short-lived credit leases per region, removing the cross-region double-spend.
+date: 2026-05-23
+authors:
+  - Florian Eikel
+---
+
+## Summary
+
+Replace [`internal/services/usagelimiter`](https://github.com/unkeyed/unkey/tree/main/internal/services/usagelimiter)'s Redis credit path with a per-region **credit lease** backed by a serialized MySQL ledger. This removes the cross-region double-spend that exists today and makes `balance ≥ 0` a global invariant.
+
+## Motivation
+
+`usagelimiter` is correct for one region. Each region runs its own Redis, seeded from `keys.remaining_requests` on cold key, with an async `replayBuffer` draining decrements to MySQL. With N regions each region seeds from MySQL before another region's replay has landed:
+
+1. T+0: key has 100 credits in MySQL. Both regions cold.
+2. Region A: reads MySQL=100, seeds A-Redis=100, decrements to 99.
+3. Region B: reads MySQL=100 (A hasn't replayed yet), seeds B-Redis=100, decrements to 99.
+4. Both regions report 99; customer spent 2; drift = 1.
+
+Redis TTL is 10 minutes. Worst-case drift on a cold key is `regions × balance` before reconciliation catches up. That is unbilled compute and unrefilled balance: money on both ends.
+
+Issue [#5529](https://github.com/unkeyed/unkey/issues/5529) is the same class of bug surfaced differently: an exact `set(N)` while regions hold rights from the old balance cannot be both instant and correct. The replay-buffer specifics go away with Redis, but exact reset still has to be barriered. This RFC handles that explicitly.
+
+RFC [0015](/architecture/rfcs/0015-ratelimit-cross-region-counts)'s approach (async per-region counters that converge eventually) works for rate limits because small over-issue is acceptable. It does not work for credits: `balance ≥ 0` has to hold globally on every request. The fix is to pre-allocate spend rights to each region as a lease, authorised by a per-key MySQL row lock.
+
+## Detailed design
+
+### What's exact, what's not
+
+Exact (enforced by the ledger row, never violated):
+
+- The customer can't spend more than they have. `balance ≥ 0` holds on every request.
+- The sum of outstanding leases never exceeds `balance`.
+- `increment(N)` is atomic and exact.
+- `set null` (unlimited) takes effect on the next grant in every region.
+
+Approximate (cheap, may lag reality):
+
+- The `remaining` count returned in the verifier response. It's the local lease's value, so it's always **lower** than the true global balance (this region can't see leases held elsewhere, can't see unsettled spend, and can race with goroutines that already decremented). Good enough for "do I have credits left?" widgets.
+- Per-request audit in ClickHouse `billable_verifications`, lagging by the normal ClickHouse ingest delay.
+- `set(N)` and `decrement(N)` clamp against already-granted lease rights. They cannot revoke rights that regions already hold; the new balance is `max(N, outstanding_lease_residue)`. See [`updateCredits` semantics](#updatecredits-semantics).
+
+Anything that needs the best-available balance (billing, dashboard "remaining", `getKey`, `listKeys`, `whoAmI`) calls `GetLedgerBalance` instead of relying on the verifier's `remaining`. See [Read paths](#read-paths) for which endpoint reads what.
+
+### Data model
+
+```sql
+CREATE TABLE `key_credit_balance` (
+    `pk`           bigint unsigned NOT NULL AUTO_INCREMENT,
+    `key_id`       varchar(256) NOT NULL,
+    `workspace_id` varchar(256) NOT NULL,
+    `balance`      bigint unsigned NOT NULL,
+    `leased`       bigint unsigned NOT NULL DEFAULT 0,
+    `unlimited`    boolean NOT NULL DEFAULT false,
+    `created_at_m` bigint NOT NULL DEFAULT 0,
+    `updated_at_m` bigint NULL,
+    PRIMARY KEY (`pk`),
+    UNIQUE KEY `key_id_idx` (`key_id`)
+);
+CREATE INDEX `workspace_idx` ON `key_credit_balance` (`workspace_id`);
+
+CREATE TABLE `key_credit_leases` (
+    `pk`            bigint unsigned NOT NULL AUTO_INCREMENT,
+    `lease_id`      varchar(256) NOT NULL,
+    `key_id`        varchar(256) NOT NULL,
+    `region`        varchar(48) NOT NULL,
+    `granted`       bigint unsigned NOT NULL,
+    `reserved`      bigint unsigned NOT NULL,         -- rights currently reflected in balance.leased
+    `consumed`      bigint unsigned NOT NULL DEFAULT 0,  -- durable consumed watermark
+    `consumed_base` bigint unsigned NOT NULL DEFAULT 0,  -- consumed already absorbed by a prior set()
+    `consumed_seq`  bigint unsigned NOT NULL DEFAULT 0,  -- monotonic guard for partial-settle
+    `settled_seq`   bigint unsigned NOT NULL DEFAULT 0,
+    `expires_at`    bigint NOT NULL,
+    `created_at_m`  bigint NOT NULL DEFAULT 0,
+    PRIMARY KEY (`pk`),
+    UNIQUE KEY `lease_id_idx` (`lease_id`)
+);
+CREATE INDEX `expiry_idx`        ON `key_credit_leases` (`expires_at`);
+CREATE INDEX `region_expiry_idx` ON `key_credit_leases` (`region`, `expires_at`);
+CREATE INDEX `key_expiry_idx`    ON `key_credit_leases` (`key_id`, `expires_at`);
+```
+
+`balance` is what the customer is owed. `leased = SUM(reserved)` across active lease rows. The broker is the only writer and is responsible for `balance ≥ leased ≥ 0`.
+
+`unlimited = true` means "no credit cap." The verifier skips all balance/lease accounting for the key. Setting `unlimited = true` is one atomic UPDATE; setting it back to `false` re-reads `balance` for new grants.
+
+`granted` is the original size at grant time. `reserved` starts equal to `granted` and is only rewritten by `set` (see [`updateCredits` semantics](#updatecredits-semantics)). `consumed` is the durable consumed watermark, flushed from the broker's in-memory counter every 5s; without it a broker crash would lose every debit since grant.
+
+`consumed_base` is the cumulative consumed value already absorbed by a previous `set` on this key. On settle, only `consumed - consumed_base` is debited from `balance`; anything spent before the most recent `set` was already accounted for in the rebase.
+
+`consumed_seq` / `settled_seq` are monotonic per lease; replays are no-ops.
+
+### In-process lease
+
+```go
+type lease struct {
+    id        string
+    granted   int64
+    remaining atomic.Int64 // CAS target on every Allow
+    expiresAt time.Time    // immutable
+    settleSeq atomic.Int64
+    refilling atomic.Bool  // singleflight guard for refresh-ahead
+}
+```
+
+`remaining` is the only mutable field on the request path. A successful `Allow` is one CAS. The broker holds a `sync.Map[key_id]*lease` plus a singleflight `sync.Map[key_id]` for in-flight grants. Cross-process dedup is the MySQL row lock.
+
+### Grant
+
+```sql
+BEGIN;
+  SELECT balance, leased, unlimited FROM key_credit_balance
+   WHERE key_id = ? FOR UPDATE;
+  -- if unlimited: grant a sentinel "unlimited" lease (no balance accounting)
+  -- granted = min(requested, balance - leased)
+  -- if granted == 0: ROLLBACK, return "no rights available"
+
+  UPDATE key_credit_balance
+     SET leased = leased + ?, updated_at_m = ?  -- now_ms
+   WHERE key_id = ?;
+
+  INSERT INTO key_credit_leases
+       (lease_id, key_id, region, granted, reserved, expires_at, created_at_m)
+       VALUES (?, ?, ?, ?, ?, ?, ?);  -- reserved = granted, expires_at = now_ms + 30_000
+COMMIT;
+```
+
+The 30s TTL bounds how long a region can hold unused credits before they're reclaimed. The worst case is when every region grabs a lease at the same time and then traffic dies in all but one: the still-serving region keeps spending from its cache, but new lease grants see `balance - leased = 0` until idle leases expire.
+
+The worst-case locked fraction scales with the number of regions `R`. With the 5%-of-balance `L_max` cap (see Lease sizing), no single region can lock more than 5% of the balance, so the worst-case fleet-wide locked fraction is `R × 5%`. The remaining footgun is very small balances where `R × L_min` itself eats a large fraction; endgame guards (also below) shrink leases as the balance approaches exhaustion to mitigate that.
+
+### Settle
+
+```sql
+BEGIN;
+  UPDATE key_credit_leases
+     SET settled_seq = ?
+   WHERE lease_id = ? AND settled_seq < ?;
+  -- 0 rows affected => replay; ROLLBACK
+
+  UPDATE key_credit_balance b JOIN key_credit_leases l ON l.key_id = b.key_id
+     SET b.balance      = b.balance - GREATEST(0, ? - l.consumed_base),  -- post-set consumed
+         b.leased       = b.leased  - l.reserved,                        -- release reservation
+         b.updated_at_m = ?
+   WHERE l.lease_id = ?;
+
+  DELETE FROM key_credit_leases WHERE lease_id = ?;
+COMMIT;
+```
+
+Only `consumed - consumed_base` is debited from `balance`; anything spent before the most recent `set()` was already absorbed by the rebase. Broker runs settle every 5s, on graceful shutdown, and on `Service.Close`. A failed settle leaves the row intact; rights stay held; next attempt retries.
+
+### Partial settle
+
+Every 5s the broker flushes in-memory consumed counts to the watermark:
+
+```sql
+UPDATE key_credit_leases
+   SET consumed = ?, consumed_seq = ?
+ WHERE lease_id = ? AND consumed_seq < ?;
+```
+
+Single-row write, no join, no contention with grant. Cost: one UPDATE per active lease per 5s, about the same fleet-wide rate as grants.
+
+### Expire (sweeper)
+
+```sql
+SELECT lease_id, key_id, granted, consumed, settled_seq
+  FROM key_credit_leases
+ WHERE expires_at < ?  -- now_ms
+ LIMIT 1000
+ FOR UPDATE SKIP LOCKED;
+```
+
+Every broker runs this every 5s. Sweeper uses `consumed` from the row, never guesses, and applies the same settle transaction. `SKIP LOCKED` removes the need for leader election: two sweepers racing on the same row get different rows. Per-region cardinality is one row per `(region, key_id)`; even at tens of thousands of active keys per region, total rows stay well under the batch limit.
+
+### `updateCredits` semantics
+
+The public API [`POST /v2/keys/updateCredits`](https://github.com/unkeyed/unkey/tree/main/svc/api/openapi/spec/paths/v2/keys/updateCredits) accepts `operation ∈ {set, increment, decrement}` and `value ∈ int64 | null`. Every operation is one atomic MySQL transaction under the per-key row lock and returns in normal HTTP latency.
+
+**`increment N`** — pure top-up. Atomic and exact; commutes with leases.
+
+```sql
+UPDATE key_credit_balance
+SET balance = balance + ?, updated_at_m = ?
+WHERE key_id = ?;
+```
+
+**`decrement N`** — bounded subtraction. Cannot revoke rights already granted, so the result is clamped to `leased`.
+
+```sql
+UPDATE key_credit_balance
+SET balance = GREATEST(leased, balance - ?), updated_at_m = ?
+WHERE key_id = ?;
+```
+
+The response is the same shape as today: the new `remaining` value (= `balance` post-op). The caller can compare it against what they expected; if it didn't change as much as they asked for, regions hold outstanding rights and a retry after a short delay will pick up the rest. Clamping and `leased` are internal and not exposed.
+
+**`set null`** — unlimited mode flip.
+
+```sql
+UPDATE key_credit_balance SET unlimited = true, updated_at_m = ? WHERE key_id = ?;
+```
+
+The verifier short-circuits on `unlimited = true` and never debits. Outstanding leases keep settling normally as no-ops (consumed is recorded but does not reduce balance while unlimited). Flipping back to `unlimited = false` resumes accounting from the current `balance`.
+
+**`set N`** — rebase. The transaction rewrites every outstanding lease so `leased` reflects only currently-unused rights, then sets `balance = max(N, leased)`:
+
+```sql
+BEGIN;
+  SELECT pk FROM key_credit_balance WHERE key_id = ? FOR UPDATE;
+
+  -- Rebase each outstanding lease so reserved = remaining rights.
+  UPDATE key_credit_leases
+  SET reserved      = GREATEST(0, granted - consumed),
+      consumed_base = consumed,
+      granted       = GREATEST(0, granted - consumed)
+  WHERE key_id = ?;
+
+  -- The new leased total is sum of remaining rights (durable watermark snapshot).
+  UPDATE key_credit_balance b
+  SET b.leased       = COALESCE((SELECT SUM(reserved) FROM key_credit_leases WHERE key_id = b.key_id), 0),
+      b.balance      = GREATEST(?, b.leased),  -- N or whatever is still legitimately leased, whichever larger
+      b.unlimited    = false,
+      b.updated_at_m = ?
+  WHERE b.key_id = ?;
+COMMIT;
+```
+
+After this, new grants see `balance = max(N, leased_residue)`. Outstanding cached leases keep spending locally up to `reserved` (= remaining rights at set time); on settle, only post-set consumption (`consumed - consumed_base`) is debited.
+
+Customer's effective new cap is `max(N, outstanding_lease_residue)`. Residue is bounded by `regions × lease_size + watermark_lag`. With the `L_max = min(1000, balance × 0.05)` cap, that's at most `R × 5%` of the pre-`set` balance plus a few seconds of in-flight spend per region.
+
+`set` does **not** revoke already-cached rights, so it is **not a kill switch**. For "stop spending now" use the key's `enabled` flag (verifier short-circuits on `enabled = false` before any credit logic).
+
+Repeated `set`s are latest-wins: each call re-snapshots from the durable watermark, so further consumption is attributed to the most recent rebase.
+
+This fixes [#5529](https://github.com/unkeyed/unkey/issues/5529): the replay buffer dies with Redis, and `set` becomes a deterministic transaction with a bounded, documented residue instead of unbounded async corruption.
+
+### OpenAPI spec changes
+
+One change to `POST /v2/keys/updateCredits` ([V2KeysUpdateCreditsResponseBody.yaml](https://github.com/unkeyed/unkey/blob/main/svc/api/openapi/spec/paths/v2/keys/updateCredits/V2KeysUpdateCreditsResponseBody.yaml)): update the endpoint description to document `set`'s bounded residue (`set` is not an instant kill switch) and point callers to `enabled = false` for "stop now" semantics.
+
+Response shape stays the same. `remaining` already gives callers the post-op balance; if they care about exactness, they can compare it against what they expected. Internal clamping on `decrement` is not surfaced — it's broker plumbing, not customer-facing API surface.
+
+### Hot path
+
+```go
+func (s *Service) Allow(ctx context.Context, req Request) (Decision, error) {
+    l, _ := s.leases.LoadOrStore(req.KeyID, &lease{}).(*lease)
+
+    if l.expired(s.clock.Now()) {
+        var err error
+        l, err = s.fetchLease(ctx, req.KeyID, s.sizeFor(req.KeyID))
+        if err != nil {
+            return s.dbFallback.Limit(ctx, req)
+        }
+    }
+
+    if !l.tryConsume(req.Cost) {
+        return s.consumeFromLedgerDirect(ctx, req)
+    }
+
+    if l.belowRefreshThreshold(s.refreshThreshold(l)) && l.refilling.CompareAndSwap(false, true) {
+        go s.refillAsync(req.KeyID)
+    }
+
+    return Decision{Valid: true, Remaining: l.remaining.Load()}, nil
+}
+```
+
+Steady state: one map lookup, one expiry check, one CAS.
+
+### Read paths
+
+| Endpoint | Reads |
+| --- | --- |
+| Verifier `Allow` response `remaining` | in-process lease cache |
+| `getKey` / `whoAmI` | `GetLedgerBalance(key_id)` — one row read |
+| `listKeys` (page of N) | `GetLedgerBalances(key_ids)` — one batched `WHERE key_id IN (?)` |
+
+`GetLedgerBalance` returns `balance - leased`. It can read a tiny bit high because each region's in-process spend is only flushed to its lease row every 5s. So at any moment the true balance is "what the ledger says, minus up to 5s of unflushed spend per region." For dashboards and `getKey` this is invisible; for billing it doesn't matter because billing reads ClickHouse, not the ledger.
+
+Reads never grant spend rights. The verifier always goes through the grant SQL, which enforces `balance ≥ leased` at the ledger row. A slightly inflated display number cannot cause over-consumption.
+
+Billing reconciles against ClickHouse `billable_verifications`, not the ledger.
+
+### Lease sizing
+
+Each region asks MySQL for a chunk of credits to spend locally. We want the chunk **big enough** that we're not hitting MySQL on every request, and **small enough** that idle regions aren't sitting on credits the customer can't use elsewhere. Three rules pick the size:
+
+1. **Cover ~30s of traffic.** Look at how fast this key is being used (recent RPS) and grant enough for about 30 seconds. Busy keys get bigger leases, quiet keys get smaller ones.
+2. **Never grant more than your fair share.** No single region can grab more than `1/R` of what's available, so other regions still have credits to grant. (`R` = number of regions.)
+3. **Floor and ceiling.** Always at least `L_min = 1` credit (otherwise leases are pointless). Always at most `L_max = min(1000, balance × 0.05)`: 5% of the current balance, capped at 1000. This means no single region can lock more than 5% of the balance regardless of how small the balance is, and high-balance keys still get a chunky 1000-credit cap. If a single request costs more than what's currently in the lease (e.g. cost 1500 against a 1000-credit lease), the request falls through to `consumeFromLedgerDirect`: one atomic MySQL debit against the ledger row. Higher latency for that one request, but it works as long as the balance is high enough.
+
+In v1 the "recent RPS" piece is optional: grant `fair_share` of remaining balance, clamped between `L_min` and `L_max`. That works correctly, it just causes a few more grants than strictly necessary. The rate-aware version is a later tuning improvement.
+
+**Endgame guards.** When a key's balance gets low, big leases become dangerous: one region grabs the last 800 credits, another region tries to grant and sees `balance - leased = 0`, denials start.
+
+- Below 10% of peak balance: halve the lease size on each refresh. Leases shrink as the balance shrinks.
+- Below 5%: stop leasing entirely. Every request goes straight to MySQL (`consumeFromLedgerDirect`). Slower, but no region can monopolise the last few credits.
+
+This caps how much can be stranded at exhaustion to roughly `R × L_min` credits.
+
+**Refresh-ahead.** Don't wait for the lease to be fully empty before getting a new one. When ~20% is left, kick off a background refill so the next request still hits the cache. If that background refill fails, the next request falls through to MySQL directly: slower but still correct.
+
+### Refill
+
+The [`svc/ctrl/worker/keyrefill`](https://github.com/unkeyed/unkey/tree/main/svc/ctrl/worker/keyrefill) Restate Virtual Object stays. Only the SQL changes:
+
+```sql
+UPDATE key_credit_balance
+SET balance = balance + ?, updated_at_m = ?
+WHERE key_id IN (?);
+```
+
+V1 is additive only: refill amount adds to the existing balance, unused credits roll over. Immediately visible (every region's next grant sees the new `balance`), and outstanding leases keep serving their already-granted rights without interference.
+
+Reset semantics ("set balance to N at refill time, discard rollover") is not supported in v1. Add it when a customer asks. The implementation is one `set`-rebase per refilled key.
+
+### Failure behavior
+
+| Failure | Behavior |
+| --- | --- |
+| Grant SELECT FOR UPDATE times out | Fall through to `consumeFromLedgerDirect` |
+| Broker dies mid-grant, before COMMIT | MySQL rolls back; no lease row, no `leased` bump |
+| Broker dies mid-grant, after COMMIT | Lease row durable on disk; sweeper reclaims `granted - consumed` (= `granted`) at TTL. Credits locked ≤ 30s, no over-count |
+| Broker dies holding an active lease | Sweeper reclaims `granted - consumed` at TTL; unflushed debits since last partial settle are refunded (under-debit, never over-debit) |
+| Region partitioned from ledger | Existing leases serve until drained/expired; new grants fail; sweeper reclaims on heal |
+| Settle write fails | Lease holds rights; retry at next settle (idempotent via `settled_seq`) |
+| Refill worker retried | Restate Virtual Object keyed by date is a no-op on second invocation |
+| Sweeper stuck | `leased` grows; grants fail when `balance - leased == 0`; alert on `leased / balance` |
+
+The grant is one atomic transaction: `balance.leased` and the lease row commit together or not at all. There is no intermediate state where MySQL has issued rights it has no record of. The same holds for settle and rebase. Combined with monotonic `*_seq` and unique `lease_id`, the system can only ever **under-debit** (refund the customer) on failure, never **over-debit** (overspend).
+
+### Configuration
+
+One new config field: `Region string` from `UNKEY_REGION`. Package constants:
+
+```
+defaultLeaseTTL              = 30 * time.Second
+defaultSettleInterval        = 5 * time.Second
+defaultPartialSettleInterval = 5 * time.Second
+defaultSweeperInterval       = 5 * time.Second
+defaultEndgameFloor          = 0.10
+defaultDirectFloor           = 0.05
+defaultLeaseMaxFlat          = 1000   // absolute ceiling
+defaultLeaseMaxRatio         = 0.05   // 5% of balance
+defaultLeaseMin              = 1
+```
+
+### Metrics
+
+`unkey_credits_*`: `lease_grants_total{result}`, `lease_settles_total{result}`, `lease_expires_total`, `lease_grant_latency_seconds`, `lease_size_credits`, `cache_hits_total`, `cache_misses_total`, `direct_fallback_total{reason}`, `leased_ratio` gauge per workspace, `update_credits_total{operation,result}`, `set_residue_credits` histogram. The last one surfaces how often `set` rebases collide with outstanding rights, and is the signal for whether the lease-revocation channel listed under future improvements is worth building.
+
+## Expected MySQL load
+
+Assume 100k credit-enabled keys, ~10% active in any 30s window, `R` regions.
+
+| Metric | Steady state |
+| --- | --- |
+| `key_credit_leases` rows | ≤ 10k × R (typically half that) |
+| Grant txn rate | `10k × R ÷ 30s` fleet-wide |
+| Settle txn rate | matches grant rate |
+| Partial-settle UPDATE rate | matches grant rate |
+| Sweeper rate | ~13 query/s (mostly empty) |
+| Direct-fallback | ≪ 1% of traffic |
+
+Grants serialize per key only; different keys grant in parallel. Today's `usagelimiter` replay drains decrements at roughly per-request rate, which is higher than the grant+settle rate above. Net MySQL writes decrease for credit-enabled keys.
+
+10× traffic scales linearly and stays within a single MySQL primary at the region counts we run today. Next bottleneck is per-key contention on the hottest keys; mitigation is row-sharding `key_credit_balance`, deferred to a follow-up RFC if needed.
+
+## Rollout
+
+Three steps. We are not running the old and new credit paths side-by-side as a long-term state.
+
+**1. Build.** New code in `internal/services/credits/` (broker, in-process lease cache, sweeper, partial-settle flusher, `updateCredits` handlers, SQL queries) implementing the existing `usagelimiter.Service` interface so caller code in `internal/services/keys` doesn't change. Two migrations: create `key_credit_balance` and `key_credit_leases`; backfill `key_credit_balance` from `keys.remaining_requests` in idempotent batches.
+
+**2. Shadow.** Verifier still calls `usagelimiter.Limit` (enforced). It also calls `credits.Allow` in parallel (logged only, no effect on the response). Divergence emitted on `credits_shadow_divergence_total{decision_diff, reason}`. Acceptance gate: zero cases of "usagelimiter allowed, credits denied" (which would be a false-deny in production); magnitude differences must not grow monotonically over time. Refill cron shadows in the same way. Run for 1–2 weeks.
+
+**3. Replace.** Flip the verifier to call `credits.Allow` as the only authority. Delete `internal/services/usagelimiter/redis.go`. Drop `keys.remaining_requests` once nothing reads it. The credit balance lives in `key_credit_balance` and nowhere else.
+
+Future improvements that aren't part of this rollout (ship only when a metric or a customer says it's needed):
+
+| Trigger | Improvement |
+| --- | --- |
+| Customer needs a perfectly-exact balance read | Cluster force-settle path (depends on `pkg/cluster`) |
+| `set` residue / `set(0)` leakage hurts a real flow | Lease revocation channel over `pkg/cluster` (active invalidate + ACKs) |
+| Single-key row lock saturates | Shard `key_credit_balance` rows; SUM on read |
+| Refunds / adjustments needed | `key_credit_events` append-only table |
+| MySQL ceiling reached | TigerBeetle as ledger |
+| Customer wants refill-with-reset semantics | One `set`-rebase per key in the refill worker |
+
+## Drawbacks
+
+**`set` is not exact and cannot be a kill switch.** The rebase transaction sets `balance = max(N, outstanding_lease_residue)`. A customer who called `set(0)` on a key that had a 100-credit lease cached in some region can still spend up to those 100 credits there before the lease drains (≤ 30s). The residue is bounded (`regions × lease_size + watermark_lag`) but non-zero. For "stop spending now," use `enabled = false` instead — that's the verifier's hard short-circuit and runs before any credit logic. This trade-off is the price of not having cluster messaging in v1; the lease-revocation channel listed under future improvements makes it exact.
+
+**A lease commits credits to a region for up to 30s** even if traffic stops immediately after grant. Worst case: every region grants `L_min` of a small balance, traffic dies, customer sees denial despite positive balance until the sweeper expires the leases. The fair-share cap and endgame shrinkage bound this but don't eliminate it.
+
+**`remaining` returned to the client is an underestimate.** With `usagelimiter` the per-region Redis value had unpredictable staleness direction; with leases the bias is monotonically downward. Anyone who needs the exact balance pays a ledger row-lock read.
+
+**MySQL row-lock contention scales with grants/sec/key, not requests.** A typical hot key produces well under one grant/sec/region. Pathologically hot keys (thousands of RPS on one key in one region) could bottleneck on the lease-boundary lock. Row sharding mitigates; not in v1.
+
+**Direct-DB fallback p99 degrades to MySQL-bound during ledger outages.** Same trade `usagelimiter` makes today when Redis is down, with the ledger now in MySQL.
+
+**Migration moves the customer balance column.** Dashboard widgets and the `keys.update_credits` admin path read `remaining_requests` and need updates. Contained but not zero.
+
+## Alternatives
+
+**Stay on Redis `usagelimiter`.** Drift is bounded by `regions × balance` per cold TTL window. Reasonable to defer if credit keys are a small fraction and drift is below detection. Currently undetected ≠ acceptable; once metrics name it, the case for staying goes away.
+
+**Global Redis (one shared cluster).** Existing decrement script is correct, no MySQL plumbing needed. Blocker: every credit verification in a remote region pays a transcontinental round-trip for `DECR`, which puts request p99 in the hundreds of milliseconds. The whole point of keeping spend rights regional is to keep that off the hot path.
+
+**TigerBeetle as ledger.** Two-phase pending transfer *is* a credit lease; `debits_must_not_exceed_credits` enforces the invariant inside the engine. Adds a new database with its own cluster, client, observability story, and single-cluster consistency model (regional broker still required in front of it). Right move when MySQL is the bottleneck, not before.
+
+**Decentralised rights via gossip.** Replicate the per-region rights matrix across regions and transfer rights region-to-region via cluster RPC instead of granting them from MySQL. Removes the per-key row-lock dependency and is genuinely interesting design-wise. Rejected today because we don't run `pkg/cluster` / gossip in production yet, so picking this would mean shipping a new piece of cross-region infrastructure as a prerequisite to fixing credits. Even after gossip ships, debugging a distributed matrix is harder than reading a SQL row, refills become eventually consistent, and MySQL is already on the critical path for everything else credits-adjacent. Revisit once gossip is in production and we have a second use case that wants the same primitive.
+
+**Event-sourced ledger.** Instead of `key_credit_balance.balance` being a mutable column, derive it from an append-only `key_credit_events` table (grant / settle / refill / expire / adjustment / refund). Refunds and customer-support adjustments become new event types instead of UPDATEs. Rejected: at our request volume this table grows to billions of rows fast, and any read path that needs the balance (verifier hot path, `getKey`, dashboards) either has to `SUM` a billion rows or maintain a materialized snapshot — at which point you're back to a mutable balance column with an event table glued on. ClickHouse `billable_verifications` already gives us per-request audit at a scale that's designed for billions of rows; refund/adjustment flows don't exist today. The mutable balance column is the right primary store for the read paths we actually have.
+
+**Drain barrier for `set`.** Considered and rejected: turn `set` into a control-plane op that flips a `state = 'draining'` flag, blocks new grants for that key, waits for outstanding leases to settle (up to lease TTL), then commits the new balance. Mathematically exact but takes 30–60s per `set` call. Unacceptable for `POST /v2/keys/updateCredits`, which is a customer API on the normal HTTP latency budget. The rebase semantics above are the best you can do without cluster messaging.
+
+**Active revocation with ACKs.** `set` broadcasts `revoke(key_id, op_id)` to every region; each holder flushes watermark + returns rights + acks; handler commits when all ACKs are in. Worst-case `set` latency drops from "lease TTL" to "max region RTT" (~tens of ms), and the residue goes to 0, so exact `set(0)` becomes possible. Needs reliable cluster messaging and a reconciliation path against the lease table for missing ACKs. Right answer if `set_residue_credits` metric or a real customer complaint justifies it; not before.
+
+## Unresolved questions
+
+The 30s lease TTL is a guess. Shorter tightens dead-region reclaim time but triples grant rate; longer holds unused credits longer. Right value depends on observed regional traffic-shift shape, which we don't have. Start at 30s; tune from production data.
+
+Lease-size constants (`L_max` cap fraction at 5%, endgame floor at 10%, direct-debit floor at 5%) are first guesses. Static sizing is fine for v1; rate-aware sizing is a tuning improvement.
+
+`set` residue tolerance: how big can `max(N, leased) - N` get before customers complain? Bound is `regions × lease_size`, typically much smaller in practice because lease size is rate-derived. The `set_residue_credits` histogram from day one of shadow will tell us whether the lease-revocation channel is needed.
