@@ -93,15 +93,13 @@ func RunRateLimitTest(
 	nodeOverAdmissionFactor := 0.10 * float64(nodeCount)
 	upperLimit := int(maxAllowed * (1 + nodeOverAdmissionFactor))
 
-	// Lower bound at 80% accommodates under-admission from the
-	// cross-region denial blocklist. Once a node denies in a window,
-	// the propagation pins the originating counter to the limit on
-	// every other node; the sliding-window math then carries that
-	// inflated value into the next window's prev term and shaves
-	// ~half its budget. Steady-state under sustained over-limit load
-	// settles around 84-88% of the fixed-window theoretical max with
-	// a few percent of cross-run variance.
-	lowerLimit := int(maxAllowed * 0.80)
+	// Lower bound at 95% catches under-admission regressions while allowing
+	// small variance from async Redis replay and request scheduling. The old
+	// blocklist propagation path needed a wider budget because denial rows
+	// saturated remote counters and carried inflated values into the next
+	// sliding window. Global counters share observed counts instead, so they
+	// should not shave whole-window capacity under sustained load.
+	lowerLimit := int(maxAllowed * 0.95)
 
 	// Special case: When request rate is below the limit,
 	// almost all requests should succeed

@@ -1,13 +1,7 @@
-FROM oven/bun:alpine
+FROM node:24
+
+RUN npm i -g mintlify@4.2.573
 
 WORKDIR /app
 
-RUN apk add github-cli
-RUN apk add make
-RUN bun install -g mintlify@latest
-
-COPY . .
-
-EXPOSE 3000
-
-CMD ["make", "dev"]
+CMD ["mintlify", "dev", "--host", "0.0.0.0"]

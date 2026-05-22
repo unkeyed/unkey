@@ -84,7 +84,9 @@
       ".content-collections",
       ".source",
       ".trigger",
-      "**/*.css"
+      "**/*.css",
+      "**/*.astro",
+      "**/.astro/**"
     ]
   },
   "formatter": {
@@ -107,7 +109,9 @@
       "./apps/dashboard/gen/proto/**/*.ts",
       "./apps/docs/docs.json",
       "**/routeTree.gen.ts",
-      "**/*.css"
+      "**/*.css",
+      "**/*.astro",
+      "**/.astro/**"
     ]
   },
   "organizeImports": {
@@ -124,7 +128,9 @@
       "./internal/proto/generated/**/*.ts",
       "./apps/dashboard/gen/proto/**/*.ts",
       "./apps/docs/docs.json",
-      "**/routeTree.gen.ts"
+      "**/routeTree.gen.ts",
+      "**/*.astro",
+      "**/.astro/**"
     ]
   },
   "css": {
@@ -185,7 +191,7 @@
       }
     },
     {
-      "include": ["./apps/portal/**"],
+      "include": ["./apps/portal/**", "./apps/design/**"],
       "linter": {
         "rules": {
           "nursery": {
