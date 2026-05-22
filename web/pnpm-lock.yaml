@@ -386,7 +386,7 @@ importers:
         specifier: 1.2.2
         version: 1.2.2(@types/react@19.2.4)(react@19.2.4)
       '@tanstack/react-router':
-        specifier: ^1.167.16
+        specifier: 1.170.4
         version: 1.170.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tanstack/react-start':
         specifier: ^1.167.16
