@@ -66,12 +66,26 @@ export async function POST(request: Request) {
     });
     if (!ws) {
       console.error("Workspace not found");
-      return NextResponse.json({}, { status: 201 });
+      foundKeys.push({
+        token: hashedToken,
+        source: item.source,
+        url: item.url,
+        type: item.type,
+        isFound: false,
+      });
+      continue;
     }
 
     if (!ws.orgId) {
       console.error("Workspace orgId not found");
-      return NextResponse.json({}, { status: 201 });
+      foundKeys.push({
+        token: hashedToken,
+        source: item.source,
+        url: item.url,
+        type: item.type,
+        isFound: false,
+      });
+      continue;
     }
 
     const users = await getUsers(ws.orgId);
