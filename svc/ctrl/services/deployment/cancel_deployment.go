@@ -10,6 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // cancelledByUserMessage is the error message stamped onto any in-flight
@@ -40,6 +41,10 @@ func (s *Service) CancelDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CancelDeploymentRequest],
 ) (*connect.Response[ctrlv1.CancelDeploymentResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	deploymentID := req.Msg.GetDeploymentId()
 	if deploymentID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("deployment_id is required"))
