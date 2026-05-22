@@ -18,7 +18,7 @@ install-brew-tools: ## Install Homebrew tools if they don't exist
 
 .PHONY: install
 install: install-go ## Install all dependencies
-	cd web && pnpm install --frozen-lockfile
+	cd web && corepack pnpm install --frozen-lockfile
 
 
 
