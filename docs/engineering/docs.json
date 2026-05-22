@@ -188,6 +188,7 @@
               "architecture/rfcs/0012-stricter-linter",
               "architecture/rfcs/0013-custom-domains",
               "architecture/rfcs/0014-sentinel-middleware",
+              "architecture/rfcs/0015-ratelimit-cross-region-counts",
               "architecture/rfcs/0016-vault-s3-storage"
             ]
           }
