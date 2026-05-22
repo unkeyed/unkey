@@ -86,11 +86,11 @@ export const PermissionSheet = ({
         <SheetOverlay className="bg-black/30 backdrop-blur-xs" />
         <SheetContent
           disableClose={false}
-          className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black"
+          className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black overflow-hidden"
           side="right"
           overlay="transparent"
         >
-          <SheetHeader className="flex flex-row min-w-full border-b border-gray-4 gap-2 ">
+          <SheetHeader className="flex flex-row min-w-full border-b border-gray-4 gap-2 shrink-0">
             <SheetTitle className="sr-only">Select Permissions</SheetTitle>
             <SearchPermissions
               isProcessing={isProcessing}
@@ -99,84 +99,72 @@ export const PermissionSheet = ({
               onChange={handleSearchChange}
             />
           </SheetHeader>
-          <div className="w-full h-full">
-            <div className="flex flex-col h-full">
-              <div
-                className={`flex flex-col ${
-                  hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"
-                }`}
-              >
-                <ScrollArea className="flex flex-col h-full pt-2">
-                  <div className="flex flex-col pt-0 mt-0 gap-1 pb-6">
-                    {hasNoResults ? (
-                      <p className="text-sm text-gray-10 ml-6 py-1.5 mt-1.5">
-                        {ROOT_KEY_MESSAGES.UI.NO_RESULTS}
-                      </p>
-                    ) : (
-                      <>
-                        <PermissionContentList
-                          selected={selectedPermissions}
-                          searchValue={searchValue}
-                          key="workspace"
-                          scope={WORKSPACE_SCOPE}
-                          onPermissionChange={handleWorkspacePermissionChange}
-                        />
-                        {apiScopes.length > 0 && (
-                          <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
-                            {ROOT_KEY_MESSAGES.UI.FROM_APIS}
-                          </p>
-                        )}
-                        {apiScopes.map(({ id, scope }) => (
-                          <PermissionContentList
-                            selected={selectedPermissions}
-                            searchValue={searchValue}
-                            key={id}
-                            scope={scope}
-                            onPermissionChange={(permissions) =>
-                              handleApiPermissionChange(id, permissions)
-                            }
-                          />
-                        ))}
-                        {projectScopes.length > 0 && (
-                          <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
-                            {ROOT_KEY_MESSAGES.UI.FROM_PROJECTS}
-                          </p>
-                        )}
-                        {projectScopes.map(({ id, scope }) => (
-                          <PermissionContentList
-                            selected={selectedPermissions}
-                            searchValue={searchValue}
-                            key={id}
-                            scope={scope}
-                            onPermissionChange={(permissions) =>
-                              handleProjectPermissionChange(id, permissions)
-                            }
-                          />
-                        ))}
-                      </>
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-              <div className="sticky bottom-0 bg-background border-t border-gray-4 mt-auto">
-                {hasNextPage ? (
-                  <div className="w-full py-4">
-                    <div className="flex flex-row justify-center items-center">
-                      <Button
-                        className="mx-auto rounded-lg"
-                        size="sm"
-                        onClick={() => loadMore?.()}
-                        disabled={!hasNextPage || !loadMore}
-                        loading={isFetchingNextPage}
-                      >
-                        {ROOT_KEY_MESSAGES.UI.LOAD_MORE}
-                      </Button>
-                    </div>
-                  </div>
-                ) : undefined}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="flex flex-col gap-1 pt-2 pb-6">
+              {hasNoResults ? (
+                <p className="text-sm text-gray-10 ml-6 py-1.5 mt-1.5">
+                  {ROOT_KEY_MESSAGES.UI.NO_RESULTS}
+                </p>
+              ) : (
+                <>
+                  <PermissionContentList
+                    selected={selectedPermissions}
+                    searchValue={searchValue}
+                    key="workspace"
+                    scope={WORKSPACE_SCOPE}
+                    onPermissionChange={handleWorkspacePermissionChange}
+                  />
+                  {apiScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_APIS}
+                    </p>
+                  )}
+                  {apiScopes.map(({ id, scope }) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      key={id}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleApiPermissionChange(id, permissions)
+                      }
+                    />
+                  ))}
+                  {projectScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_PROJECTS}
+                    </p>
+                  )}
+                  {projectScopes.map(({ id, scope }) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      key={id}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleProjectPermissionChange(id, permissions)
+                      }
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+          {hasNextPage && (
+            <div className="shrink-0 bg-gray-1 dark:bg-black border-t border-gray-4 w-full py-4">
+              <div className="flex flex-row justify-center items-center">
+                <Button
+                  className="mx-auto rounded-lg"
+                  size="sm"
+                  onClick={() => loadMore?.()}
+                  disabled={!loadMore}
+                  loading={isFetchingNextPage}
+                >
+                  {ROOT_KEY_MESSAGES.UI.LOAD_MORE}
+                </Button>
               </div>
             </div>
-          </div>
+          )}
         </SheetContent>
       </SheetPortal>
     </Sheet>
