@@ -59,6 +59,8 @@ export const createSubscription = workspaceProcedure
       });
     }
 
+    const defaultPriceId = product.default_price.toString();
+
     const quotas = validateAndParseQuotas(product);
     if (
       !quotas.valid ||
@@ -78,6 +80,7 @@ export const createSubscription = workspaceProcedure
         message: "Workspaces does not have a stripe account.",
       });
     }
+
     if (ctx.workspace.stripeSubscriptionId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -85,114 +88,141 @@ export const createSubscription = workspaceProcedure
       });
     }
 
-    const customer = await stripe.customers.retrieve(ctx.workspace.stripeCustomerId);
-    if (!customer) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Customer ${ctx.workspace.stripeCustomerId} could not be found.`,
-      });
-    }
-
-    /**
-     * `error_if_incomplete` makes Stripe reject the create call with a 402 if the first
-     * invoice cannot be paid (e.g. card declined). We rely on this to keep the workspace
-     * on the Free tier when a first-time signup's payment fails — no DB writes happen
-     * unless the subscription is fully active.
-     */
-    let sub: Stripe.Subscription;
+    let createdSub: Stripe.Subscription | undefined;
     try {
-      sub = await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [
-          {
-            price: product.default_price.toString(),
-          },
-        ],
-        billing_cycle_anchor_config: {
-          day_of_month: 1,
-        },
-        proration_behavior: "always_invoice",
-        payment_behavior: "error_if_incomplete",
-      });
-    } catch (err) {
-      if (err instanceof Stripe.errors.StripeCardError) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            err.message ||
-            "Your card was declined. Please update your payment method and try again.",
-        });
-      }
-      if (err instanceof Stripe.errors.StripeError) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            err.message ||
-            "Payment could not be completed. Please update your payment method and try again.",
-        });
-      }
-      throw err;
-    }
+      await db.transaction(async (tx) => {
+        const [locked] = await tx
+          .select({
+            stripeCustomerId: schema.workspaces.stripeCustomerId,
+            stripeSubscriptionId: schema.workspaces.stripeSubscriptionId,
+          })
+          .from(schema.workspaces)
+          .where(eq(schema.workspaces.id, ctx.workspace.id))
+          .for("update");
 
-    if (sub.status !== "active" && sub.status !== "trialing") {
-      // Defensive guard: error_if_incomplete should make this unreachable, but never
-      // grant tier access to a subscription that isn't actually paid.
-      try {
-        await stripe.subscriptions.cancel(sub.id);
-      } catch (cancelErr) {
-        console.error(
-          `Failed to cancel non-active subscription ${sub.id} after creation:`,
-          cancelErr,
-        );
-      }
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Subscription was created but is not active (ID: ${sub.id}). Please contact support.`,
-      });
-    }
+        if (!locked) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Workspace could not be found.",
+          });
+        }
+        if (!locked.stripeCustomerId) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "Workspaces does not have a stripe account.",
+          });
+        }
+        if (locked.stripeSubscriptionId) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: `Customer ${locked.stripeCustomerId} already has a subscription.`,
+          });
+        }
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.workspaces)
-        .set({
-          stripeSubscriptionId: sub.id,
-          tier: product.name,
-        })
-        .where(eq(schema.workspaces.id, ctx.workspace.id));
+        const customer = await stripe.customers.retrieve(locked.stripeCustomerId);
 
-      await tx
-        .insert(schema.quotas)
-        .values({
-          workspaceId: ctx.workspace.id,
-          requestsPerMonth: quotas.requestsPerMonth,
-          logsRetentionDays: quotas.logsRetentionDays,
-          auditLogsRetentionDays: quotas.auditLogsRetentionDays,
-          team: true,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
+        if (!customer || customer.deleted) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Customer ${locked.stripeCustomerId} could not be found.`,
+          });
+        }
+
+        try {
+          createdSub = await stripe.subscriptions.create({
+            customer: customer.id,
+            items: [
+              {
+                price: defaultPriceId,
+              },
+            ],
+            billing_cycle_anchor_config: {
+              day_of_month: 1,
+            },
+            proration_behavior: "always_invoice",
+            payment_behavior: "error_if_incomplete",
+          });
+        } catch (err) {
+          if (err instanceof Stripe.errors.StripeCardError) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message:
+                err.message ||
+                "Your card was declined. Please update your payment method and try again.",
+            });
+          }
+          if (err instanceof Stripe.errors.StripeError) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message:
+                err.message ||
+                "Payment could not be completed. Please update your payment method and try again.",
+            });
+          }
+          throw err;
+        }
+
+        if (createdSub.status !== "active") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Subscription was created but is not active (ID: ${createdSub.id}). Please contact support.`,
+          });
+        }
+
+        await tx
+          .update(schema.workspaces)
+          .set({
+            stripeSubscriptionId: createdSub.id,
+            tier: product.name,
+          })
+          .where(eq(schema.workspaces.id, ctx.workspace.id));
+
+        await tx
+          .insert(schema.quotas)
+          .values({
+            workspaceId: ctx.workspace.id,
             requestsPerMonth: quotas.requestsPerMonth,
             logsRetentionDays: quotas.logsRetentionDays,
             auditLogsRetentionDays: quotas.auditLogsRetentionDays,
             team: true,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              requestsPerMonth: quotas.requestsPerMonth,
+              logsRetentionDays: quotas.logsRetentionDays,
+              auditLogsRetentionDays: quotas.auditLogsRetentionDays,
+              team: true,
+            },
+          });
+
+        await insertAuditLogs(tx, {
+          workspaceId: ctx.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          event: "workspace.update",
+          description: `Subscribed to ${product.name} plan`,
+          resources: [],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
           },
         });
-
-      await insertAuditLogs(tx, {
-        workspaceId: ctx.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "workspace.update",
-        description: `Subscribed to ${product.name} plan`,
-        resources: [],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
       });
-    });
+    } catch (err) {
+      if (createdSub) {
+        try {
+          await stripe.subscriptions.cancel(createdSub.id);
+        } catch (cancelErr) {
+          console.error(
+            `Failed to cancel orphaned subscription ${createdSub.id} after transaction failure:`,
+            cancelErr,
+          );
+        }
+      }
+      throw err;
+    }
 
     // Invalidate workspace cache after subscription creation
     await invalidateWorkspaceCache(ctx.tenant.id);
