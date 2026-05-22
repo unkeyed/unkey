@@ -37,12 +37,20 @@ Defaults to `Dockerfile` in the root directory.
 
 Glob patterns that control which file changes trigger a deployment. When configured, Unkey skips deployments if none of the changed files match any pattern.
 
-Leave empty to deploy on all changes. Examples:
+Leave empty to deploy on all changes. Watch paths use repository-relative file paths from GitHub and `/` as the path separator.
 
-- `src/**` deploys only when files in the `src` directory change
-- `**/*.go` deploys only when Go files change
+Supported patterns:
+
+- `api/*.js` matches files one level below `api`, such as `api/hello.js`, but not `api/hello/world.js`
+- `api/**/*.ts` matches TypeScript files at any depth below `api`, including `api/hello.ts` and `api/hello/world.ts`
+- `src/pages/**/*` matches files at any depth below `src/pages`
+- `api/test.js` matches one exact file
 
 You can add multiple patterns. A deployment triggers if any pattern matches a changed file.
+
+The `**` pattern is recursive only when it appears as its own path segment. Use `**/*.go`, not `**.go`, to match files by extension at any depth. Wildcards include files and directories that start with `.`.
+
+Character classes such as `[ab]` are not supported.
 
 ### Auto deploy
 

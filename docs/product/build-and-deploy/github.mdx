@@ -75,7 +75,7 @@ Manual fork deployments always go to a preview environment — they never deploy
 
 By default, every push triggers a deployment. If your repository contains code that doesn't affect your app (for example, documentation or unrelated services in a monorepo), configure watch paths to deploy only when relevant files change.
 
-Add glob patterns in your app's **Settings** under **Watch paths**. Unkey skips the deployment if none of the changed files match any pattern.
+Add glob patterns in your app's **Settings** under **Watch paths**. Unkey skips the deployment if none of the changed files match any pattern. See [App settings](/platform/apps/settings#watch-paths) for the supported pattern syntax.
 
 <Frame caption="Watch paths configuration with a glob pattern">
   <img src="/build-and-deploy/watch-paths-light.png" alt="Watch paths settings" className="block dark:hidden" />
