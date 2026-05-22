@@ -29,12 +29,24 @@ Vault's code does not change. The design is exactly the same, we only change the
 
 Instead of a single R2 bucket, we will create an S3 bucket in region A and one in region B. We will also configure replication from A to B.
 
-All vault instances read from and write to the primary S3 bucket in region A during normal operation. S3 Cross-Region Replication copies objects to the replica bucket in region B. Vault does not read from the replica unless operators promote it during an incident.
+All vault instances read from and write to the primary S3 bucket in region A during normal operation. S3 Cross-Region Replication (CRR) copies objects to the replica bucket in region B. Vault does not read from the replica unless operators promote it during an incident.
+
+```diagram
+╭────────────────────╮
+│ Vault instances    │
+│ all regions        │
+╰─────────┬──────────╯
+          │ read/write
+          ▼
+╭────────────────────╮          async CRR           ╭────────────────────╮
+│ Primary S3 bucket  │─────────────────────────────▶│ Replica S3 bucket  │
+│ region A           │                              │ region B           │
+╰────────────────────╯                              ╰────────────────────╯
+```
 
 During failover, operators switch vault configuration to the replica bucket and roll every vault instance.
 
 After failover, the replica is the active bucket. The old primary is stale until reverse replication or backfill completes and convergence is verified. Mixed fleets are not allowed. Vault instances must not write to both buckets at the same time.
-
 
 ## Consistency and RPO
 
@@ -46,6 +58,26 @@ This RFC accepts non-zero RPO in favour of keeping the architecture and migratio
 
 If the primary region becomes unavailable, we manually change the s3 secrets in AWS secrets manager `unkey/vault` to point the s3 url to the replica region's bucket.
 Afterwards all external-secrets must be synced and vault pods restarted.
+
+Until operators promote the replica, vault keeps using the unavailable primary bucket and requests fail. Operators then change vault configuration to point at the replica bucket and roll every vault instance.
+
+```diagram
+╭────────────────────╮
+│ Vault instances    │
+│ all regions        │
+╰─────────┬──────────╯
+          │ change config, sync ExternalSecrets, restart pods
+          │ new read/write
+          └────────────────────────────────────────────────┐
+                                                           ▼
+╭────────────────────╮          async CRR           ╭────────────────────╮
+│ Primary S3 bucket  │─────────────────────────────▶│ Replica S3 bucket  │
+│ region A           │                              │ region B           │
+│ failed             │                              │ promoted primary   │
+╰────────────────────╯                              ╰────────────────────╯
+
+Before the config change, vault still points at the failed primary and requests fail.
+```
 
 At this point all reads and writes go to the promoted replica.
 
@@ -63,6 +95,24 @@ We'll do a classical dual-write migration.
 3. Vault switches reads from R2 to S3
 4. We remove the dual write setup
 5. We remove the R2 buckets
+
+```diagram
+Step 1: dual write
+
+╭────────────────────╮
+│ Vault              │
+╰──────┬───────┬─────╯
+       │       │
+       ▼       ▼
+╭──────────╮  ╭────────────────────╮
+│ R2 old   │  │ Primary S3 bucket  │
+╰──────────╯  ╰─────────┬──────────╯
+                        │ async CRR
+                        ▼
+              ╭────────────────────╮
+              │ Replica S3 bucket  │
+              ╰────────────────────╯
+```
 
 ## Alternatives considered
 
