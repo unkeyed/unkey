@@ -71,7 +71,7 @@ bun install @unkey/cache
 </CodeGroup>
 
 <CodeGroup>
-  ```ts Hello World
+```ts Hello World
 import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
 import { MemoryStore } from "@unkey/cache/stores";
 
@@ -106,7 +106,8 @@ await cache.user.set("userId", { id: "userId", email: "user@email.com" });
 const user = await cache.user.get("userId")
 console.log(user)
 
-````
+```
+
 ```ts Tiered Caches
 import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
 import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
@@ -157,7 +158,7 @@ async function main() {
 }
 
 main();
-````
+```
 
 ```ts Multiple Namespaces
 import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
