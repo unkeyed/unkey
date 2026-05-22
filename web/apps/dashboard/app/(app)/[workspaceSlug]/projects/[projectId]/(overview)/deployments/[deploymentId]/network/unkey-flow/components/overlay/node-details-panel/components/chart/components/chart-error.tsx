@@ -1,12 +1,13 @@
+import { ChartError as BaseChartError } from "@/components/logs/chart/chart-states";
+
 type ChartErrorProps = {
   height: number;
-  message?: string;
 };
 
-export function ChartError({ height, message = "Could not retrieve data" }: ChartErrorProps) {
+export function ChartError({ height }: ChartErrorProps) {
   return (
     <div className="w-full flex items-center justify-center" style={{ height }}>
-      <span className="text-xs text-accent-9">{message}</span>
+      <BaseChartError variant="simple" className="**:text-xs" />
     </div>
   );
 }
