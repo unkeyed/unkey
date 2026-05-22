@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "logger",
@@ -15,4 +15,19 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/logger",
     visibility = ["//visibility:public"],
     deps = ["//pkg/fault"],
+)
+
+go_test(
+    name = "logger_test",
+    srcs = [
+        "fault_handler_test.go",
+        "wide_test.go",
+    ],
+    deps = [
+        ":logger",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/logger/loggertest",
+        "@com_github_stretchr_testify//require",
+    ],
 )
