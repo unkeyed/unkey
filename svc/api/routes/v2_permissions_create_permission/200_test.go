@@ -67,14 +67,12 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, description, perm.Description.String)
 		require.Equal(t, workspace.ID, perm.WorkspaceID)
 
-		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.PermissionId)
-		require.NoError(t, err)
+		// Verify the audit log was queued in clickhouse_outbox.
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.PermissionId)
 		require.NotEmpty(t, auditLogs, "Audit log for permission creation should exist")
-
 		foundCreateEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "permission.create" {
+		for _, ev := range auditLogs {
+			if ev.Event == "permission.create" {
 				foundCreateEvent = true
 				break
 			}

@@ -1,7 +1,9 @@
 package environment
 
 import (
+	"database/sql"
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -9,7 +11,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
+// envDeletedMessage is stamped onto in-flight deployment steps when an
+// environment is being deleted. The environment (and its deployment views)
+// are gone by the time anyone could look, so this is never user-visible.
+const envDeletedMessage = "Environment deleted"
+
 // Delete removes an environment and all associated resources.
+//
+// In-flight deployments are cancelled first so the cascade below doesn't
+// drop deployment rows out from under workflows that are still mid-build.
+// This handler is the single chokepoint for deployment row deletion;
+// project and app deletes fan out to here via the virtual object cascade.
 //
 // Key: environment_id
 func (s *Service) Delete(
@@ -19,6 +31,10 @@ func (s *Service) Delete(
 	envID := restate.Key(ctx)
 
 	logger.Info("starting environment deletion", "environment_id", envID)
+
+	if err := s.cancelProgressingDeployments(ctx, envID); err != nil {
+		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
+	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Query.DeleteCiliumNetworkPoliciesByEnvironmentId(runCtx, s.db.RW(), envID)
@@ -95,4 +111,87 @@ func (s *Service) Delete(
 	logger.Info("environment deletion complete", "environment_id", envID)
 
 	return &hydrav1.DeleteEnvironmentResponse{}, nil
+}
+
+// cancelProgressingDeployments aborts in-flight Restate invocations, then
+// marks the deployments cancelled. Cancel must happen first: if we flipped
+// status up front and a CancelInvocation later failed, the retry's
+// ListProgressingDeploymentsByEnvironmentId would skip the now-terminal row
+// and the invocation would leak. DB errors are non-fatal since the cascade
+// drops the rows anyway.
+func (s *Service) cancelProgressingDeployments(ctx restate.ObjectContext, envID string) error {
+	active, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListProgressingDeploymentsByEnvironmentIdRow, error) {
+		return db.Query.ListProgressingDeploymentsByEnvironmentId(runCtx, s.db.RO(), db.ListProgressingDeploymentsByEnvironmentIdParams{
+			EnvironmentID:       envID,
+			ProgressingStatuses: db.ProgressingDeploymentStatuses,
+		})
+	}, restate.WithName("list progressing deployments"))
+	if err != nil {
+		return fmt.Errorf("list progressing deployments: %w", err)
+	}
+
+	if len(active) == 0 {
+		return nil
+	}
+
+	deploymentIDs := make([]string, 0, len(active))
+	for _, d := range active {
+		deploymentIDs = append(deploymentIDs, d.ID)
+	}
+
+	logger.Info("cancelling in-flight deployments for environment deletion",
+		"environment_id", envID,
+		"count", len(deploymentIDs),
+	)
+
+	// DB errors below are non-fatal: even if we fail to flip the row state
+	// here, the cascade below (DeleteDeploymentsByEnvironmentId) drops the
+	// row anyway. We continue so the Restate-side cancel still fires.
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+		return db.Query.EndActiveDeploymentStepsForDeployments(runCtx, s.db.RW(), db.EndActiveDeploymentStepsForDeploymentsParams{
+			EndedAt:       now,
+			Error:         sql.NullString{Valid: true, String: envDeletedMessage},
+			DeploymentIds: deploymentIDs,
+		})
+	}, restate.WithName("stamp cancelled marker on steps")); err != nil {
+		logger.Warn("failed to stamp env-deleted marker on deployment steps",
+			"environment_id", envID,
+			"error", err,
+		)
+	}
+
+	for _, d := range active {
+		if !d.InvocationID.Valid || d.InvocationID.String == "" {
+			continue
+		}
+
+		invocationID := d.InvocationID.String
+		deploymentID := d.ID
+
+		if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return s.admin.CancelInvocation(runCtx, invocationID)
+		}, restate.WithName("cancel invocation "+deploymentID)); err != nil {
+			return fmt.Errorf("cancel invocation %s for deployment %s: %w", invocationID, deploymentID, err)
+		}
+	}
+
+	// Status flip is best-effort: invocations are already cancelled, and the
+	// cascade below drops these rows entirely. Propagating would deadlock the
+	// handler because Restate journals the error and replays it on every retry.
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+		return db.Query.UpdateDeploymentStatusBatch(runCtx, s.db.RW(), db.UpdateDeploymentStatusBatchParams{
+			Status:    db.DeploymentsStatusCancelled,
+			UpdatedAt: now,
+			Ids:       deploymentIDs,
+		})
+	}, restate.WithName("mark deployments cancelled")); err != nil {
+		logger.Warn("failed to batch-mark deployments cancelled",
+			"environment_id", envID,
+			"error", err,
+		)
+	}
+
+	return nil
 }

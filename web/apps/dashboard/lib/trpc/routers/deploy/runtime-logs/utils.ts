@@ -1,6 +1,6 @@
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import type { RuntimeLogsRequestSchema } from "@/lib/schemas/runtime-logs.schema";
-import { getTimestampFromRelative } from "@/lib/utils";
+import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
 import type { RuntimeLogsRequest } from "@unkey/clickhouse/src/runtime-logs";
 
 export type K8sRegionEntry = { k8sPodName: string; region: string };
@@ -34,12 +34,16 @@ export function transformFilters(
   const region = params.region?.filters?.map((f) => f.value) || [];
   const environmentId = params.environmentId?.filters?.map((f) => f.value) || [];
 
-  let startTime = params.startTime;
-  let endTime = params.endTime;
-
-  const hasRelativeTime = params.since !== "";
-  if (hasRelativeTime) {
+  let startTime: number;
+  let endTime: number;
+  if (params.since !== null && params.since !== "") {
     startTime = getTimestampFromRelative(params.since);
+    endTime = Date.now();
+  } else if (params.startTime !== null && params.endTime !== null) {
+    startTime = params.startTime;
+    endTime = params.endTime;
+  } else {
+    startTime = getTimestampFromRelative(DEFAULT_LOGS_SINCE);
     endTime = Date.now();
   }
 

@@ -74,7 +74,7 @@ oci_image(
 oci_load(
     name = "oci_load_unkey",
     image = ":unkey_image",
-    repo_tags = ["unkey/unkey:latest"],
+    repo_tags = ["unkey/unkey:dev"],
     visibility = ["//visibility:public"],
 )
 
