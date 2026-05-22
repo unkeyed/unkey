@@ -74,15 +74,6 @@ export const dbEnv = () =>
     })
     .parse(process.env);
 
-export const vercelIntegrationSchema = z.object({
-  VERCEL_INTEGRATION_CLIENT_ID: z.string(),
-  VERCEL_INTEGRATION_CLIENT_SECRET: z.string(),
-});
-
-const vercelIntegrationParsed = vercelIntegrationSchema.safeParse(process.env);
-export const vercelIntegrationEnv = () =>
-  vercelIntegrationParsed.success ? vercelIntegrationParsed.data : null;
-
 export const githubAppSchema = z.object({
   GITHUB_APP_ID: z.string().transform((s) => Number.parseInt(s, 10)),
   UNKEY_GITHUB_PRIVATE_KEY_PEM: z.string().transform((s) => s.replace(/\\n/g, "\n")), // needs to be a single line, with \n

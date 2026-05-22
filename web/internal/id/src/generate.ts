@@ -9,7 +9,6 @@ const prefixes = {
   request: "req",
   workspace: "ws",
   keyAuth: "ks", // keyspace
-  vercelBinding: "vb",
   role: "role",
   test: "test", // for tests only
   ratelimitNamespace: "rlns",

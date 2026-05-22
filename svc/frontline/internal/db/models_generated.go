@@ -930,91 +930,6 @@ func (ns NullSentinelsHealth) Value() (driver.Value, error) {
 	return string(ns.SentinelsHealth), nil
 }
 
-type VercelBindingsEnvironment string
-
-const (
-	VercelBindingsEnvironmentDevelopment VercelBindingsEnvironment = "development"
-	VercelBindingsEnvironmentPreview     VercelBindingsEnvironment = "preview"
-	VercelBindingsEnvironmentProduction  VercelBindingsEnvironment = "production"
-)
-
-func (e *VercelBindingsEnvironment) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VercelBindingsEnvironment(s)
-	case string:
-		*e = VercelBindingsEnvironment(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VercelBindingsEnvironment: %T", src)
-	}
-	return nil
-}
-
-type NullVercelBindingsEnvironment struct {
-	VercelBindingsEnvironment VercelBindingsEnvironment
-	Valid                     bool // Valid is true if VercelBindingsEnvironment is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVercelBindingsEnvironment) Scan(value interface{}) error {
-	if value == nil {
-		ns.VercelBindingsEnvironment, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VercelBindingsEnvironment.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVercelBindingsEnvironment) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VercelBindingsEnvironment), nil
-}
-
-type VercelBindingsResourceType string
-
-const (
-	VercelBindingsResourceTypeRootKey VercelBindingsResourceType = "rootKey"
-	VercelBindingsResourceTypeApiId   VercelBindingsResourceType = "apiId"
-)
-
-func (e *VercelBindingsResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VercelBindingsResourceType(s)
-	case string:
-		*e = VercelBindingsResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VercelBindingsResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullVercelBindingsResourceType struct {
-	VercelBindingsResourceType VercelBindingsResourceType
-	Valid                      bool // Valid is true if VercelBindingsResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVercelBindingsResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.VercelBindingsResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VercelBindingsResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VercelBindingsResourceType), nil
-}
-
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -1639,33 +1554,6 @@ type Sentinel struct {
 	MemoryMib         int32                 `db:"memory_mib"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
-}
-
-type VercelBinding struct {
-	Pk            uint64                     `db:"pk"`
-	ID            string                     `db:"id"`
-	IntegrationID string                     `db:"integration_id"`
-	WorkspaceID   string                     `db:"workspace_id"`
-	ProjectID     string                     `db:"project_id"`
-	Environment   VercelBindingsEnvironment  `db:"environment"`
-	ResourceID    string                     `db:"resource_id"`
-	ResourceType  VercelBindingsResourceType `db:"resource_type"`
-	VercelEnvID   string                     `db:"vercel_env_id"`
-	LastEditedBy  string                     `db:"last_edited_by"`
-	CreatedAtM    int64                      `db:"created_at_m"`
-	UpdatedAtM    sql.NullInt64              `db:"updated_at_m"`
-	DeletedAtM    sql.NullInt64              `db:"deleted_at_m"`
-}
-
-type VercelIntegration struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	TeamID      sql.NullString `db:"team_id"`
-	AccessToken string         `db:"access_token"`
-	CreatedAtM  int64          `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM  sql.NullInt64  `db:"deleted_at_m"`
 }
 
 type Workspace struct {

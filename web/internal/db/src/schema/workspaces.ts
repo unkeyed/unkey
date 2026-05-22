@@ -14,7 +14,6 @@ import { permissions, roles } from "./rbac";
 import { sentinels } from "./sentinels";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
-import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 
 export const workspaces = mysqlTable("workspaces", {
   pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
@@ -71,12 +70,6 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   apis: many(apis),
   keys: many(keys, {
     relationName: "workspace_key_relation",
-  }),
-  vercelIntegrations: many(vercelIntegrations, {
-    relationName: "vercel_workspace_relation",
-  }),
-  vercelBindings: many(vercelBindings, {
-    relationName: "vercel_key_binding_relation",
   }),
   roles: many(roles),
   permissions: many(permissions),
