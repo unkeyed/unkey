@@ -948,7 +948,7 @@ importers:
         specifier: 0.7.0
         version: 0.7.0
       '@clickhouse/client':
-        specifier: ^1.18.3
+        specifier: 1.18.5
         version: 1.18.5
       '@clickhouse/client-web':
         specifier: 'catalog:'
