@@ -272,8 +272,15 @@ app.post("/login", createMiddleware(authLimiter), loginHandler);
   </Accordion>
 
   <Accordion title="TypeScript version?">
-    Install types and use imports: ```bash npm install -D typescript
-    @types/express @types/node ``` ```ts import express from "express"; import{" "}
-    {Ratelimit} from "@unkey/ratelimit"; ```
+    Install types and use imports:
+
+    ```bash
+    npm install -D typescript @types/express @types/node
+    ```
+
+    ```ts
+    import express from "express";
+    import { Ratelimit } from "@unkey/ratelimit";
+    ```
   </Accordion>
 </AccordionGroup>
