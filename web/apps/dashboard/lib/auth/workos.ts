@@ -9,6 +9,7 @@ import { BaseAuthProvider } from "./base-provider";
 import { getAuthCookieOptions } from "./cookie-security";
 import { getCookie } from "./cookies";
 import { getAuth } from "./get-auth";
+import { sanitizeRedirectPath } from "./redirect";
 import {
   AuthErrorCode,
   type EmailAuthResult,
@@ -942,7 +943,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
     const { provider, redirectUrlComplete } = options;
-    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete }));
+    const state = encodeURIComponent(
+      JSON.stringify({ redirectUrlComplete: sanitizeRedirectPath(redirectUrlComplete) }),
+    );
     const baseUrl = getBaseUrl();
     const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
@@ -976,9 +979,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("No sealed session returned");
       }
 
-      const redirectUrlComplete = state
-        ? JSON.parse(decodeURIComponent(state)).redirectUrlComplete
-        : "/apis";
+      const redirectUrlComplete = sanitizeRedirectPath(extractRedirectUrlComplete(state));
 
       return {
         success: true,
@@ -1078,5 +1079,22 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       createdAt: providerInvitation.createdAt,
       updatedAt: providerInvitation.updatedAt,
     };
+  }
+}
+
+function extractRedirectUrlComplete(state: string | null): string | null {
+  if (!state) {
+    return null;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(decodeURIComponent(state));
+    if (typeof parsed !== "object" || parsed === null || !("redirectUrlComplete" in parsed)) {
+      return null;
+    }
+
+    return typeof parsed.redirectUrlComplete === "string" ? parsed.redirectUrlComplete : null;
+  } catch {
+    return null;
   }
 }

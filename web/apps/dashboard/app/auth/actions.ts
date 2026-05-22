@@ -7,6 +7,7 @@ import {
   setLastUsedOrgCookie,
   setSessionCookie,
 } from "@/lib/auth/cookies";
+import { sanitizeRedirectPath } from "@/lib/auth/redirect";
 import { auth } from "@/lib/auth/server";
 import {
   AuthErrorCode,
@@ -327,7 +328,10 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
 
 // OAuth
 export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<string> {
-  return await auth.signInViaOAuth(options);
+  return await auth.signInViaOAuth({
+    ...options,
+    redirectUrlComplete: sanitizeRedirectPath(options.redirectUrlComplete),
+  });
 }
 
 export async function completeOAuthSignIn(request: Request): Promise<OAuthResult> {
@@ -339,7 +343,7 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
 
     if (result.success) {
       await setCookies(result.cookies);
-      redirectTo = result.redirectTo;
+      redirectTo = sanitizeRedirectPath(result.redirectTo);
     } else {
       return result;
     }
@@ -350,7 +354,7 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-  redirect(redirectTo);
+  redirect(sanitizeRedirectPath(redirectTo));
 }
 
 // Organization Selection

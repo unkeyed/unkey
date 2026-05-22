@@ -1,6 +1,7 @@
 import { BaseAuthProvider } from "./base-provider";
 import { shouldUseSecureCookies } from "./cookie-security";
 import { getCookie } from "./cookies";
+import { sanitizeRedirectPath } from "./redirect";
 import {
   type AuthenticatedUser,
   type EmailAuthResult,
@@ -484,7 +485,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
 
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
-    return options.redirectUrlComplete;
+    return sanitizeRedirectPath(options.redirectUrlComplete);
   }
 
   async completeOAuthSignIn(_callbackRequest: Request): Promise<OAuthResult> {

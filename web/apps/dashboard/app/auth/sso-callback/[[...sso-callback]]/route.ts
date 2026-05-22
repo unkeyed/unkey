@@ -1,5 +1,6 @@
 import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { setCookiesOnResponse } from "@/lib/auth/cookies";
+import { sanitizeRedirectPath } from "@/lib/auth/redirect";
 import { auth } from "@/lib/auth/server";
 import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import { type NextRequest, NextResponse } from "next/server";
@@ -60,7 +61,9 @@ export async function GET(request: NextRequest) {
 
   // Get base URL from request because Next.js wants it
   const baseUrl = new URL(request.url).origin;
-  const response = NextResponse.redirect(new URL(authResult.redirectTo, baseUrl));
+  const response = NextResponse.redirect(
+    new URL(sanitizeRedirectPath(authResult.redirectTo), baseUrl),
+  );
 
   return await setCookiesOnResponse(response, authResult.cookies);
 }
