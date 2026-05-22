@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -61,6 +62,31 @@ func validatePermissionFormat(permissions []string) error {
 	return nil
 }
 
+func delegatedPermissionChecks(permissions []string) ([]rbac.PermissionQuery, error) {
+	checks := make([]rbac.PermissionQuery, 0, len(permissions))
+	for _, permission := range permissions {
+		tuple, err := rbac.TupleFromString(permission)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal(fmt.Sprintf("permission %q failed tuple parsing", permission)),
+				fault.Public(fmt.Sprintf("Permission %q is invalid. Expected format: {resourceType}.{resourceId}.{action}", permission)),
+			)
+		}
+
+		checks = append(checks, rbac.Or(
+			rbac.S(permission),
+			rbac.T(rbac.Tuple{
+				ResourceType: tuple.ResourceType,
+				ResourceID:   "*",
+				Action:       tuple.Action,
+			}),
+		))
+	}
+
+	return checks, nil
+}
+
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
@@ -74,6 +100,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if err := validatePermissionFormat(req.Permissions); err != nil {
+		return err
+	}
+	delegatedChecks, err := delegatedPermissionChecks(req.Permissions)
+	if err != nil {
 		return err
 	}
 
@@ -104,6 +134,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("database error looking up portal config"),
 			fault.Public("Failed to look up portal configuration."),
 		)
+	}
+
+	if err := auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Portal,
+			ResourceID:   portalConfig.ID,
+			Action:       rbac.CreatePortalSession,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Portal,
+			ResourceID:   "*",
+			Action:       rbac.CreatePortalSession,
+		}),
+	))); err != nil {
+		return err
+	}
+	if err := auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.And(delegatedChecks...))); err != nil {
+		return err
 	}
 
 	if !portalConfig.Enabled {

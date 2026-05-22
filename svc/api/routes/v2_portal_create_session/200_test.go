@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
@@ -42,7 +43,11 @@ func TestCreateSessionSuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	rootKey := h.CreateRootKey(workspaceID)
+	rootKey := h.CreateRootKey(workspaceID, rbac.Tuple{
+		ResourceType: rbac.Portal,
+		ResourceID:   "*",
+		Action:       rbac.CreatePortalSession,
+	}.String(), "api.*.read_key")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

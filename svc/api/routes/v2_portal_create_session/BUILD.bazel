@@ -12,6 +12,7 @@ go_library(
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
+        "//pkg/rbac",
         "//pkg/uid",
         "//pkg/validation",
         "//pkg/zen",
@@ -32,6 +33,7 @@ go_test(
     deps = [
         ":v2_portal_create_session",
         "//pkg/db",
+        "//pkg/rbac",
         "//pkg/uid",
         "//svc/api/internal/testutil",
         "//svc/api/openapi",

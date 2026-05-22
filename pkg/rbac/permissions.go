@@ -31,6 +31,9 @@ const (
 
 	// Deploy represents deployment resources and operations
 	Project ResourceType = "project"
+
+	// Portal represents customer portal sessions and configuration.
+	Portal ResourceType = "portal"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -177,6 +180,13 @@ const (
 
 	// GenerateUploadURL permits generating S3 upload URLs for build contexts
 	GenerateUploadURL ActionType = "generate_upload_url"
+)
+
+// Predefined portal actions. These constants define operations that can be
+// performed on customer portal resources.
+const (
+	// CreatePortalSession permits creating customer portal sessions.
+	CreatePortalSession ActionType = "create_session"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

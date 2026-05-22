@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -43,7 +44,11 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	rootKey := h.CreateRootKey(workspaceID)
+	rootKey := h.CreateRootKey(workspaceID, rbac.Tuple{
+		ResourceType: rbac.Portal,
+		ResourceID:   "*",
+		Action:       rbac.CreatePortalSession,
+	}.String(), "api.*.read_key")
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -52,6 +57,98 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 
 	req := handler.Request{
 		Slug:        "disabled-portal",
+		ExternalId:  "user_123",
+		Permissions: []string{"api.*.read_key"},
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+	require.Equal(t, 403, res.Status)
+	require.NotNil(t, res.Body)
+}
+
+func TestCreateSessionForbiddenMissingPermission(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		Keys:          h.Keys,
+		PortalBaseURL: "https://portal.unkey.com",
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	portalConfigID := uid.New(uid.PortalConfigPrefix)
+	now := time.Now().UnixMilli()
+
+	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
+		ID:          portalConfigID,
+		WorkspaceID: workspaceID,
+		Slug:        "test-portal",
+		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
+		Enabled:     true,
+		CreatedAt:   now,
+	})
+	require.NoError(t, err)
+
+	rootKey := h.CreateRootKey(workspaceID)
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	req := handler.Request{
+		Slug:        "test-portal",
+		ExternalId:  "user_123",
+		Permissions: []string{"api.*.read_key"},
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+	require.Equal(t, 403, res.Status)
+	require.NotNil(t, res.Body)
+}
+
+func TestCreateSessionForbiddenDelegatedPermission(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		Keys:          h.Keys,
+		PortalBaseURL: "https://portal.unkey.com",
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	portalConfigID := uid.New(uid.PortalConfigPrefix)
+	now := time.Now().UnixMilli()
+
+	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
+		ID:          portalConfigID,
+		WorkspaceID: workspaceID,
+		Slug:        "test-portal",
+		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
+		Enabled:     true,
+		CreatedAt:   now,
+	})
+	require.NoError(t, err)
+
+	rootKey := h.CreateRootKey(workspaceID, rbac.Tuple{
+		ResourceType: rbac.Portal,
+		ResourceID:   "*",
+		Action:       rbac.CreatePortalSession,
+	}.String())
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	req := handler.Request{
+		Slug:        "test-portal",
 		ExternalId:  "user_123",
 		Permissions: []string{"api.*.read_key"},
 	}
