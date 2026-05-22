@@ -265,8 +265,8 @@ importers:
         specifier: 'catalog:'
         version: 3.10.3
       nanoid:
-        specifier: ^5.1.6
-        version: 5.1.11
+        specifier: 5.1.6
+        version: 5.1.6
       next:
         specifier: 16.2.6
         version: 16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -625,8 +625,8 @@ importers:
   internal/id:
     dependencies:
       nanoid:
-        specifier: ^5.1.6
-        version: 5.1.11
+        specifier: 5.1.6
+        version: 5.1.6
     devDependencies:
       '@types/node':
         specifier: 20.14.9
@@ -6807,8 +6807,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nanoid@5.1.11:
-    resolution: {integrity: sha512-v+KEsUv2ps74PaSKv0gHTxTCgMXOIfBEbaqa6w6ISIGC7ZsvHN4N9oJ8d4cmf0n5oTzQz2SLmThbQWhjd/8eKg==}
+  nanoid@5.1.6:
+    resolution: {integrity: sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==}
     engines: {node: ^18 || >=20}
     hasBin: true
 
@@ -14097,7 +14097,7 @@ snapshots:
 
   nanoid@3.3.12: {}
 
-  nanoid@5.1.11: {}
+  nanoid@5.1.6: {}
 
   negotiator@0.6.3: {}
 
