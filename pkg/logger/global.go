@@ -9,10 +9,17 @@ import (
 
 // Package-level state for the global logger, sampler, and base attributes.
 // Protected by mu for concurrent access during configuration.
+//
+// innerHandler holds the actual sink composition (text handler, plus any
+// handlers added via [AddHandler], plus any base attrs). The exported
+// `logger` is always `innerHandler` wrapped in [faultHandler] so error
+// enrichment runs once at the top of the stack and the enriched record
+// fans out to every sink.
 var (
-	logger  *slog.Logger
-	sampler Sampler
-	mu      sync.Mutex
+	logger       *slog.Logger
+	innerHandler slog.Handler
+	sampler      Sampler
+	mu           sync.Mutex
 )
 
 func init() {
@@ -23,12 +30,22 @@ func init() {
 	// HandlerOptions{Level: ...} and route slog.Default() through it too
 	// — that way plain `slog.Debug(...)` calls anywhere in the codebase
 	// honor the same level as `logger.Debug(...)`.
-	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{ //nolint:exhaustruct // AddSource + ReplaceAttr default
-		Level: levelFromEnv(),
+	innerHandler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{ //nolint:exhaustruct // ReplaceAttr default
+		Level:     levelFromEnv(),
+		AddSource: true,
 	})
-	logger = slog.New(h)
-	slog.SetDefault(logger)
+	rebuild()
 	sampler = AlwaysSample{}
+}
+
+// rebuild reinstalls the global logger and slog.Default() from the current
+// innerHandler. Must be called with mu held.
+func rebuild() {
+	logger = slog.New(&faultHandler{inner: innerHandler})
+	// slog.SetDefault captures the *Logger instance, not the package-level
+	// variable. Re-apply so plain `slog.Info(...)` callers anywhere in the
+	// codebase pick up handler/attr changes too.
+	slog.SetDefault(logger)
 }
 
 // levelFromEnv parses UNKEY_LOG_LEVEL (case-insensitive: debug | info |
@@ -69,13 +86,8 @@ func GetHandler() slog.Handler {
 func AddHandler(newHandler slog.Handler) {
 	mu.Lock()
 	defer mu.Unlock()
-	logger = slog.New(&MultiHandler{[]slog.Handler{logger.Handler(), newHandler}})
-	// slog.SetDefault captures the *Logger instance, not the package-level
-	// variable, so reassigning `logger` above doesn't update the global
-	// default. Without this, `slog.Info(...)` from anywhere in the codebase
-	// would keep hitting the pre-AddHandler instance and bypass the new
-	// handler. Re-apply.
-	slog.SetDefault(logger)
+	innerHandler = &MultiHandler{[]slog.Handler{innerHandler, newHandler}}
+	rebuild()
 }
 
 // AddBaseAttrs appends attributes that will be included in every log entry.
@@ -86,11 +98,8 @@ func AddHandler(newHandler slog.Handler) {
 func AddBaseAttrs(attrs ...slog.Attr) {
 	mu.Lock()
 	defer mu.Unlock()
-	logger = slog.New(logger.Handler().WithAttrs(attrs))
-	// Same reason as AddHandler: slog.SetDefault holds the prior instance,
-	// so reassigning `logger` doesn't propagate the new base attrs to
-	// plain `slog.Info(...)` callers. Re-apply.
-	slog.SetDefault(logger)
+	innerHandler = innerHandler.WithAttrs(attrs)
+	rebuild()
 }
 
 // SetSampler configures the sampling strategy for wide events. The sampler
