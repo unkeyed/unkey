@@ -966,7 +966,7 @@ importers:
         specifier: workspace:^
         version: link:../../internal/tsconfig
       mitata:
-        specifier: ^1.0.34
+        specifier: 1.0.34
         version: 1.0.34
       mysql2:
         specifier: 'catalog:'
