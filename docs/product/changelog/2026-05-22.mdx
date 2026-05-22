@@ -1,0 +1,55 @@
+---
+title: "May 22, 2026"
+description: "Dashboard navigation redesign, CPU and memory charts on the deployment overview, tighter cross-region ratelimits, and a stack of dashboard fixes."
+noindex: true
+---
+
+## New features
+
+### Redesigned dashboard navigation
+
+The dashboard has a new layout: a fixed top breadcrumb header carries your workspace and resource context (workspace → project → API → namespace), and the sidebar morphs to show the active section's pages. Each crumb has a searchable sibling popover for one-click switching between workspaces, projects, APIs, and namespaces. Audit Log is available from the new sidebar.
+
+### CPU and memory on the deployment overview
+
+The deployment overview page now charts CPU and memory alongside the existing throughput and latency views, so you can see resource pressure for a deployment without drilling into a single instance. See [Metrics](/observability/metrics).
+
+### More accurate cross-region ratelimiting
+
+Ratelimit usage now converges globally with higher accuracy for longer windows. Identifiers using a meaningful share of their limit are propagated across regions and influence later decisions elsewhere, tightening enforcement for globally distributed traffic. See [Share counts across regions](/platform/ratelimiting/how-it-works#share-counts-across-regions).
+
+### Jump from a truncated build error to the failed step
+
+When a deployment fails, the Building Image row now includes a **View full error** link that opens the build logs panel, scrolls to the failed step, and expands it so the full error and logs land in view — no more hunting through the steps list.
+
+## Updates
+
+### Longer default ID length
+
+Newly generated IDs use a 9-character default (up from 8), reducing the chance of collisions at scale without changing how IDs look or feel.
+
+### Equal-height project cards
+
+Cards in the projects list now fill their grid row and reserve space for optional fields (domain, commit title, timestamp, author), so every card lands at the same height regardless of which fields are populated. The loading-to-loaded transition no longer shifts layout.
+
+### Cleaner workspace switcher
+
+The workspace switcher dropdown has tighter width, refined separator spacing, and a lighter shadow.
+
+### Switch component contrast
+
+The dashboard Switch (toggle) has better contrast in dark mode and a more visible off state in both themes.
+
+## Bug fixes
+
+- Audit logs now load correctly in the dashboard.
+- Runtime and request log views render reliably and respect filters.
+- The external ID field now shows the correct UI when set.
+- The permission sheet inside the root-key dialog scrolls and accepts clicks again.
+- The redeploy toast paints above the new top navigation instead of behind it.
+- Routes without a scrollbar no longer show a phantom gutter on the right, and the loading spinner no longer flashes a scrollbar.
+- Trackpad overscroll no longer rubber-bands the top nav and content while the sidebar stays put.
+- The live-tail control in runtime logs is hidden when there isn't enough history to tail.
+- Pending builds are now canceled when a project (or its environment) is deleted, instead of running to completion against a deleted resource.
+- Frontline now generates the correct domain name for new deployments.
+- Projects list cards no longer flash placeholder text for missing optional fields.
