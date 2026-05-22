@@ -21,10 +21,10 @@
     "@radix-ui/react-slot": "1.2.4",
     "@radix-ui/react-tooltip": "1.2.8",
     "@radix-ui/react-use-controllable-state": "1.2.2",
-    "@tanstack/react-router": "^1.167.16",
-    "@tanstack/react-start": "^1.167.16",
+    "@tanstack/react-router": "1.170.7",
+    "@tanstack/react-start": "1.168.10",
     "@tanstack/react-table": "8.21.3",
-    "@unkey/api": "^2.3.3",
+    "@unkey/api": "2.3.4",
     "@unkey/db": "workspace:^",
     "@unkey/icons": "workspace:^",
     "@unkey/ui": "workspace:^",
@@ -39,7 +39,7 @@
     "tailwind-merge": "3.4.0",
     "tailwindcss": "4.2.1",
     "tw-animate-css": "1.4.0",
-    "zod": "4.3.5"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.2.1",

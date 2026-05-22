@@ -13,13 +13,13 @@
   "license": "AGPL-3.0",
   "devDependencies": {
     "@clack/prompts": "0.7.0",
-    "@clickhouse/client": "^1.18.3",
+    "@clickhouse/client": "1.18.5",
     "@clickhouse/client-web": "1.11.1",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
-    "mitata": "^1.0.34",
+    "mitata": "1.0.34",
     "mysql2": "3.10.3",
     "tsx": "4.19.1"
   },

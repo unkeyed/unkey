@@ -16,7 +16,7 @@
     "base-x": "4.0.1",
     "mysql2": "3.10.3",
     "stripe": "14.23.0",
-    "zod": "4.3.5"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@clickhouse/client-web": "1.11.1",

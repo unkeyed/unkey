@@ -19,6 +19,6 @@
   "dependencies": {
     "@clickhouse/client-web": "1.11.1",
     "@unkey/error": "workspace:^",
-    "zod": "4.3.5"
+    "zod": "4.4.3"
   }
 }
