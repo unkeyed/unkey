@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "event.go",
+        "fault_handler.go",
         "global.go",
         "multihandler.go",
         "sampler.go",
