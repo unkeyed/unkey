@@ -121,7 +121,7 @@ export const createSubscription = workspaceProcedure
 
         const customer = await stripe.customers.retrieve(locked.stripeCustomerId);
 
-        if (!customer || customer.deleted) {
+        if (customer.deleted) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: `Customer ${locked.stripeCustomerId} could not be found.`,
