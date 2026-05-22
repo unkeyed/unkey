@@ -50,7 +50,7 @@ description: "Retrieve the configuration of a specific rate limit override by id
 </ParamField>
 
 </Expandable>
-</ResponseField >
+</ResponseField>
 
 <RequestExample>
 ```ts
@@ -58,15 +58,14 @@ const { meta, data } = await unkey.getOverride({
   identifier:"user.example",
   namespaceName: "email.outbound"
 });
-
-````
+```
 
 ```ts
 const { meta, data } = await unkey.getOverride({
   identifier:"user.example",
   namespaceId: "rlns_1234",
 });
-````
+```
 
 </RequestExample>
 
