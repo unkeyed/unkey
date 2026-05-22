@@ -395,7 +395,7 @@ importers:
         specifier: 8.21.3
         version: 8.21.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@unkey/api':
-        specifier: ^2.3.3
+        specifier: 2.3.4
         version: 2.3.4
       '@unkey/db':
         specifier: workspace:^
