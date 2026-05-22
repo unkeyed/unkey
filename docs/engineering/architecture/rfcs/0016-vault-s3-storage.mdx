@@ -54,10 +54,7 @@ This RFC accepts non-zero RPO in favour of keeping the architecture and migratio
 
 ## Failover
 
-If the primary region becomes unavailable, we manually change the S3 secrets in AWS Secrets Manager `unkey/vault` to point the S3 URL to the replica region's bucket.
-Afterwards all ExternalSecrets must be synced and Vault pods restarted.
-
-Until operators promote the replica, vault keeps using the unavailable primary bucket and requests fail. Operators then change vault configuration to point at the replica bucket and roll every vault instance.
+If the primary region becomes unavailable, vault keeps using the unavailable primary bucket and requests fail until operators promote the replica. To promote, we manually change the S3 secrets in AWS Secrets Manager `unkey/vault` to point the S3 URL to the replica region's bucket, then sync all ExternalSecrets and restart vault pods.
 
 ```diagram
 ╭────────────────────╮
