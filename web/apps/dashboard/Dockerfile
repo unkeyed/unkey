@@ -1,6 +1,6 @@
 # ---- Base ----
-FROM node:22-alpine AS base
-RUN npm install -g pnpm
+FROM node:22-alpine@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS base
+RUN corepack enable && corepack prepare pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90 --activate
 
 # ---- Dependencies ----
 FROM base AS deps
@@ -49,7 +49,7 @@ COPY ./web/internal ./internal
 RUN --mount=type=cache,id=turbo,target=/unkey/.turbo pnpm turbo run build --filter=@unkey/dashboard
 
 # ---- Runner ----
-FROM node:22-alpine AS runner
+FROM node:22-alpine@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS runner
 WORKDIR /unkey/web
 
 ENV NODE_ENV=production

@@ -17,6 +17,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
   );
   const projects = projectsQuery.data ?? [];
   const current = projects.find((p) => p.id === projectId);
+  const loading = projectsQuery.isLoading;
 
   const items: CrumbPopoverItem[] = projects.map((p) => ({
     id: p.id,
@@ -28,6 +29,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
     <Crumb
       icon={<Cube className="size-3.5 text-accent-11" iconSize="sm-regular" />}
       label={current?.name ?? projectId}
+      loading={loading}
       href={`/${workspace.slug}/projects/${projectId}`}
       items={items}
       currentId={projectId}

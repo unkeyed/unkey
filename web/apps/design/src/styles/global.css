@@ -1,0 +1,146 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@source "../../../../internal/ui/src/**/*.tsx";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Site chrome uses shadcn-style semantic OKLCH neutrals (background,
+ * foreground, muted, accent, border). @unkey/ui components rendered inside
+ * <Preview> rely on the Radix scales (gray-1..gray-12, grayA-1..grayA-12)
+ * loaded by `@unkey/ui/css` — both palettes coexist.
+ */
+@theme {
+  --font-sans:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-header-bg: var(--header-bg);
+
+  --color-gray-1: hsl(var(--gray-1));
+  --color-gray-2: hsl(var(--gray-2));
+  --color-gray-3: hsl(var(--gray-3));
+  --color-gray-4: hsl(var(--gray-4));
+  --color-gray-5: hsl(var(--gray-5));
+  --color-gray-6: hsl(var(--gray-6));
+  --color-gray-7: hsl(var(--gray-7));
+  --color-gray-8: hsl(var(--gray-8));
+  --color-gray-9: hsl(var(--gray-9));
+  --color-gray-10: hsl(var(--gray-10));
+  --color-gray-11: hsl(var(--gray-11));
+  --color-gray-12: hsl(var(--gray-12));
+
+  --color-grayA-1: hsla(var(--grayA-1));
+  --color-grayA-2: hsla(var(--grayA-2));
+  --color-grayA-3: hsla(var(--grayA-3));
+  --color-grayA-4: hsla(var(--grayA-4));
+  --color-grayA-5: hsla(var(--grayA-5));
+  --color-grayA-6: hsla(var(--grayA-6));
+  --color-grayA-7: hsla(var(--grayA-7));
+  --color-grayA-8: hsla(var(--grayA-8));
+  --color-grayA-9: hsla(var(--grayA-9));
+  --color-grayA-10: hsla(var(--grayA-10));
+  --color-grayA-11: hsla(var(--grayA-11));
+  --color-grayA-12: hsla(var(--grayA-12));
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --border: oklch(0.922 0 0);
+    --header-bg: oklch(0.988 0 0);
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --header-bg: oklch(0.195 0 0);
+    --border: oklch(1 0 0 / 10%);
+  }
+
+  * {
+    border-color: var(--border);
+  }
+  html {
+    @apply scroll-smooth overscroll-none;
+    overflow-y: scroll;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  article {
+    @apply text-base leading-7 text-foreground;
+  }
+  article > h1 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+  article > h1 + p {
+    @apply mt-2 text-lg text-muted-foreground leading-7;
+  }
+  article > h2 {
+    @apply scroll-mt-20 text-xl font-semibold tracking-tight mt-14 mb-4 pb-2 border-b;
+  }
+  article > h3 {
+    @apply scroll-mt-20 text-base font-semibold tracking-tight mt-10 mb-3;
+  }
+  article > p {
+    @apply leading-7 [&:not(:first-of-type)]:mt-4;
+  }
+  article > p a {
+    @apply font-medium underline underline-offset-4;
+  }
+  article > pre,
+  article > pre.shiki,
+  article > pre.astro-code {
+    @apply rounded-xl border px-5 py-4 text-sm font-mono leading-relaxed overflow-x-auto my-6 !bg-muted;
+  }
+
+  /* Shiki dual theme — only swap the foreground color; the panel
+     (.preview-code or article > pre) owns the background. Astro's MDX
+     pipeline emits .astro-code, our Vite plugin emits .shiki. */
+  .shiki,
+  .shiki span,
+  .astro-code,
+  .astro-code span {
+    color: var(--shiki-light);
+    background-color: transparent;
+  }
+  .dark .shiki,
+  .dark .shiki span,
+  .dark .astro-code,
+  .dark .astro-code span {
+    color: var(--shiki-dark);
+    background-color: transparent;
+  }
+
+  /* Preview's code panel: shiki output sits inside .preview-code wrapper. */
+  .preview-code pre.shiki {
+    @apply !bg-transparent px-5 py-4 text-sm font-mono leading-relaxed overflow-x-auto;
+  }
+  article > p code,
+  article > li code {
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm font-medium;
+  }
+}

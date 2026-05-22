@@ -99,17 +99,11 @@ func TestLimitSuccessfully(t *testing.T) {
 			require.Equal(t, nsName, namespace.Name)
 			require.False(t, namespace.DeletedAtM.Valid, "Namespace should not be deleted")
 
-			// Verify audit log was created for the namespace
-			auditTargets, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), namespace.ID)
-			require.NoError(t, err)
-			require.Len(t, auditTargets, 1, "Should have exactly one audit log entry for the namespace")
-
-			auditTarget := auditTargets[0]
-			require.Equal(t, string(auditlog.RatelimitNamespaceResourceType), auditTarget.AuditLogTarget.Type)
-			require.Equal(t, namespace.ID, auditTarget.AuditLogTarget.ID)
-			require.Equal(t, nsName, auditTarget.AuditLogTarget.Name.String)
-			require.Equal(t, string(auditlog.RatelimitNamespaceCreateEvent), auditTarget.AuditLog.Event)
-			require.Contains(t, auditTarget.AuditLog.Display, nsName, "Audit log should mention the namespace name")
+			// Verify the audit log was queued in clickhouse_outbox.
+			auditLogs := h.FindAuditLogsByTargetID(ctx, t, namespace.ID)
+			require.Len(t, auditLogs, 1, "Should have exactly one audit log entry for the namespace")
+			require.Equal(t, string(auditlog.RatelimitNamespaceCreateEvent), auditLogs[0].Event)
+			require.Contains(t, auditLogs[0].Description, nsName, "Audit log should mention the namespace name")
 		}
 	})
 

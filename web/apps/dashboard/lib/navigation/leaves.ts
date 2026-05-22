@@ -6,6 +6,7 @@ import {
   Fingerprint,
   Gauge,
   Gear,
+  InputSearch,
   Key,
   Layers3,
   Nodes,
@@ -57,6 +58,13 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       href: `/${slug}/identities`,
       icon: Fingerprint,
       isActive: top === "identities",
+    },
+    {
+      key: "audit",
+      label: "Audit Log",
+      href: `/${slug}/audit`,
+      icon: InputSearch,
+      isActive: top === "audit",
     },
     {
       key: "settings",

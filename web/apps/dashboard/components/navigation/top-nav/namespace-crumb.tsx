@@ -17,6 +17,7 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
   );
   const namespaces = namespacesQuery.data ?? [];
   const current = namespaces.find((n) => n.id === namespaceId);
+  const loading = namespacesQuery.isLoading;
 
   const items: CrumbPopoverItem[] = namespaces.map((n) => ({
     id: n.id,
@@ -28,6 +29,7 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
     <Crumb
       icon={<Gauge className="size-3.5 text-accent-11" iconSize="sm-regular" />}
       label={current?.name ?? namespaceId}
+      loading={loading}
       href={`/${workspace.slug}/ratelimits/${namespaceId}`}
       items={items}
       currentId={namespaceId}

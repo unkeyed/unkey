@@ -185,17 +185,14 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 
-		// Verify audit logs were created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), identity.ID)
-		require.NoError(t, err)
+		// Verify audit logs were queued in clickhouse_outbox.
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, identity.ID)
 		require.GreaterOrEqual(t, len(auditLogs), 1, "should have audit logs for identity deletion")
-
-		// Look for identity deletion event
 		var foundDeleteEvent bool
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "identity.delete" {
+		for _, ev := range auditLogs {
+			if ev.Event == "identity.delete" {
 				foundDeleteEvent = true
-				require.Equal(t, h.Resources().UserWorkspace.ID, log.AuditLog.WorkspaceID)
+				require.Equal(t, h.Resources().UserWorkspace.ID, ev.WorkspaceID)
 				break
 			}
 		}

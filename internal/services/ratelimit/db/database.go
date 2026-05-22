@@ -30,11 +30,10 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{db: tx}
 }
 
-// Database splits queries across primary and replica connections. Reads
-// (BlocklistListActive) go to the replica, writes (BulkInsertBlocklist,
-// BlocklistDeleteExpired) go to the primary. Both [Queries] instances expose
-// the full Querier interface; the split is enforced by the caller picking
-// RW() or RO() at the call site.
+// Database splits queries across primary and replica connections. Reads go to
+// the replica and writes go to the primary. Both [Queries] instances expose the
+// full Querier interface; the split is enforced by the caller picking RW() or
+// RO() at the call site.
 type Database struct {
 	rw *Queries
 	ro *Queries

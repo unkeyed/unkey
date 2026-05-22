@@ -1,6 +1,6 @@
 ---
 title: Express
-description: "Add rate limiting to your Express API routes using Unkey. Configure per-route limits and protect endpoints without Redis."
+description: "Step-by-step Express.js rate limiting tutorial with @unkey/ratelimit. Set per-route limits, return 429 responses, and skip the Redis dependency."
 ---
 
 ## What you'll build
@@ -240,7 +240,7 @@ app.post("/login", createMiddleware(authLimiter), loginHandler);
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="How it works" icon="bolt" href="/platform/ratelimiting/modes">
+  <Card title="How it works" icon="bolt" href="/platform/ratelimiting/how-it-works">
     Understand the architecture
   </Card>
   <Card
@@ -272,8 +272,15 @@ app.post("/login", createMiddleware(authLimiter), loginHandler);
   </Accordion>
 
   <Accordion title="TypeScript version?">
-    Install types and use imports: ```bash npm install -D typescript
-    @types/express @types/node ``` ```ts import express from "express"; import{" "}
-    {Ratelimit} from "@unkey/ratelimit"; ```
+    Install types and use imports:
+
+    ```bash
+    npm install -D typescript @types/express @types/node
+    ```
+
+    ```ts
+    import express from "express";
+    import { Ratelimit } from "@unkey/ratelimit";
+    ```
   </Accordion>
 </AccordionGroup>

@@ -10,6 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // cancelledByUserMessage is the error message stamped onto any in-flight
@@ -40,6 +41,10 @@ func (s *Service) CancelDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CancelDeploymentRequest],
 ) (*connect.Response[ctrlv1.CancelDeploymentResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	deploymentID := req.Msg.GetDeploymentId()
 	if deploymentID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("deployment_id is required"))
@@ -107,9 +112,10 @@ func (s *Service) CancelDeployment(
 	// compensation stack will try UpdateDeploymentStatusIfActive(failed),
 	// but cancelled is in the NOT IN list so that update is a no-op.
 	if err := db.Query.UpdateDeploymentStatusIfActive(ctx, s.db.RW(), db.UpdateDeploymentStatusIfActiveParams{
-		ID:        deploymentID,
-		Status:    db.DeploymentsStatusCancelled,
-		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:               deploymentID,
+		Status:           db.DeploymentsStatusCancelled,
+		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		TerminalStatuses: db.TerminalDeploymentStatuses,
 	}); err != nil {
 		logger.Warn("failed to set deployment status to cancelled",
 			"deployment_id", deploymentID,
