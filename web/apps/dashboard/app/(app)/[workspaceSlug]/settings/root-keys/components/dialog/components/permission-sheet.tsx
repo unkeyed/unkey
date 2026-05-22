@@ -14,11 +14,9 @@ import { Button } from "@unkey/ui";
 import { useMemo, useRef } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissionSheet } from "../hooks/use-permission-sheet";
-import type { PermissionScope } from "../permissions";
+import { WORKSPACE_SCOPE } from "../permissions";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
-
-const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
 
 type PermissionSheetProps = {
   apis: { id: string; name: string }[];

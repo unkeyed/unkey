@@ -12,6 +12,8 @@ export type PermissionScope =
   | { kind: "api"; id: string; name: string }
   | { kind: "project"; id: string; name: string };
 
+export const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
+
 export function getScopedPermissions(scope: PermissionScope): {
   [category: string]: UnkeyPermissions;
 } {

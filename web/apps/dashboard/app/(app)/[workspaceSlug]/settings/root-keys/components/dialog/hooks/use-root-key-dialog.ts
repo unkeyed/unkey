@@ -34,6 +34,7 @@ function arePermissionArraysEqual(
 }
 
 type UseRootKeyDialogProps = {
+  isOpen: boolean;
   editMode?: boolean;
   existingKey?: {
     id: string;
@@ -44,6 +45,7 @@ type UseRootKeyDialogProps = {
 };
 
 export function useRootKeyDialog({
+  isOpen,
   editMode = false,
   existingKey,
   onOpenChange,
@@ -96,7 +98,10 @@ export function useRootKeyDialog({
     });
   }, [apisData]);
 
-  const { data: projectsData, isLoading: projectsLoading } = trpc.deploy.project.list.useQuery();
+  const { data: projectsData, isLoading: projectsLoading } = trpc.deploy.project.list.useQuery(
+    undefined,
+    { enabled: isOpen },
+  );
 
   const allProjects = useMemo(() => {
     if (!projectsData) {
