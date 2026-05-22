@@ -69,7 +69,7 @@
     "@vercel/analytics": "2.0.1",
     "@vercel/toolbar": "0.2.2",
     "@workos-inc/node": "7.47.0",
-    "boring-avatars": "^2.0.4",
+    "boring-avatars": "2.0.4",
     "class-variance-authority": "0.7.0",
     "clsx": "catalog:",
     "cmdk": "1.0.0",
