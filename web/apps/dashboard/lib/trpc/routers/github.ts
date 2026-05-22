@@ -730,13 +730,7 @@ export const githubRouter = t.router({
         await db
           .update(schema.apps)
           .set({ defaultBranch: branchToStore, updatedAt: Date.now() })
-          .where(
-            and(
-              eq(schema.apps.id, appId),
-              eq(schema.apps.workspaceId, ctx.workspace.id),
-              eq(schema.apps.projectId, input.projectId),
-            ),
-          );
+          .where(eq(schema.apps.id, appId));
       }
 
       return { success: true };
