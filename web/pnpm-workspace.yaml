@@ -4,7 +4,11 @@ packages:
   - "apps/*"
   - "tools/*"
 
-minimumReleaseAge: 2880
+minimumReleaseAge: 10080
+minimumReleaseAgeStrict: true
+minimumReleaseAgeIgnoreMissingTime: false
+blockExoticSubdeps: true
+trustPolicy: no-downgrade
 
 allowBuilds:
   "@biomejs/biome": true
