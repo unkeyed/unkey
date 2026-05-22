@@ -1,0 +1,21 @@
+---
+import { MoonStars, Sun } from "@unkey/icons";
+// Initial value is set by an inline script in layout.astro before paint.
+---
+
+<button
+  type="button"
+  id="theme-toggle"
+  aria-label="Toggle theme"
+  class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+>
+  <Sun iconSize="lg-regular" className="hidden dark:block" />
+  <MoonStars iconSize="lg-regular" className="dark:hidden" />
+</button>
+
+<script>
+  document.getElementById("theme-toggle")?.addEventListener("click", () => {
+    const isDark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  });
+</script>
