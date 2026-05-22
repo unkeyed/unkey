@@ -9,16 +9,21 @@ go_library(
     ],
     importpath = "github.com/unkeyed/unkey/pkg/match",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_bmatcuk_doublestar_v4//:doublestar"],
+    deps = ["//pkg/fault"],
 )
 
 go_test(
     name = "match_test",
     size = "small",
     srcs = [
+        "watchpath_fuzz_test.go",
         "watchpath_test.go",
         "wildcard_test.go",
     ],
     embed = [":match"],
-    deps = ["@com_github_stretchr_testify//require"],
+    deps = [
+        "//pkg/fault",
+        "//pkg/fuzz",
+        "@com_github_stretchr_testify//require",
+    ],
 )

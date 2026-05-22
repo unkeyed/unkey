@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 func TestWildcard(t *testing.T) {
@@ -12,6 +13,8 @@ func TestWildcard(t *testing.T) {
 		s        string
 		pattern  string
 		expected bool
+		wantErr  string
+		public   string
 	}{
 		// Email patterns
 		{
@@ -71,6 +74,24 @@ func TestWildcard(t *testing.T) {
 			pattern:  "h*beau*world",
 			expected: true,
 		},
+		{
+			name:     "unicode prefix wildcard match",
+			s:        "üser",
+			pattern:  "ü*",
+			expected: true,
+		},
+		{
+			name:     "unicode suffix wildcard match",
+			s:        "café",
+			pattern:  "caf*",
+			expected: true,
+		},
+		{
+			name:     "emoji prefix wildcard match",
+			s:        "🔥x",
+			pattern:  "🔥*",
+			expected: true,
+		},
 		// Special regex characters
 		{
 			name:     "dots are literal",
@@ -109,15 +130,42 @@ func TestWildcard(t *testing.T) {
 			pattern:  "exact",
 			expected: false,
 		},
+		{
+			name:    "newline input returns error",
+			s:       "hello\nworld",
+			pattern: "hello*",
+			wantErr: "wildcard input must be a single-line string",
+			public:  "Wildcard matching only supports single-line values.",
+		},
+		{
+			name:    "newline pattern returns error",
+			s:       "hello world",
+			pattern: "hello\nworld",
+			wantErr: "wildcard pattern must be a single-line string",
+			public:  "Wildcard patterns must be single-line values.",
+		},
+		{
+			name:    "newline pattern error takes precedence",
+			s:       "hello\nworld",
+			pattern: "hello\nworld",
+			wantErr: "wildcard pattern must be a single-line string",
+			public:  "Wildcard patterns must be single-line values.",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := Wildcard(tt.s, tt.pattern)
-			require.NoError(t, err)
-			if result != tt.expected {
-				t.Errorf("Wildcard(%q, %q) = %v, want %v", tt.s, tt.pattern, result, tt.expected)
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.wantErr)
+				require.Equal(t, tt.public, fault.UserFacingMessage(err))
+				require.False(t, result)
+				return
 			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, result)
 		})
 	}
 }
