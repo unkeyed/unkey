@@ -644,11 +644,33 @@ export const githubRouter = t.router({
       }
 
       // Resolve appId: use provided value or find the default app for the project
-      let appId = input.appId;
-      if (!appId) {
+      let appId: string;
+      if (input.appId) {
+        const requestedAppId = input.appId;
         const app = await db.query.apps.findFirst({
           where: (table, { eq, and }) =>
-            and(eq(table.projectId, input.projectId), eq(table.slug, "default")),
+            and(
+              eq(table.id, requestedAppId),
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.projectId, input.projectId),
+            ),
+          columns: { id: true },
+        });
+        if (!app) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "App not found for this project",
+          });
+        }
+        appId = app.id;
+      } else {
+        const app = await db.query.apps.findFirst({
+          where: (table, { eq, and }) =>
+            and(
+              eq(table.projectId, input.projectId),
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.slug, "default"),
+            ),
           columns: { id: true },
         });
         if (!app) {
@@ -708,7 +730,13 @@ export const githubRouter = t.router({
         await db
           .update(schema.apps)
           .set({ defaultBranch: branchToStore, updatedAt: Date.now() })
-          .where(eq(schema.apps.id, appId));
+          .where(
+            and(
+              eq(schema.apps.id, appId),
+              eq(schema.apps.workspaceId, ctx.workspace.id),
+              eq(schema.apps.projectId, input.projectId),
+            ),
+          );
       }
 
       return { success: true };
