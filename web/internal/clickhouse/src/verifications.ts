@@ -55,41 +55,41 @@ export function getKeyDetailsLogs(ch: Querier) {
 
     const tagCondition = hasTagFilters
       ? args.tags
-          ?.map((filter, index) => {
-            const paramName = `tagValue_${index}`;
-            paramSchemaExtension[paramName] = z.string();
-            parameters[paramName] = filter.value;
+        ?.map((filter, index) => {
+          const paramName = `tagValue_${index}`;
+          paramSchemaExtension[paramName] = z.string();
+          parameters[paramName] = filter.value;
 
-            switch (filter.operator) {
-              case "is":
-                return `has(tags, {${paramName}: String})`;
-              case "contains":
-                return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
-              case "startsWith":
-                return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
-              case "endsWith":
-                return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
-              default:
-                return null;
-            }
-          })
-          .filter(Boolean)
-          .join(" AND ") || "TRUE"
+          switch (filter.operator) {
+            case "is":
+              return `has(tags, {${paramName}: String})`;
+            case "contains":
+              return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
+            case "startsWith":
+              return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
+            case "endsWith":
+              return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean)
+        .join(" AND ") || "TRUE"
       : "TRUE";
 
     const outcomeCondition = hasOutcomeFilters
       ? args.outcomes
-          ?.map((filter, index) => {
-            if (filter.operator === "is") {
-              const paramName = `outcomeValue_${index}`;
-              paramSchemaExtension[paramName] = z.string();
-              parameters[paramName] = filter.value;
-              return `outcome = {${paramName}: String}`;
-            }
-            return null;
-          })
-          .filter(Boolean)
-          .join(" OR ") || "TRUE"
+        ?.map((filter, index) => {
+          if (filter.operator === "is") {
+            const paramName = `outcomeValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = filter.value;
+            return `outcome = {${paramName}: String}`;
+          }
+          return null;
+        })
+        .filter(Boolean)
+        .join(" OR ") || "TRUE"
       : "TRUE";
 
     const useOffset = args.offset !== null;
@@ -240,41 +240,41 @@ export function getIdentityLogs(ch: Querier) {
 
     const tagCondition = hasTagFilters
       ? args.tags
-          ?.map((filter, index) => {
-            const paramName = `tagValue_${index}`;
-            paramSchemaExtension[paramName] = z.string();
-            parameters[paramName] = filter.value;
+        ?.map((filter, index) => {
+          const paramName = `tagValue_${index}`;
+          paramSchemaExtension[paramName] = z.string();
+          parameters[paramName] = filter.value;
 
-            switch (filter.operator) {
-              case "is":
-                return `has(tags, {${paramName}: String})`;
-              case "contains":
-                return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
-              case "startsWith":
-                return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
-              case "endsWith":
-                return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
-              default:
-                return null;
-            }
-          })
-          .filter(Boolean)
-          .join(" AND ") || "TRUE"
+          switch (filter.operator) {
+            case "is":
+              return `has(tags, {${paramName}: String})`;
+            case "contains":
+              return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
+            case "startsWith":
+              return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
+            case "endsWith":
+              return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean)
+        .join(" AND ") || "TRUE"
       : "TRUE";
 
     const outcomeCondition = hasOutcomeFilters
       ? args.outcomes
-          ?.map((filter, index) => {
-            if (filter.operator === "is") {
-              const paramName = `outcomeValue_${index}`;
-              paramSchemaExtension[paramName] = z.string();
-              parameters[paramName] = filter.value;
-              return `outcome = {${paramName}: String}`;
-            }
-            return null;
-          })
-          .filter(Boolean)
-          .join(" OR ") || "TRUE"
+        ?.map((filter, index) => {
+          if (filter.operator === "is") {
+            const paramName = `outcomeValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = filter.value;
+            return `outcome = {${paramName}: String}`;
+          }
+          return null;
+        })
+        .filter(Boolean)
+        .join(" OR ") || "TRUE"
       : "TRUE";
 
     let cursorCondition: string;
@@ -504,6 +504,13 @@ const INTERVALS: Record<string, TimeInterval> = {
   },
 } as const;
 
+const MS_PER_INTERVAL_STEP: Record<string, number> = {
+  MINUTE: 60_000,
+  HOUR: 3_600_000,
+  DAY: 86_400_000,
+  MONTH: 2_592_000_000,
+};
+
 function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
     MINUTE: "minute",
@@ -512,20 +519,12 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
     MONTH: "month",
   }[interval.step];
 
-  // For millisecond step calculation
-  const msPerUnit = {
-    MINUTE: 60_000,
-    HOUR: 3600_000,
-    DAY: 86400_000,
-    MONTH: 2592000_000,
-  }[interval.step];
-
+  const msPerUnit = MS_PER_INTERVAL_STEP[interval.step];
   if (!msPerUnit) {
     throw new Error(
       `Unsupported interval step: ${interval.step}. Expected one of: MINUTE, HOUR, DAY, MONTH`,
     );
   }
-
   const stepMs = msPerUnit * interval.stepSize;
 
   return `
@@ -688,25 +687,75 @@ function createVerificationTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
+/**
+ * Expands a time window outward to bucket boundaries so an overview chart
+ * agrees with the drill-down view of the same slot.
+ *
+ * The per-minute table is naturally partitioned at minute boundaries, so
+ * a drill-down query always returns the full content of every row it
+ * touches. The overview regroups those rows into wider buckets (30m, 1h,
+ * etc). If the user's `startTime`/`endTime` falls mid-bucket, the WHERE
+ * filter drops minute rows that belong to the edge buckets but sit
+ * outside the exact range — those buckets show a partial number. Click
+ * into the same slot at finer granularity and the value jumps, because
+ * the drill-down sums every minute row in the bucket.
+ *
+ * Aligning the window to the bucket grid makes the overview sum the
+ * same rows the drill-down sees.
+ *
+ * Tradeoff: the first bucket starts at the boundary before `startTime`
+ * and the last ends at the boundary after `endTime`, so edge buckets
+ * can cover up to one bucket-width beyond what the user picked.
+ *
+ * @example
+ *   30-min granularity, user picks 03:56:39 → 15:56:39 (UTC).
+ *   Aligned to 03:30:00 → 15:59:59.999.
+ *   Slot `03:30` sums all 30 minute rows (1568).
+ *   Without alignment, overview shows 146 (last 3 min only); drill-down
+ *   still returns 1568 → drift.
+ */
+function alignWindowToInterval(
+  interval: TimeInterval,
+  startTime: number,
+  endTime: number,
+): { startTime: number; endTime: number } {
+  const msPerUnit = MS_PER_INTERVAL_STEP[interval.step];
+  if (!msPerUnit) {
+    return { startTime, endTime };
+  }
+  const stepMs = msPerUnit * interval.stepSize;
+
+  return {
+    startTime: Math.floor(startTime / stepMs) * stepMs,
+    endTime: Math.ceil(endTime / stepMs) * stepMs - 1,
+  };
+}
+
 async function batchVerificationTimeseries(
   ch: Querier,
   interval: TimeInterval,
   args: VerificationTimeseriesParams,
   maxBatchSize = 15,
 ) {
-  if (!args.keyIds || args.keyIds.length === 0 || args.keyIds.length <= maxBatchSize) {
-    return (await createVerificationTimeseriesQuerier(interval)(ch)(args)).val;
+  const alignedArgs = { ...args, ...alignWindowToInterval(interval, args.startTime, args.endTime) };
+
+  if (
+    !alignedArgs.keyIds ||
+    alignedArgs.keyIds.length === 0 ||
+    alignedArgs.keyIds.length <= maxBatchSize
+  ) {
+    return (await createVerificationTimeseriesQuerier(interval)(ch)(alignedArgs)).val;
   }
 
   const keyIdBatches: { value: string; operator: "is" | "contains" }[][] = [];
-  for (let i = 0; i < args.keyIds.length; i += maxBatchSize) {
-    keyIdBatches.push(args.keyIds.slice(i, i + maxBatchSize));
+  for (let i = 0; i < alignedArgs.keyIds.length; i += maxBatchSize) {
+    keyIdBatches.push(alignedArgs.keyIds.slice(i, i + maxBatchSize));
   }
 
   const batchResults = await Promise.allSettled(
     keyIdBatches.map(async (batchKeyIds, batchIndex) => {
       const batchArgs = {
-        ...args,
+        ...alignedArgs,
         keyIds: batchKeyIds,
       };
       try {
@@ -861,20 +910,12 @@ function createIdentityTimeseriesQuery(interval: TimeInterval, whereClause: stri
     MONTH: "month",
   }[interval.step];
 
-  // For millisecond step calculation
-  const msPerUnit = {
-    MINUTE: 60_000,
-    HOUR: 3600_000,
-    DAY: 86400_000,
-    MONTH: 2592000_000,
-  }[interval.step];
-
+  const msPerUnit = MS_PER_INTERVAL_STEP[interval.step];
   if (!msPerUnit) {
     throw new Error(
       `Unsupported interval step: ${interval.step}. Expected one of: MINUTE, HOUR, DAY, MONTH`,
     );
   }
-
   const stepMs = msPerUnit * interval.stepSize;
 
   return `
@@ -983,15 +1024,20 @@ function createIdentityTimeseriesQuerier(interval: TimeInterval) {
       return { val: [] };
     }
 
-    const { whereClause, paramSchema } = getIdentityTimeseriesWhereClause(args, [
+    const alignedArgs = {
+      ...args,
+      ...alignWindowToInterval(interval, args.startTime, args.endTime),
+    };
+
+    const { whereClause, paramSchema } = getIdentityTimeseriesWhereClause(alignedArgs, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",
     ]);
 
     // Create parameters object with filter values
     const parameters: ExtendedParamsIdentityTimeseries = {
-      ...args,
-      ...args.keyIds.reduce(
+      ...alignedArgs,
+      ...alignedArgs.keyIds.reduce(
         (acc, keyId, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
           ...acc,
@@ -999,7 +1045,7 @@ function createIdentityTimeseriesQuerier(interval: TimeInterval) {
         }),
         {},
       ),
-      ...(args.tags?.reduce(
+      ...(alignedArgs.tags?.reduce(
         (acc, filter, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
           ...acc,
@@ -1007,7 +1053,7 @@ function createIdentityTimeseriesQuerier(interval: TimeInterval) {
         }),
         {},
       ) ?? {}),
-      ...(args.outcomes?.reduce(
+      ...(alignedArgs.outcomes?.reduce(
         (acc, filter, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: We don't care about the spread syntax warning here
           ...acc,
