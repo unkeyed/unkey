@@ -721,7 +721,9 @@ function alignWindowToInterval(
 ): { startTime: number; endTime: number } {
   const msPerUnit = MS_PER_INTERVAL_STEP[interval.step];
   if (!msPerUnit) {
-    return { startTime, endTime };
+    throw new Error(
+      `Unsupported interval step: ${interval.step}. Expected one of: MINUTE, HOUR, DAY, MONTH`,
+    );
   }
   const stepMs = msPerUnit * interval.stepSize;
 
