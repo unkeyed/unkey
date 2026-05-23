@@ -727,6 +727,7 @@ function alignWindowToInterval(
 
   return {
     startTime: Math.floor(startTime / stepMs) * stepMs,
+    // -1ms so `time <= endTime` stays exclusive of the next bucket's first row
     endTime: Math.ceil(endTime / stepMs) * stepMs - 1,
   };
 }
