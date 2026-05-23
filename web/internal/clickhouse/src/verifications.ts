@@ -55,41 +55,41 @@ export function getKeyDetailsLogs(ch: Querier) {
 
     const tagCondition = hasTagFilters
       ? args.tags
-        ?.map((filter, index) => {
-          const paramName = `tagValue_${index}`;
-          paramSchemaExtension[paramName] = z.string();
-          parameters[paramName] = filter.value;
+          ?.map((filter, index) => {
+            const paramName = `tagValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = filter.value;
 
-          switch (filter.operator) {
-            case "is":
-              return `has(tags, {${paramName}: String})`;
-            case "contains":
-              return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
-            case "startsWith":
-              return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
-            case "endsWith":
-              return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
-            default:
-              return null;
-          }
-        })
-        .filter(Boolean)
-        .join(" AND ") || "TRUE"
+            switch (filter.operator) {
+              case "is":
+                return `has(tags, {${paramName}: String})`;
+              case "contains":
+                return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
+              case "startsWith":
+                return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
+              case "endsWith":
+                return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
+              default:
+                return null;
+            }
+          })
+          .filter(Boolean)
+          .join(" AND ") || "TRUE"
       : "TRUE";
 
     const outcomeCondition = hasOutcomeFilters
       ? args.outcomes
-        ?.map((filter, index) => {
-          if (filter.operator === "is") {
-            const paramName = `outcomeValue_${index}`;
-            paramSchemaExtension[paramName] = z.string();
-            parameters[paramName] = filter.value;
-            return `outcome = {${paramName}: String}`;
-          }
-          return null;
-        })
-        .filter(Boolean)
-        .join(" OR ") || "TRUE"
+          ?.map((filter, index) => {
+            if (filter.operator === "is") {
+              const paramName = `outcomeValue_${index}`;
+              paramSchemaExtension[paramName] = z.string();
+              parameters[paramName] = filter.value;
+              return `outcome = {${paramName}: String}`;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE"
       : "TRUE";
 
     const useOffset = args.offset !== null;
@@ -240,41 +240,41 @@ export function getIdentityLogs(ch: Querier) {
 
     const tagCondition = hasTagFilters
       ? args.tags
-        ?.map((filter, index) => {
-          const paramName = `tagValue_${index}`;
-          paramSchemaExtension[paramName] = z.string();
-          parameters[paramName] = filter.value;
+          ?.map((filter, index) => {
+            const paramName = `tagValue_${index}`;
+            paramSchemaExtension[paramName] = z.string();
+            parameters[paramName] = filter.value;
 
-          switch (filter.operator) {
-            case "is":
-              return `has(tags, {${paramName}: String})`;
-            case "contains":
-              return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
-            case "startsWith":
-              return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
-            case "endsWith":
-              return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
-            default:
-              return null;
-          }
-        })
-        .filter(Boolean)
-        .join(" AND ") || "TRUE"
+            switch (filter.operator) {
+              case "is":
+                return `has(tags, {${paramName}: String})`;
+              case "contains":
+                return `arrayExists(tag -> position(tag, {${paramName}: String}) > 0, tags)`;
+              case "startsWith":
+                return `arrayExists(tag -> startsWith(tag, {${paramName}: String}), tags)`;
+              case "endsWith":
+                return `arrayExists(tag -> endsWith(tag, {${paramName}: String}), tags)`;
+              default:
+                return null;
+            }
+          })
+          .filter(Boolean)
+          .join(" AND ") || "TRUE"
       : "TRUE";
 
     const outcomeCondition = hasOutcomeFilters
       ? args.outcomes
-        ?.map((filter, index) => {
-          if (filter.operator === "is") {
-            const paramName = `outcomeValue_${index}`;
-            paramSchemaExtension[paramName] = z.string();
-            parameters[paramName] = filter.value;
-            return `outcome = {${paramName}: String}`;
-          }
-          return null;
-        })
-        .filter(Boolean)
-        .join(" OR ") || "TRUE"
+          ?.map((filter, index) => {
+            if (filter.operator === "is") {
+              const paramName = `outcomeValue_${index}`;
+              paramSchemaExtension[paramName] = z.string();
+              parameters[paramName] = filter.value;
+              return `outcome = {${paramName}: String}`;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(" OR ") || "TRUE"
       : "TRUE";
 
     let cursorCondition: string;
