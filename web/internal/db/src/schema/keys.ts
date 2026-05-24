@@ -106,7 +106,7 @@ export const keys = mysqlTable(
     workspaceIdIndex: index("idx_keys_on_workspace_id").on(table.workspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
     identityIdIndex: index("identity_id_idx").on(table.identityId, table.keyAuthId, table.id),
-    refillIndex: index("idx_keys_refill").on(table.refillAmount, table.deletedAtM),
+    refillIndex: index("idx_keys_refill").on(table.deletedAtM, table.refillDay, table.pk),
   }),
 );
 

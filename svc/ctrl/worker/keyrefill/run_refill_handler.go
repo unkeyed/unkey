@@ -57,13 +57,16 @@ func (s *Service) RunRefill(
 
 	// Process keys in batches using cursor-based pagination on pk
 	for {
-		// Fetch batch of keys needing refill via deferred join on pk
+		// Fetch batch of keys needing refill via UNION ALL deferred join on pk
 		keys, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListKeysForRefillRow, error) {
 			return db.Query.ListKeysForRefill(rc, s.db.RO(), db.ListKeysForRefillParams{
-				TodayDay:         sql.NullInt16{Int16: int16(todayDay), Valid: true},
-				IsLastDayOfMonth: isLastDayInt,
 				AfterPk:          cursor,
 				Limit:            batchSize,
+				TodayDay:         sql.NullInt16{Int16: int16(todayDay), Valid: true},
+				Limit_2:          batchSize,
+				IsLastDayOfMonth: isLastDayInt,
+				Limit_3:          batchSize,
+				Limit_4:          batchSize,
 			})
 		}, restate.WithName(fmt.Sprintf("fetch keys batch %d", batchNum)))
 		if fetchErr != nil {
@@ -98,7 +101,6 @@ func (s *Service) RunRefill(
 			return nil, fmt.Errorf("get now: %w", nowErr)
 		}
 
-		// Collect key IDs for batch update
 		keyIDs := make([]string, len(keysToProcess))
 		for i, key := range keysToProcess {
 			keyIDs[i] = key.ID

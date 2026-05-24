@@ -41,5 +41,5 @@ CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
 
 CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`,`key_auth_id`,`id`);
 
-CREATE INDEX `idx_keys_refill` ON `keys` (`refill_amount`,`deleted_at_m`);
+CREATE INDEX `idx_keys_refill` ON `keys` (`deleted_at_m`,`refill_day`,`pk`);
 

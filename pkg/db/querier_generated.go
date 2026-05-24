@@ -2388,29 +2388,55 @@ type Querier interface {
 	//  LIMIT ?
 	ListKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
 	// ListKeysForRefill returns keys that need their remaining_requests refilled.
-	// Uses a deferred join on pk for stable cursor-based pagination that avoids
-	// OFFSET drift when rows are mutated between batches.
-	// Keys are selected if:
-	//   - refill_day is NULL (daily refill)
-	//   - refill_day matches today's day of month
-	//   - refill_day > today's day AND today is the last day of month (catch-up for short months)
-	// Keys are skipped if remaining_requests >= refill_amount (already full).
+	// Splits the refill_day conditions into three UNION ALL branches so each can
+	// use the idx_keys_refill index (deleted_at_m, refill_day, pk) via equality
+	// lookups instead of an OR scan. Per-branch LIMIT enables early termination.
+	// The deferred join on pk avoids reading full rows until after the combined
+	// result is cursor-paginated and limited.
+	// All four LIMIT params must be set to the same batch size value.
 	//
 	//  SELECT k.pk, k.id, k.workspace_id, k.refill_amount, k.remaining_requests, k.name
 	//  FROM `keys` k
 	//  INNER JOIN (
-	//      SELECT ki.pk
-	//      FROM `keys` ki
-	//      WHERE ki.refill_amount IS NOT NULL
-	//        AND ki.deleted_at_m IS NULL
-	//        AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
-	//        AND (
-	//            ki.refill_day IS NULL
-	//            OR ki.refill_day = ?
-	//            OR (? = 1 AND ki.refill_day > ?)
-	//        )
-	//        AND ki.pk > ?
-	//      ORDER BY pk
+	//      SELECT u.pk FROM (
+	//          (
+	//              SELECT /*+ INDEX(ki idx_keys_refill) */ ki.pk
+	//              FROM `keys` ki
+	//              WHERE ki.deleted_at_m IS NULL
+	//                AND ki.refill_day IS NULL
+	//                AND ki.refill_amount IS NOT NULL
+	//                AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
+	//                AND ki.pk > ?
+	//              ORDER BY ki.pk
+	//              LIMIT ?
+	//          )
+	//          UNION ALL
+	//          (
+	//              SELECT /*+ INDEX(ki idx_keys_refill) */ ki.pk
+	//              FROM `keys` ki
+	//              WHERE ki.deleted_at_m IS NULL
+	//                AND ki.refill_day = ?
+	//                AND ki.refill_amount IS NOT NULL
+	//                AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
+	//                AND ki.pk > ?
+	//              ORDER BY ki.pk
+	//              LIMIT ?
+	//          )
+	//          UNION ALL
+	//          (
+	//              SELECT /*+ INDEX(ki idx_keys_refill) */ ki.pk
+	//              FROM `keys` ki
+	//              WHERE ki.deleted_at_m IS NULL
+	//                AND ? = 1
+	//                AND ki.refill_day > ?
+	//                AND ki.refill_amount IS NOT NULL
+	//                AND (ki.remaining_requests IS NULL OR ki.refill_amount > ki.remaining_requests)
+	//                AND ki.pk > ?
+	//              ORDER BY ki.pk
+	//              LIMIT ?
+	//          )
+	//      ) AS u
+	//      ORDER BY u.pk
 	//      LIMIT ?
 	//  ) AS batch ON batch.pk = k.pk
 	ListKeysForRefill(ctx context.Context, db DBTX, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
