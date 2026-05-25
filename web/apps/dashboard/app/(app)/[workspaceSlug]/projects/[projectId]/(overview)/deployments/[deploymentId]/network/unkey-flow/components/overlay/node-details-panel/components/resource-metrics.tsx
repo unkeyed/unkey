@@ -1,7 +1,6 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { useDeployment } from "../../../../../../layout-provider";
 import {
   bytesToMib,
   formatBytesPerSecondParts,
@@ -21,6 +20,7 @@ import {
 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
+import { useDeployment } from "../../../../../../layout-provider";
 import {
   type AreaChartPoint,
   AreaTimeseriesChart,
@@ -29,10 +29,10 @@ import {
 
 // Dashboard panel refreshes every 3s. The chart's live tip reads from raw
 // FINAL so new checkpoints (5s heimdall cadence) show up at most one
-// refresh after they land. Each refresh fires 7 queries (cpu, memory,
-// disk, instances, network ingress, network egress, summary), each
-// scanning at most ~1 minute of raw data per workspace+resource. ~2.3 q/s
-// per open panel, well within budget.
+// refresh after they land. Each refresh fires 6 queries (cpu, memory,
+// disk, instances, network ingress, network egress), each scanning at
+// most ~1 minute of raw data per workspace+resource. ~2 q/s per open
+// panel, well within budget.
 const REFETCH_INTERVAL_MS = 3_000;
 
 const WINDOW_LABELS: Record<TimeWindow, string> = {
