@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
+import { useDeployment } from "../../../../../../layout-provider";
 import {
   bytesToMib,
   formatBytesPerSecondParts,
@@ -98,6 +99,7 @@ type ResourceMetricsProps = {
 };
 
 export function ResourceMetrics({ resourceId, storageMib, instanceName }: ResourceMetricsProps) {
+  const { deployment } = useDeployment();
   const params = { resourceId, instanceName };
   const [window, setWindow] = useState<TimeWindow>("1h");
   const showDateInTooltip = WINDOWS_NEEDING_DATE.includes(window);
@@ -140,18 +142,16 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
       keepPreviousData: true,
     },
   );
-  const summary = trpc.deploy.metrics.getDeploymentResourceSummary.useQuery(params, {
-    refetchInterval: REFETCH_INTERVAL_MS,
-  });
-
-  const summaryData = summary.data;
-  const cpuUsedMilli = Math.round(summaryData?.current_cpu_millicores ?? 0);
-  const cpuAllocatedMilli = Math.round(summaryData?.cpu_allocated_millicores ?? 0);
-  const memUsedBytes = summaryData?.current_memory_bytes ?? 0;
-  const memAllocatedBytes = summaryData?.memory_allocated_bytes ?? 0;
-  const diskUsedBytes = summaryData?.current_disk_used_bytes ?? 0;
+  // Bar reads the chart's right-edge bucket so the two stay in lockstep —
+  // a rolling-average "current" smooths bursts, which made a 72% chart peak
+  // sit next to a 30% bar and read as a contradiction.
+  const cpuUsedMilli = Math.round(cpu.data?.at(-1)?.y ?? 0);
+  const cpuAllocatedMilli = deployment.cpuMillicores;
+  const memUsedBytes = memory.data?.at(-1)?.y ?? 0;
+  const memAllocatedBytes = deployment.memoryMib * 1024 * 1024;
+  const diskUsedBytes = disk.data?.at(-1)?.y ?? 0;
   const diskAllocatedBytes = (storageMib ?? 0) * 1024 * 1024;
-  const instanceCount = summaryData?.active_instances ?? 0;
+  const instanceCount = Math.round(instances.data?.at(-1)?.y ?? 0);
 
   const nowMs = Date.now();
   const xAxisDomain: [number, number] = [nowMs - WINDOW_MS[window], nowMs];
