@@ -17,9 +17,11 @@ type UseRatelimitsOverviewListQueryParams = {
 
 const PREFETCH_PAGES_AHEAD = 2;
 
+export const RATELIMITS_OVERVIEW_PAGE_SIZE = 50;
+
 export function useRatelimitsOverviewListPaginated({
   namespaceId,
-  limit = 50,
+  limit = RATELIMITS_OVERVIEW_PAGE_SIZE,
 }: UseRatelimitsOverviewListQueryParams) {
   const { filters } = useFilters();
   const { sorts } = useSort<SortFields>();
@@ -116,7 +118,7 @@ export function useRatelimitsOverviewListPaginated({
     keepPreviousData: true,
   });
 
-  const totalCount = data?.total && data.total >= 0 ? data.total : 0;
+  const totalCount = Math.max(0, data?.total ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   useEffect(() => {

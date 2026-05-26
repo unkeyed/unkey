@@ -2,6 +2,7 @@
 
 import { useSort } from "@/components/logs/hooks/use-sort";
 import {
+  RATELIMITS_OVERVIEW_PAGE_SIZE,
   createRatelimitsOverviewColumns,
   getRowClassName,
   renderRatelimitsOverviewSkeletonRow,
@@ -19,7 +20,7 @@ const TABLE_CONFIG: Partial<DataTableConfig> = {
   layout: "grid",
   rowBorders: true,
   containerPadding: "px-0",
-  loadingRows: 10,
+  loadingRows: RATELIMITS_OVERVIEW_PAGE_SIZE,
 };
 
 export const RatelimitOverviewLogsTable = ({
@@ -38,8 +39,16 @@ export const RatelimitOverviewLogsTable = ({
     pageSize,
     totalPages,
     totalCount,
-    onPageChange,
+    onPageChange: onPageChangeRaw,
   } = useRatelimitsOverviewListPaginated({ namespaceId });
+
+  const onPageChange = useCallback(
+    (newPage: number) => {
+      setSelectedLog(null);
+      onPageChangeRaw(newPage);
+    },
+    [onPageChangeRaw],
+  );
 
   const columns = useMemo(() => createRatelimitsOverviewColumns({ namespaceId }), [namespaceId]);
 
