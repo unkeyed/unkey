@@ -206,7 +206,6 @@ import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
-import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -310,7 +309,6 @@ export const router = t.router({
     getSetupIntent,
     updateWorkspaceStripeCustomer,
   }),
-  vercel: vercelRouter,
   github: githubRouter,
   plain: t.router({
     createIssue: createPlainIssue,

@@ -36,7 +36,9 @@ go_test(
     embed = [":middleware"],
     deps = [
         "//pkg/codes",
+        "//pkg/fault",
         "//pkg/zen",
+        "//svc/frontline/internal/errorpage",
         "@com_github_stretchr_testify//require",
     ],
 )
