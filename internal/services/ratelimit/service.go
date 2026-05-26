@@ -175,7 +175,7 @@ func (e *counterEntry) shouldPushGlobalCount(val int64) bool {
 // fetch returns; concurrent warm callers use originFetchMsLast as a single-fetch
 // gate. A fetch failure surfaces as a returned 0, which atomicMax treats as a
 // no-op — the entry is left at whatever val held before and marked refreshed so
-// the hot path stays fast when origin is unavailable.
+// retries stay bounded by originFetchAgeMax when origin is unavailable.
 func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time) {
 	nowMs := now.UnixMilli()
 	if !e.hydrated.Load() {
@@ -192,10 +192,6 @@ func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time)
 			return
 		}
 		if e.originFetchMsLast.CompareAndSwap(last, nowMs) {
-		if e.originFetchMsLast.CompareAndSwap(last, nowMs) {
-			atomicMax(&e.val, e.fetch(ctx))
-			return
-		}
 			atomicMax(&e.val, e.fetch(ctx))
 			return
 		}
