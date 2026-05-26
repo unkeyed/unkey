@@ -13,16 +13,22 @@ task.run_auto_install = false
 [tools]
 node = "24.16.0"
 go = "1.25.1"
-"github:bazelbuild/bazelisk" = "1.29.0"
 "github:dprint/dprint" = "0.51.1"
 "github:bufbuild/buf" = "1.64.0"
 "github:jqlang/jq" = "jq-1.8.1"
 "github:tilt-dev/tilt" = "0.37.3"
 "github:tilt-dev/ctlptl" = "0.9.3"
-"github:kubernetes/minikube" = "1.38.1"
 "github:FiloSottile/mkcert" = "1.4.4"
 "github:planetscale/cli" = "0.284.0"
 "github:pnpm/pnpm" = "8.6.9"
+
+[tools."github:bazelbuild/bazelisk"]
+version = "1.29.0"
+bin = "bazel"
+
+[tools."github:kubernetes/minikube"]
+version = "1.38.1"
+rename_exe = "minikube"
 
 [tools."http:kubectl"]
 version = "1.34.8"
