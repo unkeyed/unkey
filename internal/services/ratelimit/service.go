@@ -192,7 +192,10 @@ func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time)
 			return
 		}
 		if e.originFetchMsLast.CompareAndSwap(last, nowMs) {
-			atomicMax(&e.originFetchMsLast, nowMs)
+		if e.originFetchMsLast.CompareAndSwap(last, nowMs) {
+			atomicMax(&e.val, e.fetch(ctx))
+			return
+		}
 			atomicMax(&e.val, e.fetch(ctx))
 			return
 		}
