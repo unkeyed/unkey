@@ -217,8 +217,6 @@ ${validEventTypes.map((event) => `   - ${event}`).join("\n")}
    - api.create, api.update, api.delete
    - key.create, key.update, key.delete, key.reroll
    - ratelimitNamespace.create, ratelimitNamespace.update, ratelimitNamespace.delete
-   - vercelIntegration.create, vercelIntegration.update, vercelIntegration.delete
-   - vercelBinding.create, vercelBinding.update, vercelBinding.delete
    - role.create, role.update, role.delete
    - permission.create, permission.update, permission.delete
    - authorization.connect_role_and_permission, authorization.disconnect_role_and_permissions

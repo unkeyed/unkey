@@ -1,7 +1,6 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { useQueryTime } from "@/providers/query-time-provider";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useProjectData } from "../../../../data-provider";
@@ -23,7 +22,6 @@ export function useSentinelLogsQuery({
   const { projectId } = useProjectData();
   const { filters } = useSentinelLogsFilters();
   const queryClient = trpc.useUtils();
-  const { queryTime: timestamp } = useQueryTime();
 
   const [historicalLogsMap, setHistoricalLogsMap] = useState(
     () => new Map<string, SentinelLogsResponse>(),
@@ -46,7 +44,9 @@ export function useSentinelLogsQuery({
       }));
 
     const deploymentIdFilter = filters.find((f) => f.field === "deploymentId");
-    const environmentIdFilter = filters.find((f) => f.field === "environmentId");
+    const environmentIdFilters = filters
+      .filter((f) => f.field === "environmentId")
+      .map((f) => String(f.value));
 
     // Extract time filters
     const startTimeFilter = filters.find((f) => f.field === "startTime");
@@ -56,16 +56,16 @@ export function useSentinelLogsQuery({
     return {
       projectId,
       deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
-      environmentId: environmentIdFilter ? String(environmentIdFilter.value) : null,
+      environmentId: environmentIdFilters,
       limit,
-      startTime: startTimeFilter ? Number(startTimeFilter.value) : timestamp - 6 * 60 * 60 * 1000,
-      endTime: endTimeFilter ? Number(endTimeFilter.value) : timestamp,
-      since: sinceFilter ? String(sinceFilter.value) : "6h",
+      startTime: startTimeFilter ? Number(startTimeFilter.value) : null,
+      endTime: endTimeFilter ? Number(endTimeFilter.value) : null,
+      since: sinceFilter ? String(sinceFilter.value) : null,
       statusCodes: statusFilters.length > 0 ? statusFilters : null,
       methods: methodFilters.length > 0 ? methodFilters : null,
       paths: pathFilters.length > 0 ? pathFilters : null,
     };
-  }, [filters, limit, projectId, timestamp]);
+  }, [filters, limit, projectId]);
 
   const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } =
     trpc.deploy.sentinelLogs.query.useInfiniteQuery(queryInput, {

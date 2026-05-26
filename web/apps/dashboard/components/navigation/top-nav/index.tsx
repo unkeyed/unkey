@@ -26,7 +26,7 @@ export function TopNav() {
 
   return (
     <header
-      className="z-30 flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4"
+      className="flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4"
       style={{ height: TOP_NAV_HEIGHT }}
     >
       <Link href={`/${workspace.slug}`} aria-label="Unkey" className="inline-flex items-center">

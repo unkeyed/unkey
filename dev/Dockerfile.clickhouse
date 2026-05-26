@@ -1,4 +1,4 @@
-FROM bitnamilegacy/clickhouse:25.6.4
+FROM bitnamilegacy/clickhouse:25.6.4@sha256:7a3b1f0a80a5dea75bc8117b6f33344fed8cec17b463e526e8a2711a11623d71
 
 # Copy ClickHouse schemas
 COPY pkg/clickhouse/migrations /opt/clickhouse-schemas/

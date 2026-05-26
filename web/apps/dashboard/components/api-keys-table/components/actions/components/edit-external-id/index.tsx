@@ -131,7 +131,7 @@ export const EditExternalId = ({
             keyDetails.identity_id
               ? {
                   id: keyDetails.identity_id,
-                  externalId: keyDetails.owner_id || "",
+                  externalId: keyDetails.identity?.external_id || keyDetails.owner_id || "",
                 }
               : undefined
           }

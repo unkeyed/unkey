@@ -267,7 +267,14 @@ app.get("/another-secret", unkeyAuth, (req, res) => {
 
   <Accordion title="TypeScript version?">
     The code above uses CommonJS. For TypeScript, install types and use imports:
-    ```bash npm install -D typescript @types/express @types/node ``` ```ts
-    import express from "express"; import { Unkey } from "@unkey/api"; ```
+
+    ```bash
+    npm install -D typescript @types/express @types/node
+    ```
+
+    ```ts
+    import express from "express";
+    import { Unkey } from "@unkey/api";
+    ```
   </Accordion>
 </AccordionGroup>

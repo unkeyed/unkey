@@ -3,7 +3,7 @@
 #
 #   docker build -f svc/kitchensink/Dockerfile -t kitchensink .
 
-FROM golang:1.25-alpine AS builder
+FROM golang:1.25-alpine@sha256:8d22e29d960bc50cd025d93d5b7c7d220b1ee9aa7a239b3c8f55a57e987e8d45 AS builder
 
 # UNKEY_SECRETS_ID is supplied by the Unkey builder as a hash of the
 # project's variables.
@@ -25,7 +25,7 @@ RUN --mount=type=secret,id=${UNKEY_SECRETS_ID},target=/run/secrets/.env \
       -ldflags "-X 'github.com/unkeyed/unkey/svc/kitchensink/buildinfo.Version=${VERSION:-unset}'" \
       -o /kitchensink ./svc/kitchensink
 
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian12@sha256:9c346e4be81b5ca7ff31a0d89eaeade58b0f95cfd3baed1f36083ddb47ca3160
 
 COPY --from=builder /kitchensink /kitchensink
 

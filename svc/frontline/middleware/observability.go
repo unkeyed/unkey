@@ -16,7 +16,12 @@ import (
 )
 
 type ErrorResponse struct {
+	Meta  ErrorMeta   `json:"meta"`
 	Error ErrorDetail `json:"error"`
+}
+
+type ErrorMeta struct {
+	RequestID string `json:"requestId"`
 }
 
 type ErrorDetail struct {
@@ -102,6 +107,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 				var writeErr error
 				if preferJSON {
 					writeErr = s.JSON(pageInfo.Status, ErrorResponse{
+						Meta: ErrorMeta{RequestID: s.RequestID()},
 						Error: ErrorDetail{
 							Code:    string(code.URN()),
 							Message: userMessage,
@@ -119,6 +125,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					if renderErr != nil {
 						logger.Error("failed to render error page", "error", renderErr.Error())
 						writeErr = s.JSON(pageInfo.Status, ErrorResponse{
+							Meta: ErrorMeta{RequestID: s.RequestID()},
 							Error: ErrorDetail{
 								Code:    string(code.URN()),
 								Message: userMessage,

@@ -11,12 +11,12 @@ export const SentinelLogsDateTime = () => {
 
   useEffect(() => {
     if (!title) {
-      setTitle("Last 12 hours");
+      setTitle("Last 6 hours");
     }
   }, [title]);
 
   const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
-  const displayTitle = hasTimeFilters ? (title ?? "Loading...") : "Last 12 hours";
+  const displayTitle = hasTimeFilters ? (title ?? "Loading...") : "Last 6 hours";
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
@@ -77,7 +77,7 @@ export const SentinelLogsDateTime = () => {
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             displayTitle === "Loading..." ? "opacity-50" : "",
-            displayTitle !== "Last 12 hours" ? "bg-gray-4" : "",
+            displayTitle !== "Last 6 hours" ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs by time"
           aria-haspopup="true"

@@ -1,0 +1,68 @@
+---
+import "@unkey/ui/css";
+import "../styles/global.css";
+import Logo from "../components/logo.astro";
+import Sidebar from "../components/sidebar.astro";
+import ThemeToggle from "../components/theme-toggle.astro";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "Unkey Design" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <script is:inline>
+      const stored = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (stored === "dark" || (!stored && prefersDark)) {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+  </head>
+  <body>
+    <header class="sticky top-0 z-50 border-b bg-header-bg">
+      <div class="mx-auto flex h-12 max-w-screen-2xl items-center justify-between px-6">
+        <a href="/" class="flex items-center gap-2 text-foreground">
+          <Logo class="size-5" />
+          <span class="select-none text-muted-foreground/60 text-base">/</span>
+          <span class="text-sm font-medium">Design</span>
+        </a>
+        <div class="flex items-center gap-1">
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-screen-2xl px-6">
+      <div class="lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] xl:grid-cols-[14rem_minmax(0,1fr)_14rem] lg:gap-10">
+        <aside class="hidden lg:block sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto">
+          <Sidebar />
+        </aside>
+        <main class="min-w-0 min-h-[calc(100vh-3rem)]">
+          <article class="mx-auto w-full max-w-2xl py-6 lg:py-8">
+            <slot />
+          </article>
+        </main>
+        <aside class="hidden xl:block" aria-hidden="true">
+          {/* Reserved column for the right-hand TOC. */}
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      // Decorate every Astro-MDX fenced code block with a shared Copy button.
+      // Preview islands run the same `attachCopyButton` from their own effect.
+      import { attachCopyButton } from "../lib/copy-button.ts";
+      for (const pre of document.querySelectorAll<HTMLPreElement>("pre.astro-code")) {
+        attachCopyButton(pre, pre.textContent ?? "");
+      }
+    </script>
+  </body>
+</html>
