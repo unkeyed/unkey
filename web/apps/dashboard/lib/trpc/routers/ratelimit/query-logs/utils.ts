@@ -1,4 +1,4 @@
-import type { RatelimitQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/components/table/query-logs.schema";
+import type { RatelimitQueryLogsPayload } from "@/components/ratelimit-logs-table/schema/query-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { RatelimitLogsParams } from "@unkey/clickhouse/src/ratelimits";
 
@@ -7,6 +7,9 @@ export function transformFilters(
 ): Omit<RatelimitLogsParams, "workspaceId" | "namespaceId"> {
   let startTime = params.startTime;
   let endTime = params.endTime;
+
+  const page = params.page ?? 1;
+  const offset = (page - 1) * params.limit;
 
   // If we have relativeTime filter `since`, ignore other time params
   if (params.since) {
@@ -34,6 +37,8 @@ export function transformFilters(
     identifiers,
     requestIds: params.requestIds?.filters.map((f) => f.value) || [],
     status,
-    cursorTime: params.cursor ?? null,
+    sorts: params.sorts ?? null,
+    cursorTime: null,
+    offset,
   };
 }

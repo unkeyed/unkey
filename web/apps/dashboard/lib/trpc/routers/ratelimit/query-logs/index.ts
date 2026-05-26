@@ -1,4 +1,4 @@
-import { ratelimitQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/components/table/query-logs.schema";
+import { ratelimitQueryLogsPayload } from "@/components/ratelimit-logs-table/schema/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -9,9 +9,7 @@ import { transformFilters } from "./utils";
 
 const RatelimitLogsResponse = z.object({
   ratelimitLogs: z.array(ratelimitLogs),
-  hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.int().optional(),
 });
 
 type RatelimitLogsResponse = z.infer<typeof RatelimitLogsResponse>;
@@ -54,7 +52,6 @@ export const queryRatelimitLogs = workspaceProcedure
     const transformedInputs = transformFilters(input);
     const { countQuery, logsQuery } = await clickhouse.ratelimits.logs({
       ...transformedInputs,
-      cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
       namespaceId: ratelimitNamespaces[0].id,
     });
@@ -86,8 +83,6 @@ export const queryRatelimitLogs = workspaceProcedure
     const response: RatelimitLogsResponse = {
       ratelimitLogs: logs,
       total,
-      hasMore: logs.length === input.limit,
-      nextCursor: logs.length > 0 ? logs[logs.length - 1].time : undefined,
     };
 
     return response;
