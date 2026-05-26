@@ -23,7 +23,7 @@ jobs:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
     steps:
-      - uses: planetscale/setup-pscale-action@v1
+      - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
 
       - name: close open deploy requests
         # Branch deletion fails while a DR is open, so close them first.

@@ -37,7 +37,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogbackfill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -50,7 +49,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/ratelimitblocklistcleanup"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/ratelimitglobalcountercleanup"
 
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
@@ -299,9 +298,14 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
 		DB: database,
 	})))
-	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(workerenvironment.New(workerenvironment.Config{
-		DB: database,
-	})))
+	envSvc, err := workerenvironment.New(workerenvironment.Config{
+		DB:    database,
+		Admin: restateAdminClient,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create environment worker service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(envSvc))
 
 	// BuildSlotService is short-lived coordination — AcquireOrWait/Release
 	// journals have no debugging value (each invocation just reads state,
@@ -484,19 +488,19 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
 	logger.Info("KeyLastUsedSyncService enabled")
 
-	// Ratelimit blocklist cleanup: prunes expired cross-region propagation
-	// rows. Stateless DELETE — a generous retry policy is fine because the
-	// query is idempotent and the local janitor handles in-memory state
-	// independently.
-	ratelimitBlocklistCleanupSvc, err := ratelimitblocklistcleanup.New(ratelimitblocklistcleanup.Config{
+	// Ratelimit global-counter cleanup: prunes expired cross-region
+	// propagation rows. Stateless DELETE — a generous retry policy is fine
+	// because the query is idempotent and the local janitor handles
+	// in-memory state independently.
+	ratelimitGlobalCountersCleanupSvc, err := ratelimitglobalcountercleanup.New(ratelimitglobalcountercleanup.Config{
 		DB:    ratelimitdb.New(database.RW(), database.RO()),
 		Clock: clk,
 	})
 	if err != nil {
-		return fmt.Errorf("create ratelimit blocklist cleanup service: %w", err)
+		return fmt.Errorf("create ratelimit global counters cleanup service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewRatelimitBlocklistCleanupServiceServer(ratelimitBlocklistCleanupSvc, keyLastUsedRetryPolicy))
-	logger.Info("RatelimitBlocklistCleanupService enabled")
+	restateSrv.Bind(hydrav1.NewRatelimitGlobalCountersCleanupServiceServer(ratelimitGlobalCountersCleanupSvc, keyLastUsedRetryPolicy))
+	logger.Info("RatelimitGlobalCountersCleanupService enabled")
 
 	// Audit log export: drains the MySQL audit_log outbox into ClickHouse.
 	// Registered as a virtual object so Restate serializes overlapping triggers.
@@ -520,30 +524,6 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithJournalRetention(1*time.Hour),
 	))
 	logger.Info("AuditLogExportService enabled")
-
-	// Audit log backfill: chips through legacy audit_log/audit_log_target rows
-	// pre-dual-write into ClickHouse audit_logs_raw_v1. Singleton VO, cron-
-	// triggered, loops within each invocation until the legacy tail is reached.
-	var auditLogBackfillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.Heartbeat.AuditLogBackfillURL != "" {
-		auditLogBackfillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.AuditLogBackfillURL)
-	}
-	auditLogBackfillSvc, err := auditlogbackfill.New(auditlogbackfill.Config{
-		DB:         database,
-		Clickhouse: ch,
-		Heartbeat:  auditLogBackfillHeartbeat,
-	})
-	if err != nil {
-		return fmt.Errorf("create audit log backfill service: %w", err)
-	}
-	// Singleton VO, cron-triggered every 15min, ~1-2 min per invocation.
-	// Cursor lives in VO state so journal retention only matters for
-	// post-mortem on the most recent invocation. 1h covers a few ticks
-	// without holding a day of journals.
-	restateSrv.Bind(hydrav1.NewAuditLogBackfillServiceServer(auditLogBackfillSvc,
-		restate.WithJournalRetention(1*time.Hour),
-	))
-	logger.Info("AuditLogBackfillService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

@@ -87,7 +87,8 @@ func newBenchService(b *testing.B, latency time.Duration) *service {
 
 	ctr := &mockCounter{latency: latency}
 
-	svc, err := New(Config{Counter: ctr, DB: newTestDB(b)})
+	svc, err := New(Config{
+		Counter: ctr, DB: newTestDB(b), Region: "test-region"})
 	if err != nil {
 		b.Fatal(err)
 	}

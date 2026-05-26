@@ -483,6 +483,7 @@ func buildEngine(
 		Clock:   clk,
 		Counter: ctr,
 		DB:      pkgdb.ToMySQL(database),
+		Region:  region,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ratelimit service: %w", err)

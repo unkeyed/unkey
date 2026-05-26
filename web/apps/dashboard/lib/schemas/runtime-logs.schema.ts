@@ -26,9 +26,9 @@ export const runtimeLogsRequestSchema = z.object({
     })
     .nullable(),
   limit: z.int().min(1).max(1_000),
-  startTime: z.int(),
-  endTime: z.int(),
-  since: z.string(),
+  startTime: z.int().nullable(),
+  endTime: z.int().nullable(),
+  since: z.string().nullable(),
   severity: z
     .object({
       filters: z.array(

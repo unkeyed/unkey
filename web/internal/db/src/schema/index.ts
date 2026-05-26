@@ -2,12 +2,11 @@ export * from "./apis";
 export * from "./rbac";
 export * from "./keyAuth";
 export * from "./keys";
-export * from "./vercel_integration";
 export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./identity";
 export * from "./quota";
-export * from "./audit_logs";
+export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
 

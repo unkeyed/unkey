@@ -19,7 +19,8 @@ func TestRatelimit_FailsOverToLocalWhenOriginErrors(t *testing.T) {
 	t.Parallel()
 
 	origin := newFailingCounter(errors.New("origin is down"))
-	svc, err := New(Config{Clock: clock.NewTestClock(), Counter: origin, DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clock.NewTestClock(), Counter: origin, DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -44,7 +45,8 @@ func TestFetchFromOrigin_CircuitBreakerShortCircuitsAfterTrip(t *testing.T) {
 	t.Parallel()
 
 	origin := newFailingCounter(errors.New("origin is down"))
-	svc, err := New(Config{Clock: clock.NewTestClock(), Counter: origin, DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clock.NewTestClock(), Counter: origin, DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
