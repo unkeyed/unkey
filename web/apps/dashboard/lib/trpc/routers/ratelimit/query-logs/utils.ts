@@ -38,7 +38,6 @@ export function transformFilters(
     requestIds: params.requestIds?.filters.map((f) => f.value) || [],
     status,
     sorts: params.sorts ?? null,
-    cursorTime: null,
     offset,
   };
 }

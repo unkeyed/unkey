@@ -400,8 +400,7 @@ export const ratelimitLogsParams = z.object({
     )
     .nullable(),
   sorts: z.array(ratelimitLogsSort).nullable(),
-  cursorTime: z.int().nullable(),
-  offset: z.int().nullable(),
+  offset: z.int(),
 });
 
 export const ratelimitLogs = z.object({
@@ -479,14 +478,6 @@ export function getRatelimitLogs(ch: Querier) {
 
     const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
-    // Page-based pagination uses OFFSET; cursor-based pagination filters on time.
-    const useOffset = args.offset !== null;
-    const cursorCondition = useOffset
-      ? ""
-      : `AND (
-        {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
-    )`;
-
     // ORDER BY is built from a closed column allowlist keyed by the validated
     // `sorts` enum — column names and directions are never raw client strings,
     // so this cannot be an injection vector. `time DESC` is always appended as
@@ -520,10 +511,9 @@ WHERE workspace_id = {workspaceId: String}
     ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
     AND (${identifierConditions})
     AND (${statusCondition})
-    ${cursorCondition}
 ORDER BY ${orderByClause}
 LIMIT {limit: Int}
-${useOffset ? "OFFSET {offset: Nullable(Int)}" : ""}`,
+OFFSET {offset: Int}`,
       params: extendedParamsSchema,
       schema: ratelimitLogs,
     });
