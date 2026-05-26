@@ -6,6 +6,7 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/buffer"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
@@ -44,6 +45,12 @@ var ErrRegionRequired = errors.New("ratelimit: Config.Region is required")
 // bounded by GOMAXPROCS; 100 is astronomically generous.
 const maxCASRetries = 100
 
+// originFetchAgeMax bounds how long a warm local counter can make decisions
+// without re-reading the shared origin. Short windows naturally rotate before
+// this matters; longer windows refresh periodically so idle replicas do not keep
+// serving stale state for the rest of the window.
+const originFetchAgeMax = time.Minute
+
 // atomicMax raises target to val atomically via a bounded CAS loop.
 // The value only ever moves forward — a smaller val is a no-op. If the retry
 // bound is exhausted, an error is logged and the function returns without
@@ -72,6 +79,13 @@ type counterEntry struct {
 	// background replay path. The deny decision adds val to
 	// globalCount to get the global count.
 	val atomic.Int64
+
+	// originFetchLastMs is the last request timestamp at which this replica
+	// deliberately refreshed the cell from origin. EnsureFreshFromOrigin initializes
+	// it for cold entries and advances it for periodic stale-state refreshes.
+	// It is intentionally request-time based so tests can drive refresh behavior
+	// with a simulated clock.
+	originFetchLastMs atomic.Int64
 
 	// speculative tracks RatelimitMany increments that have been applied to val
 	// but are not committed yet. The global push loop subtracts this value before
@@ -116,8 +130,8 @@ type counterEntry struct {
 	// entries eligible for retry on the next tick.
 	lastPushed atomic.Int64
 
-	// fetch is bound to the entry's key at creation so the hot path
-	// doesn't allocate a per-call closure to pass into Hydrate.
+	// fetch is bound to the entry's key at creation so the hot path doesn't
+	// allocate a per-call closure to pass into EnsureFreshFromOrigin.
 	fetch func(context.Context) int64
 }
 
@@ -154,22 +168,35 @@ func (e *counterEntry) shouldPushGlobalCount(val int64) bool {
 	return threshold > 0 && val >= threshold && val > e.lastPushed.Load()
 }
 
-// Hydrate populates val from the bound fetcher exactly once. The fetched
-// value is CAS-merged via atomicMax so the local counter only moves
-// forward. Concurrent callers on a cold entry block inside Do until the
-// first fetch returns; subsequent callers return after a single atomic
-// load of hydrated. A fetch failure surfaces as a returned 0, which
-// atomicMax treats as a no-op — the entry is left at whatever val held
-// before (typically 0 on a failed first hydration) and marked hydrated
-// so the hot path stays fast.
-func (e *counterEntry) Hydrate(ctx context.Context) {
-	if e.hydrated.Load() {
-		return
+// EnsureFreshFromOrigin populates val from origin on first use and refreshes
+// warm entries whose last origin fetch is older than originFetchAgeMax. The
+// fetched value is CAS-merged via atomicMax so the local counter only moves
+// forward. Concurrent callers on a cold entry block inside Do until the first
+// fetch returns; concurrent warm callers use originFetchLastMs as a single-fetch
+// gate. A fetch failure surfaces as a returned 0, which atomicMax treats as a
+// no-op — the entry is left at whatever val held before and marked refreshed so
+// retries stay bounded by originFetchAgeMax when origin is unavailable.
+func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time) {
+	nowMs := now.UnixMilli()
+	if !e.hydrated.Load() {
+		e.once.Do(func() {
+			atomicMax(&e.val, e.fetch(ctx))
+			atomicMax(&e.originFetchLastMs, nowMs)
+			e.hydrated.Store(true)
+		})
 	}
-	e.once.Do(func() {
-		atomicMax(&e.val, e.fetch(ctx))
-		e.hydrated.Store(true)
-	})
+
+	for range maxCASRetries {
+		last := e.originFetchLastMs.Load()
+		if last != 0 && nowMs-last < originFetchAgeMax.Milliseconds() {
+			return
+		}
+		if e.originFetchLastMs.CompareAndSwap(last, nowMs) {
+			atomicMax(&e.val, e.fetch(ctx))
+			return
+		}
+	}
+	logger.Error("origin refresh timestamp retries exhausted")
 }
 
 // service implements lockless distributed rate limiting using a sliding
@@ -177,7 +204,7 @@ func (e *counterEntry) Hydrate(ctx context.Context) {
 // single flat sync.Map with no mutexes in the hot path: per-window counter
 // entries keyed by (workspace, namespace, identifier, duration, sequence),
 // each holding the window's request count plus a sync.Once coordinating the
-// first origin hydration.
+// first origin sync.
 //
 // Ratelimit uses a CAS loop: denials are wait-free (single atomic Load),
 // allows retry only when another goroutine incremented the same counter
@@ -343,9 +370,10 @@ func (s *service) Close() error {
 
 // loadCounter returns the counter entry for the given key, creating it if
 // needed. Newly created entries carry a fetcher closure bound to the key,
-// so callers only need to invoke entry.Hydrate(ctx) to ensure the counter
-// has been populated from origin. Callers that skip Hydrate risk reading a
-// zero-valued counter while another goroutine is mid-fetch.
+// so callers only need to invoke entry.EnsureFreshFromOrigin to ensure the
+// counter has been populated or refreshed from origin. Callers that skip
+// EnsureFreshFromOrigin risk reading a stale or zero-valued counter while
+// another goroutine is mid-fetch.
 //
 // Counters created here are attributed to traffic via RatelimitWindowsCreated.
 // The global-counters sync uses [findOrCreateCounter] directly so its
