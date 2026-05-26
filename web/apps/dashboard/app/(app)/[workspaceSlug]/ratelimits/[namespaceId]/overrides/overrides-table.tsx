@@ -2,12 +2,20 @@
 import { createOverridesColumns, renderOverridesSkeletonRow } from "@/components/overrides-table";
 import { type RatelimitOverride, collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { DataTable, Empty, getSelectableRowClassName } from "@unkey/ui";
+import { DataTable, type DataTableConfig, Empty, getSelectableRowClassName } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { IdentifierDialog } from "../_components/identifier-dialog";
 
 type Props = {
   namespaceId: string;
+};
+
+// The original VirtualTable passed no config, so it rendered with the shared
+// defaults: classic layout (4px spacing between rows), no row borders, and
+// "px-2" container padding. DataTable's defaults match those exactly, so we
+// only override the row height (26 vs the default 36) to preserve the look.
+const TABLE_CONFIG: Partial<DataTableConfig> = {
+  rowHeight: 26,
 };
 
 // Overrides are backed by a TanStack DB live collection rather than a paginated
@@ -17,21 +25,12 @@ type Props = {
 // list with sorting disabled and no pagination footer.
 export const OverridesTable = ({ namespaceId }: Props) => {
   const [selectedOverride, setSelectedOverride] = useState<RatelimitOverride | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const { data: overrides, isLoading } = useLiveQuery((q) =>
     q
       .from({ override: collection.ratelimitOverrides })
       .where(({ override }) => eq(override.namespaceId, namespaceId)),
   );
-
-  const handleRowClick = (override: RatelimitOverride | null) => {
-    if (!override) {
-      return;
-    }
-    setSelectedOverride(override);
-    setIsDialogOpen(true);
-  };
 
   const columns = useMemo(() => createOverridesColumns({ namespaceId }), [namespaceId]);
 
@@ -43,7 +42,7 @@ export const OverridesTable = ({ namespaceId }: Props) => {
         getRowId={(override) => override.id}
         isLoading={isLoading}
         enableSorting={false}
-        onRowClick={handleRowClick}
+        onRowClick={setSelectedOverride}
         selectedItem={selectedOverride}
         rowClassName={(override) => getSelectableRowClassName(override.id === selectedOverride?.id)}
         renderSkeletonRow={renderOverridesSkeletonRow}
@@ -58,12 +57,16 @@ export const OverridesTable = ({ namespaceId }: Props) => {
             </Empty>
           </div>
         }
-        config={{ rowHeight: 52, layout: "grid", rowBorders: true, containerPadding: "px-0" }}
+        config={TABLE_CONFIG}
       />
       {selectedOverride && (
         <IdentifierDialog
-          isModalOpen={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
+          isModalOpen={!!selectedOverride}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedOverride(null);
+            }
+          }}
           namespaceId={namespaceId}
           identifier={selectedOverride.identifier}
           overrideDetails={{

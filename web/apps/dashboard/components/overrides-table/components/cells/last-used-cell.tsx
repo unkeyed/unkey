@@ -1,8 +1,7 @@
-import { STATUS_STYLES } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/components/table/utils/get-row-class";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
+import { Badge, STATUS_STYLES, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
 
 type LastUsedCellProps = {
@@ -23,9 +22,7 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
       ref={badgeRef}
       className={cn(
         "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none cursor-pointer",
-        isError
-          ? "bg-error-3 text-error-11 border border-error-5"
-          : STATUS_STYLES.success.badge.default,
+        isError ? "bg-error-3 text-error-11 border border-error-5" : STATUS_STYLES.badge.default,
       )}
       onMouseOver={() => {
         setShowTooltip(true);
