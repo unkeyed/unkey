@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Generate code from protobuf and other sources (NOT eBPF, see generate-bpf)"
+#MISE depends=["install"]
 set -euo pipefail
 
 rm -rf ./web/internal/db/out

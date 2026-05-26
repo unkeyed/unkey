@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Format the repository"
+#MISE depends=["install"]
 set -euo pipefail
 
 dprint fmt --config dev/dprint.json

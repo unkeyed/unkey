@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Create PlanetScale branch and run drizzle migration (BRANCH=name [FROM=staging])"
+#MISE depends=["install"]
 set -euo pipefail
 
 if [ -z "${BRANCH:-}" ]; then
