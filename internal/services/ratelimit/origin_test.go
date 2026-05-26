@@ -99,9 +99,11 @@ func TestCounterEntryEnsureFreshFromOrigin_RefreshesWarmEntryAfterMaxAge(t *test
 
 	ctx := context.Background()
 	start := time.Now().UTC().Truncate(time.Millisecond)
+	fetchOps := []string{}
 	var fetchCalls atomic.Int64
 	entry := counterEntry{
-		fetch: func(context.Context) int64 {
+		fetch: func(_ context.Context, op string) int64 {
+			fetchOps = append(fetchOps, op)
 			return fetchCalls.Add(1) * 10
 		},
 	}
@@ -117,6 +119,7 @@ func TestCounterEntryEnsureFreshFromOrigin_RefreshesWarmEntryAfterMaxAge(t *test
 	entry.EnsureFreshFromOrigin(ctx, start.Add(originFetchAgeMax))
 	require.Equal(t, int64(2), fetchCalls.Load(), "warm entry should refresh at max age")
 	require.Equal(t, int64(20), entry.val.Load())
+	require.Equal(t, []string{"fetch_cold", "fetch_stale"}, fetchOps)
 }
 
 func TestCounterEntryEnsureFreshFromOrigin_GatesConcurrentWarmRefresh(t *testing.T) {
@@ -129,7 +132,7 @@ func TestCounterEntryEnsureFreshFromOrigin_GatesConcurrentWarmRefresh(t *testing
 	var closeFetchStarted sync.Once
 	var fetchCalls atomic.Int64
 	entry := counterEntry{
-		fetch: func(context.Context) int64 {
+		fetch: func(context.Context, string) int64 {
 			fetchCalls.Add(1)
 			closeFetchStarted.Do(func() { close(fetchStarted) })
 			<-releaseFetch
@@ -167,7 +170,7 @@ func TestCounterEntryEnsureFreshFromOrigin_FailedWarmRefreshSuppressesRetryUntil
 	start := time.Now().UTC().Truncate(time.Millisecond)
 	var fetchCalls atomic.Int64
 	entry := counterEntry{
-		fetch: func(context.Context) int64 {
+		fetch: func(context.Context, string) int64 {
 			if fetchCalls.Add(1) == 1 {
 				return 0
 			}

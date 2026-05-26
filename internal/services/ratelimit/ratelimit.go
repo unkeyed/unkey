@@ -65,8 +65,10 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	// Cross-region convergence is handled separately via
 	// cur.globalCount.
 	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
-		atomicMax(&cur.val, s.fetchFromOrigin(ctx, curKey))
-		atomicMax(&prev.val, s.fetchFromOrigin(ctx, prevKey))
+		countOriginCurrent := s.fetchFromOrigin(ctx, curKey, "fetch_strict")
+		countOriginPrevious := s.fetchFromOrigin(ctx, prevKey, "fetch_strict")
+		atomicMax(&cur.val, countOriginCurrent)
+		atomicMax(&prev.val, countOriginPrevious)
 	}
 
 	windowStartMs := curSeq * durationMs

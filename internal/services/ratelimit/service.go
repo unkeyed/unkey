@@ -132,7 +132,7 @@ type counterEntry struct {
 
 	// fetch is bound to the entry's key at creation so the hot path doesn't
 	// allocate a per-call closure to pass into EnsureFreshFromOrigin.
-	fetch func(context.Context) int64
+	fetch func(context.Context, string) int64
 }
 
 // observeGlobalPushLimit records the count threshold at which this entry's
@@ -180,7 +180,8 @@ func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time)
 	nowMs := now.UnixMilli()
 	if !e.hydrated.Load() {
 		e.once.Do(func() {
-			atomicMax(&e.val, e.fetch(ctx))
+			countOrigin := e.fetch(ctx, "fetch_cold")
+			atomicMax(&e.val, countOrigin)
 			atomicMax(&e.originFetchLastMs, nowMs)
 			e.hydrated.Store(true)
 		})
@@ -192,7 +193,8 @@ func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time)
 			return
 		}
 		if e.originFetchLastMs.CompareAndSwap(last, nowMs) {
-			atomicMax(&e.val, e.fetch(ctx))
+			countOrigin := e.fetch(ctx, "fetch_stale")
+			atomicMax(&e.val, countOrigin)
 			return
 		}
 	}
@@ -418,7 +420,7 @@ func (s *service) findOrCreateCounter(key counterKey) (*counterEntry, bool) {
 		return v.(*counterEntry), false
 	}
 	fresh := &counterEntry{ //nolint:exhaustruct // other fields zero-initialize correctly
-		fetch: func(ctx context.Context) int64 { return s.fetchFromOrigin(ctx, key) },
+		fetch: func(ctx context.Context, op string) int64 { return s.fetchFromOrigin(ctx, key, op) },
 	}
 	actual, loaded := s.counters.LoadOrStore(key, fresh)
 	return actual.(*counterEntry), !loaded
