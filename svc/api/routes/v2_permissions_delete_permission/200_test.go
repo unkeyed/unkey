@@ -82,14 +82,12 @@ func TestSuccess(t *testing.T) {
 		require.Error(t, err, "Permission should no longer exist")
 		require.True(t, db.IsNotFound(err), "Error should be 'not found'")
 
-		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), permissionID)
-		require.NoError(t, err)
+		// Verify the audit log was queued in clickhouse_outbox.
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, permissionID)
 		require.NotEmpty(t, auditLogs, "Audit log for permission deletion should exist")
-
 		foundDeleteEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "permission.delete" {
+		for _, ev := range auditLogs {
+			if ev.Event == "permission.delete" {
 				foundDeleteEvent = true
 				break
 			}

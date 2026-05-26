@@ -145,16 +145,13 @@ func TestSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, finalRoles, 2)
 
-		// Verify audit logs - should only have one new log for the editor role
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), key.KeyID)
-		require.NoError(t, err)
+		// Verify audit logs - should only have one new log for the editor role.
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, key.KeyID)
 		require.NotEmpty(t, auditLogs)
-
-		// Count connect events that mention editor (the new role)
 		editorConnectEvents := 0
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "authorization.connect_role_and_key" &&
-				log.AuditLog.Display == fmt.Sprintf("Added role editor_idempotent to key %s", key.KeyID) {
+		for _, ev := range auditLogs {
+			if ev.Event == "authorization.connect_role_and_key" &&
+				ev.Description == fmt.Sprintf("Added role editor_idempotent to key %s", key.KeyID) {
 				editorConnectEvents++
 			}
 		}

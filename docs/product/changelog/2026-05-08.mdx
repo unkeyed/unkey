@@ -34,9 +34,9 @@ The deployment **Network** view now charts CPU, memory, disk, and network for ea
 
 Deployment cards now show a live duration indicator under the status badge — ticking for in-progress deployments, frozen at the final time for terminal ones. Pending and awaiting-approval deployments stay clean.
 
-### Cross-region denial propagation for ratelimits
+### Cross-region convergence for ratelimits
 
-When a ratelimit decision denies a request in one region, the denial now propagates to other regions through a shared blocklist so the next request to a remote edge sees the same limit. This tightens enforcement for high-throughput, globally distributed traffic. See the [ratelimit modes guide](/platform/ratelimiting/modes) for the consistency model.
+Ratelimit usage now converges across regions for longer windows, so traffic accepted in one region can affect later decisions in another region. This tightens enforcement for high-throughput, globally distributed traffic. See [how rate limiting works](/platform/ratelimiting/how-it-works) for the consistency model.
 
 ## Updates
 

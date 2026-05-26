@@ -66,14 +66,12 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, description, role.Description.String)
 		require.Equal(t, workspace.ID, role.WorkspaceID)
 
-		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
-		require.NoError(t, err)
+		// Verify the audit log was queued in clickhouse_outbox.
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.RoleId)
 		require.NotEmpty(t, auditLogs, "Audit log for role creation should exist")
-
 		foundCreateEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "role.create" {
+		for _, ev := range auditLogs {
+			if ev.Event == "role.create" {
 				foundCreateEvent = true
 				break
 			}
@@ -111,14 +109,12 @@ func TestSuccess(t *testing.T) {
 		require.Equal(t, description, role.Description.String)
 		require.Equal(t, workspace.ID, role.WorkspaceID)
 
-		// Verify audit log was created
-		auditLogs, err := db.Query.FindAuditLogTargetByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
-		require.NoError(t, err)
+		// Verify the audit log was queued in clickhouse_outbox.
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.RoleId)
 		require.NotEmpty(t, auditLogs, "Audit log for role creation should exist")
-
 		foundCreateEvent := false
-		for _, log := range auditLogs {
-			if log.AuditLog.Event == "role.create" {
+		for _, ev := range auditLogs {
+			if ev.Event == "role.create" {
 				foundCreateEvent = true
 				break
 			}

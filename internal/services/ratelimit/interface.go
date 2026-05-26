@@ -1,4 +1,4 @@
-// Package ratelimit provides distributed rate limiting functionality using a sliding window algorithm.
+// Package ratelimit provides distributed rate limiting with sliding-window counters.
 package ratelimit
 
 import (
@@ -6,53 +6,31 @@ import (
 	"time"
 )
 
-// Service defines the core rate limiting functionality. It provides thread-safe
-// operations for checking and consuming rate limit tokens across a distributed system.
+// Service checks and consumes rate-limit tokens.
 //
-// The service maintains rate limit state using a sliding window algorithm and
-// propagates updates across cluster nodes to maintain eventual consistency.
-//
-// Concurrency: All methods are safe for concurrent use.
+// Implementations must be safe for concurrent use. The concrete service in
+// this package enforces a sliding window locally, converges nodes within a
+// region through Redis, and imports foreign-region counts through MySQL.
 type Service interface {
-	// Ratelimit checks if a request should be allowed under the current rate limit constraints
-	// and consumes tokens if successful. It uses a sliding window algorithm that considers
-	// both the current and previous time windows to provide accurate rate limiting.
-	//
-	// Parameters:
-	//   - ctx: Context for cancellation and tracing
-	//   - req: The rate limit request parameters
-	//
-	// Returns:
-	//   - RatelimitResponse: Contains the result and current rate limit state
-	//   - error: Any validation or system errors that occurred
-	//
-	// Errors:
-	//   - Returns validation errors for invalid request parameters
-	//   - May return errors related to cluster communication
-	//
-	// Performance: O(1) time complexity for local decisions
-	//
-	// Example Usage:
-	//   response, err := svc.Ratelimit(ctx, RatelimitRequest{
-	//     Identifier: "user-123",
-	//     Limit:      100,
-	//     Duration:   time.Minute,
-	//     Cost:       1,
-	//   })
+	// Ratelimit checks one limit and consumes req.Cost tokens when the request
+	// fits in the sliding window. A denied request returns a nil error with
+	// RatelimitResponse.Success set to false; validation failures return an
+	// empty response and a non-nil error.
 	Ratelimit(context.Context, RatelimitRequest) (RatelimitResponse, error)
 
+	// RatelimitMany checks a batch as one all-or-nothing operation. Each response
+	// reports whether that specific request fit its own limit, but counter side
+	// effects are committed only when every request passes. If any request fails,
+	// all optimistic increments are rolled back before the method returns.
 	RatelimitMany(context.Context, []RatelimitRequest) ([]RatelimitResponse, error)
 }
 
-// RatelimitRequest represents a request to check or consume rate limit tokens.
-// This is typically the first point of contact when a client wants to verify
-// if they are allowed to perform an action under the rate limit constraints.
+// RatelimitRequest describes one sliding-window rate-limit check.
 //
-// The request combines an identifier with limit parameters to uniquely identify
-// and control a rate limit bucket. Multiple requests with the same parameters
-// will operate on the same underlying rate limit state.
-//
-// Thread Safety: This type is immutable and safe for concurrent use.
+// WorkspaceID, Namespace, Identifier, Duration, and Time select the window cell.
+// Limit and Cost determine whether that cell can accept more work. The value is
+// immutable by convention after it is passed to [Service.Ratelimit] or
+// [Service.RatelimitMany].
 type RatelimitRequest struct {
 	// WorkspaceID scopes every other field of this request. Two workspaces
 	// using the same Namespace + Identifier are kept fully isolated; this
@@ -70,53 +48,44 @@ type RatelimitRequest struct {
 	// namespaces with the same string in different workspaces are isolated.
 	Namespace string
 
-	// Identifier uniquely identifies the rate limit subject.
-	// This could be:
-	//   - A user ID
-	//   - An API key ID
-	//   - An IP address
-	//   - Any other unique identifier that needs rate limiting
+	// Identifier uniquely identifies the rate-limit subject, such as a user ID,
+	// API key ID, or IP address.
 	//
 	// Must be non-empty. The same identifier with different Duration
 	// values will be treated as separate rate limits.
 	Identifier string
 
-	// Limit specifies the maximum number of tokens allowed within the Duration.
+	// Limit specifies the maximum number of tokens allowed within Duration.
 	// Once this limit is reached, subsequent requests will be denied until the
 	// window rolls over.
 	//
-	// Must be > 0. Common values:
-	//   -  1_000 for per-second limits
-	//   - 60_000 for per-minute limits
+	// Must be greater than 0.
 	Limit int64
 
 	// Duration specifies the time window for the rate limit.
 	// After this duration, a new window begins and the token count resets.
 	//
-	// Must be >= 1 second. Common values:
-	//   - time.Second
-	//   - time.Minute
-	//   - time.Hour
+	// Must be at least 1 second.
 	Duration time.Duration
 
 	// Cost specifies the number of tokens to consume in this request.
 	// Higher values can be used for operations that should count more
-	// heavily against the rate limit (e.g., batch operations).
+	// heavily against the rate limit, such as batch operations.
 	//
-	// Must be >= 0. Defaults to 1 if not specified.
-	// The request will be denied if Cost > Limit.
+	// Must be non-negative. A zero cost performs a check without consuming
+	// tokens. The service does not default zero to one.
 	Cost int64
 
-	// Time of the request
-	// If not specified or if zero, the ratelimiter will use its own clock.
+	// Time is the request timestamp used to choose the sliding-window sequence.
+	// If zero, the service uses its own clock.
 	Time time.Time
 }
 
-// RatelimitResponse contains the result of a rate limit check and the current state
-// of the rate limit window. This response provides all necessary information for clients
-// to understand their current rate limit status and implement appropriate behavior.
+// RatelimitResponse contains the result of a rate-limit check.
 //
-// Thread Safety: This type is immutable and safe for concurrent use.
+// The response is immutable by convention. Success false means the request was
+// denied by the limit, not that the service failed; system and validation
+// failures are returned as errors instead.
 type RatelimitResponse struct {
 	// Limit is the total number of tokens allowed in the current window.
 	// This matches the limit specified in the request and is included
@@ -124,45 +93,23 @@ type RatelimitResponse struct {
 	Limit int64
 
 	// Remaining is the number of tokens still available in the current window.
-	// Clients can use this to:
-	//   - Implement progressive backoff
-	//   - Warn users when approaching limits
-	//   - Make decisions about request priorities
-	//
-	// Will be 0 when the rate limit is exceeded.
+	// It is 0 when the rate limit is exceeded.
 	Remaining int64
 
-	// Reset is the Unix timestamp (in milliseconds) when the current window expires.
-	// Clients can use this to:
-	//   - Display time until reset to users
-	//   - Implement automatic retry after window reset
-	//   - Schedule future requests optimally
-	//   - Calculate backoff periods
+	// Reset is when the current fixed window expires. Sliding-window math still
+	// carries a weighted portion of the previous window after this timestamp.
 	Reset time.Time
 
 	// Success indicates whether the rate limit check passed.
-	//   true  = request is allowed
-	//   false = request is denied (rate limit exceeded)
-	//
-	// When false, clients should use Reset to determine when to retry.
+	// When false, callers can use Reset to decide when to retry.
 	Success bool
 
-	// Current represents how many tokens have been consumed in this window.
-	// This is useful for:
-	//   - Monitoring and debugging
-	//   - Understanding usage patterns
-	//   - Implementing custom backoff strategies
+	// Current is the effective sliding-window count after applying the request
+	// cost. It includes the weighted previous window and imported cross-region
+	// counts when those values are present.
 	Current int64
 }
 
-// Middleware defines a function type that wraps a Service with additional functionality.
-// It can be used to add logging, metrics, validation, or other cross-cutting concerns.
-//
-// Example Usage:
-//
-//	func LoggingMiddleware(logger Logger) Middleware {
-//	    return func(next Service) Service {
-//	        return &loggingService{next: next}
-//	    }
-//	}
+// Middleware wraps a [Service] with cross-cutting behavior such as logging,
+// metrics, or validation.
 type Middleware func(Service) Service

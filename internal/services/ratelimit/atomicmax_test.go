@@ -35,7 +35,8 @@ func TestAtomicMax_RaisesOrNoOps(t *testing.T) {
 
 // TestAtomicMax_ConcurrentConverges asserts the final value equals the maximum
 // of every proposed value even when many goroutines race. This is the invariant
-// the replay merge and strictUntil write paths depend on.
+// the replay merge, strictUntil write path, and cross-region count
+// merge all depend on.
 func TestAtomicMax_ConcurrentConverges(t *testing.T) {
 	t.Parallel()
 
