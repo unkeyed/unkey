@@ -137,7 +137,7 @@ func TestCounterEntryEnsureFreshFromOrigin_GatesConcurrentWarmRefresh(t *testing
 		},
 	}
 	entry.hydrated.Store(true)
-	entry.originFetchMsLast.Store(start.UnixMilli())
+	entry.originFetchLastMs.Store(start.UnixMilli())
 
 	const goroutines = 32
 	ready := make(chan struct{})
@@ -176,13 +176,13 @@ func TestCounterEntryEnsureFreshFromOrigin_FailedWarmRefreshSuppressesRetryUntil
 	}
 	entry.val.Store(7)
 	entry.hydrated.Store(true)
-	entry.originFetchMsLast.Store(start.UnixMilli())
+	entry.originFetchLastMs.Store(start.UnixMilli())
 
 	failedRefresh := start.Add(originFetchAgeMax)
 	entry.EnsureFreshFromOrigin(ctx, failedRefresh)
 	require.Equal(t, int64(1), fetchCalls.Load())
 	require.Equal(t, int64(7), entry.val.Load(), "failed fetch returns 0 and should preserve local state")
-	require.Equal(t, failedRefresh.UnixMilli(), entry.originFetchMsLast.Load(), "failed refresh still advances retry gate")
+	require.Equal(t, failedRefresh.UnixMilli(), entry.originFetchLastMs.Load(), "failed refresh still advances retry gate")
 
 	entry.EnsureFreshFromOrigin(ctx, failedRefresh.Add(time.Second))
 	require.Equal(t, int64(1), fetchCalls.Load(), "failed refresh should not retry before max age")

@@ -80,12 +80,12 @@ type counterEntry struct {
 	// globalCount to get the global count.
 	val atomic.Int64
 
-	// originFetchMsLast is the last request timestamp at which this replica
+	// originFetchLastMs is the last request timestamp at which this replica
 	// deliberately refreshed the cell from origin. EnsureFreshFromOrigin initializes
 	// it for cold entries and advances it for periodic stale-state refreshes.
 	// It is intentionally request-time based so tests can drive refresh behavior
 	// with a simulated clock.
-	originFetchMsLast atomic.Int64
+	originFetchLastMs atomic.Int64
 
 	// speculative tracks RatelimitMany increments that have been applied to val
 	// but are not committed yet. The global push loop subtracts this value before
@@ -172,7 +172,7 @@ func (e *counterEntry) shouldPushGlobalCount(val int64) bool {
 // warm entries whose last origin fetch is older than originFetchAgeMax. The
 // fetched value is CAS-merged via atomicMax so the local counter only moves
 // forward. Concurrent callers on a cold entry block inside Do until the first
-// fetch returns; concurrent warm callers use originFetchMsLast as a single-fetch
+// fetch returns; concurrent warm callers use originFetchLastMs as a single-fetch
 // gate. A fetch failure surfaces as a returned 0, which atomicMax treats as a
 // no-op — the entry is left at whatever val held before and marked refreshed so
 // retries stay bounded by originFetchAgeMax when origin is unavailable.
@@ -181,17 +181,17 @@ func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time)
 	if !e.hydrated.Load() {
 		e.once.Do(func() {
 			atomicMax(&e.val, e.fetch(ctx))
-			atomicMax(&e.originFetchMsLast, nowMs)
+			atomicMax(&e.originFetchLastMs, nowMs)
 			e.hydrated.Store(true)
 		})
 	}
 
 	for range maxCASRetries {
-		last := e.originFetchMsLast.Load()
+		last := e.originFetchLastMs.Load()
 		if last != 0 && nowMs-last < originFetchAgeMax.Milliseconds() {
 			return
 		}
-		if e.originFetchMsLast.CompareAndSwap(last, nowMs) {
+		if e.originFetchLastMs.CompareAndSwap(last, nowMs) {
 			atomicMax(&e.val, e.fetch(ctx))
 			return
 		}
