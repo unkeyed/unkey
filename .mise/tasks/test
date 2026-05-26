@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Run the Bazel test suite"
+set -euo pipefail
+
+clean_docker_test() {
+  docker rm -vf $(docker ps -q -f label="owner=testutil-containers") >/dev/null 2>&1 || true
+  docker rm -vf $(docker ps -q -f label="owner=dockertest") >/dev/null 2>&1 || true
+}
+
+bazel build //...
+mkdir -p bin
+cp -f "$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey
+chmod +w bin/unkey
+
+bazel run //:oci_load_unkey
+clean_docker_test
+bazel test //...
+clean_docker_test

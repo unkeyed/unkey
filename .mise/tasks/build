@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Build all artifacts (binaries land in ./bin)"
+set -euo pipefail
+
+bazel build //...
+mkdir -p bin
+cp -f "$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey
+chmod +w bin/unkey

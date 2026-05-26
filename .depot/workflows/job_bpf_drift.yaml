@@ -1,6 +1,6 @@
 name: eBPF Drift Check
 # Catches the silent case where a developer edits network.bpf.c but forgets
-# to run `make generate-bpf`. Without this check the committed bpf_bpfel.{go,o}
+# to run `mise run generate-bpf`. Without this check the committed bpf_bpfel.{go,o}
 # would go out of sync with the C source, and heimdall would silently run
 # stale eBPF against new userspace bindings (billing data bug).
 on:
@@ -14,17 +14,20 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-      # `make generate-bpf` builds + runs the pinned toolchain image
+      - uses: ./.depot/actions/setup
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      # `mise run generate-bpf` builds + runs the pinned toolchain image
       # (svc/heimdall/internal/network/bpf/Dockerfile.gen). The runner
       # already has docker, so no toolchain setup is needed here — the
       # image owns clang, llvm, and Go versions. This is the same path
       # devs use locally, so CI can't drift from local.
       - name: Regenerate eBPF bindings
-        run: make generate-bpf
+        run: mise run generate-bpf
       - name: Assert no drift
         run: |
           if ! git diff --exit-code --stat -- svc/heimdall/internal/network; then
             echo "::error::eBPF artifacts are out of sync with network.bpf.c."
-            echo "Run 'make generate-bpf' locally and commit the result."
+            echo "Run 'mise run generate-bpf' locally and commit the result."
             exit 1
           fi

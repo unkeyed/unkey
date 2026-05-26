@@ -17,10 +17,11 @@ jobs:
           sudo chmod 660 /var/run/docker.sock
           sudo chown root:$(id -gn) /var/run/docker.sock
           docker version
-      - name: Setup Node
-        uses: ./.depot/actions/setup-node
+      - uses: ./.depot/actions/setup
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install web dependencies
+        run: mise run install-web
       - name: Build
         run: pnpm turbo run build --filter='./internal/*'
         env:

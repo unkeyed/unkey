@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Format the repository"
+set -euo pipefail
+
+dprint fmt --config dev/dprint.json
+go fmt ./...
+go tool buf format -w
+pnpm --dir=web fmt

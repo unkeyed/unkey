@@ -27,7 +27,7 @@ for gVisor pods.
 ## How to regenerate
 
 ```bash
-make generate-bpf
+mise run generate-bpf
 ```
 
 Runs `bpf2go` inside a pinned `linux/amd64` Docker image (defined in
@@ -45,7 +45,7 @@ take a few seconds.
 
 The generated `bpf_bpfel.go` and `bpf_bpfel.o` in the parent directory
 are committed to the repo so Go developers without Docker don't need
-to regenerate just to build heimdall — they only run `make generate-bpf`
+to regenerate just to build heimdall — they only run `mise run generate-bpf`
 when they actually edit the C source.
 
 ## Header strategy (no vmlinux.h, no libbpf)

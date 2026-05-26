@@ -1,0 +1,66 @@
+[settings]
+auto_install = false
+disable_default_registry = true
+exec_auto_install = false
+lockfile = true
+locked = true
+locked_verify_provenance = true
+not_found_auto_install = false
+pin = true
+provenance_api_failures_fatal = true
+task.run_auto_install = false
+
+[tools]
+node = "24.16.0"
+go = "1.25.1"
+"github:bazelbuild/bazelisk" = "1.29.0"
+"github:dprint/dprint" = "0.51.1"
+"github:bufbuild/buf" = "1.64.0"
+"github:jqlang/jq" = "jq-1.8.1"
+"github:tilt-dev/tilt" = "0.37.3"
+"github:tilt-dev/ctlptl" = "0.9.3"
+"github:kubernetes/minikube" = "1.38.1"
+"github:FiloSottile/mkcert" = "1.4.4"
+"github:planetscale/cli" = "0.284.0"
+"github:pnpm/pnpm" = "8.6.9"
+
+[tools."http:kubectl"]
+version = "1.34.8"
+bin = "kubectl"
+
+[tools."http:kubectl".platforms]
+linux-arm64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/linux/arm64/kubectl", checksum = "sha256:4c9fe1f717738950c638c38056130a8db5075e6413ae36d8687221a240cdf88b" }
+linux-arm64-musl = { url = "https://dl.k8s.io/release/v1.34.8/bin/linux/arm64/kubectl", checksum = "sha256:4c9fe1f717738950c638c38056130a8db5075e6413ae36d8687221a240cdf88b" }
+linux-x64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/linux/amd64/kubectl", checksum = "sha256:f6249132865c13abe3c9dd5038f5da65849cb86eee1608c001831504e481aa8c" }
+linux-x64-musl = { url = "https://dl.k8s.io/release/v1.34.8/bin/linux/amd64/kubectl", checksum = "sha256:f6249132865c13abe3c9dd5038f5da65849cb86eee1608c001831504e481aa8c" }
+macos-arm64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/darwin/arm64/kubectl", checksum = "sha256:173e101c8f9f195ea16771a1262313ea4c916d4d517f72902b0afd57f61c1917" }
+macos-x64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/darwin/amd64/kubectl", checksum = "sha256:149be66a64b26c59a7bf5037a895b8ecb244d8224d84f533584457355a44520b" }
+windows-x64 = { url = "https://dl.k8s.io/release/v1.34.8/bin/windows/amd64/kubectl.exe", checksum = "sha256:35bc3cb7050f6d39436e6c486c65e2d2d6198988b10c5e76b58b8c929373a7fa", bin = "kubectl.exe" }
+
+[tools."http:helm"]
+version = "3.21.0"
+
+[tools."http:helm".platforms]
+linux-arm64 = { url = "https://get.helm.sh/helm-v3.21.0-linux-arm64.tar.gz", checksum = "sha256:8de5a0c9a47431e59fd560e91e0779c8cf9316c383da7efb84128a4c339ecb2d", bin = "linux-arm64/helm" }
+linux-arm64-musl = { url = "https://get.helm.sh/helm-v3.21.0-linux-arm64.tar.gz", checksum = "sha256:8de5a0c9a47431e59fd560e91e0779c8cf9316c383da7efb84128a4c339ecb2d", bin = "linux-arm64/helm" }
+linux-x64 = { url = "https://get.helm.sh/helm-v3.21.0-linux-amd64.tar.gz", checksum = "sha256:0093eb572e3d2380f094df162ddb525e219249de88957afe24cfbb19632acd36", bin = "linux-amd64/helm" }
+linux-x64-musl = { url = "https://get.helm.sh/helm-v3.21.0-linux-amd64.tar.gz", checksum = "sha256:0093eb572e3d2380f094df162ddb525e219249de88957afe24cfbb19632acd36", bin = "linux-amd64/helm" }
+macos-arm64 = { url = "https://get.helm.sh/helm-v3.21.0-darwin-arm64.tar.gz", checksum = "sha256:68bfbdc022c543a2a022597b20298216877e98abe6e4a345d3ecf114d79cae5f", bin = "darwin-arm64/helm" }
+macos-x64 = { url = "https://get.helm.sh/helm-v3.21.0-darwin-amd64.tar.gz", checksum = "sha256:8bc0c1f85f8738cc3cda4a2cc73047145bcdcb1f4d9cdcc29073037bfb22fa2e", bin = "darwin-amd64/helm" }
+windows-x64 = { url = "https://get.helm.sh/helm-v3.21.0-windows-amd64.zip", checksum = "sha256:3ea6b8383e6c0b7ce45d06a5746313b8e9225edd88d42f4f64582ff3792d7b55", bin = "windows-amd64/helm.exe" }
+
+[tools."http:ngrok"]
+version = "3.39.4"
+bin = "ngrok"
+
+[tools."http:ngrok".platforms]
+linux-arm64 = { url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz", checksum = "sha256:35446330929a79dc8bc755009cd54a29e2107781fec4f3c3f7f693bfe1ca64fe" }
+linux-arm64-musl = { url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz", checksum = "sha256:35446330929a79dc8bc755009cd54a29e2107781fec4f3c3f7f693bfe1ca64fe" }
+linux-x64 = { url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz", checksum = "sha256:0efbc8c7aa02dec9cde9883b940ef0c69afce39305545d74cde2ff2e01170871" }
+linux-x64-musl = { url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz", checksum = "sha256:0efbc8c7aa02dec9cde9883b940ef0c69afce39305545d74cde2ff2e01170871" }
+macos-arm64 = { url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip", checksum = "sha256:ab3823f8aa9442ea6499c95290fc96da52824827f10253a5d1632e257beba518" }
+macos-x64 = { url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip", checksum = "sha256:4d6191e76fcdeaf743fdb43e87bca0e507a88d04f93a0ca4e6ded81893d2b85c" }
+windows-x64 = { url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip", checksum = "sha256:9028276a33809a94fcf46a35733a21f013a6cc3b4a155ee849563af65dc118f2", bin = "ngrok.exe" }
+
+[env]
+COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"

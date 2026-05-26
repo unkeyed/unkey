@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MISE_VERSION="2026.5.14"
+MISE_SHA_MACOS_ARM64="0d8f0cee4f87d94e8926165aba6b478df4cd41e930f3832e22f47375e0654ce4"
+MISE_SHA_MACOS_X64="91e3c6d44e9364c968b5407f78fa949328400932bdc37ed69d26c22370d75e50"
+MISE_SHA_LINUX_ARM64="ef628c53ee06bfdeb49b9fe6d52ad93c98976e92efc27db480bf69cc3345debf"
+MISE_SHA_LINUX_X64="10be727027fac68f591f8695bd4abb5c5c4d17ed618f5f2b9d6f19be4d7df4e9"
+
+version="${MISE_VERSION#v}"
+install_path="${MISE_INSTALL_PATH:-$HOME/.local/bin/mise}"
+
+os="$(uname -s)"
+arch="$(uname -m)"
+
+case "$os:$arch" in
+  Darwin:arm64 | Darwin:aarch64)
+    platform="macos-arm64"
+    checksum="$MISE_SHA_MACOS_ARM64"
+    ;;
+  Darwin:x86_64 | Darwin:amd64)
+    platform="macos-x64"
+    checksum="$MISE_SHA_MACOS_X64"
+    ;;
+  Linux:arm64 | Linux:aarch64)
+    platform="linux-arm64"
+    checksum="$MISE_SHA_LINUX_ARM64"
+    ;;
+  Linux:x86_64 | Linux:amd64)
+    platform="linux-x64"
+    checksum="$MISE_SHA_LINUX_X64"
+    ;;
+  *)
+    echo "Unsupported platform: $os $arch" >&2
+    exit 1
+    ;;
+esac
+
+if [ -x "$install_path" ] && "$install_path" --version | grep -q "^$version "; then
+  echo "mise $version is already installed at $install_path"
+  exit 0
+fi
+
+if command -v shasum >/dev/null 2>&1; then
+  checksum_cmd=(shasum -a 256 -c -)
+elif command -v sha256sum >/dev/null 2>&1; then
+  checksum_cmd=(sha256sum -c -)
+else
+  echo "Missing shasum or sha256sum" >&2
+  exit 1
+fi
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+archive="mise-v${version}-${platform}.tar.gz"
+url="https://github.com/jdx/mise/releases/download/v${version}/${archive}"
+
+echo "Downloading $url"
+curl -fsSL "$url" -o "$tmp/$archive"
+printf '%s  %s\n' "$checksum" "$tmp/$archive" | "${checksum_cmd[@]}"
+
+tar -xzf "$tmp/$archive" -C "$tmp"
+
+mkdir -p "$(dirname "$install_path")"
+install -m 0755 "$tmp/mise/bin/mise" "$install_path"
+
+echo "Installed mise $version to $install_path"
+echo ""
+echo "Next steps:"
+echo "  1. Add $install_path to your PATH if needed."
+echo "  2. Run: mise trust"
+echo "  3. Run: mise install --locked"
+echo "  4. Run: mise run install"
+echo ""
+echo "If GitHub rate-limits attestation checks, retry step 3 with GITHUB_TOKEN set:"
+echo "  GITHUB_TOKEN=... mise install --locked"

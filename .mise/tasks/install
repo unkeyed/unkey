@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Install web dependencies"
+set -euo pipefail
+
+CI=1 pnpm --dir=web install --recursive --frozen-lockfile

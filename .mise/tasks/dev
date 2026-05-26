@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Start dev environment"
+set -euo pipefail
+
+# Make sure you have ./dev/.env.depot populated, or you will get some funny errors.
+# We're working on making this optional soon.
+ctlptl apply -f ./dev/cluster.yaml
+minikube addons enable metrics-server
+tilt up -f ./dev/Tiltfile

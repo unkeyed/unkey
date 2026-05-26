@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Stop all containers and clean up Docker system"
+set -euo pipefail
+
+docker stop $(docker ps -aq)
+docker system prune -af
+docker volume prune --all -f

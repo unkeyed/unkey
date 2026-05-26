@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Install Go dependencies"
+set -euo pipefail
+
+go mod download

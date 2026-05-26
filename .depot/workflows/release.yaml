@@ -22,13 +22,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
-      - name: Setup Node
-        uses: ./.depot/actions/setup-node
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          install: "false"
-      - name: Setup Go
-        uses: ./.depot/actions/setup-go
+      - uses: ./.depot/actions/setup
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install UPX
@@ -73,8 +67,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
-      - name: Setup Go
-        uses: ./.depot/actions/setup-go
+      - uses: ./.depot/actions/setup
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
