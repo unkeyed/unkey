@@ -614,6 +614,13 @@ interface ExtendedParamsOverviewLogs extends RatelimitOverviewLogsParams {
   [key: string]: unknown;
 }
 
+// getRatelimitOverviewLogs returns per-identifier rate limit aggregates for a
+// namespace, paginated with LIMIT/OFFSET over the `page` argument. Because
+// OFFSET is only stable under a total ordering, the ORDER BY always ends with
+// `last_request_time` then `request_id` as tiebreakers so a row never appears
+// on two pages or gets skipped between them. The total row count rides along on
+// each page via `count() OVER ()`; only when a page lands past the end (no rows)
+// does it fall back to a dedicated count query so the caller can clamp the page.
 export function getRatelimitOverviewLogs(ch: Querier) {
   return async (args: RatelimitOverviewLogsParams) => {
     const paramSchemaExtension: Record<string, z.ZodType> = {};

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { isMostlyBlocked } from "../utils/calculate-blocked-percentage";
+import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 
 type IdentifierColumnProps = {
@@ -14,8 +14,7 @@ type IdentifierColumnProps = {
 export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const style = getStatusStyle(log);
   const hasMoreBlocked = isMostlyBlocked(log);
-  const totalRequests = log.blocked_count + log.passed_count;
-  const blockedPercent = totalRequests > 0 ? (log.blocked_count / totalRequests) * 100 : 0;
+  const blockedPercent = getBlockedPercentage(log);
   const isFullyBlocked = blockedPercent === 100;
 
   return (
