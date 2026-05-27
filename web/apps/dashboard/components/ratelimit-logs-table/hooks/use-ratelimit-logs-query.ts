@@ -368,9 +368,7 @@ export function useRatelimitLogsQuery({
   const pageRowCount = logData?.ratelimitLogs.length ?? 0;
   const knownTotal = logData?.total ?? null;
   const totalCount =
-    knownTotal !== null
-      ? Math.max(0, knownTotal)
-      : (queryPage - 1) * limit + pageRowCount;
+    knownTotal !== null ? Math.max(0, knownTotal) : (queryPage - 1) * limit + pageRowCount;
   const totalPages =
     knownTotal !== null
       ? Math.max(1, Math.ceil(totalCount / limit))
