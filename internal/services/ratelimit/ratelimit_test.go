@@ -12,7 +12,7 @@ import (
 )
 
 // TestRatelimit_SlidingWindowDecision locks in the math of the sliding window
-// algorithm. Each case pre-seeds the current and previous window counters and
+// algorithm. Each case pre-seeds the current and previous counters and
 // picks a req.Time that produces the desired elapsed fraction, so the decision
 // path runs against exactly the inputs under test.
 func TestRatelimit_SlidingWindowDecision(t *testing.T) {
@@ -45,13 +45,13 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 			t.Parallel()
 
 			clk := clock.NewTestClock()
-			svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+			svc, err := New(Config{
+				Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = svc.Close() })
 
-			// Per-test workspace ID so the construction-time blocklist sync
-			// can't pollute these counters from rows another test wrote to
-			// the shared MySQL.
+			// Per-test workspace ID so background global sync can't pollute
+			// these counters from rows another test wrote to the shared MySQL.
 			ws := uid.New(uid.WorkspacePrefix)
 			duration := time.Minute
 			durationMs := duration.Milliseconds()
@@ -87,13 +87,14 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 }
 
 // TestRatelimit_DenialSetsStrictUntil asserts a denied request sets the
-// strict-mode deadline to req.Time + req.Duration for its (name, identifier,
-// duration) tuple.
+// strict-mode deadline to req.Time + req.Duration for its (workspace,
+// namespace, identifier, duration) tuple.
 func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -122,16 +123,17 @@ func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	require.Equal(t, want, got, "strictUntil should equal req.Time + req.Duration")
 }
 
-// TestRatelimit_StrictModeForcesOriginFetch asserts that once strict mode is
-// active, prepareCheck fetches from origin even when the local windows are
-// warm. We verify the behavior by observing local state converge to a seeded
-// origin value — the only way that can happen is if origin was consulted.
+// TestRatelimit_StrictModeForcesOriginFetch asserts that once strict mode
+// is active, prepareCheck fetches from origin even when the local windows
+// are warm. We verify by observing local state converge to a seeded origin
+// value — the only way that can happen is if origin was consulted.
 func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
 	origin := counter.NewMemory()
-	svc, err := New(Config{Clock: clk, Counter: origin, DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -185,7 +187,8 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -222,4 +225,129 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 
 	require.Equal(t, int64(0), a.val.Load(), "A counter must be unchanged after batch failure")
 	require.Equal(t, int64(9), b.val.Load(), "B counter must be rolled back after batch failure")
+}
+
+func TestRatelimitMany_DoesNotMutateRequests(t *testing.T) {
+	t.Parallel()
+
+	clk := clock.NewTestClock()
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = svc.Close() })
+
+	reqs := []RatelimitRequest{
+		{
+			WorkspaceID: uid.New(uid.WorkspacePrefix),
+			Namespace:   "ns",
+			Identifier:  "user",
+			Limit:       10,
+			Duration:    time.Minute,
+			Cost:        1,
+		},
+	}
+
+	_, err = svc.RatelimitMany(context.Background(), reqs)
+	require.NoError(t, err)
+	require.True(t, reqs[0].Time.IsZero(), "RatelimitMany must not write normalized timestamps into caller input")
+}
+
+// TestRatelimitMany_LongWindowLowTrafficRefreshesStaleReplica models the
+// production failure mode for daily hard caps with sparse traffic: one replica
+// hydrates a long-lived window while the count is low, another replica advances
+// the shared origin, then the first replica receives another request much later.
+//
+// For long windows, a stale local view can persist for hours because the window
+// does not naturally rotate. The service must refresh old local state from the
+// shared origin before answering; otherwise a daily cap spread across replicas
+// can exceed the limit while every replica still returns passed=true locally.
+func TestRatelimitMany_LongWindowLowTrafficRefreshesStaleReplica(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	start := time.Now().UTC().Truncate(time.Hour).Add(5 * time.Minute)
+	clk := clock.NewTestClock(start)
+	origin := counter.NewMemory()
+
+	staleReplica, err := New(Config{
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "us-east-1"})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = staleReplica.Close() })
+
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	identifier := "low-rps-user"
+	day := 24 * time.Hour
+	hour := time.Hour
+	makeReq := func(namespace string, limit int64, duration time.Duration, cost int64) RatelimitRequest {
+		return RatelimitRequest{
+			WorkspaceID: workspaceID,
+			Namespace:   namespace,
+			Identifier:  identifier,
+			Limit:       limit,
+			Duration:    duration,
+			Cost:        cost,
+			Time:        clk.Now(),
+		}
+	}
+	makeKey := func(namespace string, duration time.Duration) counterKey {
+		return counterKey{
+			workspaceID: workspaceID,
+			namespace:   namespace,
+			identifier:  identifier,
+			durationMs:  duration.Milliseconds(),
+			sequence:    calculateSequence(start, duration),
+		}
+	}
+
+	readReqs := []RatelimitRequest{
+		makeReq("tokens.day", 10, day, 0),
+		makeReq("tokens.hour", 20, hour, 0),
+	}
+
+	// The stale replica sees the key first and hydrates both windows at zero.
+	resp, err := staleReplica.RatelimitMany(ctx, readReqs)
+	require.NoError(t, err)
+	require.Len(t, resp, 2)
+	require.True(t, resp[0].Success)
+	require.Equal(t, int64(10), resp[0].Remaining)
+	require.True(t, resp[1].Success)
+	require.Equal(t, int64(20), resp[1].Remaining)
+
+	// Other replicas process traffic and successfully replay it to the shared
+	// origin. We write the origin directly so the test is deterministic and not
+	// coupled to replay-worker scheduling.
+	dayKey := makeKey("tokens.day", day)
+	hourKey := makeKey("tokens.hour", hour)
+	_, err = origin.Increment(ctx, dayKey.redisKey(), 8, day*3)
+	require.NoError(t, err)
+	_, err = origin.Increment(ctx, hourKey.redisKey(), 8, hour*3)
+	require.NoError(t, err)
+
+	// Sparse traffic means this replica may not see the identifier again for
+	// minutes. It is still in the same hour and same daily window.
+	clk.Tick(10 * time.Minute)
+	for i := range readReqs {
+		readReqs[i].Time = clk.Now()
+	}
+
+	resp, err = staleReplica.RatelimitMany(ctx, readReqs)
+	require.NoError(t, err)
+	require.Len(t, resp, 2)
+	require.True(t, resp[0].Success)
+	require.Equal(t, int64(2), resp[0].Remaining, "daily cost=0 read must reflect the shared origin after the stale replica has been idle")
+	require.True(t, resp[1].Success)
+	require.Equal(t, int64(12), resp[1].Remaining, "hourly cost=0 read must reflect the shared origin after the stale replica has been idle")
+
+	chargeReqs := []RatelimitRequest{
+		makeReq("tokens.day", 10, day, 3),
+		makeReq("tokens.hour", 20, hour, 3),
+	}
+
+	resp, err = staleReplica.RatelimitMany(ctx, chargeReqs)
+	require.NoError(t, err)
+	require.Len(t, resp, 2)
+	require.False(t, resp[0].Success, "daily hard cap must deny based on the shared origin")
+	require.Equal(t, int64(0), resp[0].Remaining)
+	require.True(t, resp[1].Success, "hourly limit passes individually, but the batch must not commit because daily failed")
+	require.Equal(t, int64(12), resp[1].Remaining, "hourly remaining is unchanged because RatelimitMany rolls back the whole batch")
 }

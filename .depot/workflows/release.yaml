@@ -47,10 +47,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
       - name: Run GoReleaser (split)
-        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
+        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
         with:
           distribution: goreleaser-pro
-          version: "~> v2"
+          version: "v2.15.4"
           args: release --clean --split
         env:
           GOOS: ${{ matrix.goos }}
@@ -96,10 +96,10 @@ jobs:
           path: dist/darwin
           key: release-${{ github.sha }}-darwin
       - name: Run GoReleaser (merge)
-        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
+        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
         with:
           distribution: goreleaser-pro
-          version: "~> v2"
+          version: "v2.15.4"
           args: continue --merge
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

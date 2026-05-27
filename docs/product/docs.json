@@ -308,7 +308,7 @@
                 "group": "Ratelimiting",
                 "pages": [
                   "platform/ratelimiting/introduction",
-                  "platform/ratelimiting/modes",
+                  "platform/ratelimiting/how-it-works",
                   "platform/ratelimiting/overrides",
                   "platform/ratelimiting/automated-overrides",
                   "quickstart/identities/shared-ratelimits",
@@ -649,12 +649,16 @@
       "source": "/onboarding"
     },
     {
-      "destination": "/ratelimiting/introduction",
+      "destination": "/platform/ratelimiting/introduction",
       "source": "/onboarding/onboarding-ratelimiting"
     },
     {
-      "destination": "/ratelimiting/introduction",
+      "destination": "/platform/ratelimiting/introduction",
       "source": "/quickstart/onboarding/onboarding-ratelimiting"
+    },
+    {
+      "destination": "/platform/ratelimiting/how-it-works",
+      "source": "/platform/ratelimiting/modes"
     },
     {
       "destination": "/api-reference/overview",
@@ -667,10 +671,6 @@
     {
       "destination": "/libraries/ts/api",
       "source": "/libraries"
-    },
-    {
-      "destination": "/introduction",
-      "source": "/integrations/vercel"
     },
     {
       "destination": "/platform/analytics/overview",

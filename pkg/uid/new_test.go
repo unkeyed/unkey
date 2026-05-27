@@ -15,7 +15,7 @@ func TestNew(t *testing.T) {
 		{
 			name:    "default length",
 			length:  nil,
-			wantLen: 8, // 8 default chars
+			wantLen: 9, // 9 default chars
 		},
 		{
 			name:    "custom length 12",
@@ -82,8 +82,8 @@ func TestNanoWithPrefix(t *testing.T) {
 		t.Errorf("Expected ID to start with prefix %v, got %v", KeyPrefix, id)
 	}
 
-	// Total length should be prefix + 8 default chars
-	expectedLen := len(KeyPrefix) + 1 + 8
+	// Total length should be prefix + 9 default chars
+	expectedLen := len(KeyPrefix) + 1 + 9
 	if len(id) != expectedLen {
 		t.Errorf("Expected total length %v, got %v", expectedLen, len(id))
 	}

@@ -363,6 +363,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Engine:            policyEngine,
 		Clock:             clk,
 		AcmeClient:        acmeClient,
+		DB:                database,
 		ErrorPageRenderer: errorpage.NewRenderer(),
 		RequestTimeout:    cfg.RequestTimeout,
 		FrontlineRequests: frontlineRequests,
@@ -483,6 +484,7 @@ func buildEngine(
 		Clock:   clk,
 		Counter: ctr,
 		DB:      pkgdb.ToMySQL(database),
+		Region:  region,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ratelimit service: %w", err)

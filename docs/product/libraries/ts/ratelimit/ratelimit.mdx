@@ -77,7 +77,7 @@ We built on some of the world's most stable platforms ([Planetscale](https://pla
 
 Even so, we would be fools if we wouldn't explain how you can put in safe guards along the way.
 
-In case of severe network degredations or other unforseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey.
+In case of severe network degradations or other unforeseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey.
 By default the SDK will reject a request if it hasn't received a response from unkey within 5 seconds. You can tune this via the `timeout` config in the constructor (see below).
 
 The SDK captures most errors and handles them on its own, but we also encourage you to add a `onError` handler to configure what happens in case something goes wrong.
@@ -119,7 +119,7 @@ const { success } = await unkey.limit(identifier);
 
 Create a new instance for ratelimiting by providing the necessary configuration.
 
-<ParamField  body="RatelimitConfig" type="object" required >
+<ParamField body="RatelimitConfig" type="object" required>
 <Expandable title="RatelimitConfig">
 <ParamField body="limit" type="number" required>
 How many requests may pass in the given duration.
@@ -194,7 +194,7 @@ onError: () => ({ success: true, limit: 0, remaining: 0, reset: 0 });
 
 Check whether a specific identifier is currently allowed to do something or if they have currently exceeded their limit.
 
-<ParamField  body="LimitOptions" type="object" required >
+<ParamField body="LimitOptions" type="object" required>
 <Expandable title="LimitOptions">
 <ParamField body="cost" type="number" default={1}>
 Expensive requests may use up more resources. You can specify a cost to the request and
@@ -225,7 +225,7 @@ const res = await rl.limit("identifier", { cost: 4 });
 
 ### `RatelimitResponse`
 
-<ParamField  body="RatelimitResponse" type="object" >
+<ParamField body="RatelimitResponse" type="object">
 <Expandable title="RatelimitResponse">
 <ParamField body="success" type="boolean" required>
 Whether the request may pass(true) or exceeded the limit(false).

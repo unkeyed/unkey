@@ -59,7 +59,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: heimdall
-          image: unkey/go:latest
+          image: unkey/go:dev
           args: ["run", "heimdall", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never
           env:
