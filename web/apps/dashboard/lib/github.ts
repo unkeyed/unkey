@@ -100,6 +100,38 @@ function generateAppJWT(): string {
   return `${signatureInput}.${signature}`;
 }
 
+const installationSchema = z.object({
+  id: z.number(),
+  account: z
+    .object({
+      // Bot installations omit login/type. We only use this for building the
+      // management URL, so treat missing fields as "unknown" rather than failing.
+      login: z.string().optional(),
+      type: z.string().optional(),
+    })
+    .nullable(),
+});
+
+export type GitHubInstallation = z.infer<typeof installationSchema>;
+
+export async function getInstallation(installationId: number): Promise<GitHubInstallation> {
+  const jwt = generateAppJWT();
+
+  const response = await fetch(`https://api.github.com/app/installations/${installationId}`, {
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      ...GITHUB_API_HEADERS,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new GitHubApiError(response.status, error);
+  }
+
+  return installationSchema.parse(await response.json());
+}
+
 export async function getInstallationAccessToken(
   installationId: number,
 ): Promise<{ token: string; expires_at: string }> {
@@ -118,7 +150,7 @@ export async function getInstallationAccessToken(
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Failed to get installation access token: ${error}`);
+    throw new GitHubApiError(response.status, error);
   }
 
   return installationAccessTokenSchema.parse(await response.json());

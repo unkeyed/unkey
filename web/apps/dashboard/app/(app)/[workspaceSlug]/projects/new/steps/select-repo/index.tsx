@@ -197,8 +197,8 @@ export const SelectRepo = ({
         ) : null}
       </div>
 
-      {(reposData?.repositories ?? []).length > 0 &&
-        (filteredRepos.length > 0 ? (
+      {(reposData?.repositories ?? []).length > 0 ? (
+        filteredRepos.length > 0 ? (
           <div
             ref={parentRef}
             className="mt-3 border rounded-[14px] border-grayA-5 min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
@@ -239,7 +239,43 @@ export const SelectRepo = ({
           <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
             <p className="text-[15px] text-accent-12 font-semibold">No repositories found</p>
           </div>
-        ))}
+        )
+      ) : !isLoadingRepos && !reposError && hasGithubInstallation ? (
+        // Installation registered but no repos visible. This is the ENG-2810
+        // failure mode: GitHub install completed with too-narrow repo access,
+        // or repo selection hasn't propagated yet. Each "Manage" button deep
+        // links to that install's repo-access page on GitHub, so the user
+        // skips re-running the install flow.
+        <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5 px-6 text-center">
+          <p className="text-[15px] text-accent-12 font-semibold">No repositories accessible</p>
+          <p className="text-[13px] text-accent-11 w-[420px]">
+            GitHub is connected, but the installation has access to zero repositories. Update repo
+            access on GitHub, or refresh if you just changed it.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {(reposData?.installations ?? []).map((installation) => (
+              <Button
+                key={installation.installationId}
+                variant="primary"
+                size="sm"
+                className="px-3"
+                onClick={() => window.open(installation.managementUrl, "_blank", "noopener")}
+              >
+                <Github className="size-[14px]! text-gray-1 shrink-0" />
+                Manage {installation.accountLogin ? `@${installation.accountLogin}` : "on GitHub"}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="px-3"
+              onClick={() => trpcUtils.github.listRepositories.invalidate()}
+            >
+              Refresh
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {onSkip && (
         <div className="mt-3 border border-grayA-5 rounded-[14px] flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">

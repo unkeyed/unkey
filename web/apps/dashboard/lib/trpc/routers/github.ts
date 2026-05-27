@@ -3,8 +3,11 @@ import { and, db, eq, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
   type BranchActivity,
+  GitHubApiError,
   MAX_BRANCHES,
   checkFileExists,
+  getInstallation,
+  getInstallationAccessToken,
   getInstallationRepositories,
   getMostActiveBranches,
   getRepository,
@@ -18,6 +21,23 @@ import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
 
 const STATE_TTL_MS = 15 * 60 * 1000;
+
+// GitHub's "manage installation" page sits at different URLs depending on
+// whether the install belongs to a user or an org. If we don't know the
+// account (metadata fetch failed, app uninstalled, bot account), fall back
+// to the generic personal-settings URL — GitHub redirects org installs
+// from there to the correct org page, so this still lands the user on the
+// right manage page even without account info.
+const buildInstallationManagementUrl = (
+  installationId: number,
+  accountLogin: string | null,
+  accountType: string | null,
+): string => {
+  if (accountType === "Organization" && accountLogin) {
+    return `https://github.com/organizations/${encodeURIComponent(accountLogin)}/settings/installations/${installationId}`;
+  }
+  return `https://github.com/settings/installations/${installationId}`;
+};
 
 // State payload signed and handed to GitHub's install URL. The signature
 // binds the state to a specific user + workspace + project so the callback
@@ -329,6 +349,28 @@ export const githubRouter = t.router({
         });
       }
 
+      // Confirm the installation actually exists and is usable on GitHub's
+      // side before we persist anything. The callback URL params alone are
+      // not enough: GitHub also redirects here for `setup_action=request`
+      // (a non-admin requesting an org install that has not been approved)
+      // and for installations that were revoked between selection and
+      // callback. Without this check we save a row that looks valid in our
+      // UI but every downstream API call fails, leaving the user stuck.
+      await getInstallationAccessToken(input.installationId).catch((err) => {
+        console.error("github installation verification failed", err);
+        if (err instanceof GitHubApiError && (err.status === 404 || err.status === 403)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "GitHub installation is not accessible. It may still be pending approval, or the app may have been uninstalled. Reconnect from GitHub and try again.",
+          });
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to verify GitHub installation",
+        });
+      });
+
       await db
         .insert(schema.githubAppInstallations)
         .values({
@@ -435,7 +477,7 @@ export const githubRouter = t.router({
       }
 
       if (githubContext.installations.length === 0) {
-        return { repositories: [] };
+        return { repositories: [], installations: [] };
       }
 
       const allRepos: Array<{
@@ -450,29 +492,85 @@ export const githubRouter = t.router({
         language: string | null;
       }> = [];
 
-      for (const installation of githubContext.installations) {
-        const repos = await getInstallationRepositories(installation.installationId).catch(
-          (err) => {
-            console.error(err);
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to load GitHub repositories",
+      // Fetch repo lists and account metadata for every installation in
+      // parallel. Account metadata lets us deep-link "Manage on GitHub"
+      // straight to that install's repo-access page instead of routing the
+      // user through the install flow again. Failures are tracked per-call
+      // so one broken install doesn't blank the picker — see ENG-2810.
+      const results = await Promise.all(
+        githubContext.installations.map(async (installation) => {
+          const [reposResult, infoResult] = await Promise.allSettled([
+            getInstallationRepositories(installation.installationId),
+            getInstallation(installation.installationId),
+          ]);
+
+          if (reposResult.status === "rejected") {
+            console.error("failed to list repos for installation", {
+              installationId: installation.installationId,
+              err: reposResult.reason,
             });
-          },
-        );
-        for (const repo of repos) {
-          allRepos.push({
-            id: repo.id,
-            name: repo.name,
-            fullName: repo.full_name,
-            private: repo.private,
-            htmlUrl: repo.html_url,
-            defaultBranch: repo.default_branch,
+          }
+          if (infoResult.status === "rejected") {
+            console.error("failed to load installation metadata", {
+              installationId: installation.installationId,
+              err: infoResult.reason,
+            });
+          }
+
+          return {
             installationId: installation.installationId,
-            pushedAt: repo.pushed_at,
-            language: repo.language,
-          });
+            repos: reposResult.status === "fulfilled" ? reposResult.value : null,
+            info: infoResult.status === "fulfilled" ? infoResult.value : null,
+          };
+        }),
+      );
+
+      let installationErrors = 0;
+      const installationsOut: Array<{
+        installationId: number;
+        accountLogin: string | null;
+        accountType: string | null;
+        managementUrl: string;
+      }> = [];
+
+      for (const result of results) {
+        if (result.repos === null) {
+          installationErrors++;
+        } else {
+          for (const repo of result.repos) {
+            allRepos.push({
+              id: repo.id,
+              name: repo.name,
+              fullName: repo.full_name,
+              private: repo.private,
+              htmlUrl: repo.html_url,
+              defaultBranch: repo.default_branch,
+              installationId: result.installationId,
+              pushedAt: repo.pushed_at,
+              language: repo.language,
+            });
+          }
         }
+
+        const accountLogin = result.info?.account?.login ?? null;
+        const accountType = result.info?.account?.type ?? null;
+        installationsOut.push({
+          installationId: result.installationId,
+          accountLogin,
+          accountType,
+          managementUrl: buildInstallationManagementUrl(
+            result.installationId,
+            accountLogin,
+            accountType,
+          ),
+        });
+      }
+
+      if (installationErrors > 0 && installationErrors === githubContext.installations.length) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to load GitHub repositories",
+        });
       }
 
       allRepos.sort((a, b) => {
@@ -484,7 +582,7 @@ export const githubRouter = t.router({
         return a.fullName.localeCompare(b.fullName);
       });
 
-      return { repositories: allRepos };
+      return { repositories: allRepos, installations: installationsOut };
     }),
 
   getRepositoryDetails: workspaceProcedure
