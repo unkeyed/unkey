@@ -9,7 +9,7 @@ import { transformFilters } from "./utils";
 
 const RatelimitLogsResponse = z.object({
   ratelimitLogs: z.array(ratelimitLogs),
-  total: z.number(),
+  total: z.number().nullable(),
 });
 
 type RatelimitLogsResponse = z.infer<typeof RatelimitLogsResponse>;
@@ -79,7 +79,7 @@ export const queryRatelimitLogs = workspaceProcedure
     }
 
     const logs = logsResult.val;
-    const total = countResult.err ? -1 : (countResult.val[0]?.total_count ?? -1);
+    const total = countResult.err ? null : (countResult.val[0]?.total_count ?? null);
     const response: RatelimitLogsResponse = {
       ratelimitLogs: logs,
       total,

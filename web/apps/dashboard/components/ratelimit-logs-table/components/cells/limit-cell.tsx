@@ -7,6 +7,6 @@ export const LimitCell = ({ log }: { log: EnrichedRatelimitLog }) => {
     return <EnrichmentSkeleton />;
   }
   const body = safeParseJson(log.response_body);
-  const parsedLimit = body?.limit || body?.data?.limit;
+  const parsedLimit = body?.limit ?? body?.data?.limit;
   return <div className="font-mono">{parsedLimit ?? "<EMPTY>"}</div>;
 };

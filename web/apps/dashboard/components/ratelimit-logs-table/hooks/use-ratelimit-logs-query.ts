@@ -361,8 +361,20 @@ export function useRatelimitLogsQuery({
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  const totalCount = useMemo(() => Math.max(0, logData?.total ?? 0), [logData]);
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  // When the ClickHouse count query fails the tRPC handler returns `total:
+  // null`. Falling back to `hasMore = page is full` keeps pagination usable
+  // (the previous infinite-query path derived `hasMore` the same way) instead
+  // of collapsing to `totalPages = 1` and hiding the footer.
+  const pageRowCount = logData?.ratelimitLogs.length ?? 0;
+  const knownTotal = logData?.total ?? null;
+  const totalCount =
+    knownTotal !== null
+      ? Math.max(0, knownTotal)
+      : (queryPage - 1) * limit + pageRowCount;
+  const totalPages =
+    knownTotal !== null
+      ? Math.max(1, Math.ceil(totalCount / limit))
+      : queryPage + (pageRowCount >= limit ? 1 : 0);
 
   // Clamp page to valid range once data has loaded. The logData guard keeps a
   // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when

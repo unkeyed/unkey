@@ -15,7 +15,7 @@ export const ResetCell = ({ log, pointerEventsNone }: ResetCellProps) => {
   }
 
   const body = safeParseJson(log.response_body);
-  const parsedReset = body?.reset || body?.data?.reset;
+  const parsedReset = body?.reset ?? body?.data?.reset;
 
   if (!parsedReset) {
     return <>{"<Empty>"}</>;
