@@ -62,6 +62,9 @@ export const env = () =>
         .string()
         .optional()
         .transform((val) => val === "true"),
+
+      NEXT_PUBLIC_USERJOT_PROJECT_ID: z.string().optional(),
+      USERJOT_SECRET: z.string().optional(),
     })
     .parse(process.env);
 

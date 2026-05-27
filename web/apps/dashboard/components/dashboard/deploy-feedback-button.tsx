@@ -1,12 +1,12 @@
 "use client";
 
-import { useFeedback } from "@/components/dashboard/feedback-component";
 import { useFlag } from "@/lib/flags/provider";
 import { Chats } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
+const USERJOT_FEEDBACK_URL = "https://unkey.userjot.com/";
+
 export function DeployFeedbackButton() {
-  const { openFeedback } = useFeedback();
   const newNavigation = useFlag("newNavigation");
 
   if (newNavigation) {
@@ -14,9 +14,11 @@ export function DeployFeedbackButton() {
   }
 
   return (
-    <Button variant="outline" size="md" onClick={() => openFeedback(true, "feedback")}>
-      <Chats className="size-4" />
-      Feedback
+    <Button variant="outline" size="md" asChild>
+      <a href={USERJOT_FEEDBACK_URL} target="_blank" rel="noreferrer">
+        <Chats className="size-4" />
+        Feedback
+      </a>
     </Button>
   );
 }

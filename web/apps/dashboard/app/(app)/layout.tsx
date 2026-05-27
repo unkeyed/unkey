@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
+import { UserJotProvider } from "../../providers/userjot-provider";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -119,6 +120,7 @@ export default function Layout({ children }: LayoutProps) {
   if (newNavigation) {
     return (
       <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
+        <UserJotProvider />
         <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
           <TopNav />
           <MobileNavDrawer />
@@ -141,6 +143,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="h-dvh relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
+      <UserJotProvider />
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}

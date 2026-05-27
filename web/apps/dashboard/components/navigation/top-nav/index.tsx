@@ -15,6 +15,7 @@ import { TopNavFeedbackButton } from "./feedback-button";
 import { IdentityCrumb } from "./identity-crumb";
 import { NamespaceCrumb } from "./namespace-crumb";
 import { ProjectCrumb } from "./project-crumb";
+import { TopNavRoadmapButton } from "./roadmap-button";
 import { WorkspaceCrumb } from "./workspace-crumb";
 
 export const TOP_NAV_HEIGHT = 52;
@@ -42,6 +43,7 @@ export function TopNav() {
         ))}
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
+        <TopNavRoadmapButton className="hidden md:inline-flex" />
         <TopNavFeedbackButton className="hidden md:inline-flex" />
         <HelpButton />
         <UserButton />

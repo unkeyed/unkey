@@ -7,11 +7,10 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Chats } from "@unkey/icons";
+import { Bolt, Chats } from "@unkey/icons";
 import { BookOpen, type IconProps } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { useFeedback } from "./feedback-component";
 
 export function CommandMenu() {
   const [open, setOpen] = React.useState(false);
@@ -41,7 +40,18 @@ export function CommandMenu() {
             label="Documentation"
             icon={BookOpen}
           />
-          <FeedbackCommand />
+          <GenericLinkCommand
+            close={() => setOpen(false)}
+            href="https://unkey.userjot.com/"
+            label="Feedback"
+            icon={Chats}
+          />
+          <GenericLinkCommand
+            close={() => setOpen(false)}
+            href="https://unkey.userjot.com/roadmap"
+            label="Roadmap"
+            icon={Bolt}
+          />
         </CommandGroup>
       </CommandList>
     </CommandDialog>
@@ -84,17 +94,6 @@ const GenericLinkCommand: React.FC<{
     >
       <props.icon className="w-4 h-4 mr-2" />
       <span>{props.label}</span>
-    </CommandItem>
-  );
-};
-
-const FeedbackCommand: React.FC = () => {
-  const { openFeedback } = useFeedback();
-
-  return (
-    <CommandItem onSelect={() => openFeedback(true)}>
-      <Chats className="size-4 mr-2" />
-      <span>Feedback</span>
     </CommandItem>
   );
 };
