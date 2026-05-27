@@ -24,16 +24,16 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install web dependencies
-        run: mise run install-web
+        run: mise run install
 
       - name: ensure planetscale branch
         # Idempotent: re-runs on PR push reuse the existing branch. Probe with
         # `branch show` to distinguish "already exists" from real errors.
         run: |
           set -euo pipefail
-          if ! pscale branch create "$PSCALE_DB" "$BRANCH" \
+          if ! mise exec -- pscale branch create "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --from "$PSCALE_PARENT" --wait; then
-            pscale branch show "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" >/dev/null
+            mise exec -- pscale branch show "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" >/dev/null
           fi
 
       - name: run migration
@@ -41,13 +41,13 @@ jobs:
         # so reserved characters in any field can't break parsing.
         run: |
           set -euo pipefail
-          PW=$(pscale password create "$PSCALE_DB" "$BRANCH" "ci-${GITHUB_SHA::8}" \
+          PW=$(mise exec -- pscale password create "$PSCALE_DB" "$BRANCH" "ci-${GITHUB_SHA::8}" \
                  --org "$PSCALE_ORG" --format json)
-          USER=$(echo "$PW" | jq -r '.username | @uri')
-          PASS=$(echo "$PW" | jq -r '.plain_text | @uri')
-          HOST=$(echo "$PW" | jq -r '.access_host_url | @uri')
+          USER=$(echo "$PW" | mise exec -- jq -r '.username | @uri')
+          PASS=$(echo "$PW" | mise exec -- jq -r '.plain_text | @uri')
+          HOST=$(echo "$PW" | mise exec -- jq -r '.access_host_url | @uri')
           export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/$PSCALE_DB?ssl={}"
-          pnpm --dir=web/internal/db run migrate
+          mise exec -- pnpm --dir=web/internal/db run migrate
 
       - name: ensure deploy request
         # Open a DR into staging so reviewers have a one-click promotion
@@ -59,12 +59,12 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
-          EXISTING=$(pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
+          EXISTING=$(mise exec -- pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | mise exec -- jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
                 '.[] | select(.branch==$b and .into_branch==$p and .state=="open") | .number' \
             | head -n1)
           if [ -z "$EXISTING" ]; then
-            pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
+            mise exec -- pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
               --notes "PR #${PR_NUMBER}: ${PR_TITLE}"
           else

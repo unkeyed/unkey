@@ -23,20 +23,20 @@ This reduces feedback time and increases confidence. If Bazel says a test passed
 
 ## Working with Bazel
 
-Bazel uses `BUILD.bazel` files to define targets and dependencies. Gazelle generates these for Go code. Use the Makefile targets for common operations.
+Bazel uses `BUILD.bazel` files to define targets and dependencies. Gazelle generates these for Go code. Use mise tasks for common operations.
 
 ### Running tests
 
 Run the full suite:
 
 ```bash
-make test
+mise run test
 ```
 
 Run tests for a specific package:
 
 ```bash
-bazel test //pkg/cache:cache_test
+mise exec -- bazel test //pkg/cache:cache_test
 ```
 
 ### Building
@@ -44,7 +44,7 @@ bazel test //pkg/cache:cache_test
 Build all Go artifacts:
 
 ```bash
-make build
+mise run build
 ```
 
 ### Keeping BUILD files in sync
@@ -52,7 +52,7 @@ make build
 When you add Go files or change imports, update BUILD files:
 
 ```bash
-make bazel
+mise run bazel
 ```
 
 This runs `bazel mod tidy` and `bazel run //:gazelle`.
@@ -60,15 +60,15 @@ This runs `bazel mod tidy` and `bazel run //:gazelle`.
 After code generation, the generate target also updates BUILD files:
 
 ```bash
-make generate
+mise run generate
 ```
 
 ### Installation
 
-If you do not have Bazel installed, the Makefile can install it via Homebrew:
+If you do not have Bazel installed, install the pinned toolchain with mise:
 
 ```bash
-make install-brew-tools
+mise install
 ```
 
 This installs bazelisk, which downloads the correct Bazel version for the repo.

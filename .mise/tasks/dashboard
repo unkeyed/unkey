@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 #MISE description="Run local development setup for dashboard"
-#MISE depends=["install"]
+#MISE depends=["oci-load"]
 set -euo pipefail
 
-bazel build //...
-mkdir -p bin
-cp -f "$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey
-chmod +w bin/unkey
-
-bazel run //:oci_load_unkey
 test -f web/apps/dashboard/.env || cp web/apps/dashboard/dev/.env.template web/apps/dashboard/.env
 docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait
 bin/unkey dev seed local

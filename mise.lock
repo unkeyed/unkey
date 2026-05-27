@@ -514,7 +514,7 @@ checksum = "sha256:0efbc8c7aa02dec9cde9883b940ef0c69afce39305545d74cde2ff2e01170
 url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz"
 
 [tools."http:ngrok"."platforms.macos-arm64"]
-checksum = "sha256:ab3823f8aa9442ea6499c95290fc96da52824827f10253a5d1632e257beba518"
+checksum = "sha256:8e8bd786723a66747c7a1cddbd9544e0178fce12a752e9069e54189fdd8f831a"
 url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip"
 
 [tools."http:ngrok"."platforms.macos-x64"]

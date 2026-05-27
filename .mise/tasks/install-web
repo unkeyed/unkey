@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Install web dependencies"
-#MISE sources=["web/package.json", "web/pnpm-lock.yaml", "web/pnpm-workspace.yaml", "web/{apps,internal,tools}/**/package.json"]
-#MISE outputs=["web/node_modules/.modules.yaml"]
-set -euo pipefail
-
-CI=1 pnpm --dir=web install --recursive --frozen-lockfile

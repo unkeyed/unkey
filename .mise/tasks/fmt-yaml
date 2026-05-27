@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Format YAML files"
-set -euo pipefail
-
-dprint fmt --config dev/dprint.json

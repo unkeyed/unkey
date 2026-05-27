@@ -13,8 +13,8 @@ jobs:
       - uses: ./.depot/actions/setup
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install web dependencies
-        run: mise run install-web
+      - name: Install dependencies
+        run: mise run install
       - name: Format
         run: mise run fmt
       - name: Check for drift

@@ -21,14 +21,14 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install web dependencies
-        run: mise run install-web
+        run: mise run install
       - name: Build
-        run: pnpm turbo run build --filter='./internal/*'
+        run: mise exec -- pnpm turbo run build --filter='./internal/*'
         env:
           CI: 1
         working-directory: web
       - name: Test
-        run: pnpm turbo run test
+        run: mise exec -- pnpm turbo run test
         env:
           CI: 1
           TESTCONTAINERS_RYUK_DISABLED: true

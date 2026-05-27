@@ -40,7 +40,7 @@ runs:
     - name: Resolve pnpm store
       id: pnpm-store
       shell: bash
-      run: echo "path=$(mise x -- pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      run: echo "path=$(mise exec -- pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
     - name: Cache pnpm store
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4

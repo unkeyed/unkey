@@ -3,7 +3,17 @@
 #MISE depends=["install"]
 set -euo pipefail
 
+# format yaml
 dprint fmt --config dev/dprint.json
+
+# format go
 go fmt ./...
+
+# format protos
 go tool buf format -w
+
+# format ts
 pnpm --dir=web fmt
+
+# format mise config
+mise fmt

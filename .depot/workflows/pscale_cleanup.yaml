@@ -32,12 +32,12 @@ jobs:
         # Branch deletion fails while a DR is open, so close them first.
         run: |
           set -euo pipefail
-          pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | jq -r --arg b "$BRANCH" \
+          mise exec -- pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | mise exec -- jq -r --arg b "$BRANCH" \
                 '.[] | select(.branch==$b and .state=="open") | .number' \
             | while read -r num; do
-                pscale deploy-request close "$PSCALE_DB" "$num" --org "$PSCALE_ORG" || true
+                mise exec -- pscale deploy-request close "$PSCALE_DB" "$num" --org "$PSCALE_ORG" || true
               done
 
       - name: delete branch
-        run: pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true
+        run: mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true

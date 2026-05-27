@@ -14,14 +14,14 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install web dependencies
-        run: mise run install-web
+        run: mise run install
       - name: Test
-        run: pnpm turbo run test --filter=@unkey/dashboard
+        run: mise exec -- pnpm turbo run test --filter=@unkey/dashboard
         env:
           CI: 1
         working-directory: web
       - name: Build
-        run: pnpm turbo run build --filter=@unkey/dashboard
+        run: mise exec -- pnpm turbo run build --filter=@unkey/dashboard
         env:
           CI: 1
           DATABASE_HOST: localhost:8080

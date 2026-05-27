@@ -107,7 +107,6 @@ test: oci-load clean-docker-test ## Run tests with bazel
 .PHONY: clean-docker-test
 clean-docker-test: ## Clean up dangling test containers
 	@docker rm -vf $$(docker ps -q -f label="owner=testutil-containers") > /dev/null 2>&1 || true
-	@docker rm -vf $$(docker ps -q -f label="owner=dockertest") > /dev/null 2>&1 || true
 
 .PHONY: tunnel
 tunnel: ## Forward ports 80/443 to frontline for *.unkey.local (run in separate terminal)

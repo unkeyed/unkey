@@ -209,7 +209,7 @@ The Go code lives under `svc/heimdall/internal/network/`:
 - `network_linux.go`. The `Reader` interface implementation (lifecycle + async attach worker pool). Keys its per-pod map by `types.UID → netns cookie (u64)`.
 - `sandbox_linux.go`. Resolves the containerd sandbox to its CNI netns path.
 - `veth_linux.go`. One locked-thread block that does everything netns-scoped: `setns` into the pod netns, find pod-side eth0, read the netns cookie, attach both TCX programs, `setns` back.
-- `bpf/network.bpf.c`. The eBPF program, compiled by `bpf2go` into Go bindings and an embedded `.o`. Run `make generate-bpf` after editing.
+- `bpf/network.bpf.c`. The eBPF program, compiled by `bpf2go` into Go bindings and an embedded `.o`. Run `mise run generate-bpf` after editing.
 
 ## What a checkpoint actually contains
 
@@ -402,4 +402,3 @@ Manifest at `dev/k8s/manifests/heimdall.yaml`. Production deployment details (He
 | `pkg/clickhouse/schema/025_instance_checkpoints_v1.sql` | Raw table |
 | `pkg/clickhouse/schema/027_instance_resources_per_minute_v1.sql` | Per-minute dashboard MV (similar files for 15s, hour, day, month) |
 | `web/internal/clickhouse/src/resources.ts` | Dashboard hybrid queries (single template, six metrics: cpu, memory, disk, instances, network_egress, network_ingress) |
-

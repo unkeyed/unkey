@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Build and load OCI images into Docker"
+#MISE depends=["build"]
 set -euo pipefail
-
-bazel build //...
-mkdir -p bin
-cp -f "$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey
-chmod +w bin/unkey
 
 bazel run //:oci_load_unkey

@@ -515,6 +515,6 @@ When running in `check` mode, also report:
 
 After generating, run:
 ```
-make bazel && make build && make fmt
+mise run bazel && mise run build && mise run fmt
 ```
-Fix any errors before finishing. Never use `go build` directly — always use `make build` (bazel), as it runs stricter linters.
+Fix any errors before finishing. Never use `go build` directly. Always use `mise run build` (Bazel), as it runs stricter linters.
