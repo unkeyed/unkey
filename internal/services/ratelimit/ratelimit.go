@@ -51,11 +51,11 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	prev := s.loadCounter(prevKey)
 
 	// First caller per entry runs fetchFromOrigin; concurrent callers block
-	// inside Do until it returns, then take the fast path (single atomic
-	// load of hydrated) forever. This prevents late arrivals on a cold key
-	// from reading a zero counter while the owner is still fetching.
-	cur.Hydrate(ctx)
-	prev.Hydrate(ctx)
+	// inside Do until it returns. Warm entries refresh from origin when their
+	// last origin fetch is stale, preventing idle replicas from serving an old
+	// local view for the rest of a long window.
+	cur.EnsureFreshFromOrigin(ctx, req.Time)
+	prev.EnsureFreshFromOrigin(ctx, req.Time)
 
 	// Strict mode: a recent denial in this region forces an additional
 	// synchronous origin fetch until the deadline passes. This is the
@@ -65,8 +65,10 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	// Cross-region convergence is handled separately via
 	// cur.globalCount.
 	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
-		atomicMax(&cur.val, s.fetchFromOrigin(ctx, curKey))
-		atomicMax(&prev.val, s.fetchFromOrigin(ctx, prevKey))
+		countOriginCurrent := s.fetchFromOrigin(ctx, curKey, "fetch_strict")
+		countOriginPrevious := s.fetchFromOrigin(ctx, prevKey, "fetch_strict")
+		atomicMax(&cur.val, countOriginCurrent)
+		atomicMax(&prev.val, countOriginPrevious)
 	}
 
 	windowStartMs := curSeq * durationMs

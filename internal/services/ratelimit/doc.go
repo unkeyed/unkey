@@ -6,8 +6,9 @@ algorithm with atomic counters.
 
 All rate limit state is stored in a flat sync.Map of counter entries, keyed by
 (workspace, namespace, identifier, duration, sequence). Each entry holds an
-atomic.Int64 counter plus a sync.Once that gates the first origin hydration.
-There are no mutexes in the hot path:
+atomic.Int64 counter plus a sync.Once that gates the first origin sync. Warm
+entries periodically refresh from origin to prevent idle replicas from serving
+stale long-window state indefinitely. There are no mutexes in the hot path:
 
   - Denials are wait-free: two atomic loads, arithmetic, return.
   - Single checks are lock-free: a bounded CAS loop commits the increment.
