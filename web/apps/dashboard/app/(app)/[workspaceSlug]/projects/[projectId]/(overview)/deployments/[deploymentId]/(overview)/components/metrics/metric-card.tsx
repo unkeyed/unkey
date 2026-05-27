@@ -43,7 +43,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   cpu: {
     label: "CPU",
-    color: "var(--feature-8)",
+    color: "var(--brand-8)",
     iconBg: "bg-feature-3",
     iconText: "text-feature-11",
     unit: "%",
