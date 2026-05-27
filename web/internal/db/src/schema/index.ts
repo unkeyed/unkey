@@ -22,6 +22,7 @@ export * from "./deployments";
 export * from "./openapi_specs";
 export * from "./deployment_steps";
 export * from "./deployment_topology";
+export * from "./build_slots";
 export * from "./acme_users";
 
 export * from "./custom_domains";

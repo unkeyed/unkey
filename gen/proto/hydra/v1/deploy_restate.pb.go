@@ -24,8 +24,8 @@ import (
 // (preventing e.g. a rollback from racing with an in-flight deploy) while
 // different environments of the same app — e.g. production vs preview — can
 // deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// preview build. Workspace-wide concurrency is separately enforced by the
+// build_slots / build_slot_waiters tables in the Deploy handler.
 //
 // ScaleDownIdlePreviewDeployments is a global cron job and uses a fixed
 // sentinel key since it does not relate to any single environment.
@@ -216,8 +216,8 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // (preventing e.g. a rollback from racing with an in-flight deploy) while
 // different environments of the same app — e.g. production vs preview — can
 // deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// preview build. Workspace-wide concurrency is separately enforced by the
+// build_slots / build_slot_waiters tables in the Deploy handler.
 //
 // ScaleDownIdlePreviewDeployments is a global cron job and uses a fixed
 // sentinel key since it does not relate to any single environment.

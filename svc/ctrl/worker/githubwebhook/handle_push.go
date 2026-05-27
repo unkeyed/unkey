@@ -190,7 +190,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		// Keyed by deployment_id — each deployment is its own isolated workflow.
-		// Workspace-wide build concurrency is capped by BuildSlotService.
+		// Workspace-wide build concurrency is capped by the build_slots tables.
 		deployClient := hydrav1.NewDeployServiceClient(ctx, deploymentID)
 		invocation := deployClient.Deploy().Send(&hydrav1.DeployRequest{
 			DeploymentId: deploymentID,

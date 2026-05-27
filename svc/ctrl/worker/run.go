@@ -38,7 +38,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogexport"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
@@ -306,17 +305,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create environment worker service: %w", err)
 	}
 	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(envSvc))
-
-	// BuildSlotService is short-lived coordination — AcquireOrWait/Release
-	// journals have no debugging value (each invocation just reads state,
-	// maybe resolves an awakeable, and returns), so keep their retention
-	// minimal.
-	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
-		DB: database,
-	}),
-		restate.WithIngressPrivate(true),
-		restate.WithJournalRetention(1*time.Minute),
-	))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,

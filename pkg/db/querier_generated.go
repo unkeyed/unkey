@@ -1352,6 +1352,16 @@ type Querier interface {
 	//        AND id != ?
 	//  ) AS has_newer
 	HasNewerActiveDeployment(ctx context.Context, db DBTX, arg HasNewerActiveDeploymentParams) (bool, error)
+	// Returns true when this deployment already owns a row in build_slots
+	// (acquired directly, or pre-granted by a previous Release). Used at the
+	// top of waitForBuildSlot's loop as the source of truth: any path that
+	// ends with our row in build_slots means we own the slot, regardless of
+	// whether the awakeable wake-up landed.
+	//
+	//  SELECT EXISTS(
+	//      SELECT 1 FROM build_slots WHERE deployment_id = ?
+	//  ) AS holds
+	HoldsBuildSlot(ctx context.Context, db DBTX, deploymentID string) (bool, error)
 	//InsertAcmeChallenge
 	//
 	//  INSERT INTO acme_challenges (
@@ -2760,6 +2770,32 @@ type Querier interface {
 	//  WHERE pk IN (/*SLICE:pks*/?)
 	//    AND deleted_at IS NULL
 	MarkClickhouseOutboxBatchDeleted(ctx context.Context, db DBTX, arg MarkClickhouseOutboxBatchDeletedParams) error
+	// Returns the next waiter for a workspace, production waiters first then
+	// by enqueue order. Wrap in a tx with FOR UPDATE to serialize promotion
+	// across concurrent Release calls.
+	//
+	//  SELECT deployment_id, awakeable_id
+	//  FROM build_slot_waiters
+	//  WHERE workspace_id = ?
+	//  ORDER BY is_production DESC, enqueued_at ASC
+	//  LIMIT 1
+	//  FOR UPDATE
+	PickNextBuildSlotWaiter(ctx context.Context, db DBTX, workspaceID string) (PickNextBuildSlotWaiterRow, error)
+	// Pre-grants a slot to a promoted waiter, but only if the waiter's
+	// deployment hasn't already gone terminal. 0 rows means the waiter is
+	// defunct and the caller should skip it and try the next one.
+	//
+	//  INSERT INTO build_slots (deployment_id, workspace_id, acquired_at)
+	//  SELECT
+	//    ?,
+	//    ?,
+	//    ?
+	//  WHERE EXISTS (
+	//    SELECT 1 FROM deployments d
+	//    WHERE d.id = ?
+	//      AND d.status NOT IN (/*SLICE:terminal_statuses*/?)
+	//  )
+	PreGrantBuildSlot(ctx context.Context, db DBTX, arg PreGrantBuildSlotParams) (int64, error)
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
@@ -2835,6 +2871,21 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:ids*/?)
 	//    AND deleted_at_m IS NULL
 	RefillKeysByIDs(ctx context.Context, db DBTX, arg RefillKeysByIDsParams) error
+	// Parks a deployment as a waiter for a build slot. ON DUPLICATE KEY makes
+	// re-entry safe: a Deploy retry with a fresh awakeable updates the row
+	// in-place so the next Release wakes the new awakeable, not a dead one.
+	//
+	//  INSERT INTO build_slot_waiters
+	//    (deployment_id, workspace_id, awakeable_id, is_production, enqueued_at)
+	//  VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//    awakeable_id = VALUES(awakeable_id),
+	//    enqueued_at  = VALUES(enqueued_at)
+	RegisterBuildSlotWaiter(ctx context.Context, db DBTX, arg RegisterBuildSlotWaiterParams) error
+	//ReleaseBuildSlot
+	//
+	//  DELETE FROM build_slots WHERE deployment_id = ?
+	ReleaseBuildSlot(ctx context.Context, db DBTX, deploymentID string) error
 	//ResetCustomDomainVerification
 	//
 	//  UPDATE custom_domains
@@ -2917,6 +2968,32 @@ type Querier interface {
 	//  WHERE dt.`workspace_id` = ?
 	//    AND dt.`desired_status` = 'running'
 	SumAllocatedResourcesByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error)
+	// Atomically grants a build slot if the workspace is below its
+	// max_concurrent_builds quota. The capacity count joins against
+	// deployments.status so any slot whose deployment has gone terminal
+	// (compensation never ran, invocation purged, etc.) is automatically
+	// excluded from the count — leaked rows are inert, not deadlocks.
+	// Returns 1 row inserted on grant, 0 when at capacity.
+	//
+	//  INSERT INTO build_slots (deployment_id, workspace_id, acquired_at)
+	//  SELECT
+	//    ?,
+	//    ?,
+	//    ?
+	//  WHERE (
+	//    SELECT COUNT(*) FROM build_slots bs
+	//    JOIN deployments d ON d.id = bs.deployment_id
+	//    WHERE bs.workspace_id = ?
+	//      AND d.status NOT IN (/*SLICE:terminal_statuses*/?)
+	//  ) < (
+	//    SELECT q.max_concurrent_builds FROM quota q
+	//    WHERE q.workspace_id = ?
+	//  )
+	TryAcquireBuildSlot(ctx context.Context, db DBTX, arg TryAcquireBuildSlotParams) (int64, error)
+	//UnregisterBuildSlotWaiter
+	//
+	//  DELETE FROM build_slot_waiters WHERE deployment_id = ?
+	UnregisterBuildSlotWaiter(ctx context.Context, db DBTX, deploymentID string) error
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges

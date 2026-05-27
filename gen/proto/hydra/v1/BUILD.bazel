@@ -7,8 +7,6 @@ go_library(
         "app_restate.pb.go",
         "audit_log_export.pb.go",
         "audit_log_export_restate.pb.go",
-        "build_slot.pb.go",
-        "build_slot_restate.pb.go",
         "certificate.pb.go",
         "certificate_restate.pb.go",
         "clickhouse_user.pb.go",

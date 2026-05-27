@@ -13,7 +13,8 @@
 // (apps.current_deployment_id) is serialized inside RoutingService via
 // SwapLiveDeployment, which is keyed by env_id.
 //
-// Workspace-wide concurrency is capped by [buildslot.Service].
+// Workspace-wide concurrency is capped by the build_slots /
+// build_slot_waiters tables; see [Workflow.waitForBuildSlot].
 //
 // # Why Restate Workflows
 //
@@ -32,11 +33,13 @@
 //     [db.Queries.HasNewerActiveDeployment] for a newer sibling on the same
 //     (app, env, branch). If one exists in any non-terminal status, this
 //     deployment marks itself as skipped and returns.
-//  2. Concurrency gate: [Workflow.waitForBuildSlot] creates a Restate
-//     awakeable and calls [hydrav1.BuildSlotService.AcquireOrWait]. The
-//     handler parks on the awakeable until BuildSlotService resolves it —
-//     either immediately (slot available or is_production=true) or later when
-//     a held slot is released. Production deployments bypass the limit.
+//  2. Concurrency gate: [Workflow.waitForBuildSlot] runs an atomic INSERT
+//     that grants a row in build_slots when the workspace is under its
+//     max_concurrent_builds quota. The count joins against
+//     deployments.status so leaked rows from purged invocations don't
+//     deadlock the workspace. At capacity, the handler parks on a Restate
+//     awakeable and is woken by the next [Workflow.releaseBuildSlot] —
+//     production waiters jump ahead of preview waiters.
 //
 // On the creation side, [dedup.CancelOlderSiblings] runs right after the
 // deployment row is inserted: it batch-stamps older siblings with the

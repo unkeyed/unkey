@@ -73,10 +73,11 @@ func (c *Compensation) Add(name string, run func(ctx restate.RunContext) error) 
 }
 
 // AddCtx registers a compensation step that needs the full ObjectContext
-// (e.g. to Send messages to other Restate services). Unlike [Add], the
-// callback is NOT wrapped in [restate.RunVoid] — the caller is responsible
-// for making the operation idempotent. Use this for fire-and-forget Sends
-// like releasing a BuildSlotService slot.
+// (e.g. to resolve awakeables or Send messages to other Restate services).
+// Unlike [Add], the callback is NOT wrapped in [restate.RunVoid] — the
+// caller is responsible for making the operation idempotent. Use this for
+// steps like releasing a build slot that need to both run DB work via
+// restate.Run and resolve an awakeable in the outer context.
 func (c *Compensation) AddCtx(run func(ctx restate.ObjectContext) error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -136,11 +136,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 	}
 
-	// --- Concurrency gate: acquire a build slot from the workspace's BuildSlotService ---
+	// --- Concurrency gate: acquire a build slot from the workspace pool ---
 	//
-	// We need to know whether this is a production deployment to decide whether the
-	// gate should be bypassed. The Starting step below re-fetches the environment so
-	// we don't need to plumb it through — this extra read is cheap compared to a build.
+	// We need to know whether this is a production deployment to decide whether
+	// the gate should prioritise it ahead of preview waiters. The Starting step
+	// below re-fetches the environment so we don't need to plumb it through —
+	// this extra read is cheap compared to a build.
 	gateEnvironment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
 		return db.Query.FindEnvironmentById(runCtx, w.db.RO(), deployment.EnvironmentID)
 	}, restate.WithName("find environment for concurrency gate"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -150,15 +151,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	isProduction := gateEnvironment.Slug == "production"
 
 	// Register the slot release as a durable compensation BEFORE calling
-	// AcquireOrWait. This ensures the slot is returned on ANY failure path:
-	// cancellation, crash, or normal error. Release is idempotent — it
-	// handles both active slots and wait_list entries, so calling it when
-	// we were never granted a slot is a no-op.
-	//
-	// Uses AddCtx (not Add) because Release().Send() needs an ObjectContext
-	// to dispatch the fire-and-forget call to BuildSlotService.
+	// waitForBuildSlot. This ensures the slot is returned on ANY failure
+	// path: cancellation, crash, or normal error. releaseBuildSlot is
+	// idempotent — it handles both held slots and parked waiters, so
+	// calling it when we never acquired anything is a no-op.
 	compensation.AddCtx(func(ctx restate.ObjectContext) error {
-		releaseBuildSlot(ctx, deployment.WorkspaceID, deployment.ID)
+		w.releaseBuildSlot(ctx, deployment.WorkspaceID, deployment.ID)
 		return nil
 	})
 	if err := w.waitForBuildSlot(ctx, deployment, isProduction); err != nil {
@@ -348,7 +346,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// Release the build slot on the happy path. The compensation only runs
 	// on error, so we release explicitly here. Release is idempotent, so a
 	// double-release (if compensation also fires for some reason) is safe.
-	releaseBuildSlot(ctx, deployment.WorkspaceID, deployment.ID)
+	w.releaseBuildSlot(ctx, deployment.WorkspaceID, deployment.ID)
 
 	return &hydrav1.DeployResponse{}, nil
 }

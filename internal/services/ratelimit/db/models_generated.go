@@ -1039,6 +1039,20 @@ type AppRuntimeSetting struct {
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
 }
 
+type BuildSlot struct {
+	DeploymentID string `db:"deployment_id"`
+	WorkspaceID  string `db:"workspace_id"`
+	AcquiredAt   int64  `db:"acquired_at"`
+}
+
+type BuildSlotWaiter struct {
+	DeploymentID string `db:"deployment_id"`
+	WorkspaceID  string `db:"workspace_id"`
+	AwakeableID  string `db:"awakeable_id"`
+	IsProduction bool   `db:"is_production"`
+	EnqueuedAt   int64  `db:"enqueued_at"`
+}
+
 type Certificate struct {
 	Pk                  uint64        `db:"pk"`
 	ID                  string        `db:"id"`

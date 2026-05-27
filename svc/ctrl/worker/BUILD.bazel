@@ -35,7 +35,6 @@ go_library(
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/app",
         "//svc/ctrl/worker/auditlogexport",
-        "//svc/ctrl/worker/buildslot",
         "//svc/ctrl/worker/certificate",
         "//svc/ctrl/worker/clickhouseuser",
         "//svc/ctrl/worker/customdomain",

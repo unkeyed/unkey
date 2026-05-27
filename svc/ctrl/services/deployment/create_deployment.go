@@ -60,7 +60,7 @@ type dockerSourceInfo struct {
 // The workflow runs asynchronously keyed by {app, environment}, so different
 // environments (e.g. prod vs preview) for the same app deploy in parallel while
 // lifecycle operations within one environment remain serialized. Workspace-wide
-// build concurrency is enforced separately via BuildSlotService. Returns the
+// build concurrency is enforced separately via the build_slots tables. Returns the
 // deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
