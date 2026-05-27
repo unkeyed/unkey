@@ -12,7 +12,6 @@ go_library(
     deps = [
         "//internal/services/keys/db",
         "//pkg/cache",
-        "//pkg/cache/clustering",
         "//pkg/cache/middleware",
         "//pkg/clock",
         "//pkg/db",

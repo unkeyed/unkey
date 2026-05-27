@@ -30,12 +30,6 @@ readonly_replica = "${UNKEY_DATABASE_REPLICA}"
 [vault]
 url = "${UNKEY_VAULT_URL}"
 token = "${UNKEY_VAULT_TOKEN}"
-
-[gossip]
-bind_addr = "0.0.0.0"
-lan_port = 7946
-wan_port = 7947
-secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
 ```
 
 <ResponseField name="instance_id" type="string">
@@ -109,30 +103,6 @@ secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
   </Expandable>
 </ResponseField>
 
-<ResponseField name="gossip" type="object">
-  Gossip-based cache invalidation.
-  <Expandable title="Fields">
-    <ResponseField name="gossip.bind_addr" type="string" default="0.0.0.0">
-      Bind address.
-    </ResponseField>
-    <ResponseField name="gossip.lan_port" type="int" default="7946">
-      LAN port.
-    </ResponseField>
-    <ResponseField name="gossip.wan_port" type="int" default="7947">
-      WAN port.
-    </ResponseField>
-    <ResponseField name="gossip.lan_seeds" type="string[]">
-      LAN seed addresses.
-    </ResponseField>
-    <ResponseField name="gossip.wan_seeds" type="string[]">
-      WAN seed addresses.
-    </ResponseField>
-    <ResponseField name="gossip.secret_key" type="string" required>
-      Secret key for gossip encryption.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
 <ResponseField name="observability" type="object">
   Tracing and logging configuration.
   <Expandable title="Fields">
@@ -180,10 +150,6 @@ The Helm chart provides these variables for the default config template:
   MySQL read replica DSN.
 </ResponseField>
 
-<ResponseField name="UNKEY_GOSSIP_SECRET_KEY" type="env" required>
-  Gossip secret key.
-</ResponseField>
-
 ## Example configuration
 
 ```toml
@@ -203,12 +169,6 @@ readonly_replica = "${UNKEY_DATABASE_REPLICA}"
 [vault]
 url = "${UNKEY_VAULT_URL}"
 token = "${UNKEY_VAULT_TOKEN}"
-
-[gossip]
-bind_addr = "0.0.0.0"
-lan_port = 7946
-wan_port = 7947
-secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
 
 [observability.tracing]
 sample_rate = 0.1
