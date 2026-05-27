@@ -14,7 +14,7 @@ The old gossip implementation is removed in a separate PR; this RFC describes th
 
 ## Motivation
 
-The previous gossip layer never fully made it into production: cross-region connectivity over the WAN bridge didn't work, so its better to replace it with a new implementation rather than keep iterating on a design we can replace by using vpc peering.
+The previous gossip layer never fully made it into production: cross-region connectivity over the WAN bridge didn't work, so it's better to replace it with a new implementation rather than keep iterating on a design we can replace by using VPC peering.
 
 We do still need a cross-region bus, so this RFC is what replaces it.
 
@@ -49,7 +49,7 @@ Event {
 
 `pkg/bus` exposes one untyped transport interface and a generic `Topic[T]` handle. There is exactly one `Bus` per process, wrapping one Serf connection; topic handles are stateless compile-time bindings and open nothing.
 
-It could look something like these lines, this is just a rough sketch not the final implementation.
+It could look something like the following — this is a rough sketch, not the final implementation.
 
 ```go
 // One per process. Holds the Serf connection, replay log, and dedup LRU.
@@ -242,7 +242,7 @@ The old gossip layer is removed in a separate PR before this one lands, so the r
 
 1. Add `pkg/bus` on top of Serf and wire the cache invalidation subscriber.
 2. Stand up the per-region NLBs (`gossip.<region>.aws.unkey.cloud`).
-3. Deploy region by region and watch membership convergence in a then added Grafana dashboard.
+3. Deploy region by region and watch membership convergence in a Grafana dashboard added alongside the rollout.
 
 ### Observability
 
