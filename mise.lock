@@ -319,45 +319,6 @@ checksum = "sha256:339707071180099a0bfc42bd4faaa9f7618d20be10ce450f77f9e59a257b2
 url = "https://github.com/planetscale/cli/releases/download/v0.284.0/pscale_0.284.0_windows_amd64.zip"
 url_api = "https://api.github.com/repos/planetscale/cli/releases/assets/424448028"
 
-[[tools."github:pnpm/pnpm"]]
-version = "8.6.9"
-backend = "github:pnpm/pnpm"
-
-[tools."github:pnpm/pnpm"."platforms.linux-arm64"]
-checksum = "sha256:b0bf875e2cc6136dfb8af4c597001d2831209234bc428cbe6c70c216231508b1"
-url = "https://github.com/pnpm/pnpm/releases/download/v8.6.9/pnpm-linux-arm64"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/117505112"
-
-[tools."github:pnpm/pnpm"."platforms.linux-arm64-musl"]
-checksum = "sha256:b0bf875e2cc6136dfb8af4c597001d2831209234bc428cbe6c70c216231508b1"
-url = "https://github.com/pnpm/pnpm/releases/download/v8.6.9/pnpm-linux-arm64"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/117505112"
-
-[tools."github:pnpm/pnpm"."platforms.linux-x64"]
-checksum = "sha256:0cd5380f2a42bf8aee6b461ff66ed6ee79e1270be4c9af3526e7c276c97a3c56"
-url = "https://github.com/pnpm/pnpm/releases/download/v8.6.9/pnpm-linux-x64"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/117505109"
-
-[tools."github:pnpm/pnpm"."platforms.linux-x64-musl"]
-checksum = "sha256:0cd5380f2a42bf8aee6b461ff66ed6ee79e1270be4c9af3526e7c276c97a3c56"
-url = "https://github.com/pnpm/pnpm/releases/download/v8.6.9/pnpm-linux-x64"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/117505109"
-
-[tools."github:pnpm/pnpm"."platforms.macos-arm64"]
-checksum = "sha256:af0a65acaebf1e721b6feb8bf1ccbe108b6372dea1439edbc279fc1bd85de078"
-url = "https://github.com/pnpm/pnpm/releases/download/v8.6.9/pnpm-macos-arm64"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/117505108"
-
-[tools."github:pnpm/pnpm"."platforms.macos-x64"]
-checksum = "sha256:a302c39087f9f4769c7145370a85bb40e0cd791dd9d92928e743986bfb8ff687"
-url = "https://github.com/pnpm/pnpm/releases/download/v8.6.9/pnpm-macos-x64"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/117505114"
-
-[tools."github:pnpm/pnpm"."platforms.windows-x64"]
-checksum = "sha256:b37eab71709268c090da3d28b86dad4ae7dca0e8e5e4fddba5c96d193f4250d2"
-url = "https://github.com/pnpm/pnpm/releases/download/v8.6.9/pnpm-win-x64.exe"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/117505115"
-
 [[tools."github:tilt-dev/ctlptl"]]
 version = "0.9.3"
 backend = "github:tilt-dev/ctlptl"
@@ -595,3 +556,7 @@ url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-darwin-x64.tar.gz"
 [tools.node."platforms.windows-x64"]
 checksum = "sha256:edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56"
 url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-win-x64.zip"
+
+[[tools."npm:pnpm"]]
+version = "8.6.9"
+backend = "npm:pnpm"

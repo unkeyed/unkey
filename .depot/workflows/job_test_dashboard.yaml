@@ -23,7 +23,6 @@ jobs:
       - name: Build
         run: mise exec -- pnpm turbo run build --filter=@unkey/dashboard
         env:
-          CI: 1
           DATABASE_HOST: localhost:8080
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password

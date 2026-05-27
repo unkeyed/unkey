@@ -20,7 +20,7 @@ go = "1.25.1"
 "github:tilt-dev/ctlptl" = "0.9.3"
 "github:FiloSottile/mkcert" = "1.4.4"
 "github:planetscale/cli" = "0.284.0"
-"github:pnpm/pnpm" = "8.6.9"
+"npm:pnpm" = "8.6.9"
 "github:depot/cli" = "2.101.63"
 
 [tools."github:bazelbuild/bazelisk"]

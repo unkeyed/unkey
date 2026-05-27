@@ -24,13 +24,10 @@ jobs:
         run: mise run install
       - name: Build
         run: mise exec -- pnpm turbo run build --filter='./internal/*'
-        env:
-          CI: 1
         working-directory: web
       - name: Test
         run: mise exec -- pnpm turbo run test
         env:
-          CI: 1
           TESTCONTAINERS_RYUK_DISABLED: true
           DOCKER_HOST: unix:///var/run/docker.sock
           TESTCONTAINERS_HOST_OVERRIDE: localhost
