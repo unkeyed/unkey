@@ -1,11 +1,17 @@
 package middleware
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 )
 
 // TestGetErrorPageInfoFrontline_StatusMapping locks in the URN → HTTP status
@@ -68,3 +74,98 @@ func TestGetErrorPageInfoFrontline_UnknownURNDefaultsTo500(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, got.Status,
 		"unknown URN should default to 500 so we get alerted on it")
 }
+
+type stubRenderer struct{}
+
+func (stubRenderer) Render(errorpage.Data) ([]byte, error) {
+	return []byte("<html>error</html>"), nil
+}
+
+func TestWithObservability_JSONErrorIncludesMetaRequestID(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		urn    codes.URN
+		accept string
+	}{
+		{
+			name:   "application/json",
+			urn:    codes.Frontline.Proxy.GatewayTimeout.URN(),
+			accept: "application/json",
+		},
+		{
+			name:   "application/* without text/html",
+			urn:    codes.Frontline.Proxy.ServiceUnavailable.URN(),
+			accept: "application/*",
+		},
+		{
+			name:   "*/* without text/html",
+			urn:    codes.Frontline.Internal.InternalServerError.URN(),
+			accept: "*/*",
+		},
+	}
+
+	mw := WithObservability(stubRenderer{})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("Accept", tt.accept)
+
+			w := httptest.NewRecorder()
+			sess := &zen.Session{}
+			require.NoError(t, sess.Init(w, req, 0))
+
+			handler := mw(func(_ context.Context, _ *zen.Session) error {
+				return fault.New("upstream failed", fault.Code(tt.urn))
+			})
+
+			err := handler(context.Background(), sess)
+			require.NoError(t, err)
+
+			var body ErrorResponse
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+
+			require.NotEmpty(t, body.Meta.RequestID, "JSON error must include meta.requestId")
+			require.Equal(t, sess.RequestID(), body.Meta.RequestID)
+			require.NotEmpty(t, body.Error.Code)
+		})
+	}
+}
+
+func TestWithObservability_HTMLFallbackIncludesMetaRequestID(t *testing.T) {
+	t.Parallel()
+
+	// When the HTML renderer fails the middleware falls back to JSON.
+	// That fallback must also carry meta.requestId.
+	mw := WithObservability(renderFunc(func(errorpage.Data) ([]byte, error) {
+		return nil, fault.New("template broken")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept", "text/html")
+
+	w := httptest.NewRecorder()
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(w, req, 0))
+
+	handler := mw(func(_ context.Context, _ *zen.Session) error {
+		return fault.New("boom", fault.Code(codes.Frontline.Proxy.BadGateway.URN()))
+	})
+
+	err := handler(context.Background(), sess)
+	require.NoError(t, err)
+
+	var body ErrorResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+
+	require.NotEmpty(t, body.Meta.RequestID, "JSON fallback must include meta.requestId")
+	require.Equal(t, sess.RequestID(), body.Meta.RequestID)
+}
+
+type renderFunc func(errorpage.Data) ([]byte, error)
+
+func (f renderFunc) Render(d errorpage.Data) ([]byte, error) { return f(d) }

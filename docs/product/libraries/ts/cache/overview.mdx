@@ -333,14 +333,14 @@ const ctx = new DefaultStatefulContext();
 
   </ParamField>
 
-  <ParamField path="fresh" requried type="number">
+  <ParamField path="fresh" required type="number">
     The time in milliseconds that a value is considered fresh. Cache hits within this time will return the cached value.
 
     Must be less than `stale`.
 
   </ParamField>
 
-  <ParamField path="stale" requried type="number">
+  <ParamField path="stale" required type="number">
     The time in milliseconds that a value is considered stale. Cache hits within this time will return the cached value and trigger a background refresh.
 
     Must be greater than `fresh`.
