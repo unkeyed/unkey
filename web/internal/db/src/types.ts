@@ -13,12 +13,6 @@ export type InsertWorkspace = InferInsertModel<typeof schema.workspaces>;
 export type KeyAuth = InferSelectModel<typeof schema.keyAuth>;
 export type InsertKeyAuth = InferInsertModel<typeof schema.keyAuth>;
 
-export type VercelIntegration = InferSelectModel<typeof schema.vercelIntegrations>;
-export type InsertVercelIntegration = InferInsertModel<typeof schema.vercelIntegrations>;
-
-export type VercelBinding = InferSelectModel<typeof schema.vercelBindings>;
-export type InsertVercelBinding = InferInsertModel<typeof schema.vercelBindings>;
-
 export type Permission = InferSelectModel<typeof schema.permissions>;
 export type InsertPermission = InferInsertModel<typeof schema.permissions>;
 
@@ -45,12 +39,6 @@ export type InsertRatelimit = InferInsertModel<typeof schema.ratelimits>;
 
 export type Identity = InferSelectModel<typeof schema.identities>;
 export type InsertIdentity = InferInsertModel<typeof schema.identities>;
-
-export type AuditLog = InferSelectModel<typeof schema.auditLog>;
-export type InsertAuditLog = InferInsertModel<typeof schema.auditLog>;
-
-export type AuditLogTarget = InferSelectModel<typeof schema.auditLogTarget>;
-export type InsertAuditLogTarget = InferInsertModel<typeof schema.auditLogTarget>;
 
 export type Quotas = InferSelectModel<typeof schema.quotas>;
 export type InsertQuotas = InferInsertModel<typeof schema.quotas>;

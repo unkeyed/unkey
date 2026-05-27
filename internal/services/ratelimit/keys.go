@@ -2,7 +2,7 @@ package ratelimit
 
 import "fmt"
 
-// counterKey identifies a single sliding window counter in memory.
+// counterKey identifies a single sliding-window counter in memory.
 // Used as a sync.Map key — struct comparison is allocation-free.
 type counterKey struct {
 	workspaceID string

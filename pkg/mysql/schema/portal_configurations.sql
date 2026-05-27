@@ -16,5 +16,3 @@ CREATE TABLE `portal_configurations` (
 	CONSTRAINT `idx_key_auth_id` UNIQUE(`key_auth_id`)
 );
 
-CREATE INDEX `idx_workspace` ON `portal_configurations` (`workspace_id`);
-

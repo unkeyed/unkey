@@ -928,91 +928,6 @@ func (ns NullSentinelsHealth) Value() (driver.Value, error) {
 	return string(ns.SentinelsHealth), nil
 }
 
-type VercelBindingsEnvironment string
-
-const (
-	VercelBindingsEnvironmentDevelopment VercelBindingsEnvironment = "development"
-	VercelBindingsEnvironmentPreview     VercelBindingsEnvironment = "preview"
-	VercelBindingsEnvironmentProduction  VercelBindingsEnvironment = "production"
-)
-
-func (e *VercelBindingsEnvironment) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VercelBindingsEnvironment(s)
-	case string:
-		*e = VercelBindingsEnvironment(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VercelBindingsEnvironment: %T", src)
-	}
-	return nil
-}
-
-type NullVercelBindingsEnvironment struct {
-	VercelBindingsEnvironment VercelBindingsEnvironment
-	Valid                     bool // Valid is true if VercelBindingsEnvironment is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVercelBindingsEnvironment) Scan(value interface{}) error {
-	if value == nil {
-		ns.VercelBindingsEnvironment, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VercelBindingsEnvironment.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVercelBindingsEnvironment) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VercelBindingsEnvironment), nil
-}
-
-type VercelBindingsResourceType string
-
-const (
-	VercelBindingsResourceTypeRootKey VercelBindingsResourceType = "rootKey"
-	VercelBindingsResourceTypeApiId   VercelBindingsResourceType = "apiId"
-)
-
-func (e *VercelBindingsResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = VercelBindingsResourceType(s)
-	case string:
-		*e = VercelBindingsResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for VercelBindingsResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullVercelBindingsResourceType struct {
-	VercelBindingsResourceType VercelBindingsResourceType
-	Valid                      bool // Valid is true if VercelBindingsResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullVercelBindingsResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.VercelBindingsResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.VercelBindingsResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.VercelBindingsResourceType), nil
-}
-
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -1122,40 +1037,6 @@ type AppRuntimeSetting struct {
 	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
 	CreatedAt        int64                              `db:"created_at"`
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
-}
-
-type AuditLog struct {
-	Pk          uint64          `db:"pk"`
-	ID          string          `db:"id"`
-	WorkspaceID string          `db:"workspace_id"`
-	Bucket      string          `db:"bucket"`
-	BucketID    string          `db:"bucket_id"`
-	Event       string          `db:"event"`
-	Time        int64           `db:"time"`
-	Display     string          `db:"display"`
-	RemoteIp    sql.NullString  `db:"remote_ip"`
-	UserAgent   sql.NullString  `db:"user_agent"`
-	ActorType   string          `db:"actor_type"`
-	ActorID     string          `db:"actor_id"`
-	ActorName   sql.NullString  `db:"actor_name"`
-	ActorMeta   json.RawMessage `db:"actor_meta"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
-}
-
-type AuditLogTarget struct {
-	Pk          uint64          `db:"pk"`
-	WorkspaceID string          `db:"workspace_id"`
-	BucketID    string          `db:"bucket_id"`
-	Bucket      string          `db:"bucket"`
-	AuditLogID  string          `db:"audit_log_id"`
-	DisplayName string          `db:"display_name"`
-	Type        string          `db:"type"`
-	ID          string          `db:"id"`
-	Name        sql.NullString  `db:"name"`
-	Meta        json.RawMessage `db:"meta"`
-	CreatedAt   int64           `db:"created_at"`
-	UpdatedAt   sql.NullInt64   `db:"updated_at"`
 }
 
 type Certificate struct {
@@ -1588,15 +1469,17 @@ type Ratelimit struct {
 	AutoApply   bool           `db:"auto_apply"`
 }
 
-type RatelimitBlocklist struct {
+type RatelimitGlobalCounter struct {
 	Pk          uint64 `db:"pk"`
 	WorkspaceID string `db:"workspace_id"`
 	Namespace   string `db:"namespace"`
 	Identifier  string `db:"identifier"`
 	DurationMs  uint64 `db:"duration_ms"`
 	Sequence    int64  `db:"sequence"`
-	Limit       uint64 `db:"limit"`
+	Region      string `db:"region"`
+	Count       uint64 `db:"count"`
 	ExpiresAt   uint64 `db:"expires_at"`
+	UpdatedAt   uint64 `db:"updated_at"`
 }
 
 type RatelimitNamespace struct {
@@ -1669,33 +1552,6 @@ type Sentinel struct {
 	MemoryMib         int32                 `db:"memory_mib"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
-}
-
-type VercelBinding struct {
-	Pk            uint64                     `db:"pk"`
-	ID            string                     `db:"id"`
-	IntegrationID string                     `db:"integration_id"`
-	WorkspaceID   string                     `db:"workspace_id"`
-	ProjectID     string                     `db:"project_id"`
-	Environment   VercelBindingsEnvironment  `db:"environment"`
-	ResourceID    string                     `db:"resource_id"`
-	ResourceType  VercelBindingsResourceType `db:"resource_type"`
-	VercelEnvID   string                     `db:"vercel_env_id"`
-	LastEditedBy  string                     `db:"last_edited_by"`
-	CreatedAtM    int64                      `db:"created_at_m"`
-	UpdatedAtM    sql.NullInt64              `db:"updated_at_m"`
-	DeletedAtM    sql.NullInt64              `db:"deleted_at_m"`
-}
-
-type VercelIntegration struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	TeamID      sql.NullString `db:"team_id"`
-	AccessToken string         `db:"access_token"`
-	CreatedAtM  int64          `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
-	DeletedAtM  sql.NullInt64  `db:"deleted_at_m"`
 }
 
 type Workspace struct {

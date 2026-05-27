@@ -72,7 +72,6 @@ jobs:
               - 'web/internal/schema/**'
               - 'web/internal/ui/**'
               - 'web/internal/validation/**'
-              - 'web/internal/vercel/**'
               - 'web/packages/error/**'
               - 'web/packages/rbac/**'
 

@@ -8,7 +8,7 @@ export function useDeploymentSentinelLogsQuery() {
     {
       projectId: deployment.projectId,
       deploymentId: deployment.id,
-      environmentId: deployment.environmentId,
+      environmentId: [deployment.environmentId],
       limit: 50,
       since: "6h",
       statusCodes: null,
