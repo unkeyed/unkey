@@ -21,7 +21,7 @@ export function StatusIndicator({
 }: StatusIndicatorProps) {
   const { colors } = STATUS_CONFIG[healthStatus];
   const glowBoxShadow = showGlow
-    ? `0 0 8px 1px ${colors.dotRing} inset, 0 0 0 1px var(--color-grayA-gray-a5, rgba(0, 9, 50, 0.12)) inset`
+    ? `0 0 8px 1px ${colors.dotRing} inset, 0 0 0 1px var(--color-grayA-5, rgba(0, 9, 50, 0.12)) inset`
     : "";
 
   if (orientation === "horizontal") {

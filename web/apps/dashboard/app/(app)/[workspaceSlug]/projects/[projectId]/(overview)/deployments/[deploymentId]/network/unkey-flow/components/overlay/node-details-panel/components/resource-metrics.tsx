@@ -471,7 +471,7 @@ function CpuSection({
       }
     >
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="bg-brand-3 text-band-11 rounded-md size-[22px] items-center flex justify-center">
+        <div className="bg-brand-3 text-brand-11 rounded-md size-[22px] items-center flex justify-center">
           <Microchip iconSize="sm-regular" className="shrink-0" />
         </div>
         <span className="text-gray-12 text-[13px]">CPU usage</span>

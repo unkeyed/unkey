@@ -59,7 +59,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
         return (
           <div className="my-2">
             <InfoTooltip content="This step was cached" asChild>
-              <Bolt className="text-primary-11" iconSize="md-regular" />
+              <Bolt className="text-gray-11" iconSize="md-regular" />
             </InfoTooltip>
           </div>
         );

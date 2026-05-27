@@ -60,7 +60,6 @@
   --animate-marquee: marquee 15s linear infinite;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
-  --animate-shiny-text: shiny-text 10s infinite;
   --animate-shimmer: shimmer 1.2s ease-in-out infinite;
 
   @keyframes marquee {
@@ -85,17 +84,6 @@
     }
     to {
       height: 0;
-    }
-  }
-  @keyframes shiny-text {
-    0%,
-    90%,
-    100% {
-      background-position: calc(-100% - var(--shiny-width)) 0;
-    }
-    30%,
-    60% {
-      background-position: calc(100% + var(--shiny-width)) 0;
     }
   }
   @keyframes shimmer {
