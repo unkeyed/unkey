@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"fmt"
-	"math/rand/v2"
 	"regexp"
 	"strings"
 
@@ -65,12 +64,21 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 		prefix = prefix + "-fork-" + sluggify(forkOwner)
 	}
 
-	// Deploying via CLI often sends the same git sha, and we want to make them unique,
-	// to prevent changes from overwriting each other.
-	randomSuffix := ""
+	// Deploying via CLI often sends the same git sha across deployments, so the
+	// per-commit domain needs disambiguation. The suffix must be deterministic:
+	// this function runs inside a Restate workflow, so re-rolling a random
+	// value on replay would change the per-domain Run name and trigger a
+	// journal mismatch. We take the tail of the deployment ID since each
+	// deployment has a unique slug already.
+	disambiguator := ""
 	if source == ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD {
-		//nolint: gosec
-		randomSuffix = fmt.Sprintf("-%d", 1000+rand.IntN(9000))
+		tail := sluggify(deploymentID)
+		if len(tail) > 4 {
+			tail = tail[len(tail)-4:]
+		}
+		if tail != "" {
+			disambiguator = "-" + tail
+		}
 	}
 
 	var domains []newDomain
@@ -80,7 +88,7 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 		if len(short) > 7 {
 			short = short[:7]
 		}
-		short += randomSuffix
+		short += disambiguator
 		domains = append(domains,
 			newDomain{
 				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, short, workspaceSlug, apex),

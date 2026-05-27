@@ -468,13 +468,21 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("create key last used sync service: %w", err)
 	}
 	// Retry quickly (deadlocks resolve fast), but cap attempts since this runs on a schedule.
-	// Pause on exhaustion so stuck invocations are visible rather than silently discarded.
+	// Kill (not Pause) on exhaustion: the orchestrator fans out to 8 partition
+	// children and waits on each future sequentially, so a paused partition
+	// blocks the whole sync until an operator cancels it (incident: partitions
+	// 0/1/6/7 hit a Restate 404 and sat paused, suspending the run). The sync
+	// is idempotent and cron-triggered, has no compensation, and surfaces
+	// failures via the missing end-of-run heartbeat — so killing on retry
+	// exhaustion lets the orchestrator's future resolve with a terminal error,
+	// the run fails fast, and the next cron tick retries from the persisted
+	// cursor.
 	keyLastUsedRetryPolicy := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.PauseOnMaxAttempts(),
+		restate.KillOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc, keyLastUsedRetryPolicy))
 
