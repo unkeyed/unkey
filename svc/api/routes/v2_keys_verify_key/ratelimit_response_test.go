@@ -71,7 +71,7 @@ func TestRatelimitResponse(t *testing.T) {
 		require.True(t, rl.AutoApply, "Rate limit should be auto-applied")
 		require.False(t, rl.Exceeded, "Rate limit should not be exceeded")
 		require.Equal(t, int64(4), rl.Remaining, "Should have 4 remaining requests")
-		require.Greater(t, rl.Reset, time.Now().UnixMilli(), "Reset time should be in the future")
+		require.Greater(t, rl.Reset, h.Clock.Now().UnixMilli(), "Reset time should be in the future")
 	})
 
 	t.Run("rate limit exceeded fields", func(t *testing.T) {

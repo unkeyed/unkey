@@ -77,7 +77,7 @@ app.use(
 );
 ```
 
-If the header is missing the middleware will return a `401` error response like this
+If the header is missing the middleware will return a `401` error response like this:
 
 ```ts
 c.json({ error: "unauthorized" }, { status: 401 });
