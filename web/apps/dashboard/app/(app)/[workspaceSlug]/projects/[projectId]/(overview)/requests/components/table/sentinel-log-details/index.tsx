@@ -187,6 +187,9 @@ const isDisplayableContentType = (contentType: string | null): boolean => {
     return true;
   }
   const ct = contentType.toLowerCase();
+  if (ct.includes("text/x-")) {
+    return false;
+  }
   return (
     ct.includes("text/") ||
     ct.includes("json") ||
@@ -200,9 +203,10 @@ const formatBody = (body: string, headers: string[]): React.ReactNode | string =
   const contentType = getHeaderValue(headers, "content-type");
   if (!isDisplayableContentType(contentType)) {
     return (
-      <details className="text-xs">
+      <details className="group text-xs">
         <summary className="text-grayA-10 italic cursor-pointer select-none">
-          Binary body ({contentType}) — click to expand
+          Raw body ({contentType})<span className="group-open:hidden"> — click to expand</span>
+          <span className="hidden group-open:inline"> — click to collapse</span>
         </summary>
         <pre className="mt-1 whitespace-pre-wrap break-all text-accent-12">{body}</pre>
       </details>
