@@ -60,19 +60,26 @@ const ENRICHMENT_DEFAULTS: Omit<RatelimitLogEnrichment, "request_id"> = {
   region: "",
 };
 
+// Merge a raw log with its enrichment (if any) into the shape the table renders.
+// Defaults fill the enrichment columns so cells can read fields unconditionally;
+// `isEnriched` is what cells actually gate their skeleton on.
+function toEnrichedLog(
+  log: RatelimitLog,
+  enrichment: RatelimitLogEnrichment | undefined,
+): EnrichedRatelimitLog {
+  return {
+    ...ENRICHMENT_DEFAULTS,
+    ...log,
+    ...(enrichment ?? {}),
+    isEnriched: enrichment !== undefined,
+  };
+}
+
 function enrichLogs(
   logs: RatelimitLog[],
   enrichmentMap: Map<string, RatelimitLogEnrichment>,
 ): EnrichedRatelimitLog[] {
-  return logs.map((log) => {
-    const enrichment = enrichmentMap.get(log.request_id);
-    return {
-      ...ENRICHMENT_DEFAULTS,
-      ...log,
-      ...(enrichment ?? {}),
-      isEnriched: enrichment !== undefined,
-    };
-  });
+  return logs.map((log) => toEnrichedLog(log, enrichmentMap.get(log.request_id)));
 }
 
 // Maximum number of real-time logs to store
@@ -208,13 +215,13 @@ export function useRatelimitLogsQuery({
           break;
         }
         case "status": {
-          if (typeof filter.value !== "string") {
-            console.error("Status filter value type has to be 'string'");
+          if (filter.value !== "blocked" && filter.value !== "passed") {
+            console.error("Status filter value has to be 'blocked' or 'passed'");
             return;
           }
           params.status?.filters.push({
             operator: "is",
-            value: filter.value as "blocked" | "passed",
+            value: filter.value,
           });
           break;
         }
@@ -441,13 +448,7 @@ export function useRatelimitLogsQuery({
               continue;
             }
 
-            const enrichment = enrichmentMapRef.current.get(log.request_id);
-            const enriched: EnrichedRatelimitLog = {
-              ...ENRICHMENT_DEFAULTS,
-              ...log,
-              ...(enrichment ?? {}),
-              isEnriched: enrichment !== undefined,
-            };
+            const enriched = toEnrichedLog(log, enrichmentMapRef.current.get(log.request_id));
             newMap.set(log.request_id, enriched);
 
             if (newMap.size > Math.min(limit, REALTIME_DATA_LIMIT)) {
