@@ -40,8 +40,9 @@ const originFetchTimeout = 150 * time.Millisecond
 // this into atomicMax, which is a no-op against any existing positive
 // counter, so failed fetches preserve whatever local state is already
 // there.
-func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) int64 {
+func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, op string) int64 {
 	rk := key.redisKey()
+	metrics.RatelimitOriginOperations.WithLabelValues(op).Inc()
 
 	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
 		start := time.Now()
@@ -50,11 +51,11 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) int64 {
 
 		res, err := s.origin.Get(timeout, rk)
 
-		metrics.RatelimitOriginLatency.WithLabelValues("fetch").Observe(time.Since(start).Seconds())
+		metrics.RatelimitOriginLatency.WithLabelValues(op).Observe(time.Since(start).Seconds())
 		return res, err
 	})
 	if err != nil {
-		metrics.RatelimitOriginErrors.WithLabelValues("fetch", errorReason(err)).Inc()
+		metrics.RatelimitOriginErrors.WithLabelValues(op, errorReason(err)).Inc()
 		logger.Error("unable to get counter value from origin",
 			"key", rk,
 			"error", err.Error(),
@@ -96,6 +97,8 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	if err != nil {
 		return err
 	}
+
+	metrics.RatelimitOriginOperations.WithLabelValues("sync").Inc()
 
 	durationMs := req.Duration.Milliseconds()
 	sequence := calculateSequence(req.Time, req.Duration)
