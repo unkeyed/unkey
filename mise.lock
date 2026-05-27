@@ -499,31 +499,31 @@ backend = "http:ngrok"
 
 [tools."http:ngrok"."platforms.linux-arm64"]
 checksum = "sha256:35446330929a79dc8bc755009cd54a29e2107781fec4f3c3f7f693bfe1ca64fe"
-url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz"
+url = "https://bin.equinox.io/a/iX6VpNRLBbs/ngrok-v3-3.39.4-linux-arm64.tar.gz"
 
 [tools."http:ngrok"."platforms.linux-arm64-musl"]
 checksum = "sha256:35446330929a79dc8bc755009cd54a29e2107781fec4f3c3f7f693bfe1ca64fe"
-url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz"
+url = "https://bin.equinox.io/a/iX6VpNRLBbs/ngrok-v3-3.39.4-linux-arm64.tar.gz"
 
 [tools."http:ngrok"."platforms.linux-x64"]
 checksum = "sha256:0efbc8c7aa02dec9cde9883b940ef0c69afce39305545d74cde2ff2e01170871"
-url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz"
+url = "https://bin.equinox.io/a/rXi2K8HzgJ/ngrok-v3-3.39.4-linux-amd64.tar.gz"
 
 [tools."http:ngrok"."platforms.linux-x64-musl"]
 checksum = "sha256:0efbc8c7aa02dec9cde9883b940ef0c69afce39305545d74cde2ff2e01170871"
-url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz"
+url = "https://bin.equinox.io/a/rXi2K8HzgJ/ngrok-v3-3.39.4-linux-amd64.tar.gz"
 
 [tools."http:ngrok"."platforms.macos-arm64"]
-checksum = "sha256:8e8bd786723a66747c7a1cddbd9544e0178fce12a752e9069e54189fdd8f831a"
-url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip"
+checksum = "sha256:ab3823f8aa9442ea6499c95290fc96da52824827f10253a5d1632e257beba518"
+url = "https://bin.equinox.io/a/koVh3r9rKG7/ngrok-v3-3.39.4-darwin-arm64.zip"
 
 [tools."http:ngrok"."platforms.macos-x64"]
 checksum = "sha256:4d6191e76fcdeaf743fdb43e87bca0e507a88d04f93a0ca4e6ded81893d2b85c"
-url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip"
+url = "https://bin.equinox.io/a/dVNWNC8tgwQ/ngrok-v3-3.39.4-darwin-amd64.zip"
 
 [tools."http:ngrok"."platforms.windows-x64"]
 checksum = "sha256:9028276a33809a94fcf46a35733a21f013a6cc3b4a155ee849563af65dc118f2"
-url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
+url = "https://bin.equinox.io/a/gK2xcZtiEuC/ngrok-v3-3.39.4-windows-amd64.zip"
 
 [[tools.node]]
 version = "24.16.0"
