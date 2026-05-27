@@ -28,7 +28,6 @@ COPY ./web/internal/tsconfig/package.json ./internal/tsconfig/package.json
 COPY ./web/internal/ui/package.json ./internal/ui/package.json
 COPY ./web/internal/validation/package.json ./internal/validation/package.json
 COPY ./web/internal/vault/package.json ./internal/vault/package.json
-COPY ./web/internal/vercel/package.json ./internal/vercel/package.json
 COPY ./web/internal/error/package.json ./internal/error/package.json
 COPY ./web/internal/rbac/package.json ./internal/rbac/package.json
 

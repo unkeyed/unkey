@@ -27,16 +27,6 @@ const (
 	RatelimitNamespaceUpdateEvent AuditLogEvent = "ratelimitNamespace.update"
 	RatelimitNamespaceDeleteEvent AuditLogEvent = "ratelimitNamespace.delete"
 
-	// Vercel integration events
-	VercelIntegrationCreateEvent AuditLogEvent = "vercelIntegration.create"
-	VercelIntegrationUpdateEvent AuditLogEvent = "vercelIntegration.update"
-	VercelIntegrationDeleteEvent AuditLogEvent = "vercelIntegration.delete"
-
-	// Vercel binding events
-	VercelBindingCreateEvent AuditLogEvent = "vercelBinding.create"
-	VercelBindingUpdateEvent AuditLogEvent = "vercelBinding.update"
-	VercelBindingDeleteEvent AuditLogEvent = "vercelBinding.delete"
-
 	// Role events
 	RoleCreateEvent AuditLogEvent = "role.create"
 	RoleUpdateEvent AuditLogEvent = "role.update"

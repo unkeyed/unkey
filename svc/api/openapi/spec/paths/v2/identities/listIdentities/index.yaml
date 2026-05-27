@@ -112,4 +112,4 @@ post:
         in: requestBody
         type: cursor
     outputs:
-      nextCursor: "$.data.cursor"
+      nextCursor: "$.pagination.cursor"
