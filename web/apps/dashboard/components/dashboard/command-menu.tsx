@@ -42,13 +42,13 @@ export function CommandMenu() {
           />
           <GenericLinkCommand
             close={() => setOpen(false)}
-            href="https://unkey.userjot.com/"
+            href="https://feedback.unkey.com/"
             label="Feedback"
             icon={Chats}
           />
           <GenericLinkCommand
             close={() => setOpen(false)}
-            href="https://unkey.userjot.com/roadmap"
+            href="https://feedback.unkey.com/roadmap"
             label="Roadmap"
             icon={Bolt}
           />

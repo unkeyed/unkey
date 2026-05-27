@@ -1,7 +1,7 @@
 import { Chats } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
-const USERJOT_FEEDBACK_URL = "https://unkey.userjot.com/";
+const USERJOT_FEEDBACK_URL = "https://feedback.unkey.com/";
 
 export function TopNavFeedbackButton({ className }: { className?: string }) {
   return (

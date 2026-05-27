@@ -1,7 +1,7 @@
 import { Bolt } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
-const USERJOT_ROADMAP_URL = "https://unkey.userjot.com/roadmap";
+const USERJOT_ROADMAP_URL = "https://feedback.unkey.com/roadmap";
 
 export function TopNavRoadmapButton({ className }: { className?: string }) {
   return (
