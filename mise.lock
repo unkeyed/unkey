@@ -117,6 +117,45 @@ checksum = "sha256:097b0ba51f424fc6811ea30ba3a0a70a75c457126ca09fa45cc5da4cfefcb
 url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Windows-x86_64.zip"
 url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895506"
 
+[[tools."github:depot/cli"]]
+version = "2.101.63"
+backend = "github:depot/cli"
+
+[tools."github:depot/cli"."platforms.linux-arm64"]
+checksum = "sha256:a502cedd7355dc8933745a9b2e7cb4e6fa38ebe495ef2a2267b58aa560616aee"
+url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363700"
+
+[tools."github:depot/cli"."platforms.linux-arm64-musl"]
+checksum = "sha256:a502cedd7355dc8933745a9b2e7cb4e6fa38ebe495ef2a2267b58aa560616aee"
+url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363700"
+
+[tools."github:depot/cli"."platforms.linux-x64"]
+checksum = "sha256:79061de301bd71b41825ba541c1226b2bacd75b6382a8b69ab7f7f5b9b3976e2"
+url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363701"
+
+[tools."github:depot/cli"."platforms.linux-x64-musl"]
+checksum = "sha256:79061de301bd71b41825ba541c1226b2bacd75b6382a8b69ab7f7f5b9b3976e2"
+url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363701"
+
+[tools."github:depot/cli"."platforms.macos-arm64"]
+checksum = "sha256:7adc3625c1d10f10a673ee0502f33735e4e78d6ee75bf20d2542b9de97691b5c"
+url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363697"
+
+[tools."github:depot/cli"."platforms.macos-x64"]
+checksum = "sha256:7166f178217380b7dd9d7c797ae2f828e2fe34632eb2f67f9a55e3a3746323e7"
+url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363703"
+
+[tools."github:depot/cli"."platforms.windows-x64"]
+checksum = "sha256:a0a800ba3ba8ceab50b2a020b95888bbd59bed09bae310e0bff459b76c6f646e"
+url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_windows_amd64.zip"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363705"
+
 [[tools."github:dprint/dprint"]]
 version = "0.51.1"
 backend = "github:dprint/dprint"
