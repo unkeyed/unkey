@@ -93,11 +93,11 @@ Multiple deployments within the same environment can build in parallel, there is
 
 ## Superseded deployments
 
-If you push multiple commits to the same branch in quick succession, Unkey cancels older deployments **that are still queued** (haven't acquired a build slot yet) in favour of the newest one. Once a deployment starts building, it's committed, it will run to completion even if a newer commit lands on the same branch. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
+If you push multiple commits to the same branch in quick succession, Unkey cancels older deployments **that are still queued** (haven't acquired a build slot yet) in favor of the newest one. Once a deployment starts building, it's committed, it will run to completion even if a newer commit lands on the same branch. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
 
 You see this in the dashboard as **Superseded**, the deployment shows how far it got (it usually didn't get past the queued step) and why it stopped ("A newer commit on this branch replaced this deployment").
 
-This is the default behaviour. Rapid pushes don't burn build minutes on commits you're never going to ship.
+This is the default behavior. Rapid pushes don't burn build minutes on commits you're never going to ship.
 
 ## Cancel a deployment
 
