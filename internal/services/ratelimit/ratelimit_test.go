@@ -311,10 +311,6 @@ func TestRatelimitMany_DoesNotMutateRequests(t *testing.T) {
 // production pattern where a 60s sliding window blocked almost every request
 // at the boundary but let bursts through near the middle of the window.
 //
-// Numbers are taken straight from the offending production tuple:
-//
-//	namespace=tpm_ratelimit_prod, limit=162000, duration=60s, cost=1500
-//
 // One replica receives a token of traffic at window start so its local cur
 // becomes warm at val=cost. Other replicas accept the bulk of the traffic and
 // replay it to the shared origin (modeled here by writing the origin directly).
