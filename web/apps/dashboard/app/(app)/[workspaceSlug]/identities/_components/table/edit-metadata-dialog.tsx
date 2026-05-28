@@ -18,6 +18,22 @@ interface EditMetadataDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const isValidMetadataJson = (value: unknown): boolean => {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const trimmed = value.trim();
+  if (trimmed.length < 2 || trimmed.length > 65534) {
+    return false;
+  }
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   identity,
   open,
@@ -58,11 +74,11 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   // RHF's `formState.isValid` is unreliable with discriminated-union resolvers
   // — once a per-field error is set during typing it doesn't always lift even
   // after the values pass the schema, so the submit button stays disabled
-  // until something forces a full re-validation (e.g. toggling the switch
-  // calls `trigger`). Subscribe to all values via `useWatch` and derive
-  // validity directly from the schema each render.
-  const values = useWatch({ control: methods.control });
-  const isFormValid = metadataSchema.safeParse(values).success;
+  // until something forces a full re-validation. Subscribe to the two fields
+  // we care about via `useWatch` and compute validity locally each render.
+  const enabled = useWatch({ control: methods.control, name: "metadata.enabled" });
+  const data = useWatch({ control: methods.control, name: "metadata.data" });
+  const isFormValid = !enabled || isValidMetadataJson(data);
 
   const updateMetadata = trpc.identity.update.metadata.useMutation({
     onSuccess: () => {
