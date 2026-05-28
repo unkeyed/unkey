@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, toast } from "@unkey/ui";
-import { type FC, useCallback, useEffect, useId, useState } from "react";
+import { type FC, useCallback, useEffect, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 import { IdentityInfo } from "../dialogs/identity-info";
@@ -39,7 +39,6 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const formId = useId();
   const utils = trpc.useUtils();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -96,46 +95,54 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
     },
   });
 
-  const onSubmit = methods.handleSubmit(async (data) => {
+  // Submit directly from the button rather than relying on form submission.
+  // The submit button lives inside Radix's Dialog portal, so the `form={id}`
+  // attribute crosses portal boundaries — combined with RHF's handleSubmit
+  // running its own schema validation that can disagree with what the user
+  // sees, the button click was silently dropping submissions. Driving the
+  // mutation from `onClick` against the current form values avoids both.
+  const handleSubmit = () => {
+    if (!isFormValid || isSubmitting) {
+      return;
+    }
+    const values = methods.getValues();
     setIsSubmitting(true);
     updateMetadata.mutate({
       identityId: identity.id,
-      metadata: data.metadata,
+      metadata: values.metadata,
     });
-  });
+  };
 
   return (
     <FormProvider {...methods}>
-      <form id={formId} onSubmit={onSubmit}>
-        <DialogContainer
-          isOpen={open}
-          onOpenChange={onOpenChange}
-          title="Edit metadata"
-          subTitle="Attach custom data to this identity"
-          footer={
-            <div className="w-full flex flex-col gap-2 items-center justify-center">
-              <Button
-                type="submit"
-                form={formId}
-                variant="primary"
-                size="xlg"
-                className="w-full rounded-lg"
-                disabled={!isFormValid || isSubmitting}
-                loading={isSubmitting}
-              >
-                Update metadata
-              </Button>
-              <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
-            </div>
-          }
-        >
-          <IdentityInfo identity={identity} />
-          <div className="py-1 my-2">
-            <div className="h-px bg-grayA-3 w-full" />
+      <DialogContainer
+        isOpen={open}
+        onOpenChange={onOpenChange}
+        title="Edit metadata"
+        subTitle="Attach custom data to this identity"
+        footer={
+          <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <Button
+              type="button"
+              variant="primary"
+              size="xlg"
+              className="w-full rounded-lg"
+              disabled={!isFormValid || isSubmitting}
+              loading={isSubmitting}
+              onClick={handleSubmit}
+            >
+              Update metadata
+            </Button>
+            <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
           </div>
-          <MetadataSetup entityType="identity" />
-        </DialogContainer>
-      </form>
+        }
+      >
+        <IdentityInfo identity={identity} />
+        <div className="py-1 my-2">
+          <div className="h-px bg-grayA-3 w-full" />
+        </div>
+        <MetadataSetup entityType="identity" />
+      </DialogContainer>
     </FormProvider>
   );
 };
