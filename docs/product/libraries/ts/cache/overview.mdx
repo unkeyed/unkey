@@ -75,38 +75,36 @@ bun install @unkey/cache
 import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
 import { MemoryStore } from "@unkey/cache/stores";
 
-/\*\*
+/**
+ * Define the type of your data,
+ * or perhaps generate the types from your database
+ */
+type User = {
+    id: string;
+    email: string;
+};
 
-- Define the type of your data,
-- or perhaps generate the types from your database
-  \*/
-  type User = {
-  id: string;
-  email: string;
-  };
-
-/\*\*
-
-- In serverless you'd get this from the request handler
-- See /docs/libraries/ts/cache/overview#context
-  \*/
-  const ctx = new DefaultStatefulContext();
+/**
+ * In serverless you'd get this from the request handler
+ * See /docs/libraries/ts/cache/overview#context
+ */
+const ctx = new DefaultStatefulContext();
 
 const memory = new MemoryStore({ persistentMap: new Map() });
 
 const cache = createCache({
-user: new Namespace<User>(ctx, {
-stores: [memory],
-fresh: 60_000, // Data is fresh for 60 seconds
-stale: 300_000, // Data is stale for 300 seconds
-})
+    user: new Namespace<User>(ctx, {
+      stores: [memory],
+      fresh: 60_000, // Data is fresh for 60 seconds
+      stale: 300_000, // Data is stale for 300 seconds
+    })
 });
 
 await cache.user.set("userId", { id: "userId", email: "user@email.com" });
 const user = await cache.user.get("userId")
 console.log(user)
+```
 
-````
 ```ts Tiered Caches
 import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
 import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
@@ -157,7 +155,7 @@ async function main() {
 }
 
 main();
-````
+```
 
 ```ts Multiple Namespaces
 import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
