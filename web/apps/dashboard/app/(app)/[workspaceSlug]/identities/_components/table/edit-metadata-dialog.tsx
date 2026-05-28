@@ -96,20 +96,24 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   });
 
   // Submit directly from the button rather than relying on form submission.
-  // The submit button lives inside Radix's Dialog portal, so the `form={id}`
-  // attribute crosses portal boundaries — combined with RHF's handleSubmit
-  // running its own schema validation that can disagree with what the user
-  // sees, the button click was silently dropping submissions. Driving the
-  // mutation from `onClick` against the current form values avoids both.
+  // The submit button lives inside Radix's Dialog portal, so RHF's
+  // `handleSubmit`/native form submission path was unreliable. We also
+  // construct the payload from the watched values rather than
+  // `methods.getValues()` — the `register` ref for `metadata.enabled` is
+  // attached to a div (not a real input), which left the discriminator value
+  // out of shape when read through `_formValues`, and the backend rejected it
+  // with "No matching discriminator".
   const handleSubmit = () => {
-    if (!isFormValid || isSubmitting) {
+    if (!isFormValid || isSubmitting || typeof enabled !== "boolean") {
       return;
     }
-    const values = methods.getValues();
+    const metadata: z.infer<typeof metadataSchema>["metadata"] = enabled
+      ? { enabled: true, data: typeof data === "string" ? data : "" }
+      : { enabled: false };
     setIsSubmitting(true);
     updateMetadata.mutate({
       identityId: identity.id,
-      metadata: values.metadata,
+      metadata,
     });
   };
 
