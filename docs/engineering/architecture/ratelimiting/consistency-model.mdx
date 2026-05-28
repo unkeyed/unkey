@@ -81,7 +81,7 @@ Failures degrade toward local decisions and recover when the affected layer beco
 
 | Failure | Behavior |
 | --- | --- |
-| Regional read fails | The process continues from its local count |
+| Regional read fails | The process continues from its local count and retries soon; failed reads do not make the local entry fresh |
 | Regional replay lags | Other nodes in the region converge later, or refresh when their local entry becomes stale |
 | Global publish lags | Other regions do not see the new count yet |
 | Global import lags | The region continues with its existing imported counts |

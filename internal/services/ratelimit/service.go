@@ -51,6 +51,11 @@ const maxCASRetries = 100
 // keep serving stale state for the rest of the window.
 const originFreshDuration = 5 * time.Second
 
+// originFetchRetryDuration bounds how long a failed origin refresh suppresses
+// retries. A failed read did not make the local counter fresh, but retrying on
+// every request would amplify an origin outage into a request-path storm.
+const originFetchRetryDuration = originFetchTimeout
+
 // atomicMax raises target to val atomically via a bounded CAS loop.
 // The value only ever moves forward — a smaller val is a no-op. If the retry
 // bound is exhausted, an error is logged and the function returns without
@@ -136,8 +141,9 @@ type counterEntry struct {
 	lastPushed atomic.Int64
 
 	// fetch is bound to the entry's key at creation so the hot path doesn't
-	// allocate a per-call closure to pass into EnsureFreshFromOrigin.
-	fetch func(context.Context, string) int64
+	// allocate a per-call closure to pass into EnsureFreshFromOrigin. The boolean
+	// reports whether the count came from origin rather than fallback state.
+	fetch func(context.Context, string) (int64, bool)
 }
 
 // observeGlobalPushLimit records the count threshold at which this entry's
@@ -179,17 +185,22 @@ func (e *counterEntry) shouldPushGlobalCount(val int64) bool {
 // forward. Concurrent callers on a cold entry block inside Do until the first
 // fetch returns; concurrent warm stale callers block behind staleMu so only one
 // origin read is in flight and all callers continue after the refreshed value is
-// visible. A fetch failure surfaces as a returned 0, which atomicMax treats as a
-// no-op — the entry is left at whatever val held before and marked refreshed so
-// retries stay bounded by originFreshDuration when origin is unavailable.
+// visible. A fetch failure leaves val unchanged and advances the retry deadline
+// only briefly, so outages do not make cold zero-valued entries look fresh for
+// the full originFreshDuration.
 func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time) {
 	nowMs := now.UnixMilli()
 	freshUntilMs := nowMs + originFreshDuration.Milliseconds()
+	retryUntilMs := nowMs + originFetchRetryDuration.Milliseconds()
 	if !e.hydrated.Load() {
 		e.once.Do(func() {
-			countOrigin := e.fetch(ctx, "fetch_cold")
-			atomicMax(&e.val, countOrigin)
-			atomicMax(&e.originFreshUntilMs, freshUntilMs)
+			countOrigin, ok := e.fetch(ctx, "fetch_cold")
+			if ok {
+				atomicMax(&e.val, countOrigin)
+				atomicMax(&e.originFreshUntilMs, freshUntilMs)
+			} else {
+				atomicMax(&e.originFreshUntilMs, retryUntilMs)
+			}
 			e.hydrated.Store(true)
 		})
 		return
@@ -208,9 +219,13 @@ func (e *counterEntry) EnsureFreshFromOrigin(ctx context.Context, now time.Time)
 		return
 	}
 
-	countOrigin := e.fetch(ctx, "fetch_stale")
-	atomicMax(&e.val, countOrigin)
-	atomicMax(&e.originFreshUntilMs, freshUntilMs)
+	countOrigin, ok := e.fetch(ctx, "fetch_stale")
+	if ok {
+		atomicMax(&e.val, countOrigin)
+		atomicMax(&e.originFreshUntilMs, freshUntilMs)
+	} else {
+		atomicMax(&e.originFreshUntilMs, retryUntilMs)
+	}
 }
 
 // service implements lockless distributed rate limiting using a sliding
@@ -429,7 +444,7 @@ func (s *service) findOrCreateCounter(key counterKey) (*counterEntry, bool) {
 		return v.(*counterEntry), false
 	}
 	fresh := &counterEntry{ //nolint:exhaustruct // other fields zero-initialize correctly
-		fetch: func(ctx context.Context, op string) int64 { return s.fetchFromOrigin(ctx, key, op) },
+		fetch: func(ctx context.Context, op string) (int64, bool) { return s.fetchFromOrigin(ctx, key, op) },
 	}
 	actual, loaded := s.counters.LoadOrStore(key, fresh)
 	return actual.(*counterEntry), !loaded

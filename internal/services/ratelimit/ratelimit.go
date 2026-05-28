@@ -61,9 +61,11 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	// previous window cannot receive new local decisions anymore, so its normal
 	// cold/stale refresh is enough.
 	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
-		countOriginCurrent := s.fetchFromOrigin(ctx, curKey, "fetch_strict")
-		atomicMax(&cur.val, countOriginCurrent)
-		atomicMax(&cur.originFreshUntilMs, req.Time.Add(originFreshDuration).UnixMilli())
+		countOriginCurrent, ok := s.fetchFromOrigin(ctx, curKey, "fetch_strict")
+		if ok {
+			atomicMax(&cur.val, countOriginCurrent)
+			atomicMax(&cur.originFreshUntilMs, req.Time.Add(originFreshDuration).UnixMilli())
+		}
 	}
 
 	windowStartMs := curSeq * durationMs
