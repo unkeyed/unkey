@@ -97,7 +97,7 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 		}
 	}
 
-	// Region A consumes 6 of 10 — past the 0.5 utilization floor so flush
+	// Region A consumes 6 of 10 — past the 0.2 utilization floor so flush
 	// is eligible. None of these denies; A is well within its limit on its
 	// own, but its consumption is now relevant to other regions.
 	for range 6 {
@@ -106,7 +106,7 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 		require.True(t, resp.Success)
 	}
 
-	// Trigger flush deterministically rather than waiting for the 10s
+	// Trigger flush deterministically rather than waiting for the 5s
 	// jittered ticker. The bulk upsert inside runGlobalPushOnce is
 	// synchronous, so by the time it returns the row is in MySQL.
 	regionA.runGlobalPushOnce()
@@ -268,15 +268,13 @@ func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 	duration := time.Minute
 	ctx := context.Background()
 
-	// Consume 4 of 10 — strictly below the default 0.5 floor.
-	for range 4 {
-		resp, err := region.Ratelimit(ctx, RatelimitRequest{
-			WorkspaceID: workspaceID, Namespace: namespace, Identifier: identifier,
-			Limit: limit, Duration: duration, Cost: 1, Time: clk.Now(),
-		})
-		require.NoError(t, err)
-		require.True(t, resp.Success)
-	}
+	// Consume 1 of 10 — strictly below the 0.2 floor (threshold=2).
+	resp, err := region.Ratelimit(ctx, RatelimitRequest{
+		WorkspaceID: workspaceID, Namespace: namespace, Identifier: identifier,
+		Limit: limit, Duration: duration, Cost: 1, Time: clk.Now(),
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success)
 
 	region.runGlobalPushOnce()
 
@@ -338,18 +336,16 @@ func TestGlobal_PushUsesConvergedLocalCount(t *testing.T) {
 		}
 	}
 
-	// Each instance accepts 4/10 locally, below the 0.5 utilization floor.
-	// Their shared Redis origin converges the region total to 8/10.
-	for range 4 {
-		resp, reqErr := regionA1.Ratelimit(ctx, makeReq())
-		require.NoError(t, reqErr)
-		require.True(t, resp.Success)
-	}
-	for range 4 {
-		resp, reqErr := regionA2.Ratelimit(ctx, makeReq())
-		require.NoError(t, reqErr)
-		require.True(t, resp.Success)
-	}
+	// Each instance accepts 1/10 locally, below the 0.2 utilization floor
+	// (threshold=2). Their shared Redis origin converges the region total to 2/10,
+	// which crosses the floor and triggers the push.
+	resp, reqErr := regionA1.Ratelimit(ctx, makeReq())
+	require.NoError(t, reqErr)
+	require.True(t, resp.Success)
+
+	resp, reqErr = regionA2.Ratelimit(ctx, makeReq())
+	require.NoError(t, reqErr)
+	require.True(t, resp.Success)
 
 	curKey := counterKey{
 		workspaceID: workspaceID,
@@ -361,7 +357,7 @@ func TestGlobal_PushUsesConvergedLocalCount(t *testing.T) {
 	require.Eventually(t, func() bool {
 		for _, region := range []*service{regionA1, regionA2} {
 			entry, ok := region.counters.Load(curKey)
-			if ok && entry.(*counterEntry).val.Load() >= 8 {
+			if ok && entry.(*counterEntry).val.Load() >= 2 {
 				return true
 			}
 		}
@@ -372,7 +368,7 @@ func TestGlobal_PushUsesConvergedLocalCount(t *testing.T) {
 	regionA2.runGlobalPushOnce()
 
 	row := env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
-	require.Equal(t, uint64(8), row.Count, "push must use the converged local count")
+	require.Equal(t, uint64(2), row.Count, "push must use the converged local count")
 }
 
 // TestGlobal_PushIgnoresSpeculativeBatchIncrements covers the small window in
@@ -452,8 +448,8 @@ func TestGlobal_AtFloorPushes(t *testing.T) {
 	duration := time.Minute
 	ctx := context.Background()
 
-	// Consume exactly 5 of 10 — at the 0.5 floor.
-	for range 5 {
+	// Consume exactly 2 of 10 — at the 0.2 floor (threshold=2).
+	for range 2 {
 		resp, err := region.Ratelimit(ctx, RatelimitRequest{
 			WorkspaceID: workspaceID, Namespace: namespace, Identifier: identifier,
 			Limit: limit, Duration: duration, Cost: 1, Time: clk.Now(),
@@ -465,14 +461,14 @@ func TestGlobal_AtFloorPushes(t *testing.T) {
 	region.runGlobalPushOnce()
 
 	row := env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
-	require.Equal(t, uint64(5), row.Count, "row count must reflect the at-floor utilization")
+	require.Equal(t, uint64(2), row.Count, "row count must reflect the at-floor utilization")
 }
 
-// TestGlobal_SyncExcludesOwnRegion asserts that a region's sync skips
-// rows it wrote itself. Without the region != self predicate, a region would
-// fold its own contribution back into its globalCount field, double-counting on
-// every request and over-blocking by a factor proportional to sync frequency.
-func TestGlobal_SyncExcludesOwnRegion(t *testing.T) {
+// TestGlobal_SyncKeepsOwnRegionOutOfGlobalCount asserts that a region's own
+// MySQL row merges into regional val, not globalCount. Folding own traffic into
+// globalCount would double-count it because sliding-window math already adds
+// val and globalCount together.
+func TestGlobal_SyncKeepsOwnRegionOutOfGlobalCount(t *testing.T) {
 	t.Parallel()
 
 	env := newIntegrationTestEnv(t)
@@ -500,8 +496,8 @@ func TestGlobal_SyncExcludesOwnRegion(t *testing.T) {
 	region.runGlobalPushOnce()
 	env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 
-	// Sync from this same region — should NOT pull its own row, so globalCount
-	// must stay at zero.
+	// Sync from this same region. Own-region count may raise val as a safety net,
+	// but globalCount must stay foreign-only.
 	region.runGlobalPullOnce()
 
 	curKey := counterKey{
@@ -511,8 +507,78 @@ func TestGlobal_SyncExcludesOwnRegion(t *testing.T) {
 	}
 	entry, ok := region.counters.Load(curKey)
 	require.True(t, ok)
-	require.Equal(t, int64(0), entry.(*counterEntry).globalCount.Load(),
-		"sync must not import the region's own contribution")
+	counter := entry.(*counterEntry)
+	require.Equal(t, int64(6), counter.val.Load(),
+		"sync should merge own-region contribution into regional val")
+	require.Equal(t, int64(0), counter.globalCount.Load(),
+		"sync must not import the region's own contribution into globalCount")
+}
+
+// TestGlobal_OwnRegionImportIsRegionalSafetyNet models two instances tagged as
+// the same region that have not converged through Redis. If one has pushed a
+// higher regional observation to MySQL, the other may use that row as a
+// monotonic lower bound for its own regional val. This is only a safety net:
+// it must not mark the entry fresh against the regional origin.
+func TestGlobal_OwnRegionImportIsRegionalSafetyNet(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	clk := clock.NewTestClock()
+	regionA1 := env.newRegionAs(clk, "region-a")
+	regionA2 := env.newRegionAs(clk, "region-a")
+
+	const (
+		workspaceID = "ws_test"
+		namespace   = "ns"
+		identifier  = "user-own-region-import"
+		limit       = int64(10)
+	)
+	duration := time.Minute
+	ctx := context.Background()
+
+	makeReq := func() RatelimitRequest {
+		return RatelimitRequest{
+			WorkspaceID: workspaceID,
+			Namespace:   namespace,
+			Identifier:  identifier,
+			Limit:       limit,
+			Duration:    duration,
+			Cost:        1,
+			Time:        clk.Now(),
+		}
+	}
+
+	for range 6 {
+		resp, err := regionA1.Ratelimit(ctx, makeReq())
+		require.NoError(t, err)
+		require.True(t, resp.Success)
+	}
+	regionA1.runGlobalPushOnce()
+	env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
+
+	regionA2.runGlobalPullOnce()
+
+	curKey := counterKey{
+		workspaceID: workspaceID,
+		namespace:   namespace,
+		identifier:  identifier,
+		durationMs:  duration.Milliseconds(),
+		sequence:    calculateSequence(clk.Now(), duration),
+	}
+	entry, ok := regionA2.counters.Load(curKey)
+	require.True(t, ok, "own-region import should create the local entry")
+	counter := entry.(*counterEntry)
+	require.Equal(t, int64(6), counter.val.Load())
+	require.Equal(t, int64(0), counter.globalCount.Load())
+	require.Equal(t, int64(0), counter.originFreshUntilMs.Load(),
+		"MySQL safety-net import must not mark regional origin freshness")
+
+	denyReq := makeReq()
+	denyReq.Cost = 5
+	resp, err := regionA2.Ratelimit(ctx, denyReq)
+	require.NoError(t, err)
+	require.False(t, resp.Success,
+		"own-region import should participate in local sliding-window decisions")
 }
 
 // TestGlobal_SumsAcrossMultipleRegions asserts that a third region
@@ -544,7 +610,7 @@ func TestGlobal_SumsAcrossMultipleRegions(t *testing.T) {
 		}
 	}
 
-	// A consumes 12 (above floor=10), B consumes 11 (above floor=10).
+	// A consumes 12 (above floor=4), B consumes 11 (above floor=4).
 	// Total true global at this point is 23.
 	for range 12 {
 		_, err := regionA.Ratelimit(ctx, makeReq())
