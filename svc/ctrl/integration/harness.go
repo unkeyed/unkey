@@ -35,6 +35,7 @@ func New(t *testing.T) *Harness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlHostDSN,
 		ReadOnlyDSN: "",
+		Application: "",
 	})
 	require.NoError(t, err)
 

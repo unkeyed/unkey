@@ -110,6 +110,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  databaseURL,
 		ReadOnlyDSN: "",
+		Application: "",
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)

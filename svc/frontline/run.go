@@ -189,7 +189,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if readDSN == "" {
 		readDSN = cfg.Database.Primary
 	}
-	database, databaseClose, err := db.New(readDSN)
+	database, databaseClose, err := db.New(readDSN, "frontline")
 	if err != nil {
 		return fmt.Errorf("unable to connect to database: %w", err)
 	}
@@ -202,6 +202,7 @@ func Run(ctx context.Context, cfg Config) error {
 	engineDatabase, err := pkgdb.New(pkgdb.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Application: "frontline",
 	})
 	if err != nil {
 		return fmt.Errorf("unable to connect to engine database: %w", err)

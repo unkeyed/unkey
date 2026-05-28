@@ -24,6 +24,11 @@ type Config struct {
 	// The readonly replica will be used for most read queries.
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
+
+	// Application identifies the calling service in sqlcommenter tags on outbound
+	// queries. Use the same string this service passes as otel.Config.Application
+	// (e.g. "api", "frontline"). Empty string disables the application tag.
+	Application string
 }
 
 // database implements the Database interface, providing access to database replicas
@@ -81,8 +86,8 @@ func open(dsn string) (db *sql.DB, err error) {
 // and metrics. This is a temporary bridge used by pkg/db.ToMySQL while callers
 // migrate from pkg/db to pkg/mysql. Remove alongside [NewFromReplicas] and
 // pkg/db.ToMySQL once all callers use [New] directly.
-func NewReplicaFromDB(db *sql.DB, mode string) *Replica {
-	return &Replica{db: db, mode: mode, debugLogs: false}
+func NewReplicaFromDB(db *sql.DB, mode, application string) *Replica {
+	return &Replica{db: db, mode: mode, debugLogs: false, application: application}
 }
 
 // NewFromReplicas creates a [MySQL] from pre-existing replicas without opening
@@ -93,16 +98,17 @@ func NewFromReplicas(ro, rw *Replica) *database {
 	return &database{readReplica: ro, writeReplica: rw}
 }
 
-func NewReplica(url string, mode string) (*Replica, error) {
+func NewReplica(url, mode, application string) (*Replica, error) {
 	db, err := open(url)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open replica"))
 	}
 
 	return &Replica{
-		db:        db,
-		mode:      mode,
-		debugLogs: false,
+		db:          db,
+		mode:        mode,
+		debugLogs:   false,
+		application: application,
 	}, nil
 }
 
@@ -118,21 +124,22 @@ func New(config Config) (*database, error) {
 	}
 
 	// Initialize primary replica
-	writeReplica, err := NewReplica(config.PrimaryDSN, "rw")
+	writeReplica, err := NewReplica(config.PrimaryDSN, "rw", config.Application)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot initialize primary replica"))
 	}
 
 	// Initialize read replica with primary by default
 	readReplica := &Replica{
-		db:        writeReplica.db,
-		mode:      "rw",
-		debugLogs: false,
+		db:          writeReplica.db,
+		mode:        "rw",
+		debugLogs:   false,
+		application: config.Application,
 	}
 
 	// If a separate read-only DSN is provided, establish that connection
 	if config.ReadOnlyDSN != "" {
-		readReplica, err = NewReplica(config.ReadOnlyDSN, "ro")
+		readReplica, err = NewReplica(config.ReadOnlyDSN, "ro", config.Application)
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("cannot initialize read replica"))
 		}

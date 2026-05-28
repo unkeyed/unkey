@@ -175,6 +175,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
+		Application: "",
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

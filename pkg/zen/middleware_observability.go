@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/sqlcommenter"
 	"github.com/unkeyed/unkey/pkg/zen/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -27,6 +28,8 @@ func WithObservability() Middleware {
 			ctx, span := tracing.Start(ctx, s.r.Pattern)
 			span.SetAttributes(attribute.String("request_id", s.RequestID()))
 			defer span.End()
+
+			ctx = sqlcommenter.WithRequest(ctx, s.r.Pattern, s.RequestID())
 
 			start := time.Now()
 

@@ -32,13 +32,15 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 
 // New opens a read-only MySQL replica connection and returns a [Querier] ready
 // for use. The connection is created with mode "ro" so that tracing and metrics
-// labels distinguish replica traffic from primary traffic.
+// labels distinguish replica traffic from primary traffic. application is the
+// service name (e.g. "frontline") that gets tagged onto outbound queries via
+// sqlcommenter.
 //
 // The second return value is a close function that releases the underlying
 // connection pool. Callers must invoke it during shutdown to avoid leaking
 // connections. On error, both the Querier and close function are nil.
-func New(url string) (Querier, func() error, error) {
-	replica, err := mysql.NewReplica(url, "ro")
+func New(url, application string) (Querier, func() error, error) {
+	replica, err := mysql.NewReplica(url, "ro", application)
 	if err != nil {
 		return nil, nil, err
 	}

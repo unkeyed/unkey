@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "sqlcommenter",
+    srcs = ["sqlcommenter.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/sqlcommenter",
+    visibility = ["//visibility:public"],
+    deps = ["@io_opentelemetry_go_otel_trace//:trace"],
+)
+
+go_test(
+    name = "sqlcommenter_test",
+    srcs = ["sqlcommenter_test.go"],
+    embed = [":sqlcommenter"],
+    deps = [
+        "@com_github_stretchr_testify//require",
+        "@io_opentelemetry_go_otel_trace//:trace",
+    ],
+)

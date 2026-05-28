@@ -36,6 +36,7 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
+		Application: "",
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)

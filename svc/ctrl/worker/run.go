@@ -139,6 +139,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Application: "worker",
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)

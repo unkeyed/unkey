@@ -24,6 +24,7 @@ go_library(
         "//pkg/mysql/metrics",
         "//pkg/otel/tracing",
         "//pkg/retry",
+        "//pkg/sqlcommenter",
         "@com_github_go_sql_driver_mysql//:mysql",
         "@io_opentelemetry_go_otel//attribute",
     ],
