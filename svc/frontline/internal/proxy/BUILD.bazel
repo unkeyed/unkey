@@ -28,7 +28,6 @@ go_library(
         "//pkg/zen",
         "//svc/frontline/internal/db",
         "//svc/frontline/internal/errorpage",
-        "//svc/frontline/internal/router",
         "@com_github_prometheus_client_golang//prometheus",
         "@org_golang_x_net//http2",
     ],
