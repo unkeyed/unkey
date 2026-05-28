@@ -2,6 +2,9 @@ package ratelimit
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -46,7 +49,8 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 
 			clk := clock.NewTestClock()
 			svc, err := New(Config{
-				Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
+				Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region",
+			})
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = svc.Close() })
 
@@ -94,7 +98,8 @@ func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 
 	clk := clock.NewTestClock()
 	svc, err := New(Config{
-		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region",
+	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -123,17 +128,18 @@ func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	require.Equal(t, want, got, "strictUntil should equal req.Time + req.Duration")
 }
 
-// TestRatelimit_StrictModeForcesOriginFetch asserts that once strict mode
-// is active, prepareCheck fetches from origin even when the local windows
-// are warm. We verify by observing local state converge to a seeded origin
-// value — the only way that can happen is if origin was consulted.
+// TestRatelimit_StrictModeForcesOriginFetch asserts that once strict mode is
+// active, every request fetches the current window from origin before deciding.
+// We verify by observing local state converge to a seeded origin value — the
+// only way that can happen is if origin was consulted.
 func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
 	origin := counter.NewMemory()
 	svc, err := New(Config{
-		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "test-region"})
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "test-region",
+	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -177,7 +183,54 @@ func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 	require.NoError(t, err)
 
 	require.GreaterOrEqual(t, cur.val.Load(), originValue, "current window should have picked up origin value")
-	require.GreaterOrEqual(t, prev.val.Load(), originValue, "previous window should have picked up origin value")
+	require.Equal(t, int64(0), prev.val.Load(), "strict mode should not refetch the previous window")
+}
+
+func TestRatelimit_ReplayMarksEntryFresh(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	clk := clock.NewTestClock()
+	origin := counter.NewMemory()
+	svc, err := New(Config{
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "test-region",
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = svc.Close() })
+
+	ws := uid.New(uid.WorkspacePrefix)
+	duration := time.Minute
+	durationMs := duration.Milliseconds()
+	reqTime := clk.Now()
+	curSeq := calculateSequence(reqTime, duration)
+	curKey := counterKey{workspaceID: ws, namespace: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq}
+
+	req := RatelimitRequest{
+		WorkspaceID: ws,
+		Namespace:   "ns",
+		Identifier:  "id",
+		Limit:       10,
+		Duration:    duration,
+		Cost:        1,
+		Time:        reqTime,
+	}
+
+	resp, err := svc.Ratelimit(ctx, req)
+	require.NoError(t, err)
+	require.True(t, resp.Success)
+
+	clk.Tick(time.Second)
+	req.Time = clk.Now()
+	resp, err = svc.Ratelimit(ctx, req)
+	require.NoError(t, err)
+	require.True(t, resp.Success)
+
+	entryValue, ok := svc.counters.Load(curKey)
+	require.True(t, ok)
+	entry := entryValue.(*counterEntry)
+	require.Eventually(t, func() bool {
+		return entry.originFreshUntilMs.Load() >= req.Time.Add(originFreshDuration).UnixMilli()
+	}, 3*time.Second, 50*time.Millisecond, "successful replay should keep origin freshness current")
 }
 
 // TestRatelimitMany_RollsBackOnPartialFailure asserts that when any entry in
@@ -188,7 +241,8 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 
 	clk := clock.NewTestClock()
 	svc, err := New(Config{
-		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region",
+	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -232,7 +286,8 @@ func TestRatelimitMany_DoesNotMutateRequests(t *testing.T) {
 
 	clk := clock.NewTestClock()
 	svc, err := New(Config{
-		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region",
+	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -250,6 +305,183 @@ func TestRatelimitMany_DoesNotMutateRequests(t *testing.T) {
 	_, err = svc.RatelimitMany(context.Background(), reqs)
 	require.NoError(t, err)
 	require.True(t, reqs[0].Time.IsZero(), "RatelimitMany must not write normalized timestamps into caller input")
+}
+
+// TestRatelimit_MidWindowBurstWhenLocalCurIsStale guards the fix for the
+// production pattern where a 60s sliding window blocked almost every request
+// at the boundary but let bursts through near the middle of the window.
+//
+// Numbers are taken straight from the offending production tuple:
+//
+//	namespace=tpm_ratelimit_prod, limit=162000, duration=60s, cost=1500
+//
+// One replica receives a token of traffic at window start so its local cur
+// becomes warm at val=cost. Other replicas accept the bulk of the traffic and
+// replay it to the shared origin (modeled here by writing the origin directly).
+// 30s into the window, the previously-warm replica receives a burst.
+//
+// Pre-fix, origin freshness lasted as long as the window itself, so
+// EnsureFreshFromOrigin would see the last origin fetch as still fresh and
+// skip the refresh; the replica read val=cost and freely allowed the burst.
+// Post-fix, originFreshDuration is shorter than the window, so the 30s tick
+// crosses the refresh gate, the replica pulls the real origin, and the burst
+// is capped at the actual remaining budget.
+func TestRatelimit_MidWindowBurstWhenLocalCurIsStale(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	// Anchor request time at the start of a window so the sliding window math
+	// places us exactly at elapsed=0.5 after a 30s tick.
+	windowStart := time.Now().UTC().Truncate(time.Minute)
+	clk := clock.NewTestClock(windowStart)
+	origin := counter.NewMemory()
+
+	svc, err := New(Config{
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "us-east-1",
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = svc.Close() })
+
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	namespace := uid.New(uid.TestPrefix)
+	identifier := uid.New(uid.TestPrefix)
+	duration := time.Minute
+	durationMs := duration.Milliseconds()
+
+	const (
+		limit int64 = 162000
+		cost  int64 = 1500
+	)
+
+	curSeq := calculateSequence(clk.Now(), duration)
+	curKey := counterKey{
+		workspaceID: workspaceID, namespace: namespace, identifier: identifier,
+		durationMs: durationMs, sequence: curSeq,
+	}
+
+	req := RatelimitRequest{
+		WorkspaceID: workspaceID, Namespace: namespace, Identifier: identifier,
+		Limit: limit, Duration: duration, Cost: cost, Time: clk.Now(),
+	}
+
+	// First request at t=0 hydrates this replica's cur from origin (=0) and
+	// commits a local increment to val=cost. originFreshUntilMs is now t=0 plus originFreshDuration.
+	resp, err := svc.Ratelimit(ctx, req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "first request at window start passes")
+
+	// Other replicas process the bulk of traffic for this window and replay
+	// it to the shared origin. Directly seed the full origin value to keep the
+	// test deterministic and decoupled from this replica's async replay worker.
+	// After this, shared origin records 160000 out of the 162000 limit, leaving
+	// room for exactly one more cost=1500 request.
+	const sharedOriginCount int64 = 160000
+	_, err = origin.Increment(ctx, curKey.redisKey(), sharedOriginCount, duration*3)
+	require.NoError(t, err)
+
+	// Jump to the middle of the window. Pre-fix, 30s was before freshUntil (==
+	// window duration) meant EnsureFreshFromOrigin would skip the refresh and
+	// reuse the stale local val=cost; post-fix, 30s exceeds originFreshUntilMs
+	// so the next request triggers a fetch_stale that pulls the true origin.
+	clk.Tick(30 * time.Second)
+	req.Time = clk.Now()
+
+	// True remaining budget given the shared origin is (limit - origin) / cost =
+	// (162000 - 160000) / 1500 = 1 request. Any more than 1 pass proves the
+	// stale local cur let the replica burst through the shared limit.
+	const wantMaxPasses = 1
+	var passed int
+	for range 20 {
+		resp, err = svc.Ratelimit(ctx, req)
+		require.NoError(t, err)
+		if resp.Success {
+			passed++
+		}
+	}
+
+	require.LessOrEqual(t, passed, wantMaxPasses,
+		"mid-window burst-through: replica saw stale local cur during the window and allowed %d cost=%d requests; shared origin only had room for %d",
+		passed, cost, wantMaxPasses)
+}
+
+// TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit keeps the production
+// burst shape that originally exposed stale local replicas. The limiter is
+// still best-effort rather than a Redis reservation on every request, but replay
+// freshness plus aggressive stale reads should bound the overshoot well below
+// the unsynchronized case where every replica independently spends a full local
+// window.
+func TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	windowStart := time.Now().UTC().Truncate(time.Minute)
+	clk := clock.NewTestClock(windowStart)
+	origin := counter.NewMemory()
+	db := newTestDB(t)
+
+	const (
+		replicas                   = 5
+		burstRequestsPerNode       = 200
+		limit                int64 = 162000
+		cost                 int64 = 1500
+	)
+	duration := time.Minute
+
+	services := make([]*service, replicas)
+	for i := range services {
+		svc, err := New(Config{
+			Clock: clk, Counter: origin, DB: db, Region: fmt.Sprintf("region-%d", i),
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = svc.Close() })
+		services[i] = svc
+	}
+
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	namespace := uid.New(uid.TestPrefix)
+	identifier := uid.New(uid.TestPrefix)
+	// Advance request time through the burst so the test exercises replay-updated
+	// freshness and repeated stale refreshes rather than a Redis reservation model.
+	makeReq := func() RatelimitRequest {
+		return RatelimitRequest{
+			WorkspaceID: workspaceID, Namespace: namespace, Identifier: identifier,
+			Limit: limit, Duration: duration, Cost: cost, Time: clk.Tick(20 * time.Millisecond),
+		}
+	}
+
+	for _, svc := range services {
+		resp, err := svc.Ratelimit(ctx, makeReq())
+		require.NoError(t, err)
+		require.True(t, resp.Success, "warmup request at window start must pass")
+	}
+
+	clk.Tick(30 * time.Second)
+
+	var (
+		passedRequests atomic.Int64
+		wg             sync.WaitGroup
+		start          = make(chan struct{})
+	)
+	for _, svc := range services {
+		wg.Add(1)
+		go func(svc *service) {
+			defer wg.Done()
+			<-start
+			for range burstRequestsPerNode {
+				resp, err := svc.Ratelimit(ctx, makeReq())
+				if err == nil && resp.Success {
+					passedRequests.Add(1)
+				}
+			}
+		}(svc)
+	}
+	close(start)
+	wg.Wait()
+
+	passedTokens := passedRequests.Load() * cost
+	require.LessOrEqual(t, passedTokens, 3*limit,
+		"multi-replica mid-window burst: %d replicas admitted %d cost=%d requests = %d tokens against a %d-token limit",
+		replicas, passedRequests.Load(), cost, passedTokens, limit)
 }
 
 // TestRatelimitMany_LongWindowLowTrafficRefreshesStaleReplica models the
@@ -270,7 +502,8 @@ func TestRatelimitMany_LongWindowLowTrafficRefreshesStaleReplica(t *testing.T) {
 	origin := counter.NewMemory()
 
 	staleReplica, err := New(Config{
-		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "us-east-1"})
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "us-east-1",
+	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = staleReplica.Close() })
 

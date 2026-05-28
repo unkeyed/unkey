@@ -19,7 +19,7 @@ The lower layer always remains useful when a higher layer lags. A process can co
 
 ## Regional convergence
 
-After a request is accepted, the process buffers a replay event for the regional origin. Replay merges the regional value back into local memory with `max`, so processes in the same region converge toward the same count without waiting on every request.
+After a request is accepted, the process buffers a replay event for the regional origin. Replay merges the regional value back into local memory with `max` and marks the entry fresh. Processes in the same region converge toward the same count without waiting on every request.
 
 ```mermaid
 sequenceDiagram
@@ -35,19 +35,23 @@ sequenceDiagram
   Replay->>Local: Merge max(local, regional total)
 ```
 
-Cold counters and strict-mode counters read the regional origin synchronously before deciding. This makes the first decision for a key and the decisions after a denial use a fresher regional baseline.
+Cold counters, stale counters, and strict-mode counters read the regional origin synchronously before deciding. This makes the first decision for a key, decisions after stale local state, and decisions after a denial use a fresher regional baseline.
+
+Warm entries carry a freshness deadline. Regional-origin reads and successful replays extend that deadline. While the entry is fresh, the request path can use local memory without blocking on origin. After the deadline passes, the next request refreshes from origin before deciding.
+
+The freshness interval is intentionally short. Active identifiers normally stay fresh through replay, while idle or lagging identifiers re-read origin before they can keep serving an old local view for the rest of a long window. Concurrent stale requests for the same window cell share one origin read, then continue from the same refreshed value.
 
 ## Strict mode
 
-Strict mode is regional. When a request is denied, the service records a deadline for the `(workspace, namespace, identifier, duration)` tuple. Until that deadline passes, later requests for the same tuple refresh from the regional origin before evaluating the limit.
+Strict mode is regional. When a request is denied, the service records a deadline for the `(workspace, namespace, identifier, duration)` tuple. Until that deadline passes, later requests for the same tuple refresh the current window from the regional origin before evaluating the limit.
 
 The strict-mode key excludes the sequence. A denial in one fixed window can still affect the weighted previous-window term in the next fixed window, so strict mode survives the sequence rollover.
 
-Strict mode does not publish cross-region state. Global convergence is handled by global counters.
+Strict mode does not publish cross-region state. It refreshes the current window only. Previous windows use the normal cold and stale refresh path because they no longer receive new accepted increments.
 
 ## Global convergence
 
-Global convergence is eventual. A region publishes its own regional count when the count becomes meaningful for remote decisions. Other regions import the sum of foreign regional counts and include that imported count in future decisions.
+Global convergence is eventual. A region publishes its own regional count when the count becomes meaningful for remote decisions. Other regions import the sum of foreign regional counts and include that imported count in future decisions. The publishing region may also import its own published count as a lower bound for local regional state on nodes that have not yet seen the same regional origin value.
 
 ```plaintext
 Region A accepts traffic
@@ -67,6 +71,8 @@ Region B includes that count in later decisions
 
 This model means simultaneous traffic in multiple regions can briefly pass before every region has imported the latest remote usage. The tradeoff is deliberate: request-serving processes do not wait for cross-region coordination on the hot path.
 
+Own-region imports are a safety net, not a replacement for the regional origin. They can only raise local regional counts. They do not refresh the local entry's regional-origin freshness deadline, and foreign counts still stay separate so they cannot be published again.
+
 Windows shorter than 60 seconds are effectively regional because the global convergence cadence is too coarse to provide useful cross-region accuracy. Longer windows can include global convergence before the window expires.
 
 ## Failure behavior
@@ -76,7 +82,7 @@ Failures degrade toward local decisions and recover when the affected layer beco
 | Failure | Behavior |
 | --- | --- |
 | Regional read fails | The process continues from its local count |
-| Regional replay lags | Other nodes in the region converge later |
+| Regional replay lags | Other nodes in the region converge later, or refresh when their local entry becomes stale |
 | Global publish lags | Other regions do not see the new count yet |
 | Global import lags | The region continues with its existing imported counts |
 

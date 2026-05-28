@@ -94,7 +94,7 @@ func TestFetchFromOrigin_CircuitBreakerShortCircuitsAfterTrip(t *testing.T) {
 		additionalCalls, maxTolerated)
 }
 
-func TestCounterEntryEnsureFreshFromOrigin_RefreshesWarmEntryAfterMaxAge(t *testing.T) {
+func TestCounterEntryEnsureFreshFromOrigin_RefreshesWarmEntryAfterFreshUntil(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -112,12 +112,13 @@ func TestCounterEntryEnsureFreshFromOrigin_RefreshesWarmEntryAfterMaxAge(t *test
 	require.Equal(t, int64(1), fetchCalls.Load(), "cold entry should fetch once")
 	require.Equal(t, int64(10), entry.val.Load())
 
-	entry.EnsureFreshFromOrigin(ctx, start.Add(originFetchAgeMax-time.Millisecond))
-	require.Equal(t, int64(1), fetchCalls.Load(), "warm entry should not refresh before max age")
+	freshUntil := start.Add(originFreshDuration)
+	entry.EnsureFreshFromOrigin(ctx, freshUntil.Add(-time.Millisecond))
+	require.Equal(t, int64(1), fetchCalls.Load(), "warm entry should not refresh before freshUntil")
 	require.Equal(t, int64(10), entry.val.Load())
 
-	entry.EnsureFreshFromOrigin(ctx, start.Add(originFetchAgeMax))
-	require.Equal(t, int64(2), fetchCalls.Load(), "warm entry should refresh at max age")
+	entry.EnsureFreshFromOrigin(ctx, freshUntil)
+	require.Equal(t, int64(2), fetchCalls.Load(), "warm entry should refresh at freshUntil")
 	require.Equal(t, int64(20), entry.val.Load())
 	require.Equal(t, []string{"fetch_cold", "fetch_stale"}, fetchOps)
 }
@@ -140,7 +141,7 @@ func TestCounterEntryEnsureFreshFromOrigin_GatesConcurrentWarmRefresh(t *testing
 		},
 	}
 	entry.hydrated.Store(true)
-	entry.originFetchLastMs.Store(start.UnixMilli())
+	entry.originFreshUntilMs.Store(start.Add(originFreshDuration).UnixMilli())
 
 	const goroutines = 32
 	ready := make(chan struct{})
@@ -150,7 +151,7 @@ func TestCounterEntryEnsureFreshFromOrigin_GatesConcurrentWarmRefresh(t *testing
 		go func() {
 			defer wg.Done()
 			<-ready
-			entry.EnsureFreshFromOrigin(ctx, start.Add(originFetchAgeMax))
+			entry.EnsureFreshFromOrigin(ctx, start.Add(originFreshDuration))
 		}()
 	}
 
@@ -163,7 +164,7 @@ func TestCounterEntryEnsureFreshFromOrigin_GatesConcurrentWarmRefresh(t *testing
 	require.Equal(t, int64(10), entry.val.Load())
 }
 
-func TestCounterEntryEnsureFreshFromOrigin_FailedWarmRefreshSuppressesRetryUntilMaxAge(t *testing.T) {
+func TestCounterEntryEnsureFreshFromOrigin_FailedWarmRefreshSuppressesRetryUntilFreshUntil(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -179,19 +180,19 @@ func TestCounterEntryEnsureFreshFromOrigin_FailedWarmRefreshSuppressesRetryUntil
 	}
 	entry.val.Store(7)
 	entry.hydrated.Store(true)
-	entry.originFetchLastMs.Store(start.UnixMilli())
+	entry.originFreshUntilMs.Store(start.Add(originFreshDuration).UnixMilli())
 
-	failedRefresh := start.Add(originFetchAgeMax)
+	failedRefresh := start.Add(originFreshDuration)
 	entry.EnsureFreshFromOrigin(ctx, failedRefresh)
 	require.Equal(t, int64(1), fetchCalls.Load())
 	require.Equal(t, int64(7), entry.val.Load(), "failed fetch returns 0 and should preserve local state")
-	require.Equal(t, failedRefresh.UnixMilli(), entry.originFetchLastMs.Load(), "failed refresh still advances retry gate")
+	require.Equal(t, failedRefresh.Add(originFreshDuration).UnixMilli(), entry.originFreshUntilMs.Load(), "failed refresh still advances freshUntil")
 
 	entry.EnsureFreshFromOrigin(ctx, failedRefresh.Add(time.Second))
-	require.Equal(t, int64(1), fetchCalls.Load(), "failed refresh should not retry before max age")
+	require.Equal(t, int64(1), fetchCalls.Load(), "failed refresh should not retry before freshUntil")
 	require.Equal(t, int64(7), entry.val.Load())
 
-	entry.EnsureFreshFromOrigin(ctx, failedRefresh.Add(originFetchAgeMax))
-	require.Equal(t, int64(2), fetchCalls.Load(), "failed refresh should retry after max age")
+	entry.EnsureFreshFromOrigin(ctx, failedRefresh.Add(originFreshDuration))
+	require.Equal(t, int64(2), fetchCalls.Load(), "failed refresh should retry at freshUntil")
 	require.Equal(t, int64(99), entry.val.Load())
 }

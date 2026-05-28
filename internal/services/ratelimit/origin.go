@@ -130,6 +130,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	// CAS-merge: update local counter if Redis value is higher.
 	counter := s.loadCounter(key)
 	atomicMax(&counter.val, newCounter)
+	atomicMax(&counter.originFreshUntilMs, s.clock.Now().Add(originFreshDuration).UnixMilli())
 
 	return nil
 }
