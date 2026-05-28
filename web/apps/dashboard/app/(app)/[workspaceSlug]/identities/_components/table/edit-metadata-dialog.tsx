@@ -46,9 +46,15 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
 
   const methods = useForm<z.infer<typeof metadataSchema>>({
     resolver: zodResolver(metadataSchema) as DiscriminatedUnionResolver<typeof metadataSchema>,
-    mode: "onChange",
     values: defaultValues,
   });
+
+  // RHF's `formState.isValid` is unreliable with discriminated-union
+  // resolvers, so derive validity directly from the schema. `methods.watch()`
+  // in render subscribes the component to all value changes, so this re-runs
+  // on every form update.
+  methods.watch();
+  const isFormValid = metadataSchema.safeParse(methods.getValues()).success;
 
   const updateMetadata = trpc.identity.update.metadata.useMutation({
     onSuccess: () => {
@@ -90,7 +96,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
-                disabled={!methods.formState.isValid || isSubmitting}
+                disabled={!isFormValid || isSubmitting}
                 loading={isSubmitting}
               >
                 Update metadata
