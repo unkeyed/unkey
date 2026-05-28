@@ -339,16 +339,13 @@ func TestGlobal_PushUsesConvergedLocalCount(t *testing.T) {
 	// Each instance accepts 1/10 locally, below the 0.2 utilization floor
 	// (threshold=2). Their shared Redis origin converges the region total to 2/10,
 	// which crosses the floor and triggers the push.
-	for range 1 {
-		resp, reqErr := regionA1.Ratelimit(ctx, makeReq())
-		require.NoError(t, reqErr)
-		require.True(t, resp.Success)
-	}
-	for range 1 {
-		resp, reqErr := regionA2.Ratelimit(ctx, makeReq())
-		require.NoError(t, reqErr)
-		require.True(t, resp.Success)
-	}
+	resp, reqErr := regionA1.Ratelimit(ctx, makeReq())
+	require.NoError(t, reqErr)
+	require.True(t, resp.Success)
+
+	resp, reqErr = regionA2.Ratelimit(ctx, makeReq())
+	require.NoError(t, reqErr)
+	require.True(t, resp.Success)
 
 	curKey := counterKey{
 		workspaceID: workspaceID,
