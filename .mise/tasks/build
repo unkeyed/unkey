@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Build all artifacts (binaries land in ./bin)"
-#MISE depends=["install"]
+#MISE depends=["install-web"]
 set -euo pipefail
 
 bazel build //...

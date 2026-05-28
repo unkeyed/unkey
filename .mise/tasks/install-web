@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-#MISE description="Install web dependencies"
+#MISE description="Install web dependencies and enable Corepack"
+#MISE hide=true
 #MISE sources=["web/package.json", "web/pnpm-lock.yaml", "web/pnpm-workspace.yaml", "web/{apps,internal,tools}/*/package.json"]
 #MISE outputs=["web/node_modules/.modules.yaml"]
 set -euo pipefail
 
+corepack enable
 pnpm --dir=web install --recursive --frozen-lockfile

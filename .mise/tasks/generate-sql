@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Generate SQL schema files from Drizzle"
-#MISE depends=["install"]
+#MISE depends=["install-web"]
 set -euo pipefail
 
 rm -rf ./web/internal/db/out

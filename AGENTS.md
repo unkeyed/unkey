@@ -36,10 +36,9 @@ Use `mise` for all installs, tasks, and direct tool execution. Makefiles are
 legacy and should not be used.
 
 ```bash
-# Install pinned toolchain and project dependencies
+# Install pinned toolchain
 ./dev/install-mise
 mise install
-mise run install
 
 # Discover tasks
 mise tasks

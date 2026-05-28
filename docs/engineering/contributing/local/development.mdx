@@ -42,8 +42,14 @@ Clone the repository and install mise and other tools.
   </Step>
 </Steps>
 
-`mise install` installs the pinned toolchain, including pnpm. Use `mise run`
-for repository tasks and `mise exec -- <tool>` for direct tool invocations.
+`mise install` installs the pinned toolchain, including pnpm. Repository tasks
+can declare their own dependencies, so setup steps run automatically when a task
+needs them. See the [mise tooling guide](/contributing/tooling/mise) for task
+conventions.
+
+If you only want to develop on the dashboard, run `mise run dashboard`.
+Otherwise continue for a full dev setup.
+
 
 ## Configure Depot
 

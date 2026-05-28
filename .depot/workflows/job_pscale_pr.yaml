@@ -20,20 +20,29 @@ jobs:
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
-      - uses: ./.depot/actions/setup
+      - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install web dependencies
-        run: mise run install
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: install web deps
+        run: pnpm --dir=web install --frozen-lockfile
 
       - name: ensure planetscale branch
         # Idempotent: re-runs on PR push reuse the existing branch. Probe with
         # `branch show` to distinguish "already exists" from real errors.
         run: |
           set -euo pipefail
-          if ! mise exec -- pscale branch create "$PSCALE_DB" "$BRANCH" \
+          if ! pscale branch create "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --from "$PSCALE_PARENT" --wait; then
-            mise exec -- pscale branch show "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" >/dev/null
+            pscale branch show "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" >/dev/null
           fi
 
       - name: run migration
@@ -41,13 +50,13 @@ jobs:
         # so reserved characters in any field can't break parsing.
         run: |
           set -euo pipefail
-          PW=$(mise exec -- pscale password create "$PSCALE_DB" "$BRANCH" "ci-${GITHUB_SHA::8}" \
+          PW=$(pscale password create "$PSCALE_DB" "$BRANCH" "ci-${GITHUB_SHA::8}" \
                  --org "$PSCALE_ORG" --format json)
-          USER=$(echo "$PW" | mise exec -- jq -r '.username | @uri')
-          PASS=$(echo "$PW" | mise exec -- jq -r '.plain_text | @uri')
-          HOST=$(echo "$PW" | mise exec -- jq -r '.access_host_url | @uri')
+          USER=$(echo "$PW" | jq -r '.username | @uri')
+          PASS=$(echo "$PW" | jq -r '.plain_text | @uri')
+          HOST=$(echo "$PW" | jq -r '.access_host_url | @uri')
           export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/$PSCALE_DB?ssl={}"
-          mise exec -- pnpm --dir=web/internal/db run migrate
+          pnpm --dir=web/internal/db run migrate
 
       - name: ensure deploy request
         # Open a DR into staging so reviewers have a one-click promotion
@@ -59,12 +68,12 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
-          EXISTING=$(mise exec -- pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | mise exec -- jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
+          EXISTING=$(pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
                 '.[] | select(.branch==$b and .into_branch==$p and .state=="open") | .number' \
             | head -n1)
           if [ -z "$EXISTING" ]; then
-            mise exec -- pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
+            pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
               --notes "PR #${PR_NUMBER}: ${PR_TITLE}"
           else

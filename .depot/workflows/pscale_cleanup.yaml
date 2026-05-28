@@ -23,21 +23,18 @@ jobs:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-      - uses: ./.depot/actions/setup
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
 
       - name: close open deploy requests
         # Branch deletion fails while a DR is open, so close them first.
         run: |
           set -euo pipefail
-          mise exec -- pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | mise exec -- jq -r --arg b "$BRANCH" \
+          pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | jq -r --arg b "$BRANCH" \
                 '.[] | select(.branch==$b and .state=="open") | .number' \
             | while read -r num; do
-                mise exec -- pscale deploy-request close "$PSCALE_DB" "$num" --org "$PSCALE_ORG" || true
+                pscale deploy-request close "$PSCALE_DB" "$num" --org "$PSCALE_ORG" || true
               done
 
       - name: delete branch
-        run: mise exec -- pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true
+        run: pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true

@@ -10,17 +10,18 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-      - uses: ./.depot/actions/setup
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install dependencies
-        run: mise run install
+      - name: Setup Node
+        uses: ./.depot/actions/setup-node
+      - name: Setup Go
+        uses: ./.depot/actions/setup-go
+      - name: Install dprint
+        run: curl -fsSL https://dprint.dev/install.sh | sh -s 0.51.1 && echo "$HOME/.dprint/bin" >> $GITHUB_PATH
       - name: Format
-        run: mise run fmt
+        run: make fmt
       - name: Check for drift
         run: |
           if ! git diff --exit-code; then
             echo
-            echo "Formatting drift detected. Run 'mise run fmt' locally and push again."
+            echo "Formatting drift detected. Run 'make fmt' locally and push again."
             exit 1
           fi
