@@ -186,7 +186,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.4 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -217,7 +217,8 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/in-toto/in-toto-golang v0.9.0 // indirect
+	github.com/in-toto/attestation v1.1.2 // indirect
+	github.com/in-toto/in-toto-golang v0.11.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -288,7 +289,7 @@ require (
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
-	github.com/secure-systems-lab/go-securesystemslib v0.9.1 // indirect
+	github.com/secure-systems-lab/go-securesystemslib v0.10.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.3 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
@@ -351,7 +352,7 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect
-	google.golang.org/grpc v1.78.0 // indirect
+	google.golang.org/grpc v1.79.3 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
