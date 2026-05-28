@@ -16,16 +16,16 @@ SELECT
     identifier,
     duration_ms,
     sequence,
-    CAST(SUM(count) AS SIGNED) AS imported
+    CAST(SUM(CASE WHEN region = ? THEN count ELSE 0 END) AS SIGNED) AS regional,
+    CAST(SUM(CASE WHEN region != ? THEN count ELSE 0 END) AS SIGNED) AS imported
 FROM ratelimit_global_counters
 WHERE expires_at > ?
-  AND region != ?
 GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
 `
 
 type GlobalCountersImportedParams struct {
-	Now        uint64 `db:"now"`
 	SelfRegion string `db:"self_region"`
+	Now        uint64 `db:"now"`
 }
 
 type GlobalCountersImportedRow struct {
@@ -34,16 +34,18 @@ type GlobalCountersImportedRow struct {
 	Identifier  string `db:"identifier"`
 	DurationMs  uint64 `db:"duration_ms"`
 	Sequence    int64  `db:"sequence"`
+	Regional    int64  `db:"regional"`
 	Imported    int64  `db:"imported"`
 }
 
-// GlobalCountersImported returns the sum of foreign-region contributions for
-// every still-active window cell, with each region's row excluded from its
-// own caller. Receivers fold the returned `imported` directly into
-// counterEntry.globalCount via atomicMax; aggregation runs in MySQL because
-// the application only ever uses the sum, so transferring per-region rows
-// just to collapse them in Go wastes bandwidth and memory. The SUM is cast
-// to SIGNED so sqlc maps it to int64, matching atomic.Int64 in the caller.
+// GlobalCountersImported returns the caller's own-region count and the sum of
+// foreign-region contributions for every still-active window cell. Receivers
+// fold the own-region count into counterEntry.val and the foreign-region count
+// into counterEntry.globalCount; keeping them separate prevents own traffic
+// from being double-counted as imported global state. Aggregation runs in MySQL
+// because the application only ever uses these sums, so transferring per-region
+// rows just to collapse them in Go wastes bandwidth and memory. The sums are
+// cast to SIGNED so sqlc maps them to int64, matching atomic.Int64 in the caller.
 //
 //	SELECT
 //	    workspace_id,
@@ -51,13 +53,13 @@ type GlobalCountersImportedRow struct {
 //	    identifier,
 //	    duration_ms,
 //	    sequence,
-//	    CAST(SUM(count) AS SIGNED) AS imported
+//	    CAST(SUM(CASE WHEN region = ? THEN count ELSE 0 END) AS SIGNED) AS regional,
+//	    CAST(SUM(CASE WHEN region != ? THEN count ELSE 0 END) AS SIGNED) AS imported
 //	FROM ratelimit_global_counters
 //	WHERE expires_at > ?
-//	  AND region != ?
 //	GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
 func (q *Queries) GlobalCountersImported(ctx context.Context, arg GlobalCountersImportedParams) ([]GlobalCountersImportedRow, error) {
-	rows, err := q.db.QueryContext(ctx, globalCountersImported, arg.Now, arg.SelfRegion)
+	rows, err := q.db.QueryContext(ctx, globalCountersImported, arg.SelfRegion, arg.SelfRegion, arg.Now)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +73,7 @@ func (q *Queries) GlobalCountersImported(ctx context.Context, arg GlobalCounters
 			&i.Identifier,
 			&i.DurationMs,
 			&i.Sequence,
+			&i.Regional,
 			&i.Imported,
 		); err != nil {
 			return nil, err
