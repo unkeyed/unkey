@@ -363,6 +363,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Engine:            policyEngine,
 		Clock:             clk,
 		AcmeClient:        acmeClient,
+		DB:                database,
 		ErrorPageRenderer: errorpage.NewRenderer(),
 		RequestTimeout:    cfg.RequestTimeout,
 		FrontlineRequests: frontlineRequests,
