@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, toast } from "@unkey/ui";
-import { type FC, useCallback, useEffect, useId, useState } from "react";
+import { type FC, useId, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { IdentityInfo } from "../dialogs/identity-info";
@@ -27,33 +27,28 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   const utils = trpc.useUtils();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getDefaultValues = useCallback(() => {
-    if (identity.meta) {
-      return {
-        metadata: {
-          enabled: true as const,
-          data: JSON.stringify(identity.meta, null, 2),
-        },
-      };
-    }
-    return {
-      metadata: {
-        enabled: false as const,
-      },
-    };
-  }, [identity.meta]);
+  const defaultValues = useMemo<z.infer<typeof metadataSchema>>(
+    () =>
+      identity.meta
+        ? {
+            metadata: {
+              enabled: true,
+              data: JSON.stringify(identity.meta, null, 2),
+            },
+          }
+        : {
+            metadata: {
+              enabled: false,
+            },
+          },
+    [identity.meta],
+  );
 
   const methods = useForm<z.infer<typeof metadataSchema>>({
     resolver: zodResolver(metadataSchema) as DiscriminatedUnionResolver<typeof metadataSchema>,
-    defaultValues: getDefaultValues(),
+    mode: "onChange",
+    values: defaultValues,
   });
-
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (open) {
-      methods.reset(getDefaultValues());
-    }
-  }, [open, getDefaultValues, methods.reset]);
 
   const updateMetadata = trpc.identity.update.metadata.useMutation({
     onSuccess: () => {
