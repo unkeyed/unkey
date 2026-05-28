@@ -259,7 +259,6 @@ k8s_resource('restate-key-refill', resource_deps=['restate', 'ctrl-worker'], lab
 k8s_resource('restate-quota-check', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-ratelimit-blocklist-cleanup', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-audit-log-export', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
-k8s_resource('restate-audit-log-backfill', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
 # Build Go binaries locally (auto-detect arch from minikube)

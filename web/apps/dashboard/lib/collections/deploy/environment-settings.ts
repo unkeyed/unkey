@@ -32,7 +32,14 @@ const schema = z.object({
   storageMib: z.number().int(),
   command: z.array(z.string()),
   healthcheck: healthcheckSchema,
-  regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
+  regions: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      replicasMin: z.number().int().min(1),
+      replicasMax: z.number().int().min(1),
+    }),
+  ),
   shutdownSignal: z.string(),
   upstreamProtocol: z.enum(["http1", "h2c"]).default("http1"),
   openapiSpecPath: z.string().nullable().default(null),
@@ -135,7 +142,8 @@ function flattenSettingsResponse(
       .map((r) => ({
         id: r.region.id,
         name: r.region.name,
-        replicas: r.replicas,
+        replicasMin: r.horizontalAutoscalingPolicy?.replicasMin ?? 1,
+        replicasMax: r.replicas,
       })),
     shutdownSignal: d.shutdownSignal,
     upstreamProtocol: (runtime?.upstreamProtocol as "http1" | "h2c") ?? d.upstreamProtocol,
@@ -259,16 +267,21 @@ export function buildSettingsMutations(
     );
   }
 
-  const origReplicas = original.regions.at(0)?.replicas ?? 1;
-  const modReplicas = modified.regions.at(0)?.replicas ?? 1;
+  const origReplicasMin = original.regions.at(0)?.replicasMin ?? 1;
+  const modReplicasMin = modified.regions.at(0)?.replicasMin ?? 1;
+  const origReplicasMax = original.regions.at(0)?.replicasMax ?? 1;
+  const modReplicasMax = modified.regions.at(0)?.replicasMax ?? 1;
   const instancesChanged =
-    !regionsChanged && modified.regions.length > 0 && modReplicas !== origReplicas;
+    !regionsChanged &&
+    modified.regions.length > 0 &&
+    (modReplicasMin !== origReplicasMin || modReplicasMax !== origReplicasMax);
 
   if (instancesChanged) {
     mutations.push(
       trpcClient.deploy.environmentSettings.runtime.updateInstances.mutate({
         environmentId,
-        replicasPerRegion: modReplicas,
+        replicasMin: modReplicasMin,
+        replicasMax: modReplicasMax,
       }),
     );
   }
