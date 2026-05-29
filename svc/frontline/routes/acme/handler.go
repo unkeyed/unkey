@@ -10,14 +10,22 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
-	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 )
 
+// domainLookup is the minimal slice of the frontline db.Querier the ACME
+// handler needs. ACME HTTP-01 only validates ownership of a custom domain,
+// not routing configuration, so the handler bypasses the router entirely and
+// consults custom_domains directly.
+type domainLookup interface {
+	FindCustomDomainIDByDomain(ctx context.Context, domain string) (string, error)
+}
+
 type Handler struct {
-	AcmeClient    ctrl.AcmeServiceClient
-	RouterService router.Service
+	AcmeClient ctrl.AcmeServiceClient
+	DB         domainLookup
 }
 
 func (h *Handler) Method() string {
@@ -34,9 +42,19 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// Look up target configuration based on the request host
 	hostname := proxy.ExtractHostname(req.Host)
 
-	err := h.RouterService.ValidateHostname(ctx, hostname)
+	_, err := h.DB.FindCustomDomainIDByDomain(ctx, hostname)
 	if err != nil {
-		return err
+		if mysql.IsNotFound(err) {
+			return fault.New("no custom domain registered for hostname: "+hostname,
+				fault.Code(codes.Frontline.Routing.ConfigNotFound.URN()),
+				fault.Public("Domain not configured"),
+			)
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
+			fault.Internal("error loading custom domain"),
+			fault.Public("Failed to load route configuration"),
+		)
 	}
 
 	// Extract ACME token from path (last segment after /.well-known/acme-challenge/)

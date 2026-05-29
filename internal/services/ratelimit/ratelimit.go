@@ -24,7 +24,7 @@ type checkState struct {
 	// counterEntry.globalCount taken at prepareCheck time so the
 	// CAS retry loop in Ratelimit does not re-load them on every retry.
 	// Cross-region counts only mutate from the cross-region pull
-	// goroutine on a 10s cadence, so they are effectively constant for
+	// goroutine on a 5s cadence, so they are effectively constant for
 	// the lifetime of any single request; snapshotting matches that
 	// lifetime and saves two atomic loads per CAS attempt.
 	curGlobal  int64
@@ -51,22 +51,21 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	prev := s.loadCounter(prevKey)
 
 	// First caller per entry runs fetchFromOrigin; concurrent callers block
-	// inside Do until it returns, then take the fast path (single atomic
-	// load of hydrated) forever. This prevents late arrivals on a cold key
-	// from reading a zero counter while the owner is still fetching.
-	cur.Hydrate(ctx)
-	prev.Hydrate(ctx)
+	// inside Do until it returns. Warm entries refresh from origin when their
+	// last origin fetch is stale, preventing idle replicas from serving an old
+	// local view for the rest of a long window.
+	cur.EnsureFreshFromOrigin(ctx, req.Time)
+	prev.EnsureFreshFromOrigin(ctx, req.Time)
 
-	// Strict mode: a recent denial in this region forces an additional
-	// synchronous origin fetch until the deadline passes. This is the
-	// in-region convergence aid — instances within a region share state
-	// through Redis, so the forced fetch drains any lag between this
-	// instance's local view and the region's Redis-backed truth.
-	// Cross-region convergence is handled separately via
-	// cur.globalCount.
+	// Strict mode always refreshes the current window before deciding. The
+	// previous window cannot receive new local decisions anymore, so its normal
+	// cold/stale refresh is enough.
 	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
-		atomicMax(&cur.val, s.fetchFromOrigin(ctx, curKey))
-		atomicMax(&prev.val, s.fetchFromOrigin(ctx, prevKey))
+		countOriginCurrent, ok := s.fetchFromOrigin(ctx, curKey, "fetch_strict")
+		if ok {
+			atomicMax(&cur.val, countOriginCurrent)
+			atomicMax(&cur.originFreshUntilMs, req.Time.Add(originFreshDuration).UnixMilli())
+		}
 	}
 
 	windowStartMs := curSeq * durationMs
