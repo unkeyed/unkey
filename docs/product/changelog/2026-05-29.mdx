@@ -1,0 +1,38 @@
+---
+title: "May 29, 2026"
+description: "A new identities list table in the dashboard, tighter ratelimit convergence, and reliability fixes for custom-domain SSL, key creation, and background syncs."
+noindex: true
+---
+
+## New features
+
+### New identities list table
+
+The dashboard's Identities page now uses a full table view with filtering, search, an editable metadata dialog, and per-row actions for editing ratelimits and deleting identities. Columns are sortable and the external ID is easier to scan and copy. See [Identities](/platform/identities/overview).
+
+## Updates
+
+### Faster, more accurate ratelimit convergence
+
+Ratelimit counters now converge across regions noticeably faster. Push-pull sync intervals are tighter, more identifiers are eligible for cross-region propagation, global lookups also factor in the local region's counter as a fallback when Redis is unavailable, and warm counters are periodically refreshed from origin to keep long-window, low-traffic limits accurate. See [Share counts across regions](/platform/ratelimiting/how-it-works#share-counts-across-regions).
+
+### Pagination metadata on list endpoints
+
+`v2.apis.listKeys`, `v2.identities.listIdentities`, `v2.permissions.listPermissions`, `v2.permissions.listRoles`, and `v2.ratelimit.listOverrides` now return standard pagination metadata, so SDK clients can iterate pages without custom cursor handling. See the [API reference](/api-reference/overview).
+
+### Request IDs on edge errors
+
+Errors returned by the edge gateway now include the request ID in the error body, making it faster to correlate a failing request with logs and support tickets.
+
+### Vercel integration removed
+
+The legacy Vercel integration has been removed. It was unused and is no longer available in the dashboard.
+
+## Bug fixes
+
+- Custom-domain SSL: ACME HTTP-01 challenges now validate against registered custom domains, so certificates can be issued for a domain before its first deployment lands.
+- Key creation now retries automatically on rare duplicate-ID collisions instead of returning an error.
+- Deployment overview: the CPU and memory utilization bars now render with the correct fill and color thresholds.
+- The "last used" sync for keys no longer stalls when a partition exhausts its retries; the job now fails fast and the next scheduled run picks up from the saved cursor, so key `lastUsed` timestamps stay current.
+- Background deploy jobs are more resilient to transient workflow errors when assigning domains and scaling idle preview deployments down.
+- Dashboard: a refactor of the renderable content list fixes a few cases where conditional text rendered incorrectly.
