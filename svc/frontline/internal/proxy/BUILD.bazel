@@ -28,7 +28,6 @@ go_library(
         "//pkg/zen",
         "//svc/frontline/internal/db",
         "//svc/frontline/internal/errorpage",
-        "//svc/frontline/internal/router",
         "@com_github_prometheus_client_golang//prometheus",
         "@org_golang_x_net//http2",
     ],
@@ -36,6 +35,13 @@ go_library(
 
 go_test(
     name = "proxy_test",
-    srcs = ["forward_test.go"],
+    srcs = [
+        "error_test.go",
+        "forward_test.go",
+    ],
     embed = [":proxy"],
+    deps = [
+        "//pkg/fault",
+        "@com_github_stretchr_testify//require",
+    ],
 )

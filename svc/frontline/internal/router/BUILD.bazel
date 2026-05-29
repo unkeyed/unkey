@@ -15,7 +15,6 @@ go_library(
     deps = [
         "//gen/proto/frontline/v1:frontline",
         "//internal/services/caches",
-        "//pkg/array",
         "//pkg/cache",
         "//pkg/codes",
         "//pkg/fault",
