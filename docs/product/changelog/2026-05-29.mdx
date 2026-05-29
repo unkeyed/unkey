@@ -1,14 +1,14 @@
 ---
 title: "May 29, 2026"
-description: "A new identities list table in the dashboard, tighter ratelimit convergence, and reliability fixes for custom-domain SSL, key creation, and background syncs."
+description: "We now have a roadmap, tighter ratelimit convergence, and reliability fixes for custom-domain SSL, key creation, and background syncs."
 noindex: true
 ---
 
 ## New features
 
-### New identities list table
+### Roadmap
 
-The dashboard's Identities page now uses a full table view with filtering, search, an editable metadata dialog, and per-row actions for editing ratelimits and deleting identities. Columns are sortable and the external ID is easier to scan and copy. See [Identities](/platform/identities/overview).
+We finally added a roadmap of what we are building at Unkey. You can find the roadmap at [feedback.unkey.com/roadmap](https://feedback.unkey.com/roadmap). You can also request features or provide feedback on current features by just navigating to [https://feedback.unkey.com](https://feedback.unkey.com) and upvote existing planned features to shape how and what we build. 
 
 ## Updates
 
@@ -20,9 +20,13 @@ Ratelimit counters now converge across regions noticeably faster. Push-pull sync
 
 `v2.apis.listKeys`, `v2.identities.listIdentities`, `v2.permissions.listPermissions`, `v2.permissions.listRoles`, and `v2.ratelimit.listOverrides` now return standard pagination metadata, so SDK clients can iterate pages without custom cursor handling. See the [API reference](/api-reference/overview).
 
-### Request IDs on edge errors
+### New identities list table
 
-Errors returned by the edge gateway now include the request ID in the error body, making it faster to correlate a failing request with logs and support tickets.
+The dashboard's Identities page now uses a full table view with filtering, search, an editable metadata dialog, and per-row actions for editing ratelimits and deleting identities. Columns are sortable and the external ID is easier to scan and copy. See [Identities](/platform/identities/overview).
+
+### Request IDs on gateway errors
+
+Errors returned by our gateway now include the request ID in the error body, making it faster to correlate a failing request with logs and support tickets.
 
 ### Vercel integration removed
 
