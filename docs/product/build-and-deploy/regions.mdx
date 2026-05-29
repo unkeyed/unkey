@@ -34,7 +34,9 @@ Production and preview environments can use different region configurations. For
 
 ## Instances per region
 
-Each region runs one or more instances of your app. Configure the instance count in **Settings > Runtime settings > Instances**. The default is one instance per region.
+Each region runs one or more instances of your app. Configure the autoscaling range in **Settings > Runtime settings > Instances** as a minimum and maximum replica count. The default is one instance per region (`1 – 1`).
+
+When the minimum and maximum differ, Unkey scales each region between those bounds based on CPU load. Setting both values to the same number pins the instance count and disables autoscaling.
 
 Running multiple instances in a region provides redundancy. If one instance fails, traffic routes to the remaining healthy instances.
 
