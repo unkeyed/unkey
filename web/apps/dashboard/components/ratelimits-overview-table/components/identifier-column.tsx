@@ -4,26 +4,21 @@ import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { calculateBlockedPercentage } from "../utils/calculate-blocked-percentage";
+import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 
 type IdentifierColumnProps = {
   log: RatelimitOverviewLog;
 };
 
-const PERCENTAGE_MULTIPLIER = 100;
-const FULLY_BLOCKED_PERCENTAGE = 100;
-
 export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   const style = getStatusStyle(log);
-  const hasMoreBlocked = calculateBlockedPercentage(log);
-  const totalRequests = log.blocked_count + log.passed_count;
-  const blockRate =
-    totalRequests > 0 ? (log.blocked_count / totalRequests) * PERCENTAGE_MULTIPLIER : 0;
-  const isFullyBlocked = blockRate === FULLY_BLOCKED_PERCENTAGE;
+  const hasMoreBlocked = isMostlyBlocked(log);
+  const blockedPercent = getBlockedPercentage(log);
+  const isFullyBlocked = blockedPercent === 100;
 
   return (
-    <div className="flex gap-6 items-center pl-2">
+    <div className="flex gap-6 items-center pl-2 min-w-0">
       <InfoTooltip
         variant="inverted"
         content={
@@ -32,7 +27,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
               "All requests have been blocked in this timeframe"
             ) : (
               <>
-                More than {Math.round(blockRate)}% of requests have been
+                More than {Math.round(blockedPercent)}% of requests have been
                 <br />
                 blocked in this timeframe
               </>
@@ -40,15 +35,15 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           </div>
         }
       >
-        <div className={cn(hasMoreBlocked ? "flex items-center shrink-0" : "invisible")}>
+        <div className={cn(hasMoreBlocked ? "flex items-center shrink-0" : "invisible shrink-0")}>
           <TriangleWarning2 iconSize="md-medium" />
         </div>
       </InfoTooltip>
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-3 items-center min-w-0">
         <div
           className={cn(
             style.badge.default,
-            "rounded-sm p-1",
+            "rounded-sm p-1 shrink-0",
             hasMoreBlocked ? "" : "group-hover:bg-accent-6",
           )}
         >
@@ -61,12 +56,23 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
             />
           )}
         </div>
-        <div
-          className={cn("font-mono font-medium", hasMoreBlocked ? style.base : "text-accent-12")}
+        <InfoTooltip
+          asChild
+          variant="inverted"
+          content={<span className="font-mono text-xs break-all">{log.identifier}</span>}
         >
-          {log.identifier}
-        </div>
-        {log.override && <OverrideIndicator log={log} style={style} />}
+          <div
+            className={cn(
+              "font-mono font-medium truncate min-w-0",
+              hasMoreBlocked ? style.base : "text-accent-12",
+            )}
+          >
+            {log.identifier}
+          </div>
+        </InfoTooltip>
+        {log.override && (
+          <OverrideIndicator log={log} style={style} hasMoreBlocked={hasMoreBlocked} />
+        )}
       </div>
     </div>
   );
@@ -75,9 +81,10 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
 type OverrideIndicatorProps = {
   log: RatelimitOverviewLog;
   style: ReturnType<typeof getStatusStyle>;
+  hasMoreBlocked: boolean;
 };
 
-const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
+const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProps) => (
   <InfoTooltip
     variant="muted"
     content={
@@ -112,7 +119,7 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
       <div
         className={cn(
           "size-[6px] rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-          calculateBlockedPercentage(log) ? "bg-orange-10 hover:bg-orange-11" : "bg-warning-10",
+          hasMoreBlocked ? "bg-orange-10 hover:bg-orange-11" : "bg-warning-10",
         )}
       />
     </div>
