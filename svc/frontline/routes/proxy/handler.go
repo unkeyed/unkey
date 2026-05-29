@@ -6,6 +6,8 @@ import (
 	"io"
 
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
@@ -144,6 +146,20 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	if decision.RemoteRegionAddress != "" {
 		regionFallbacksTotal.WithLabelValues(decision.RemoteRegionAddress).Inc()
 		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress)
+	}
+
+	// forwardErr is nil only when the loop never ran, i.e. LocalInstances
+	// was empty *and* RemoteRegionAddress was empty. That's an invariant
+	// violation: the router should have returned a remote decision instead
+	// of a local one with no candidates. Without this guard, returning the
+	// zero-value nil here surfaces to the client as a silent empty 200 —
+	// fail closed with an explicit 503 so the bug is visible.
+	if forwardErr == nil {
+		return fault.New("local decision with no instances",
+			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
+			fault.Internal("router returned DestinationLocalInstance with empty LocalInstances"),
+			fault.Public("Service temporarily unavailable"),
+		)
 	}
 	return forwardErr
 }

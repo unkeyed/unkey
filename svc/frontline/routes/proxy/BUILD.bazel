@@ -10,6 +10,8 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
         "//pkg/logger",
         "//pkg/prometheus/lazy",
         "//pkg/zen",

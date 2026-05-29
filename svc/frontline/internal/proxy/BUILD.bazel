@@ -35,6 +35,13 @@ go_library(
 
 go_test(
     name = "proxy_test",
-    srcs = ["forward_test.go"],
+    srcs = [
+        "error_test.go",
+        "forward_test.go",
+    ],
     embed = [":proxy"],
+    deps = [
+        "//pkg/fault",
+        "@com_github_stretchr_testify//require",
+    ],
 )
