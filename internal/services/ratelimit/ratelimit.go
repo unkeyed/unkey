@@ -50,6 +50,14 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	cur := s.loadCounter(curKey)
 	prev := s.loadCounter(prevKey)
 
+	// A cold (unhydrated) entry forces this caller to pay the synchronous
+	// fetch_cold or block inside Do until the first caller's fetch returns —
+	// either way the decision is informed by origin state, not local.
+	source := "local"
+	if !cur.hydrated.Load() || !prev.hydrated.Load() {
+		source = "origin"
+	}
+
 	// First caller per entry runs fetchFromOrigin; concurrent callers block
 	// inside Do until it returns. Warm entries refresh from origin when their
 	// last origin fetch is stale, preventing idle replicas from serving an old
@@ -66,6 +74,7 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 			atomicMax(&cur.val, countOriginCurrent)
 			atomicMax(&cur.originFreshUntilMs, req.Time.Add(originFreshDuration).UnixMilli())
 		}
+		source = "origin"
 	}
 
 	windowStartMs := curSeq * durationMs
@@ -82,7 +91,7 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 		curSequence:   curSeq,
 		windowElapsed: windowElapsed,
 		reset:         reset,
-		source:        "local",
+		source:        source,
 	}
 }
 
