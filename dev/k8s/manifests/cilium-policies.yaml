@@ -7,49 +7,7 @@
 # a CiliumNetworkPolicy in the customer namespace, Cilium automatically enables
 # default deny for the selected endpoints. We don't need an explicit deny-all policy.
 ---
-# 1. Allow gossip traffic between API pods
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: api-gossip-lan
-  namespace: unkey
-spec:
-  endpointSelector:
-    matchLabels:
-      app: api
-  ingress:
-    - fromEndpoints:
-        - matchLabels:
-            app: api
-      toPorts:
-        - ports:
-            - port: "7946"
-              protocol: TCP
-            - port: "7946"
-              protocol: UDP
----
-# 1b. Allow gossip traffic between Frontline pods
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: frontline-gossip-lan
-  namespace: frontline
-spec:
-  endpointSelector:
-    matchLabels:
-      app: frontline
-  ingress:
-    - fromEndpoints:
-        - matchLabels:
-            app: frontline
-      toPorts:
-        - ports:
-            - port: "7946"
-              protocol: TCP
-            - port: "7946"
-              protocol: UDP
----
-# 2. Block K8s API server access from customer pods
+# 1. Block K8s API server access from customer pods
 # Prevents customer workloads from accessing the Kubernetes API
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
@@ -65,7 +23,7 @@ spec:
     - toEntities:
         - kube-apiserver
 ---
-# 3. Allow DNS and internet egress from customer pods
+# 2. Allow DNS and internet egress from customer pods
 # Customer pods can resolve DNS and reach external internet
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
@@ -100,7 +58,7 @@ spec:
     - toEntities:
         - world
 ---
-# 3b. Allow unkey namespace to reach krane-managed deployment pods directly.
+# 2b. Allow unkey namespace to reach krane-managed deployment pods directly.
 # LOCAL DEV ONLY: in production ctrl-worker fetches specs via the public FQDN
 # (HTTPS through frontline) and never contacts deployment pods directly.
 # Here, *.unkey.local FQDNs are not publicly routable, so ctrl-worker falls
