@@ -25,7 +25,7 @@ jobs:
         uses: ./.depot/actions/setup-node
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          install: "false"
+          install: "true"
       - name: Setup Go
         uses: ./.depot/actions/setup-go
         with:
