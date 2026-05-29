@@ -5,8 +5,7 @@ on:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+*"
 permissions:
-  contents: write
-  packages: write
+  contents: read
 concurrency: release
 jobs:
   prepare:
@@ -26,7 +25,7 @@ jobs:
         uses: ./.depot/actions/setup-node
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          install: "false"
+          install: "true"
       - name: Setup Go
         uses: ./.depot/actions/setup-go
         with:
@@ -56,16 +55,20 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Cache split artifacts
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - name: Upload split artifacts
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
+          name: dist-${{ matrix.goos }}
           path: dist/${{ matrix.goos }}
-          key: release-${{ github.sha }}-${{ matrix.goos }}
+          retention-days: 1
+          if-no-files-found: error
   release:
     needs: prepare
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
     env:
       DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
@@ -77,6 +80,10 @@ jobs:
         uses: ./.depot/actions/setup-go
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Node
+        uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
+        with:
+          node-version: "24.16.0"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Login to GHCR
@@ -85,16 +92,19 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
-      - name: Restore linux artifacts
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - name: Download linux dist
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
+          name: dist-linux
           path: dist/linux
-          key: release-${{ github.sha }}-linux
-      - name: Restore darwin artifacts
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - name: Download darwin dist
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
+          name: dist-darwin
           path: dist/darwin
-          key: release-${{ github.sha }}-darwin
+      - name: Restore executable bit on binaries
+        run: |
+          find dist/linux dist/darwin -type f -name 'unkey' -exec chmod +x {} +
       - name: Run GoReleaser (merge)
         uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
         with:
@@ -104,4 +114,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
