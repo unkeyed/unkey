@@ -250,12 +250,9 @@ func (w *Workflow) buildDockerImageFromGit(
 		// Choose solver options based on authentication mode
 		var solverOptions client.SolveOpt
 		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
-			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
+			solverOptions = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
 		} else {
-			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
-		}
-		if err != nil {
-			return nil, restate.TerminalError(fmt.Errorf("failed to build solver options: %w", err))
+			solverOptions = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
 		}
 
 		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
@@ -283,34 +280,40 @@ func (w *Workflow) buildDockerImageFromGit(
 		restate.WithMaxRetryDuration(buildImageRetryCeiling))
 }
 
-// buildEnvFileSecret serializes env vars into a .env-formatted byte slice
-// for injection as a BuildKit secret. Returns (nil, nil) if there are no env
-// vars. Returns an error if any value contains newline or carriage-return
-// characters, which would corrupt the .env line format.
-func buildEnvFileSecret(envVars map[string]string) ([]byte, error) {
+// shellSingleQuote wraps s in POSIX single quotes so that a `.`/`source` of the
+// .env file reads it back verbatim, including newlines, spaces, $, and
+// backticks. Embedded single quotes are emitted with the standard
+// close-escape-reopen idiom ('\”), so any byte sequence round-trips through
+// the shell unchanged.
+func shellSingleQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// buildEnvFileSecret serializes env vars into a shell-sourceable .env byte
+// slice for injection as a BuildKit secret. Values are single-quoted so the
+// documented `set -a && . /run/secrets/.env && set +a` pattern loads them
+// intact, including multi-line values (PEM keys, JSON blobs). Returns nil if
+// there are no env vars. Keys are emitted in sorted order so the output is
+// deterministic.
+func buildEnvFileSecret(envVars map[string]string) []byte {
 	if len(envVars) == 0 {
-		return nil, nil
+		return nil
 	}
 
-	var badKeys []string
-	for k, v := range envVars {
-		if strings.ContainsAny(v, "\n\r") {
-			badKeys = append(badKeys, k)
-		}
+	keys := make([]string, 0, len(envVars))
+	for k := range envVars {
+		keys = append(keys, k)
 	}
-	if len(badKeys) != 0 {
-		sort.Strings(badKeys)
-		return nil, fmt.Errorf("environment variables contain newlines which cannot be represented in .env format: %s", strings.Join(badKeys, ", "))
-	}
+	sort.Strings(keys)
 
 	var buf strings.Builder
-	for k, v := range envVars {
+	for _, k := range keys {
 		buf.WriteString(k)
 		buf.WriteByte('=')
-		buf.WriteString(v)
+		buf.WriteString(shellSingleQuote(envVars[k]))
 		buf.WriteByte('\n')
 	}
-	return []byte(buf.String()), nil
+	return []byte(buf.String())
 }
 
 // hashEnvVars returns a hex-encoded SHA-256 hash of the sorted key=value pairs.
@@ -335,7 +338,7 @@ func hashEnvVars(envVars map[string]string) string {
 func (w *Workflow) buildSolverOptions(
 	platform, contextURL, dockerfilePath, imageName string,
 	envVars map[string]string,
-) (client.SolveOpt, error) {
+) client.SolveOpt {
 	sessionAttachables := []session.Attachable{
 		//nolint: exhaustruct
 		authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
@@ -350,10 +353,7 @@ func (w *Workflow) buildSolverOptions(
 		}),
 	}
 
-	envFile, err := buildEnvFileSecret(envVars)
-	if err != nil {
-		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
-	}
+	envFile := buildEnvFileSecret(envVars)
 
 	frontendAttrs := map[string]string{
 		"platform": platform,
@@ -391,7 +391,7 @@ func (w *Workflow) buildSolverOptions(
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 // buildGitSolverOptions constructs the buildkit solver configuration for a git context build.
@@ -399,14 +399,11 @@ func (w *Workflow) buildSolverOptions(
 func (w *Workflow) buildGitSolverOptions(
 	platform, gitContextURL, dockerfilePath, imageName, githubToken string,
 	envVars map[string]string,
-) (client.SolveOpt, error) {
+) client.SolveOpt {
 	secrets := map[string][]byte{
 		"GIT_AUTH_TOKEN.github.com": []byte(githubToken),
 	}
-	envFile, err := buildEnvFileSecret(envVars)
-	if err != nil {
-		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
-	}
+	envFile := buildEnvFileSecret(envVars)
 
 	frontendAttrs := map[string]string{
 		"platform": platform,
@@ -454,7 +451,7 @@ func (w *Workflow) buildGitSolverOptions(
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 // getOrCreateDepotProject retrieves the Depot project ID for an Unkey project,

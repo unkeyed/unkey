@@ -68,20 +68,23 @@ CMD ["node", "dist/index.js"]
 
 Declare `ARG UNKEY_SECRETS_ID` inside every stage that mounts the secret. ARG values aren't inherited across stages, so each `FROM ... AS <stage>` that consumes variables needs its own declaration.
 
-The secrets file uses standard `.env` syntax, one variable per line:
+The secrets file uses standard `.env` syntax, one variable per line. Values are single-quoted, so they can contain spaces, special characters, and even span multiple lines (for example a PEM key or a JSON service account):
 
 ```bash /run/secrets/.env
-DATABASE_URL=postgres://prod-db.acme.com/api
-NPM_TOKEN=npm_abc123
-FEATURE_FLAG=true
+DATABASE_URL='postgres://prod-db.acme.com/api'
+NPM_TOKEN='npm_abc123'
+SERVICE_ACCOUNT='{
+  "type": "service_account",
+  "project_id": "acme"
+}'
 ```
 
-The `set -a && . /run/secrets/.env && set +a` pattern loads every variable from the file into the shell environment for that `RUN` step. The secret file is not persisted in the final image.
+The `set -a && . /run/secrets/.env && set +a` pattern loads every variable from the file into the shell environment for that `RUN` step, multi-line values included. The secret file is not persisted in the final image.
 
 How you consume the file depends on your toolchain:
 
 - **Tools that expect environment variables** (npm, pip, go): use the `set -a` pattern above to load them into the shell.
-- **Frameworks that read `.env` files directly** (Node.js with dotenv, Ruby with dotenv): reference `/run/secrets/.env` in your build script instead of sourcing it.
+- **Frameworks that read `.env` files directly** (Node.js with dotenv, Ruby with dotenv): reference `/run/secrets/.env` in your build script instead of sourcing it. Most dotenv libraries handle the single-quoted, multi-line format, but a value containing a literal single quote (`'`) is escaped for the shell and may not parse correctly when read directly. Source the file with the `set -a` pattern if you rely on such values.
 
 ### Why secret mounts instead of ARG or ENV?
 

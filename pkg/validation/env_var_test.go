@@ -19,6 +19,12 @@ func TestIsValidEnvVarKey_Invalid(t *testing.T) {
 		{name: "sentence as key", envKey: "when I click the i below it submits"},
 		{name: "slash", envKey: "path/to/key"},
 		{name: "at sign", envKey: "my@key"},
+		// Not valid shell identifiers / env var names: rejected so they cannot
+		// silently fail at build (`. /run/secrets/.env`) or runtime (envFrom).
+		{name: "starts with digit", envKey: "1VAR"},
+		{name: "dot", envKey: "app.config"},
+		{name: "hyphen", envKey: "my-key"},
+		{name: "dot and hyphen mix", envKey: "My-App.Config_VAR"},
 	}
 
 	for _, tt := range tests {
@@ -39,10 +45,8 @@ func TestIsValidEnvVarKey_Valid(t *testing.T) {
 		{name: "uppercase", envKey: "MY_VAR"},
 		{name: "lowercase", envKey: "my_var"},
 		{name: "alphanumeric", envKey: "KEY123"},
-		{name: "starts with digit", envKey: "1VAR"},
-		{name: "with dot", envKey: "app.config"},
-		{name: "with hyphen", envKey: "my-key"},
-		{name: "mixed", envKey: "My-App.Config_VAR"},
+		{name: "leading underscore", envKey: "_VAR"},
+		{name: "only underscore", envKey: "_"},
 	}
 
 	for _, tt := range tests {

@@ -6,7 +6,7 @@ import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo, Plus } from "@unkey/icons";
-import { Button, FormInput, InfoTooltip, toast } from "@unkey/ui";
+import { Button, FormInput, FormTextarea, InfoTooltip, toast } from "@unkey/ui";
 import { type ClipboardEvent, useCallback, useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -142,9 +142,10 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
           {...register("key")}
           onPaste={handleKeyPaste}
         />
-        <FormInput
+        <FormTextarea
           label={isWriteonly ? "New Value" : "Value"}
-          className="[&_input]:font-mono"
+          className="[&_textarea]:font-mono"
+          rows={1}
           placeholder={
             isWriteonly
               ? "Enter new value to replace"

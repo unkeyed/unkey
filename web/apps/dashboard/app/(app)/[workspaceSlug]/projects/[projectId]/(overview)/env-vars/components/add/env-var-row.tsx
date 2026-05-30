@@ -1,5 +1,5 @@
 import { Plus, Trash } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, FormInput, FormTextarea } from "@unkey/ui";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useCallback } from "react";
 import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
@@ -63,8 +63,11 @@ export const EnvVarRow = ({
   );
 
   const handleValueKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" && !e.shiftKey && isLast) {
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      // Plain Enter inserts a newline so multi-line values (PEM keys, JSON) can
+      // be entered. Cmd/Ctrl+Enter keeps the keyboard-driven flow of advancing
+      // to / creating the next row.
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && isLast) {
         e.preventDefault();
         onAdvanceRow();
       }
@@ -88,10 +91,11 @@ export const EnvVarRow = ({
           onPaste={handleKeyPaste}
           onKeyDown={handleKeyKeyDown}
         />
-        <FormInput
+        <FormTextarea
           label="Value"
-          className="flex-1 [&_input]:font-mono"
+          className="flex-1 [&_textarea]:font-mono"
           placeholder="value"
+          rows={1}
           error={fieldErrors?.value?.message}
           variant={!fieldErrors?.value && hasSpaces ? "warning" : undefined}
           description={!fieldErrors?.value && hasSpaces ? "Value contains spaces" : undefined}
