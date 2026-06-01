@@ -92,7 +92,7 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/requests?since=6h&deploymentId=contains:${selectedDeployment.id}`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/requests?since=6h&deploymentId=contains:${selectedDeployment.id}`,
           );
         },
       },
@@ -101,7 +101,9 @@ export const DeploymentListTableActions = ({
         label: "Go to logs...",
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
-          router.push(`/${workspace.slug}/projects/${selectedDeployment.projectId}/logs`);
+          router.push(
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/logs`,
+          );
         },
       },
       {
@@ -110,7 +112,7 @@ export const DeploymentListTableActions = ({
         icon: <Hammer2 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${selectedDeployment.id}?build=true`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/deployments/${selectedDeployment.id}?build=true`,
           );
         },
       },

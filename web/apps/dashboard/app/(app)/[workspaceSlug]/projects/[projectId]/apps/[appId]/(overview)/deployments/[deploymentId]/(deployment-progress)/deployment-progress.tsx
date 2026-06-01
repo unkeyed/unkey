@@ -143,9 +143,11 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
 
   useEffect(() => {
     if (network?.completed) {
-      router.push(`/${workspaceSlug}/projects/${projectId}/deployments/${deployment.id}`);
+      router.push(
+        `/${workspaceSlug}/projects/${projectId}/apps/${deployment.appId}/deployments/${deployment.id}`,
+      );
     }
-  }, [network?.completed, router, workspaceSlug, projectId, deployment.id]);
+  }, [network?.completed, router, workspaceSlug, projectId, deployment.appId, deployment.id]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -240,7 +242,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
       {isFailed && (
         <FailedDeploymentBanner
           steps={[queued, starting, building, deploying, network, finalizing]}
-          settingsUrl={`/${workspaceSlug}/projects/${projectId}/settings`}
+          settingsUrl={`/${workspaceSlug}/projects/${projectId}/apps/${deployment.appId}/settings`}
           onRedeploy={() => setRedeployOpen(true)}
           redeployOpen={redeployOpen}
           onRedeployClose={() => setRedeployOpen(false)}
