@@ -52,7 +52,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
   });
 
   const updateName = trpc.api.updateName.useMutation({
-    onSuccess: onUpdateSuccess("API name updated successfully"),
+    onSuccess: onUpdateSuccess("Keyspace name updated successfully"),
     onError,
   });
 
@@ -89,7 +89,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
           render={({ field }) => (
             <Input
               {...field}
-              placeholder="my-api"
+              placeholder="my-keyspace"
               className="min-w-64 items-end h-9"
               onChange={(e) => {
                 if (e.target.value === "") {
