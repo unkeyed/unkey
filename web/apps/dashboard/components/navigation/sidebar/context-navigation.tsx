@@ -8,6 +8,7 @@ import { useEffect, useMemo } from "react";
 import { NavItems } from "./app-sidebar/components/nav-items";
 import { useApiKeyspace } from "./app-sidebar/hooks/use-api-keyspace";
 import { useApiNavigation } from "./app-sidebar/hooks/use-api-navigation";
+import { useAppData } from "./app-sidebar/hooks/use-app-data";
 import { useNamespaceName } from "./app-sidebar/hooks/use-namespace-name";
 import { useProjectData } from "./app-sidebar/hooks/use-project-data";
 import { useProjectNavigation } from "./app-sidebar/hooks/use-projects-navigation";
@@ -52,7 +53,7 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
         case "api":
           return createApiNavigation(context.resourceId, workspace, segments, context.keyAuthId);
         case "project":
-          return createProjectNavigation(context.resourceId, workspace, segments);
+          return createProjectNavigation(context.resourceId, workspace, segments, context.appId);
         case "namespace":
           return createNamespaceNavigation(context.resourceId, workspace, segments);
       }
@@ -84,7 +85,16 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
     context.type === "resource" && context.resourceType === "project"
       ? context.resourceId
       : undefined;
-  const { enhancedNavItems: finalNavItems, projectName } = useProjectData(withApiData, projectId);
+  const { enhancedNavItems: withProjectData, projectName } = useProjectData(withApiData, projectId);
+
+  // When inside a specific app, relabel the project-resource parent with the app name.
+  const appId =
+    context.type === "resource" && context.resourceType === "project" ? context.appId : undefined;
+  const { enhancedNavItems: finalNavItems, appName } = useAppData(
+    withProjectData,
+    projectId,
+    appId,
+  );
 
   // For namespace resources, get namespace name
   const namespaceId =
@@ -98,6 +108,8 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
     if (onResourceNameFetched) {
       if (apiName) {
         onResourceNameFetched(apiName);
+      } else if (appName) {
+        onResourceNameFetched(appName);
       } else if (projectName) {
         onResourceNameFetched(projectName);
       } else if (namespaceName) {
@@ -107,7 +119,7 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
         onResourceNameFetched(undefined);
       }
     }
-  }, [apiName, projectName, namespaceName, onResourceNameFetched]);
+  }, [apiName, appName, projectName, namespaceName, onResourceNameFetched]);
 
   return (
     <SidebarGroup className="overflow-hidden">

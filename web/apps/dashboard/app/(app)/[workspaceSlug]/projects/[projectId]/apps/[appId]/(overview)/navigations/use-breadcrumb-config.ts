@@ -31,14 +31,18 @@ type SubPage = {
 export const useBreadcrumbConfig = ({
   projectId,
   appId,
+  appName,
   basePath,
   projects,
+  apps,
   activeProject,
 }: {
   projectId: string;
   appId: string;
+  appName: string | undefined;
   basePath: string;
   projects: Array<{ id: string; name: string }>;
+  apps: Array<{ id: string; name: string }>;
   activeProject: { id: string; name: string } | undefined;
 }): BreadcrumbItem[] => {
   const segments = useSelectedLayoutSegments() ?? [];
@@ -131,7 +135,27 @@ export const useBreadcrumbConfig = ({
       },
     },
 
-    // 3. Sub-page with QuickNav (Overview, Deployments, etc.)
+    // 3. Current app with QuickNav (switch apps within the project)
+    {
+      id: "app",
+      children: appName || appId,
+      href: `${appBase}/deployments`,
+      shouldRender: true,
+      active: false,
+      isLast: false,
+      noop: true,
+      className: "flex",
+      quickNavConfig: {
+        items: apps.map((app) => ({
+          id: app.id,
+          label: app.name,
+          href: `${basePath}/${projectId}/apps/${app.id}/deployments`,
+        })),
+        shortcutKey: "A",
+      },
+    },
+
+    // 4. Sub-page with QuickNav (Overview, Deployments, etc.)
     {
       id: "subpage",
       children: isOnDeploymentDetail ? "Deployments" : activeSubPage.label,

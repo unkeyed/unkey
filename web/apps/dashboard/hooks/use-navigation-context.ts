@@ -12,6 +12,7 @@ export type NavigationContext =
       resourceId: string;
       resourceName?: string;
       keyAuthId?: string; // For API resources, the keyspace/keyAuth ID
+      appId?: string; // For project resources, the active app within the project
     };
 
 /**
@@ -111,6 +112,7 @@ export function useNavigationContext(): NavigationContext {
     const apiId = getParamSingle(params, "apiId");
     const keyAuthId = getParamSingle(params, "keyAuthId");
     const projectId = getParamSingle(params, "projectId");
+    const appId = getParamSingle(params, "appId");
     const namespaceId = getParamSingle(params, "namespaceId");
 
     if (apiId) {
@@ -129,6 +131,7 @@ export function useNavigationContext(): NavigationContext {
         resourceType: "project",
         resourceId: projectId,
         resourceName: undefined,
+        appId,
       };
     }
 

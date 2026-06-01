@@ -4,7 +4,7 @@ import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { useLiveQuery } from "@tanstack/react-db";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowDottedRotateAnticlockwise, ChevronExpandY, Cube } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
@@ -45,12 +45,24 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
     : undefined;
 
+  const apps = useLiveQuery(
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => eq(app.projectId, projectId))
+        .select(({ app }) => ({ id: app.id, name: app.name })),
+    [projectId],
+  );
+  const appName = apps.data?.find((a) => a.id === appId)?.name;
+
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({
     projectId,
     appId: appId ?? "",
+    appName,
     basePath,
     projects: projects.data || [],
+    apps: apps.data || [],
     activeProject,
   });
 

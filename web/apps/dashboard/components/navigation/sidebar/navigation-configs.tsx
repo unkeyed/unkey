@@ -170,62 +170,64 @@ export function createProjectNavigation(
   projectId: string,
   workspace: Workspace,
   segments: string[],
+  appId?: string,
 ): NavItem[] {
-  const basePath = `/${workspace.slug}/projects/${projectId}`;
+  const projectBase = `/${workspace.slug}/projects/${projectId}`;
 
-  const childItems: NavItem[] = [
-    // Removed until we hsve something to place in Overview
-    // {
-    //   icon: Grid,
-    //   href: basePath,
-    //   label: "Overview",
-    //   active: segments.at(2) === projectId && !segments.at(3),
-    // },
+  // Tabs live under the active app. At project home (no appId) the page itself
+  // lists the project's apps, so the sidebar shows only the project parent.
+  const childItems: NavItem[] = appId
+    ? createAppTabs(`${projectBase}/apps/${appId}`, segments)
+    : [];
+
+  return [
     {
       icon: Cube,
-      href: `${basePath}/deployments`,
+      href: projectBase,
+      label: projectId, // Will be replaced with actual project name
+      active: segments.includes(projectId),
+      items: childItems,
+    },
+  ];
+}
+
+function createAppTabs(appBase: string, segments: string[]): NavItem[] {
+  return [
+    {
+      icon: Cube,
+      href: `${appBase}/deployments`,
       label: "Deployments",
       active: segments.includes("deployments"),
     },
     {
       icon: Layers3,
-      href: `${basePath}/logs`,
+      href: `${appBase}/logs`,
       label: "Logs",
       active: segments.includes("logs") && segments.includes("projects"),
     },
     {
       icon: ArrowOppositeDirectionY,
-      href: `${basePath}/requests`,
+      href: `${appBase}/requests`,
       label: "Requests",
       active: segments.includes("requests") && segments.includes("projects"),
     },
     {
       icon: BracketsSquareDots,
-      href: `${basePath}/env-vars`,
+      href: `${appBase}/env-vars`,
       label: "Environment Variables",
       active: segments.includes("env-vars") && segments.includes("projects"),
     },
     {
       icon: ShieldKey,
-      href: `${basePath}/sentinel-policies`,
+      href: `${appBase}/sentinel-policies`,
       label: "Sentinel Policies",
       active: segments.includes("sentinel-policies") && segments.includes("projects"),
     },
     {
       icon: Gear,
-      href: `${basePath}/settings`,
+      href: `${appBase}/settings`,
       label: "Settings",
       active: segments.includes("settings") && segments.includes("projects"),
-    },
-  ];
-
-  return [
-    {
-      icon: Cube,
-      href: basePath,
-      label: projectId, // Will be replaced with actual project name
-      active: segments.includes(projectId),
-      items: childItems,
     },
   ];
 }
