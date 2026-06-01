@@ -7,15 +7,14 @@ import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
-import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
+import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
 import { type FC, useEffect, useId } from "react";
 import { FormProvider } from "react-hook-form";
-import type { z } from "zod";
 import { IdentityInfo } from "./identity-info";
 
-type Identity = z.infer<typeof IdentityResponseSchema>;
+type Identity = IdentityForActions;
 
 type EditRatelimitDialogProps = { identity: Identity } & ActionComponentProps;
 
