@@ -56,8 +56,8 @@ func RegisterHTTPServer(srv *zen.Server, svc *Services) {
 			middleware.WithObservability(svc.ErrorPageRenderer),
 		},
 		&acme.Handler{
-			RouterService: svc.RouterService,
-			AcmeClient:    svc.AcmeClient,
+			AcmeClient: svc.AcmeClient,
+			DB:         svc.DB,
 		},
 	)
 

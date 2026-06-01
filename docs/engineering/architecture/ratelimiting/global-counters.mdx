@@ -54,14 +54,17 @@ That gives the counter four useful properties.
 
 ## Importing without feedback loops
 
-A region imports only foreign components. It adds those foreign counts to local decisions, but it does not publish them again.
+A region imports components in two different ways. Its own component is a regional lower bound and can raise the local regional count. Foreign components are summed separately and added to decisions, but they are never published again.
 
 ```plaintext
-Region A decision = A regional count + imported count from B and C
-Region A publish  = A regional count only
+Region A decision        = A regional count + imported count from B and C
+Region A publish         = A regional count only
+Region A own-row import  = max(A regional count, A published component)
 ```
 
-This separation prevents double counting. If Region A published `A + B`, then Region B could import that value and count its own traffic again. The implementation keeps the two values separate as regional count and `globalCount`.
+This separation prevents double counting. If Region A published `A + B`, then Region B could import that value and count its own traffic again. If Region A folded its own component into imported global count instead of regional count, it would count its own traffic twice during local decisions.
+
+Own-row import is only a safety net. The regional origin remains the source of truth for in-region convergence, and importing an own component does not make the local entry fresh against that origin.
 
 ## Why it fits rate limiting
 
@@ -91,6 +94,7 @@ Global counters rely on these invariants:
 
 - Each region owns only its own component.
 - Component values are merged with `max`, never replacement by an older value.
-- Imports exclude the current region's component.
-- Imported count is read by the request path but never republished.
+- A region's own imported component can only raise regional count.
+- Foreign imported count is read by the request path but never republished.
+- Own components and foreign components stay separate during import.
 - A sequence is immutable once it ages out. New windows use new component identities.

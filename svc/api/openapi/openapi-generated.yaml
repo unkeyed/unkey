@@ -4202,6 +4202,14 @@ paths:
             tags:
                 - apis
             x-speakeasy-name-override: listKeys
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/deploy.createDeployment:
         post:
             description: |
@@ -4771,7 +4779,7 @@ paths:
                       name: cursor
                       type: cursor
                 outputs:
-                    nextCursor: $.data.cursor
+                    nextCursor: $.pagination.cursor
                 type: cursor
     /v2/identities.updateIdentity:
         post:
@@ -6557,6 +6565,14 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: ListPermissions
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/permissions.listRoles:
         post:
             description: |
@@ -6623,6 +6639,14 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: ListRoles
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/portal.createSession:
         post:
             description: |
@@ -7190,6 +7214,14 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: listOverrides
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/ratelimit.multiLimit:
         post:
             description: |

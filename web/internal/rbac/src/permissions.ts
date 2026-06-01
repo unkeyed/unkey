@@ -14,9 +14,7 @@ export function buildIdSchema(prefix: string) {
     if (s === "*") {
       return true;
     }
-    const regex = new RegExp(
-      `^${prefix}_[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{8,32}$`,
-    );
+    const regex = new RegExp(`^${prefix}_[0-9A-Za-z]{8,32}$`);
     return regex.test(s);
   });
 }

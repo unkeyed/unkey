@@ -222,9 +222,6 @@ importers:
       '@unkey/validation':
         specifier: workspace:^
         version: link:../../internal/validation
-      '@unkey/vercel':
-        specifier: workspace:^
-        version: link:../../internal/vercel
       '@vercel/analytics':
         specifier: 2.0.1
         version: 2.0.1(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
@@ -963,22 +960,6 @@ importers:
       '@unkey/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
-      typescript:
-        specifier: 5.5.3
-        version: 5.5.3
-
-  internal/vercel:
-    dependencies:
-      '@unkey/error':
-        specifier: workspace:^
-        version: link:../error
-      zod:
-        specifier: 4.3.5
-        version: 4.3.5
-    devDependencies:
-      '@types/node':
-        specifier: 20.14.9
-        version: 20.14.9
       typescript:
         specifier: 5.5.3
         version: 5.5.3

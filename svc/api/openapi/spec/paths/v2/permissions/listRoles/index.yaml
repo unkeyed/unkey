@@ -63,3 +63,11 @@ post:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
       description: Internal Server Error
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

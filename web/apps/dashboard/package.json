@@ -65,7 +65,6 @@
     "@unkey/schema": "workspace:^",
     "@unkey/ui": "workspace:^",
     "@unkey/validation": "workspace:^",
-    "@unkey/vercel": "workspace:^",
     "@vercel/analytics": "2.0.1",
     "@vercel/toolbar": "0.2.2",
     "@workos-inc/node": "7.47.0",

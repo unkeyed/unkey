@@ -5,11 +5,10 @@ import { CaretRight, Key2 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Badge } from "@unkey/ui";
 import { type ComponentProps, useMemo } from "react";
-import { ROOT_KEY_CONSTANTS } from "../constants";
-import { apiPermissions, workspacePermissions } from "../permissions";
+import { type PermissionScope, getScopedPermissions } from "../permissions";
 
 type Props = {
-  apiId: string;
+  scope: PermissionScope;
   name: string;
   selectedPermissions: UnkeyPermission[];
   expandCount: number;
@@ -24,17 +23,15 @@ type PermissionInfo = {
 }[];
 
 const PermissionBadgeList = ({
-  apiId,
+  scope,
   name,
   selectedPermissions,
   title,
   expandCount,
   removePermission,
 }: Props) => {
-  // Flatten allPermissions into an array of {permission, action} objects
   const allPermissionsArray = useMemo(() => {
-    const allPermissions =
-      apiId === ROOT_KEY_CONSTANTS.WORKSPACE ? workspacePermissions : apiPermissions(apiId);
+    const allPermissions = getScopedPermissions(scope);
     return Object.entries(allPermissions).flatMap(([category, permissions]) =>
       Object.entries(permissions).map(([action, permissionData]) => ({
         permission: permissionData.permission,
@@ -42,7 +39,7 @@ const PermissionBadgeList = ({
         action,
       })),
     );
-  }, [apiId]);
+  }, [scope]);
 
   const info = useMemo(
     () => findPermission(allPermissionsArray, selectedPermissions),
@@ -77,7 +74,6 @@ const ListBadges = ({
   info: PermissionInfo;
   removePermission: (permission: UnkeyPermission) => void;
 }) => {
-  // Stop propagation to prevent triggering parent collapsible when removing permissions
   const handleRemovePermissionClick = (id: string) => {
     const permission = info.find((p) => p.permission === id);
     if (permission) {
