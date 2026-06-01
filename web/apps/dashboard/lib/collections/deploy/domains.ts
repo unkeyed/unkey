@@ -3,12 +3,13 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
+import { parseAppIdFromWhere, parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
   id: z.string(),
   fullyQualifiedDomainName: z.string(),
   projectId: z.string(),
+  appId: z.string(),
   deploymentId: z.string(),
   environmentId: z.string(),
   sticky: z.enum(["none", "branch", "environment", "live", "deployment"]),
@@ -30,7 +31,11 @@ export const domains = createCollection<Domain, string>(
     syncMode: "on-demand",
     queryKey: (opts) => {
       const projectId = parseProjectIdFromWhere(opts.where);
-      return projectId ? ["domains", projectId] : ["domains"];
+      const appId = parseAppIdFromWhere(opts.where);
+      if (!projectId) {
+        return ["domains"];
+      }
+      return appId ? ["domains", projectId, appId] : ["domains", projectId];
     },
     retry: 3,
     queryFn: async (ctx) => {
@@ -38,12 +43,16 @@ export const domains = createCollection<Domain, string>(
 
       validateProjectIdInQuery(options?.where);
       const projectId = parseProjectIdFromWhere(options?.where);
+      const appId = parseAppIdFromWhere(options?.where);
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      return trpcClient.deploy.domain.list.query({ projectId });
+      return trpcClient.deploy.domain.list.query({
+        projectId,
+        ...(appId ? { appId } : {}),
+      });
     },
     getKey: (item) => item.id,
     id: "domains",

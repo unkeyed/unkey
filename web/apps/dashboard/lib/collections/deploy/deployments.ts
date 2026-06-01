@@ -11,6 +11,7 @@ import { validateProjectIdInQuery } from "./utils";
 export const deploymentSchema = z.object({
   id: z.string(),
   projectId: z.string(),
+  appId: z.string(),
   environmentId: z.string(),
   gitCommitSha: z.string().nullable(),
   gitBranch: z.string(),
@@ -109,10 +110,11 @@ export const deployments = createCollection<Deployment, string>(
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
       const projectId = extractStringFilter(filters, "projectId", "eq");
+      const appId = extractStringFilter(filters, "appId", "eq");
       const startTime = extractNumberFilter(filters, "createdAt", "gte");
       const endTime = extractNumberFilter(filters, "createdAt", "lte");
       return projectId
-        ? ["deployments", projectId, startTime ?? null, endTime ?? null]
+        ? ["deployments", projectId, appId ?? null, startTime ?? null, endTime ?? null]
         : ["deployments"];
     },
     retry: 3,
@@ -129,11 +131,13 @@ export const deployments = createCollection<Deployment, string>(
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
+      const appId = extractStringFilter(filters, "appId", "eq");
       const startTime = extractNumberFilter(filters, "createdAt", "gte");
       const endTime = extractNumberFilter(filters, "createdAt", "lte");
 
       return trpcClient.deploy.deployment.list.query({
         projectId,
+        ...(appId !== undefined && { appId }),
         ...(startTime !== undefined && { startTime }),
         ...(endTime !== undefined && { endTime }),
       });

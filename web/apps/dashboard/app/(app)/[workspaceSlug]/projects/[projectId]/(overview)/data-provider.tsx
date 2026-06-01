@@ -6,7 +6,7 @@ import { DEPLOYMENTS_DEFAULT_LIMIT, type Deployment } from "@/lib/collections/de
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
 import {
   type PropsWithChildren,
@@ -19,6 +19,10 @@ import {
 
 type ProjectDataContextType = {
   projectId: string;
+  // Transitional: optional until the detail view and onboarding wizard move
+  // under apps/[appId]. Becomes required (no project-wide fallback) once every
+  // mount supplies an app.
+  appId: string | undefined;
 
   project: Project | undefined;
   isProjectLoading: boolean;
@@ -46,15 +50,17 @@ type ProjectDataContextType = {
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
 
-type ProjectDataProviderProps = PropsWithChildren<{ projectId?: string }>;
+type ProjectDataProviderProps = PropsWithChildren<{ projectId?: string; appId?: string }>;
 
 export const ProjectDataProvider = ({
   children,
   projectId: projectIdProp,
+  appId: appIdProp,
 }: ProjectDataProviderProps) => {
   const params = useParams();
   const projectId =
     projectIdProp ?? (typeof params?.projectId === "string" ? params.projectId : undefined);
+  const appId = appIdProp ?? (typeof params?.appId === "string" ? params.appId : undefined);
 
   if (!projectId) {
     throw new Error("ProjectDataProvider requires a projectId prop or a [projectId] route param");
@@ -64,10 +70,14 @@ export const ProjectDataProvider = ({
     (q) =>
       q
         .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
+        .where(({ deployment }) =>
+          appId
+            ? and(eq(deployment.projectId, projectId), eq(deployment.appId, appId))
+            : eq(deployment.projectId, projectId),
+        )
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(DEPLOYMENTS_DEFAULT_LIMIT),
-    [projectId],
+    [projectId, appId],
   );
 
   const projectQuery = useLiveQuery(
@@ -81,9 +91,13 @@ export const ProjectDataProvider = ({
     (q) =>
       q
         .from({ domain: collection.domains })
-        .where(({ domain }) => eq(domain.projectId, projectId))
+        .where(({ domain }) =>
+          appId
+            ? and(eq(domain.projectId, projectId), eq(domain.appId, appId))
+            : eq(domain.projectId, projectId),
+        )
         .orderBy(({ domain }) => domain.createdAt, "desc"),
-    [projectId],
+    [projectId, appId],
   );
   // refetch domains only when current deployment actually changes (not on initial mount/hydration)
   const prevDeploymentIdRef = useRef(project?.currentDeploymentId);
@@ -123,6 +137,7 @@ export const ProjectDataProvider = ({
 
     return {
       projectId,
+      appId,
 
       project,
       isProjectLoading: projectQuery.isLoading,
@@ -162,6 +177,7 @@ export const ProjectDataProvider = ({
     };
   }, [
     projectId,
+    appId,
     domainsQuery,
     deploymentsQuery,
     projectQuery,
