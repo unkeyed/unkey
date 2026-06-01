@@ -1,12 +1,14 @@
 "use client";
 
 import { useDismissibleBanner } from "@/hooks/use-dismissible-banner";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
+import { trpc } from "@/lib/trpc/client";
 import { Badge, BannerCard, Button } from "@unkey/ui";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-const CHANGELOG_URL = "https://unkey.com/changelog";
+const DOCS_URL = "https://www.unkey.com/docs/platform/apis/overview";
 
 function NewNavigationIllustration() {
   return (
@@ -24,9 +26,20 @@ function NewNavigationIllustration() {
 
 export function NewNavigationBanner() {
   const enabled = useFlag("newNavigation");
+  const workspace = useWorkspaceNavigation();
   const { dismissed, dismiss } = useDismissibleBanner("new-navigation-v1");
 
-  if (!enabled || dismissed) {
+  // The banner reassures users that their APIs moved under Keyspaces, so it
+  // only makes sense for workspaces that actually have APIs. A workspace with
+  // none has nothing that got renamed (e.g. a fresh signup on an empty
+  // projects page), so we skip the query and the banner entirely.
+  const { data } = trpc.api.overview.query.useQuery(
+    { limit: 1 },
+    { enabled: enabled && !dismissed },
+  );
+  const hasApis = (data?.total ?? 0) > 0;
+
+  if (!enabled || dismissed || !hasApis) {
     return null;
   }
 
@@ -40,17 +53,24 @@ export function NewNavigationBanner() {
       <BannerCard onDismiss={dismiss} illustration={<NewNavigationIllustration />}>
         <div className="flex flex-col gap-3">
           <Badge variant="success" className="self-start">
-            Beta
+            New
           </Badge>
           <div className="flex flex-col gap-1 pr-6">
-            <p className="text-sm font-medium text-content">Dashboard, upgraded.</p>
+            <p className="text-sm font-medium text-content">Meet the new Unkey</p>
             <p className="text-xs text-content-subtle">
-              You're trying a new way of navigating Unkey. It's still in beta — let us know what
-              you think.
+              A cleaner dashboard, built around Projects. Your APIs now live in{" "}
+              <Link
+                href={`/${workspace.slug}/apis`}
+                onClick={dismiss}
+                className="text-content underline underline-offset-2 hover:text-content/80"
+              >
+                Keyspaces (APIs)
+              </Link>
+              , with the same keys and data.
             </p>
           </div>
           <Button variant="outline" size="sm" asChild className="self-start">
-            <Link href={CHANGELOG_URL} target="_blank" rel="noreferrer">
+            <Link href={DOCS_URL} target="_blank" rel="noreferrer">
               Learn more
             </Link>
           </Button>
