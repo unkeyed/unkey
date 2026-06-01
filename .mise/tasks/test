@@ -2,9 +2,7 @@
 #MISE description="Run the Bazel test suite"
 #MISE depends=["oci-load"]
 
-set -euo pipefail
 
 bazel test //...
 
 docker rm -vf $(docker ps -q -f label="owner=testutil-containers") >/dev/null 2>&1 || true
-docker rm -vf $(docker ps -q -f label="owner=dockertest") >/dev/null 2>&1 || true
