@@ -1,4 +1,3 @@
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { CodeBranch, Cube } from "@unkey/icons";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
@@ -15,8 +14,9 @@ type ProjectCardProps = {
   author: string | null;
   authorAvatar: string | null;
   repository?: string;
-  actions: ReactNode;
-  projectId: string;
+  actions?: ReactNode;
+  /** Card link target. Projects link to their home; apps link to deployments. */
+  href: string;
 };
 
 export const ProjectCard = ({
@@ -28,16 +28,15 @@ export const ProjectCard = ({
   author,
   authorAvatar,
   actions,
-  projectId,
+  href,
 }: ProjectCardProps) => {
-  const workspace = useWorkspaceNavigation();
   const [isNavigating, setIsNavigating] = useState(false);
 
   const handleLinkClick = useCallback(() => {
     setIsNavigating(true);
   }, []);
 
-  const projectPath = `/${workspace.slug}/projects/${projectId}`;
+  const projectPath = href;
 
   return (
     <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">

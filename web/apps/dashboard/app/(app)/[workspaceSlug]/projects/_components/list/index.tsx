@@ -1,4 +1,5 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
@@ -11,6 +12,7 @@ import { ProjectCardSkeleton } from "./projects-card-skeleton";
 const MAX_SKELETON_COUNT = 8;
 
 export const ProjectsList = () => {
+  const workspace = useWorkspaceNavigation();
   const { filters } = useProjectsFilters();
   const projectName = filters.find((f) => f.field === "query")?.value ?? "";
 
@@ -79,7 +81,7 @@ export const ProjectsList = () => {
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
             <ProjectCard
-              projectId={project.id}
+              href={`/${workspace.slug}/projects/${project.id}`}
               name={project.name}
               domain={project.domain}
               commitTitle={project.commitTitle}
