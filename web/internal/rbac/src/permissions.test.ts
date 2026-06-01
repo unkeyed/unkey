@@ -6,6 +6,7 @@ describe("apiIdSchema", () => {
     { input: "123456789012", valid: false },
     { input: "a1234asfas12", valid: false },
     { input: "api_123456789ABCDEFGHJKLMNPQRS", valid: true },
+    { input: "api_0OIl0OIl", valid: true },
     { input: "*", valid: true },
   ];
 
