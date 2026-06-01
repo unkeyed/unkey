@@ -1,6 +1,6 @@
 ---
 title: "Glossary"
-description: "Definitions of key terms and concepts used throughout the Unkey platform including workspaces, APIs, keys, identities, rate limiting, and root keys."
+description: "Definitions of key terms and concepts used throughout the Unkey platform including workspaces, keyspaces, keys, identities, rate limiting, and root keys."
 ---
 
 ## Core Concepts
@@ -10,19 +10,19 @@ description: "Definitions of key terms and concepts used throughout the Unkey pl
 A workspace is your top-level account container. Everything in Unkey belongs to a workspace.
 
 - Can be personal or team-based
-- Contains APIs, keys, identities, rate limit namespaces
+- Contains keyspaces, keys, identities, rate limit namespaces
 - One owner who can invite members and assign roles
 - Billing is per-workspace
 
-### API
+### Keyspace
 
-An API is a container for related API keys. Use APIs to organize keys by:
+A keyspace is a container for related API keys. Use keyspaces to organize keys by:
 
 - **Product**: `payments-api`, `analytics-api`
 - **Environment**: `production`, `staging`, `development`
 - **Tier**: `free-tier`, `pro-tier`, `enterprise`
 
-Each key belongs to exactly one API.
+Each key belongs to exactly one keyspace.
 
 ### API Key
 
