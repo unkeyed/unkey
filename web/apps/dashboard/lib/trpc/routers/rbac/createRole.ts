@@ -22,6 +22,7 @@ export const createRole = workspaceProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const roleId = newId("role");
+    const permissionIds = input.permissionIds ?? [];
     // Mint a shared correlation so the role.create event and the N
     // authorization.connect_role_and_permission events from the second
     // insertAuditLogs call below all link to one user action in the
@@ -39,6 +40,23 @@ export const createRole = workspaceProcedure
             message:
               "Role with the same name already exists. To update it, go to 'Authorization' in the sidebar.",
           });
+        }
+
+        if (permissionIds.length > 0) {
+          const permissions = await tx.query.permissions.findMany({
+            where: (table, { and, eq, inArray }) =>
+              and(eq(table.workspaceId, ctx.workspace.id), inArray(table.id, permissionIds)),
+            columns: { id: true },
+          });
+          const foundPermissionIds = new Set(permissions.map((permission) => permission.id));
+          const missingPermissionIds = permissionIds.filter((id) => !foundPermissionIds.has(id));
+
+          if (missingPermissionIds.length > 0) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Permission(s) not found or not in this workspace: ${missingPermissionIds.join(", ")}`,
+            });
+          }
         }
 
         await tx
@@ -79,9 +97,9 @@ export const createRole = workspaceProcedure
           correlationId,
         });
 
-        if (input.permissionIds && input.permissionIds.length > 0) {
+        if (permissionIds.length > 0) {
           await tx.insert(schema.rolesPermissions).values(
-            input.permissionIds.map((permissionId) => ({
+            permissionIds.map((permissionId) => ({
               permissionId,
               roleId: roleId,
               workspaceId: ctx.workspace.id,
@@ -90,7 +108,7 @@ export const createRole = workspaceProcedure
           await insertAuditLogs(
             tx,
 
-            input.permissionIds.map((permissionId) => ({
+            permissionIds.map((permissionId) => ({
               workspaceId: ctx.workspace.id,
               event: "authorization.connect_role_and_permission",
               actor: {
@@ -115,7 +133,10 @@ export const createRole = workspaceProcedure
           );
         }
       })
-      .catch((_err) => {
+      .catch((err) => {
+        if (err instanceof TRPCError) {
+          throw err;
+        }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "We are unable to create role. Please try again or contact support@unkey.com",
