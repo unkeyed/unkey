@@ -28,16 +28,21 @@ type GitHubProps = {
 };
 
 export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
-  const { projectId } = useProjectData();
+  const { projectId, appId } = useProjectData();
 
   // The state on the GitHub install URL is a server-signed token bound to
-  // this user, workspace, and project. Computing it requires a tRPC round
-  // trip, so we mint it lazily on click rather than in render.
+  // this user, workspace, project, and app. Computing it requires a tRPC
+  // round trip, so we mint it lazily on click rather than in render.
   const prepareInstallation = trpc.github.prepareInstallation.useMutation();
   const onInstall = useCallback(async () => {
+    if (!appId) {
+      toast.error("No app selected for this installation");
+      return;
+    }
     try {
       const { state } = await prepareInstallation.mutateAsync({
         projectId,
+        appId,
         returnTo: "settings",
       });
       onBeforeNavigate?.();
@@ -45,7 +50,7 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
-  }, [projectId, prepareInstallation, onBeforeNavigate]);
+  }, [projectId, appId, prepareInstallation, onBeforeNavigate]);
 
   const { data, isLoading } = trpc.github.getInstallations.useQuery(
     { projectId },

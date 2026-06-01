@@ -3,7 +3,7 @@ import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight } from "@unkey/icons";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -28,20 +28,24 @@ const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
 
 export const OpenApiDiff = () => {
   const params = useParams();
-  const { projectId, project } = useProjectData();
+  const { projectId, appId, project } = useProjectData();
   const currentDeploymentId = project?.currentDeploymentId;
 
   const query = useLiveQuery(
     (q) =>
       q
         .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
+        .where(({ deployment }) =>
+          appId
+            ? and(eq(deployment.projectId, projectId), eq(deployment.appId, appId))
+            : eq(deployment.projectId, projectId),
+        )
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(2)
         .select((c) => ({
           id: c.deployment.id,
         })),
-    [projectId, currentDeploymentId],
+    [projectId, appId, currentDeploymentId],
   );
 
   const newDeployment = query.data?.find((d) => d.id !== currentDeploymentId);

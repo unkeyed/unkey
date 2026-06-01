@@ -81,7 +81,7 @@ export const CreateDeploymentButton = ({
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string }>();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  const { projectId, project, environments } = useProjectData();
+  const { projectId, appId, project, environments } = useProjectData();
 
   const repositoryFullName = project?.repositoryFullName ?? null;
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
@@ -148,9 +148,9 @@ export const CreateDeploymentButton = ({
       toast.success("Deployment has been created");
       reset();
       setIsOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId, appId] });
       router.push(
-        `/${params.workspaceSlug}/projects/${projectId}/deployments/${data.deploymentId}`,
+        `/${params.workspaceSlug}/projects/${projectId}/apps/${appId}/deployments/${data.deploymentId}`,
       );
     },
     onError(err) {
@@ -160,8 +160,13 @@ export const CreateDeploymentButton = ({
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!appId) {
+      toast.error("No app selected for this deployment");
+      return;
+    }
     createDeployment.mutate({
       projectId,
+      appId,
       environmentSlug: values.environment,
       gitRef: values.name,
     });

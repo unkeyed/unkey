@@ -2,7 +2,7 @@
 
 import { type Deployment, collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
-import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useProjectData } from "../../../../../data-provider";
 import { DeploymentSection } from "./components/deployment-section";
@@ -23,14 +23,18 @@ export const RollbackDialog = ({
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
 
-  const { projectId } = useProjectData();
+  const { projectId, appId } = useProjectData();
   const domains = useLiveQuery(
     (q) =>
       q
         .from({ domain: collection.domains })
-        .where(({ domain }) => eq(domain.projectId, projectId))
+        .where(({ domain }) =>
+          appId
+            ? and(eq(domain.projectId, projectId), eq(domain.appId, appId))
+            : eq(domain.projectId, projectId),
+        )
         .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
-    [projectId],
+    [projectId, appId],
   );
 
   const rollback = trpc.deploy.deployment.rollback.useMutation({

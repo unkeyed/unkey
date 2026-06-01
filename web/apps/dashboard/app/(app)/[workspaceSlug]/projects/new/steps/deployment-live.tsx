@@ -18,12 +18,13 @@ import { OnboardingStepHeader } from "../onboarding-step-header";
 
 type DeploymentLiveStepProps = {
   projectId: string;
+  appId: string;
   deploymentId: string;
 };
 
-export const DeploymentLiveStep = ({ projectId, deploymentId }: DeploymentLiveStepProps) => {
+export const DeploymentLiveStep = ({ projectId, appId, deploymentId }: DeploymentLiveStepProps) => {
   return (
-    <ProjectDataProvider projectId={projectId}>
+    <ProjectDataProvider projectId={projectId} appId={appId}>
       <DeploymentLayoutProvider deploymentId={deploymentId}>
         <DeploymentLiveStepContent projectId={projectId} />
       </DeploymentLayoutProvider>
@@ -47,7 +48,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
     [stepsQuery.data, deployment.status],
   );
 
-  const deploymentUrl = `/${workspace.slug}/projects/${projectId}/deployments/${deployment.id}`;
+  const deploymentUrl = `/${workspace.slug}/projects/${projectId}/apps/${deployment.appId}/deployments/${deployment.id}`;
 
   useEffect(() => {
     if (ready) {

@@ -115,17 +115,27 @@ export const ProjectDataProvider = ({
 
   const environmentsQuery = useLiveQuery(
     (q) =>
-      q.from({ env: collection.environments }).where(({ env }) => eq(env.projectId, projectId)),
-    [projectId],
+      q
+        .from({ env: collection.environments })
+        .where(({ env }) =>
+          appId
+            ? and(eq(env.projectId, projectId), eq(env.appId, appId))
+            : eq(env.projectId, projectId),
+        ),
+    [projectId, appId],
   );
 
   const customDomainsQuery = useLiveQuery(
     (q) =>
       q
         .from({ customDomain: collection.customDomains })
-        .where(({ customDomain }) => eq(customDomain.projectId, projectId))
+        .where(({ customDomain }) =>
+          appId
+            ? and(eq(customDomain.projectId, projectId), eq(customDomain.appId, appId))
+            : eq(customDomain.projectId, projectId),
+        )
         .orderBy(({ customDomain }) => customDomain.createdAt, "desc"),
-    [projectId],
+    [projectId, appId],
   );
 
   const value = useMemo(() => {

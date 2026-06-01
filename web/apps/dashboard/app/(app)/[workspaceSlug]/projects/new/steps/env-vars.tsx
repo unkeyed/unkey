@@ -8,10 +8,11 @@ import { DeployAction } from "./deploy-action";
 
 type EnvVarsStepProps = {
   projectId: string;
+  appId: string;
   onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const EnvVarsStep = ({ projectId, onDeploymentCreated }: EnvVarsStepProps) => {
+export const EnvVarsStep = ({ projectId, appId, onDeploymentCreated }: EnvVarsStepProps) => {
   const { back } = useStepWizard();
 
   return (
@@ -26,9 +27,13 @@ export const EnvVarsStep = ({ projectId, onDeploymentCreated }: EnvVarsStepProps
         Back
       </Button>
       <div className="w-225">
-        <ProjectDataProvider projectId={projectId}>
+        <ProjectDataProvider projectId={projectId} appId={appId}>
           <DeploymentEnvVars />
-          <DeployAction projectId={projectId} onDeploymentCreated={onDeploymentCreated} />
+          <DeployAction
+            projectId={projectId}
+            appId={appId}
+            onDeploymentCreated={onDeploymentCreated}
+          />
         </ProjectDataProvider>
       </div>
     </>

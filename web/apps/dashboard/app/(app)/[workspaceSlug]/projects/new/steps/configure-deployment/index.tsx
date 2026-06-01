@@ -8,13 +8,14 @@ import { ConfigureDeploymentFallback } from "./fallback";
 
 type ConfigureDeploymentStepProps = {
   projectId: string;
+  appId: string;
 };
 
-export const ConfigureDeploymentStep = ({ projectId }: ConfigureDeploymentStepProps) => {
+export const ConfigureDeploymentStep = ({ projectId, appId }: ConfigureDeploymentStepProps) => {
   const [settingsReady, setSettingsReady] = useState(false);
 
   return (
-    <ProjectDataProvider projectId={projectId}>
+    <ProjectDataProvider projectId={projectId} appId={appId}>
       <OnboardingEnvironmentSettingsProvider onSettingsReady={() => setSettingsReady(true)}>
         <ConfigureDeploymentContent />
       </OnboardingEnvironmentSettingsProvider>

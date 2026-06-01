@@ -30,6 +30,7 @@ export const createDeploy = workspaceProcedure
   .input(
     z.object({
       projectId: z.string().min(1, "Project ID is required"),
+      appId: z.string().min(1, "App ID is required"),
       environmentSlug: z.string().min(1, "Environment slug is required"),
       gitRef: z.string().optional(),
     }),
@@ -54,6 +55,7 @@ export const createDeploy = workspaceProcedure
       const environment = await db.query.environments.findFirst({
         where: and(
           eq(environments.projectId, input.projectId),
+          eq(environments.appId, input.appId),
           eq(environments.slug, input.environmentSlug),
           eq(environments.workspaceId, ctx.workspace.id),
         ),

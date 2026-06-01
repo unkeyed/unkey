@@ -1,25 +1,19 @@
 "use client";
 import { collection } from "@/lib/collections";
-import {
-  type CreateProjectRequestSchema,
-  createProjectRequestSchema,
-} from "@/lib/collections/deploy/projects";
-import { trpc } from "@/lib/trpc/client";
+import { type CreateAppRequestSchema, createAppRequestSchema } from "@/lib/collections/deploy/apps";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, FormInput, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import { OnboardingLinks } from "../onboarding-links";
 
-type CreateProjectStepProps = {
-  // Returns the new project id and its auto-created default app id, which the
-  // remaining steps configure and deploy.
-  onProjectCreated: (projectId: string, appId: string | null) => void;
+type CreateAppStepProps = {
+  projectId: string;
+  onAppCreated: (id: string) => void;
 };
 
-export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) => {
+export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) => {
   const { next } = useStepWizard();
-  const utils = trpc.useUtils();
 
   const {
     register,
@@ -27,45 +21,43 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
     setValue,
     setError,
     formState: { errors, isSubmitting, isValid },
-  } = useForm<CreateProjectRequestSchema>({
-    resolver: zodResolver(createProjectRequestSchema),
+  } = useForm<CreateAppRequestSchema>({
+    resolver: zodResolver(createAppRequestSchema),
     defaultValues: {
+      projectId,
       name: "",
       slug: "",
     },
     mode: "onChange",
   });
 
-  const onSubmitForm = async (values: CreateProjectRequestSchema) => {
+  const onSubmitForm = async (values: CreateAppRequestSchema) => {
     try {
-      const tx = collection.projects.insert({
+      const tx = collection.apps.insert({
+        projectId: values.projectId,
         name: values.name,
         slug: values.slug,
-        repositoryFullName: null,
+        id: "will-be-replaced-by-server",
+        defaultBranch: "main",
         currentDeploymentId: null,
         isRolledBack: false,
-        id: "will-be-replaced-by-server",
+        repositoryFullName: null,
         latestDeploymentId: null,
-        author: "will-be-replaced-by-server",
-        authorAvatar: "will-be-replaced-by-server",
-        branch: "will-be-replaced-by-server",
-        commitTimestamp: Date.now(),
-        commitTitle: "will-be-replaced-by-server",
-        domain: "will-be-replaced-by-server",
+        commitTitle: null,
+        branch: "main",
+        author: null,
+        authorAvatar: null,
+        commitTimestamp: null,
+        domain: null,
       });
       await tx.isPersisted.promise;
-      const { projectId } = tx.metadata as { projectId: string };
-      // A new project auto-creates a single "default" app; the remaining steps
-      // configure and deploy it.
-      const apps = await utils.deploy.app.list.fetch({ projectId });
-      const defaultApp = apps.find((a) => a.slug === "default") ?? apps[0];
-      onProjectCreated(projectId, defaultApp?.id ?? null);
+      onAppCreated((tx.metadata as { appId: string }).appId);
       next();
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
         setError("slug", {
           type: "custom",
-          message: "Project with this slug already exists",
+          message: "App with this slug already exists",
         });
       } else {
         console.error("Form submission error:", error);
@@ -90,26 +82,26 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
         <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col gap-4 w-full">
           <FormInput
             requirement="required"
-            label="Project Name"
+            label="App Name"
             className="[&_input:first-of-type]:h-[36px]"
-            description="A descriptive name for your project."
+            description="A descriptive name for your app."
             data-1p-ignore
             error={errors.name?.message}
             {...register("name", {
               onChange: handleNameChange,
             })}
-            placeholder="My Awesome Project"
+            placeholder="API Gateway"
           />
 
           <FormInput
             requirement="required"
             label="Slug"
             className="[&_input:first-of-type]:h-[36px]"
-            description="URL-friendly identifier for your project (auto-generated from name)."
+            description="URL-friendly identifier for your app (auto-generated from name)."
             data-1p-ignore
             error={errors.slug?.message}
             {...register("slug")}
-            placeholder="my-awesome-project"
+            placeholder="api-gateway"
           />
 
           <Button
@@ -120,7 +112,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
             loading={isSubmitting}
             className="w-full rounded-lg mt-2"
           >
-            Create Project
+            Create App
           </Button>
         </form>
       </div>

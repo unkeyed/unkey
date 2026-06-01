@@ -25,6 +25,7 @@ const STATE_TTL_MS = 15 * 60 * 1000;
 // a logged-in victim into hitting /integrations/github/callback?state=...
 const signedStatePayload = z.object({
   projectId: z.string().min(1),
+  appId: z.string().min(1),
   returnTo: z.enum(["settings"]).optional(),
   workspaceId: z.string().min(1),
   userId: z.string().min(1),
@@ -221,6 +222,7 @@ export const githubRouter = t.router({
     .input(
       z.object({
         projectId: z.string().min(1),
+        appId: z.string().min(1),
         returnTo: z.enum(["settings"]).optional(),
       }),
     )
@@ -232,24 +234,29 @@ export const githubRouter = t.router({
         });
       }
 
-      // Verify the project belongs to the calling workspace before issuing a
+      // Verify the app belongs to the project and workspace before issuing a
       // signed state. Without this, an attacker could mint a state for an
-      // arbitrary project id.
-      const project = await db.query.projects.findFirst({
+      // arbitrary project/app id.
+      const app = await db.query.apps.findFirst({
         where: (table, { and, eq }) =>
-          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+          and(
+            eq(table.id, input.appId),
+            eq(table.projectId, input.projectId),
+            eq(table.workspaceId, ctx.workspace.id),
+          ),
         columns: { id: true },
       });
-      if (!project) {
+      if (!app) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Project not found",
+          message: "App not found",
         });
       }
 
       return {
         state: signState({
           projectId: input.projectId,
+          appId: input.appId,
           returnTo: input.returnTo,
           workspaceId: ctx.workspace.id,
           userId: ctx.user.id,
@@ -353,6 +360,7 @@ export const githubRouter = t.router({
       return {
         workspaceSlug: ctx.workspace.slug,
         projectId,
+        appId: parsedState.appId,
         returnTo: parsedState.returnTo ?? null,
       };
     }),

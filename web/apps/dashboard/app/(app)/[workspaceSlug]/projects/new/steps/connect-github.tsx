@@ -7,10 +7,15 @@ import { OnboardingLinks } from "../onboarding-links";
 
 type ConnectGithubStepProps = {
   projectId: string;
+  appId: string;
   onBeforeNavigate?: () => void;
 };
 
-export const ConnectGithubStep = ({ projectId, onBeforeNavigate }: ConnectGithubStepProps) => {
+export const ConnectGithubStep = ({
+  projectId,
+  appId,
+  onBeforeNavigate,
+}: ConnectGithubStepProps) => {
   // The install URL state is server-signed and bound to this user/workspace.
   // We can't compute it client-side without a server round-trip, so we mint
   // it lazily when the user clicks Import.
@@ -22,7 +27,7 @@ export const ConnectGithubStep = ({ projectId, onBeforeNavigate }: ConnectGithub
     }
     setIsPreparing(true);
     try {
-      const { state } = await prepare.mutateAsync({ projectId });
+      const { state } = await prepare.mutateAsync({ projectId, appId });
       onBeforeNavigate?.();
       window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
     } catch (err) {

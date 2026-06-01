@@ -22,10 +22,12 @@ export default function Page() {
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
       if (data.returnTo === "settings") {
-        router.replace(`/${data.workspaceSlug}/projects/${data.projectId}/settings`);
+        router.replace(
+          `/${data.workspaceSlug}/projects/${data.projectId}/apps/${data.appId}/settings`,
+        );
       } else {
         router.replace(
-          `/${data.workspaceSlug}/projects/new?step=select-repo&projectId=${data.projectId}`,
+          `/${data.workspaceSlug}/projects/new?step=select-repo&projectId=${data.projectId}&appId=${data.appId}`,
         );
       }
     },
