@@ -15,11 +15,12 @@ const TextSkeleton = ({ width }: { width: string }) => (
 
 const BadgeSkeleton = () => <div className="h-5 w-14 rounded-md bg-grayA-3 animate-pulse" />;
 
-export const renderAuditLogSkeletonRow = ({ columns }: RenderAuditLogSkeletonRowProps) =>
+export const renderAuditLogSkeletonRow = ({ columns, rowHeight }: RenderAuditLogSkeletonRowProps) =>
   columns.map((column) => (
     <td
       key={column.id}
       className={cn("text-xs align-middle whitespace-nowrap", column.meta?.cellClassName)}
+      style={{ height: `${rowHeight}px` }}
     >
       {column.id === AUDIT_LOG_COLUMN_IDS.TIME.id && (
         <div className="pl-2">

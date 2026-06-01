@@ -303,9 +303,12 @@ unkey({
 </Accordion>
 
   <Accordion title="Deploying to Cloudflare Workers?">
-    Use wrangler secrets for your root key: ```bash npx wrangler secret put
-    UNKEY_ROOT_KEY ``` Then access it from your Hono bindings. Add
-    `UNKEY_ROOT_KEY` to your `Bindings` type and read it via
-    `ctx.env.UNKEY_ROOT_KEY` or `env.UNKEY_ROOT_KEY` in your handlers.
+    Use wrangler secrets for your root key:
+
+    ```bash
+    npx wrangler secret put UNKEY_ROOT_KEY
+    ```
+
+    Then access it from your Hono bindings. Add `UNKEY_ROOT_KEY` to your `Bindings` type and read it via `ctx.env.UNKEY_ROOT_KEY` or `env.UNKEY_ROOT_KEY` in your handlers.
   </Accordion>
 </AccordionGroup>

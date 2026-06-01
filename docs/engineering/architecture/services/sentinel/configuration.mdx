@@ -31,13 +31,6 @@ url = "${UNKEY_CLICKHOUSE_URL}"
 [redis]
 url = "${UNKEY_REDIS_URL}"
 
-[gossip]
-bind_addr = "0.0.0.0"
-lan_port = 7946
-wan_port = 7947
-lan_seeds = ["sentinel-gossip.sentinel.svc.cluster.local:7946"]
-secret_key = ""
-
 [observability.tracing]
 sample_rate = 0.25
 
@@ -108,34 +101,6 @@ prometheus_port = 9090
   <Expandable title="Fields">
     <ResponseField name="redis.url" type="string">
       Redis connection string. Example: `redis://default:password@redis:6379`
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="gossip" type="object">
-  Gossip-based distributed cache invalidation. When omitted, sentinel uses local-only caches and
-  relies on TTL expiration for data freshness. With gossip enabled, peer sentinel nodes broadcast
-  invalidation events for faster cache convergence.
-  <Expandable title="Fields">
-    <ResponseField name="gossip.bind_addr" type="string" default="0.0.0.0">
-      Address to bind the gossip listener.
-    </ResponseField>
-    <ResponseField name="gossip.lan_port" type="int" default="7946">
-      LAN gossip port (TCP + UDP).
-    </ResponseField>
-    <ResponseField name="gossip.wan_port" type="int" default="7947">
-      WAN gossip port.
-    </ResponseField>
-    <ResponseField name="gossip.lan_seeds" type="string[]">
-      Seed addresses for LAN cluster discovery. Typically points to the gossip headless Service
-      created by Krane.
-    </ResponseField>
-    <ResponseField name="gossip.wan_seeds" type="string[]">
-      Seed addresses for WAN cluster discovery.
-    </ResponseField>
-    <ResponseField name="gossip.secret_key" type="string" required>
-      Encryption key for gossip traffic. Sentinel sets this to `nil` at runtime because gossip
-      traffic is restricted by CiliumNetworkPolicy within the environment.
     </ResponseField>
   </Expandable>
 </ResponseField>

@@ -673,10 +673,6 @@
       "source": "/libraries"
     },
     {
-      "destination": "/introduction",
-      "source": "/integrations/vercel"
-    },
-    {
       "destination": "/platform/analytics/overview",
       "source": "/apis/features/analytics"
     },

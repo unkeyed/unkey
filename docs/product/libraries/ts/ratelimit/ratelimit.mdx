@@ -77,7 +77,7 @@ We built on some of the world's most stable platforms ([Planetscale](https://pla
 
 Even so, we would be fools if we wouldn't explain how you can put in safe guards along the way.
 
-In case of severe network degredations or other unforseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey.
+In case of severe network degradations or other unforeseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey.
 By default the SDK will reject a request if it hasn't received a response from unkey within 5 seconds. You can tune this via the `timeout` config in the constructor (see below).
 
 The SDK captures most errors and handles them on its own, but we also encourage you to add a `onError` handler to configure what happens in case something goes wrong.

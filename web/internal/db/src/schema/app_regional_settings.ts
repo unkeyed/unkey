@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { bigint, index, int, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
+import { horizontalAutoscalingPolicies } from "./horizontal_autoscaling_policies";
 import { regions } from "./regions";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -53,5 +54,9 @@ export const appRegionalSettingsRelations = relations(appRegionalSettings, ({ on
   region: one(regions, {
     fields: [appRegionalSettings.regionId],
     references: [regions.id],
+  }),
+  horizontalAutoscalingPolicy: one(horizontalAutoscalingPolicies, {
+    fields: [appRegionalSettings.horizontalAutoscalingPolicyId],
+    references: [horizontalAutoscalingPolicies.id],
   }),
 }));

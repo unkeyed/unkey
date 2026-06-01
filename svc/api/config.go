@@ -89,10 +89,6 @@ type Config struct {
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
 
-	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
-	// When nil (section omitted), gossip is disabled and invalidation is local-only.
-	Gossip *config.GossipConfig `toml:"gossip"`
-
 	// Control configures the deployment management service. See [config.ControlConfig].
 	Control config.ControlConfig `toml:"control"`
 

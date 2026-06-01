@@ -15,14 +15,14 @@ import (
 // the counters map and emits eligible rows to the cross-region
 // ratelimit_global_counters table. Lower values tighten cross-region
 // propagation latency at the cost of more writes.
-const globalPushInterval = 10 * time.Second
+const globalPushInterval = 5 * time.Second
 
-// globalPullInterval is how often each region pulls the active set of
-// other regions' counts from ratelimit_global_counters and merges them into
-// local globalCount state. Lower values tighten cross-region propagation
-// latency at the cost of more reads; higher values let local state lag
-// the global picture during bursts.
-const globalPullInterval = 10 * time.Second
+// globalPullInterval is how often each region pulls the active set of counts
+// from ratelimit_global_counters. Own-region rows merge into val as an
+// intra-region safety net; foreign-region rows merge into globalCount for
+// cross-region decisions. Lower values tighten propagation latency at the cost
+// of more reads; higher values let local state lag during bursts.
+const globalPullInterval = 5 * time.Second
 
 // globalUtilizationFloor is the fraction of the per-row limit that an
 // entry's local count must reach before its state is shared with other
@@ -31,7 +31,7 @@ const globalPullInterval = 10 * time.Second
 // it to the cross-region table is wasted MySQL load. Trading coverage
 // against write rate is a global property of the system, not a
 // per-instance tuning knob, so this stays a package constant.
-const globalUtilizationFloor = 0.5
+const globalUtilizationFloor = 0.2
 
 // globalJitter spreads cross-region push and pull ticks across the
 // fleet to avoid every instance hammering MySQL on the same wall-clock
@@ -166,23 +166,24 @@ func (s *service) runGlobalPushOnce() {
 	}
 }
 
-// startGlobalPull schedules runGlobalPullOnce on the package
-// sync cadence. Each tick pulls the per-key sum of other regions'
-// contributions and merges them into local counterEntry.globalCount
-// via atomicMax. Jitter desynchronizes reads across the fleet so the
-// database is not hit by every region's sync at the same instant.
+// startGlobalPull schedules runGlobalPullOnce on the package sync cadence. Each
+// tick pulls per-key sums from ratelimit_global_counters. Own-region rows merge
+// into counterEntry.val; foreign-region rows merge into counterEntry.globalCount.
+// Jitter desynchronizes reads across the fleet so the database is not hit by
+// every region's sync at the same instant.
 func (s *service) startGlobalPull() {
 	stop := repeat.Every(globalPullInterval, s.runGlobalPullOnce, globalJitter)
 	s.stopBackground = append(s.stopBackground, stop)
 }
 
-// runGlobalPullOnce fetches the per-key sum of every other region's
-// contribution and writes each into the matching
-// counterEntry.globalCount. Aggregation runs in MySQL via
-// GROUP BY + SUM, so this loop is one atomicMax per active window cell
-// rather than one per (region, cell) pair. Sums are monotonic per cell
-// (each region's contribution only grows within a sequence), so
-// atomicMax is sufficient and idempotent across overlapping ticks.
+// runGlobalPullOnce fetches the per-key own-region count and foreign-region sum.
+// Own-region count is an opportunistic intra-region safety net and merges into
+// val. Foreign-region count merges into globalCount and must stay separate from
+// val so it does not feed back into this region's next push. Aggregation runs in
+// MySQL via GROUP BY + SUM, so this loop is one pair of atomicMax operations per
+// active window cell rather than one per (region, cell) pair. Sums are
+// monotonic per cell (each region's contribution only grows within a sequence),
+// so atomicMax is sufficient and idempotent across overlapping ticks.
 //
 // When no local entry exists for a key seen in the result set, one is
 // created on demand via findOrCreateCounter. These entries are attributed
@@ -215,6 +216,7 @@ func (s *service) runGlobalPullOnce() {
 			sequence:    r.Sequence,
 		}
 		entry, created := s.findOrCreateCounter(key)
+		atomicMax(&entry.val, r.Regional)
 		atomicMax(&entry.globalCount, r.Imported)
 		if created {
 			metrics.RatelimitGlobalEntriesCreated.Inc()

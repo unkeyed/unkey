@@ -41,7 +41,7 @@ ClickHouse is optional. When it is not configured, analytics writes become no-op
 
 ## Cache invalidation
 
-Cache invalidation uses a gossip cluster when configured. Each node subscribes to invalidation messages and broadcasts cache changes. If gossip fails to initialize, the service continues with local-only invalidation.
+Each node maintains local caches with fresh/stale TTLs. Entries expire on their own schedule; there is no distributed invalidation.
 
 ## Control plane and Vault integration
 

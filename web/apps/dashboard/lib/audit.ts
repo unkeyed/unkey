@@ -38,8 +38,6 @@ export type UnkeyAuditLog = {
       | "role"
       | "permission"
       | "keyAuth"
-      | "vercelBinding"
-      | "vercelIntegration"
       | "ratelimitNamespace"
       | "ratelimitOverride"
       | "ratelimit"

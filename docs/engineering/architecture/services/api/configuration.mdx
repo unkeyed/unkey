@@ -126,30 +126,6 @@ token = "${UNKEY_VAULT_TOKEN}"
   </Expandable>
 </ResponseField>
 
-<ResponseField name="gossip" type="object">
-  Gossip-based cache invalidation.
-  <Expandable title="Fields">
-    <ResponseField name="gossip.bind_addr" type="string" default="0.0.0.0">
-      Bind address for gossip.
-    </ResponseField>
-    <ResponseField name="gossip.lan_port" type="int" default="7946">
-      LAN gossip port.
-    </ResponseField>
-    <ResponseField name="gossip.wan_port" type="int" default="7947">
-      WAN gossip port.
-    </ResponseField>
-    <ResponseField name="gossip.lan_seeds" type="string[]">
-      LAN seed addresses.
-    </ResponseField>
-    <ResponseField name="gossip.wan_seeds" type="string[]">
-      WAN seed addresses.
-    </ResponseField>
-    <ResponseField name="gossip.secret_key" type="string" required>
-      Base64-encoded secret key for gossip encryption.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
 <ResponseField name="control" type="object">
   Control plane connection.
   <Expandable title="Fields">
@@ -245,14 +221,6 @@ The Helm chart provides these variables for the default config template:
   pprof password.
 </ResponseField>
 
-<ResponseField name="UNKEY_GOSSIP_WAN_SEEDS" type="env">
-  WAN seed list for gossip.
-</ResponseField>
-
-<ResponseField name="UNKEY_GOSSIP_SECRET_KEY" type="env" required>
-  Gossip secret key.
-</ResponseField>
-
 ## Example configuration
 
 ```toml
@@ -291,13 +259,6 @@ token = "${UNKEY_VAULT_TOKEN}"
 [pprof]
 username = "${UNKEY_PPROF_USERNAME}"
 password = "${UNKEY_PPROF_PASSWORD}"
-
-[gossip]
-lan_port = 7946
-wan_port = 7947
-lan_seeds = ["unkey-api-gossip-lan"]
-wan_seeds = ["${UNKEY_GOSSIP_WAN_SEEDS}"]
-secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
 ```
 
 ## Related docs

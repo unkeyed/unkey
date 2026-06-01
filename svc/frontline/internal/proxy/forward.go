@@ -17,6 +17,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
+// forwardConfig bundles the per-attempt inputs to forward. targetURL is the
+// upstream endpoint, transport selects the RoundTripper (HTTP/1.1 vs h2c vs
+// peer-region), and directorFunc applies header / hop adjustments specific
+// to the destination kind (instance vs region peer). destination is a stable
+// label used in metrics — for instance hops it is the deployment's host,
+// for region hops it is "region.platform".
 type forwardConfig struct {
 	targetURL    *url.URL
 	startTime    time.Time
@@ -25,6 +31,10 @@ type forwardConfig struct {
 	transport    http.RoundTripper
 }
 
+// forward runs a single proxy attempt against cfg.targetURL and returns
+// either nil on success or a fault-wrapped error describing the failure.
+// The handler retry loop uses [IsDialError] on the returned error to decide
+// whether the request is safe to replay against another instance.
 func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardConfig) error {
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.instanceID)
 	sess.ResponseWriter().Header().Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))

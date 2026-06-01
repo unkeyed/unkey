@@ -122,7 +122,6 @@ import { githubRouter } from "./github";
 import { createIdentity } from "./identity/create";
 import { deleteIdentity } from "./identity/delete";
 import { getIdentityById } from "./identity/getById";
-import { identityLastVerificationTime } from "./identity/latestVerification";
 import { queryIdentities } from "./identity/query";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
@@ -206,7 +205,6 @@ import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
 import { getCurrentUser, listMemberships, switchOrg } from "./user";
-import { vercelRouter } from "./vercel";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -310,7 +308,6 @@ export const router = t.router({
     getSetupIntent,
     updateWorkspaceStripeCustomer,
   }),
-  vercel: vercelRouter,
   github: githubRouter,
   plain: t.router({
     createIssue: createPlainIssue,
@@ -419,7 +416,6 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
     getById: getIdentityById,
-    latestVerification: identityLastVerificationTime,
     logs: t.router({
       query: queryIdentityLogs,
       timeseries: queryIdentityTimeseries,

@@ -75,7 +75,14 @@ Production and preview environments can have different region configurations.
 
 ### Instances
 
-The number of instances running in each region. Defaults to 1.
+The autoscaling range for each region, set as a minimum and maximum number of instances. Unkey runs at least the minimum number of instances in every selected region and scales up to the maximum based on CPU usage. Both values default to 1.
+
+Set the minimum and maximum to the same value to pin instance count and disable autoscaling. Set them to different values to let Unkey scale instances based on load:
+
+- **Minimum replicas** — the fewest instances to keep running per region, even under zero load. Increase this for redundancy or to avoid cold-start latency on the first request.
+- **Maximum replicas** — the ceiling Unkey scales up to under peak load.
+
+Production and preview environments can use different ranges. For example, you might run production with a range of `2 – 4` for redundancy and headroom while keeping preview at `1 – 1` to reduce cost.
 
 <Note>
   During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
@@ -83,21 +90,11 @@ The number of instances running in each region. Defaults to 1.
 
 ### Autoscaling
 
+When the minimum and maximum replicas differ, Unkey automatically adjusts instance count between those bounds based on CPU utilization. Instances scale up when sustained CPU usage is high and scale back down toward the minimum when load drops.
+
 <Note>
-  Autoscaling is not yet available in the dashboard. Contact [support@unkey.com](mailto:support@unkey.com) to configure autoscaling for your app.
+  Advanced autoscaling thresholds (memory, RPS, custom CPU targets) are not yet configurable in the dashboard. Contact [support@unkey.com](mailto:support@unkey.com) if you need to tune them.
 </Note>
-
-Unkey can automatically adjust the number of instances based on load. When configured, autoscaling uses these thresholds to decide when to add or remove instances:
-
-| Setting           | Description                                                        |
-| ----------------- | ------------------------------------------------------------------ |
-| Minimum replicas  | The fewest instances to keep running, even under zero load          |
-| Maximum replicas  | The most instances to scale to under peak load                      |
-| CPU threshold     | Target CPU utilization percentage that triggers scaling (0-100)     |
-| Memory threshold  | Target memory utilization percentage that triggers scaling (0-100)  |
-| RPS threshold     | Target requests-per-second percentage that triggers scaling (0-100) |
-
-When any threshold is exceeded, Unkey adds instances up to the maximum. When utilization drops below the threshold, Unkey removes instances down to the minimum.
 
 ### CPU
 

@@ -17,7 +17,7 @@ const (
 
 	// resourceRequestFraction is the fraction of limits used for resource requests.
 	// Requests determine scheduling; limits cap actual usage.
-	resourceRequestFraction = 4 // requests = limits / 4
+	resourceRequestFraction = 2 // requests = limits / N
 
 	// defaultContainerEphemeralStorageMib caps writes to a container's rootfs
 	// (overlayfs writable layer, container logs, unmounted emptyDirs). Without
