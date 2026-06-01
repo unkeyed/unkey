@@ -8,10 +8,17 @@ import (
 )
 
 // RequestTracking holds data collected during a local-instance request for
-// ClickHouse logging. The handler initializes the tracking, the proxy
-// callbacks (Director, ModifyResponse, ErrorHandler) mutate it as the
-// request progresses. Cross-region requests do not populate tracking — the
-// peer frontline writes its own ClickHouse row.
+// ClickHouse logging. The handler initializes the deployment-scoped fields
+// once; InstanceID and Address are (re)written for each instance attempted
+// in the retry loop, so on success they reflect the instance that served
+// the response. InstanceStart, InstanceEnd, and ResponseBody are set by
+// the proxy and describe only the final successful attempt. RequestBody
+// is captured by a TeeReader in the handler; on a retry it stays empty
+// for failed dial attempts (no bytes flow) and fills from the successful
+// attempt's drain.
+//
+// Cross-region requests do not populate tracking — the peer frontline writes
+// its own ClickHouse row.
 type RequestTracking struct {
 	// Set by handler before proxy
 	RequestID     string
@@ -20,14 +27,18 @@ type RequestTracking struct {
 	WorkspaceID   string
 	EnvironmentID string
 	ProjectID     string
-	InstanceID    string
-	Address       string
-	RequestBody   []byte
 
-	// Set by proxy Director callback
+	// (Re)set by handler before each ForwardToInstance attempt
+	InstanceID string
+	Address    string
+
+	// Populated by a handler-side TeeReader as the upstream drains the body.
+	RequestBody []byte
+
+	// Set by proxy on dispatch (Director callback)
 	InstanceStart time.Time
 
-	// Set by proxy ModifyResponse / ErrorHandler callbacks
+	// Set by proxy once the upstream response stream completes
 	InstanceEnd  time.Time
 	ResponseBody []byte
 }

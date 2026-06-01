@@ -11,9 +11,15 @@ export const useDeleteIdentity = (onSuccess: () => void) => {
           "The identity has been permanently deleted and can no longer be used for verification.",
       });
 
-      trpcUtils.identity.query.invalidate();
-      trpcUtils.identity.search.invalidate();
-      trpcUtils.identity.searchWithRelations.invalidate();
+      // The identities list query is configured with `refetchOnMount: false`
+      // and `staleTime: Infinity`. Forcing `refetchType: "all"` here so that
+      // both active and inactive copies are refetched — without this, deleting
+      // an identity from `/identities/[id]` and navigating back to
+      // `/identities` would show the deleted row until a manual refresh.
+      trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" });
+      trpcUtils.identity.search.invalidate(undefined, { refetchType: "all" });
+      trpcUtils.identity.searchWithRelations.invalidate(undefined, { refetchType: "all" });
+      trpcUtils.identity.getById.invalidate();
 
       onSuccess();
     },

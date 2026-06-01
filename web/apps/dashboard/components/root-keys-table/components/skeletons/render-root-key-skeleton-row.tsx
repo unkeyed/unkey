@@ -16,11 +16,12 @@ type RenderRootKeySkeletonRowProps = {
   rowHeight: number;
 };
 
-export const renderRootKeySkeletonRow = ({ columns }: RenderRootKeySkeletonRowProps) =>
+export const renderRootKeySkeletonRow = ({ columns, rowHeight }: RenderRootKeySkeletonRowProps) =>
   columns.map((column) => (
     <td
       key={column.id}
       className={cn("text-xs align-middle whitespace-nowrap", column.meta?.cellClassName)}
+      style={{ height: `${rowHeight}px` }}
     >
       {column.id === ROOT_KEY_COLUMN_IDS.ROOT_KEY.id && <RootKeyColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.KEY.id && <KeyColumnSkeleton />}

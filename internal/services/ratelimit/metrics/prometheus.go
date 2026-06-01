@@ -152,32 +152,44 @@ var (
 // Origin (Redis) health: latency and error rates for the operations that
 // keep nodes eventually consistent.
 //
-// Both metrics share an "op" label:
+// These metrics share an "op" label:
 //
-//   - op="fetch" — GET on the request path (cold windows and strict mode).
-//     Latency here directly affects request p99.
-//   - op="sync"  — INCR from the replay workers. Latency here predicts how
+//   - op="fetch_cold" — first GET for a local counter entry.
+//   - op="fetch_stale" — periodic GET for a warm counter entry.
+//   - op="fetch_strict" — forced GET after strict mode activates.
+//   - op="sync" — INCR from the replay workers. Latency here predicts how
 //     quickly local counters across nodes converge.
-//
-// Total operations per op are available as the histogram's implicit _count
-// series, e.g. ratelimit_origin_latency_seconds_count{op="fetch"}.
 var (
+	// RatelimitOriginOperations counts origin operations attempted by the
+	// ratelimit service. Use this as the primary source for operation rates;
+	// use RatelimitOriginLatency for duration and RatelimitOriginErrors for
+	// failures.
+	//
+	// Example usage:
+	//   metrics.RatelimitOriginOperations.WithLabelValues("fetch_stale").Inc()
+	//   metrics.RatelimitOriginOperations.WithLabelValues("sync").Inc()
+	RatelimitOriginOperations = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "origin_operations_total",
+			Help:      "Total number of origin operations attempted, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync).",
+		},
+		[]string{"op"},
+	)
+
 	// RatelimitOriginLatency observes the wall-clock latency of origin
 	// operations.
 	//
-	// Labels:
-	//   - op: "fetch" for hot-path GET calls (cold window / strict mode);
-	//     "sync" for replay-worker INCR calls.
-	//
 	// Example usage:
-	//   metrics.RatelimitOriginLatency.WithLabelValues("fetch").Observe(seconds)
+	//   metrics.RatelimitOriginLatency.WithLabelValues("fetch_stale").Observe(seconds)
 	//   metrics.RatelimitOriginLatency.WithLabelValues("sync").Observe(seconds)
 	RatelimitOriginLatency = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "origin_latency_seconds",
-			Help:      "Latency of origin operations in seconds, labeled by op (fetch|sync).",
+			Help:      "Latency of origin operations in seconds, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync).",
 			Buckets:   latencyBuckets,
 		},
 		[]string{"op"},
@@ -187,24 +199,22 @@ var (
 	// (including circuit-breaker trips and hot-path timeouts).
 	//
 	// Labels:
-	//   - op: "fetch" for hot-path GET calls (cold window / strict mode);
-	//     "sync" for replay-worker INCR calls.
 	//   - reason: "timeout" when the per-call deadline elapsed (e.g. the
 	//     150ms hot-path budget on fetch); "other" for any other error
 	//     surface (Redis returned an error, circuit breaker open, etc.).
-	//     Sustained timeouts on op="fetch" are alert-worthy: they mean
+	//     Sustained timeouts on op="fetch_*" are alert-worthy: they mean
 	//     the rate-limit decision is falling back to local state because
 	//     Redis is slow, which loosens cross-node convergence.
 	//
 	// Example usage:
-	//   metrics.RatelimitOriginErrors.WithLabelValues("fetch", "timeout").Inc()
+	//   metrics.RatelimitOriginErrors.WithLabelValues("fetch_stale", "timeout").Inc()
 	//   metrics.RatelimitOriginErrors.WithLabelValues("sync", "other").Inc()
 	RatelimitOriginErrors = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "origin_errors_total",
-			Help:      "Total number of origin operations that returned an error, labeled by op (fetch|sync) and reason (timeout|other).",
+			Help:      "Total number of origin operations that returned an error, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync) and reason (timeout|other).",
 		},
 		[]string{"op", "reason"},
 	)

@@ -34,6 +34,7 @@ function arePermissionArraysEqual(
 }
 
 type UseRootKeyDialogProps = {
+  isOpen: boolean;
   editMode?: boolean;
   existingKey?: {
     id: string;
@@ -44,6 +45,7 @@ type UseRootKeyDialogProps = {
 };
 
 export function useRootKeyDialog({
+  isOpen,
   editMode = false,
   existingKey,
   onOpenChange,
@@ -96,6 +98,21 @@ export function useRootKeyDialog({
     });
   }, [apisData]);
 
+  const { data: projectsData, isLoading: projectsLoading } = trpc.deploy.project.list.useQuery(
+    undefined,
+    { enabled: isOpen },
+  );
+
+  const allProjects = useMemo(() => {
+    if (!projectsData) {
+      return [];
+    }
+    return projectsData.map((project) => ({
+      id: project.id,
+      name: project.name,
+    }));
+  }, [projectsData]);
+
   // Mutations
   const key = trpc.rootKey.create.useMutation({
     onSuccess() {
@@ -140,13 +157,12 @@ export function useRootKeyDialog({
 
   const handlePermissionChange = useCallback(
     (permissions: UnkeyPermission[]) => {
-      // Prevent updates while APIs are loading in create mode
-      const canUpdate = !apisLoading || editMode;
+      const canUpdate = (!apisLoading && !projectsLoading) || editMode;
       if (canUpdate) {
         setSelectedPermissions(permissions);
       }
     },
-    [apisLoading, editMode],
+    [apisLoading, projectsLoading, editMode],
   );
 
   const handleCreateKey = useCallback(async () => {
@@ -220,6 +236,8 @@ export function useRootKeyDialog({
     selectedPermissions,
     allApis,
     apisLoading,
+    allProjects,
+    projectsLoading,
     hasNextPage,
     isFetchingNextPage,
     key,

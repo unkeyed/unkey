@@ -6,6 +6,8 @@ import (
 	"io"
 
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
@@ -40,15 +42,15 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	if decision.Destination != router.DestinationLocalInstance {
-		return h.ProxyService.Forward(ctx, sess, decision)
+		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress)
 	}
 
 	req := sess.Request()
 
 	// The ClickHouse logging middleware seeds an empty tracking record
 	// before this handler runs. Populate it now that the route resolved;
-	// the engine + proxy callbacks fill in timing, status, and bodies as
-	// the request progresses.
+	// the retry loop and proxy callbacks fill in the per-attempt instance,
+	// timing, and status as the request progresses.
 	tracking, ok := proxy.RequestTrackingFromContext(ctx)
 	if !ok {
 		// Defensive: register.go always wires the ClickHouse logging
@@ -64,8 +66,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	tracking.WorkspaceID = decision.WorkspaceID
 	tracking.EnvironmentID = decision.EnvironmentID
 	tracking.ProjectID = decision.ProjectID
-	tracking.InstanceID = decision.Instance.ID
-	tracking.Address = decision.Instance.Address
 
 	// Evaluate policies before forwarding. The edge middleware has already
 	// stripped any client-supplied X-Unkey-Principal header; if KeyAuth
@@ -85,11 +85,16 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		}
 	}
 
-	// Capture the request body for ClickHouse via TeeReader. Bytes flow to
-	// the upstream untouched while a copy accumulates in buf, capped at
-	// MaxBodyCapture so a multi-GB upload cannot blow the heap. Works for
-	// both streaming (gRPC, Connect) and unary requests; the reverse proxy
-	// drains the body exactly once on its way to the upstream.
+	// Capture the request body for ClickHouse via TeeReader. Bytes flow
+	// to the upstream untouched while a copy accumulates in buf, capped
+	// at MaxBodyCapture so a multi-GB upload cannot blow the heap. Works
+	// for both streaming (gRPC, Connect) and unary requests.
+	//
+	// With the dial-failure retry loop, a failed first attempt does not
+	// consume the body (the proxy never opened a TCP connection), so the
+	// successful attempt drains it and the tee captures from that drain.
+	// The captured body therefore always reflects what the *serving*
+	// instance actually saw.
 	if req.Body != nil {
 		var buf bytes.Buffer
 		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
@@ -100,5 +105,61 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		}()
 	}
 
-	return h.ProxyService.Forward(ctx, sess, decision)
+	// Try each candidate instance in turn. We only move to the next
+	// instance on dial-phase failures: the proxy never opened a TCP
+	// connection, so the request body has not been read and replay is
+	// safe. Any other error — mid-stream resets, response timeouts,
+	// context cancellation — is returned to the client unchanged, since
+	// the upstream may already have started processing the request and a
+	// retry would risk double-execute on non-idempotent endpoints.
+	//
+	// 4xx / 5xx responses from the app are not errors at this layer; they
+	// flow back through the proxy's ModifyResponse path and never reach
+	// here.
+	sawDialFailure := false
+	var forwardErr error
+	for _, instance := range decision.LocalInstances {
+		tracking.InstanceID = instance.ID
+		tracking.Address = instance.Address
+
+		forwardErr = h.ProxyService.ForwardToInstance(ctx, sess, decision.UpstreamProtocol, instance)
+		if forwardErr == nil {
+			if sawDialFailure {
+				localRequestRetriesTotal.WithLabelValues(retryOutcomeRecovered).Inc()
+			}
+			return nil
+		}
+		if !proxy.IsDialError(forwardErr) {
+			return forwardErr
+		}
+		sawDialFailure = true
+	}
+	if sawDialFailure {
+		localRequestRetriesTotal.WithLabelValues(retryOutcomeExhausted).Inc()
+	}
+
+	// Every local instance dial-failed (or there were none — shouldn't
+	// happen since the router would have returned a remote decision in
+	// that case, but treat it the same way). If the router gave us a
+	// peer-region standby, fall through to it. The peer redoes its own
+	// routing and retry. Without a standby, surface the last dial error.
+	if decision.RemoteRegionAddress != "" {
+		regionFallbacksTotal.WithLabelValues(decision.RemoteRegionAddress).Inc()
+		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress)
+	}
+
+	// forwardErr is nil only when the loop never ran, i.e. LocalInstances
+	// was empty *and* RemoteRegionAddress was empty. That's an invariant
+	// violation: the router should have returned a remote decision instead
+	// of a local one with no candidates. Without this guard, returning the
+	// zero-value nil here surfaces to the client as a silent empty 200 —
+	// fail closed with an explicit 503 so the bug is visible.
+	if forwardErr == nil {
+		return fault.New("local decision with no instances",
+			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
+			fault.Internal("router returned DestinationLocalInstance with empty LocalInstances"),
+			fault.Public("Service temporarily unavailable"),
+		)
+	}
+	return forwardErr
 }

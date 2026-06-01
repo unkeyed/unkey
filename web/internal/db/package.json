@@ -18,12 +18,12 @@
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "7.4.1",
     "drizzle-kit": "0.31.4",
-    "mysql2": "3.10.3",
+    "mysql2": "catalog:",
     "typescript": "5.5.3"
   },
   "dependencies": {
     "@unkey/id": "workspace:^",
-    "mysql2": "3.10.3",
+    "mysql2": "catalog:",
     "drizzle-orm": "0.45.1"
   }
 }

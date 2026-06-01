@@ -154,7 +154,6 @@ export const RatelimitSetup = ({
           icon={<Gauge className="text-gray-12" iconSize="sm-regular" />}
           checked={ratelimitEnabled}
           onCheckedChange={handleSwitchChange}
-          {...register("ratelimit.enabled")}
         />
       )}
 
