@@ -182,14 +182,20 @@ const RegionsSingle = () => {
 
   const onSubmit = async (values: RegionsSingleFormValues) => {
     updateAllEnvironments((draft) => {
-      const defaultReplicas = draft.regions.at(0)?.replicas ?? 1;
+      const defaultReplicasMin = draft.regions.at(0)?.replicasMin ?? 1;
+      const defaultReplicasMax = draft.regions.at(0)?.replicasMax ?? 1;
       draft.regions = values.regions.map((name) => {
         const existing = draft.regions.find((r) => r.name === name);
         if (existing) {
           return existing;
         }
         const available = (availableRegions ?? []).find((r) => r.name === name);
-        return { id: available?.id ?? name, name, replicas: defaultReplicas };
+        return {
+          id: available?.id ?? name,
+          name,
+          replicasMin: defaultReplicasMin,
+          replicasMax: defaultReplicasMax,
+        };
       });
     });
   };
@@ -345,28 +351,40 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
 
     if (prodChanged) {
       collection.environmentSettings.update(production.environmentId, (draft) => {
-        const defaultReplicas = draft.regions[0]?.replicas ?? 1;
+        const defaultReplicasMin = draft.regions[0]?.replicasMin ?? 1;
+        const defaultReplicasMax = draft.regions[0]?.replicasMax ?? 1;
         draft.regions = values.productionRegions.map((name) => {
           const existing = draft.regions.find((r) => r.name === name);
           if (existing) {
             return existing;
           }
           const available = (availableRegions ?? []).find((r) => r.name === name);
-          return { id: available?.id ?? name, name, replicas: defaultReplicas };
+          return {
+            id: available?.id ?? name,
+            name,
+            replicasMin: defaultReplicasMin,
+            replicasMax: defaultReplicasMax,
+          };
         });
       });
     }
 
     if (prevChanged) {
       collection.environmentSettings.update(preview.environmentId, (draft) => {
-        const defaultReplicas = draft.regions[0]?.replicas ?? 1;
+        const defaultReplicasMin = draft.regions[0]?.replicasMin ?? 1;
+        const defaultReplicasMax = draft.regions[0]?.replicasMax ?? 1;
         draft.regions = values.previewRegions.map((name) => {
           const existing = draft.regions.find((r) => r.name === name);
           if (existing) {
             return existing;
           }
           const available = (availableRegions ?? []).find((r) => r.name === name);
-          return { id: available?.id ?? name, name, replicas: defaultReplicas };
+          return {
+            id: available?.id ?? name,
+            name,
+            replicasMin: defaultReplicasMin,
+            replicasMax: defaultReplicasMax,
+          };
         });
       });
     }

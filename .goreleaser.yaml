@@ -67,6 +67,7 @@ npms:
     homepage: "https://unkey.com"
     repository: "https://github.com/unkeyed/unkey"
     license: "AGPL-3.0-only"
+    tag: "{{ if .Prerelease }}next{{ else }}latest{{ end }}"
 
 dockers_v2:
   - ids: [unkey]

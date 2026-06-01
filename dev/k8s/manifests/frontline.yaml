@@ -26,11 +26,6 @@ data:
     cert_file = "/certs/unkey.local.crt"
     key_file = "/certs/unkey.local.key"
 
-    [gossip]
-    lan_port = 7946
-    lan_seeds = ["frontline-gossip-lan"]
-    secret_key = "dGhpcy1pcy1hLWRldi1vbmx5LWdvc3NpcC1rZXkh"
-
     [vault]
     url = "http://vault.unkey.svc.cluster.local:8060"
     token = "vault-test-token-123"
@@ -66,12 +61,6 @@ spec:
               name: http
             - containerPort: 7443
               name: https
-            - containerPort: 7946
-              name: gossip-lan
-              protocol: TCP
-            - containerPort: 7946
-              name: gossip-lan-udp
-              protocol: UDP
           volumeMounts:
             - name: config
               mountPath: /etc/unkey
@@ -124,23 +113,3 @@ spec:
       port: 443
       targetPort: 7443
   type: LoadBalancer
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontline-gossip-lan
-  namespace: frontline
-spec:
-  clusterIP: None
-  selector:
-    app: frontline
-  ports:
-    - name: gossip-lan
-      port: 7946
-      targetPort: 7946
-      protocol: TCP
-    - name: gossip-lan-udp
-      port: 7946
-      targetPort: 7946
-      protocol: UDP

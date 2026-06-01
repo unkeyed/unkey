@@ -1,6 +1,6 @@
 "use client";
 
-import { IdentityTableActions } from "@/app/(app)/[workspaceSlug]/identities/_components/table/identity-table-actions";
+import { IdentityTableActions } from "@/components/identities-table/components/identity-table-actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";

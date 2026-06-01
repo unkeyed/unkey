@@ -7,6 +7,26 @@ export type UnkeyPermissions = {
   };
 };
 
+export type PermissionScope =
+  | { kind: "workspace" }
+  | { kind: "api"; id: string; name: string }
+  | { kind: "project"; id: string; name: string };
+
+export const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
+
+export function getScopedPermissions(scope: PermissionScope): {
+  [category: string]: UnkeyPermissions;
+} {
+  switch (scope.kind) {
+    case "workspace":
+      return workspacePermissions;
+    case "api":
+      return apiPermissions(scope.id);
+    case "project":
+      return projectPermissions(scope.id);
+  }
+}
+
 export const workspacePermissions = {
   API: {
     create_api: {
@@ -222,6 +242,27 @@ export function apiPermissions(apiId: string): {
       decrypt_key: {
         description: "Decrypt keys belonging to this API",
         permission: `api.${apiId}.decrypt_key`,
+      },
+    },
+  };
+}
+
+export function projectPermissions(projectId: string): {
+  [category: string]: UnkeyPermissions;
+} {
+  return {
+    Projects: {
+      create_deployment: {
+        description: "Create new deployments for this project.",
+        permission: `project.${projectId}.create_deployment`,
+      },
+      read_deployment: {
+        description: "Read deployment details and status for this project.",
+        permission: `project.${projectId}.read_deployment`,
+      },
+      generate_upload_url: {
+        description: "Generate S3 upload URLs for this project's build contexts.",
+        permission: `project.${projectId}.generate_upload_url`,
       },
     },
   };

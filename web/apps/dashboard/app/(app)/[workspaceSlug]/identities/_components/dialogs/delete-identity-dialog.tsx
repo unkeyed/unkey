@@ -1,5 +1,6 @@
 "use client";
 
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
@@ -20,20 +21,20 @@ type DeleteIdentityFormValues = z.infer<typeof deleteIdentityFormSchema>;
 
 type DeleteIdentityDialogProps = {
   identity: IdentityForActions;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  // Optional callback fired after a successful deletion, in addition to
+  // closing the dialog. The identity detail page uses this to navigate back
+  // to the list once the just-deleted identity is gone.
   onDeleted?: () => void;
-};
+} & ActionComponentProps;
 
 export const DeleteIdentityDialog = ({
   identity,
-  open,
-  onOpenChange,
+  isOpen,
+  onClose,
   onDeleted,
 }: DeleteIdentityDialogProps) => {
   const formId = useId();
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   const methods = useForm<DeleteIdentityFormValues>({
@@ -55,8 +56,8 @@ export const DeleteIdentityDialog = ({
   const confirmDeletion = watch("confirmDeletion");
 
   const deleteIdentity = useDeleteIdentity(() => {
-    onOpenChange(false);
     onDeleted?.();
+    onClose();
   });
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -65,10 +66,8 @@ export const DeleteIdentityDialog = ({
       if (!open) {
         return;
       }
-    } else {
-      if (!open) {
-        onOpenChange(false);
-      }
+    } else if (!open) {
+      onClose();
     }
   };
 
@@ -78,15 +77,12 @@ export const DeleteIdentityDialog = ({
 
   const performIdentityDeletion = async () => {
     try {
-      setIsLoading(true);
       await deleteIdentity.mutateAsync({
         identityId: identity.id,
       });
     } catch {
       // `useDeleteIdentity` already shows a toast, but we still need to
       // prevent unhandled‐rejection noise in the console.
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -95,7 +91,7 @@ export const DeleteIdentityDialog = ({
       <FormProvider {...methods}>
         <form id={formId}>
           <DialogContainer
-            isOpen={open}
+            isOpen={isOpen}
             subTitle="Permanently remove this identity and its data"
             onOpenChange={handleDialogOpenChange}
             title="Delete identity"
@@ -108,8 +104,8 @@ export const DeleteIdentityDialog = ({
                   color="danger"
                   size="xlg"
                   className="w-full rounded-lg"
-                  disabled={!confirmDeletion || isLoading}
-                  loading={isLoading}
+                  disabled={!confirmDeletion || deleteIdentity.isLoading}
+                  loading={deleteIdentity.isLoading}
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >

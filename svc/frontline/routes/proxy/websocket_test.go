@@ -41,10 +41,10 @@ func TestWebSocketUpgrade_HTTP1_Succeeds(t *testing.T) {
 	backendAddr, stopBackend := startEchoBackend(t)
 	t.Cleanup(stopBackend)
 
-	feAddr, stopFrontline := startFrontline(t, backendAddr)
+	frontlineAddr, stopFrontline := startFrontline(t, backendAddr)
 	t.Cleanup(stopFrontline)
 
-	conn, err := net.Dial("tcp", feAddr)
+	conn, err := net.Dial("tcp", frontlineAddr)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 	require.NoError(t, conn.SetDeadline(time.Now().Add(10*time.Second)))
@@ -75,10 +75,10 @@ func TestWebSocketUpgrade_BackendDown_DoesNotHang(t *testing.T) {
 	deadAddr := dead.Addr().String()
 	require.NoError(t, dead.Close())
 
-	feAddr, stopFrontline := startFrontline(t, deadAddr)
+	frontlineAddr, stopFrontline := startFrontline(t, deadAddr)
 	t.Cleanup(stopFrontline)
 
-	conn, err := net.Dial("tcp", feAddr)
+	conn, err := net.Dial("tcp", frontlineAddr)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 	require.NoError(t, conn.SetDeadline(time.Now().Add(10*time.Second)))
@@ -120,9 +120,11 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 				WorkspaceID:      "ws_test",
 				ProjectID:        "proj_test",
 				UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1,
-				Instance: db.FindInstancesByDeploymentIDRow{
-					ID:      "inst_test",
-					Address: backendAddr,
+				LocalInstances: []db.FindInstancesByDeploymentIDRow{
+					{
+						ID:      "inst_test",
+						Address: backendAddr,
+					},
 				},
 			},
 		},

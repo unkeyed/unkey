@@ -20,27 +20,33 @@ const (
 	DestinationRemoteRegion Destination = "region"
 )
 
-// RouteDecision is the output of Route. For local instance routing it carries
-// the deployment, the resolved instance, the parsed policies, and the
-// upstream protocol the proxy uses to pick a transport. For cross-region
-// forwarding only Address is populated.
+// RouteDecision is the output of Route.
+//
+// For DestinationLocalInstance: LocalInstances carries the candidate pods
+// in shuffled order — the caller attempts them sequentially, advancing on
+// dial failures. RemoteRegionAddress, when non-empty, is a standby peer
+// region for the caller to fall through to once every local instance has
+// dial-failed; empty when this is the only region with running instances.
+//
+// For DestinationRemoteRegion: only RemoteRegionAddress is populated.
+// LocalInstances is empty.
 type RouteDecision struct {
-	Destination      Destination
-	DeploymentID     string
-	EnvironmentID    string
-	WorkspaceID      string
-	ProjectID        string
-	UpstreamProtocol db.DeploymentsUpstreamProtocol
-	Instance         db.FindInstancesByDeploymentIDRow
-	Policies         []*frontlinev1.Policy
-	// Address is the running instance address (local) or "region.platform"
-	// peer-frontline target (remote).
-	Address string
+	Destination         Destination
+	DeploymentID        string
+	EnvironmentID       string
+	WorkspaceID         string
+	ProjectID           string
+	LocalInstances      []db.FindInstancesByDeploymentIDRow
+	RemoteRegionAddress string
+	UpstreamProtocol    db.DeploymentsUpstreamProtocol
+	Policies            []*frontlinev1.Policy
 }
 
 type Service interface {
-	// Route determines where to forward a request based on hostname and,
-	// for local routing, returns the parsed policies and chosen instance.
+	// Route resolves a hostname to a forwarding decision. For local routes
+	// the returned decision includes the candidate instances in the order
+	// the caller should try them, plus the parsed policies to evaluate
+	// before forwarding.
 	Route(ctx context.Context, hostname string) (RouteDecision, error)
 
 	// ValidateHostname checks if a hostname has a configured frontline route.
