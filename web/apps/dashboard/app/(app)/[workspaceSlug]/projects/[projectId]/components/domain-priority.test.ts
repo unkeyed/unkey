@@ -7,6 +7,7 @@ function makeDomain(overrides: Partial<Domain> = {}): Domain {
     id: "dom-1",
     fullyQualifiedDomainName: "a.example.com",
     projectId: "proj-1",
+    appId: "app-1",
     deploymentId: "dep-1",
     environmentId: "env-1",
     sticky: "none",
