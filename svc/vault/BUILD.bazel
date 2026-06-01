@@ -17,6 +17,7 @@ go_library(
         "//pkg/prometheus",
         "//pkg/prometheus/lazy",
         "//pkg/runner",
+        "//pkg/uid",
         "//svc/vault/internal/storage",
         "//svc/vault/internal/storage/middleware",
         "//svc/vault/internal/vault",

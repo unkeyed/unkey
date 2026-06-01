@@ -20,7 +20,11 @@
               "contributing/local/development",
               {
                 "group": "Tooling",
-                "pages": ["contributing/tooling/bazel", "contributing/tooling/feature-flags"]
+                "pages": [
+                  "contributing/tooling/bazel",
+                  "contributing/tooling/builds-and-releases",
+                  "contributing/tooling/feature-flags"
+                ]
               }
             ]
           },

@@ -1,14 +1,12 @@
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "frontline",
-    srcs = ["main.go"],
-    importpath = "github.com/unkeyed/unkey/cmd/run/frontline",
+    name = "util",
+    srcs = ["run.go"],
+    importpath = "github.com/unkeyed/unkey/build/util",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/cli",
         "//pkg/config",
-        "//pkg/uid",
-        "//svc/frontline",
     ],
 )

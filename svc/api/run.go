@@ -38,6 +38,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/tls"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/routes"
@@ -48,6 +50,20 @@ func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
+	}
+
+	if cfg.TLS.CertFile != "" {
+		tlsCfg, tlsErr := tls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
+		if tlsErr != nil {
+			return fmt.Errorf("unable to load TLS config: %w", tlsErr)
+		}
+		cfg.TLSConfig = tlsCfg
+	}
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
+	if cfg.Clock == nil {
+		cfg.Clock = clock.New()
 	}
 
 	if cfg.Observability.Logging != nil {
@@ -70,7 +86,7 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.AddBaseAttrs(slog.Bool("tls_enabled", true))
 	}
 
-	clk := clock.New()
+	clk := cfg.Clock
 
 	reg := promclient.NewRegistry()
 	reg.MustRegister(collectors.NewGoCollector())

@@ -32,6 +32,7 @@ go_library(
         "//pkg/restate/admin",
         "//pkg/rpc/interceptor",
         "//pkg/runner",
+        "//pkg/uid",
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/app",
         "//svc/ctrl/worker/auditlogexport",
