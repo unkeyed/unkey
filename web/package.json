@@ -16,6 +16,7 @@
   },
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
+  "packageManager": "pnpm@11.5.0",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@types/node": "22.14.0",
