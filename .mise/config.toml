@@ -20,8 +20,8 @@ go = "1.25.1"
 "github:tilt-dev/ctlptl" = "0.9.3"
 "github:FiloSottile/mkcert" = "1.4.4"
 "github:planetscale/cli" = "0.284.0"
-"npm:pnpm" = "8.6.9"
 "github:depot/cli" = "2.101.63"
+"github:pnpm/pnpm" = "11.5.0"
 
 [tools."github:bazelbuild/bazelisk"]
 version = "1.29.0"
@@ -68,6 +68,3 @@ linux-x64-musl = { url = "https://bin.equinox.io/a/rXi2K8HzgJ/ngrok-v3-3.39.4-li
 macos-arm64 = { url = "https://bin.equinox.io/a/koVh3r9rKG7/ngrok-v3-3.39.4-darwin-arm64.zip" }
 macos-x64 = { url = "https://bin.equinox.io/a/dVNWNC8tgwQ/ngrok-v3-3.39.4-darwin-amd64.zip" }
 windows-x64 = { url = "https://bin.equinox.io/a/gK2xcZtiEuC/ngrok-v3-3.39.4-windows-amd64.zip", bin = "ngrok.exe" }
-
-[env]
-COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"

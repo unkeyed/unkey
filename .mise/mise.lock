@@ -319,6 +319,52 @@ checksum = "sha256:339707071180099a0bfc42bd4faaa9f7618d20be10ce450f77f9e59a257b2
 url = "https://github.com/planetscale/cli/releases/download/v0.284.0/pscale_0.284.0_windows_amd64.zip"
 url_api = "https://api.github.com/repos/planetscale/cli/releases/assets/424448028"
 
+[[tools."github:pnpm/pnpm"]]
+version = "11.5.0"
+backend = "github:pnpm/pnpm"
+
+[tools."github:pnpm/pnpm"."platforms.linux-arm64"]
+checksum = "sha256:f817841be043e2be465cb8b8c7ddd19dcedf3120214783dc473a6da7f8c84da9"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.5.0/pnpm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138832"
+provenance = "github-attestations"
+
+[tools."github:pnpm/pnpm"."platforms.linux-arm64-musl"]
+checksum = "sha256:6733e0f4295a09e3465224639d212cb0c01cc438e3db1b2e47d61e49fd3f4d0a"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.5.0/pnpm-linux-arm64-musl.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138833"
+provenance = "github-attestations"
+
+[tools."github:pnpm/pnpm"."platforms.linux-x64"]
+checksum = "sha256:d45c4338299cae5b7fcaf5e95294643edb10de98258fc0b1d566ffa00b0c353c"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.5.0/pnpm-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138834"
+provenance = "github-attestations"
+
+[tools."github:pnpm/pnpm"."platforms.linux-x64-musl"]
+checksum = "sha256:f114fa068bb5b45472e3389b19722feb9cb47b72ca656fb5a5cbb7d5fbb7ed06"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.5.0/pnpm-linux-x64-musl.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138828"
+provenance = "github-attestations"
+
+[tools."github:pnpm/pnpm"."platforms.macos-arm64"]
+checksum = "sha256:966f2ed3587457e1135b7102569b08f21c717f49d5676d63f9435bac9682c45b"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.5.0/pnpm-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138829"
+provenance = "github-attestations"
+
+[tools."github:pnpm/pnpm"."platforms.macos-x64"]
+checksum = "sha256:5d175516d2339edb40c6d6fd496a41c39b6ed4cfdb1d9002999603db92b5505d"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.5.0/source-maps.tgz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138831"
+provenance = "github-attestations"
+
+[tools."github:pnpm/pnpm"."platforms.windows-x64"]
+checksum = "sha256:f85f5c399caa41e2fbce8a2127b69ea4d2ab9b45296756a557b26110d01dcefd"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.5.0/pnpm-win32-x64.zip"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138830"
+provenance = "github-attestations"
+
 [[tools."github:tilt-dev/ctlptl"]]
 version = "0.9.3"
 backend = "github:tilt-dev/ctlptl"
@@ -556,7 +602,3 @@ url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-darwin-x64.tar.gz"
 [tools.node."platforms.windows-x64"]
 checksum = "sha256:edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56"
 url = "https://nodejs.org/dist/v24.16.0/node-v24.16.0-win-x64.zip"
-
-[[tools."npm:pnpm"]]
-version = "8.6.9"
-backend = "npm:pnpm"

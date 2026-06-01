@@ -1,0 +1,120 @@
+---
+title: 0016 Vault S3 Storage
+description: Move vault object storage from a single R2 bucket to active-passive S3 buckets with cross-region replication and manual failover.
+date: 2026-05-22
+authors:
+  - Andreas Thomas
+---
+
+Vault stores encrypted data encryption keys (DEKs) in object storage. These DEKs are required to encrypt and decrypt recoverable customer key material. Vault caches DEKs to reduce object-storage reads, but a cache miss still requires the backing bucket.
+
+Vault-backed routes started failing after cache entries expired. The affected routes were `/v2/apis.listKeys`, `/v2/keys.getKey`, and `/v2/keys.createKey`.
+
+Increasing the cache TTLs to a fresh TTL of `1h`, a stale TTL of `24h` helps warm reads and many `createKey` requests, but it does not help cold reads, evicted entries, first-time workspace encryption, key rotation, or outages longer than the cache window.
+
+## Why
+
+Vault relies on Cloudflare R2 for durable storage and their recent incidents impacted our API's capability to read/create encrypted keys. We do not control R2 or any of its upstream dependencies. This is a single point of failure that we must address.
+
+The goal is to add a regional recovery path while keeping vault's architecture simple. Operators can promote the replica when the primary region is unavailable.
+
+Regional failures are rare, but they happen, so let's prepare for it.
+AWS has strong regional isolation, a single regional S3 failure does not affect S3 in another region. Therefore if we used two S3 regions, our services could accept total loss of availability in one region. AWS also provides (async and slow) cross-region replication.
+
+## Design
+
+Vault's code does not change. The design is exactly the same, we only change the durable data source.
+
+Instead of a single R2 bucket, we will create an S3 bucket in region A and one in region B. We will also configure replication from A to B.
+
+All vault instances read from and write to the primary S3 bucket in region A during normal operation. S3 Cross-Region Replication (CRR) copies objects to the replica bucket in region B. Vault does not read from the replica unless operators promote it during an incident.
+
+```diagram
+╭────────────────────╮
+│ Vault instances    │
+│ all regions        │
+╰─────────┬──────────╯
+          │ read/write
+          ▼
+╭────────────────────╮          async CRR           ╭────────────────────╮
+│ Primary S3 bucket  │─────────────────────────────▶│ Replica S3 bucket  │
+│ region A           │                              │ region B           │
+╰────────────────────╯                              ╰────────────────────╯
+```
+
+During failover, operators switch vault configuration to the replica bucket and roll every vault instance.
+
+After failover, the replica is the active bucket. The old primary is stale until reverse replication or backfill completes and convergence is verified. Mixed fleets are not allowed. Vault instances must not write to both buckets at the same time.
+
+## Consistency and RPO
+
+S3 Replication Time Control is still asynchronous with an SLA of replicating 99.9% of objects within 15 minutes. If the primary region fails immediately after vault writes new DEK material, the replica may not have that object yet. Recently encrypted recoverable material may be unavailable until the primary recovers or the missing object is restored.
+
+This RFC accepts non-zero RPO in favour of keeping the architecture and migration simple.
+
+## Failover
+
+If the primary region becomes unavailable, vault keeps using the unavailable primary bucket and requests fail until operators promote the replica. To promote, we manually change the S3 secrets in AWS Secrets Manager `unkey/vault` to point the S3 URL to the replica region's bucket, then sync all ExternalSecrets and restart vault pods.
+
+```diagram
+╭────────────────────╮
+│ Vault instances    │
+│ all regions        │
+╰─────────┬──────────╯
+          │ change config, sync ExternalSecrets, restart pods
+          │ new read/write
+          └────────────────────────────────────────────────┐
+                                                           ▼
+╭────────────────────╮          async CRR           ╭────────────────────╮
+│ Primary S3 bucket  │─────────────────────────────▶│ Replica S3 bucket  │
+│ region A           │                              │ region B           │
+│ failed             │                              │ promoted primary   │
+╰────────────────────╯                              ╰────────────────────╯
+
+Before the config change, vault still points at the failed primary and requests fail.
+```
+
+At this point all reads and writes go to the promoted replica.
+
+After failover, the original primary is stale and the original replica is now the new primary.
+We don't necessarily need to switch back, we can simply copy all immutable objects from the new primary to the old primary and reverse the replication.
+
+Either way, we must not switch back until the old primary has caught up.
+
+## Migration
+
+We'll do a classical dual-write migration.
+
+1. Vault will perform dual writes to both the old R2 and new primary S3.
+2. We will copy all objects from R2 to S3.
+3. Vault switches reads from R2 to S3.
+4. We remove the dual write setup.
+5. We remove the R2 buckets.
+
+```diagram
+Step 1: dual write
+
+╭────────────────────╮
+│ Vault              │
+╰──────┬───────┬─────╯
+       │       │
+       ▼       ▼
+╭──────────╮  ╭────────────────────╮
+│ R2 old   │  │ Primary S3 bucket  │
+╰──────────╯  ╰─────────┬──────────╯
+                        │ async CRR
+                        ▼
+              ╭────────────────────╮
+              │ Replica S3 bucket  │
+              ╰────────────────────╯
+```
+
+## Alternatives considered
+
+Keeping R2 and relying on cache TTLs is not enough because cache only helps warm data.
+
+Active-active S3 buckets are rejected because S3 replication is asynchronous. Routing reads and writes to the nearest bucket can produce stale reads, missing DEKs, and conflicting current-version pointers.
+
+S3 Multi-Region Access Point is not required for the first version. It can simplify endpoint failover, but it does not solve replication lag.
+
+Synchronous dual-write is deferred. It can reduce RPO, but it adds latency, retry complexity, degraded-mode decisions, and application logic.

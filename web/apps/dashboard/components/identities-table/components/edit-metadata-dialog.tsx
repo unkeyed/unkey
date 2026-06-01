@@ -6,15 +6,14 @@ import type { ActionComponentProps } from "@/components/logs/table-action.popove
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { type MetadataFormValues, metadataSchema } from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
-import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
+import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
 import { type FC, useEffect, useId } from "react";
 import { FormProvider } from "react-hook-form";
-import type { z } from "zod";
 import { useEditIdentityMetadata } from "../hooks/use-edit-identity-metadata";
 
-type Identity = z.infer<typeof IdentityResponseSchema>;
+type Identity = IdentityForActions;
 
 type EditMetadataDialogProps = { identity: Identity } & ActionComponentProps;
 

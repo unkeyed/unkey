@@ -5,5 +5,5 @@
 #MISE outputs=["web/node_modules/.modules.yaml"]
 set -euo pipefail
 
-corepack enable
+
 pnpm --dir=web install --recursive --frozen-lockfile

@@ -3,16 +3,19 @@
 import { DeleteIdentityDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/delete-identity-dialog";
 import { EditRatelimitDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/edit-ratelimit-dialog";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
+import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { Clone, Code, Gauge, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
-import { useMemo } from "react";
-import type { z } from "zod";
+import { type PropsWithChildren, useMemo } from "react";
 import { EditMetadataDialog } from "./edit-metadata-dialog";
 
-type Identity = z.infer<typeof IdentityResponseSchema>;
+type Identity = IdentityForActions;
 
-export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
+export const IdentityTableActions = ({
+  identity,
+  children,
+  onDeleted,
+}: PropsWithChildren<{ identity: Identity; onDeleted?: () => void }>) => {
   const menuItems: MenuItem[] = useMemo(
     () => [
       {
@@ -65,11 +68,16 @@ export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
         id: "delete-identity",
         label: "Delete identity",
         icon: <Trash iconSize="md-medium" />,
-        ActionComponent: (props) => <DeleteIdentityDialog {...props} identity={identity} />,
+        ActionComponent: (props) => (
+          <DeleteIdentityDialog {...props} identity={identity} onDeleted={onDeleted} />
+        ),
       },
     ],
-    [identity],
+    [identity, onDeleted],
   );
 
-  return <TableActionPopover items={menuItems} />;
+  // `children`, when provided, becomes the popover trigger (e.g. the "Settings"
+  // button on the identity detail page). When omitted, TableActionPopover
+  // falls back to its default `...` trigger used in the identities table row.
+  return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };

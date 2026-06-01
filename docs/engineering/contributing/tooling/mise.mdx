@@ -29,6 +29,16 @@ Install the pinned mise binary, then install the tools from `mise.toml`:
 mise install
 ```
 
+<Note>
+  If you run into github ratelimit issues, mise can use an auth token to get higher limits
+  You can manually create a token, or use the one from your `gh` cli:
+
+  ```bash
+  GITHUB_TOKEN=$(gh auth token) mise install
+  ```
+
+</Note>
+
 `mise install` installs languages, CLIs, and package managers. It does not run
 repository setup tasks. Repository tasks declare setup work as dependencies, so
 you don't need to run setup-only tasks manually.

@@ -28,6 +28,16 @@ export const IdentityResponseSchema = z.object({
   ),
 });
 
+/**
+ * Minimal identity shape used by the row-action menu and its dialogs
+ * (edit ratelimit, edit metadata, delete). Both the list query and the
+ * per-identity `getById` query return supersets of this.
+ */
+export type IdentityForActions = Pick<
+  z.infer<typeof IdentityResponseSchema>,
+  "id" | "externalId" | "meta" | "ratelimits"
+>;
+
 const IdentitiesResponse = z.object({
   identities: z.array(IdentityResponseSchema),
   total: z.number(),
