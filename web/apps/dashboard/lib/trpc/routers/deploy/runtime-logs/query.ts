@@ -44,7 +44,12 @@ export const queryRuntimeLogs = workspaceProcedure
       });
     }
 
-    const defaultEnvironment = project.environments[0];
+    // Scope to the requested app's environments so the default-environment
+    // fallback below resolves this app's production, not another app's.
+    const appEnvironments = input.appId
+      ? project.environments.filter((e) => e.appId === input.appId)
+      : project.environments;
+    const defaultEnvironment = appEnvironments[0] ?? project.environments[0];
 
     // Resolve instanceIds to k8sPodNames for ClickHouse filtering,
     // and build the reverse map to avoid a redundant DB query later.
@@ -75,12 +80,13 @@ export const queryRuntimeLogs = workspaceProcedure
     const transformedInputs = transformFilters(input);
 
     if (transformedInputs.environmentId.length === 0) {
-      const prod = project.environments.find((e) => e.slug === "production") ?? defaultEnvironment;
+      const prod = appEnvironments.find((e) => e.slug === "production") ?? defaultEnvironment;
       transformedInputs.environmentId = [prod.id];
     }
 
     const environmentIds = transformedInputs.environmentId;
     const appId =
+      input.appId ??
       project.environments.find((e) => environmentIds.includes(e.id))?.appId ??
       defaultEnvironment.appId;
 

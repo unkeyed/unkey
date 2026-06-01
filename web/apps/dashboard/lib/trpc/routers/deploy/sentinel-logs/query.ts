@@ -11,7 +11,9 @@ import { transformSentinelLogsFilters } from "./utils";
 
 export const querySentinelLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
-  .input(sentinelLogsRequestSchema.omit({ workspaceId: true }))
+  .input(
+    sentinelLogsRequestSchema.omit({ workspaceId: true }).extend({ appId: z.string().optional() }),
+  )
   .output(
     z.object({
       logs: z.array(sentinelLogsResponseSchema),
@@ -28,7 +30,7 @@ export const querySentinelLogs = workspaceProcedure
         columns: { id: true },
         with: {
           environments: {
-            columns: { id: true, slug: true },
+            columns: { id: true, slug: true, appId: true },
           },
         },
       });
@@ -50,8 +52,15 @@ export const querySentinelLogs = workspaceProcedure
       const transformedInputs = transformSentinelLogsFilters(input);
 
       if (transformedInputs.environmentId.length === 0) {
+        // Scope to the requested app so the default resolves this app's
+        // production, not another app's in the same project.
+        const appEnvironments = input.appId
+          ? project.environments.filter((e) => e.appId === input.appId)
+          : project.environments;
         const prod =
-          project.environments.find((e) => e.slug === "production") ?? project.environments[0];
+          appEnvironments.find((e) => e.slug === "production") ??
+          appEnvironments[0] ??
+          project.environments[0];
         transformedInputs.environmentId = [prod.id];
       }
 

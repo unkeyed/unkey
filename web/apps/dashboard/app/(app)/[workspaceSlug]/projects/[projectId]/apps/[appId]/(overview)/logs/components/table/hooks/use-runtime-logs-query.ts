@@ -21,7 +21,7 @@ const getLogKey = (log: RuntimeLog): string =>
   `${log.time}-${log.region}-${log.instance_id}-${log.message}`;
 
 export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQueryParams) {
-  const params = useParams<{ projectId: string }>();
+  const params = useParams<{ projectId: string; appId: string }>();
   const { isLive } = useRuntimeLogs();
   const queryClient = trpc.useUtils();
 
@@ -51,6 +51,7 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
 
     return {
       projectId: params.projectId,
+      appId: params.appId,
       deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
       limit,
       startTime: startTimeFilter ? Number(startTimeFilter.value) : null,

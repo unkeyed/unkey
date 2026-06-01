@@ -19,7 +19,7 @@ export function useSentinelLogsQuery({
   startPolling = false,
   pollIntervalMs = 2000,
 }: UseSentinelLogsQueryParams = {}) {
-  const { projectId } = useProjectData();
+  const { projectId, appId } = useProjectData();
   const { filters } = useSentinelLogsFilters();
   const queryClient = trpc.useUtils();
 
@@ -55,6 +55,7 @@ export function useSentinelLogsQuery({
 
     return {
       projectId,
+      appId,
       deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
       environmentId: environmentIdFilters,
       limit,
@@ -65,7 +66,7 @@ export function useSentinelLogsQuery({
       methods: methodFilters.length > 0 ? methodFilters : null,
       paths: pathFilters.length > 0 ? pathFilters : null,
     };
-  }, [filters, limit, projectId]);
+  }, [filters, limit, projectId, appId]);
 
   const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } =
     trpc.deploy.sentinelLogs.query.useInfiniteQuery(queryInput, {
