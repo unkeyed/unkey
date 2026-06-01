@@ -54,19 +54,19 @@ WHERE external_id = 'user_123'
   AND time >= now() - INTERVAL 30 DAY
 ```
 
-### API Analytics
+### Keyspace Analytics
 
-**Use for**: Comparing API performance and usage
+**Use for**: Comparing keyspace performance and usage
 
 ```sql
--- Usage per API (last 30 days)
+-- Usage per keyspace (last 30 days)
 SELECT key_space_id, SUM(count) as total_verifications
 FROM key_verifications_per_day_v1
 WHERE time >= now() - INTERVAL 30 DAY
 GROUP BY key_space_id
 ORDER BY total_verifications DESC
 
--- API success rate comparison (last 7 days)
+-- Keyspace success rate comparison (last 7 days)
 SELECT key_space_id,
        SUM(count) as verifications,
        round(SUM(CASE WHEN outcome = 'VALID' THEN count ELSE 0 END) / SUM(count) * 100, 2) as success_rate
@@ -194,7 +194,7 @@ WHERE time >= toStartOfDay(now())         -- Today
 WHERE time >= toStartOfMonth(now())       -- This month
 ```
 
-### User & API Filters
+### User & Keyspace Filters
 
 ```sql
 -- Specific user
@@ -203,10 +203,10 @@ WHERE external_id = 'user_123'
 -- Multiple users
 WHERE external_id IN ('user_123', 'user_456')
 
--- Specific API
+-- Specific keyspace
 WHERE key_space_id = 'ks_1234'
 
--- Multiple APIs
+-- Multiple keyspaces
 WHERE key_space_id IN ('ks_1234', 'ks_5678')
 ```
 
