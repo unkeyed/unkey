@@ -32,7 +32,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
       emptyText="No APIs found"
       footer={{
         icon: Plus,
-        label: "All APIs",
+        label: "All Keyspaces (APIs)",
         href: `/${workspace.slug}/apis`,
       }}
     />

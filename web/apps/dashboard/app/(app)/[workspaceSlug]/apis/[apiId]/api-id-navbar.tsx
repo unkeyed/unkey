@@ -71,7 +71,9 @@ interface NavbarContentProps {
 const LoadingNavbar = ({ workspace }: LoadingNavbarProps) => (
   <Navbar>
     <Navbar.Breadcrumbs icon={<Nodes />}>
-      <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`}>APIs</Navbar.Breadcrumbs.Link>
+      <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`}>
+        Keyspaces (APIs)
+      </Navbar.Breadcrumbs.Link>
       <Navbar.Breadcrumbs.Link href="#" className="group" noop>
         <div className="h-6 w-20 bg-grayA-3 rounded-sm animate-pulse transition-all " />
       </Navbar.Breadcrumbs.Link>
@@ -167,7 +169,7 @@ const NavbarContent = ({
             href={`/${workspace.slug}/apis`}
             className={isMobile ? "hidden" : "max-md:hidden"}
           >
-            APIs
+            Keyspaces (APIs)
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={base}
