@@ -1,7 +1,7 @@
 "use client";
 
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
+import type { IdentityForActions } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
@@ -20,10 +20,19 @@ const deleteIdentityFormSchema = z.object({
 type DeleteIdentityFormValues = z.infer<typeof deleteIdentityFormSchema>;
 
 type DeleteIdentityDialogProps = {
-  identity: z.infer<typeof IdentityResponseSchema>;
+  identity: IdentityForActions;
+  // Optional callback fired after a successful deletion, in addition to
+  // closing the dialog. The identity detail page uses this to navigate back
+  // to the list once the just-deleted identity is gone.
+  onDeleted?: () => void;
 } & ActionComponentProps;
 
-export const DeleteIdentityDialog = ({ identity, isOpen, onClose }: DeleteIdentityDialogProps) => {
+export const DeleteIdentityDialog = ({
+  identity,
+  isOpen,
+  onClose,
+  onDeleted,
+}: DeleteIdentityDialogProps) => {
   const formId = useId();
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -46,7 +55,10 @@ export const DeleteIdentityDialog = ({ identity, isOpen, onClose }: DeleteIdenti
 
   const confirmDeletion = watch("confirmDeletion");
 
-  const deleteIdentity = useDeleteIdentity(onClose);
+  const deleteIdentity = useDeleteIdentity(() => {
+    onDeleted?.();
+    onClose();
+  });
 
   const handleDialogOpenChange = (open: boolean) => {
     if (isConfirmPopoverOpen) {
