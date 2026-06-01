@@ -1,0 +1,17 @@
+---
+title: "June 1, 2026"
+description: "Edit metadata, ratelimits, and delete identities directly from the identity detail page."
+noindex: true
+---
+
+## Updates
+
+### Identity settings on the detail page
+
+The dashboard's identity detail page now has a **Settings** button in the top navigation. Opening it gives you the same actions previously only available from the identities list table:
+
+- **Edit metadata** — update the identity's JSON `meta` payload inline, with client-side validation so invalid JSON is caught before saving.
+- **Edit ratelimits** — add, change, or remove the shared ratelimits applied across every key linked to this identity. See [Shared ratelimits](/platform/identities/ratelimits).
+- **Delete identity** — permanently remove the identity. Linked keys are unlinked but not deleted. The page refreshes immediately after deletion.
+
+Use this when you're already looking at an identity's logs and want to adjust its configuration without navigating back to the list. Changes are reflected in the dashboard immediately and propagate to key verifications on the next request.
