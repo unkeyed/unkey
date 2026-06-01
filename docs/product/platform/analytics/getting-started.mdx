@@ -39,7 +39,7 @@ Once you have access, execute your first analytics query using the `/v2/analytic
 
 ### Count Total Verifications
 
-Count the total number of key verifications in the last 7 days across all your APIs to get a high-level view of your overall usage volume.
+Count the total number of key verifications in the last 7 days across all your keyspaces to get a high-level view of your overall usage volume.
 
 <CodeGroup>
 ```sql SQL
@@ -148,7 +148,7 @@ Analytics queries return data as an array of objects:
 
 Each object in the `data` array contains fields from your SELECT clause. The field names match the column names or aliases you specified in your query.
 
-## Filtering by API or User
+## Filtering by keyspace or user
 
 You can filter queries to specific keyspaces or users. Use `key_space_id` to filter by keyspace (find this identifier in your Keyspace Settings) and `external_id` to filter by user. These fields support standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
 
@@ -156,7 +156,7 @@ You can filter queries to specific keyspaces or users. Use `key_space_id` to fil
   **Automatic filtering:** All queries are automatically filtered based on your root key's permissions:
 
 - **Workspace filtering:** All queries are scoped to your workspace. You **do not need** to filter by `workspace_id`.
-- **API filtering:** If your root key has `api.<api_id>.read_analytics` permissions (scoped to a specific API), queries are automatically filtered to that API's `key_space_id`. If your root key has `api.*.read_analytics` (all APIs), you should filter by `key_space_id` yourself to query specific APIs.
+- **Keyspace filtering:** If your root key has `api.<api_id>.read_analytics` permissions (scoped to a specific keyspace), queries are automatically filtered to that keyspace's `key_space_id`. If your root key has `api.*.read_analytics` (all keyspaces), you should filter by `key_space_id` yourself to query specific keyspaces.
 
 </Note>
 
