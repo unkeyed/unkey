@@ -2,8 +2,8 @@
 
 import { ChevronLeft } from "@unkey/icons";
 import { Button, useStepWizard } from "@unkey/ui";
-import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
-import { DeploymentEnvVars } from "../../[projectId]/(overview)/env-vars/deployment-env-vars";
+import { ProjectDataProvider } from "../../[projectId]/apps/[appId]/(overview)/data-provider";
+import { DeploymentEnvVars } from "../../[projectId]/apps/[appId]/(overview)/env-vars/deployment-env-vars";
 import { DeployAction } from "./deploy-action";
 
 type EnvVarsStepProps = {
