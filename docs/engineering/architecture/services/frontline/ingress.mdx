@@ -57,8 +57,8 @@ sequenceDiagram
 
 Frontline reads routing data from MySQL and caches it with stale-while-revalidate
 semantics. The cache stores hostname to route mappings and environment to
-sentinel lists. When gossip is enabled, invalidation events are broadcast so all
-frontline nodes converge on the same view of routing and certificate data.
+sentinel lists. Each node maintains its own local cache; entries refresh on
+their fresh/stale schedule.
 
 Sentinel selection is based on health and region proximity. If a healthy
 sentinel is available in the current region, frontline forwards to it directly.

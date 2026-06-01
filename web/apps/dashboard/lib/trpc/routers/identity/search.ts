@@ -65,6 +65,7 @@ export const searchIdentities = workspaceProcedure
         meta: identity.meta,
         createdAt: identity.createdAt,
         updatedAt: identity.updatedAt ? identity.updatedAt : null,
+        lastUsed: null,
         keys: identity.keys,
         ratelimits: identity.ratelimits,
       }));

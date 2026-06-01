@@ -86,24 +86,19 @@ All sentinel pods run in a dedicated `sentinel` Kubernetes namespace, separate f
 
 - Sentinel Deployments (one per environment per region)
 - Services for routing traffic to sentinel pods
-- Gossip headless Services and CiliumNetworkPolicies for cache invalidation
 - Secrets for database, ClickHouse, and Redis credentials
 
 Sentinel pods are scheduled onto dedicated `sentinel` node class nodes using a toleration for the `node-class=sentinel:NoSchedule` taint. This keeps sentinel workloads isolated from customer instance pods at the node level, preventing resource contention between the proxy layer and the workloads it routes to.
 
 ## Kubernetes resources
 
-Each sentinel consists of five resources, all created via server-side apply:
+Each sentinel consists of three resources, all created via server-side apply:
 
-| Resource            | Scope           | Purpose                                                  |
-| ------------------- | --------------- | -------------------------------------------------------- |
-| Deployment          | Per sentinel    | Sentinel pods with rolling update strategy               |
-| ClusterIP Service   | Per sentinel    | Routes traffic to sentinel pods on port 8040             |
-| PodDisruptionBudget | Per sentinel    | Keeps at least one pod available during disruptions      |
-| Headless Service    | Per environment | Gossip peer discovery (resolves to pod IPs on port 7946) |
-| CiliumNetworkPolicy | Per environment | Allows gossip traffic between sentinel pods              |
-
-The environment-scoped resources (headless Service, CiliumNetworkPolicy) are shared across all sentinels in an environment and are not owned by any single Deployment.
+| Resource            | Scope        | Purpose                                             |
+| ------------------- | ------------ | --------------------------------------------------- |
+| Deployment          | Per sentinel | Sentinel pods with rolling update strategy          |
+| ClusterIP Service   | Per sentinel | Routes traffic to sentinel pods on port 8040        |
+| PodDisruptionBudget | Per sentinel | Keeps at least one pod available during disruptions |
 
 ### Deployment spec
 
@@ -114,7 +109,7 @@ The environment-scoped resources (headless Service, CiliumNetworkPolicy) are sha
 | Max Surge         | 1                                                   |
 | Min Ready Seconds | 5                                                   |
 | Topology Spread   | maxSkew=1 across availability zones, ScheduleAnyway |
-| Ports             | 8040 (HTTP), 7946 (gossip TCP+UDP)                  |
+| Ports             | 8040 (HTTP)                                         |
 
 ## Probes
 

@@ -17,7 +17,7 @@ Sentinel returns 404 (not 403) for both cases to avoid leaking whether a deploym
 
 **What to check:**
 1. Verify the deployment ID in the request exists in the sentinel's environment in MySQL.
-2. If the deployment was recently moved or recreated, the deployment cache may be stale (fresh: 30s, stale: up to 5min). Wait or check that gossip is propagating invalidation events.
+2. If the deployment was recently moved or recreated, the deployment cache may be stale (fresh: 30s, stale: up to 5min). Wait for the entry to expire.
 
 ### `Sentinel.Routing.NoRunningInstances` (503)
 
@@ -136,17 +136,6 @@ This is a critical security issue. Customers who configure auth policies expect 
 2. Check Redis pod health in the cluster.
 3. There is no way to distinguish pass-through traffic from authenticated traffic in Prometheus metrics.
 
-### `"Failed to create gossip cluster"`
-
-Gossip initialization failed. Sentinel continues with local-only caches.
-
-**Impact:** Cache invalidation events do not propagate between sentinel nodes. Deployment and instance changes rely on TTL expiration (up to 5 minutes for deployments).
-
-**What to check:**
-1. Verify CiliumNetworkPolicy allows port 7946 (TCP and UDP) between sentinel pods.
-2. Check that the gossip headless Service exists and resolves to pod IPs.
-3. Look for gossip join/leave events in peer sentinel logs.
-
 ## Cache behavior
 
 When routing changes are not taking effect, the cause is usually cache staleness.
@@ -157,7 +146,7 @@ When routing changes are not taking effect, the cause is usually cache staleness
 | Instance   | 10 seconds | 60 seconds | 1,000       |
 | Key        | 10 seconds | 10 minutes | 100,000     |
 
-During the stale window, sentinel serves old data while refreshing in the background. Without gossip enabled, deployment changes can take up to 5 minutes to propagate.
+During the stale window, sentinel serves old data while refreshing in the background. Deployment changes can take up to 5 minutes to propagate to every sentinel node, because each node refreshes its caches on its own TTL.
 
 If a sentinel serves more than 1,000 deployments, cache eviction increases miss rates and database load.
 
@@ -174,5 +163,4 @@ If a sentinel serves more than 1,000 deployments, cache eviction increases miss 
 | In-flight requests         | Prometheus `sentinel_active_requests`                                                       |
 | Distributed trace          | Span `sentinel.proxy` with request_id, status_code, error_type attributes                   |
 | Instance-level failures    | Error context includes instance address, check pod logs for that address                    |
-| Gossip health              | Join/leave events in sentinel structured logs                                               |
 | Sentinel pod health        | Krane `ReportSentinelStatus` logs, `kubectl get deploy -n sentinel`                         |

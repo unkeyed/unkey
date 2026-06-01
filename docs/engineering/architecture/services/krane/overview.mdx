@@ -26,7 +26,7 @@ Krane does not perform scheduling decisions, tenancy policy, or routing logic. T
 Krane is built around these core responsibilities.
 
 - Reconcile user workloads as Kubernetes ReplicaSets
-- Reconcile sentinel infrastructure as Deployments, Services, PDBs, and gossip resources
+- Reconcile sentinel infrastructure as Deployments, Services, and PDBs
 - Reconcile Cilium network policies from control plane definitions
 - Report actual state for workloads and sentinels upstream
 - Decrypt workload secrets using Vault when enabled
@@ -103,8 +103,6 @@ Sentinels are infrastructure proxies deployed into the `sentinel` namespace. Eac
 - Deployment for the sentinel pods
 - ClusterIP Service owned by the Deployment for stable addressing
 - PodDisruptionBudget to keep at least one pod available
-- Headless gossip service for peer discovery across the environment
-- CiliumNetworkPolicy for gossip traffic between sentinel pods
 
 ### Cilium network policies
 

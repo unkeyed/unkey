@@ -105,7 +105,12 @@ function useInitializeSettings(
       storageMib: d.storageMib,
       command: [] as string[],
       healthcheck: null,
-      regions: availableRegions.map((r) => ({ id: r.id, name: r.name, replicas: 1 })),
+      regions: availableRegions.map((r) => ({
+        id: r.id,
+        name: r.name,
+        replicasMin: 1,
+        replicasMax: 1,
+      })),
       shutdownSignal: d.shutdownSignal,
       upstreamProtocol: d.upstreamProtocol,
       openapiSpecPath: null,

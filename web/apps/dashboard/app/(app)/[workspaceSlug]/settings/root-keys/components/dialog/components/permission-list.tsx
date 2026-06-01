@@ -1,25 +1,50 @@
 "use client";
 
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { match } from "@unkey/match";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useCallback, useEffect, useState } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissions } from "../hooks/use-permissions";
+import type { PermissionScope } from "../permissions";
 import { ExpandableCategory } from "./expandable-category";
 import { HighlightedText } from "./highlighted-text";
 import { PermissionToggle } from "./permission-toggle";
 
 type PermissionContentListProps = {
-  type: "workspace" | "api";
-  api?: { id: string; name: string };
+  scope: PermissionScope;
   onPermissionChange: (permissions: UnkeyPermission[]) => void;
   selected: UnkeyPermission[];
   searchValue?: string;
 };
 
+type ScopeHeader = {
+  name: string;
+  description: string;
+  key: string;
+};
+
+const getScopeHeader = (scope: PermissionScope): ScopeHeader =>
+  match(scope)
+    .with({ kind: "workspace" }, () => ({
+      name: "Workspace",
+      description: ROOT_KEY_MESSAGES.DESCRIPTIONS.WORKSPACE,
+      key: "workspace",
+    }))
+    .with({ kind: "api" }, ({ name, id }) => ({
+      name,
+      description: `${ROOT_KEY_MESSAGES.DESCRIPTIONS.API} ${name}`,
+      key: id,
+    }))
+    .with({ kind: "project" }, ({ name, id }) => ({
+      name,
+      description: `${ROOT_KEY_MESSAGES.DESCRIPTIONS.PROJECT} ${name}`,
+      key: id,
+    }))
+    .exhaustive();
+
 export const PermissionContentList = ({
-  type,
-  api,
+  scope,
   onPermissionChange,
   selected,
   searchValue,
@@ -31,18 +56,15 @@ export const PermissionContentList = ({
     handleCategoryToggle,
     handlePermissionToggle,
   } = usePermissions({
-    type,
-    api,
+    scope,
     selected,
     searchValue,
     onPermissionChange,
   });
 
-  // State to track expanded categories and root
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isRootExpanded, setIsRootExpanded] = useState(false);
 
-  // Auto-expand when search is active
   useEffect(() => {
     if (searchValue && searchValue.trim() !== "") {
       setIsRootExpanded(true);
@@ -73,6 +95,9 @@ export const PermissionContentList = ({
       return newSet;
     });
   }, []);
+
+  const header = getScopeHeader(scope);
+
   return (
     <div className="flex flex-col w-full grow-0 max-w-[380px] px-2">
       <Collapsible
@@ -81,12 +106,8 @@ export const PermissionContentList = ({
         className="hover:bg-grayA-3 rounded-lg mb-2"
       >
         <ExpandableCategory
-          category={type === "workspace" ? "Workspace" : (api?.name ?? "API")}
-          description={
-            type === "workspace"
-              ? ROOT_KEY_MESSAGES.DESCRIPTIONS.WORKSPACE
-              : `${ROOT_KEY_MESSAGES.DESCRIPTIONS.API} ${api?.name ?? "API"}`
-          }
+          category={header.name}
+          description={header.description}
           checked={state.rootChecked}
           setChecked={handleRootToggle}
           count={totalPermissions}
@@ -98,7 +119,7 @@ export const PermissionContentList = ({
             <div className="flex flex-col h-full ml-2 w-full min-w-0">
               {Object.entries(filteredPermissionList).map(([category, allPermissions]) => (
                 <Collapsible
-                  key={`${type === "workspace" ? "workspace" : api?.id}-${category}`}
+                  key={`${header.key}-${category}`}
                   className="rounded-lg hover:bg-grayA-3 p-0 m-0 w-full min-w-0"
                   open={expandedCategories.has(category)}
                   onOpenChange={(open) => handleCategoryToggleExpanded(category, open)}

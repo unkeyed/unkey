@@ -15,8 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
-	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 )
 
 type service struct {
@@ -100,17 +100,10 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) Forward(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error {
-	if decision.Destination == router.DestinationLocalInstance {
-		return s.forwardToInstance(ctx, sess, decision)
-	}
-	return s.forwardToRegion(ctx, sess, decision.Address)
-}
-
-func (s *service) forwardToInstance(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error {
+func (s *service) ForwardToInstance(ctx context.Context, sess *zen.Session, protocol db.DeploymentsUpstreamProtocol, instance db.FindInstancesByDeploymentIDRow) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s", decision.Instance.Address))
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s", instance.Address))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
@@ -118,7 +111,7 @@ func (s *service) forwardToInstance(ctx context.Context, sess *zen.Session, deci
 		)
 	}
 
-	transport := s.upstreamTransports.Get(decision.UpstreamProtocol)
+	transport := s.upstreamTransports.Get(protocol)
 
 	return s.forward(ctx, sess, forwardConfig{
 		targetURL:    targetURL,
@@ -129,7 +122,7 @@ func (s *service) forwardToInstance(ctx context.Context, sess *zen.Session, deci
 	})
 }
 
-func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error {
+func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
 	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {

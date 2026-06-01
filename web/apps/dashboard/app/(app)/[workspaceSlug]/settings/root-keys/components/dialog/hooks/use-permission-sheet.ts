@@ -1,25 +1,49 @@
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useCallback, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
-import { apiPermissions, workspacePermissions } from "../permissions";
+import { apiPermissions, projectPermissions, workspacePermissions } from "../permissions";
 import { hasPermissionResults } from "../utils/permissions";
 
+type ScopedItem = { id: string; name: string };
+
 type UsePermissionSheetProps = {
-  apis: { id: string; name: string }[];
+  apis: ScopedItem[];
+  projects: ScopedItem[];
   selectedPermissions: UnkeyPermission[];
   onChange?: (permissions: UnkeyPermission[]) => void;
   editMode?: boolean;
 };
 
+function collectPermissions(
+  list: ScopedItem[],
+  build: (id: string) => {
+    [category: string]: { [action: string]: { permission: UnkeyPermission } };
+  },
+  skipId?: string,
+): Set<UnkeyPermission> {
+  const set = new Set<UnkeyPermission>();
+  for (const item of list) {
+    if (skipId !== undefined && item.id === skipId) {
+      continue;
+    }
+    for (const category of Object.values(build(item.id))) {
+      for (const entry of Object.values(category)) {
+        set.add(entry.permission);
+      }
+    }
+  }
+  return set;
+}
+
 export function usePermissionSheet({
   apis,
+  projects,
   selectedPermissions,
   onChange,
 }: UsePermissionSheetProps) {
   const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Memoize workspace permissions Set to avoid duplication and GC churn
   const workspacePermsSet = useMemo(
     () =>
       new Set<UnkeyPermission>(
@@ -40,39 +64,44 @@ export function usePermissionSheet({
     setIsProcessing(false);
   }, []);
 
+  const rebuildScopedPerms = useCallback(
+    (
+      opts: { apiSkipId?: string; projectSkipId?: string },
+      newPerms: UnkeyPermission[],
+    ): UnkeyPermission[] => {
+      const workspacePerms = selectedPermissions.filter((p) => workspacePermsSet.has(p));
+
+      const apisSet = collectPermissions(apis, apiPermissions, opts.apiSkipId);
+      const apiPerms = selectedPermissions.filter((p) => apisSet.has(p));
+
+      const projectsSet = collectPermissions(projects, projectPermissions, opts.projectSkipId);
+      const projectPerms = selectedPermissions.filter((p) => projectsSet.has(p));
+
+      return Array.from(
+        new Set<UnkeyPermission>([...workspacePerms, ...apiPerms, ...projectPerms, ...newPerms]),
+      );
+    },
+    [selectedPermissions, apis, projects, workspacePermsSet],
+  );
+
   const handleApiPermissionChange = useCallback(
     (apiId: string, permissions: UnkeyPermission[]) => {
       if (!onChange) {
         return;
       }
-
-      const workspacePerms = selectedPermissions.filter((permission) =>
-        workspacePermsSet.has(permission),
-      );
-
-      // Get other APIs' permissions (exclude current API)
-      const otherApisPermsSet = new Set<UnkeyPermission>();
-      for (const api of apis) {
-        if (api.id === apiId) {
-          continue;
-        }
-        for (const perm of Object.values(apiPermissions(api.id)).flatMap((category) =>
-          Object.values(category).map((item) => item.permission),
-        )) {
-          otherApisPermsSet.add(perm);
-        }
-      }
-      const otherApiPerms = selectedPermissions.filter(
-        (permission) => !workspacePermsSet.has(permission) && otherApisPermsSet.has(permission),
-      );
-
-      // Combine all permissions (de-duplicated)
-      const allPermissions = Array.from(
-        new Set<UnkeyPermission>([...workspacePerms, ...otherApiPerms, ...permissions]),
-      );
-      onChange(allPermissions);
+      onChange(rebuildScopedPerms({ apiSkipId: apiId }, permissions));
     },
-    [selectedPermissions, apis, onChange, workspacePermsSet],
+    [onChange, rebuildScopedPerms],
+  );
+
+  const handleProjectPermissionChange = useCallback(
+    (projectId: string, permissions: UnkeyPermission[]) => {
+      if (!onChange) {
+        return;
+      }
+      onChange(rebuildScopedPerms({ projectSkipId: projectId }, permissions));
+    },
+    [onChange, rebuildScopedPerms],
   );
 
   const handleWorkspacePermissionChange = useCallback(
@@ -81,30 +110,23 @@ export function usePermissionSheet({
         return;
       }
 
-      const apiPerms = selectedPermissions.filter(
-        (permission) => !workspacePermsSet.has(permission),
-      );
-
-      // Combine workspace and API permissions (de-duplicated)
-      const allPermissions = Array.from(new Set<UnkeyPermission>([...permissions, ...apiPerms]));
-      onChange(allPermissions);
+      const scopedPerms = selectedPermissions.filter((p) => !workspacePermsSet.has(p));
+      onChange(Array.from(new Set<UnkeyPermission>([...permissions, ...scopedPerms])));
     },
     [selectedPermissions, onChange, workspacePermsSet],
   );
 
-  // Check if all permission lists are empty after filtering
   const hasNoResults = useMemo(() => {
-    // Check workspace permissions
     const workspaceHasResults = hasPermissionResults(workspacePermissions, searchValue);
+    const anyApiHasResults = apis.some((api) =>
+      hasPermissionResults(apiPermissions(api.id), searchValue),
+    );
+    const anyProjectHasResults = projects.some((project) =>
+      hasPermissionResults(projectPermissions(project.id), searchValue),
+    );
 
-    // Check API permissions
-    const anyApiHasResults = apis.some((api) => {
-      const apiPerms = apiPermissions(api.id);
-      return hasPermissionResults(apiPerms, searchValue);
-    });
-
-    return !workspaceHasResults && !anyApiHasResults;
-  }, [searchValue, apis]);
+    return !workspaceHasResults && !anyApiHasResults && !anyProjectHasResults;
+  }, [searchValue, apis, projects]);
 
   return {
     searchValue,
@@ -112,6 +134,7 @@ export function usePermissionSheet({
     hasNoResults,
     handleSearchChange,
     handleApiPermissionChange,
+    handleProjectPermissionChange,
     handleWorkspacePermissionChange,
   };
 }
