@@ -86,3 +86,19 @@ If authentication fails, you receive a 401 or 403 response:
 ```
 
 Common issues include missing headers, invalid key format, revoked keys, or insufficient permissions.
+
+## Document operation permissions
+
+Authenticated endpoints must document required permissions in their OpenAPI
+description. Use clear prose and wrap permission strings in backticks.
+
+For endpoints that accept more than one valid permission, describe the alternatives
+explicitly:
+
+```plaintext
+Requires `ratelimit.*.set_override` or
+`ratelimit.<namespace_id>.set_override`.
+```
+
+Don't add machine-readable permission extensions by default. Permission prose is
+the source of truth until API tooling needs a stricter contract.
