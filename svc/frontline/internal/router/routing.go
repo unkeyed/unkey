@@ -2,9 +2,9 @@ package router
 
 import (
 	"fmt"
+	"math/rand/v2"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
-	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
@@ -39,9 +39,18 @@ var regionProximity = map[string][]string{
 }
 
 // selectDestination decides whether to run the engine + proxy locally or
-// forward to a peer frontline. The choice keys off "is there a running
-// instance for this deployment in this region?" — if yes, route locally;
-// otherwise forward to the nearest region that has one.
+// forward to a peer frontline.
+//
+// If any running instance exists in this region, the returned decision is
+// local and carries every local instance in shuffled order — the caller
+// walks the list, trying the next on dial failures. The decision also
+// carries the nearest peer region (if one exists) as RemoteRegionAddress,
+// which the caller falls through to once every local instance has dial-
+// failed. Empty when no other region has running instances.
+//
+// Otherwise (no local instances), the decision points at the nearest peer
+// region that has at least one running instance, and LocalInstances is
+// empty.
 func (s *service) selectDestination(
 	route db.FindFrontlineRouteByFQDNRow,
 	instances []db.FindInstancesByDeploymentIDRow,
@@ -77,17 +86,23 @@ func (s *service) selectDestination(
 	}
 
 	if len(localRunning) > 0 {
-		selected := array.Random(localRunning)
+		rand.Shuffle(len(localRunning), func(i int, j int) {
+			localRunning[i], localRunning[j] = localRunning[j], localRunning[i]
+		})
+		// Pick a standby peer region for the handler to fall through to
+		// if every local instance dial-fails. Empty when this is the only
+		// region with running instances — in that case there is nowhere
+		// to fall through to and the dial failures surface to the client.
 		return RouteDecision{
-			Destination:      DestinationLocalInstance,
-			DeploymentID:     route.DeploymentID,
-			EnvironmentID:    route.EnvironmentID,
-			WorkspaceID:      selected.WorkspaceID,
-			ProjectID:        selected.ProjectID,
-			UpstreamProtocol: route.UpstreamProtocol,
-			Instance:         selected,
-			Policies:         policies,
-			Address:          selected.Address,
+			Destination:         DestinationLocalInstance,
+			DeploymentID:        route.DeploymentID,
+			EnvironmentID:       route.EnvironmentID,
+			WorkspaceID:         localRunning[0].WorkspaceID,
+			ProjectID:           localRunning[0].ProjectID,
+			UpstreamProtocol:    route.UpstreamProtocol,
+			Policies:            policies,
+			LocalInstances:      localRunning,
+			RemoteRegionAddress: s.findNearestRegionPlatform(regionsWithInstance),
 		}, nil
 	}
 
@@ -102,16 +117,25 @@ func (s *service) selectDestination(
 
 	//nolint:exhaustruct
 	return RouteDecision{
-		Destination:   DestinationRemoteRegion,
-		DeploymentID:  route.DeploymentID,
-		EnvironmentID: route.EnvironmentID,
-		Address:       nearestRegion,
+		Destination:         DestinationRemoteRegion,
+		DeploymentID:        route.DeploymentID,
+		EnvironmentID:       route.EnvironmentID,
+		RemoteRegionAddress: nearestRegion,
 	}, nil
 }
 
+// findNearestRegionPlatform returns the peer region (other than the local
+// one) most likely to be reachable, given the set of regions known to have
+// running instances for the deployment. Returns "" if no peer is available.
+//
+// The proximity table is the primary source of order. When the local
+// region is missing from the table, or the proximity list does not name
+// any region in regionsWithInstance (the table is incomplete in places —
+// e.g. us-east-1.aws does not list eu-north-1.aws), we fall back to map-
+// iteration order. Iteration order is non-deterministic but at least
+// returns *something* reachable instead of failing closed.
 func (s *service) findNearestRegionPlatform(regionsWithInstance map[string]bool) string {
-	proximityList, exists := regionProximity[s.regionPlatform]
-	if exists {
+	if proximityList, exists := regionProximity[s.regionPlatform]; exists {
 		for _, region := range proximityList {
 			if regionsWithInstance[region] {
 				return region
@@ -120,7 +144,9 @@ func (s *service) findNearestRegionPlatform(regionsWithInstance map[string]bool)
 	}
 
 	for region := range regionsWithInstance {
-		return region
+		if region != s.regionPlatform {
+			return region
+		}
 	}
 
 	return ""

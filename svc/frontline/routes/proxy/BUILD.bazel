@@ -2,22 +2,32 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "proxy",
-    srcs = ["handler.go"],
+    srcs = [
+        "handler.go",
+        "metrics.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/routes/proxy",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
         "//pkg/logger",
+        "//pkg/prometheus/lazy",
         "//pkg/zen",
         "//svc/frontline/internal/policies",
         "//svc/frontline/internal/proxy",
         "//svc/frontline/internal/router",
+        "@com_github_prometheus_client_golang//prometheus",
     ],
 )
 
 go_test(
     name = "proxy_test",
-    srcs = ["websocket_test.go"],
+    srcs = [
+        "retry_test.go",
+        "websocket_test.go",
+    ],
     deps = [
         ":proxy",
         "//pkg/clock",

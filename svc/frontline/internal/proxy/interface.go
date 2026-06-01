@@ -7,16 +7,25 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
-	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 )
 
-// Service defines the interface for proxying requests based on routing decisions.
+// Service forwards HTTP requests to either a local deployment instance or
+// a peer frontline in another region. Callers pick the target; the service
+// itself is unaware of routing policy.
 type Service interface {
-	// Forward dispatches a request based on the routing decision. Local
-	// decisions go straight to the chosen instance; remote decisions hop
-	// to the peer frontline in another region.
-	Forward(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error
+	// ForwardToInstance proxies the request to the given deployment instance
+	// using the transport selected by protocol. Returns the wrapped proxy
+	// error on failure; callers may use [IsDialError] to decide whether the
+	// request is safe to replay against a different instance.
+	ForwardToInstance(ctx context.Context, sess *zen.Session, protocol db.DeploymentsUpstreamProtocol, instance db.FindInstancesByDeploymentIDRow) error
+
+	// ForwardToRegion proxies the request to the peer frontline serving
+	// targetRegionPlatform (e.g. "us-east-1.aws"). The peer redoes the full
+	// hostname → engine → instance chain and is responsible for its own
+	// retry and logging.
+	ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error
 }
 
 // Config holds configuration for the proxy service.
