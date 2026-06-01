@@ -5,7 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
 import { trpc } from "@/lib/trpc/client";
 import { Badge, BannerCard, Button } from "@unkey/ui";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
 const DOCS_URL = "https://www.unkey.com/docs/platform/apis/overview";
@@ -28,6 +28,7 @@ export function NewNavigationBanner() {
   const enabled = useFlag("newNavigation");
   const workspace = useWorkspaceNavigation();
   const { dismissed, dismiss } = useDismissibleBanner("new-navigation-v1");
+  const reduceMotion = useReducedMotion();
 
   // The banner reassures users that their APIs moved under Keyspaces, so it
   // only makes sense for workspaces that actually have APIs. A workspace with
@@ -45,9 +46,9 @@ export function NewNavigationBanner() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 25 }}
       className="fixed bottom-4 right-4 z-40 w-85"
     >
       <BannerCard onDismiss={dismiss} illustration={<NewNavigationIllustration />}>
