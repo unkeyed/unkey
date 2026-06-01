@@ -1,7 +1,9 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { shouldReportToSentry } from "@/lib/utils/error-classification";
+import * as Sentry from "@sentry/nextjs";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
 import type React from "react";
 import { type PropsWithChildren, useState } from "react";
@@ -35,6 +37,44 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        // React Query swallows errors into the query/mutation result by design — components
+        // render the error state but nothing reaches Sentry's automatic instrumentation.
+        // Wire the global caches so every unexpected failure is reported, while still
+        // filtering the user/permission errors classified as "expected".
+        queryCache: new QueryCache({
+          onError: (error, query) => {
+            if (!shouldReportToSentry(error)) {
+              return;
+            }
+            Sentry.captureException(error, {
+              tags: {
+                source: "react_query",
+                query_type: "query",
+                // tRPC react-query keys are nested: [['path','segments'], { input, type }].
+                // Joining the outer array stringifies the inner array and input object,
+                // producing useless tag values like "path,segments.[object Object]".
+                trpc_path: Array.isArray(query.queryKey?.[0])
+                  ? query.queryKey[0].join(".")
+                  : "unknown",
+              },
+            });
+          },
+        }),
+        mutationCache: new MutationCache({
+          onError: (error, _variables, _context, mutation) => {
+            if (!shouldReportToSentry(error)) {
+              return;
+            }
+            const mutationKey = mutation.options.mutationKey;
+            Sentry.captureException(error, {
+              tags: {
+                source: "react_query",
+                query_type: "mutation",
+                trpc_path: Array.isArray(mutationKey?.[0]) ? mutationKey[0].join(".") : "unknown",
+              },
+            });
+          },
+        }),
         defaultOptions: {
           queries: {
             staleTime: 1000 * 60 * 2, // 2 minutes (reduced for security)

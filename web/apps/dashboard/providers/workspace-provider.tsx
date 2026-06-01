@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import { baseQueryOptions, createRetryFn } from "@/lib/utils/trpc";
+import * as Sentry from "@sentry/nextjs";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { Quotas, Workspace } from "@unkey/db";
 import { usePathname } from "next/navigation";
@@ -71,6 +72,30 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
       userQuery.refetch();
     }
   }, [pathname, userLoading, user, userQuery.refetch]);
+
+  // Tag every Sentry event with the current user/workspace so issues are attributable.
+  // Without this, server-side breadcrumbs and client-side errors land in Sentry with
+  // no way to filter by workspace, which makes triage almost impossible. We omit email
+  // intentionally (`sendDefaultPii: false`) and only ship stable IDs.
+  useEffect(() => {
+    if (user?.id) {
+      Sentry.setUser({ id: user.id });
+      Sentry.setTag("org_id", user.orgId ?? "none");
+    } else {
+      Sentry.setUser(null);
+      Sentry.setTag("org_id", "none");
+    }
+  }, [user?.id, user?.orgId]);
+
+  useEffect(() => {
+    if (workspace?.id) {
+      Sentry.setTag("workspace_id", workspace.id);
+      Sentry.setTag("workspace_tier", workspace.tier ?? "unknown");
+    } else {
+      Sentry.setTag("workspace_id", "none");
+      Sentry.setTag("workspace_tier", "none");
+    }
+  }, [workspace?.id, workspace?.tier]);
 
   const refetch = useCallback(async () => {
     await Promise.all([userQuery.refetch(), workspaceQuery.refetch()]);

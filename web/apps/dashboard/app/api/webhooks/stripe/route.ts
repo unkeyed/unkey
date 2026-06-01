@@ -19,7 +19,40 @@ import {
   alertSubscriptionCreation,
   alertSubscriptionUpdate,
 } from "@/lib/utils/slackAlerts";
+import * as Sentry from "@sentry/nextjs";
 import Stripe from "stripe";
+
+type StripeWebhookStage =
+  | "signature"
+  | "subscription.updated"
+  | "subscription.deleted"
+  | "subscription.created"
+  | "invoice.payment_failed"
+  | "invoice.payment_succeeded";
+
+/**
+ * Report a webhook failure to Sentry with consistent tagging so all stripe webhook
+ * issues group together and carry the event metadata (event id, type, stage).
+ */
+function reportStripeWebhookError(
+  err: unknown,
+  ctx: {
+    eventId?: string;
+    eventType?: string;
+    stage: StripeWebhookStage;
+    level?: Sentry.SeverityLevel;
+  },
+): void {
+  Sentry.captureException(err, {
+    tags: {
+      handler: "stripe_webhook",
+      stripe_event_type: ctx.eventType ?? "unknown",
+      stripe_webhook_stage: ctx.stage,
+    },
+    extra: { eventId: ctx.eventId },
+    level: ctx.level,
+  });
+}
 
 /**
  * Deactivates every active membership in `orgId` except the earliest one (the original
@@ -103,6 +136,10 @@ export const POST = async (req: Request): Promise<Response> => {
     event = stripe.webhooks.constructEvent(requestBody, signature, e.STRIPE_WEBHOOK_SECRET);
   } catch (error) {
     console.error("Webhook signature validation failed:", error);
+    // Signature failures can come from random scanners, but a sustained burst is
+    // usually our STRIPE_WEBHOOK_SECRET being out-of-sync with Stripe — we want to
+    // see those in Sentry's grouping/volume rather than silently 400.
+    reportStripeWebhookError(error, { stage: "signature", level: "warning" });
     return new Response("Error", { status: 400 });
   }
   switch (event.type) {
@@ -305,6 +342,11 @@ export const POST = async (req: Request): Promise<Response> => {
           eventId: event.id,
           eventType: event.type,
         });
+        reportStripeWebhookError(error, {
+          eventId: event.id,
+          eventType: event.type,
+          stage: "subscription.updated",
+        });
         return new Response("Error", { status: 500 });
       }
       break;
@@ -393,6 +435,11 @@ export const POST = async (req: Request): Promise<Response> => {
           eventId: event.id,
           eventType: event.type,
         });
+        reportStripeWebhookError(error, {
+          eventId: event.id,
+          eventType: event.type,
+          stage: "subscription.deleted",
+        });
         return new Response("Error", { status: 500 });
       }
       break;
@@ -450,6 +497,11 @@ export const POST = async (req: Request): Promise<Response> => {
               : error,
           eventId: event.id,
           eventType: event.type,
+        });
+        reportStripeWebhookError(error, {
+          eventId: event.id,
+          eventType: event.type,
+          stage: "subscription.created",
         });
         return new Response("Error", { status: 500 });
       }
@@ -546,6 +598,11 @@ export const POST = async (req: Request): Promise<Response> => {
               : error,
           eventId: event.id,
           eventType: event.type,
+        });
+        reportStripeWebhookError(error, {
+          eventId: event.id,
+          eventType: event.type,
+          stage: "invoice.payment_failed",
         });
 
         // Return 200 to prevent Stripe from retrying, but log the error
@@ -662,6 +719,11 @@ export const POST = async (req: Request): Promise<Response> => {
               : error,
           eventId: event.id,
           eventType: event.type,
+        });
+        reportStripeWebhookError(error, {
+          eventId: event.id,
+          eventType: event.type,
+          stage: "invoice.payment_succeeded",
         });
 
         // Return 200 to prevent Stripe from retrying, but log the error

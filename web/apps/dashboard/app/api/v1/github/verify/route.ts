@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import * as Sentry from "@sentry/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import { NextResponse } from "next/server";
@@ -184,6 +185,12 @@ async function alertSlack({
     }),
   }).catch((err: Error) => {
     console.error(err);
+    // The raw fetch error message can embed the Slack webhook URL (a secret) via
+    // undici's error envelope — send a sanitized Error to Sentry instead so the
+    // webhook URL never reaches an external service.
+    Sentry.captureException(new Error("Fetch to Slack webhook failed"), {
+      tags: { handler: "github_verify_slack_alert" },
+    });
   });
 }
 

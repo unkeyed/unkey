@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import * as Sentry from "@sentry/nextjs";
 import { Resend } from "@unkey/resend";
 import { WorkOS } from "@workos-inc/node";
 import { type NextRequest, NextResponse } from "next/server";
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid JSON payload";
     console.error("Failed to parse webhook payload:", message);
+    Sentry.captureException(err, { tags: { handler: "workos_webhook", stage: "parse" } });
     return NextResponse.json({ Error: "Invalid JSON payload" }, { status: 400 });
   }
 
@@ -58,6 +60,7 @@ export async function POST(req: NextRequest) {
     // downstream provider failures (Resend, WorkOS) and cannot harvest
     // SDK error strings (URLs, audience IDs, rate-limit hints) for recon.
     console.error("WorkOS webhook processing failed:", err);
+    Sentry.captureException(err, { tags: { handler: "workos_webhook" } });
     return NextResponse.json({ error: "Webhook processing failed" }, { status: 400 });
   }
 }

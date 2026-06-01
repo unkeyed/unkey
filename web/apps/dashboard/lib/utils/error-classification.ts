@@ -50,6 +50,52 @@ export function isExpectedErrorCode(code: string): code is (typeof EXPECTED_TRPC
   return (EXPECTED_TRPC_CODES as readonly string[]).includes(code);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * Heuristic that something is a tRPC error and not just any object that happens to
+ * carry a `code` field. We check for: (a) the constructor name `TRPCError` /
+ * `TRPCClientError`, (b) the presence of tRPC-specific fields (`httpStatus`,
+ * `meta.path`, or a wrapped `data.httpStatus`), or (c) an explicit `__isTRPCError`
+ * marker. Without this guard we'd swallow any unrelated error whose `code` happens
+ * to collide with one of `EXPECTED_TRPC_CODES` (e.g. a database driver error).
+ */
+function looksLikeTRPCError(error: unknown): boolean {
+  if (!isRecord(error)) {
+    return false;
+  }
+  const errorObj = error;
+
+  // Match by constructor name — works for TRPCError (server) and TRPCClientError (client),
+  // and survives bundler renames better than instanceof across module boundaries.
+  if (
+    error instanceof Error &&
+    (error.name === "TRPCError" ||
+      error.name === "TRPCClientError" ||
+      error.constructor?.name === "TRPCError" ||
+      error.constructor?.name === "TRPCClientError")
+  ) {
+    return true;
+  }
+
+  // Server-side tRPC error shape — `httpStatus` is set by the tRPC server runtime.
+  if (typeof errorObj.httpStatus === "number") {
+    return true;
+  }
+
+  // Client-side error envelope from `@trpc/client` with `data: { code, httpStatus, path }`.
+  const data = errorObj.data;
+  if (isRecord(data)) {
+    if (typeof data.httpStatus === "number" || typeof data.path === "string") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /**
  * Determines if an error is an expected tRPC error that should be filtered
  *
@@ -62,6 +108,12 @@ export function isExpectedErrorCode(code: string): code is (typeof EXPECTED_TRPC
  */
 export function isExpectedTRPCError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  // Don't drop errors just because they have a `code` field — a bare `{ code: "NOT_FOUND" }`
+  // from a non-tRPC source must still reach Sentry.
+  if (!looksLikeTRPCError(error)) {
     return false;
   }
 

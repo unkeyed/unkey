@@ -16,6 +16,21 @@ import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({ transformer: superjson });
 
+// Tracks errors already captured by the procedure-level handler so the outer route
+// `onError` does not double-report them. Procedure errors flow through both paths
+// when the procedure-level capture fires for `INTERNAL_SERVER_ERROR`.
+const reportedToSentry = new WeakSet<object>();
+
+export function wasReportedToSentry(error: unknown): boolean {
+  return typeof error === "object" && error !== null && reportedToSentry.has(error);
+}
+
+function markReportedToSentry(error: unknown): void {
+  if (typeof error === "object" && error !== null) {
+    reportedToSentry.add(error);
+  }
+}
+
 /**
  * Sentry middleware for error tracking and performance monitoring
  * Automatically captures errors and attaches RPC input to Sentry events
@@ -47,59 +62,73 @@ const enhancedErrorMiddleware = t.middleware(({ next, ctx, path, input }) => {
     timestamp: startTime,
   };
 
-  // Log request start with context information
-  logOperation(
-    "debug",
-    "tRPC request started",
-    {
+  // Fork a child scope per procedure invocation. `getCurrentScope()` would mutate the
+  // request-wide isolation scope, which `httpBatchLink` shares across every procedure
+  // in the batched POST — so an error from procedure A could surface tagged with
+  // procedure B's path. `withScope` keeps these tags local to this invocation.
+  return Sentry.withScope((scope) => {
+    scope.setUser(ctx.user?.id ? { id: ctx.user.id } : null);
+    scope.setTags({
       trpc_procedure: path,
-      user_id: ctx.user?.id,
-      workspace_id: ctx.workspace?.id as string | undefined,
       request_id: requestId,
-      has_input: !!input,
-      user_agent: ctx.audit?.userAgent,
-      location: ctx.audit?.location,
-    },
-    requestContext,
-  );
+      workspace_id: (ctx.workspace?.id as string | undefined) ?? "none",
+      org_id: ctx.tenant?.id ?? "none",
+    });
 
-  try {
-    const result = next();
+    // Log request start with context information
+    logOperation(
+      "debug",
+      "tRPC request started",
+      {
+        trpc_procedure: path,
+        user_id: ctx.user?.id,
+        workspace_id: ctx.workspace?.id as string | undefined,
+        request_id: requestId,
+        has_input: !!input,
+        user_agent: ctx.audit?.userAgent,
+        location: ctx.audit?.location,
+      },
+      requestContext,
+    );
 
-    // Handle successful operations
-    if (result instanceof Promise) {
-      return result.then(
-        (value) => {
-          const duration = Date.now() - startTime;
+    try {
+      const result = next();
 
-          // Log successful completion with timing
-          logTRPCSuccess(path, requestContext, duration);
+      // Handle successful operations
+      if (result instanceof Promise) {
+        return result.then(
+          (value) => {
+            const duration = Date.now() - startTime;
 
-          // Log performance metrics for slow operations
-          if (duration > 1000) {
-            logPerformance(`trpc_${path}`, duration, requestContext, {
-              slow_operation: 1,
-              threshold_ms: 1000,
-            });
-          }
+            // Log successful completion with timing
+            logTRPCSuccess(path, requestContext, duration);
 
-          return value;
-        },
-        (error) => {
-          const duration = Date.now() - startTime;
-          handleTRPCError(error, path, requestContext, duration);
-          throw error;
-        },
-      );
+            // Log performance metrics for slow operations
+            if (duration > 1000) {
+              logPerformance(`trpc_${path}`, duration, requestContext, {
+                slow_operation: 1,
+                threshold_ms: 1000,
+              });
+            }
+
+            return value;
+          },
+          (error) => {
+            const duration = Date.now() - startTime;
+            handleTRPCError(error, path, requestContext, duration);
+            throw error;
+          },
+        );
+      }
+      const duration = Date.now() - startTime;
+      logTRPCSuccess(path, requestContext, duration);
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      handleTRPCError(error, path, requestContext, duration);
+      throw error;
     }
-    const duration = Date.now() - startTime;
-    logTRPCSuccess(path, requestContext, duration);
-    return result;
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    handleTRPCError(error, path, requestContext, duration);
-    throw error;
-  }
+  });
 });
 
 /**
@@ -165,6 +194,24 @@ function handleTRPCError(
       },
       requestContext,
     );
+
+    // `Sentry.trpcMiddleware` only sees errors that flow back through its `next()`
+    // call — it can miss errors thrown by middlewares running outside its frame
+    // (input validation, context bootstrapping). Capture explicitly so unexpected
+    // tRPC failures are never invisible, with the per-request context attached.
+    Sentry.captureException(error, {
+      tags: {
+        source: "trpc_server",
+        trpc_procedure: path,
+        trpc_error_code: errorInfo?.code ?? "unknown",
+      },
+      extra: {
+        request_id: requestContext.requestId,
+        response_time_ms: duration,
+      },
+    });
+    // Mark so the outer fetch-handler `onError` does not re-capture this same error.
+    markReportedToSentry(error);
   }
 }
 
