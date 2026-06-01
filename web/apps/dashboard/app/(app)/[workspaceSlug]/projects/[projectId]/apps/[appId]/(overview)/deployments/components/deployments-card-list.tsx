@@ -58,7 +58,7 @@ export function DeploymentsCardList() {
             environment={environment}
             isCurrent={isCurrent}
             isRolledBack={isCurrent && (project?.isRolledBack ?? false)}
-            href={`/${workspace.slug}/projects/${project?.id}/deployments/${deployment.id}`}
+            href={`/${workspace.slug}/projects/${project?.id}/apps/${deployment.appId}/deployments/${deployment.id}`}
           />
         );
       })}

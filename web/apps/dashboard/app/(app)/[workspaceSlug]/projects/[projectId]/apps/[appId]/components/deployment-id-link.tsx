@@ -11,11 +11,11 @@ type DeploymentIdLinkProps = {
 
 export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
   const workspace = useWorkspaceNavigation();
-  const { projectId } = useProjectData();
+  const { projectId, appId } = useProjectData();
 
   return (
     <DottedLink
-      href={`/${workspace.slug}/projects/${projectId}/deployments/${deploymentId}`}
+      href={`/${workspace.slug}/projects/${projectId}/apps/${appId}/deployments/${deploymentId}`}
       copyValue={deploymentId}
     >
       <span className="font-mono">{shortenId(deploymentId)}</span>

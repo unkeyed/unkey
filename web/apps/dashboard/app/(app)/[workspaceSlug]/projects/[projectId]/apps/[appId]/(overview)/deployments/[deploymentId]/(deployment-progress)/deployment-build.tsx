@@ -16,7 +16,7 @@ export function DeploymentBuild() {
   const router = useRouter();
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;
-  const deploymentUrl = `/${workspaceSlug}/projects/${projectId}/deployments/${deployment.id}`;
+  const deploymentUrl = `/${workspaceSlug}/projects/${projectId}/apps/${deployment.appId}/deployments/${deployment.id}`;
 
   const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
     {

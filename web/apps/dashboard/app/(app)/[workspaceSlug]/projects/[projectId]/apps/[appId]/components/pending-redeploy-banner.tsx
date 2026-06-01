@@ -35,7 +35,7 @@ export function PendingRedeployBanner() {
       }
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       router.push(
-        `/${workspace.slug}/projects/${currentDeployment.projectId}/deployments/${data.deploymentId}`,
+        `/${workspace.slug}/projects/${currentDeployment.projectId}/apps/${currentDeployment.appId}/deployments/${data.deploymentId}`,
       );
       dismissSettingsBanner();
     },

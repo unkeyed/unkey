@@ -25,7 +25,7 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       onClose();
       router.push(
-        `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${data.deploymentId}`,
+        `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/deployments/${data.deploymentId}`,
       );
     },
     onError: (error) => {
