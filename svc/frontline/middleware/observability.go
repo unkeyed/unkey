@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -27,12 +26,6 @@ type ErrorMeta struct {
 type ErrorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
-}
-
-type errorPageInfo struct {
-	Status  int
-	Title   string
-	Message string
 }
 
 // WithObservability is the request-level observability middleware. It owns:
@@ -80,20 +73,21 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					code = codes.Frontline.Internal.InternalServerError
 				}
 
-				pageInfo := getErrorPageInfoFrontline(urn)
-				statusCode = pageInfo.Status
+				status := httpStatus(urn)
+				statusCode = status.Int()
+				title := errorTitle(status, urn)
 
-				userMessage := pageInfo.Message
+				userMessage := frontlineErrorMessages[urn]
 				if userMessage == "" {
 					userMessage = fault.UserFacingMessage(err)
 				}
 
-				if pageInfo.Status == http.StatusInternalServerError {
+				if status == codes.StatusInternalServerError {
 					logger.Error("frontline error",
 						"error", err.Error(),
 						"requestId", s.RequestID(),
 						"publicMessage", userMessage,
-						"status", pageInfo.Status,
+						"status", statusCode,
 						"path", s.Request().URL.Path,
 						"host", s.Request().Host,
 					)
@@ -106,7 +100,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 
 				var writeErr error
 				if preferJSON {
-					writeErr = s.JSON(pageInfo.Status, ErrorResponse{
+					writeErr = s.JSON(statusCode, ErrorResponse{
 						Meta: ErrorMeta{RequestID: s.RequestID()},
 						Error: ErrorDetail{
 							Code:    string(code.URN()),
@@ -115,8 +109,8 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					})
 				} else {
 					htmlBody, renderErr := renderer.Render(errorpage.Data{
-						StatusCode: pageInfo.Status,
-						Title:      pageInfo.Title,
+						StatusCode: statusCode,
+						Title:      title,
 						Message:    userMessage,
 						ErrorCode:  string(code.URN()),
 						DocsURL:    code.DocsURL(),
@@ -124,7 +118,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					})
 					if renderErr != nil {
 						logger.Error("failed to render error page", "error", renderErr.Error())
-						writeErr = s.JSON(pageInfo.Status, ErrorResponse{
+						writeErr = s.JSON(statusCode, ErrorResponse{
 							Meta: ErrorMeta{RequestID: s.RequestID()},
 							Error: ErrorDetail{
 								Code:    string(code.URN()),
@@ -132,7 +126,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 							},
 						})
 					} else {
-						writeErr = s.HTML(pageInfo.Status, htmlBody)
+						writeErr = s.HTML(statusCode, htmlBody)
 					}
 				}
 
@@ -163,161 +157,6 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 			metrics.RequestsTotal.WithLabelValues(metrics.StatusClass(statusCode), string(urn)).Inc()
 
 			return nil
-		}
-	}
-}
-
-func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
-	//nolint:exhaustive
-	switch urn {
-	case codes.User.BadRequest.ClientClosedRequest.URN():
-		return errorPageInfo{
-			Status:  499,
-			Title:   "Client Closed Request",
-			Message: "The client closed the connection before the request completed.",
-		}
-	case codes.User.BadRequest.RequestTimeout.URN():
-		// Frontline acts as a gateway: a request-processing deadline that
-		// fires here means upstream took too long. Surface as 504, not 500,
-		// so it doesn't trigger server-error alerting.
-		return errorPageInfo{
-			Status:  http.StatusGatewayTimeout,
-			Title:   http.StatusText(http.StatusGatewayTimeout),
-			Message: "The request took too long to process. Please try again later.",
-		}
-	case codes.User.BadRequest.RequestBodyTooLarge.URN():
-		return errorPageInfo{
-			Status:  http.StatusRequestEntityTooLarge,
-			Title:   http.StatusText(http.StatusRequestEntityTooLarge),
-			Message: "The request body exceeds the maximum allowed size.",
-		}
-	case codes.User.BadRequest.RequestBodyUnreadable.URN():
-		return errorPageInfo{
-			Status:  http.StatusBadRequest,
-			Title:   http.StatusText(http.StatusBadRequest),
-			Message: "The request body could not be read.",
-		}
-	case codes.Auth.Authentication.Missing.URN():
-		return errorPageInfo{
-			Status:  http.StatusUnauthorized,
-			Title:   http.StatusText(http.StatusUnauthorized),
-			Message: "Authentication required.",
-		}
-	case codes.Auth.Authentication.Malformed.URN():
-		return errorPageInfo{
-			Status:  http.StatusUnauthorized,
-			Title:   http.StatusText(http.StatusUnauthorized),
-			Message: "The authentication credentials are malformed.",
-		}
-	case codes.App.Validation.InvalidInput.URN():
-		return errorPageInfo{
-			Status:  http.StatusBadRequest,
-			Title:   http.StatusText(http.StatusBadRequest),
-			Message: "",
-		}
-	case codes.Frontline.Routing.ConfigNotFound.URN():
-		return errorPageInfo{
-			Status:  http.StatusNotFound,
-			Title:   http.StatusText(http.StatusNotFound),
-			Message: "No deployment found for this hostname. Please check your domain configuration or contact support at support@unkey.com.",
-		}
-	case codes.Frontline.Proxy.BadGateway.URN(),
-		codes.Frontline.Proxy.ProxyForwardFailed.URN():
-		return errorPageInfo{
-			Status:  http.StatusBadGateway,
-			Title:   http.StatusText(http.StatusBadGateway),
-			Message: "Unable to connect. Please try again in a few moments.",
-		}
-	case codes.Frontline.Proxy.ServiceUnavailable.URN():
-		return errorPageInfo{
-			Status:  http.StatusServiceUnavailable,
-			Title:   http.StatusText(http.StatusServiceUnavailable),
-			Message: "The service is temporarily unavailable. Please try again later.",
-		}
-	case codes.Frontline.Proxy.GatewayTimeout.URN():
-		return errorPageInfo{
-			Status:  http.StatusGatewayTimeout,
-			Title:   http.StatusText(http.StatusGatewayTimeout),
-			Message: "The request took too long to process. Please try again later.",
-		}
-
-	// Engine errors — keyauth / firewall denials produced in-process.
-	// Status comes from the code's HTTP semantics (CategoryUnauthorized → 401,
-	// CategoryForbidden → 403, CategoryRateLimited → 429), not from upstream.
-	case codes.Frontline.Auth.MissingCredentials.URN():
-		return errorPageInfo{
-			Status:  http.StatusUnauthorized,
-			Title:   http.StatusText(http.StatusUnauthorized),
-			Message: "Authentication required. Please provide a valid API key.",
-		}
-	case codes.Frontline.Auth.InvalidKey.URN():
-		return errorPageInfo{
-			Status:  http.StatusUnauthorized,
-			Title:   http.StatusText(http.StatusUnauthorized),
-			Message: "Authentication failed. The provided API key is invalid.",
-		}
-	case codes.Frontline.Auth.InsufficientPermissions.URN():
-		return errorPageInfo{
-			Status:  http.StatusForbidden,
-			Title:   http.StatusText(http.StatusForbidden),
-			Message: "Access denied. The API key does not have the required permissions.",
-		}
-	case codes.Frontline.Auth.RateLimited.URN():
-		return errorPageInfo{
-			Status:  http.StatusTooManyRequests,
-			Title:   http.StatusText(http.StatusTooManyRequests),
-			Message: "Rate limit exceeded. Please try again later.",
-		}
-	case codes.Frontline.Firewall.Denied.URN():
-		return errorPageInfo{
-			Status:  http.StatusForbidden,
-			Title:   http.StatusText(http.StatusForbidden),
-			Message: "Forbidden",
-		}
-	case codes.Frontline.OpenApi.InvalidRequest.URN():
-		return errorPageInfo{
-			Status:  http.StatusBadRequest,
-			Title:   http.StatusText(http.StatusBadRequest),
-			Message: "",
-		}
-
-	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,
-	// no instances in any region).
-	case codes.Frontline.Routing.DeploymentNotFound.URN():
-		return errorPageInfo{
-			Status:  http.StatusNotFound,
-			Title:   http.StatusText(http.StatusNotFound),
-			Message: "The requested deployment could not be found.",
-		}
-	case codes.Frontline.Routing.NoRunningInstances.URN():
-		return errorPageInfo{
-			Status:  http.StatusServiceUnavailable,
-			Title:   http.StatusText(http.StatusServiceUnavailable),
-			Message: "No running instances are available to handle this request.",
-		}
-	case codes.Frontline.Routing.DeploymentSelectionFailed.URN():
-		return errorPageInfo{
-			Status:  http.StatusInternalServerError,
-			Title:   http.StatusText(http.StatusInternalServerError),
-			Message: "Failed to select an instance to handle your request.",
-		}
-	case codes.Frontline.Internal.InvalidConfiguration.URN():
-		return errorPageInfo{
-			Status:  http.StatusInternalServerError,
-			Title:   http.StatusText(http.StatusInternalServerError),
-			Message: "The deployment configuration is invalid. Please contact support at support@unkey.com.",
-		}
-	case codes.Frontline.Internal.InternalServerError.URN():
-		return errorPageInfo{
-			Status:  http.StatusInternalServerError,
-			Title:   http.StatusText(http.StatusInternalServerError),
-			Message: "An unexpected error occurred. Please try again later.",
-		}
-	default:
-		return errorPageInfo{
-			Status:  http.StatusInternalServerError,
-			Title:   http.StatusText(http.StatusInternalServerError),
-			Message: "",
 		}
 	}
 }

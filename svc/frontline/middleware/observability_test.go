@@ -14,12 +14,14 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 )
 
-// TestGetErrorPageInfoFrontline_StatusMapping locks in the URN → HTTP status
-// mapping. A new URN that lacks an explicit case will fall through to the
-// default branch and be reported as 500, which causes false 5xx alerts.
+// TestHTTPStatus_Mapping locks in the URN to HTTP status mapping for frontline.
+// Most rows resolve via pkg/codes (Code.HTTPStatus); RequestTimeout resolves via
+// frontlineStatusOverrides (504, not the canonical 408, because frontline is a
+// gateway). A new URN that unintentionally resolves to 500 will fail this test,
+// which guards against false 5xx alerts.
 //
-// When you add a new URN that frontline can produce, add a case here too.
-func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
+// When you add a new URN that frontline can produce, add a row here too.
+func TestHTTPStatus_Mapping(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -59,19 +61,17 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(string(tt.urn), func(t *testing.T) {
 			t.Parallel()
-			got := getErrorPageInfoFrontline(tt.urn)
-			require.Equal(t, tt.wantStatus, got.Status,
-				"URN %s should map to HTTP %d, got %d",
-				tt.urn, tt.wantStatus, got.Status)
+			require.Equal(t, tt.wantStatus, httpStatus(tt.urn).Int(),
+				"URN %s should map to HTTP %d", tt.urn, tt.wantStatus)
 		})
 	}
 }
 
-func TestGetErrorPageInfoFrontline_UnknownURNDefaultsTo500(t *testing.T) {
+func TestHTTPStatus_UnknownURNDefaultsTo500(t *testing.T) {
 	t.Parallel()
 
-	got := getErrorPageInfoFrontline("err:made:up:nonexistent")
-	require.Equal(t, http.StatusInternalServerError, got.Status,
+	require.Equal(t, http.StatusInternalServerError,
+		httpStatus("err:made:up:nonexistent").Int(),
 		"unknown URN should default to 500 so we get alerted on it")
 }
 
