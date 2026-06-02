@@ -19,7 +19,7 @@ export default function ApisOverviewPage() {
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`} active>
-            APIs
+            Keyspaces (APIs)
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>

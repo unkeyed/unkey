@@ -71,7 +71,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth, apiId }) => {
       title="Default Bytes"
       description={
         <div className="max-w-[380px]">
-          Sets the default byte size for keys under this API. Must be between 8 and 255.
+          Sets the default byte size for keys under this keyspace. Must be between 8 and 255.
         </div>
       }
       contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
