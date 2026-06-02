@@ -24,7 +24,7 @@ export const RESOURCE_TYPE_ROUTES: Record<"api" | "project" | "namespace", strin
 };
 
 export const RESOURCE_TYPE_PLURAL: Record<"api" | "project" | "namespace", string> = {
-  api: "APIs",
+  api: "Keyspaces",
   project: "Projects",
   namespace: "Namespaces",
 };
@@ -39,7 +39,7 @@ export function createApiManagementNavigation(segments: string[], workspace: Wor
     {
       icon: Nodes,
       href: `${basePath}/apis`,
-      label: "APIs",
+      label: "Keyspaces (APIs)",
       active: segments.at(1) === "apis" && !segments.at(2), // Only active at list level
     },
     {

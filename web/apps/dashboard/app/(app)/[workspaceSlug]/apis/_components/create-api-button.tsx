@@ -49,7 +49,7 @@ export const CreateApiButton = ({
 
   const create = trpc.api.create.useMutation({
     async onSuccess(res) {
-      toast.success("Your API has been created");
+      toast.success("Your keyspace has been created");
       await revalidate(`/${workspaceSlug}/apis`);
       api.overview.query.invalidate();
       router.push(`/${workspaceSlug}/apis/${res.id}`);
@@ -68,19 +68,19 @@ export const CreateApiButton = ({
   return (
     <>
       <NavbarActionButton
-        title="Create new API"
+        title="Create new keyspace"
         {...rest}
         color="default"
         onClick={() => setIsOpen(true)}
       >
         <Plus />
-        Create new API
+        Create new keyspace
       </NavbarActionButton>
 
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
-        title="Create New API"
+        title="Create New Keyspace"
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button
@@ -92,10 +92,10 @@ export const CreateApiButton = ({
               loading={create.isLoading || isSubmitting}
               className="w-full rounded-lg"
             >
-              Create API
+              Create Keyspace
             </Button>
             <div className="text-gray-9 text-xs">
-              You'll be redirected to your new API dashboard after creation
+              You'll be redirected to your new keyspace dashboard after creation
             </div>
           </div>
         }
@@ -106,7 +106,7 @@ export const CreateApiButton = ({
             description="This is just a human readable name for you and not visible to anyone else"
             error={errors.name?.message}
             {...register("name")}
-            placeholder="my-api"
+            placeholder="my-keyspace"
           />
         </form>
       </DynamicDialogContainer>

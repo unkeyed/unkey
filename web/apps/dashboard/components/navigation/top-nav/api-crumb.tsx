@@ -28,11 +28,11 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
       href={`/${workspace.slug}/apis/${apiId}`}
       items={items}
       currentId={apiId}
-      searchPlaceholder="Find API..."
-      emptyText="No APIs found"
+      searchPlaceholder="Find keyspace..."
+      emptyText="No keyspaces found"
       footer={{
         icon: Plus,
-        label: "All APIs",
+        label: "All Keyspaces (APIs)",
         href: `/${workspace.slug}/apis`,
       }}
     />

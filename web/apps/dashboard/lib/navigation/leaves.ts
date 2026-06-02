@@ -26,7 +26,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     },
     {
       key: "apis",
-      label: "APIs",
+      label: "Keyspaces (APIs)",
       href: `/${slug}/apis`,
       icon: Nodes,
       isActive: top === "apis",

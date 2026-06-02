@@ -51,9 +51,9 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
       ]}
       hideExplainer
       onClear={handleClear}
-      placeholder="Search API using name or ID"
+      placeholder="Search keyspaces using name or ID"
       isLoading={searchApiOverview.isLoading}
-      loadingText="Searching APIs..."
+      loadingText="Searching keyspaces..."
       searchMode="allowTypeDuringSearch"
       onSearch={(query) =>
         searchApiOverview.mutateAsync({
