@@ -8,7 +8,7 @@ import { Badge, BannerCard, Button } from "@unkey/ui";
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
-const DOCS_URL = "https://www.unkey.com/docs/platform/apis/overview";
+const CHANGELOG_URL = "https://www.unkey.com/changelog#2026-06-01";
 
 function NewNavigationIllustration() {
   return (
@@ -71,7 +71,7 @@ export function NewNavigationBanner() {
             </p>
           </div>
           <Button variant="outline" size="sm" asChild className="self-start">
-            <Link href={DOCS_URL} target="_blank" rel="noreferrer">
+            <Link href={CHANGELOG_URL} target="_blank" rel="noreferrer">
               Learn more
             </Link>
           </Button>
