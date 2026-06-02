@@ -8,4 +8,3 @@ import (
 func main() {
 	util.RunServiceCommand("api", "Run the Unkey API server", api.Run)
 }
-
