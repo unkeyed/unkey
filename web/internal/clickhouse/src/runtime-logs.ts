@@ -3,9 +3,15 @@ import type { Querier } from "./client/interface";
 
 const TABLE = "default.runtime_logs_raw_v1";
 
-// Hard cap on rows per request. Bounds response payload size and ClickHouse
-// scan cost regardless of what an upstream caller sends.
 const MAX_PAGE_SIZE = 1_000;
+
+// The table is PARTITION BY toDate(inserted_at) (for clean TTL drops), so
+// pruning partitions requires constraining inserted_at, not just `time`.
+// This grace window covers ingestion lag between event time and arrival.
+const INGESTION_LAG_GRACE_MS = 2 * 60 * 60 * 1000;
+
+// Fail fast on the server instead of hanging until the HTTP client timeout.
+const MAX_EXECUTION_TIME_SECONDS = 20;
 
 export const runtimeLogsRequestSchema = z.object({
   workspaceId: z.string(),
@@ -25,13 +31,14 @@ export const runtimeLogsRequestSchema = z.object({
 
 export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
 
-// Internal schema: same shape as the public request, but `limit` is bumped by
-// one to fit the n+1 hasMore probe.
+// Public shape + the n+1 limit bump for hasMore + derived inserted_at bounds.
 const runtimeLogsQueryParamsSchema = runtimeLogsRequestSchema.extend({
   limit: z
     .int()
     .min(2)
     .max(MAX_PAGE_SIZE + 1),
+  partitionStartTime: z.int(),
+  partitionEndTime: z.int(),
 });
 
 export const runtimeLog = z.object({
@@ -52,7 +59,11 @@ export function getRuntimeLogs(ch: Querier) {
       "workspace_id = {workspaceId: String}",
       "project_id = {projectId: String}",
       "app_id = {appId: String}",
-      "time BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
+      "time BETWEEN {startTime: Int64} AND {endTime: Int64}",
+      // Prunes partitions; see INGESTION_LAG_GRACE_MS.
+      `toDate(fromUnixTimestamp64Milli(inserted_at))
+            BETWEEN toDate(fromUnixTimestamp64Milli({partitionStartTime: Int64}))
+                AND toDate(fromUnixTimestamp64Milli({partitionEndTime: Int64}))`,
     ];
 
     if (args.environmentId.length > 0) {
@@ -68,22 +79,21 @@ export function getRuntimeLogs(ch: Querier) {
       wheres.push("region IN {region: Array(String)}");
     }
     if (args.message !== null && args.message !== "") {
-      // lower() on both sides so the ngrambf_v1(3, ...) skip index on
-      // lower(message) can be used by the optimizer.
+      // lower() on both sides so the ngrambf_v1 skip index on lower(message)
+      // is eligible.
       wheres.push("positionCaseInsensitive(lower(message), lower({message: String})) > 0");
     }
     if (args.k8sPodNames.length > 0) {
       wheres.push("k8s_pod_name IN {k8sPodNames: Array(String)}");
     }
     if (args.cursorTime !== null) {
-      wheres.push("time < {cursorTime: UInt64}");
+      wheres.push("time < {cursorTime: Int64}");
     }
 
     const filterConditions = wheres.join("\n          AND ");
 
-    // Defensive clamp in case a caller bypasses the schema validator.
+    // +1 over the requested page size lets us compute hasMore without count(*).
     const pageSize = Math.min(Math.max(args.limit, 1), MAX_PAGE_SIZE);
-    // Fetch pageSize+1 so we can compute hasMore without a separate count(*).
     const fetchLimit = pageSize + 1;
 
     const logsQuery = ch.query({
@@ -93,14 +103,23 @@ export function getRuntimeLogs(ch: Querier) {
           region, k8s_pod_name, attributes
         FROM ${TABLE}
         WHERE ${filterConditions}
-        ORDER BY time DESC
-        LIMIT {limit: Int}`,
+        ORDER BY time DESC, deployment_id DESC
+        LIMIT {limit: Int}
+        SETTINGS
+          optimize_read_in_order = 1,
+          optimize_move_to_prewhere = 1,
+          max_execution_time = ${MAX_EXECUTION_TIME_SECONDS}`,
       params: runtimeLogsQueryParamsSchema,
       schema: runtimeLog,
     });
 
     return {
-      logsQuery: logsQuery({ ...args, limit: fetchLimit }),
+      logsQuery: logsQuery({
+        ...args,
+        limit: fetchLimit,
+        partitionStartTime: args.startTime - INGESTION_LAG_GRACE_MS,
+        partitionEndTime: args.endTime + INGESTION_LAG_GRACE_MS,
+      }),
     };
   };
 }
