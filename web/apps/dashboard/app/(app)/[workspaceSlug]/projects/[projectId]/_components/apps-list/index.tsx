@@ -5,11 +5,9 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Dots, Plus } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
-import { ProjectCard } from "../../../_components/list/projects-card";
+import { ResourceCard } from "../../../_components/list/resource-card";
 import { ProjectHomeNavigation } from "../project-home-navigation";
 import { AppActions } from "./app-actions";
-
-const GRID_STYLE = { gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))" } as const;
 
 export const AppsList = () => {
   const params = useParams();
@@ -55,9 +53,9 @@ export const AppsList = () => {
             </Empty>
           </div>
         ) : (
-          <div className="grid gap-4" style={GRID_STYLE}>
+          <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
             {apps.data.map((app) => (
-              <ProjectCard
+              <ResourceCard
                 key={app.id}
                 href={`/${workspace.slug}/projects/${projectId}/apps/${app.id}/deployments`}
                 name={app.name}

@@ -6,7 +6,7 @@ import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
-import { ProjectCard } from "./projects-card";
+import { ResourceCard } from "./resource-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
 
 const MAX_SKELETON_COUNT = 8;
@@ -27,12 +27,7 @@ export const ProjectsList = () => {
   if (projects.isLoading) {
     return (
       <div className="p-4">
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))",
-          }}
-        >
+        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
           {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
             <ProjectCardSkeleton key={i} />
@@ -72,15 +67,10 @@ export const ProjectsList = () => {
 
   return (
     <div className="p-4">
-      <div
-        className="grid gap-4"
-        style={{
-          gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))",
-        }}
-      >
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
-            <ProjectCard
+            <ResourceCard
               href={`/${workspace.slug}/projects/${project.id}`}
               name={project.name}
               domain={project.domain}

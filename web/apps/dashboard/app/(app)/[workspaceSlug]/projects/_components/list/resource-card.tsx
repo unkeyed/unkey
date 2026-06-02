@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { Avatar } from "../../[projectId]/apps/[appId]/components/git-avatar";
 
-type ProjectCardProps = {
+type ResourceCardProps = {
   name: string;
   domain: string | null;
   commitTitle: string | null;
@@ -19,7 +19,7 @@ type ProjectCardProps = {
   href: string;
 };
 
-export const ProjectCard = ({
+export const ResourceCard = ({
   name,
   domain,
   commitTitle,
@@ -29,22 +29,20 @@ export const ProjectCard = ({
   authorAvatar,
   actions,
   href,
-}: ProjectCardProps) => {
+}: ResourceCardProps) => {
   const [isNavigating, setIsNavigating] = useState(false);
 
   const handleLinkClick = useCallback(() => {
     setIsNavigating(true);
   }, []);
 
-  const projectPath = href;
-
   return (
     <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       {/* Invisible base clickable layer - covers entire card */}
       <Link
-        href={projectPath}
+        href={href}
         className="absolute inset-0 z-0"
-        aria-label={`View ${name} project`}
+        aria-label={`View ${name}`}
         onClick={handleLinkClick}
       />
       {/*Top Section*/}
@@ -60,7 +58,7 @@ export const ProjectCard = ({
           {/*Top Section > Project Name*/}
           <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
-              href={projectPath}
+              href={href}
               className="font-medium text-sm leading-[14px] text-accent-12 truncate hover:underline"
             >
               {name}
