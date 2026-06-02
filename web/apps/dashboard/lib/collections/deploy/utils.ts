@@ -130,63 +130,6 @@ export function parseEnvironmentIdFromWhere(where?: any): string | null {
 }
 
 /**
- * Parses a single `eq(field, value)` constraint out of a where expression,
- * matching either a direct eq or one nested inside an `and(...)`.
- */
-// biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
-export function parseEqFieldFromWhere(where: any, field: string): string | null {
-  if (!where) {
-    return null;
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
-  function isFieldEq(expr: any): string | null {
-    if (expr?.name !== "eq" || expr?.type !== "func" || !Array.isArray(expr?.args)) {
-      return null;
-    }
-
-    const [fieldRef, valueRef] = expr.args;
-    if (
-      fieldRef?.type === "ref" &&
-      Array.isArray(fieldRef?.path) &&
-      fieldRef.path.length === 1 &&
-      fieldRef.path[0] === field
-    ) {
-      if (valueRef?.type === "val" && typeof valueRef?.value === "string") {
-        return valueRef.value;
-      }
-    }
-
-    return null;
-  }
-
-  const directMatch = isFieldEq(where);
-  if (directMatch) {
-    return directMatch;
-  }
-
-  if (where?.name === "and" && where?.type === "func" && Array.isArray(where?.args)) {
-    for (const arg of where.args) {
-      const match = isFieldEq(arg);
-      if (match) {
-        return match;
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Parses appId from where expression. Optional: returns null when the query
- * is project-scoped only (no appId constraint).
- */
-// biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
-export function parseAppIdFromWhere(where?: any): string | null {
-  return parseEqFieldFromWhere(where, "appId");
-}
-
-/**
  * Runtime dev-mode validator for environmentId-filtered collections.
  */
 // biome-ignore lint/suspicious/noExplicitAny: safe to leave coz tanstackdb doesn't expose that internal type to outside
