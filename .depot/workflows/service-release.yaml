@@ -40,9 +40,15 @@ jobs:
           service="${tag%%/*}"
           version="${tag#*/}"
 
+          prerelease=false
+          if [[ "$version" == *-* ]]; then
+            prerelease=true
+          fi
+
           echo "service=$service" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "image=ghcr.io/unkeyed/$service:$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
 
       - uses: ./.depot/actions/setup-bazel
         with:
@@ -72,6 +78,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          args=()
+          if [[ "${{ steps.tag.outputs.prerelease }}" == "true" ]]; then
+            args+=(--prerelease)
+          fi
           gh release create "${GITHUB_REF_NAME}" \
             --title "${{ steps.tag.outputs.service }} ${{ steps.tag.outputs.version }}" \
-            --notes "Image: ${{ steps.tag.outputs.image }}"
+            --notes "Image: ${{ steps.tag.outputs.image }}" \
+            "${args[@]}"

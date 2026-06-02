@@ -51,6 +51,22 @@ Supported service names are `api`, `frontline`, `vault`, `heimdall`,
 `krane`, `control-api`, `control-worker`. Use semantic versioning and never
 reuse a tag.
 
+#### Pre-release tags
+
+Tags with a SemVer pre-release suffix (anything after a hyphen, e.g.
+`api/v1.2.3-beta`, `vault/v0.4.0-rc.1`, `heimdall/v2.0.0-alpha.3`) are
+supported. They build and push the image the same way and produce a GitHub
+release marked as a pre-release so it does not show up as "Latest". Use them
+when you want a real, immutable artifact to canary in infra without claiming
+it as a stable version. The same rules still apply: the tag must be on
+`main`, and tags are immutable, so iterate by bumping the pre-release suffix
+(`-rc.1` -> `-rc.2`) rather than re-pushing.
+
+```bash
+git tag api/v1.2.3-beta
+git push origin api/v1.2.3-beta
+```
+
 ### 2. Wait for CI
 
 `depot ci run list --repo unkeyed/unkey --trigger push --status running`
