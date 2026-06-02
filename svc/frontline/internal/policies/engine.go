@@ -142,54 +142,63 @@ func (e *Engine) Evaluate(
 
 			t := time.Now()
 			principal, execErr := e.keyAuth.Execute(ctx, sess, req, cfg.Keyauth)
-			engineEvaluationDuration.WithLabelValues("keyauth").Observe(time.Since(t).Seconds())
+			outcome := "success"
+			if execErr != nil {
+				outcome = classifyKeyauthError(execErr)
+			}
+			engineEvaluationDuration.WithLabelValues("keyauth", outcome).Observe(time.Since(t).Seconds())
+			engineEvaluationsTotal.WithLabelValues("keyauth", outcome).Inc()
 
 			if execErr != nil {
-				engineEvaluationsTotal.WithLabelValues("keyauth", classifyKeyauthError(execErr)).Inc()
 				return result, execErr
 			}
 
 			if principal != nil {
 				result.Principal = principal
-				engineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
 			}
 
 		case *frontlinev1.Policy_Ratelimit:
 			t := time.Now()
 			execErr := e.rateLimiter.Execute(ctx, sess, req, workspaceID, policy.GetId(), cfg.Ratelimit, result.Principal)
-			engineEvaluationDuration.WithLabelValues("ratelimit").Observe(time.Since(t).Seconds())
+			outcome := "success"
+			if execErr != nil {
+				outcome = classifyRatelimitError(execErr)
+			}
+			engineEvaluationDuration.WithLabelValues("ratelimit", outcome).Observe(time.Since(t).Seconds())
+			engineEvaluationsTotal.WithLabelValues("ratelimit", outcome).Inc()
 
 			if execErr != nil {
-				engineEvaluationsTotal.WithLabelValues("ratelimit", classifyRatelimitError(execErr)).Inc()
 				return result, execErr
 			}
 
-			engineEvaluationsTotal.WithLabelValues("ratelimit", "success").Inc()
 		case *frontlinev1.Policy_Firewall:
 			t := time.Now()
 			action, execErr := e.firewall.Execute(ctx, sess, req, cfg.Firewall)
-			engineEvaluationDuration.WithLabelValues("firewall").Observe(time.Since(t).Seconds())
-
+			outcome := "noop"
+			if execErr != nil {
+				outcome = classifyFirewallError(execErr)
+			}
+			engineEvaluationDuration.WithLabelValues("firewall", outcome).Observe(time.Since(t).Seconds())
 			firewallMatchesTotal.WithLabelValues(policy.GetId(), firewallExec.ActionLabel(action)).Inc()
+			engineEvaluationsTotal.WithLabelValues("firewall", outcome).Inc()
 
 			if execErr != nil {
-				engineEvaluationsTotal.WithLabelValues("firewall", classifyFirewallError(execErr)).Inc()
 				return result, execErr
 			}
-
-			engineEvaluationsTotal.WithLabelValues("firewall", "noop").Inc()
 
 		case *frontlinev1.Policy_Openapi:
 			t := time.Now()
 			execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
-			engineEvaluationDuration.WithLabelValues("openapi").Observe(time.Since(t).Seconds())
+			outcome := "success"
+			if execErr != nil {
+				outcome = "rejected"
+			}
+			engineEvaluationDuration.WithLabelValues("openapi", outcome).Observe(time.Since(t).Seconds())
+			engineEvaluationsTotal.WithLabelValues("openapi", outcome).Inc()
 
 			if execErr != nil {
-				engineEvaluationsTotal.WithLabelValues("openapi", "rejected").Inc()
 				return result, execErr
 			}
-
-			engineEvaluationsTotal.WithLabelValues("openapi", "success").Inc()
 
 		default:
 			continue

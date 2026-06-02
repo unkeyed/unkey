@@ -1,15 +1,27 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "metrics",
     srcs = [
         "doc.go",
         "metrics.go",
+        "outcome.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/internal/metrics",
     visibility = ["//svc/frontline:__subpackages__"],
     deps = [
+        "//pkg/codes",
         "//pkg/prometheus/lazy",
         "@com_github_prometheus_client_golang//prometheus",
+    ],
+)
+
+go_test(
+    name = "metrics_test",
+    srcs = ["outcome_test.go"],
+    embed = [":metrics"],
+    deps = [
+        "//pkg/codes",
+        "@com_github_stretchr_testify//require",
     ],
 )

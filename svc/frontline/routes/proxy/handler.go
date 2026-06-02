@@ -153,12 +153,12 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// violation: the router should have returned a remote decision instead
 	// of a local one with no candidates. Without this guard, returning the
 	// zero-value nil here surfaces to the client as a silent empty 200 —
-	// fail closed with an explicit 503 so the bug is visible.
+	// fail closed with an explicit 500 so the bug is visible.
 	if forwardErr == nil {
 		return fault.New("local decision with no instances",
-			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
 			fault.Internal("router returned DestinationLocalInstance with empty LocalInstances"),
-			fault.Public("Service temporarily unavailable"),
+			fault.Public("An unexpected error occurred. Please try again later."),
 		)
 	}
 	return forwardErr

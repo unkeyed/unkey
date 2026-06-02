@@ -8,11 +8,10 @@ import (
 )
 
 // isClientGone reports whether err indicates that the client closed the
-// connection before we finished writing a response. These are not server
-// faults and must not be alerted on.
+// connection before we finished writing a response.
 //
-// We check exported sentinels first (context.Canceled, EPIPE, ECONNRESET)
-// and fall back to substring matches for unexported errors emitted by
+// Checks exported sentinels first (context.Canceled, EPIPE, ECONNRESET)
+// and falls back to substring matches for unexported errors emitted by
 // net/http/http2 such as "http2: stream closed" and "client disconnected".
 func isClientGone(err error) bool {
 	if err == nil {

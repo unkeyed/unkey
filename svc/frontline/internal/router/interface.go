@@ -54,8 +54,14 @@ type Service interface {
 }
 
 type Config struct {
-	Platform              string
-	Region                string
+	Platform string
+	Region   string
+	// DefaultDomain is the customer-facing default domain (e.g.
+	// "unkey.app"). findRoute uses it to split ConfigNotFound 404s:
+	// subdomains of DefaultDomain emit ConfigNotFoundForUnkeyHostname,
+	// everything else emits ConfigNotFoundForCustomDomain. Distinct
+	// from ApexDomain, which addresses peer frontlines.
+	DefaultDomain         string
 	DB                    db.Querier
 	FrontlineRouteCache   cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 	InstancesByDeployment cache.Cache[string, []db.FindInstancesByDeploymentIDRow]

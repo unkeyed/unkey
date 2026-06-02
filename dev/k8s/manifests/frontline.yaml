@@ -10,6 +10,7 @@ data:
     region = "local"
     http_port = 7070
     https_port = 7443
+    prometheus_port = 9402
     apex_domain = "unkey.local"
     ctrl_addr = "http://ctrl-api.unkey.svc.cluster.local:7091"
 
@@ -61,6 +62,8 @@ spec:
               name: http
             - containerPort: 7443
               name: https
+            - containerPort: 9402
+              name: metrics
           volumeMounts:
             - name: config
               mountPath: /etc/unkey
@@ -112,4 +115,7 @@ spec:
     - name: https
       port: 443
       targetPort: 7443
+    - name: metrics
+      port: 9402
+      targetPort: 9402
   type: LoadBalancer

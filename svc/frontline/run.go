@@ -270,6 +270,7 @@ func Run(ctx context.Context, cfg Config) error {
 	routerSvc, err := router.New(router.Config{
 		Platform:              cfg.Platform,
 		Region:                cfg.Region,
+		DefaultDomain:         cfg.DefaultDomain,
 		DB:                    database,
 		FrontlineRouteCache:   cacheSet.FrontlineRoutes,
 		InstancesByDeployment: cacheSet.InstancesByDeployment,

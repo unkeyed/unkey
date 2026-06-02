@@ -71,6 +71,16 @@ type Config struct {
 	// are forwarded to frontline.{region}.{ApexDomain}.
 	ApexDomain string `toml:"apex_domain" config:"default=unkey.cloud"`
 
+	// DefaultDomain is the customer-facing default domain (e.g. "unkey.app")
+	// served by our wildcard certificate. The router uses this to split
+	// "no route configured" 404s:
+	//
+	//   - Subdomain of DefaultDomain → ConfigNotFoundForUnkeyHostname.
+	//   - Anything else              → ConfigNotFoundForCustomDomain.
+	//
+	// Distinct from ApexDomain (which addresses peer frontlines).
+	DefaultDomain string `toml:"default_domain" config:"default=unkey.app"`
+
 	// MaxHops is the maximum number of frontline hops allowed before rejecting
 	// the request. Prevents infinite routing loops.
 	MaxHops int `toml:"max_hops" config:"default=10"`

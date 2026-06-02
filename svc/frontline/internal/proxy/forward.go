@@ -71,11 +71,16 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	// publishUpstream records the upstream call duration once per request.
 	// Idempotent: subsequent calls (e.g. ErrorHandler after ModifyResponse)
 	// are no-ops because backendStart resets to zero.
+	//
+	// Only the peer-frontline hop is recorded; see upstreamSeconds doc for
+	// why destination=instance is intentionally skipped.
 	publishUpstream := func(end time.Time) {
 		if backendStart.IsZero() {
 			return
 		}
-		upstreamSeconds.WithLabelValues(cfg.destination).Observe(end.Sub(backendStart).Seconds())
+		if cfg.destination == destinationFrontline {
+			upstreamSeconds.Observe(end.Sub(backendStart).Seconds())
+		}
 		backendStart = time.Time{}
 	}
 
@@ -87,6 +92,14 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 				outcome = dialOutcomeError
 			}
 			upstreamDialsTotal.WithLabelValues(cfg.destination, outcome).Inc()
+		},
+		// TTFB is recorded only on the peer-frontline hop for the same
+		// reason as upstreamSeconds: instance TTFB is customer code.
+		GotFirstResponseByte: func() {
+			if cfg.destination != destinationFrontline || backendStart.IsZero() {
+				return
+			}
+			upstreamTTFBSeconds.Observe(s.clock.Now().Sub(backendStart).Seconds())
 		},
 	}
 
@@ -173,6 +186,11 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	// Mark the true end of the upstream interaction (full stream completed).
 	if hasTracking {
 		tracking.InstanceEnd = s.clock.Now()
+		// Accumulate this attempt's window so the overhead metric can
+		// subtract all upstream time, not just the final attempt's.
+		if !tracking.InstanceStart.IsZero() {
+			tracking.UpstreamDuration += tracking.InstanceEnd.Sub(tracking.InstanceStart)
+		}
 		if responseBuf.Len() > 0 {
 			tracking.ResponseBody = responseBuf.Bytes()
 		}

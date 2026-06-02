@@ -41,7 +41,9 @@ go_test(
     ],
     embed = [":proxy"],
     deps = [
+        "//pkg/codes",
         "//pkg/fault",
+        "//svc/frontline/internal/publicerr",
         "@com_github_stretchr_testify//require",
     ],
 )

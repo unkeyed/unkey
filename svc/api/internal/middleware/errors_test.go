@@ -32,6 +32,8 @@ func TestHTTPStatus_Mapping(t *testing.T) {
 		{codes.User.BadRequest.PermissionsQuerySyntaxError.URN(), http.StatusBadRequest},
 		{codes.User.BadRequest.RequestBodyUnreadable.URN(), http.StatusBadRequest},
 		{codes.User.BadRequest.InvalidAnalyticsQuery.URN(), http.StatusBadRequest},
+		// A missing required header is a client error: 400, not 500.
+		{codes.User.BadRequest.MissingRequiredHeader.URN(), http.StatusBadRequest},
 
 		// pkg/codes per-code overrides:
 		{codes.User.BadRequest.RequestTimeout.URN(), http.StatusRequestTimeout},

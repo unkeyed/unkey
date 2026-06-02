@@ -41,11 +41,11 @@ var localRequestRetriesTotal = lazy.NewCounterVec(
 	[]string{"outcome"},
 )
 
-// regionFallbacksTotal counts requests where every local instance dial-
-// failed and the handler forwarded to a peer region instead. A non-zero
-// rate means local capacity is degraded — local-region SLOs should fire
-// off the underlying dial-failure metrics, NOT off the client-visible
-// success rate (which the fallback masks).
+// regionFallbacksTotal counts requests where every local instance
+// dial-failed and the handler forwarded to a peer region instead. The
+// fallback masks local dial failures from the client-visible success
+// rate, so degradation has to be observed on this counter and the
+// underlying dial-failure metrics.
 //
 // to_region is the peer region selected by the router as standby (e.g.
 // "us-west-2.aws"). The "from" side is implicit in the scrape labels.

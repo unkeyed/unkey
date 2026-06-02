@@ -17,16 +17,4 @@ var (
 		Name:      "requests_total",
 		Help:      "Tracks the number of requests made to the circuitbreaker by state.",
 	}, []string{"service", "action"})
-
-	// CircuitBreakerErrorsTotal tracks the total number of circuit breaker errors,
-	// labeled by service and action. Use this counter to monitor circuit breaker error rates.
-	//
-	// Example usage:
-	//   metrics.CircuitBreakerErrorsTotal.WithLabelValues("database", "timeout").Inc()
-	CircuitBreakerErrorsTotal = lazy.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "unkey",
-		Subsystem: "circuitbreaker",
-		Name:      "errors_total",
-		Help:      "Total number of circuit breaker errors by service and action.",
-	}, []string{"service", "action"})
 )

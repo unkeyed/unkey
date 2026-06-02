@@ -3,6 +3,7 @@ package zen
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
@@ -37,8 +38,23 @@ func WithObservability() Middleware {
 
 			serviceLatency := time.Since(start)
 
-			// "method", "path", "status"
-			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
+			// "method", "path", "status".
+			//
+			// path is the routed pattern (e.g. "/v1/keys.verifyKey" or
+			// "/{path...}" for a catch-all), NOT s.r.URL.Path. URL.Path
+			// is user-controlled and unbounded — on services like
+			// frontline that proxy arbitrary customer URLs, using it
+			// here would cause a cardinality explosion in Prometheus.
+			//
+			// s.r.Pattern is registered as "METHOD /path" (see
+			// Server.RegisterRoute); strip the method prefix so the path
+			// label stays orthogonal to the separate method label and
+			// matches the bare-path values used before.
+			pattern := s.r.Pattern
+			if _, rest, found := strings.Cut(pattern, " "); found {
+				pattern = rest
+			}
+			labelValues := []string{s.r.Method, pattern, strconv.Itoa(s.responseStatus)}
 
 			metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
 			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()

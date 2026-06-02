@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	internalCaches "github.com/unkeyed/unkey/internal/services/caches"
@@ -29,12 +30,37 @@ func (s *service) findRoute(ctx context.Context, hostname string) (db.FindFrontl
 
 	if mysql.IsNotFound(err) || routeHit == cache.Null {
 		return db.FindFrontlineRouteByFQDNRow{}, fault.New("no frontline route for hostname: "+hostname,
-			fault.Code(codes.Frontline.Routing.ConfigNotFound.URN()),
+			fault.Code(s.configNotFoundURN(hostname)),
 			fault.Public("Domain not configured"),
 		)
 	}
 
 	return route, nil
+}
+
+// configNotFoundURN splits the "no route configured" 404 by hostname:
+// subdomains of DefaultDomain emit ConfigNotFoundForUnkeyHostname,
+// everything else emits ConfigNotFoundForCustomDomain. When
+// DefaultDomain is unset (tests, local dev) every miss is treated as
+// ConfigNotFoundForCustomDomain.
+func (s *service) configNotFoundURN(hostname string) codes.URN {
+	if s.defaultDomain != "" && isSubdomainOf(hostname, s.defaultDomain) {
+		return codes.Frontline.Routing.ConfigNotFoundForUnkeyHostname.URN()
+	}
+	return codes.Frontline.Routing.ConfigNotFoundForCustomDomain.URN()
+}
+
+// isSubdomainOf reports whether host is a strict subdomain of domain
+// (host == "foo." + domain or deeper). Exact equality returns false:
+// the apex itself is not covered by a "*.domain" cert.
+func isSubdomainOf(host, domain string) bool {
+	if host == "" || domain == "" {
+		return false
+	}
+	host = strings.ToLower(host)
+	domain = strings.ToLower(domain)
+	suffix := "." + domain
+	return strings.HasSuffix(host, suffix) && len(host) > len(suffix)
 }
 
 func (s *service) getInstances(ctx context.Context, deploymentID string) ([]db.FindInstancesByDeploymentIDRow, error) {

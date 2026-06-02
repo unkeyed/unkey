@@ -199,28 +199,62 @@ const (
 
 	// Proxy
 
-	// BadGateway represents a 502 error - invalid response from upstream server
-	UnkeyFrontlineErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
-	// ServiceUnavailable represents a 503 error - backend service is unavailable
-	UnkeyFrontlineErrorsProxyServiceUnavailable URN = "err:unkey:service_unavailable:service_unavailable"
-	// GatewayTimeout represents a 504 error - upstream server timeout
-	UnkeyFrontlineErrorsProxyGatewayTimeout URN = "err:unkey:gateway_timeout:gateway_timeout"
-	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
-	UnkeyFrontlineErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
+	// UpstreamConnectionRefused represents a 503 error - ECONNREFUSED dialing a customer instance.
+	UnkeyFrontlineErrorsProxyUpstreamConnectionRefused URN = "err:unkey:service_unavailable:upstream_connection_refused"
+	// UpstreamHostUnreachable represents a 503 error - EHOSTUNREACH dialing a customer instance.
+	UnkeyFrontlineErrorsProxyUpstreamHostUnreachable URN = "err:unkey:service_unavailable:upstream_host_unreachable"
+	// UpstreamConnectionReset represents a 502 error - ECONNRESET on the upstream connection.
+	UnkeyFrontlineErrorsProxyUpstreamConnectionReset URN = "err:unkey:bad_gateway:upstream_connection_reset"
+	// DialTimeout represents a 504 error - dial-phase timeout to a customer instance.
+	UnkeyFrontlineErrorsProxyDialTimeout URN = "err:unkey:gateway_timeout:dial_timeout"
+	// UpstreamResponseTimeout represents a 504 error - upstream did not respond in time after dial succeeded.
+	UnkeyFrontlineErrorsProxyUpstreamResponseTimeout URN = "err:unkey:gateway_timeout:upstream_response_timeout"
+	// GatewayDeadlineExceeded represents a 504 error - our own outer request deadline expired.
+	UnkeyFrontlineErrorsProxyGatewayDeadlineExceeded URN = "err:unkey:gateway_timeout:gateway_deadline_exceeded"
+	// ProxyErrorUnclassified represents a 502 error - upstream/dial error we couldn't classify.
+	// Fallback bucket. Default outcome is frontline_fault so we get paged and learn what it is.
+	UnkeyFrontlineErrorsProxyProxyErrorUnclassified URN = "err:unkey:bad_gateway:proxy_error_unclassified"
+	// PeerFrontlineConnectionRefused represents a 503 error - ECONNREFUSED to a peer frontline.
+	UnkeyFrontlineErrorsProxyPeerFrontlineConnectionRefused URN = "err:unkey:service_unavailable:peer_frontline_connection_refused"
+	// PeerFrontlineHostUnreachable represents a 503 error - EHOSTUNREACH to a peer frontline.
+	UnkeyFrontlineErrorsProxyPeerFrontlineHostUnreachable URN = "err:unkey:service_unavailable:peer_frontline_host_unreachable"
+	// PeerFrontlineConnectionReset represents a 502 error - ECONNRESET on a peer-frontline connection.
+	UnkeyFrontlineErrorsProxyPeerFrontlineConnectionReset URN = "err:unkey:bad_gateway:peer_frontline_connection_reset"
+	// PeerFrontlineDNSNotFound represents a 503 error - DNS NXDOMAIN resolving a peer-frontline hostname.
+	UnkeyFrontlineErrorsProxyPeerFrontlineDNSNotFound URN = "err:unkey:service_unavailable:peer_frontline_dns_not_found"
+	// PeerFrontlineDNSTimeout represents a 504 error - DNS timeout resolving a peer-frontline hostname.
+	UnkeyFrontlineErrorsProxyPeerFrontlineDNSTimeout URN = "err:unkey:gateway_timeout:peer_frontline_dns_timeout"
+	// PeerFrontlineTimeout represents a 504 error - timeout reaching a peer frontline.
+	UnkeyFrontlineErrorsProxyPeerFrontlineTimeout URN = "err:unkey:gateway_timeout:peer_frontline_timeout"
 
 	// Routing
 
-	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
-	UnkeyFrontlineErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
+	// ConfigNotFoundForUnkeyHostname represents a 404 error - request hit
+	// a subdomain of our default domain (served by our wildcard cert) and
+	// no route is configured. The wildcard makes this bucket reachable by
+	// any anonymous request; mapped to outcome=noise and excluded from
+	// the SLO denominator.
+	UnkeyFrontlineErrorsRoutingConfigNotFoundForUnkeyHostname URN = "err:unkey:not_found:config_not_found_for_unkey_hostname"
+	// ConfigNotFoundForCustomDomain represents a 404 error - request hit
+	// a hostname served by an exact-host cert in the certificates table
+	// and no route is configured. Reachable only via a cert a workspace
+	// asked us to issue. Mapped to outcome=refused.
+	UnkeyFrontlineErrorsRoutingConfigNotFoundForCustomDomain URN = "err:unkey:not_found:config_not_found_for_custom_domain"
 	// DeploymentNotFound represents a 404 error - the resolved deployment was
 	// not found or did not match the expected environment.
 	UnkeyFrontlineErrorsRoutingDeploymentNotFound URN = "err:unkey:not_found:deployment_not_found"
 	// DeploymentSelectionFailed represents a 500 error - failed to select an available deployment
 	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:unkey:internal_server_error:deployment_selection_failed"
-	// DeploymentDisabled represents a 503 error - all deployments are currently disabled
-	UnkeyFrontlineErrorsRoutingDeploymentDisabled URN = "err:unkey:service_unavailable:deployment_disabled"
-	// NoRunningInstances represents a 503 error - no deployments have running instances
+	// NoDeploymentInstances represents a 503 error - the deployment has
+	// zero instance rows in the registry.
+	UnkeyFrontlineErrorsRoutingNoDeploymentInstances URN = "err:unkey:service_unavailable:no_deployment_instances"
+	// NoRunningInstances represents a 503 error - instance rows exist but
+	// none are in status=Running.
 	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
+	// NoReachableRegion represents a 503 error - running instances exist
+	// in other regions but the proximity table on this region maps to
+	// none of them.
+	UnkeyFrontlineErrorsRoutingNoReachableRegion URN = "err:unkey:service_unavailable:no_reachable_region"
 
 	// Internal
 

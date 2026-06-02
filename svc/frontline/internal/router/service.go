@@ -14,6 +14,7 @@ type service struct {
 	platform                   string
 	region                     string
 	regionPlatform             string
+	defaultDomain              string
 	db                         db.Querier
 	frontlineRouteCache        cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 	instancesByDeploymentCache cache.Cache[string, []db.FindInstancesByDeploymentIDRow]
@@ -27,6 +28,7 @@ func New(cfg Config) (*service, error) {
 		platform:                   cfg.Platform,
 		region:                     cfg.Region,
 		regionPlatform:             fmt.Sprintf("%s.%s", cfg.Region, cfg.Platform),
+		defaultDomain:              cfg.DefaultDomain,
 		db:                         cfg.DB,
 		frontlineRouteCache:        cfg.FrontlineRouteCache,
 		instancesByDeploymentCache: cfg.InstancesByDeployment,

@@ -125,28 +125,43 @@ func (s *service) ForwardToInstance(ctx context.Context, sess *zen.Session, prot
 func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
+	// hops is the inbound forward-chain depth. It is read from the request
+	// header when a peer propagated it, but WithReservedHeaderStrip drops
+	// X-Unkey-* on the HTTPS edge, so on the normal path it is absent and
+	// hops stays 0 (depth="1"). depth="2_plus" only appears if the header
+	// survives, which today means it can't — see the hopsTotal doc.
+	hops := 0
 	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {
-		if hops, err := strconv.Atoi(hopCountStr); err == nil {
-			srcRegion := sess.Request().Header.Get(HeaderRegion)
-			if srcRegion == "" {
-				srcRegion = fmt.Sprintf("%s::%s", s.platform, s.region)
-			}
-			hopsHistogram.WithLabelValues(srcRegion, targetRegionPlatform).Observe(float64(hops))
-
-			if hops >= s.maxHops {
-				logger.Error("too many frontline hops - rejecting request",
-					"hops", hops,
-					"maxHops", s.maxHops,
-					"hostname", sess.Request().Host,
-					"requestID", sess.RequestID(),
-				)
-				return fault.New("too many frontline hops",
-					fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-					fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
-					fault.Public("Request routing limit exceeded"),
-				)
-			}
+		if parsed, err := strconv.Atoi(hopCountStr); err == nil {
+			hops = parsed
 		}
+	}
+
+	// src_region is this instance: we are the one forwarding. Fall back to
+	// platform::region when the header isn't present (the normal case post
+	// header-strip).
+	srcRegion := sess.Request().Header.Get(HeaderRegion)
+	if srcRegion == "" {
+		srcRegion = fmt.Sprintf("%s::%s", s.platform, s.region)
+	}
+	depth := "1"
+	if hops > 1 {
+		depth = "2_plus"
+	}
+	hopsTotal.WithLabelValues(srcRegion, targetRegionPlatform, depth).Inc()
+
+	if hops >= s.maxHops {
+		logger.Error("too many frontline hops - rejecting request",
+			"hops", hops,
+			"maxHops", s.maxHops,
+			"hostname", sess.Request().Host,
+			"requestID", sess.RequestID(),
+		)
+		return fault.New("too many frontline hops",
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+			fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
+			fault.Public("Request routing limit exceeded"),
+		)
 	}
 
 	targetURL, err := url.Parse(fmt.Sprintf("https://frontline.%s.%s", targetRegionPlatform, s.apexDomain))

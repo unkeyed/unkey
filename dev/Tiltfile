@@ -367,12 +367,12 @@ custom_build(
 k8s_yaml('k8s/manifests/frontline.yaml')
 k8s_resource(
   'frontline',
-  port_forwards=['9443:7443', '9080:7070'],
+  port_forwards=['9443:7443', '9080:7070', '9402:9402'],
   resource_deps=['mysql', 'ctrl-api', 'vault', 'frontline-certs'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO,
-  links=['https://app.unkey.local'],
+  links=['https://app.unkey.local', 'http://localhost:9402/metrics'],
 )
 
 # ─── Krane ─────────────────────────────────────────────────────────────────

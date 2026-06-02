@@ -58,7 +58,7 @@ func (s *service) selectDestination(
 ) (RouteDecision, error) {
 	if len(instances) == 0 {
 		return RouteDecision{}, fault.New("no instances",
-			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
+			fault.Code(codes.Frontline.Routing.NoDeploymentInstances.URN()),
 			fault.Internal(fmt.Sprintf("no instances for deployment %s", route.DeploymentID)),
 			fault.Public("Service temporarily unavailable"),
 		)
@@ -109,7 +109,7 @@ func (s *service) selectDestination(
 	nearestRegion := s.findNearestRegionPlatform(regionsWithInstance)
 	if nearestRegion == "" {
 		return RouteDecision{}, fault.New("no reachable region from "+s.regionPlatform,
-			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
+			fault.Code(codes.Frontline.Routing.NoReachableRegion.URN()),
 			fault.Internal("running instances exist but no region is reachable"),
 			fault.Public("Service temporarily unavailable"),
 		)

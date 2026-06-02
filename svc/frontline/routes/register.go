@@ -45,8 +45,8 @@ func Register(srv *zen.Server, svc *Services) {
 // specific, so Go's ServeMux dispatches challenges first.
 //
 // The redirect intentionally runs without logging/observability middleware:
-// it is on the hot path for any human-typed http:// URL, must stay cheap,
-// and exposes its own Prometheus counter for volume tracking.
+// it is on the hot path for any human-typed http:// URL and must stay cheap.
+// Redirect volume is not tracked separately.
 func RegisterHTTPServer(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		[]zen.Middleware{

@@ -41,6 +41,13 @@ type RequestTracking struct {
 	// Set by proxy once the upstream response stream completes
 	InstanceEnd  time.Time
 	ResponseBody []byte
+
+	// UpstreamDuration accumulates the upstream window of every attempt,
+	// including failed dials in the local retry loop. InstanceStart/End
+	// describe only the final attempt (for ClickHouse), so the overhead
+	// metric reads this instead to avoid attributing a failed-attempt's
+	// time to frontline overhead.
+	UpstreamDuration time.Duration
 }
 
 var requestTrackingKey = zen.NewContextKey[*RequestTracking]("frontline_request_tracking")

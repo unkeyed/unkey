@@ -18,6 +18,11 @@ var (
 		[]string{"policy_type", "result"},
 	)
 
+	// engineEvaluationDuration is the per-policy evaluation latency,
+	// labeled by policy_type and result. The result label matches the
+	// values used on engineEvaluationsTotal — denials are typically
+	// faster than allows, and mixing them in the same histogram hides
+	// regressions on either path.
 	engineEvaluationDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
@@ -26,7 +31,7 @@ var (
 			Help:      "Duration of individual policy evaluations in seconds.",
 			Buckets:   []float64{0.0005, 0.001, 0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5},
 		},
-		[]string{"policy_type"},
+		[]string{"policy_type", "result"},
 	)
 
 	// firewallMatchesTotal counts individual Firewall policy matches,

@@ -142,6 +142,17 @@ func WithErrorHandling() zen.Middleware {
 			}
 
 			status := httpStatus(urn)
+
+			// The api's openapi schema has no 502/504 response shapes —
+			// those statuses only originate from ingress/frontline codes,
+			// not from the api itself. Collapse them to 500 here so the
+			// HTTP status line, the response body, and the on-call log
+			// guard below all agree (buildErrorBody also forces the body to
+			// 500, but the written status must match it).
+			if status == codes.StatusBadGateway || status == codes.StatusGatewayTimeout {
+				status = codes.StatusInternalServerError
+			}
+
 			detail := fault.UserFacingMessage(err)
 			title := errorTitle(status, urn)
 

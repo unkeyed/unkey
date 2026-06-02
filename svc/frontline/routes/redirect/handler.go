@@ -10,7 +10,9 @@ import (
 
 // Handler 308-redirects plain-HTTP requests to their https:// equivalent.
 // Kept deliberately allocation-light: no router lookups, no observability
-// middleware. Volume is tracked via the redirectsTotal Prometheus counter.
+// middleware. Volume isn't tracked separately — these show up in the HTTP
+// server's access logs and the standard `process_*` collectors, and the
+// 308 status class is enough for monitoring.
 type Handler struct{}
 
 func (h *Handler) Method() string {
@@ -39,6 +41,5 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	target.Host = host
 	sess.ResponseWriter().Header().Set("Location", target.String())
 
-	redirectsTotal.Inc()
 	return sess.Send(http.StatusPermanentRedirect, nil)
 }

@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "publicerr",
+    srcs = [
+        "publicerr.go",
+        "validate.go",
+        "wire.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/internal/publicerr",
+    visibility = ["//svc/frontline:__subpackages__"],
+    deps = ["//pkg/codes"],
+)
+
+go_test(
+    name = "publicerr_test",
+    srcs = [
+        "golden_test.go",
+        "publicerr_test.go",
+        "wire_test.go",
+    ],
+    embed = [":publicerr"],
+    deps = [
+        "//pkg/codes",
+        "@com_github_stretchr_testify//require",
+    ],
+)

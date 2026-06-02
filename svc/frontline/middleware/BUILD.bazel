@@ -7,7 +7,7 @@ go_library(
         "client_gone.go",
         "observability.go",
         "sanitize_headers.go",
-        "status.go",
+        "wire.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/middleware",
     visibility = ["//visibility:public"],
@@ -23,6 +23,7 @@ go_library(
         "//svc/frontline/internal/errorpage",
         "//svc/frontline/internal/metrics",
         "//svc/frontline/internal/proxy",
+        "//svc/frontline/internal/publicerr",
         "@io_opentelemetry_go_otel//attribute",
     ],
 )
@@ -33,6 +34,7 @@ go_test(
         "client_gone_test.go",
         "observability_test.go",
         "sanitize_headers_test.go",
+        "wire_test.go",
     ],
     embed = [":middleware"],
     deps = [

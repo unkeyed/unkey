@@ -46,7 +46,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	if err != nil {
 		if mysql.IsNotFound(err) {
 			return fault.New("no custom domain registered for hostname: "+hostname,
-				fault.Code(codes.Frontline.Routing.ConfigNotFound.URN()),
+				fault.Code(codes.Frontline.Routing.ConfigNotFoundForCustomDomain.URN()),
 				fault.Public("Domain not configured"),
 			)
 		}

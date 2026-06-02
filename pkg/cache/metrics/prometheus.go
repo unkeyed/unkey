@@ -99,34 +99,4 @@ var (
 		},
 		[]string{"resource"},
 	)
-
-	// CacheReadsErrorsTotal tracks the total number of cache read errors,
-	// labeled by resource type. Use this counter to monitor cache read error rates.
-	//
-	// Example usage:
-	//   metrics.CacheReadsErrorsTotal.WithLabelValues("user_profile").Inc()
-	CacheReadsErrorsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cache",
-			Name:      "reads_errors_total",
-			Help:      "Total number of cache read errors by resource type.",
-		},
-		[]string{"resource"},
-	)
-
-	// CacheRevalidationsErrorsTotal tracks the total number of cache revalidation errors,
-	// labeled by resource type. Use this counter to monitor cache revalidation error rates.
-	//
-	// Example usage:
-	//   metrics.CacheRevalidationsErrorsTotal.WithLabelValues("user_profile").Inc()
-	CacheRevalidationsErrorsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cache",
-			Name:      "revalidations_errors_total",
-			Help:      "Total number of cache revalidation errors by resource type.",
-		},
-		[]string{"resource"},
-	)
 )

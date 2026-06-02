@@ -37,8 +37,7 @@ var routingDecisionsTotal = lazy.NewCounterVec(
 // routingDecisionsTotal: that counts the decisions, this times them.
 //
 // Distribution is bimodal: cache hits land sub-ms, DB fallbacks tens of
-// ms. The bucket set spans both regimes so quantile alerts can target
-// whichever is the operational concern.
+// ms. The bucket set spans both regimes.
 var routingDecisionSeconds = lazy.NewHistogram(
 	prometheus.HistogramOpts{
 		Namespace: "unkey",
