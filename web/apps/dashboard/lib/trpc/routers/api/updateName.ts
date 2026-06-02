@@ -11,8 +11,8 @@ export const updateApiName = workspaceProcedure
     z.object({
       name: z
         .string()
-        .min(3, "API names must contain at least 3 characters")
-        .max(256, "API names cannot exceed 256 characters"),
+        .min(3, "Keyspace names must contain at least 3 characters")
+        .max(256, "Keyspace names cannot exceed 256 characters"),
       apiId: z.string(),
       workspaceId: z.string(),
     }),
