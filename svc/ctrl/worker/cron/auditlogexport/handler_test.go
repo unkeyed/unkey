@@ -54,7 +54,6 @@ func TestBuildCHRows(t *testing.T) {
 		require.JSONEq(t, `{"role":"admin"}`, string(r.ActorMeta))
 		require.Equal(t, "1.2.3.4", r.RemoteIP)
 
-		// Targets stored as parallel arrays — same length, index-aligned.
 		require.Equal(t, []string{"key", "api"}, r.TargetTypes)
 		require.Equal(t, []string{"key_1", "api_1"}, r.TargetIDs)
 		require.Equal(t, []string{"foo", "myapi"}, r.TargetNames)

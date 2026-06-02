@@ -1,4 +1,4 @@
-package keyrefill_test
+package cron_test
 
 import (
 	"fmt"
@@ -13,22 +13,19 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
 
-func TestRunRefill_Integration(t *testing.T) {
+func TestRunKeyRefill_Integration(t *testing.T) {
 	h := harness.New(t)
 
-	// Use today's date for the refill
 	now := time.Now().UTC()
 	dateKey := fmt.Sprintf("%d-%02d-%02d", now.Year(), int(now.Month()), now.Day())
 	todayDay := int16(now.Day())
 
 	t.Run("refills keys with daily refill (refill_day=NULL)", func(t *testing.T) {
-		// Create workspace with an API
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
 			WorkspaceID: ws.ID,
 		})
 
-		// Create key with refill settings (refill_day=NULL means daily)
 		refillAmount := int64(1000)
 		remaining := int64(100)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
@@ -36,32 +33,25 @@ func TestRunRefill_Integration(t *testing.T) {
 			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    &remaining,
 			RefillAmount: &refillAmount,
-			// RefillDay is nil for daily refill
 		})
 
-		// Call RunRefill via Restate with a unique date key for this test
 		testDateKey := fmt.Sprintf("%s-test-daily-%s", dateKey, uid.New("", 8))
-		resp, err := callRunRefill(h, testDateKey)
+		resp, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		// Should have refilled at least 1 key
 		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
-		// Audit logs are created internally but not exposed in response
 
-		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
 
 	t.Run("refills keys with matching day of month", func(t *testing.T) {
-		// Create workspace with an API
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
 			WorkspaceID: ws.ID,
 		})
 
-		// Create key with refill_day matching today
 		refillAmount := int64(500)
 		remaining := int64(50)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
@@ -72,28 +62,24 @@ func TestRunRefill_Integration(t *testing.T) {
 			RefillDay:    &todayDay,
 		})
 
-		// Call RunRefill with a unique date key
 		testDateKey := fmt.Sprintf("%s-test-matching-%s", dateKey, uid.New("", 8))
-		resp, err := callRunRefill(h, testDateKey)
+		resp, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
 		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 
-		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
 
 	t.Run("skips keys with non-matching day of month", func(t *testing.T) {
-		// Create workspace with an API
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
 			WorkspaceID: ws.ID,
 		})
 
-		// Create key with refill_day NOT matching today
-		differentDay := int16((int(todayDay) % 28) + 1) // Pick a different day
+		differentDay := int16((int(todayDay) % 28) + 1)
 		if differentDay == todayDay {
 			differentDay = int16((int(todayDay) % 27) + 2)
 		}
@@ -107,54 +93,45 @@ func TestRunRefill_Integration(t *testing.T) {
 			RefillDay:    &differentDay,
 		})
 
-		// Call RunRefill with a unique date key
 		testDateKey := fmt.Sprintf("%s-test-non-matching-%s", dateKey, uid.New("", 8))
-		_, err := callRunRefill(h, testDateKey)
+		_, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		// Verify the key was NOT refilled (remaining unchanged)
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})
 
 	t.Run("skips keys that are already full", func(t *testing.T) {
-		// Create workspace with an API
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
 			WorkspaceID: ws.ID,
 		})
 
-		// Create key where remaining >= refill_amount (already full)
 		refillAmount := int64(1000)
-		remaining := int64(1000) // Already at max
+		remaining := int64(1000)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
 			Remaining:    &remaining,
 			RefillAmount: &refillAmount,
-			// RefillDay nil for daily
 		})
 
-		// Call RunRefill with a unique date key
 		testDateKey := fmt.Sprintf("%s-test-full-%s", dateKey, uid.New("", 8))
-		_, err := callRunRefill(h, testDateKey)
+		_, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		// Verify the key was NOT refilled (since it's already at max)
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})
 
 	t.Run("creates audit logs for refilled keys", func(t *testing.T) {
-		// Create workspace with an API
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
 			WorkspaceID: ws.ID,
 		})
 
-		// Create key that needs refill
 		refillAmount := int64(1000)
 		remaining := int64(0)
 		h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
@@ -164,23 +141,19 @@ func TestRunRefill_Integration(t *testing.T) {
 			RefillAmount: &refillAmount,
 		})
 
-		// Call RunRefill with a unique date key
 		testDateKey := fmt.Sprintf("%s-test-audit-%s", dateKey, uid.New("", 8))
-		resp, err := callRunRefill(h, testDateKey)
+		resp, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		// Should have refilled the key (audit logs created internally)
 		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 	})
 
 	t.Run("is idempotent with same date key", func(t *testing.T) {
-		// Create workspace with an API
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
 			WorkspaceID: ws.ID,
 		})
 
-		// Create keys that need refill
 		refillAmount := int64(1000)
 		remaining := int64(100)
 		h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
@@ -196,32 +169,25 @@ func TestRunRefill_Integration(t *testing.T) {
 			RefillAmount: &refillAmount,
 		})
 
-		// Use a unique date key for this test
 		testDateKey := fmt.Sprintf("%s-test-idempotent-%s", dateKey, uid.New("", 8))
 
-		// First call should refill keys
-		resp1, err := callRunRefill(h, testDateKey)
+		resp1, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 		firstRefilled := resp1.GetKeysRefilled()
 
-		// Second call with same date key should process 0 keys (already processed)
-		resp2, err := callRunRefill(h, testDateKey)
+		resp2, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		// The second call should not refill any additional keys
-		// (they were marked as processed in state)
 		require.Equal(t, int32(0), resp2.GetKeysRefilled(), "Second call should not refill any keys")
 		require.Greater(t, firstRefilled, int32(0), "First call should have refilled keys")
 	})
 
 	t.Run("refills keys on last day of month when refill_day exceeds month length", func(t *testing.T) {
-		// Create workspace with an API
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
 			WorkspaceID: ws.ID,
 		})
 
-		// Create key with refill_day=31 (only exists in some months)
 		refillDay := int16(31)
 		refillAmount := int64(750)
 		remaining := int64(50)
@@ -233,28 +199,23 @@ func TestRunRefill_Integration(t *testing.T) {
 			RefillDay:    &refillDay,
 		})
 
-		// Use Feb 28, 2025 as the date key — it's the last day of a short month.
-		// Keys with refill_day=31 should still be refilled because 31 > 28 and it's the last day.
 		testDateKey := fmt.Sprintf("2025-02-28-test-lastday-%s", uid.New("", 8))
-		resp, err := callRunRefill(h, testDateKey)
+		resp, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
 		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 
-		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
 
 	t.Run("skips deleted keys", func(t *testing.T) {
-		// Create workspace with an API
 		ws := h.Seed.CreateWorkspace(h.Ctx)
 		api := h.Seed.CreateAPI(h.Ctx, seed.CreateApiRequest{
 			WorkspaceID: ws.ID,
 		})
 
-		// Create a deleted key
 		refillAmount := int64(1000)
 		remaining := int64(100)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
@@ -265,20 +226,17 @@ func TestRunRefill_Integration(t *testing.T) {
 			Deleted:      true,
 		})
 
-		// Call RunRefill with a unique date key
 		testDateKey := fmt.Sprintf("%s-test-deleted-%s", dateKey, uid.New("", 8))
-		_, err := callRunRefill(h, testDateKey)
+		_, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		// Verify the deleted key was NOT refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		// Deleted keys should keep their original remaining value
 		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})
 }
 
-func callRunRefill(h *harness.Harness, dateKey string) (*hydrav1.RunRefillResponse, error) {
-	client := hydrav1.NewKeyRefillServiceIngressClient(h.Restate, dateKey)
-	return client.RunRefill().Request(h.Ctx, &hydrav1.RunRefillRequest{})
+func callRunKeyRefill(h *harness.Harness, dateKey string) (*hydrav1.RunKeyRefillResponse, error) {
+	client := hydrav1.NewCronServiceIngressClient(h.Restate, dateKey)
+	return client.RunKeyRefill().Request(h.Ctx, &hydrav1.RunKeyRefillRequest{})
 }

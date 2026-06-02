@@ -22,9 +22,11 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -32,11 +34,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -80,6 +81,11 @@ type Harness struct {
 
 	// RestateAdmin is the URL for Restate admin operations.
 	RestateAdmin string
+
+	// Clock is the clock instance wired into the cron service. Defaults
+	// to clock.New() (real time); tests that need to drive cutoffs can
+	// pass a *clock.TestClock via WithClock and assert against it here.
+	Clock clock.Clock
 }
 
 // Option configures the test harness.
@@ -88,6 +94,7 @@ type Option func(*harnessOpts)
 type harnessOpts struct {
 	diskMySQL bool
 	timeout   time.Duration
+	clock     clock.Clock
 }
 
 // WithDiskMySQL starts MySQL with disk-backed storage instead of the default
@@ -102,6 +109,15 @@ func WithDiskMySQL() Option {
 func WithTimeout(timeout time.Duration) Option {
 	return func(o *harnessOpts) {
 		o.timeout = timeout
+	}
+}
+
+// WithClock injects a clock into the cron service. Use clock.NewTestClock()
+// to drive cutoff timestamps deterministically (e.g. for the ratelimit
+// global-counters cleanup handler, which reads s.clock.Now()).
+func WithClock(c clock.Clock) Option {
+	return func(o *harnessOpts) {
+		o.clock = c
 	}
 }
 
@@ -120,6 +136,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 	}
 	if o.timeout == 0 {
 		o.timeout = 120 * time.Second
+	}
+	if o.clock == nil {
+		o.clock = clock.New()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), o.timeout)
@@ -199,12 +218,21 @@ func New(t *testing.T, opts ...Option) *Harness {
 
 	seeder := seed.New(t, database, vaultClient)
 
-	// Create all services
-	quotaCheckSvc, err := quotacheck.New(quotacheck.Config{
-		DB:              database,
-		Clickhouse:      chClient,
-		Heartbeat:       healthcheck.NewNoop(),
-		SlackWebhookURL: "",
+	// Unified cron service: every scheduled task runs as a handler on
+	// hydra.v1.CronService. Heartbeats are noop in tests; the slack
+	// webhook is empty so quota-check skips notification calls.
+	cronSvc, err := cron.New(cron.Config{
+		DB:                        database,
+		Clickhouse:                chClient,
+		Clock:                     o.clock,
+		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
+		SlackQuotaCheckWebhookURL: "",
+		Heartbeats: cron.Heartbeats{
+			QuotaCheck:      healthcheck.NewNoop(),
+			KeyRefill:       healthcheck.NewNoop(),
+			KeyLastUsedSync: healthcheck.NewNoop(),
+			AuditLogExport:  healthcheck.NewNoop(),
+		},
 	})
 	require.NoError(t, err)
 
@@ -230,17 +258,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		AllowUnauthenticatedDeployments: false,
 	})
 
-	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
-		DB:        database,
-		Heartbeat: healthcheck.NewNoop(),
-	})
-	require.NoError(t, err)
-
-	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
-		Heartbeat: healthcheck.NewNoop(),
-	})
-	require.NoError(t, err)
-
 	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
 		DB:         database,
 		Clickhouse: chClient,
@@ -258,10 +275,8 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// Set up Restate server with all services
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
 	restateSrv := restateServer.NewRestate()
-	restateSrv.Bind(hydrav1.NewQuotaCheckServiceServer(quotaCheckSvc))
+	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
-	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
-	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc))
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
@@ -305,6 +320,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Restate:        ingress.NewClient(restateCfg.IngressURL),
 		RestateIngress: restateCfg.IngressURL,
 		RestateAdmin:   restateCfg.AdminURL,
+		Clock:          o.clock,
 	}
 }
 

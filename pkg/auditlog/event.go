@@ -2,7 +2,7 @@ package auditlog
 
 // Event is the canonical envelope JSON-encoded into the clickhouse_outbox
 // payload column. Both the writer (internal/services/auditlogs) and the
-// drainer (svc/ctrl/worker/auditlogexport) marshal/unmarshal this shape.
+// drainer (svc/ctrl/worker/cron RunAuditLogExport) marshal/unmarshal this shape.
 // Additive changes are safe (json.Unmarshal ignores unknown fields).
 // Breaking changes (rename, type change, removed field) MUST bump
 // OutboxVersionV1 below to a new value and ship a drainer that handles

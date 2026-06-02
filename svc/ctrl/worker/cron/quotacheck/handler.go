@@ -1,15 +1,24 @@
+// Package quotacheck implements the CronService.RunQuotaCheck handler.
+// The handler queries workspace usage from ClickHouse and sends Slack
+// notifications for newly exceeded quotas. Keyed by billing period
+// (e.g. "2026-01"); state tracks notified workspaces so a daily
+// re-trigger doesn't spam.
 package quotacheck
 
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"golang.org/x/text/language"
@@ -17,17 +26,25 @@ import (
 	"golang.org/x/text/number"
 )
 
+// stateKeyNotifiedWorkspaces tracks per-workspace last-notified
+// timestamps within a billing period (VO state).
 const stateKeyNotifiedWorkspaces = "notified_workspaces"
 
 // minUsageThreshold is the minimum usage to consider for quota checks.
-// Workspaces below this threshold are skipped since the minimum paid plan starts at 150k.
+// Workspaces below this threshold are skipped since the minimum paid
+// plan starts at 150k.
 const minUsageThreshold = 150_000
 
 // followUpInterval is the minimum time between follow-up notifications.
-// First notification is sent immediately, subsequent ones are sent weekly.
-// We use 6 days 20 hours instead of exactly 7 days to account for timing drift
-// in the daily scheduled job (e.g., 16:03 one week vs 16:00 the next).
+// First notification is sent immediately, subsequent ones are sent
+// weekly. We use 6 days 20 hours instead of exactly 7 days to account
+// for timing drift in the daily scheduled job (e.g., 16:03 one week vs
+// 16:00 the next).
 const followUpInterval = 6*24*time.Hour + 20*time.Hour
+
+// batchSize is the number of workspace IDs to fetch from the database
+// in a single query.
+const batchSize = 100
 
 // exceededWorkspace holds info about a workspace that exceeded its quota.
 type exceededWorkspace struct {
@@ -36,36 +53,68 @@ type exceededWorkspace struct {
 	IsFollowUp bool
 }
 
-// batchSize is the number of workspace IDs to fetch from the database in a single query.
-// This balances between minimizing round trips and keeping queries efficient.
-const batchSize = 100
+// Config holds the handler's dependencies.
+type Config struct {
+	// DB is the primary application database. Must not be nil.
+	DB db.Database
+	// Clickhouse is the analytics database. Must not be nil — pass
+	// clickhouse.NewNoop() if unavailable.
+	Clickhouse clickhouse.ClickHouse
+	// Heartbeat is pinged on successful completion. Must not be nil; use
+	// healthcheck.NewNoop() if monitoring is not configured.
+	Heartbeat healthcheck.Heartbeat
+	// SlackWebhookURL is the Slack webhook for quota-exceeded
+	// notifications. Empty disables Slack notifications.
+	SlackWebhookURL string
+}
 
-// RunCheck queries all workspace usage and sends Slack notifications for newly exceeded quotas.
-// This handler is intended to be called on a schedule via GitHub Actions.
-func (s *Service) RunCheck(
+// Handler executes RunQuotaCheck.
+type Handler struct {
+	db              db.Database
+	clickhouse      clickhouse.ClickHouse
+	heartbeat       healthcheck.Heartbeat
+	slackWebhookURL string
+}
+
+// New constructs a Handler.
+func New(cfg Config) (*Handler, error) {
+	if err := assert.All(
+		assert.NotNil(cfg.DB, "DB must not be nil"),
+		assert.NotNil(cfg.Clickhouse, "Clickhouse must not be nil; use clickhouse.NewNoop() if unavailable"),
+		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
+	); err != nil {
+		return nil, err
+	}
+	return &Handler{
+		db:              cfg.DB,
+		clickhouse:      cfg.Clickhouse,
+		heartbeat:       cfg.Heartbeat,
+		slackWebhookURL: cfg.SlackWebhookURL,
+	}, nil
+}
+
+// Handle queries all workspace usage and sends Slack notifications for
+// newly exceeded quotas.
+func (h *Handler) Handle(
 	ctx restate.ObjectContext,
-	req *hydrav1.RunCheckRequest,
-) (*hydrav1.RunCheckResponse, error) {
+	_ *hydrav1.RunQuotaCheckRequest,
+) (*hydrav1.RunQuotaCheckResponse, error) {
 	billingPeriod := restate.Key(ctx)
 	logger.Info("running quota check", "billing_period", billingPeriod)
 
-	// Parse billing period to get year/month
 	year, month, err := parseBillingPeriod(billingPeriod)
 	if err != nil {
 		return nil, fmt.Errorf("invalid billing period %q: %w", billingPeriod, err)
 	}
 
-	// Load notification timestamps from state (workspace ID -> Unix timestamp of last notification)
 	notifiedAt, err := restate.Get[map[string]int64](ctx, stateKeyNotifiedWorkspaces)
 	if err != nil {
 		return nil, fmt.Errorf("get notified state: %w", err)
 	}
-
 	if notifiedAt == nil {
 		notifiedAt = make(map[string]int64)
 	}
 
-	// Get current time deterministically for Restate replay
 	now, err := restate.Run(ctx, func(restate.RunContext) (int64, error) {
 		return time.Now().Unix(), nil
 	}, restate.WithName("get current time"))
@@ -73,10 +122,8 @@ func (s *Service) RunCheck(
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
 
-	// Fetch billable usage from ClickHouse, pre-filtered to only workspaces above minUsageThreshold.
-	// This is more efficient than fetching all usage and filtering in Go.
 	usageAboveThreshold, err := restate.Run(ctx, func(rc restate.RunContext) (map[string]int64, error) {
-		return s.clickhouse.GetBillableUsageAboveThreshold(rc, year, month, minUsageThreshold)
+		return h.clickhouse.GetBillableUsageAboveThreshold(rc, year, month, minUsageThreshold)
 	}, restate.WithName("get billable usage above threshold"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get billable usage: %w", err)
@@ -84,28 +131,30 @@ func (s *Service) RunCheck(
 
 	logger.Info("fetched usage data", "workspaces_above_threshold", len(usageAboveThreshold))
 
-	// Extract workspace IDs from the usage map
 	workspaceIDs := make([]string, 0, len(usageAboveThreshold))
 	for wsID := range usageAboveThreshold {
 		workspaceIDs = append(workspaceIDs, wsID)
 	}
+	// Sort so batch contents are stable across replays. The downstream
+	// restate.Run calls are journaled by batch index; if the iteration
+	// order differs on replay, the same "fetch workspaces batch N" entry
+	// resolves with a different batchIDs slice and the journal diverges.
+	sort.Strings(workspaceIDs)
 
 	var exceeded []exceededWorkspace
 	var newlyNotified []string
 	workspacesChecked := 0
 
-	// Fetch workspaces in batches to avoid large IN clauses
 	for i := 0; i < len(workspaceIDs); i += batchSize {
 		batchIDs := workspaceIDs[i:min(i+batchSize, len(workspaceIDs))]
 
 		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.GetWorkspacesForQuotaCheckByIDsRow, error) {
-			return db.Query.GetWorkspacesForQuotaCheckByIDs(rc, s.db.RO(), batchIDs)
+			return db.Query.GetWorkspacesForQuotaCheckByIDs(rc, h.db.RO(), batchIDs)
 		}, restate.WithName(fmt.Sprintf("fetch workspaces batch %d", i/batchSize)))
 		if fetchErr != nil {
 			return nil, fmt.Errorf("fetch workspaces: %w", fetchErr)
 		}
 
-		// Process each workspace in the batch
 		for _, ws := range batch {
 			workspacesChecked++
 			if workspacesChecked%1000 == 0 {
@@ -115,22 +164,15 @@ func (s *Service) RunCheck(
 			if !ws.Enabled {
 				continue
 			}
-
-			// Skip workspaces with no quota set
 			if !ws.RequestsPerMonth.Valid {
 				continue
 			}
 
-			// Look up usage from the pre-fetched map
 			usage := usageAboveThreshold[ws.ID]
-
 			if usage < ws.RequestsPerMonth.Int64 {
 				continue
 			}
 
-			// Check if we should send a notification:
-			// - First time: always notify
-			// - Follow-up: only if 7+ days since last notification
 			lastNotified := notifiedAt[ws.ID]
 			isFollowUp := lastNotified > 0
 			if isFollowUp {
@@ -146,10 +188,9 @@ func (s *Service) RunCheck(
 				IsFollowUp: isFollowUp,
 			}
 
-			// Send notification
-			if s.slackWebhookURL != "" {
+			if h.slackWebhookURL != "" {
 				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-					return restate.Void{}, sendSlackNotification(rc, s.slackWebhookURL, e)
+					return restate.Void{}, sendSlackNotification(rc, h.slackWebhookURL, e)
 				}, restate.WithName("notify "+ws.ID))
 				if notifyErr != nil {
 					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
@@ -162,7 +203,6 @@ func (s *Service) RunCheck(
 		}
 	}
 
-	// Update state with notification timestamps
 	if len(newlyNotified) > 0 {
 		restate.Set(ctx, stateKeyNotifiedWorkspaces, notifiedAt)
 	}
@@ -174,15 +214,13 @@ func (s *Service) RunCheck(
 		"notifications_sent", len(newlyNotified),
 	)
 
-	// Send heartbeat to indicate successful completion
-	_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-		return restate.Void{}, s.heartbeat.Ping(rc)
-	}, restate.WithName("send heartbeat"))
-	if err != nil {
+	if _, err := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, h.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat")); err != nil {
 		return nil, fmt.Errorf("send heartbeat: %w", err)
 	}
 
-	return &hydrav1.RunCheckResponse{
+	return &hydrav1.RunQuotaCheckResponse{
 		WorkspacesChecked:  int32(workspacesChecked),
 		WorkspacesExceeded: int32(len(exceeded)),
 		NotificationsSent:  int32(len(newlyNotified)),
