@@ -1,0 +1,78 @@
+name: Service Release
+on:
+  push:
+    tags:
+      - "api/v[0-9]+.[0-9]+.[0-9]+*"
+      - "frontline/v[0-9]+.[0-9]+.[0-9]+*"
+      - "vault/v[0-9]+.[0-9]+.[0-9]+*"
+      - "heimdall/v[0-9]+.[0-9]+.[0-9]+*"
+      - "krane/v[0-9]+.[0-9]+.[0-9]+*"
+      - "control-api/v[0-9]+.[0-9]+.[0-9]+*"
+      - "control-worker/v[0-9]+.[0-9]+.[0-9]+*"
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency: service-release-${{ github.ref_name }}
+
+jobs:
+  release:
+    name: Build, push, and release
+    runs-on: depot-ubuntu-24.04-8
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
+
+      # Uncomment after done testing
+      #- name: Verify tag is on main
+      #  run: |
+      #    git fetch origin main
+      #    commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+      #    git merge-base --is-ancestor "$commit" origin/main
+
+      - name: Parse tag
+        id: tag
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          service="${tag%%/*}"
+          version="${tag#*/}"
+
+          echo "service=$service" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/unkeyed/$service:$version" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.depot/actions/setup-bazel
+        with:
+          cache_auth: ${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build image
+        env:
+          RELEASE_VERSION: ${{ steps.tag.outputs.version }}
+        run: bazel build --config=release //build/${{ steps.tag.outputs.service }}:image
+
+      - name: Push image
+        env:
+          RELEASE_VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          bazel run --config=release \
+            //build/${{ steps.tag.outputs.service }}:push \
+            -- --tag "${{ steps.tag.outputs.version }}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${{ steps.tag.outputs.service }} ${{ steps.tag.outputs.version }}" \
+            --notes "Image: ${{ steps.tag.outputs.image }}"

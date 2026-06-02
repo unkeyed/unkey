@@ -71,9 +71,9 @@ services:
     networks:
       - default
     container_name: vault
-    image: unkey/unkey:dev
+    image: unkey/vault:dev
     pull_policy: never
-    command: ["run", "vault", "--config", "/etc/unkey/vault.toml"]
+    command: ["--config", "/etc/unkey/vault.toml"]
     ports:
       - "8060:8060"
     volumes:
@@ -92,10 +92,10 @@ services:
   ctrl-api:
     networks:
       - default
-    image: unkey/unkey:dev
+    image: unkey/control-api:dev
     pull_policy: never
     container_name: ctrl-api
-    command: ["run", "ctrl", "api", "--config", "/etc/unkey/ctrl-api.toml"]
+    command: ["--config", "/etc/unkey/ctrl-api.toml"]
     ports:
       - "7091:7091"
     depends_on:
@@ -111,16 +111,10 @@ services:
   ctrl-worker:
     networks:
       - default
-    image: unkey/unkey:dev
+    image: unkey/control-worker:dev
     pull_policy: never
     container_name: ctrl-worker
-    command: [
-      "run",
-      "ctrl",
-      "worker",
-      "--config",
-      "/etc/unkey/ctrl-worker.toml",
-    ]
+    command: ["--config", "/etc/unkey/ctrl-worker.toml"]
     ports:
       - "9080:9080"
     depends_on:
@@ -140,9 +134,9 @@ services:
     networks:
       - default
     container_name: api
-    image: unkey/unkey:dev
+    image: unkey/api:dev
     pull_policy: never
-    command: ["run", "api", "--config", "/etc/unkey/api.toml"]
+    command: ["--config", "/etc/unkey/api.toml"]
     ports:
       - 7070:7070
     depends_on:

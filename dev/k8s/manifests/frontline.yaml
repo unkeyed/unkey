@@ -53,8 +53,8 @@ spec:
     spec:
       containers:
         - name: frontline
-          image: unkey/go:dev
-          args: ["run", "frontline", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/frontline:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never
           ports:
             - containerPort: 7070

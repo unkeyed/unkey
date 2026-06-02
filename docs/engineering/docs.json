@@ -20,7 +20,12 @@
               "contributing/local/development",
               {
                 "group": "Tooling",
-                "pages": ["contributing/tooling/bazel", "contributing/tooling/feature-flags"]
+                "pages": [
+                  "contributing/tooling/mise",
+                  "contributing/tooling/bazel",
+                  "contributing/tooling/builds-and-releases",
+                  "contributing/tooling/feature-flags"
+                ]
               }
             ]
           },
@@ -187,7 +192,9 @@
               "architecture/rfcs/0011-unkey-resource-names",
               "architecture/rfcs/0012-stricter-linter",
               "architecture/rfcs/0013-custom-domains",
-              "architecture/rfcs/0014-sentinel-middleware"
+              "architecture/rfcs/0014-sentinel-middleware",
+              "architecture/rfcs/0015-ratelimit-cross-region-counts",
+              "architecture/rfcs/0016-vault-s3-storage"
             ]
           }
         ]

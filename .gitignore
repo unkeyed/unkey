@@ -11,6 +11,7 @@ dist
 .next
 
 .tinyb
+.unkey
 
 # contentlayer
 .contentlayer

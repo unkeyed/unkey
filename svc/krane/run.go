@@ -25,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
@@ -43,6 +44,13 @@ func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
+	}
+
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
+	if cfg.Clock == nil {
+		cfg.Clock = clock.New()
 	}
 
 	if cfg.Observability.Logging != nil {

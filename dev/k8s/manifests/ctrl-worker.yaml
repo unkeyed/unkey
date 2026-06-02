@@ -86,8 +86,8 @@ spec:
             name: ctrl-worker-config
       containers:
         - name: ctrl-worker
-          image: unkey/go:dev
-          args: ["run", "ctrl", "worker", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/control-worker:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 9080

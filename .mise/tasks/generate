@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Generate code from protobuf and other sources (NOT eBPF, see generate-bpf)"
+#MISE depends=["generate-sql"]
+set -euo pipefail
+
+rm -rf ./gen || true
+rm ./pkg/db/*_generated.go || true
+go generate ./...
+go run ./tools/exportoneof ./gen/proto
+bazel run //:gazelle
+go fmt ./...
+pnpm --dir=web fmt

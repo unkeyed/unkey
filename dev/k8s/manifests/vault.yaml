@@ -40,8 +40,9 @@ spec:
     spec:
       containers:
         - name: vault
-          image: unkey/go:dev
-          args: ["run", "vault", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/vault:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
+          imagePullPolicy: Never
           ports:
             - name: http
               containerPort: 8060

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Run fuzz tests"
+set -euo pipefail
+
+files=$(grep -r --include='*_test.go' -l 'func Fuzz' .)
+for file in $files; do
+  funcs=$(grep -oE 'func (Fuzz[a-zA-Z0-9_]*)' "$file" | sed 's/func //')
+  for func in $funcs; do
+    echo "Fuzzing $func in $file"
+    parent_dir=$(dirname "$file")
+    go test "$parent_dir" -run="^$func$" -fuzz="^$func$" -fuzztime=1m
+  done
+done

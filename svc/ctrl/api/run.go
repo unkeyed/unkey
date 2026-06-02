@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -61,6 +62,10 @@ func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
+	}
+
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.

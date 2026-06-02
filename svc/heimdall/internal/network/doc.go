@@ -1,6 +1,6 @@
 // Package network owns heimdall's per-pod egress/ingress byte accounting.
 // The kernel-side program lives in bpf/network.bpf.c (compiled by bpf2go
-// into Go bindings + an embedded .o; run `make generate-bpf` to regenerate)
+// into Go bindings + an embedded .o; run `mise run generate-bpf` to regenerate)
 // and attaches via TCX on the pod-side eth0 inside each pod's netns rather
 // than at the pod cgroup - cgroup_skb is useless under gVisor because runsc
 // traps customer syscalls in userspace and never hits the host socket

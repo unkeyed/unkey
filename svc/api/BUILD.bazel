@@ -35,6 +35,7 @@ go_library(
         "//pkg/rpc/interceptor",
         "//pkg/runner",
         "//pkg/tls",
+        "//pkg/uid",
         "//pkg/zen",
         "//pkg/zen/validation",
         "//svc/api/routes",

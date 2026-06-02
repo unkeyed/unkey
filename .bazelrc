@@ -37,3 +37,12 @@ test --strategy=GoCompilePkg=local
 test --test_output=errors
 test --test_summary=terse
 test --local_test_jobs=auto
+
+# ============================================================
+# Release stamping
+# ============================================================
+# Bakes STABLE_VERSION, STABLE_GIT_COMMIT, and BUILD_TIMESTAMP
+# into pkg/buildinfo. Invoke with --config=release on both
+# `bazel build` and `bazel run` so the cache key matches.
+build:release --stamp
+build:release --workspace_status_command=build/util/status.sh

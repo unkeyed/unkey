@@ -57,8 +57,8 @@ spec:
       serviceAccountName: unkey-serviceaccount
       containers:
         - name: ctrl-api
-          image: unkey/go:dev
-          args: ["run", "ctrl", "api", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/control-api:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           ports:
             - containerPort: 7091

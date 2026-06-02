@@ -55,13 +55,13 @@ Use fuzzing to validate tamper detection and authentication guarantees.
 During normal test runs, fuzz tests execute only with their seed corpus:
 
 ```bash
-bazel test //pkg/encryption:encryption_test
+mise exec -- bazel test //pkg/encryption:encryption_test
 ```
 
 To fuzz locally:
 
 ```bash
-go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
+mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
 ```
 
 When fuzzing finds a failure, Go saves the input to `testdata/fuzz/<TestName>/` so it becomes part of the seed corpus.
