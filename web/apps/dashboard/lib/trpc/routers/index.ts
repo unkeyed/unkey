@@ -36,6 +36,9 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { createApp } from "./deploy/app/create";
+import { deleteApp } from "./deploy/app/delete";
+import { listApps } from "./deploy/app/list";
 import { addCustomDomain } from "./deploy/custom-domains/add";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
@@ -437,6 +440,11 @@ export const router = t.router({
       create: createProject,
       delete: deleteProject,
       creationContext,
+    }),
+    app: t.router({
+      list: listApps,
+      create: createApp,
+      delete: deleteApp,
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,
