@@ -19,7 +19,7 @@
 //
 // # Code Generation
 //
-// Run `make generate` from the repo root to regenerate query code. The
+// Run `mise run generate` from the repo root to regenerate query code. The
 // generate pipeline clears old *_generated.go files, runs sqlc, and removes
 // the temporary db scaffold file that sqlc emits (see generate.go and
 // sqlc.json for details).

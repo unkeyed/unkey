@@ -1,10 +1,10 @@
 //go:build bpf_generate
 
 // This file hosts the `go:generate` directive for bpf2go. It's gated
-// behind the `bpf_generate` build tag so that `make generate` (which runs
+// behind the `bpf_generate` build tag so that `mise run generate` (which runs
 // `go generate ./...` across the whole repo) does NOT invoke bpf2go and
 // therefore does not require clang / llvm-strip on the machine. Run
-// `make generate-bpf` to regenerate the BPF bindings after editing the
+// `mise run generate-bpf` to regenerate the BPF bindings after editing the
 // C source.
 //
 // Regenerating requires clang 12+ (brew install llvm). bpf/network.bpf.c

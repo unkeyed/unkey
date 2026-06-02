@@ -91,13 +91,13 @@ func TestWithDatabase(t *testing.T) {
 During development, run tests for the package you are working on:
 
 ```bash
-bazel test //pkg/cache:cache_test --test_output=errors
+mise exec -- bazel test //pkg/cache:cache_test --test_output=errors
 ```
 
 Before pushing, run the full test suite:
 
 ```bash
-make test
+mise run test
 ```
 
 ## What is next

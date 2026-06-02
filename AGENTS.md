@@ -1,132 +1,138 @@
-# AGENTS.md - Unkey Development Guide
+# AGENTS.md - Unkey agent guide
 
-This document provides essential information for AI coding agents working in this repository.
+This file is the first stop for agents working in this repo. Keep changes small,
+typed, verified, and routed through `mise`.
 
 ## Communication
 
-- Be extremely concise; sacrifice grammar for brevity
-- At the end of each plan, list unresolved questions (if any)
+- Be concise.
+- Say what changed and how you verified it.
+- If you provide a plan, end with unresolved questions, if any.
+- Do not revert or rewrite work you did not make unless explicitly asked.
 
-## Code Quality Standards
+## Source of truth
 
-- Make minimal, surgical changes
-- **Never compromise type safety**: No `any`, no `!` (non-null assertion), no `as Type`
-- **Make illegal states unrepresentable**: Model domain with ADTs/discriminated unions; parse inputs at boundaries into typed structures
-- Leave the codebase better than you found it
+- Tooling and task runner: `mise.toml`, `mise.lock`, and `.mise/tasks/*`.
+- Engineering docs: `docs/engineering/contributing/`.
+- Product docs: `docs/product/`.
+- Go build graph: `BUILD.bazel`, `MODULE.bazel`, and Gazelle.
+- Web workspace: `web/package.json`, `web/pnpm-workspace.yaml`, and
+  `web/pnpm-lock.yaml`.
 
-### Entropy
+## Repository map
 
-This codebase will outlive you. Every shortcut you take becomes
-someone else's burden. Every hack compounds into technical debt
-that slows the whole team down.
+- `cmd/`: Unkey CLI commands and service entrypoints.
+- `svc/`: Go services (`api`, `ctrl`, `frontline`, `heimdall`, `krane`, `vault`).
+- `pkg/`: shared Go libraries.
+- `internal/`: shared internal Go services.
+- `proto/` and `gen/`: protobuf definitions and generated code.
+- `web/`: TypeScript apps, packages, database schema, and tooling.
+- `docs/`: Mintlify product and engineering documentation.
+- `dev/`: local development, Tilt, Kubernetes, and formatting config.
 
-You are not just writing code. You are shaping the future of this
-project. The patterns you establish will be copied. The corners
-you cut will be cut again.
+## Tooling rules
 
-**Fight entropy. Leave the codebase better than you found it.**
-
-## Specialized Subagents
-
-- **Oracle**: code review, architecture decisions, debugging, refactor planning
-- **Librarian**: understanding 3rd party libs, exploring remote repos, discovering patterns
-
-## Project Overview
-
-Unkey is an open-source API authentication and authorization platform. This is a **polyglot monorepo** containing:
-
-- **Go backend** (root): Services, APIs, and shared libraries built with Bazel
-- **TypeScript frontend** (`/web`): Dashboard and API workers built with pnpm/Turborepo
-
-## Build, Lint, and Test Commands
-
-### Go (Root Directory)
+Use `mise` for all installs, tasks, and direct tool execution. Makefiles are
+legacy and should not be used.
 
 ```bash
-# Install dependencies
-make install
+# Install pinned toolchain
+./dev/install-mise
+mise install
 
-# Build all Go artifacts with Bazel
-make build                    # or: bazel build //...
-
-# Run all Go tests
-make test                     # or: bazel test //...
-
-# Run a single Go test
-bazel test //pkg/cache:cache_test --test_filter=TestCacheName
-bazel test //pkg/fault:fault_test --test_output=all
-
-# Format and lint Go code
-make fmt                      # runs: go fmt, buf format, golangci-lint
-
-# Sync BUILD.bazel files
-make bazel                    # runs: bazel mod tidy && bazel run //:gazelle
+# Discover tasks
+mise tasks
+mise run help
 ```
 
-### TypeScript (web/ Directory)
+Prefer `mise run <task>` when a task exists. Use `mise exec -- <tool>` only for
+direct commands without a task.
+
+### Common tasks
 
 ```bash
-# Install dependencies
-pnpm --dir=web install --frozen-lockfile
-
-# Build all TypeScript packages
-pnpm --dir=web build
-
-# Run all TypeScript tests
-pnpm --dir=web test
-
-# Run a single test file (from web/apps/api)
-cd web/apps/api && pnpm vitest run -c vitest.integration.ts src/routes/v1_keys_createKey.happy.test.ts
-
-# Run tests matching a pattern
-cd web/apps/api && pnpm vitest run -c vitest.integration.ts --grep "creates key"
-
-# Format and lint TypeScript
-pnpm --dir=web fmt            # runs: biome format && biome check
+mise run build          # Bazel build, copies ./bin/unkey
+mise run test           # run Bazel test suite
+mise run fmt            # dprint, go fmt, buf format, pnpm fmt
+mise run bazel          # bazel mod tidy and Gazelle
+mise run generate       # SQL, protobuf, Go generators, Gazelle, fmt
+mise run generate-bpf   # heimdall eBPF bindings
+mise run dev            # local Kubernetes/Tilt dev environment
+mise run dashboard      # dashboard-focused local setup
+mise run down           # stop Tilt and delete minikube cluster
+mise run tunnel         # port-forward 80/443 for *.unkey.local
+mise run unkey -- ...   # run the Unkey CLI through Bazel
 ```
 
-### Development Environment
+### Direct tool examples
 
 ```bash
-make up                       # Start Docker infrastructure (MySQL, Redis, ClickHouse, etc.)
-make dev                      # Start full dev environment with Tilt/minikube
-make clean                    # Stop and remove all Docker services
+mise exec -- bazel test //pkg/cache:cache_test --test_output=errors
+mise exec -- bazel test //pkg/cache:cache_test --test_filter=TestCacheName
+mise exec -- pnpm --dir=web test
+mise exec -- pnpm --dir=web/apps/api vitest run -c vitest.integration.ts
+mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
 ```
 
-## Code Style Guidelines
+## Code standards
 
-### Go Conventions
+- Make minimal, surgical changes.
+- Preserve type safety. Do not add TypeScript `any`, non-null assertions, or
+  unsafe casts.
+- Model domain states explicitly. Parse untyped input at boundaries.
+- Prefer existing packages, helpers, and patterns before adding new ones.
+- Avoid new dependencies unless the local implementation would be worse.
+- Keep variable scope small. Use clear names with units or bounds where useful.
+- Handle every error. If a state is impossible, assert it rather than ignoring it.
+- Document why non-obvious code exists, not what each line does.
 
-**Testing** - Use `testify/require` for assertions:
+## Go conventions
 
-```go
-func TestFeature(t *testing.T) {
-    t.Run("scenario", func(t *testing.T) {
-        require.NoError(t, err)
-        require.Equal(t, expected, actual)
-    })
-}
-```
+- Build and test Go through Bazel, not raw `go test`, except fuzzing through
+  `mise exec -- go test -fuzz ...`.
+- Use `github.com/stretchr/testify/require` in tests.
+- Use `t.Helper()` in test helpers.
+- Use `t.Cleanup()` for resources.
+- Prefer `fault` for contextual errors and `assert` for invariants.
+- After adding or moving Go files, run `mise run bazel`.
+- After changing generated inputs, run `mise run generate`.
 
-## Detailed Guidelines
+## TypeScript conventions
 
-For comprehensive guidance, read these internal docs in `web/apps/engineering/content/docs/contributing/`:
+- Run pnpm through mise: `mise exec -- pnpm --dir=web ...`.
+- Keep package manager changes scoped to `web/` unless a repo task says
+  otherwise.
+- Do not bypass formatter or type checks by weakening types.
+- Use the local app/package patterns in `web/` before introducing abstractions.
 
-- **Code Style** (`code-style.mdx`): Design philosophy (safety > performance > DX), zero technical debt policy, assertions, error handling with `fault`, scope minimization, failure handling (circuit breakers, retry with backoff, idempotency)
-- **Documentation** (`documentation.mdx`): Document the "why" not the "what", use prose over bullets, match depth to complexity, verify behavior before documenting
-- **Testing** (`testing/`):
-  - `index.mdx` - What to test, test organization, resource cleanup
-  - `unit-tests.mdx` - Table-driven tests, naming, parallel execution, test clocks
-  - `integration-tests.mdx` - Docker containers, test harness, real dependencies
-  - `http-handler-tests.mdx` - API endpoint testing patterns
-  - `fuzz-tests.mdx` - Randomized input testing for parsers/validators
-  - `simulation-tests.mdx` - Property-based testing for stateful systems
-  - `anti-patterns.mdx` - Common mistakes (sleeping, over-mocking, shared state)
+## Documentation conventions
 
-## Important Notes
+- Follow `docs/engineering/contributing/quality/documentation.mdx`.
+- Product docs live in `docs/product/` and need `docs/product/docs.json` nav
+  entries when adding pages.
+- Engineering docs live in `docs/engineering/` and need
+  `docs/engineering/docs.json` nav entries when adding pages.
+- Use `bash` for shell code blocks.
+- Prefer root-relative internal doc links.
+- Do not use em dashes in docs.
 
-- Always run `make bazel` after adding new Go files
-- Use `make fmt` before committing Go changes
-- Use `pnpm --dir=web fmt` before committing TypeScript changes
-- Integration tests require Docker services running (`make up`)
-- The API service deploys to Cloudflare Workers via Wrangler
+## Verification
+
+Choose the smallest check that proves the change.
+
+- Go source change: targeted `mise exec -- bazel test //path:target`.
+- Go file added or imports changed: `mise run bazel`.
+- Shared Go behavior or broad service change: `mise run test` when practical.
+- TypeScript change: targeted `mise exec -- pnpm --dir=web ...` command.
+- Formatting-sensitive change: `mise run fmt` or the narrower formatter task.
+- Docs-only change: link/content review. Note if no formatter applies.
+
+Report failed or skipped verification honestly.
+
+## High-signal references
+
+- Local development: `docs/engineering/contributing/local/development.mdx`.
+- Bazel workflow: `docs/engineering/contributing/tooling/bazel.mdx`.
+- Code quality: `docs/engineering/contributing/quality/code-quality.mdx`.
+- Testing: `docs/engineering/contributing/quality/testing/index.mdx`.
+- Documentation: `docs/engineering/contributing/quality/documentation.mdx`.
