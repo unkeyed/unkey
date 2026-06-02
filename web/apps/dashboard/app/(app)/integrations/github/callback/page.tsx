@@ -23,7 +23,7 @@ export default function Page() {
     onSuccess: (data) => {
       if (data.returnTo === "settings") {
         router.replace(
-          `/${data.workspaceSlug}/projects/${data.projectId}/apps/${data.appId}/settings`,
+          `/${data.workspaceSlug}/projects/${data.projectSlug}/apps/${data.appSlug}/settings`,
         );
       } else {
         router.replace(

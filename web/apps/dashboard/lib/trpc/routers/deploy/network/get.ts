@@ -2,7 +2,7 @@ import type {
   DeploymentNode,
   HealthStatus,
   RegionNode,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
+} from "@/app/(app)/[workspaceSlug]/projects/[projectSlug]/apps/[appSlug]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";

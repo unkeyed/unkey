@@ -53,7 +53,7 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
         case "api":
           return createApiNavigation(context.resourceId, workspace, segments, context.keyAuthId);
         case "project":
-          return createProjectNavigation(context.resourceId, workspace, segments, context.appId);
+          return createProjectNavigation(context.resourceId, workspace, segments, context.appSlug);
         case "namespace":
           return createNamespaceNavigation(context.resourceId, workspace, segments);
       }
@@ -81,19 +81,22 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
   const { enhancedNavItems: withApiData, apiName } = useApiKeyspace(withProjects, apiId);
 
   // For project resources, enhance with project name
-  const projectId =
+  const projectSlug =
     context.type === "resource" && context.resourceType === "project"
       ? context.resourceId
       : undefined;
-  const { enhancedNavItems: withProjectData, projectName } = useProjectData(withApiData, projectId);
+  const { enhancedNavItems: withProjectData, projectName } = useProjectData(
+    withApiData,
+    projectSlug,
+  );
 
   // When inside a specific app, relabel the project-resource parent with the app name.
-  const appId =
-    context.type === "resource" && context.resourceType === "project" ? context.appId : undefined;
+  const appSlug =
+    context.type === "resource" && context.resourceType === "project" ? context.appSlug : undefined;
   const { enhancedNavItems: finalNavItems, appName } = useAppData(
     withProjectData,
-    projectId,
-    appId,
+    projectSlug,
+    appSlug,
   );
 
   // For namespace resources, get namespace name

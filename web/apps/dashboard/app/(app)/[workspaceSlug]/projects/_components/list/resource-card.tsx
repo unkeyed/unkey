@@ -3,7 +3,7 @@ import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
-import { Avatar } from "../../[projectId]/apps/[appId]/components/git-avatar";
+import { Avatar } from "../../[projectSlug]/apps/[appSlug]/components/git-avatar";
 
 type ResourceCardProps = {
   name: string;

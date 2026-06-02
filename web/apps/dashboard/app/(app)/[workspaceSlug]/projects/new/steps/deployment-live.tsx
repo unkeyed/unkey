@@ -5,14 +5,17 @@ import { trpc } from "@/lib/trpc/client";
 import { Check } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { ProjectDataProvider } from "../../[projectId]/apps/[appId]/(overview)/data-provider";
-import { DeploymentInfo } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
-import { DeploymentProgress } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
-import { deriveStatusFromSteps } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/deployment-utils";
+import {
+  ProjectDataProvider,
+  useProjectData,
+} from "../../[projectSlug]/apps/[appSlug]/(overview)/data-provider";
+import { DeploymentInfo } from "../../[projectSlug]/apps/[appSlug]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
+import { DeploymentProgress } from "../../[projectSlug]/apps/[appSlug]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
+import { deriveStatusFromSteps } from "../../[projectSlug]/apps/[appSlug]/(overview)/deployments/[deploymentId]/deployment-utils";
 import {
   DeploymentLayoutProvider,
   useDeployment,
-} from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/layout-provider";
+} from "../../[projectSlug]/apps/[appSlug]/(overview)/deployments/[deploymentId]/layout-provider";
 import { OnboardingStepContainer } from "../onboarding-step-container";
 import { OnboardingStepHeader } from "../onboarding-step-header";
 
@@ -26,14 +29,15 @@ export const DeploymentLiveStep = ({ projectId, appId, deploymentId }: Deploymen
   return (
     <ProjectDataProvider projectId={projectId} appId={appId}>
       <DeploymentLayoutProvider deploymentId={deploymentId}>
-        <DeploymentLiveStepContent projectId={projectId} />
+        <DeploymentLiveStepContent />
       </DeploymentLayoutProvider>
     </ProjectDataProvider>
   );
 };
 
-const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
+const DeploymentLiveStepContent = () => {
   const { deployment } = useDeployment();
+  const { projectSlug, appSlug } = useProjectData();
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const ready = deployment.status === "ready";
@@ -48,13 +52,14 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
     [stepsQuery.data, deployment.status],
   );
 
-  const deploymentUrl = `/${workspace.slug}/projects/${projectId}/apps/${deployment.appId}/deployments/${deployment.id}`;
+  const canRedirect = Boolean(projectSlug) && Boolean(appSlug);
+  const deploymentUrl = `/${workspace.slug}/projects/${projectSlug}/apps/${appSlug}/deployments/${deployment.id}`;
 
   useEffect(() => {
-    if (ready) {
+    if (ready && canRedirect) {
       router.replace(deploymentUrl);
     }
-  }, [ready, router, deploymentUrl]);
+  }, [ready, canRedirect, router, deploymentUrl]);
 
   return (
     <OnboardingStepContainer>

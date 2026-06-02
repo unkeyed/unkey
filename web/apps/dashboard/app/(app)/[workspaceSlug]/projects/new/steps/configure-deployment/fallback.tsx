@@ -2,7 +2,7 @@
 
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useProjectData } from "../../../[projectId]/apps/[appId]/(overview)/data-provider";
+import { useProjectData } from "../../../[projectSlug]/apps/[appSlug]/(overview)/data-provider";
 
 export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: boolean }) => {
   const { isEnvironmentsLoading } = useProjectData();

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, useStepWizard } from "@unkey/ui";
-import { DeploymentSettings } from "../../../[projectId]/apps/[appId]/(overview)/settings/deployment-settings";
+import { DeploymentSettings } from "../../../[projectSlug]/apps/[appSlug]/(overview)/settings/deployment-settings";
 
 export const ConfigureDeploymentContent = () => {
   const { next } = useStepWizard();

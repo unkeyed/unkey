@@ -6,8 +6,8 @@ import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
-import { ResourceCard } from "./resource-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
+import { ResourceCard } from "./resource-card";
 
 const MAX_SKELETON_COUNT = 8;
 
@@ -71,7 +71,7 @@ export const ProjectsList = () => {
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
             <ResourceCard
-              href={`/${workspace.slug}/projects/${project.id}`}
+              href={`/${workspace.slug}/projects/${project.slug}/apps`}
               name={project.name}
               domain={project.domain}
               commitTitle={project.commitTitle}

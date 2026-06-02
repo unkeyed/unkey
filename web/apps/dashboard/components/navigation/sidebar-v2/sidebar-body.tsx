@@ -30,7 +30,7 @@ export function SidebarBody() {
       case "authorization":
         return buildAuthorizationLinks(slug, segments);
       case "project":
-        return buildProjectLinks(slug, context.projectId, segments);
+        return buildProjectLinks(slug, context.projectSlug, segments);
       case "api":
         return buildApiLinks(slug, context.apiId, keyAuthId, segments);
       case "namespace":

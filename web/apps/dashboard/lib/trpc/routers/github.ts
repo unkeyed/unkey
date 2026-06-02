@@ -357,10 +357,25 @@ export const githubRouter = t.router({
           });
         });
 
+      const [projectRow, appRow] = await Promise.all([
+        db.query.projects.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.id, projectId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: { slug: true },
+        }),
+        db.query.apps.findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.id, parsedState.appId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: { slug: true },
+        }),
+      ]);
+
       return {
         workspaceSlug: ctx.workspace.slug,
         projectId,
         appId: parsedState.appId,
+        projectSlug: projectRow?.slug ?? null,
+        appSlug: appRow?.slug ?? null,
         returnTo: parsedState.returnTo ?? null,
       };
     }),

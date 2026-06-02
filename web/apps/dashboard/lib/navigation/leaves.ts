@@ -108,11 +108,11 @@ export function buildAuthorizationLinks(slug: string, segments: string[]): Resol
 
 export function buildProjectLinks(
   slug: string,
-  projectId: string,
+  projectSlug: string,
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[2];
-  const base = `/${slug}/projects/${projectId}`;
+  const base = `/${slug}/projects/${projectSlug}`;
   return [
     {
       key: "deployments",

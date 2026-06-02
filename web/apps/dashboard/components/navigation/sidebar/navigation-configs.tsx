@@ -167,25 +167,25 @@ export function createApiNavigation(
  * Specific Project Navigation (resource-level)
  */
 export function createProjectNavigation(
-  projectId: string,
+  projectSlug: string,
   workspace: Workspace,
   segments: string[],
-  appId?: string,
+  appSlug?: string,
 ): NavItem[] {
-  const projectBase = `/${workspace.slug}/projects/${projectId}`;
+  const projectBase = `/${workspace.slug}/projects/${projectSlug}`;
 
-  // Tabs live under the active app. At project home (no appId) the page itself
+  // Tabs live under the active app. At project home (no app) the page itself
   // lists the project's apps, so the sidebar shows only the project parent.
-  const childItems: NavItem[] = appId
-    ? createAppTabs(`${projectBase}/apps/${appId}`, segments)
+  const childItems: NavItem[] = appSlug
+    ? createAppTabs(`${projectBase}/apps/${appSlug}`, segments)
     : [];
 
   return [
     {
       icon: Cube,
-      href: projectBase,
-      label: projectId, // Will be replaced with actual project name
-      active: segments.includes(projectId),
+      href: `${projectBase}/apps`,
+      label: projectSlug, // Will be replaced with actual project name
+      active: segments.includes(projectSlug),
       items: childItems,
     },
   ];

@@ -2,7 +2,9 @@
 import { LoadingState } from "@/components/loading-state";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { StepWizard } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -42,6 +44,28 @@ export const Onboarding = () => {
   const [appId, setAppId] = useState<string | null>(initialAppId ?? null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
+  // The final redirect targets the slug-based app route. The wizard tracks ids,
+  // so resolve the slugs from the collections it just wrote into.
+  const projectQuery = useLiveQuery(
+    (q) =>
+      projectId
+        ? q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId))
+        : undefined,
+    [projectId],
+  );
+  const projectSlug = projectQuery.data?.at(0)?.slug;
+
+  const appQuery = useLiveQuery(
+    (q) =>
+      projectId && appId
+        ? q
+            .from({ app: collection.apps })
+            .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId)))
+        : undefined,
+    [projectId, appId],
+  );
+  const appSlug = appQuery.data?.at(0)?.slug;
+
   const { bypass } = usePreventLeave(!deploymentId);
 
   // Persist the created project/app into the URL so a mid-wizard reload resumes
@@ -56,11 +80,11 @@ export const Onboarding = () => {
   };
 
   const handleSkipGithubSetup = () => {
-    if (!projectId || !appId) {
+    if (!projectSlug || !appSlug) {
       return;
     }
     bypass();
-    router.replace(`/${workspace.slug}/projects/${projectId}/apps/${appId}/deployments`);
+    router.replace(`/${workspace.slug}/projects/${projectSlug}/apps/${appSlug}/deployments`);
   };
 
   // Wait for creation context so the start step (which depends on whether a

@@ -76,26 +76,9 @@ export const listApps = workspaceProcedure
         ),
     ]);
 
-    const latestDeploymentByApp = new Map<string, string>();
-    for (const row of latestDeploymentRows) {
-      if (!latestDeploymentByApp.has(row.appId)) {
-        latestDeploymentByApp.set(row.appId, row.id);
-      }
-    }
-
-    const domainByApp = new Map<string, string>();
-    for (const row of routeRows) {
-      if (!domainByApp.has(row.appId)) {
-        domainByApp.set(row.appId, row.fullyQualifiedDomainName);
-      }
-    }
-
-    const repoByApp = new Map<string, string>();
-    for (const row of repoRows) {
-      if (!repoByApp.has(row.appId)) {
-        repoByApp.set(row.appId, row.repositoryFullName);
-      }
-    }
+    const latestDeploymentByApp = firstByApp(latestDeploymentRows, (row) => row.id);
+    const domainByApp = firstByApp(routeRows, (row) => row.fullyQualifiedDomainName);
+    const repoByApp = firstByApp(repoRows, (row) => row.repositoryFullName);
 
     const currentDeploymentIds = Array.from(
       new Set(appRows.map((a) => a.currentDeploymentId).filter((id): id is string => Boolean(id))),
@@ -150,3 +133,17 @@ export const listApps = workspaceProcedure
       };
     });
   });
+
+// Collapse pre-sorted rows to the first value seen per appId.
+function firstByApp<T extends { appId: string }>(
+  rows: T[],
+  value: (row: T) => string,
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    if (!map.has(row.appId)) {
+      map.set(row.appId, value(row));
+    }
+  }
+  return map;
+}

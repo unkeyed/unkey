@@ -11,7 +11,7 @@ import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { type PropsWithChildren, useEffect, useMemo, useRef } from "react";
-import { EnvironmentContext } from "../../../[projectId]/apps/[appId]/(overview)/settings/environment-provider";
+import { EnvironmentContext } from "../../../[projectSlug]/apps/[appSlug]/(overview)/settings/environment-provider";
 
 export const OnboardingEnvironmentSettingsInner = ({
   children,
