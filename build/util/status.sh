@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Bazel workspace status command (wired via --workspace_status_command in .bazelrc).
+# Emits STABLE_* keys that Bazel substitutes into x_defs to stamp pkg/buildinfo
+# (Version, Revision, BuildTime) into release binaries.
+# See: https://bazel.build/docs/user-manual#workspace-status
 set -euo pipefail
 
 version="${RELEASE_VERSION:-unknown}"
