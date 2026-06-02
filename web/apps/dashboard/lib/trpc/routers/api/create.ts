@@ -23,7 +23,8 @@ export const createApi = workspaceProcedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to create the keyspace. Please try again or contact support@unkey.com",
+        message:
+          "We are unable to create the keyspace. Please try again or contact support@unkey.com",
       });
     }
   });
