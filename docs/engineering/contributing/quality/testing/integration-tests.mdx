@@ -33,5 +33,5 @@ Integration tests that start containers must use `size = "large"`. Shared-contai
 Use verbose output for failing tests:
 
 ```bash
-bazel test //pkg/vault/integration:integration_test --test_output=all
+mise exec -- bazel test //pkg/vault/integration:integration_test --test_output=all
 ```
