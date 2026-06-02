@@ -37,6 +37,7 @@ go_library(
         "//pkg/rpc/interceptor",
         "//pkg/runner",
         "//pkg/tls",
+        "//pkg/uid",
         "//pkg/zen",
         "//svc/frontline/internal/caches",
         "//svc/frontline/internal/certmanager",

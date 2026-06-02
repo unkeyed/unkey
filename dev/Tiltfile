@@ -261,25 +261,34 @@ k8s_resource('restate-ratelimit-blocklist-cleanup', resource_deps=['restate', 'c
 k8s_resource('restate-audit-log-export', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
-# Build Go binaries locally (auto-detect arch from minikube)
-local_resource(
-    'build-unkey',
-    'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r") go build -o bin/unkey .',
-    deps=['../main.go', '../pkg', '../cmd', '../svc', '../gen'],
-    labels=['build'],
-)
+MINIKUBE_GOARCH = '$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r")'
+GO_SERVICE_DEPS = ['../pkg', '../svc', '../gen', '../build']
 
+def go_service_image(name, package, binary):
+    local_resource(
+        'build-' + name,
+        'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=' + MINIKUBE_GOARCH + ' go build -o bin/' + binary + ' ' + package,
+        deps=GO_SERVICE_DEPS,
+        labels=['build'],
+    )
 
-# Single docker image for all Go services - k8s manifests use `args` to specify which service to run
-docker_build_with_restart(
-    'unkey/go:dev',
-    '..',
-    dockerfile='./Dockerfile.tilt',
-    entrypoint=['/unkey'],
-    only=['./bin'],
-    live_update=[sync('./bin/unkey', '/unkey')]
-)
+    docker_build_with_restart(
+        'unkey/' + name + ':dev',
+        '..',
+        dockerfile='./Dockerfile.tilt',
+        build_args={'BINARY': binary},
+        entrypoint=['/service'],
+        only=['./bin/' + binary],
+        live_update=[sync('./bin/' + binary, '/service')],
+    )
 
+go_service_image('api', './build/api', 'api')
+go_service_image('frontline', './build/frontline', 'frontline')
+go_service_image('vault', './build/vault', 'vault')
+go_service_image('heimdall', './build/heimdall', 'heimdall')
+go_service_image('krane', './build/krane', 'krane')
+go_service_image('control-api', './build/control-api', 'control-api')
+go_service_image('control-worker', './build/control-worker', 'control-worker')
 
 
 # Vault service
@@ -287,7 +296,7 @@ k8s_yaml('k8s/manifests/vault.yaml')
 k8s_resource(
   'vault',
   port_forwards='8060:8060',
-  resource_deps=['s3', 'build-unkey'],
+  resource_deps=['s3', 'build-vault'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -298,7 +307,7 @@ k8s_yaml('k8s/manifests/api.yaml')
 k8s_resource(
   'api',
   port_forwards='7070:7070',
-  resource_deps=['mysql', 'clickhouse', 'redis', 'build-unkey'],
+  resource_deps=['mysql', 'clickhouse', 'redis', 'build-api'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -306,7 +315,7 @@ k8s_resource(
 
 # Ctrl service
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey', 'github-credentials', 'domain-connect-credentials']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-control-api', 'github-credentials', 'domain-connect-credentials']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
 k8s_resource(
@@ -320,7 +329,7 @@ k8s_resource(
 
 # Worker service (Restate workflow handlers)
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'build-unkey', 'webhooks-config', 'github-credentials']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'build-control-worker', 'webhooks-config', 'github-credentials']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(
@@ -348,7 +357,7 @@ k8s_yaml('k8s/manifests/frontline.yaml')
 k8s_resource(
   'frontline',
   port_forwards=['9443:7443', '9080:7070'],
-  resource_deps=['mysql', 'ctrl-api', 'vault', 'build-unkey', 'frontline-certs'],
+  resource_deps=['mysql', 'ctrl-api', 'vault', 'build-frontline', 'frontline-certs'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO,
@@ -360,7 +369,7 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass'],
+  resource_deps=['ctrl-api', 'build-krane', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -373,7 +382,7 @@ k8s_resource(
 k8s_yaml('k8s/manifests/heimdall.yaml')
 k8s_resource(
   'heimdall',
-  resource_deps=['clickhouse', 'build-unkey', 'rbac'],
+  resource_deps=['clickhouse', 'build-heimdall', 'rbac'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO

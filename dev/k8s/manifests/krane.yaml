@@ -64,8 +64,8 @@ spec:
       serviceAccountName: unkey-serviceaccount
       containers:
         - name: krane
-          image: unkey/go:dev
-          args: ["run", "krane", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/krane:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           env:
             - name: UNKEY_REGISTRY_PASSWORD

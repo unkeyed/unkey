@@ -59,8 +59,8 @@ spec:
     spec:
       containers:
         - name: api
-          image: unkey/go:dev
-          args: ["run", "api", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/api:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
           env:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

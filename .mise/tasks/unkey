@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Run unkey CLI (usage: mise run unkey -- dev seed local)"
+set -euo pipefail
+
+set -a
+[ -f .env ] && . ./.env
+set +a
+
+bazel run \
+  --noshow_progress \
+  --show_result=0 \
+  --ui_event_filters=-info,-stdout \
+  //:unkey -- "$@" ${ARGS:-}

@@ -1,0 +1,50 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("//build/util:service_image.bzl", "service_image")
+
+go_library(
+    name = "vault_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/build/vault",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//build/util",
+        "//svc/vault",
+    ],
+)
+
+go_binary(
+    name = "vault_linux_amd64",
+    out = "bin/vault",
+    embed = [":vault_lib"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/unkeyed/unkey/pkg/buildinfo.BuildTime": "{BUILD_TIMESTAMP}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Revision": "{STABLE_GIT_COMMIT}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Version": "{STABLE_VERSION}",
+    },
+)
+
+go_binary(
+    name = "vault_linux_arm64",
+    out = "bin/vault",
+    embed = [":vault_lib"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/unkeyed/unkey/pkg/buildinfo.BuildTime": "{BUILD_TIMESTAMP}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Revision": "{STABLE_GIT_COMMIT}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Version": "{STABLE_VERSION}",
+    },
+)
+
+service_image(
+    name = "vault",
+    description = "Unkey Vault",
+    local_tag = "unkey/vault:dev",
+    repository = "ghcr.io/unkeyed/vault",
+)
