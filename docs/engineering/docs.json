@@ -21,6 +21,7 @@
               {
                 "group": "Tooling",
                 "pages": [
+                  "contributing/tooling/mise",
                   "contributing/tooling/bazel",
                   "contributing/tooling/builds-and-releases",
                   "contributing/tooling/feature-flags"

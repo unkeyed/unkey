@@ -41,7 +41,6 @@ bazel-*
 # Misc
 *.md
 LICENSE
-Makefile
 /demo_api
 /k8s
 /.git

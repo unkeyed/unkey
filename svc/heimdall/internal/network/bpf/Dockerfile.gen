@@ -1,6 +1,6 @@
 # Pinned toolchain for bytewise-reproducible eBPF object generation.
 #
-# `make generate-bpf` runs inside this image so the committed bpf_bpfel.o
+# `mise run generate-bpf` runs inside this image so the committed bpf_bpfel.o
 # matches across macOS dev machines, Linux dev machines, and the CI
 # drift-check runner. Without pinning, clang version drift (Apple/brew
 # vs apt) silently shifts the .o bytes and the drift check fails on

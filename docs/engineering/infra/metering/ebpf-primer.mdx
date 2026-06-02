@@ -56,7 +56,7 @@ Our program does the bare minimum: skip the Ethernet header, read the IP header,
 
 ## Where eBPF lives in this repo
 
-- `svc/heimdall/internal/network/bpf/network.bpf.c`. The only eBPF C program we ship. Around 180 lines, compiled by `bpf2go` into an embedded `.o` plus Go bindings. Run `make generate-bpf` after editing.
+- `svc/heimdall/internal/network/bpf/network.bpf.c`. The only eBPF C program we ship. Around 180 lines, compiled by `bpf2go` into an embedded `.o` plus Go bindings. Run `mise run generate-bpf` after editing.
 - `svc/heimdall/internal/network/bpf/network_helpers.h`. Hand-rolled subset of kernel + libbpf headers (around 180 lines). Replaces a 4.5 MB vmlinux.h that we'd otherwise need to vendor.
 - `svc/heimdall/internal/network/network_linux.go`. The Go loader + async attach worker pool.
 - `svc/heimdall/internal/network/sandbox_linux.go`. Resolves each pod's CNI netns through containerd.
