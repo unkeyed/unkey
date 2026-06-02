@@ -41,7 +41,7 @@ _If there is not an issue for this, create one first. This is used for tracking 
 - [ ] Commented on my code in hard-to-understand areas
 - [ ] Ran `pnpm build`
 - [ ] Ran `pnpm fmt`
-- [ ] Ran `make fmt` on `/go` directory
+- [ ] Ran `mise run fmt`
 - [ ] Checked for warnings, there are none
 - [ ] Removed all `console.logs`
 - [ ] Merged the latest changes from main onto my branch with `git pull origin main`

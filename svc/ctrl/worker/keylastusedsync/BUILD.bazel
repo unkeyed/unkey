@@ -1,12 +1,8 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "keylastusedsync",
-    srcs = [
-        "partition_service.go",
-        "run_sync_handler.go",
-        "service.go",
-    ],
+    srcs = ["partition_service.go"],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync",
     visibility = ["//visibility:public"],
     deps = [
@@ -14,28 +10,8 @@ go_library(
         "//pkg/assert",
         "//pkg/clickhouse",
         "//pkg/db",
-        "//pkg/healthcheck",
         "//pkg/logger",
         "//pkg/retry",
         "@com_github_restatedev_sdk_go//:sdk-go",
-    ],
-)
-
-go_test(
-    name = "keylastusedsync_test",
-    size = "large",
-    srcs = ["run_sync_handler_test.go"],
-    # The perf test seeds 1.5M keys + 150M ClickHouse rows, dominating
-    # `bazel test //...` runtime. Run it explicitly when needed:
-    #   bazel test //svc/ctrl/worker/keylastusedsync:keylastusedsync_test
-    tags = ["manual"],
-    deps = [
-        "//gen/proto/hydra/v1:hydra",
-        "//pkg/db",
-        "//pkg/hash",
-        "//pkg/uid",
-        "//svc/ctrl/integration/harness",
-        "//svc/ctrl/integration/seed",
-        "@com_github_stretchr_testify//require",
     ],
 )

@@ -187,7 +187,7 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	fmt.Println("✔ Written: web/apps/dashboard/.env")
 	fmt.Println()
 	fmt.Println("Next steps:")
-	fmt.Println("  1. make dev")
+	fmt.Println("  1. mise run dev")
 	fmt.Println("  2. go run . dev seed local")
 	fmt.Println("  3. go run . dev github tunnel   # each session — starts ngrok and patches the webhook URL")
 	fmt.Println()

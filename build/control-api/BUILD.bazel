@@ -1,0 +1,51 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("//build/util:service_image.bzl", "service_image")
+
+go_library(
+    name = "control_api_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/build/control-api",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//build/util",
+        "//svc/ctrl/api",
+    ],
+)
+
+go_binary(
+    name = "control_api_linux_amd64",
+    out = "bin/control-api",
+    embed = [":control_api_lib"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/unkeyed/unkey/pkg/buildinfo.BuildTime": "{BUILD_TIMESTAMP}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Revision": "{STABLE_GIT_COMMIT}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Version": "{STABLE_VERSION}",
+    },
+)
+
+go_binary(
+    name = "control_api_linux_arm64",
+    out = "bin/control-api",
+    embed = [":control_api_lib"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/unkeyed/unkey/pkg/buildinfo.BuildTime": "{BUILD_TIMESTAMP}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Revision": "{STABLE_GIT_COMMIT}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Version": "{STABLE_VERSION}",
+    },
+)
+
+service_image(
+    name = "control_api",
+    binary_name = "control-api",
+    description = "Unkey Control API",
+    local_tag = "unkey/control-api:dev",
+    repository = "ghcr.io/unkeyed/control-api",
+)

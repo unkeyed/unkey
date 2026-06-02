@@ -1,0 +1,42 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cron",
+    srcs = ["cron.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/cron",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//internal/services/ratelimit/db",
+        "//pkg/assert",
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/healthcheck",
+        "//svc/ctrl/worker/cron/auditlogexport",
+        "//svc/ctrl/worker/cron/keylastusedsync",
+        "//svc/ctrl/worker/cron/keyrefill",
+        "//svc/ctrl/worker/cron/quotacheck",
+        "//svc/ctrl/worker/cron/ratelimitcleanup",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "cron_test",
+    srcs = [
+        "key_last_used_sync_integration_test.go",
+        "key_refill_integration_test.go",
+        "quota_check_integration_test.go",
+    ],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/uid",
+        "//svc/ctrl/integration/harness",
+        "//svc/ctrl/integration/seed",
+        "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

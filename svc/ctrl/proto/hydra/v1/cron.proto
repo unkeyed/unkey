@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// CronService is the unified entry point for all scheduled (cron-triggered)
+// background tasks. Each task is one handler; k8s CronJobs invoke the
+// matching path. A single Restate service collapses what used to be one
+// proto + service + Go package per cron.
+//
+// VIRTUAL_OBJECT so handlers that need an idempotency window (e.g. a
+// billing period or date) can use the VO key, and concurrent triggers for
+// the same key serialize. Each handler uses its own per-task VO key
+// (period suffix, or a fixed slug like "audit-log-export") so independent
+// handlers don't share a serialization queue — a slow or paused
+// invocation on one key cannot block the next tick of another. The
+// k8s cron entries in dev/k8s/charts/restate-cronjobs/values.yaml encode
+// the contracted key for each handler.
+//
+// Per-handler tuning (retry policy, journal retention) is applied in code
+// via ConfigureHandler at Bind time — see worker/run.go.
+service CronService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // RunQuotaCheck queries workspace usage and notifies on newly exceeded
+  // quotas. Key = billing period "YYYY-MM"; state tracks notified
+  // workspaces per period.
+  rpc RunQuotaCheck(RunQuotaCheckRequest) returns (RunQuotaCheckResponse) {}
+
+  // RunKeyRefill processes keys whose usage limits should refill today.
+  // Key = "YYYY-MM-DD"; state tracks processed key IDs for resumability.
+  rpc RunKeyRefill(RunKeyRefillRequest) returns (RunKeyRefillResponse) {}
+
+  // RunKeyLastUsedSync orchestrates the per-partition key_last_used sync
+  // by fanning out to KeyLastUsedPartitionService. Key is the fixed slug
+  // "key-last-used-sync" so the orchestrator runs as a singleton without
+  // sharing a queue with other singleton-keyed handlers.
+  rpc RunKeyLastUsedSync(RunKeyLastUsedSyncRequest) returns (RunKeyLastUsedSyncResponse) {}
+
+  // RunAuditLogExport drains the MySQL clickhouse_outbox into ClickHouse.
+  // Key is the fixed slug "audit-log-export" so concurrent triggers queue
+  // on a dedicated key (no contention with other singleton handlers).
+  rpc RunAuditLogExport(RunAuditLogExportRequest) returns (RunAuditLogExportResponse) {}
+
+  // RunRatelimitGlobalCountersCleanup deletes expired rows from
+  // ratelimit_global_counters (cross-region propagation). Stateless;
+  // key is the fixed slug "ratelimit-global-counters-cleanup" so a
+  // paused/wedged invocation here cannot block the every-minute handlers.
+  // Hourly schedule.
+  rpc RunRatelimitGlobalCountersCleanup(RunRatelimitGlobalCountersCleanupRequest) returns (RunRatelimitGlobalCountersCleanupResponse) {}
+}
+
+message RunQuotaCheckRequest {}
+message RunQuotaCheckResponse {
+  int32 workspaces_checked = 1;
+  int32 workspaces_exceeded = 2;
+  int32 notifications_sent = 3;
+}
+
+message RunKeyRefillRequest {}
+message RunKeyRefillResponse {
+  int32 keys_refilled = 1;
+}
+
+message RunKeyLastUsedSyncRequest {}
+message RunKeyLastUsedSyncResponse {
+  int32 keys_synced = 1;
+}
+
+message RunAuditLogExportRequest {}
+message RunAuditLogExportResponse {
+  int32 events_exported = 1;
+}
+
+message RunRatelimitGlobalCountersCleanupRequest {}
+message RunRatelimitGlobalCountersCleanupResponse {
+  // Number of rows deleted.
+  int64 rows_deleted = 1;
+}

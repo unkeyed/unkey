@@ -1,0 +1,222 @@
+---
+title: "Builds and releases"
+description: "How Unkey builds local service images and publishes release artifacts"
+---
+
+Unkey publishes service images from Bazel and publishes the CLI through
+GoReleaser. Service images and CLI artifacts have separate tags, workflows, and
+ownership because they serve different release paths.
+
+## Release artifacts
+
+Service releases publish one OCI image per service to GHCR. Each image is
+multi-architecture and contains only the service binary for that target.
+
+A tag of the form `<service>/vx.y.z` triggers the release workflow, which runs
+`//build/<service>:push` and publishes `ghcr.io/unkeyed/<service>:vx.y.z`. The
+workflow lists the supported service tag prefixes explicitly in its
+`on.push.tags` triggers (`api`, `frontline`, `vault`, `heimdall`, `krane`,
+`control-api`, `control-worker`). Service releases use immutable version tags
+only. Do not publish `latest` or moving release aliases.
+
+The CLI release uses `cli/vx.y.z`. GoReleaser builds the CLI and publishes the
+npm package from that tag. Service tags don't publish CLI artifacts.
+
+## Service entrypoints
+
+Release service binaries live under `build/<service>`. Each entrypoint
+is intentionally thin: it creates a standard config command through
+`build/util`, loads the TOML config, and calls the service `Run`
+function.
+
+Runtime defaults and normalization belong inside the service package, not the
+entrypoint. For example, instance ID generation, clocks, TLS file loading, and
+domain normalization live in `svc/.../run.go`. This keeps release wrappers from
+becoming a second service runtime.
+
+## Why Bazel builds the images
+
+Service images are assembled entirely by Bazel. There is no Dockerfile, no
+`docker build`, and no Docker daemon involved while the image is being put
+together. The daemon only enters the picture at the very end, when a finished
+image is loaded for local use. This choice is what makes the rest of the
+design fall into place.
+
+Putting Bazel in charge of the image gives us four properties we care about:
+
+1. **Content-addressed caching all the way through.** Every output is hashed.
+   An unchanged service produces an identical binary, identical tarball,
+   identical layer, and identical image digest. CI does no work and pushes
+   nothing on a no-op change. With a remote cache, a developer's local build
+   reuses CI's outputs.
+2. **Reproducibility across machines.** Two developers and a CI runner all
+   produce byte-identical images for the same commit, which is what makes the
+   remote cache useful in the first place. A Dockerfile build cannot promise
+   this without significant extra work.
+3. **No privileged Docker in CI.** The image is just files on disk written by
+   normal Bazel actions, so CI does not need a running daemon to build, only
+   to push, which can be done with `crane` or `oci_push` over plain HTTPS.
+4. **One source of truth for service wiring.** The same `BUILD.bazel` files
+   that compile the binary also declare how it gets shipped. Adding a service
+   is one `service_image` macro call rather than a Dockerfile, a build
+   script, and a CI snippet that drift apart over time.
+
+## How an image is assembled
+
+The pipeline has four stages, each justified by what the next stage needs:
+
+```
+go_binary  →  pkg_tar (.tar.gz)  →  oci_image  →  oci_load / oci_push
+```
+
+**`go_binary` produces one static ELF.** Builds use `pure = "on"`, so there is
+no libc and no shared library dependency. The reason this matters: the
+distroless base image we ship onto has no dynamic loader available, so any
+non-static binary would fail to start. Going static is also what allows the
+image to contain a single file at `/`. No `/lib`, no `/usr`, no init scripts.
+
+**`pkg_tar` turns that ELF into a filesystem layer.** OCI images are literally
+a manifest plus a stack of tarballs, where each tarball is a diff against the
+layer below. Adding the binary at `/<service>` is mechanically equivalent to
+producing a tar containing one entry at that path. We use `rules_pkg` because
+it writes the archive with sorted entries, fixed mtimes, and fixed uid/gid.
+That determinism is the reason cache hits work. A normal `tar` invocation
+embeds the wall clock and would defeat every layer of caching downstream.
+
+**`oci_image` stacks the layer on `distroless_static` and writes the
+manifest.** We use distroless instead of Alpine or Debian for two reasons.
+First, attack surface: there is no shell, no busybox, no package manager, so
+there is nothing to exploit if a request handler is compromised. Second,
+honesty: the image contains exactly what the service needs to run, no more.
+This is also why the entrypoint is `/<service>` rather than `["sh", "-c",
+...]`. There is no shell to invoke.
+
+**`oci_image_index` produces a multi-arch manifest list.** We build amd64 and
+arm64 in parallel from the same Go source and bundle them under one logical
+image. `docker pull` resolves to the matching architecture automatically, so
+deployments do not need to know whether the cluster is x86 or Graviton. The
+local `oci_load` target only imports the host arch through a `select` on
+`@platforms//cpu` to keep development fast.
+
+### Why the binary outputs to `bin/`
+
+Each service has two `go_binary` targets in the same Bazel package, one per
+arch, and both write to `out = "bin/<service>"`. The `bin/` prefix exists so
+that the two arch outputs can share the same final filename without clobbering
+each other inside Bazel's output tree. The image entrypoint is `/<service>`,
+so `pkg_tar` strips the `bin/` prefix when packing the layer, leaving the
+binary at the root of the image.
+
+This only works because the `pkg_tar` rule is defined in the same Bazel
+package as the binaries it wraps. `pkg_tar`'s `strip_prefix` is resolved
+relative to the rule's own BUILD package, so a bare `strip_prefix = "bin"`
+only matches `build/<service>/bin/`, which is exactly where the
+binary lands. If the image targets ever move out of `build/<service>`
+again, the strip prefix has to become workspace-absolute or the binary will
+end up at `/build/<service>/bin/<service>` inside the image and the
+container will fail to start with `exec: "/<service>": no such file or
+directory`. Keep the image definition next to the binary.
+
+## Bazel image targets
+
+Each service's `BUILD.bazel` under `build/<service>/` calls the
+`service_image` macro from `//build/util:service_image.bzl`. Targets in
+the service package are:
+
+- `:image_linux_amd64`, `:image_linux_arm64`: per-arch OCI images
+- `:image`: multi-architecture index
+- `:push`: uploads the index to GHCR
+- `:load`: loads the host-arch image into Docker, tagged `unkey/<service>:dev`
+
+Release images are based on distroless static Linux bases.
+
+Build all service release images locally:
+
+```bash
+RELEASE_VERSION=v0.0.0-test bazel build --config=release \
+  //build/api:image \
+  //build/frontline:image \
+  //build/vault:image \
+  //build/heimdall:image \
+  //build/krane:image \
+  //build/control-api:image \
+  //build/control-worker:image
+```
+
+## Service release workflow
+
+`.depot/workflows/service-release.yaml` handles service tags. The workflow runs
+on Depot infrastructure with the shared Bazel remote cache. It does not run
+tests. Service releases are cut from `main`, where the code has already passed
+CI. The workflow verifies that the tagged commit is contained in `origin/main`
+before it publishes anything.
+
+When a supported service tag is pushed, the workflow:
+
+1. Parses the service name and version from the tag.
+2. Logs in to `ghcr.io` with `GHCR_TOKEN`.
+3. Runs `//build/<service>:push` with stamping.
+4. Creates a GitHub release whose tag is the service tag.
+
+Use this command shape to cut a service release:
+
+```bash
+git tag api/v1.2.3
+git push origin api/v1.2.3
+```
+
+The image published by that tag is `ghcr.io/unkeyed/api:v1.2.3`.
+
+## CLI release workflow
+
+`.github/workflows/release.yaml` handles `cli/vx.y.z` tags. This path still uses
+GoReleaser because it owns the CLI packaging and npm publishing flow.
+
+GoReleaser is scoped to the CLI tag prefix in `.goreleaser.yaml`, so a service
+tag does not trigger CLI packaging.
+
+Use this command shape to cut a CLI release:
+
+```bash
+git tag cli/v1.2.3
+git push origin cli/v1.2.3
+```
+
+## Local development images
+
+Local Kubernetes and dashboard compose use the same per-service image names as
+release builds, but with local development tags.
+
+| Local environment | Image source |
+| --- | --- |
+| `dev/k8s` | Tilt builds `unkey/<service>:dev` from `build/<service>` |
+| Dashboard compose | `make oci-load` loads `unkey/<service>:dev` via Bazel |
+
+Kubernetes manifests pass only service flags, such as
+`--config /etc/unkey/unkey.toml`, because the image entrypoint is already the
+service binary. Docker compose follows the same rule.
+
+## Add a service image
+
+When a new Go service needs its own release image, add it to the release system
+in one pass.
+
+1. Add `build/<service>/main.go` with a call to
+   `util.RunServiceCommand`.
+2. Add `build/<service>/BUILD.bazel` with Linux AMD64 and ARM64
+   `go_binary` targets plus a `service_image(...)` call that loads from
+   `//build/util:service_image.bzl`. Pass `binary_name` explicitly if the
+   in-image binary name differs from the Bazel target prefix (for example
+   when the directory contains a hyphen).
+3. Add the tag pattern (`<service>/v[0-9]+.[0-9]+.[0-9]+*`) to the
+   `on.push.tags` list in `.depot/workflows/service-release.yaml`. The
+   workflow then dispatches the tag to `//build/<service>:push`.
+4. Add a `bazel run //build/<service>:load` line to the `oci-load` target in
+   the Makefile.
+5. Add local development references in `dev/k8s`, `dev/Tiltfile`, and any
+   compose file that runs the service.
+6. Run `make bazel`, then build the image targets.
+
+Keep entrypoints free of service behavior. If the service needs a default,
+normalization rule, injected clock, or generated instance ID, put that logic in
+the service package.

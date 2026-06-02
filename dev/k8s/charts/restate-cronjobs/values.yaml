@@ -1,27 +1,32 @@
 restateIngressUrl: "http://restate.unkey.svc.cluster.local:8080"
 
+# All cron tasks invoke a single Restate service (hydra.v1.CronService).
+# Each task gets its own VO key so independent handlers don't share a
+# serialization queue — a slow or paused invocation of one cannot block
+# the next tick of another. Tasks that need a window (billing period,
+# date) encode it in the key; the rest use a fixed per-task slug.
 jobs:
   key-last-used-sync:
     schedule: "* * * * *"
-    urlPath: "hydra.v1.KeyLastUsedSyncService/RunSync/send"
+    urlPath: "hydra.v1.CronService/key-last-used-sync/RunKeyLastUsedSync/send"
     idempotencyKey: "key-last-used-sync-$(date -u +%Y-%m-%dT%H:%M)"
 
   key-refill:
     schedule: "0 0 * * *"
-    urlPath: "hydra.v1.KeyRefillService/$(date -u +%Y-%m-%d)/RunRefill/send"
+    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m-%d)/RunKeyRefill/send"
     idempotencyKey: "key-refill-$(date -u +%Y-%m-%d)"
 
   quota-check:
     schedule: "0 15 * * *"
-    urlPath: "hydra.v1.QuotaCheckService/$(date -u +%Y-%m)/RunCheck/send"
+    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunQuotaCheck/send"
     idempotencyKey: "quota-check-$(date -u +%Y-%m-%d)"
-
-  ratelimit-blocklist-cleanup:
-    schedule: "* * * * *"
-    urlPath: "hydra.v1.RatelimitBlocklistCleanupService/RunCleanup/send"
-    idempotencyKey: "ratelimit-blocklist-cleanup-$(date -u +%Y-%m-%dT%H:%M)"
 
   audit-log-export:
     schedule: "* * * * *"
-    urlPath: "hydra.v1.AuditLogExportService/default/RunExport/send"
+    urlPath: "hydra.v1.CronService/audit-log-export/RunAuditLogExport/send"
     idempotencyKey: "audit-log-export-$(date -u +%Y-%m-%dT%H:%M)"
+
+  ratelimit-global-counters-cleanup:
+    schedule: "0 * * * *"
+    urlPath: "hydra.v1.CronService/ratelimit-global-counters-cleanup/RunRatelimitGlobalCountersCleanup/send"
+    idempotencyKey: "ratelimit-global-counters-cleanup-$(date -u +%Y-%m-%dT%H)"

@@ -3,13 +3,12 @@ FROM alpine:3.23.4@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a
 # Install CA certificates
 RUN apk add --no-cache ca-certificates
 
-# Copy the pre-built binary
-COPY bin/unkey /unkey
+ARG BINARY
+COPY bin/${BINARY} /service
 
-# Make it executable
-RUN chmod +x /unkey
+RUN chmod +x /service
 
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
-LABEL org.opencontainers.image.description="Unkey API"
+LABEL org.opencontainers.image.description="Unkey service"
 
-ENTRYPOINT ["/unkey"]
+ENTRYPOINT ["/service"]
