@@ -17,6 +17,6 @@
   "devDependencies": {
     "@unkey/tsconfig": "workspace:*",
     "typescript": "5.5.3",
-    "vitest": "1.6.1"
+    "vitest": "4.1.0"
   }
 }
