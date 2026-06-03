@@ -1,5 +1,4 @@
 load('ext://namespace', 'namespace_create')
-load('ext://restart_process',  'docker_build_with_restart')
 load('ext://secret', 'secret_create_generic')
 load('ext://helm_remote', 'helm_remote')
 
@@ -261,61 +260,62 @@ k8s_resource('restate-ratelimit-global-counters-cleanup', resource_deps=['restat
 k8s_resource('restate-audit-log-export', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
-MINIKUBE_GOARCH = '$(minikube ssh -- uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/" | tr -d "\\r")'
-GO_SERVICE_DEPS = ['../pkg', '../svc', '../gen', '../build']
+# Service images are built by Bazel via the //build/<svc>:load target, the
+# same target the production release workflow uses. Every service watches
+# the same broad directory set; unchanged services hit Bazel's cache.
+#
+# The trailing `docker tag` step is required because rules_oci's oci_load bakes
+# its `repo_tags` into the tar at build time, so `bazel run :load` always loads
+# the image as unkey/<svc>:dev with no runtime knob to override that.
+# Tilt's custom_build needs the produced image to be tagged at $EXPECTED_REF
+# (a unique per-build ref Tilt generates) so it can rewrite the k8s manifest
+# and force a pod rollout when the same logical tag would otherwise look
+# unchanged. We retag after load to satisfy that contract. When the command
+# runs outside Tilt, $EXPECTED_REF is unset and the fallback makes the
+# retag a no-op.
 
-def go_service_image(name, package, binary):
-    local_resource(
-        'build-' + name,
-        'cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=' + MINIKUBE_GOARCH + ' go build -o bin/' + binary + ' ' + package,
-        deps=GO_SERVICE_DEPS,
-        labels=['build'],
-    )
+SERVICE_DEPS = ['../build', '../svc', '../internal', '../pkg', '../gen']
 
-    docker_build_with_restart(
-        'unkey/' + name + ':dev',
-        '..',
-        dockerfile='./Dockerfile.tilt',
-        build_args={'BINARY': binary},
-        entrypoint=['/service'],
-        only=['./bin/' + binary],
-        live_update=[sync('./bin/' + binary, '/service')],
-    )
-
-go_service_image('api', './build/api', 'api')
-go_service_image('frontline', './build/frontline', 'frontline')
-go_service_image('vault', './build/vault', 'vault')
-go_service_image('heimdall', './build/heimdall', 'heimdall')
-go_service_image('krane', './build/krane', 'krane')
-go_service_image('control-api', './build/control-api', 'control-api')
-go_service_image('control-worker', './build/control-worker', 'control-worker')
-
-
-# Vault service
+# ─── Vault ─────────────────────────────────────────────────────────────────
+custom_build(
+    ref='unkey/vault:dev',
+    command='cd .. && bazel run //build/vault:load && docker tag unkey/vault:dev "${EXPECTED_REF:-unkey/vault:dev}"',
+    deps=SERVICE_DEPS,
+)
 k8s_yaml('k8s/manifests/vault.yaml')
 k8s_resource(
   'vault',
   port_forwards='8060:8060',
-  resource_deps=['s3', 'build-vault'],
+  resource_deps=['s3'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# API service
+# ─── API ───────────────────────────────────────────────────────────────────
+custom_build(
+    ref='unkey/api:dev',
+    command='cd .. && bazel run //build/api:load && docker tag unkey/api:dev "${EXPECTED_REF:-unkey/api:dev}"',
+    deps=SERVICE_DEPS,
+)
 k8s_yaml('k8s/manifests/api.yaml')
 k8s_resource(
   'api',
   port_forwards='7070:7070',
-  resource_deps=['mysql', 'clickhouse', 'redis', 'build-api'],
+  resource_deps=['mysql', 'clickhouse', 'redis'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# Ctrl service
+# ─── Ctrl API ──────────────────────────────────────────────────────────────
+custom_build(
+    ref='unkey/control-api:dev',
+    command='cd .. && bazel run //build/control-api:load && docker tag unkey/control-api:dev "${EXPECTED_REF:-unkey/control-api:dev}"',
+    deps=SERVICE_DEPS,
+)
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-control-api', 'github-credentials', 'domain-connect-credentials']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
 k8s_resource(
@@ -327,9 +327,14 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# Worker service (Restate workflow handlers)
+# ─── Ctrl Worker (Restate workflow handlers) ───────────────────────────────
+custom_build(
+    ref='unkey/control-worker:dev',
+    command='cd .. && bazel run //build/control-worker:load && docker tag unkey/control-worker:dev "${EXPECTED_REF:-unkey/control-worker:dev}"',
+    deps=SERVICE_DEPS,
+)
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'build-control-worker', 'webhooks-config', 'github-credentials']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(
@@ -341,7 +346,8 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-# GitHub webhook tunnel - ngrok -> ctrl-api, auto-updates the GitHub App webhook URL
+# ─── GitHub webhook tunnel (ngrok -> ctrl-api) ─────────────────────────────
+# Auto-updates the GitHub App webhook URL when credentials are present.
 if has_github_credentials:
     local_resource(
         'github-tunnel',
@@ -352,37 +358,49 @@ if has_github_credentials:
         links=['http://localhost:4040'],
     )
 
-# Frontline service (TLS termination proxy for *.unkey.local)
+# ─── Frontline (TLS termination proxy for *.unkey.local) ───────────────────
+custom_build(
+    ref='unkey/frontline:dev',
+    command='cd .. && bazel run //build/frontline:load && docker tag unkey/frontline:dev "${EXPECTED_REF:-unkey/frontline:dev}"',
+    deps=SERVICE_DEPS,
+)
 k8s_yaml('k8s/manifests/frontline.yaml')
 k8s_resource(
   'frontline',
   port_forwards=['9443:7443', '9080:7070'],
-  resource_deps=['mysql', 'ctrl-api', 'vault', 'build-frontline', 'frontline-certs'],
+  resource_deps=['mysql', 'ctrl-api', 'vault', 'frontline-certs'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO,
   links=['https://app.unkey.local'],
 )
 
-# Krane service
+# ─── Krane ─────────────────────────────────────────────────────────────────
+custom_build(
+    ref='unkey/krane:dev',
+    command='cd .. && bazel run //build/krane:load && docker tag unkey/krane:dev "${EXPECTED_REF:-unkey/krane:dev}"',
+    deps=SERVICE_DEPS,
+)
 k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'build-krane', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass'],
+  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
-
-
-
-# Heimdall (resource metering agent)
+# ─── Heimdall (resource metering agent) ────────────────────────────────────
+custom_build(
+    ref='unkey/heimdall:dev',
+    command='cd .. && bazel run //build/heimdall:load && docker tag unkey/heimdall:dev "${EXPECTED_REF:-unkey/heimdall:dev}"',
+    deps=SERVICE_DEPS,
+)
 k8s_yaml('k8s/manifests/heimdall.yaml')
 k8s_resource(
   'heimdall',
-  resource_deps=['clickhouse', 'build-heimdall', 'rbac'],
+  resource_deps=['clickhouse', 'rbac'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
