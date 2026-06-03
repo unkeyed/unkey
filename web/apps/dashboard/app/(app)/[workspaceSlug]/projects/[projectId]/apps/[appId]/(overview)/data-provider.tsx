@@ -115,8 +115,14 @@ export const ProjectDataProvider = ({
 
   const environmentsQuery = useLiveQuery(
     (q) =>
-      q.from({ env: collection.environments }).where(({ env }) => eq(env.projectId, projectId)),
-    [projectId],
+      q
+        .from({ env: collection.environments })
+        .where(({ env }) =>
+          appId
+            ? and(eq(env.projectId, projectId), eq(env.appId, appId))
+            : eq(env.projectId, projectId),
+        ),
+    [projectId, appId],
   );
 
   const customDomainsQuery = useLiveQuery(

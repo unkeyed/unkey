@@ -25,6 +25,7 @@ const STATE_TTL_MS = 15 * 60 * 1000;
 // a logged-in victim into hitting /integrations/github/callback?state=...
 const signedStatePayload = z.object({
   projectId: z.string().min(1),
+  appId: z.string().min(1).optional(),
   returnTo: z.enum(["settings"]).optional(),
   workspaceId: z.string().min(1),
   userId: z.string().min(1),
@@ -221,6 +222,7 @@ export const githubRouter = t.router({
     .input(
       z.object({
         projectId: z.string().min(1),
+        appId: z.string().min(1).optional(),
         returnTo: z.enum(["settings"]).optional(),
       }),
     )
@@ -250,6 +252,7 @@ export const githubRouter = t.router({
       return {
         state: signState({
           projectId: input.projectId,
+          appId: input.appId,
           returnTo: input.returnTo,
           workspaceId: ctx.workspace.id,
           userId: ctx.user.id,
@@ -353,6 +356,7 @@ export const githubRouter = t.router({
       return {
         workspaceSlug: ctx.workspace.slug,
         projectId,
+        appId: parsedState.appId ?? null,
         returnTo: parsedState.returnTo ?? null,
       };
     }),

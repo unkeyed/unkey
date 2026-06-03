@@ -5,33 +5,41 @@ import { trpc } from "@/lib/trpc/client";
 import { Check } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { ProjectDataProvider } from "../../[projectId]/apps/[appId]/(overview)/data-provider";
-import { DeploymentInfo } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
-import { DeploymentProgress } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
-import { deriveStatusFromSteps } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/deployment-utils";
+import { ProjectDataProvider } from "../../[appId]/(overview)/data-provider";
+import { DeploymentInfo } from "../../[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
+import { DeploymentProgress } from "../../[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
+import { deriveStatusFromSteps } from "../../[appId]/(overview)/deployments/[deploymentId]/deployment-utils";
 import {
   DeploymentLayoutProvider,
   useDeployment,
-} from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/layout-provider";
+} from "../../[appId]/(overview)/deployments/[deploymentId]/layout-provider";
 import { OnboardingStepContainer } from "../onboarding-step-container";
 import { OnboardingStepHeader } from "../onboarding-step-header";
 
 type DeploymentLiveStepProps = {
   projectId: string;
+  appId: string;
   deploymentId: string;
 };
 
-export const DeploymentLiveStep = ({ projectId, deploymentId }: DeploymentLiveStepProps) => {
+export const DeploymentLiveStep = ({
+  projectId,
+  appId,
+  deploymentId,
+}: DeploymentLiveStepProps) => {
   return (
-    <ProjectDataProvider projectId={projectId}>
+    <ProjectDataProvider projectId={projectId} appId={appId}>
       <DeploymentLayoutProvider deploymentId={deploymentId}>
-        <DeploymentLiveStepContent projectId={projectId} />
+        <DeploymentLiveStepContent projectId={projectId} appId={appId} />
       </DeploymentLayoutProvider>
     </ProjectDataProvider>
   );
 };
 
-const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
+const DeploymentLiveStepContent = ({
+  projectId,
+  appId,
+}: { projectId: string; appId: string }) => {
   const { deployment } = useDeployment();
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
@@ -47,7 +55,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
     [stepsQuery.data, deployment.status],
   );
 
-  const deploymentUrl = `/${workspace.slug}/projects/${projectId}/deployments/${deployment.id}`;
+  const deploymentUrl = `/${workspace.slug}/projects/${projectId}/apps/${appId}/deployments/${deployment.id}`;
 
   useEffect(() => {
     if (ready) {
@@ -65,7 +73,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
               <Check iconSize="md-regular" className="text-success-11" />
             </span>
           ) : (
-            "Deploying your project"
+            "Deploying your app"
           )
         }
         subtitle="Building, provisioning infrastructure, and assigning domains..."

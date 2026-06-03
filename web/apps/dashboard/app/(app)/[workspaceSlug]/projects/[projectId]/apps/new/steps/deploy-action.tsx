@@ -6,18 +6,24 @@ import { Button, toast, useStepWizard } from "@unkey/ui";
 
 type DeployActionProps = {
   projectId: string;
+  appId: string;
   disabled?: boolean;
   onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const DeployAction = ({ projectId, disabled, onDeploymentCreated }: DeployActionProps) => {
+export const DeployAction = ({
+  projectId,
+  appId,
+  disabled,
+  onDeploymentCreated,
+}: DeployActionProps) => {
   const { goTo } = useStepWizard();
 
   const deploy = trpc.deploy.deployment.create.useMutation({
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       toast.success("Deployment triggered", {
-        description: "Your project is being built and deployed",
+        description: "Your app is being built and deployed",
       });
       onDeploymentCreated(data.deploymentId);
       goTo("deploying");
@@ -36,7 +42,7 @@ export const DeployAction = ({ projectId, disabled, onDeploymentCreated }: Deplo
         className="rounded-lg"
         disabled={deploy.isLoading || disabled}
         loading={deploy.isLoading}
-        onClick={() => deploy.mutate({ projectId, environmentSlug: "production" })}
+        onClick={() => deploy.mutate({ projectId, appId, environmentSlug: "production" })}
       >
         Deploy
       </Button>

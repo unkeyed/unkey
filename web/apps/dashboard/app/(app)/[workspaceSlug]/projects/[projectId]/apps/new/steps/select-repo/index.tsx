@@ -11,11 +11,13 @@ import { SelectRepoSkeleton } from "./skeleton";
 
 export const SelectRepo = ({
   projectId,
+  appId,
   onBeforeNavigate,
   hasGithubInstallation,
   onSkip,
 }: {
   projectId: string;
+  appId: string;
   onBeforeNavigate?: () => void;
   hasGithubInstallation: boolean;
   onSkip?: () => void;
@@ -27,7 +29,7 @@ export const SelectRepo = ({
   const prepareInstallation = trpc.github.prepareInstallation.useMutation();
   const handleInstallClick = async () => {
     try {
-      const { state } = await prepareInstallation.mutateAsync({ projectId });
+      const { state } = await prepareInstallation.mutateAsync({ projectId, appId });
       onBeforeNavigate?.();
       window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
     } catch (err) {
@@ -120,6 +122,7 @@ export const SelectRepo = ({
     try {
       await selectRepoMutation.mutateAsync({
         projectId,
+        appId,
         repositoryId: repo.id,
         repositoryFullName: repo.fullName,
         installationId: repo.installationId,
@@ -251,7 +254,7 @@ export const SelectRepo = ({
               Skip GitHub setup
             </span>
             <span className="text-gray-10 text-[13px] leading-[9px]">
-              Continue without a repository. You can connect GitHub later from project settings.
+              Continue without a repository. You can connect GitHub later from app settings.
             </span>
           </div>
           <Button

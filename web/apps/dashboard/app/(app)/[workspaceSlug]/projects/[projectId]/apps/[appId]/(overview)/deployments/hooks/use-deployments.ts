@@ -2,14 +2,14 @@ import { collection } from "@/lib/collections";
 import { DEPLOYMENTS_DEFAULT_LIMIT } from "@/lib/collections/deploy/deployments";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { parseDuration } from "@/lib/duration";
-import { eq, gte, lte, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, gte, lte, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useProjectData } from "../../data-provider";
 import type { DeploymentListFilterField } from "../filters.schema";
 import { useFilters } from "./use-filters";
 
 export const useDeployments = () => {
-  const { projectId, environments } = useProjectData();
+  const { projectId, appId, environments } = useProjectData();
   const { filters } = useFilters();
 
   const environmentMap = useMemo(() => {
@@ -32,7 +32,11 @@ export const useDeployments = () => {
     (q) => {
       let query = q
         .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId));
+        .where(({ deployment }) =>
+          appId
+            ? and(eq(deployment.projectId, projectId), eq(deployment.appId, appId))
+            : eq(deployment.projectId, projectId),
+        );
 
       if (startTime !== undefined) {
         query = query.where(({ deployment }) => gte(deployment.createdAt, startTime));
@@ -48,7 +52,7 @@ export const useDeployments = () => {
         .orderBy(({ deployment }) => deployment.createdAt, "desc")
         .limit(DEPLOYMENTS_DEFAULT_LIMIT);
     },
-    [projectId, startTime, endTime, sinceMs],
+    [projectId, appId, startTime, endTime, sinceMs],
   );
 
   const deployments = useMemo(() => {

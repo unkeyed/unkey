@@ -30,6 +30,7 @@ export const createDeploy = workspaceProcedure
   .input(
     z.object({
       projectId: z.string().min(1, "Project ID is required"),
+      appId: z.string().min(1).optional(),
       environmentSlug: z.string().min(1, "Environment slug is required"),
       gitRef: z.string().optional(),
     }),
@@ -56,6 +57,7 @@ export const createDeploy = workspaceProcedure
           eq(environments.projectId, input.projectId),
           eq(environments.slug, input.environmentSlug),
           eq(environments.workspaceId, ctx.workspace.id),
+          ...(input.appId ? [eq(environments.appId, input.appId)] : []),
         ),
         columns: { id: true, appId: true },
       });

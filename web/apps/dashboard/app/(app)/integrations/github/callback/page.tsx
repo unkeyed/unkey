@@ -24,8 +24,9 @@ export default function Page() {
       if (data.returnTo === "settings") {
         router.replace(`/${data.workspaceSlug}/projects/${data.projectId}/settings`);
       } else {
+        const appIdParam = data.appId ? `&appId=${data.appId}` : "";
         router.replace(
-          `/${data.workspaceSlug}/projects/new?step=select-repo&projectId=${data.projectId}`,
+          `/${data.workspaceSlug}/projects/${data.projectId}/apps/new?step=select-repo${appIdParam}`,
         );
       }
     },

@@ -1,20 +1,22 @@
 "use client";
 import { collection } from "@/lib/collections";
-import {
-  type CreateProjectRequestSchema,
-  createProjectRequestSchema,
-} from "@/lib/collections/deploy/projects";
+import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, FormInput, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
 
-type CreateProjectStepProps = {
-  onProjectCreated: (id: string) => void;
+const formSchema = createAppRequestSchema.omit({ projectId: true });
+type FormValues = z.infer<typeof formSchema>;
+
+type CreateAppStepProps = {
+  projectId: string;
+  onAppCreated: (id: string) => void;
 };
 
-export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) => {
+export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) => {
   const { next } = useStepWizard();
 
   const {
@@ -23,20 +25,19 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
     setValue,
     setError,
     formState: { errors, isSubmitting, isValid },
-  } = useForm<CreateProjectRequestSchema>({
-    resolver: zodResolver(createProjectRequestSchema),
-    defaultValues: {
-      name: "",
-      slug: "",
-    },
+  } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "", slug: "" },
     mode: "onChange",
   });
 
-  const onSubmitForm = async (values: CreateProjectRequestSchema) => {
+  const onSubmitForm = async (values: FormValues) => {
     try {
-      const tx = collection.projects.insert({
+      const tx = collection.apps.insert({
+        projectId,
         name: values.name,
         slug: values.slug,
+        defaultBranch: "main",
         repositoryFullName: null,
         currentDeploymentId: null,
         isRolledBack: false,
@@ -50,13 +51,13 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
         domain: "will-be-replace-by-server",
       });
       await tx.isPersisted.promise;
-      onProjectCreated((tx.metadata as { projectId: string }).projectId);
+      onAppCreated((tx.metadata as { appId: string }).appId);
       next();
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
         setError("slug", {
           type: "custom",
-          message: "Project with this slug already exists",
+          message: "App with this slug already exists",
         });
       } else {
         console.error("Form submission error:", error);
@@ -65,8 +66,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value;
-    const slug = name
+    const slug = e.target.value
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
@@ -81,26 +81,24 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
         <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col gap-4 w-full">
           <FormInput
             requirement="required"
-            label="Project Name"
+            label="App Name"
             className="[&_input:first-of-type]:h-[36px]"
-            description="A descriptive name for your project."
+            description="A descriptive name for your app."
             data-1p-ignore
             error={errors.name?.message}
-            {...register("name", {
-              onChange: handleNameChange,
-            })}
-            placeholder="My Awesome Project"
+            {...register("name", { onChange: handleNameChange })}
+            placeholder="My Awesome App"
           />
 
           <FormInput
             requirement="required"
             label="Slug"
             className="[&_input:first-of-type]:h-[36px]"
-            description="URL-friendly identifier for your project (auto-generated from name)."
+            description="URL-friendly identifier for your app (auto-generated from name)."
             data-1p-ignore
             error={errors.slug?.message}
             {...register("slug")}
-            placeholder="my-awesome-project"
+            placeholder="my-awesome-app"
           />
 
           <Button
@@ -111,7 +109,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
             loading={isSubmitting}
             className="w-full rounded-lg mt-2"
           >
-            Create Project
+            Create App
           </Button>
         </form>
       </div>

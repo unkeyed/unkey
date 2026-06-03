@@ -1,11 +1,12 @@
 "use client";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Cube } from "@unkey/icons";
+import { Cube, Plus } from "@unkey/icons";
+import Link from "next/link";
 
 type ProjectHomeNavigationProps = {
   projectId: string;
-  // onCreateApp: () => void;
 };
 
 export const ProjectHomeNavigation = ({ projectId }: ProjectHomeNavigationProps) => {
@@ -22,13 +23,14 @@ export const ProjectHomeNavigation = ({ projectId }: ProjectHomeNavigationProps)
           Apps
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
-      {/* <Navbar.Actions> */}
-      {/*   <NavbarActionButton title="Create new app" onClick={onCreateApp}> */}
-      {/*     <Plus /> */}
-      {/*     Create app */}
-      {/*   </NavbarActionButton> */}
-      {/*   <DeployFeedbackButton /> */}
-      {/* </Navbar.Actions> */}
+      <Navbar.Actions>
+        <Link href={`${basePath}/${projectId}/apps/new`}>
+          <NavbarActionButton title="Create new app" className="cursor-pointer">
+            <Plus />
+            Create app
+          </NavbarActionButton>
+        </Link>
+      </Navbar.Actions>
     </Navbar>
   );
 };

@@ -35,7 +35,7 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
       footer={{
         icon: Plus,
         label: "New app",
-        href: `/${workspace.slug}/projects/new?projectId=${projectId}`,
+        href: `/${workspace.slug}/projects/${projectId}/apps/new`,
       }}
     />
   );

@@ -2,16 +2,17 @@
 
 import { ChevronLeft } from "@unkey/icons";
 import { Button, useStepWizard } from "@unkey/ui";
-import { ProjectDataProvider } from "../../[projectId]/apps/[appId]/(overview)/data-provider";
-import { DeploymentEnvVars } from "../../[projectId]/apps/[appId]/(overview)/env-vars/deployment-env-vars";
+import { ProjectDataProvider } from "../../[appId]/(overview)/data-provider";
+import { DeploymentEnvVars } from "../../[appId]/(overview)/env-vars/deployment-env-vars";
 import { DeployAction } from "./deploy-action";
 
 type EnvVarsStepProps = {
   projectId: string;
+  appId: string;
   onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const EnvVarsStep = ({ projectId, onDeploymentCreated }: EnvVarsStepProps) => {
+export const EnvVarsStep = ({ projectId, appId, onDeploymentCreated }: EnvVarsStepProps) => {
   const { back } = useStepWizard();
 
   return (
@@ -26,9 +27,13 @@ export const EnvVarsStep = ({ projectId, onDeploymentCreated }: EnvVarsStepProps
         Back
       </Button>
       <div className="w-225">
-        <ProjectDataProvider projectId={projectId}>
+        <ProjectDataProvider projectId={projectId} appId={appId}>
           <DeploymentEnvVars />
-          <DeployAction projectId={projectId} onDeploymentCreated={onDeploymentCreated} />
+          <DeployAction
+            projectId={projectId}
+            appId={appId}
+            onDeploymentCreated={onDeploymentCreated}
+          />
         </ProjectDataProvider>
       </div>
     </>
