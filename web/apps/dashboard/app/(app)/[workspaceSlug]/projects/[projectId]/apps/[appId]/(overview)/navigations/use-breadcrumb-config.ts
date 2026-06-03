@@ -32,14 +32,10 @@ export const useBreadcrumbConfig = ({
   projectId,
   appId,
   basePath,
-  projects,
-  activeProject,
 }: {
   projectId: string;
   appId: string;
   basePath: string;
-  projects: Array<{ id: string; name: string }>;
-  activeProject: { id: string; name: string } | undefined;
 }): BreadcrumbItem[] => {
   const segments = useSelectedLayoutSegments() ?? [];
   const params = useParams();
@@ -111,27 +107,7 @@ export const useBreadcrumbConfig = ({
       isLast: false,
     },
 
-    // 2. Current project with QuickNav
-    {
-      id: "project",
-      children: activeProject?.name || projectId,
-      href: `${basePath}/${projectId}`,
-      shouldRender: true,
-      active: false,
-      isLast: false,
-      noop: true,
-      className: "flex",
-      quickNavConfig: {
-        items: projects.map((project) => ({
-          id: project.id,
-          label: project.name,
-          href: `${basePath}/${project.id}`,
-        })),
-        shortcutKey: "N",
-      },
-    },
-
-    // 3. Sub-page with QuickNav (Overview, Deployments, etc.)
+    // 2. Sub-page with QuickNav (Overview, Deployments, etc.)
     {
       id: "subpage",
       children: isOnDeploymentDetail ? "Deployments" : activeSubPage.label,
@@ -153,7 +129,7 @@ export const useBreadcrumbConfig = ({
       },
     },
 
-    // 4. Deployment ID
+    // 3. Deployment ID
     {
       id: "deployment-detail",
       children: shortenId(deploymentId || ""),

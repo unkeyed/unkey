@@ -50,8 +50,6 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     projectId,
     appId: appId ?? "",
     basePath,
-    projects: projects.data || [],
-    activeProject,
   });
 
   const params = useParams();
@@ -136,15 +134,6 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
         isLast: false,
       },
       {
-        id: "project",
-        children: <div className="h-6 w-24 bg-grayA-3 rounded-sm animate-pulse transition-all" />,
-        href: "#",
-        className: "group max-md:hidden",
-        noop: true,
-        active: false,
-        isLast: false,
-      },
-      {
         id: "subpage",
         children: <div className="h-6 w-20 bg-grayA-3 rounded-sm animate-pulse transition-all" />,
         href: "#",
@@ -161,7 +150,6 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
             <Navbar.Breadcrumbs.Link
               key={crumb.id}
               href={crumb.href}
-              className={crumb.className}
               noop={crumb.noop}
               active={crumb.active}
               isLast={crumb.isLast}

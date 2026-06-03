@@ -21,20 +21,9 @@ export const AppsList = () => {
     [projectId],
   );
 
-  const projectQuery = useLiveQuery(
-    (q) =>
-      q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
-    [projectId],
-  );
-  const projectName = projectQuery.data?.at(0)?.name;
-
   return (
     <div className="flex flex-col h-full">
-      <ProjectHomeNavigation
-        projectId={projectId}
-        projectName={projectName}
-        onCreateApp={openCreateApp}
-      />
+      <ProjectHomeNavigation projectId={projectId} onCreateApp={openCreateApp} />
       <div className="p-4 flex flex-col gap-4">
         {apps.isLoading ? null : apps.data.length === 0 ? (
           <div className="w-full flex justify-center items-center p-4">
@@ -44,12 +33,12 @@ export const AppsList = () => {
               <Empty.Description className="text-left">
                 This project has no apps yet. Create an app to start deploying.
               </Empty.Description>
-              <Empty.Actions className="mt-4 justify-start">
-                <Button size="md" onClick={openCreateApp}>
-                  <Plus />
-                  Create app
-                </Button>
-              </Empty.Actions>
+              {/* <Empty.Actions className="mt-4 justify-start"> */}
+              {/*   <Button size="md" onClick={openCreateApp}> */}
+              {/*     <Plus /> */}
+              {/*     Create app */}
+              {/*   </Button> */}
+              {/* </Empty.Actions> */}
             </Empty>
           </div>
         ) : (
