@@ -51,11 +51,18 @@ def service_image(name, repository, local_tag, description, binary_name = None):
         "org.opencontainers.image.source": "https://github.com/unkeyed/unkey",
     }
 
+    # GHCR reads repo linkage from OCI manifest annotations, not config labels.
+    annotations = {
+        "org.opencontainers.image.description": description,
+        "org.opencontainers.image.source": "https://github.com/unkeyed/unkey",
+    }
+
     oci_image(
         name = "image_linux_amd64",
         base = "@distroless_static_linux_amd64",
         entrypoint = ["/" + binary_name],
         labels = labels,
+        annotations = annotations,
         tars = [":" + name + "_tar_linux_amd64"],
     )
 
@@ -64,6 +71,7 @@ def service_image(name, repository, local_tag, description, binary_name = None):
         base = "@distroless_static_linux_arm64_v8",
         entrypoint = ["/" + binary_name],
         labels = labels,
+        annotations = annotations,
         tars = [":" + name + "_tar_linux_arm64"],
     )
 
@@ -73,6 +81,7 @@ def service_image(name, repository, local_tag, description, binary_name = None):
             ":image_linux_amd64",
             ":image_linux_arm64",
         ],
+        annotations = annotations,
     )
 
     oci_push(
