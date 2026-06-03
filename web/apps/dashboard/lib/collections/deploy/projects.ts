@@ -148,5 +148,52 @@ export const projects = createCollection<Project, string>(
         projectId: result.id,
       };
     },
+    onUpdate: async ({ transaction }) => {
+      const { original, changes } = transaction.mutations[0];
+
+      const updateInput = {
+        projectId: original.id,
+        ...createProjectRequestSchema.parse({
+          name: changes.name ?? original.name,
+          slug: changes.slug ?? original.slug,
+        }),
+      };
+      const mutation = trpcClient.deploy.project.update.mutate(updateInput);
+
+      toast.promise(mutation, {
+        loading: "Updating project...",
+        success: "Project updated successfully",
+        error: (err) => {
+          console.error("Failed to update project", err);
+
+          switch (err.data?.code) {
+            case "CONFLICT":
+              return {
+                message: "Slug Already Taken",
+                description:
+                  err.message || "A project with this slug already exists in your workspace.",
+              };
+            case "FORBIDDEN":
+              return {
+                message: "Permission Denied",
+                description:
+                  err.message || "You don't have permission to update this project.",
+              };
+            case "NOT_FOUND":
+              return {
+                message: "Project Update Failed",
+                description: "Unable to find the project. Please refresh and try again.",
+              };
+            default:
+              return {
+                message: "Failed to Update Project",
+                description: err.message || "An unexpected error occurred. Please try again later.",
+              };
+          }
+        },
+      });
+
+      await mutation;
+    },
   }),
 );
