@@ -232,7 +232,7 @@ k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_dep
 k8s_yaml('k8s/manifests/vector-logs.yaml')
 k8s_resource('vector-logs', resource_deps=['clickhouse', 'rbac'], labels=['observability'])
 
-# S3 (MinIO) service
+# S3 (Garage) service
 k8s_yaml('k8s/manifests/s3.yaml')
 k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], labels=['database'])
 
