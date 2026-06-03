@@ -176,8 +176,7 @@ export const projects = createCollection<Project, string>(
             case "FORBIDDEN":
               return {
                 message: "Permission Denied",
-                description:
-                  err.message || "You don't have permission to update this project.",
+                description: err.message || "You don't have permission to update this project.",
               };
             case "NOT_FOUND":
               return {
