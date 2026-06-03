@@ -30,3 +30,8 @@ jobs:
     schedule: "0 * * * *"
     urlPath: "hydra.v1.CronService/ratelimit-global-counters-cleanup/RunRatelimitGlobalCountersCleanup/send"
     idempotencyKey: "ratelimit-global-counters-cleanup-$(date -u +%Y-%m-%dT%H)"
+
+  permanent-delete:
+    schedule: "*/5 * * * *"
+    urlPath: "hydra.v1.CronService/permanent-delete/RunPermanentDelete/send"
+    idempotencyKey: "permanent-delete-$(date -u +%Y-%m-%dT%H:%M)"

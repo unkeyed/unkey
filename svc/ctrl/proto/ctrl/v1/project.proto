@@ -7,8 +7,16 @@ service ProjectService {
   // Create a new project within a workspace
   rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {}
 
-  // Delete a project and all associated resources
+  // Schedule a project for permanent deletion after a grace period. The
+  // project is hidden from the API immediately; a cron sweep performs the
+  // actual cascade once the grace period has elapsed. Use RestoreProject
+  // to cancel before the cron fires.
   rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse) {}
+
+  // Cancel a previously scheduled DeleteProject. No-op if the project is
+  // not currently scheduled for deletion. Fails if the project no longer
+  // exists (the cron has already run).
+  rpc RestoreProject(RestoreProjectRequest) returns (RestoreProjectResponse) {}
 }
 
 message CreateProjectRequest {
@@ -25,4 +33,14 @@ message DeleteProjectRequest {
   string project_id = 1;
 }
 
-message DeleteProjectResponse {}
+message DeleteProjectResponse {
+  // Epoch-ms at which the cron sweep is expected to permanently delete
+  // the project. Until then, callers can undo via RestoreProject.
+  int64 delete_permanently_at = 1;
+}
+
+message RestoreProjectRequest {
+  string project_id = 1;
+}
+
+message RestoreProjectResponse {}

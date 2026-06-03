@@ -975,6 +975,7 @@ type App struct {
 	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
+	DeletionID          sql.NullString `db:"deletion_id"`
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
 	CreatedAt           int64          `db:"created_at"`
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
@@ -1122,6 +1123,14 @@ type CustomDomain struct {
 	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
 }
 
+type Deletion struct {
+	ID                  string `db:"id"`
+	WorkspaceID         string `db:"workspace_id"`
+	ResourceType        string `db:"resource_type"`
+	ResourceID          string `db:"resource_id"`
+	DeletePermanentlyAt int64  `db:"delete_permanently_at"`
+}
+
 type Deployment struct {
 	Pk                            uint64                      `db:"pk"`
 	ID                            string                      `db:"id"`
@@ -1204,16 +1213,17 @@ type EncryptedKey struct {
 }
 
 type Environment struct {
-	Pk               uint64        `db:"pk"`
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	ProjectID        string        `db:"project_id"`
-	AppID            string        `db:"app_id"`
-	Slug             string        `db:"slug"`
-	Description      string        `db:"description"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+	Pk               uint64         `db:"pk"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	ProjectID        string         `db:"project_id"`
+	AppID            string         `db:"app_id"`
+	Slug             string         `db:"slug"`
+	Description      string         `db:"description"`
+	DeletionID       sql.NullString `db:"deletion_id"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
 type FrontlineRoute struct {
@@ -1432,6 +1442,7 @@ type Project struct {
 	Name             string         `db:"name"`
 	Slug             string         `db:"slug"`
 	DepotProjectID   sql.NullString `db:"depot_project_id"`
+	DeletionID       sql.NullString `db:"deletion_id"`
 	DeleteProtection sql.NullBool   `db:"delete_protection"`
 	CreatedAt        int64          `db:"created_at"`
 	UpdatedAt        sql.NullInt64  `db:"updated_at"`

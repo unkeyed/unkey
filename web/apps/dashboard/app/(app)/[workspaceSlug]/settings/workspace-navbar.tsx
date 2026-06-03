@@ -3,11 +3,24 @@ import { QuickNavPopover } from "@/components/navbar-popover";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlags } from "@/lib/flags/provider";
+import type { Flags } from "@/lib/flags/resolve";
 import { ChevronExpandY, Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
 
-const settingsNavbar = [
+type SettingsNavEntry = {
+  id: string;
+  href: string;
+  text: string;
+  // Per-entry flag key. Entries without a flag are always shown; entries
+  // with a flag show only when the flag resolves truthy. Typed against
+  // [Flags] so adding a new flag in lib/flags is enough — no parallel
+  // string union to maintain here.
+  flag?: keyof Flags;
+};
+
+const settingsNavbar: SettingsNavEntry[] = [
   {
     id: "general",
     href: "general",
@@ -22,6 +35,12 @@ const settingsNavbar = [
     id: "root-keys",
     href: "root-keys",
     text: "Root Keys",
+  },
+  {
+    id: "scheduled-deletions",
+    href: "scheduled-deletions",
+    text: "Scheduled Deletions",
+    flag: "deletionRecoveryPage",
   },
   {
     id: "billing",
@@ -39,6 +58,7 @@ export const WorkspaceNavbar = ({
   };
 }) => {
   const workspace = useWorkspaceNavigation();
+  const flags = useFlags();
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -49,13 +69,13 @@ export const WorkspaceNavbar = ({
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
             <QuickNavPopover
-              items={settingsNavbar.flatMap((setting) => [
-                {
+              items={settingsNavbar
+                .filter((setting) => !setting.flag || flags[setting.flag])
+                .map((setting) => ({
                   id: setting.href,
                   label: setting.text,
                   href: `/${workspace.slug}/settings/${setting.href}`,
-                },
-              ])}
+                }))}
               shortcutKey="M"
             >
               <div className="flex items-center gap-1 p-1 rounded-lg hover:bg-gray-3">

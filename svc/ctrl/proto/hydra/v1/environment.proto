@@ -11,11 +11,32 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 service EnvironmentService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // Delete removes an environment and cleans up associated resources.
-  // Key: environment_id
-  rpc Delete(DeleteEnvironmentRequest) returns (DeleteEnvironmentResponse) {}
+  // DeletePermanently removes the environment and its associated
+  // resources.
+  rpc DeletePermanently(DeleteEnvironmentPermanentlyRequest) returns (DeleteEnvironmentPermanentlyResponse) {}
+
+  // MarkForDeletion sets the environment's deletion_id to
+  // req.deletion_id and flips every non-terminal deployment under it
+  // to status='stopped' so krane scales the pods to zero. The deletions
+  // row was already written by the cascade root. There is no further
+  // cascade — deployments are not first-class soft-delete resources.
+  rpc MarkForDeletion(MarkEnvironmentForDeletionRequest) returns (MarkEnvironmentForDeletionResponse) {}
+
+  // Restore clears the environment's deletion_id only if it equals
+  // req.deletion_id. Does not revive deployment status; the user is
+  // expected to trigger a fresh deployment.
+  rpc Restore(RestoreEnvironmentRequest) returns (RestoreEnvironmentResponse) {}
 }
 
-message DeleteEnvironmentRequest {}
+message DeleteEnvironmentPermanentlyRequest {}
+message DeleteEnvironmentPermanentlyResponse {}
 
-message DeleteEnvironmentResponse {}
+message MarkEnvironmentForDeletionRequest {
+  string deletion_id = 1;
+}
+message MarkEnvironmentForDeletionResponse {}
+
+message RestoreEnvironmentRequest {
+  string deletion_id = 1;
+}
+message RestoreEnvironmentResponse {}

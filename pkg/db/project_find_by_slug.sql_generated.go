@@ -10,17 +10,19 @@ import (
 )
 
 const findProjectBySlug = `-- name: FindProjectBySlug :one
-SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+SELECT pk, id, workspace_id, name, slug, depot_project_id, deletion_id, delete_protection, created_at, updated_at
 FROM projects
 WHERE slug = ?
+  AND deletion_id IS NULL
 LIMIT 1
 `
 
 // FindProjectBySlug
 //
-//	SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+//	SELECT pk, id, workspace_id, name, slug, depot_project_id, deletion_id, delete_protection, created_at, updated_at
 //	FROM projects
 //	WHERE slug = ?
+//	  AND deletion_id IS NULL
 //	LIMIT 1
 func (q *Queries) FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error) {
 	row := db.QueryRowContext(ctx, findProjectBySlug, slug)
@@ -32,6 +34,7 @@ func (q *Queries) FindProjectBySlug(ctx context.Context, db DBTX, slug string) (
 		&i.Name,
 		&i.Slug,
 		&i.DepotProjectID,
+		&i.DeletionID,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

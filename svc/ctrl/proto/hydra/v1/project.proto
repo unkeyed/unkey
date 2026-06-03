@@ -11,11 +11,42 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 service ProjectService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // Delete removes a project and cleans up associated resources.
-  // Key: project_id
-  rpc Delete(DeleteProjectRequest) returns (DeleteProjectResponse) {}
+  // DeletePermanently removes the project and cascades hard cleanup
+  // through every descendant. Invoked by the permanent-delete cron
+  // sweep once the grace window has elapsed, or directly if no grace
+  // window is desired.
+  rpc DeletePermanently(DeleteProjectPermanentlyRequest) returns (DeleteProjectPermanentlyResponse) {}
+
+  // MarkForDeletion enters the soft-delete grace window. The caller
+  // (the public ctrl handler) mints the deletion_id and the
+  // delete_permanently_at; this handler inserts the deletions row and
+  // points the project's deletion_id at it, then Sends MarkForDeletion
+  // to every live app under it carrying the same deletion_id.
+  // Descendants reuse the id (no new deletion row) so the cascade tree
+  // shares one identifier.
+  rpc MarkForDeletion(MarkProjectForDeletionRequest) returns (MarkProjectForDeletionResponse) {}
+
+  // Restore reverses MarkForDeletion for this project and every
+  // descendant whose deletion_id matches the project's. Independently-
+  // deleted children (different deletion_id) are left alone. Deployment
+  // status is not reversed; the user is expected to trigger a fresh
+  // deployment.
+  rpc Restore(RestoreProjectRequest) returns (RestoreProjectResponse) {}
 }
 
-message DeleteProjectRequest {}
+message DeleteProjectPermanentlyRequest {}
+message DeleteProjectPermanentlyResponse {}
 
-message DeleteProjectResponse {}
+message MarkProjectForDeletionRequest {
+  // deletion_id is minted by the public ctrl handler and used as the
+  // single shared identifier across every cascaded descendant.
+  string deletion_id = 1;
+  // delete_permanently_at is stored on the deletions row only at the
+  // root; cascaded children point at the same row via deletion_id and
+  // do not duplicate the timestamp.
+  int64 delete_permanently_at = 2;
+}
+message MarkProjectForDeletionResponse {}
+
+message RestoreProjectRequest {}
+message RestoreProjectResponse {}

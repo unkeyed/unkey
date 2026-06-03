@@ -16,21 +16,22 @@ import (
 // are gone by the time anyone could look, so this is never user-visible.
 const envDeletedMessage = "Environment deleted"
 
-// Delete removes an environment and all associated resources.
+// DeletePermanently removes an environment and all associated resources.
 //
 // In-flight deployments are cancelled first so the cascade below doesn't
 // drop deployment rows out from under workflows that are still mid-build.
 // This handler is the single chokepoint for deployment row deletion;
-// project and app deletes fan out to here via the virtual object cascade.
+// project and app permanent-deletes fan out to here via the virtual
+// object cascade.
 //
 // Key: environment_id
-func (s *Service) Delete(
+func (s *Service) DeletePermanently(
 	ctx restate.ObjectContext,
-	_ *hydrav1.DeleteEnvironmentRequest,
-) (*hydrav1.DeleteEnvironmentResponse, error) {
+	_ *hydrav1.DeleteEnvironmentPermanentlyRequest,
+) (*hydrav1.DeleteEnvironmentPermanentlyResponse, error) {
 	envID := restate.Key(ctx)
 
-	logger.Info("starting environment deletion", "environment_id", envID)
+	logger.Info("starting environment permanent deletion", "environment_id", envID)
 
 	if err := s.cancelProgressingDeployments(ctx, envID); err != nil {
 		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
@@ -54,8 +55,12 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete custom domains: %w", err)
 	}
 
+	// Paginated to bound transaction size for environments with many
+	// routes; loop continues until a partial page comes back, which
+	// guarantees the table is empty for this env. Every row has
+	// environment_id NOT NULL so this catches all sticky variants.
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.DeleteFrontlineRoutesByEnvironmentId(runCtx, s.db.RW(), envID)
+		return s.deleteFrontlineRoutes(runCtx, envID)
 	}, restate.WithName("delete frontline routes")); err != nil {
 		return nil, fmt.Errorf("delete frontline routes: %w", err)
 	}
@@ -108,9 +113,41 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete environment: %w", err)
 	}
 
+	// The deletions row is owned by the cascade root and removed by
+	// the cron handler after this Request returns. Nothing to clean
+	// up at this level.
+
 	logger.Info("environment deletion complete", "environment_id", envID)
 
-	return &hydrav1.DeleteEnvironmentResponse{}, nil
+	return &hydrav1.DeleteEnvironmentPermanentlyResponse{}, nil
+}
+
+// frontlineRouteBatchLimit caps how many rows a single DELETE round
+// takes. Bounded transaction size protects against replication lag /
+// row-lock blowups for environments that accumulated many routes.
+const frontlineRouteBatchLimit = 1000
+
+// deleteFrontlineRoutes deletes every frontline route for envID in
+// bounded batches. Loops until a partial page comes back, which is the
+// signal that the table is empty for this env id (the WHERE clause
+// matched fewer than batchLimit rows).
+func (s *Service) deleteFrontlineRoutes(ctx restate.RunContext, envID string) error {
+	for {
+		res, err := db.Query.DeleteFrontlineRoutesByEnvironmentId(ctx, s.db.RW(), db.DeleteFrontlineRoutesByEnvironmentIdParams{
+			EnvironmentID: envID,
+			Limit:         frontlineRouteBatchLimit,
+		})
+		if err != nil {
+			return err
+		}
+		affected, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected < frontlineRouteBatchLimit {
+			return nil
+		}
+	}
 }
 
 // cancelProgressingDeployments aborts in-flight Restate invocations, then

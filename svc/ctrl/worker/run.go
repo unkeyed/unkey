@@ -491,6 +491,12 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
+		// PermanentDelete fans out fire-and-forget Sends to per-resource
+		// Delete VOs. Same shape as ratelimit-global-counters-cleanup:
+		// stateless, hot-path independent, so the 5-attempt pause-on-max
+		// policy lets an operator inspect a real failure rather than killing
+		// silently.
+		ConfigureHandler("RunPermanentDelete", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)))
 	logger.Info("CronService enabled")
 

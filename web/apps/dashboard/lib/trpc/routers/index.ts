@@ -196,6 +196,8 @@ import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
+import { listScheduledDeletions } from "./settings/scheduled-deletions/list";
+import { restoreResource } from "./settings/scheduled-deletions/restore";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
 import { getBillingInfo } from "./stripe/getBillingInfo";
@@ -263,6 +265,10 @@ export const router = t.router({
       query: queryRootKeys,
       llmSearch: rootKeysLlmSearch,
       delete: deleteRootKeys,
+    }),
+    scheduledDeletions: t.router({
+      list: listScheduledDeletions,
+      restore: restoreResource,
     }),
   }),
   api: t.router({

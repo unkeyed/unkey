@@ -20,7 +20,9 @@ SELECT
     created_at,
     updated_at
 FROM projects
-WHERE workspace_id = ? AND slug = ?
+WHERE workspace_id = ?
+  AND slug = ?
+  AND deletion_id IS NULL
 LIMIT 1
 `
 
@@ -50,7 +52,9 @@ type FindProjectByWorkspaceSlugRow struct {
 //	    created_at,
 //	    updated_at
 //	FROM projects
-//	WHERE workspace_id = ? AND slug = ?
+//	WHERE workspace_id = ?
+//	  AND slug = ?
+//	  AND deletion_id IS NULL
 //	LIMIT 1
 func (q *Queries) FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error) {
 	row := db.QueryRowContext(ctx, findProjectByWorkspaceSlug, arg.WorkspaceID, arg.Slug)

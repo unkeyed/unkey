@@ -49,6 +49,7 @@ export const unkeyAuditLogEvents = z.enum([
   "auditLogBucket.create",
   "project.create",
   "project.delete",
+  "project.restore",
   "app.create",
   "app.delete",
   "environment.create",

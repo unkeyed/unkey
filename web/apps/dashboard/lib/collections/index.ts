@@ -10,6 +10,7 @@ import { projects } from "./deploy/projects";
 import { sentinelPolicies } from "./deploy/sentinel-policies";
 import { ratelimitNamespaces } from "./ratelimit/namespaces";
 import { ratelimitOverrides } from "./ratelimit/overrides";
+import { scheduledDeletions } from "./settings/scheduled-deletions";
 
 // Export types
 export type { App } from "./deploy/apps";
@@ -31,6 +32,7 @@ export type {
 export type { RatelimitNamespace } from "./ratelimit/namespaces";
 export type { RatelimitOverride } from "./ratelimit/overrides";
 export type { Environment } from "./deploy/environments";
+export type { ScheduledDeletion } from "./settings/scheduled-deletions";
 
 // Global collections
 export const collection = {
@@ -45,6 +47,7 @@ export const collection = {
   environmentSettings,
   envVars,
   sentinelPolicies,
+  scheduledDeletions,
 } as const;
 
 export async function reset() {

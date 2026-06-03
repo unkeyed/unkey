@@ -7,16 +7,29 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
-const deleteFrontlineRoutesByEnvironmentId = `-- name: DeleteFrontlineRoutesByEnvironmentId :exec
-DELETE FROM frontline_routes WHERE environment_id = ?
+const deleteFrontlineRoutesByEnvironmentId = `-- name: DeleteFrontlineRoutesByEnvironmentId :execresult
+DELETE FROM frontline_routes
+WHERE environment_id = ?
+LIMIT ?
 `
 
-// DeleteFrontlineRoutesByEnvironmentId
+type DeleteFrontlineRoutesByEnvironmentIdParams struct {
+	EnvironmentID string `db:"environment_id"`
+	Limit         int32  `db:"limit"`
+}
+
+// Paginated delete: caller loops until RowsAffected < batch_limit.
+// A single unbounded DELETE could exceed transaction/replication size
+// limits for environments with many routes; paginating with the same
+// WHERE clause means each tick deletes a bounded number of rows and
+// the loop naturally terminates when no rows remain.
 //
-//	DELETE FROM frontline_routes WHERE environment_id = ?
-func (q *Queries) DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error {
-	_, err := db.ExecContext(ctx, deleteFrontlineRoutesByEnvironmentId, environmentID)
-	return err
+//	DELETE FROM frontline_routes
+//	WHERE environment_id = ?
+//	LIMIT ?
+func (q *Queries) DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, db DBTX, arg DeleteFrontlineRoutesByEnvironmentIdParams) (sql.Result, error) {
+	return db.ExecContext(ctx, deleteFrontlineRoutesByEnvironmentId, arg.EnvironmentID, arg.Limit)
 }

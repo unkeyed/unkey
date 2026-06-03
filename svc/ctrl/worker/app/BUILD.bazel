@@ -3,7 +3,9 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "app",
     srcs = [
-        "delete_handler.go",
+        "delete_permanently_handler.go",
+        "mark_for_deletion_handler.go",
+        "restore_handler.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/app",

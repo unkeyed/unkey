@@ -2,6 +2,7 @@
 
 import { SidebarGroup, SidebarMenu } from "@/components/ui/sidebar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import { Coins, Gear, InputSearch } from "@unkey/icons";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
@@ -15,6 +16,7 @@ import type { NavItem } from "./workspace-navigations";
 export function WorkspaceSection() {
   const rawSegments = useSelectedLayoutSegments();
   const workspace = useWorkspaceNavigation();
+  const deletionRecoveryPage = useFlag("deletionRecoveryPage");
 
   // Memoize segments to prevent unnecessary re-renders
   const segments = useMemo(() => rawSegments ?? [], [rawSegments]);
@@ -62,14 +64,29 @@ export function WorkspaceSection() {
           },
           {
             icon: null,
+            href: `${basePath}/settings/scheduled-deletions`,
+            label: "Scheduled Deletions",
+            active: segments.includes("scheduled-deletions"),
+            hidden: !deletionRecoveryPage,
+          },
+          {
+            icon: null,
             href: `${basePath}/settings/billing`,
             label: "Billing",
             active: segments.includes("billing"),
           },
         ],
       },
-    ].filter((item) => !item.hidden);
-  }, [segments, workspace.slug, workspace.betaFeatures?.portal]);
+    ]
+      .map((item) => ({
+        ...item,
+        // Apply the hidden filter recursively so flagged child entries are
+        // dropped from the parent's items array. Without this, a hidden
+        // child still shows up under its parent.
+        items: item.items?.filter((child) => !child.hidden),
+      }))
+      .filter((item) => !item.hidden);
+  }, [segments, workspace.slug, workspace.betaFeatures?.portal, deletionRecoveryPage]);
 
   return (
     <SidebarGroup>

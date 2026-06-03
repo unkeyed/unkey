@@ -38,6 +38,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -281,6 +282,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
 	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildSlotSvc))
+	// ProjectService VO so the cron project-permanent-delete sweep has
+	// a destination for its fan-out Sends. The Delete cascade to AppService
+	// is fire-and-forget; downstream services don't need to be bound for
+	// the cron handler to return.
+	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{DB: database})))
 
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)

@@ -272,6 +272,7 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
 		Database:   database,
+		Clock:      clk,
 		Restate:    restateClient,
 		AppService: appSvc,
 		Bearer:     cfg.AuthToken,

@@ -36,7 +36,7 @@ func (s *Service) DeleteApp(
 	}
 
 	client := hydrav1.NewAppServiceIngressClient(s.restate, req.Msg.GetAppId())
-	_, err = client.Delete().Send(ctx, &hydrav1.DeleteAppRequest{})
+	_, err = client.DeletePermanently().Send(ctx, &hydrav1.DeleteAppPermanentlyRequest{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger app deletion: %w", err))
 	}

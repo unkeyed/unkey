@@ -91,6 +91,10 @@ type Querier interface {
 	//
 	//  DELETE FROM custom_domains WHERE project_id = ?
 	DeleteCustomDomainsByProjectId(ctx context.Context, db DBTX, projectID string) error
+	//DeleteDeletionById
+	//
+	//  DELETE FROM `deletions` WHERE id = ?
+	DeleteDeletionById(ctx context.Context, db DBTX, id string) error
 	// DeleteDeploymentChangesBefore removes old deployment_changes entries for TTL-based cleanup.
 	//
 	//  DELETE FROM `deployment_changes`
@@ -137,10 +141,16 @@ type Querier interface {
 	//
 	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?
 	DeleteFrontlineRouteByFQDN(ctx context.Context, db DBTX, fqdn string) error
-	//DeleteFrontlineRoutesByEnvironmentId
+	// Paginated delete: caller loops until RowsAffected < batch_limit.
+	// A single unbounded DELETE could exceed transaction/replication size
+	// limits for environments with many routes; paginating with the same
+	// WHERE clause means each tick deletes a bounded number of rows and
+	// the loop naturally terminates when no rows remain.
 	//
-	//  DELETE FROM frontline_routes WHERE environment_id = ?
-	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//  DELETE FROM frontline_routes
+	//  WHERE environment_id = ?
+	//  LIMIT ?
+	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, db DBTX, arg DeleteFrontlineRoutesByEnvironmentIdParams) (sql.Result, error)
 	//DeleteFrontlineRoutesByProjectId
 	//
 	//  DELETE FROM frontline_routes WHERE project_id = ?
@@ -310,6 +320,14 @@ type Querier interface {
 	//
 	//  SELECT pk, id, name, workspace_id, ip_whitelist, auth_type, key_auth_id, created_at_m, updated_at_m, deleted_at_m, delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
+	// Returns an app row by id without filtering on delete_permanently_at.
+	// Used by SoftDelete/Restore VOs to load the row regardless of grace
+	// state; FindAppById filters scheduled-for-deletion rows.
+	//
+	//  SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, deletion_id, delete_protection, created_at, updated_at
+	//  FROM apps
+	//  WHERE id = ?
+	FindAppAnyById(ctx context.Context, db DBTX, id string) (App, error)
 	//FindAppBuildSettingByAppEnv
 	//
 	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, watch_paths, auto_deploy, created_at, updated_at
@@ -319,20 +337,22 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, name, slug, default_branch, current_deployment_id, is_rolled_back, deletion_id, delete_protection, created_at, updated_at
 	//  FROM apps
 	//  WHERE id = ?
+	//    AND deletion_id IS NULL
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
 	//FindAppByProjectAndSlug
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.deletion_id, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE apps.project_id = ?
 	//    AND apps.slug = ?
+	//    AND apps.deletion_id IS NULL
 	FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
 	//FindAppByWorkspaceAndSlugs
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.deletion_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.deletion_id, a.delete_protection, a.created_at, a.updated_at
 	//  FROM apps a
 	//  INNER JOIN projects p ON p.id = a.project_id
 	//  WHERE p.workspace_id = ?
@@ -375,7 +395,7 @@ type Querier interface {
 	//FindAppWithSettings
 	//
 	//  SELECT
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
+	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.deletion_id, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM apps a
@@ -481,6 +501,20 @@ type Querier interface {
 	//  LEFT JOIN certificates c ON c.hostname = cd.domain
 	//  WHERE cd.domain = ?
 	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
+	//FindDeletionById
+	//
+	//  SELECT id, workspace_id, resource_type, resource_id, delete_permanently_at
+	//  FROM `deletions`
+	//  WHERE id = ?
+	FindDeletionById(ctx context.Context, db DBTX, id string) (Deletion, error)
+	// Returns the deletion row for a given resource. Used by Restore to
+	// read the cascade-correlation timestamp T before walking children.
+	//
+	//  SELECT id, workspace_id, resource_type, resource_id, delete_permanently_at
+	//  FROM `deletions`
+	//  WHERE resource_type = ?
+	//    AND resource_id = ?
+	FindDeletionByResource(ctx context.Context, db DBTX, arg FindDeletionByResourceParams) (Deletion, error)
 	//FindDeploymentById
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, created_at, updated_at FROM `deployments` WHERE id = ?
@@ -524,20 +558,30 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
+	// Returns an environment row by id without filtering on
+	// delete_permanently_at. Used by SoftDelete/Restore VOs.
+	//
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, deletion_id, delete_protection, created_at, updated_at
+	//  FROM environments
+	//  WHERE id = ?
+	FindEnvironmentAnyById(ctx context.Context, db DBTX, id string) (Environment, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
-	//  WHERE app_id = ? AND slug = ?
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.deletion_id, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+	//  WHERE app_id = ?
+	//    AND slug = ?
+	//    AND deletion_id IS NULL
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, deletion_id, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE id = ?
+	//    AND deletion_id IS NULL
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, deletion_id, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE workspace_id = ?
 	//    AND project_id = ?
@@ -1086,17 +1130,28 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
 	//  WHERE workspace_id = ? AND slug = ?
 	FindPortalConfigByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindPortalConfigByWorkspaceAndSlugParams) (PortalConfiguration, error)
-	//FindProjectById
+	// Returns a project row by id without filtering on delete_permanently_at.
+	// Used by DeleteProject/RestoreProject to load the row for response
+	// composition; the normal FindProjectById hides scheduled-for-deletion
+	// rows from the API path.
 	//
-	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, deletion_id, delete_protection, created_at, updated_at
 	//  FROM projects
 	//  WHERE id = ?
+	FindProjectAnyById(ctx context.Context, db DBTX, id string) (Project, error)
+	//FindProjectById
+	//
+	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, deletion_id, delete_protection, created_at, updated_at
+	//  FROM projects
+	//  WHERE id = ?
+	//    AND deletion_id IS NULL
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
 	//FindProjectBySlug
 	//
-	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, deletion_id, delete_protection, created_at, updated_at
 	//  FROM projects
 	//  WHERE slug = ?
+	//    AND deletion_id IS NULL
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindProjectByWorkspaceSlug
@@ -1110,7 +1165,9 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  FROM projects
-	//  WHERE workspace_id = ? AND slug = ?
+	//  WHERE workspace_id = ?
+	//    AND slug = ?
+	//    AND deletion_id IS NULL
 	//  LIMIT 1
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
 	//FindQuotaByWorkspaceID
@@ -1531,6 +1588,21 @@ type Querier interface {
 	//      domain_connect_provider, domain_connect_url, invocation_id, created_at
 	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error
+	// Records a resource that has been marked for permanent deletion at
+	// delete_permanently_at. The caller mints the id and writes it into
+	// the resource's deletion_id column in the same transaction.
+	//
+	// Idempotent on (resource_type, resource_id): if a row already exists
+	// (because the resource was independently deleted before this cascade
+	// reached it), keep the original row — preserving its id and timestamp
+	// so the independently-initiated restore tree stays intact. The no-op
+	// ON DUPLICATE form avoids INSERT IGNORE which would also swallow
+	// other errors.
+	//
+	//  INSERT INTO `deletions` (id, workspace_id, resource_type, resource_id, delete_permanently_at)
+	//  VALUES (?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE resource_id = resource_id
+	InsertDeletion(ctx context.Context, db DBTX, arg InsertDeletionParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -2193,9 +2265,10 @@ type Querier interface {
 	ListAppIdsByProject(ctx context.Context, db DBTX, projectID string) ([]string, error)
 	//ListAppsByProject
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.deletion_id, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE project_id = ?
+	//    AND deletion_id IS NULL
 	//  ORDER BY created_at ASC
 	ListAppsByProject(ctx context.Context, db DBTX, projectID string) ([]ListAppsByProjectRow, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
@@ -2215,6 +2288,13 @@ type Querier interface {
 	//  WHERE project_id = ?
 	//  ORDER BY created_at DESC
 	ListCustomDomainsByProjectID(ctx context.Context, db DBTX, projectID string) ([]CustomDomain, error)
+	//ListDeletionsByWorkspace
+	//
+	//  SELECT id, workspace_id, resource_type, resource_id, delete_permanently_at
+	//  FROM `deletions`
+	//  WHERE workspace_id = ?
+	//  ORDER BY delete_permanently_at ASC
+	ListDeletionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]Deletion, error)
 	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
 	// Used by the unified WatchDeploymentChanges stream. Does not filter by resource_type.
 	//
@@ -2276,6 +2356,16 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	// Returns deletions whose grace window has elapsed, oldest first, up
+	// to limit rows. Used by the permanent-delete cron sweep to fan out
+	// per-resource hard-delete VOs.
+	//
+	//  SELECT id, workspace_id, resource_type, resource_id, delete_permanently_at
+	//  FROM `deletions`
+	//  WHERE delete_permanently_at <= ?
+	//  ORDER BY delete_permanently_at ASC
+	//  LIMIT ?
+	ListDueDeletions(ctx context.Context, db DBTX, arg ListDueDeletionsParams) ([]Deletion, error)
 	//ListEnvVarsForRepoConnections
 	//
 	//  SELECT aev.app_id, aev.`key`, aev.value
@@ -2414,6 +2504,26 @@ type Querier interface {
 	//      LIMIT ?
 	//  ) AS batch ON batch.pk = k.pk
 	ListKeysForRefill(ctx context.Context, db DBTX, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
+	// Returns the IDs of apps under a project that are not already
+	// scheduled for permanent deletion. Used by the soft-delete cascade
+	// so a parent's SoftDelete does not disturb apps that were deleted
+	// independently (those already have their own deletions row with a
+	// different T).
+	//
+	//  SELECT id
+	//  FROM apps
+	//  WHERE project_id = ?
+	//    AND deletion_id IS NULL
+	ListLiveAppIdsByProject(ctx context.Context, db DBTX, projectID string) ([]string, error)
+	// Returns the IDs of environments under an app that are not already
+	// scheduled for permanent deletion. Same rationale as the live-apps
+	// variant: cascaded soft-delete skips independently-deleted children.
+	//
+	//  SELECT id
+	//  FROM environments
+	//  WHERE app_id = ?
+	//    AND deletion_id IS NULL
+	ListLiveEnvironmentIdsByApp(ctx context.Context, db DBTX, appID string) ([]string, error)
 	//ListLiveKeysByKeySpaceID
 	//
 	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
@@ -2562,7 +2672,7 @@ type Querier interface {
 	ListPermissionsByRoleID(ctx context.Context, db DBTX, roleID string) ([]Permission, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, deletion_id, delete_protection, created_at, updated_at
 	//  FROM environments
 	//  WHERE slug = 'preview'
 	//  AND pk > ?
@@ -2625,9 +2735,9 @@ type Querier interface {
 	//
 	//  SELECT
 	//      gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
-	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
-	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
-	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
+	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.deletion_id, p.delete_protection, p.created_at, p.updated_at,
+	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.deletion_id, e.delete_protection, e.created_at, e.updated_at,
+	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.deletion_id, a.delete_protection, a.created_at, a.updated_at,
 	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM github_repo_connections gc
@@ -2906,6 +3016,21 @@ type Querier interface {
 	//    AND d.desired_state IN ('standby', 'archived')
 	//    AND i.deployment_id IS NULL
 	StopDeploymentIfNoInstances(ctx context.Context, db DBTX, arg StopDeploymentIfNoInstancesParams) error
+	// Marks every deployment under the environment as stopped. Krane already
+	// reconciles status='stopped' (no pods desired), so this is the signal
+	// that suspends the workload during the soft-delete grace window.
+	// Terminal statuses (failed, skipped, superseded, cancelled, stopped)
+	// are excluded so a deployment that already finished isn't dragged out
+	// of its end state. Restore does not reverse this update — the user is
+	// expected to trigger a new deployment after restore.
+	//
+	//  UPDATE deployments
+	//  SET
+	//      status = 'stopped',
+	//      updated_at = ?
+	//  WHERE environment_id = ?
+	//    AND status NOT IN ('failed', 'skipped', 'superseded', 'cancelled', 'stopped')
+	StopDeploymentsByEnvironmentId(ctx context.Context, db DBTX, arg StopDeploymentsByEnvironmentIdParams) error
 	//SumAllocatedResourcesByWorkspaceID
 	//
 	//  SELECT
@@ -2951,6 +3076,15 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	// CAS on deletion_id. See project_update_deletion_id.sql.
+	//
+	//  UPDATE apps
+	//  SET
+	//      deletion_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND deletion_id <=> ?
+	UpdateAppDeletionId(ctx context.Context, db DBTX, arg UpdateAppDeletionIdParams) (sql.Result, error)
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -3097,6 +3231,15 @@ type Querier interface {
 	//  SET desired_status = ?, updated_at = ?
 	//  WHERE deployment_id = ? AND region_id = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error
+	// CAS on deletion_id. See project_update_deletion_id.sql.
+	//
+	//  UPDATE environments
+	//  SET
+	//      deletion_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND deletion_id <=> ?
+	UpdateEnvironmentDeletionId(ctx context.Context, db DBTX, arg UpdateEnvironmentDeletionIdParams) (sql.Result, error)
 	//UpdateFrontlineRouteDeploymentId
 	//
 	//  UPDATE frontline_routes
@@ -3186,6 +3329,22 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, db DBTX, arg UpdateKeysLastUsedParams) error
+	// Compare-and-swap on deletion_id. The write only applies when the
+	// row's current deletion_id matches expected_deletion_id (NULL-safe
+	// via the <=> operator). Same query handles both directions:
+	//   - Set:   expected=NULL,  new=<id>
+	//   - Clear: expected=<id>,  new=NULL
+	// Callers should check the result's RowsAffected to know whether the
+	// swap took effect; a 0 means the row was concurrently mutated by
+	// someone else and the caller's view is stale.
+	//
+	//  UPDATE projects
+	//  SET
+	//      deletion_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND deletion_id <=> ?
+	UpdateProjectDeletionId(ctx context.Context, db DBTX, arg UpdateProjectDeletionIdParams) (sql.Result, error)
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects

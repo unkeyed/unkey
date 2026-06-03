@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -21,10 +21,19 @@ export const projects = mysqlTable(
 
     depotProjectId: varchar("depot_project_id", { length: 255 }),
 
+    // FK to deletions.id. NULL means the project is live; non-NULL means
+    // the project is in its soft-delete grace window and the deletions
+    // row holds the cascade timestamp T. Find/List queries filter on
+    // NULL so a scheduled project is invisible to the API.
+    deletionId: varchar("deletion_id", { length: 64 }),
+
     ...deleteProtection,
     ...lifecycleDates,
   },
-  (table) => [uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug)],
+  (table) => [
+    uniqueIndex("workspace_slug_idx").on(table.workspaceId, table.slug),
+    index("projects_deletion_id_idx").on(table.deletionId),
+  ],
 );
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({

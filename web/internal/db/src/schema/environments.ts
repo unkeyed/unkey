@@ -19,12 +19,19 @@ export const environments = mysqlTable(
     slug: varchar("slug", { length: 256 }).notNull(), // URL-safe identifier within workspace
     description: varchar("description", { length: 255 }).notNull().default(""),
 
+    // FK to deletions.id. NULL means the environment is live; non-NULL
+    // means the environment is in its soft-delete grace window. Set by
+    // EnvironmentService.MarkForDeletion (cascaded from app/project)
+    // and cleared by EnvironmentService.Restore.
+    deletionId: varchar("deletion_id", { length: 64 }),
+
     ...deleteProtection,
     ...lifecycleDates,
   },
   (table) => [
     uniqueIndex("environments_app_slug_idx").on(table.appId, table.slug),
     index("environments_project_idx").on(table.projectId),
+    index("environments_deletion_id_idx").on(table.deletionId),
   ],
 );
 

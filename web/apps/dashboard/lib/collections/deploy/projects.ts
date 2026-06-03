@@ -51,45 +51,75 @@ export const projects = createCollection<Project, string>(
     onDelete: async ({ transaction }) => {
       const mutation = transaction.mutations[0];
       const projectId = mutation.original.id;
+      const projectName = mutation.original.name;
 
-      const deleteMutation = trpcClient.deploy.project.delete.mutate({
-        projectId,
-      });
+      const loadingId = toast.loading("Deleting project...");
 
-      toast.promise(deleteMutation, {
-        loading: "Deleting project...",
-        success: "Project deleted successfully",
-        error: (err) => {
-          console.error("Failed to delete project", err);
+      try {
+        await trpcClient.deploy.project.delete.mutate({ projectId });
+      } catch (err) {
+        toast.dismiss(loadingId);
+        console.error("Failed to delete project", err);
+        const code = (err as { data?: { code?: string } })?.data?.code;
+        const message = (err as { message?: string })?.message;
+        switch (code) {
+          case "NOT_FOUND":
+            toast.error("Project Deletion Failed", {
+              description: "Unable to find the project. Please refresh and try again.",
+            });
+            break;
+          case "FORBIDDEN":
+            toast.error("Permission Denied", {
+              description: "You don't have permission to delete this project.",
+            });
+            break;
+          case "INTERNAL_SERVER_ERROR":
+            toast.error("Server Error", {
+              description:
+                "We encountered an issue while deleting your project. Please try again later or contact support at support@unkey.com",
+            });
+            break;
+          default:
+            toast.error("Failed to Delete Project", {
+              description: message || "An unexpected error occurred. Please try again later.",
+            });
+        }
+        throw err;
+      }
 
-          switch (err.data?.code) {
-            case "NOT_FOUND":
-              return {
-                message: "Project Deletion Failed",
-                description: "Unable to find the project. Please refresh and try again.",
-              };
-            case "FORBIDDEN":
-              return {
-                message: "Permission Denied",
-                description: "You don't have permission to delete this project.",
-              };
-            case "INTERNAL_SERVER_ERROR":
-              return {
-                message: "Server Error",
-                description:
-                  "We encountered an issue while deleting your project. Please try again later or contact support at support@unkey.com",
-              };
-            default:
-              return {
-                message: "Failed to Delete Project",
-                description: err.message || "An unexpected error occurred. Please try again later.",
-              };
-          }
+      toast.success(`Deleted ${projectName}`, {
+        id: loadingId,
+        description: "Will be permanently deleted in 72 hours.",
+        duration: 10000,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            // Restore goes through the tRPC client directly (not through
+            // a collection write), so the projects collection has no
+            // signal to refresh. After the mutation lands, invalidate
+            // its queryKey so the row reappears immediately instead of
+            // waiting for the 5s refetchInterval. Also invalidate the
+            // scheduled-deletions collection in case the user is
+            // currently looking at that page.
+            const undo = (async () => {
+              await trpcClient.settings.scheduledDeletions.restore.mutate({
+                resourceType: "project",
+                resourceId: projectId,
+              });
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["projects"] }),
+                queryClient.invalidateQueries({ queryKey: ["scheduled-deletions"] }),
+              ]);
+            })();
+            toast.promise(undo, {
+              loading: "Restoring...",
+              success: `Restored ${projectName}`,
+              error: "Failed to restore",
+            });
+          },
         },
       });
-
-      await deleteMutation;
-      // Automatically refetches query after delete
+      // The collection auto-refetches after onDelete completes.
     },
     onInsert: async ({ transaction }) => {
       const { changes } = transaction.mutations[0];

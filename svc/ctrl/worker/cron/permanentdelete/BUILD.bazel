@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "permanentdelete",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/cron/permanentdelete",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/logger",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

@@ -242,7 +242,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	// --- Trigger deletion via Restate ingress ---
 
 	projectClient := hydrav1.NewProjectServiceIngressClient(tEnv.Ingress(), project.ID)
-	_, err = projectClient.Delete().Request(ctx, &hydrav1.DeleteProjectRequest{})
+	_, err = projectClient.DeletePermanently().Request(ctx, &hydrav1.DeleteProjectPermanentlyRequest{})
 	require.NoError(t, err)
 
 	// The project handler fires off app deletions via .Send() (durable but async).
