@@ -75,11 +75,7 @@ export const AppSetupWizard = () => {
                   </>
                 }
               />
-              <ConnectGithubStep
-                projectId={projectId}
-                appId={appId}
-                onBeforeNavigate={bypass}
-              />
+              <ConnectGithubStep projectId={projectId} appId={appId} onBeforeNavigate={bypass} />
             </OnboardingStepContainer>
           ) : null}
         </StepWizard.Step>

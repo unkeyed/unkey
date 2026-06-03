@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, FormInput, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
 
 const formSchema = createAppRequestSchema.omit({ projectId: true });

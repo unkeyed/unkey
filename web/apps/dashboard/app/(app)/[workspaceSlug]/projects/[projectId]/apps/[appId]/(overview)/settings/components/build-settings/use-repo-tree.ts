@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
-import { useProjectData } from "../../../data-provider";
+import { useAppId, useProjectData } from "../../../data-provider";
 
 type ValidationResult = "valid" | "invalid" | "unknown";
 
@@ -25,8 +25,9 @@ function resolveAgainstContext(dockerContext: string, relativePath: string): str
 
 export function useRepoTree() {
   const { projectId } = useProjectData();
+  const appId = useAppId();
   const { data, isLoading, isError } = trpc.github.getRepoTree.useQuery(
-    { projectId },
+    { projectId, appId },
     { staleTime: 5 * 60 * 1000 },
   );
   const tree = data?.tree ?? null;

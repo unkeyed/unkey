@@ -3,6 +3,7 @@
 import { collection } from "@/lib/collections";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
 
@@ -10,18 +11,23 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../data-provider";
+import { useAppId, useProjectData } from "../../data-provider";
 
-export function DeleteProject() {
-  const { projectId, project } = useProjectData();
+export function DeleteApp() {
+  const { projectId } = useProjectData();
+  const appId = useAppId();
   const { workspace } = useWorkspace();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const projectName = project?.name ?? "";
+  const appsQuery = useLiveQuery(
+    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.id, appId)),
+    [appId],
+  );
+  const appName = appsQuery.data?.[0]?.name ?? "";
 
   const formSchema = z.object({
-    name: z.string().refine((v) => v === projectName, "Please confirm the project name"),
+    name: z.string().refine((v) => v === appName, "Please confirm the app name"),
   });
 
   type FormValues = z.infer<typeof formSchema>;
@@ -39,35 +45,35 @@ export function DeleteProject() {
     },
   });
 
-  const isValid = watch("name") === projectName;
+  const isValid = watch("name") === appName;
 
   const onSubmit = (_values: FormValues) => {
-    collection.projects.delete(projectId);
+    collection.apps.delete(appId);
     setIsDialogOpen(false);
-    router.push(`/${workspace?.slug}/projects`);
+    router.push(`/${workspace?.slug}/projects/${projectId}`);
   };
 
   return (
     <>
       <SettingsZoneRow
-        title="Delete this project"
-        description="Once you delete a project, there is no going back. Please be certain."
+        title="Delete this app"
+        description="Once you delete an app, there is no going back. Please be certain."
         action={{
-          label: "Delete this project",
+          label: "Delete this app",
           onClick: () => setIsDialogOpen(true),
         }}
       />
 
       <DialogContainer
         isOpen={isDialogOpen}
-        subTitle="Permanently remove this project and all associated data"
+        subTitle="Permanently remove this app and all associated data"
         onOpenChange={setIsDialogOpen}
-        title="Delete project"
+        title="Delete app"
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button
               type="submit"
-              form="delete-project-form"
+              form="delete-app-form"
               variant="primary"
               color="danger"
               size="xlg"
@@ -75,7 +81,7 @@ export function DeleteProject() {
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
             >
-              Delete project
+              Delete app
             </Button>
             <div className="text-gray-9 text-xs">
               This action cannot be undone – proceed with caution
@@ -89,17 +95,17 @@ export function DeleteProject() {
           </div>
           <div className="text-error-12 text-[13px] leading-6">
             <span className="font-medium">Warning:</span> deleting{" "}
-            <span className="font-medium">{projectName}</span> will remove all deployments,
+            <span className="font-medium">{appName}</span> will remove all deployments,
             environments, custom domains, and associated data. This action cannot be undone. Any
-            monitoring, logs, and historical data tied to this project will be permanently lost.
+            monitoring, logs, and historical data tied to this app will be permanently lost.
           </div>
         </div>
-        <form id="delete-project-form" onSubmit={handleSubmit(onSubmit)}>
+        <form id="delete-app-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1 mt-4">
             <p className="text-gray-11 text-[13px]">
-              Type <span className="text-gray-12 font-medium">{projectName}</span> to confirm
+              Type <span className="text-gray-12 font-medium">{appName}</span> to confirm
             </p>
-            <Input {...register("name")} placeholder={`Enter "${projectName}" to confirm`} />
+            <Input {...register("name")} placeholder={`Enter "${appName}" to confirm`} />
           </div>
         </form>
       </DialogContainer>

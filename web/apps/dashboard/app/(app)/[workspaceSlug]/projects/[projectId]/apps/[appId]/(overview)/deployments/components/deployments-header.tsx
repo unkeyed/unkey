@@ -10,7 +10,7 @@ export function DeploymentsHeader() {
       <div className="flex flex-col gap-0.5">
         <h1 className="font-semibold text-gray-12 text-lg leading-8">Deployments</h1>
         <p className="text-[13px] text-gray-11 leading-5">
-          View and manage deployments for this project.
+          View and manage deployments for this app.
         </p>
       </div>
       <CreateDeploymentButton

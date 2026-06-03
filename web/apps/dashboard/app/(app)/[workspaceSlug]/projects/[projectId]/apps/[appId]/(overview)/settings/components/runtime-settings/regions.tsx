@@ -228,7 +228,7 @@ const RegionsSingle = () => {
     <FormSettingCard
       icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
       title="Regions"
-      description="Geographic regions where your project will run"
+      description="Geographic regions where your app will run"
       displayValue={<RegionDisplayValue regions={defaultRegions} />}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
@@ -436,7 +436,7 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
     <FormSettingCard
       icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
       title="Regions"
-      description="Geographic regions where your project will run"
+      description="Geographic regions where your app will run"
       displayValue={
         <div className="flex items-center gap-3">
           <EnvironmentDisplayValue label="Production" regions={defaultProdRegions} />

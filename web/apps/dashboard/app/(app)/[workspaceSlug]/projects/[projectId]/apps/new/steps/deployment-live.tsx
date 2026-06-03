@@ -22,11 +22,7 @@ type DeploymentLiveStepProps = {
   deploymentId: string;
 };
 
-export const DeploymentLiveStep = ({
-  projectId,
-  appId,
-  deploymentId,
-}: DeploymentLiveStepProps) => {
+export const DeploymentLiveStep = ({ projectId, appId, deploymentId }: DeploymentLiveStepProps) => {
   return (
     <ProjectDataProvider projectId={projectId} appId={appId}>
       <DeploymentLayoutProvider deploymentId={deploymentId}>
@@ -36,10 +32,7 @@ export const DeploymentLiveStep = ({
   );
 };
 
-const DeploymentLiveStepContent = ({
-  projectId,
-  appId,
-}: { projectId: string; appId: string }) => {
+const DeploymentLiveStepContent = ({ projectId, appId }: { projectId: string; appId: string }) => {
   const { deployment } = useDeployment();
   const workspace = useWorkspaceNavigation();
   const router = useRouter();

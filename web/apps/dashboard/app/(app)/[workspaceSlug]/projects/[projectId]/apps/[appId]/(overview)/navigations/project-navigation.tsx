@@ -10,7 +10,7 @@ import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
-import { useProjectData } from "../data-provider";
+import { useAppId, useProjectData } from "../data-provider";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
 
 const CreateDeploymentButton = dynamic(
@@ -40,7 +40,8 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     })),
   );
 
-  const { projectId, appId, project, getDeploymentById } = useProjectData();
+  const { projectId, project, getDeploymentById } = useProjectData();
+  const appId = useAppId();
   const activeProject = project
     ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
     : undefined;
@@ -48,7 +49,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({
     projectId,
-    appId: appId ?? "",
+    appId,
     basePath,
   });
 

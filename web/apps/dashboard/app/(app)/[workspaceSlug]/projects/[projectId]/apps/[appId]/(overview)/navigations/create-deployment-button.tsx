@@ -25,7 +25,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { RepoDisplay } from "../../../../../_components/list/repo-display";
-import { useProjectData } from "../data-provider";
+import { useAppId, useProjectData } from "../data-provider";
 import { parseForkRef } from "./parse-fork-ref";
 
 const DynamicDialogContainer = dynamic(
@@ -82,13 +82,14 @@ export const CreateDeploymentButton = ({
   const params = useParams<{ workspaceSlug: string }>();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const { projectId, project, environments } = useProjectData();
+  const appId = useAppId();
 
   const repositoryFullName = project?.repositoryFullName ?? null;
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
   const defaultBranch = project?.branch ?? "main";
 
   const installations = trpc.github.getInstallations.useQuery(
-    { projectId },
+    { projectId, appId },
     { enabled: isOpen && Boolean(repositoryFullName) },
   );
 
@@ -162,6 +163,7 @@ export const CreateDeploymentButton = ({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     createDeployment.mutate({
       projectId,
+      appId,
       environmentSlug: values.environment,
       gitRef: values.name,
     });

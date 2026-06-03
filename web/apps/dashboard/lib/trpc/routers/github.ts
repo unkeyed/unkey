@@ -25,7 +25,7 @@ const STATE_TTL_MS = 15 * 60 * 1000;
 // a logged-in victim into hitting /integrations/github/callback?state=...
 const signedStatePayload = z.object({
   projectId: z.string().min(1),
-  appId: z.string().min(1).optional(),
+  appId: z.string().min(1),
   returnTo: z.enum(["settings"]).optional(),
   workspaceId: z.string().min(1),
   userId: z.string().min(1),
@@ -97,7 +97,7 @@ const verifyState = (raw: string): SignedStatePayload | null => {
   return payload;
 };
 
-const fetchGithubContext = async (workspaceId: string, projectId: string) => {
+const fetchGithubContext = async (workspaceId: string, projectId: string, appId?: string) => {
   const project = await db.query.projects
     .findFirst({
       where: (table, { and, eq }) =>
@@ -145,9 +145,11 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
     return null;
   }
 
-  // Prefer the first app that already has a github connection, otherwise pick any app
-  const connectedApp = project.apps.find((a) => a.githubRepoConnection != null);
-  const app = connectedApp ?? project.apps[0] ?? null;
+  // Scope to the requested app when given. Otherwise prefer the first app that
+  // already has a github connection, falling back to any app.
+  const app = appId
+    ? (project.apps.find((a) => a.id === appId) ?? null)
+    : (project.apps.find((a) => a.githubRepoConnection != null) ?? project.apps[0] ?? null);
 
   return {
     appId: app?.id ?? null,
@@ -222,7 +224,7 @@ export const githubRouter = t.router({
     .input(
       z.object({
         projectId: z.string().min(1),
-        appId: z.string().min(1).optional(),
+        appId: z.string().min(1),
         returnTo: z.enum(["settings"]).optional(),
       }),
     )
@@ -356,15 +358,19 @@ export const githubRouter = t.router({
       return {
         workspaceSlug: ctx.workspace.slug,
         projectId,
-        appId: parsedState.appId ?? null,
+        appId: parsedState.appId,
         returnTo: parsedState.returnTo ?? null,
       };
     }),
 
   getRepoTree: workspaceProcedure
-    .input(z.object({ projectId: z.string() }))
+    .input(z.object({ projectId: z.string(), appId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      const githubContext = await fetchGithubContext(
+        ctx.workspace.id,
+        input.projectId,
+        input.appId,
+      );
       if (!githubContext?.repoConnection) {
         return { tree: null };
       }
@@ -397,10 +403,15 @@ export const githubRouter = t.router({
     .input(
       z.object({
         projectId: z.string(),
+        appId: z.string().min(1),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      const githubContext = await fetchGithubContext(
+        ctx.workspace.id,
+        input.projectId,
+        input.appId,
+      );
       if (!githubContext) {
         throw new TRPCError({
           code: "NOT_FOUND",

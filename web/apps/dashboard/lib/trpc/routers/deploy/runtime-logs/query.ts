@@ -80,7 +80,9 @@ export const queryRuntimeLogs = workspaceProcedure
       // hasn't picked one, preserving the prior single-app behavior.
       if (transformedInputs.environmentId.length === 0) {
         const prod =
-          project.environments.find((e) => e.slug === "production") ?? defaultEnvironment;
+          project.environments.find((e) => e.appId === input.appId && e.slug === "production") ??
+          project.environments.find((e) => e.appId === input.appId) ??
+          defaultEnvironment;
         transformedInputs.environmentId = [prod.id];
       }
       appId = input.appId;

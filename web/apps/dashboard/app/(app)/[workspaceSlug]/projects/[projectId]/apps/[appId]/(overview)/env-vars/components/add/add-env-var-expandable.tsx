@@ -216,7 +216,7 @@ export const AddEnvVarExpandable = ({
             Add Environment Variable
           </span>
           <span className="text-gray-11 text-[13px] leading-5">
-            Set a key-value pair for your project.
+            Set a key-value pair for your app.
           </span>
         </div>
         <SlidePanel.Close

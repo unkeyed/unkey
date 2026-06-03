@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { useCallback } from "react";
-import { useProjectData } from "../../../../data-provider";
+import { useAppId, useProjectData } from "../../../../data-provider";
 import { SelectedConfig } from "../../shared/selected-config";
 import { GitHubConnected } from "./github-connected";
 import { GitHubNoRepo } from "./github-no-repo";
@@ -29,6 +29,7 @@ type GitHubProps = {
 
 export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
   const { projectId } = useProjectData();
+  const appId = useAppId();
 
   // The state on the GitHub install URL is a server-signed token bound to
   // this user, workspace, and project. Computing it requires a tRPC round
@@ -38,6 +39,7 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
     try {
       const { state } = await prepareInstallation.mutateAsync({
         projectId,
+        appId,
         returnTo: "settings",
       });
       onBeforeNavigate?.();
@@ -45,10 +47,10 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
-  }, [projectId, prepareInstallation, onBeforeNavigate]);
+  }, [projectId, appId, prepareInstallation, onBeforeNavigate]);
 
   const { data, isLoading } = trpc.github.getInstallations.useQuery(
-    { projectId },
+    { projectId, appId },
     { staleTime: 0, refetchOnWindowFocus: true },
   );
 
