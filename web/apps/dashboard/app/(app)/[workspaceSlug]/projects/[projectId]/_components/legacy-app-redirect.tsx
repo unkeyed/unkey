@@ -20,15 +20,20 @@ export function LegacyAppRedirect({ suffix }: { suffix: string }) {
   );
 
   const apps = appsQuery.data ?? [];
+  const ready = appsQuery.isReady;
   const defaultApp = apps.find((app) => app.slug === "default") ?? apps[0];
 
   useEffect(() => {
+    if (ready && apps.length === 0) {
+      router.replace(`/${workspaceSlug}/projects`);
+      return;
+    }
     if (!defaultApp) {
       return;
     }
     const base = `/${workspaceSlug}/projects/${projectId}/apps/${defaultApp.id}`;
     router.replace(suffix ? `${base}/${suffix}` : `${base}/deployments`);
-  }, [defaultApp, router, workspaceSlug, projectId, suffix]);
+  }, [ready, apps.length, defaultApp, router, workspaceSlug, projectId, suffix]);
 
   return <LoadingState message="Loading project..." />;
 }
