@@ -1,5 +1,6 @@
 "use client";
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
 import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
@@ -18,7 +19,6 @@ import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { CodeBranch, CodeCommit, User } from "@unkey/icons";
 import { Badge, CopyButton } from "@unkey/ui";
 import type React from "react";
-import { useProjectData } from "../../../../data-provider";
 import { useSentinelLogsContext } from "../../../context/sentinel-logs-provider";
 
 type Props = {

@@ -115,11 +115,11 @@ export function buildProjectLinks(
   const base = `/${slug}/projects/${projectId}`;
   return [
     {
-      key: "deployments",
-      label: "Deployments",
-      href: `${base}/deployments`,
+      key: "overview",
+      label: "Overview",
+      href: base,
       icon: Cube,
-      isActive: page === "deployments",
+      isActive: !page,
     },
     {
       key: "logs",
@@ -134,6 +134,32 @@ export function buildProjectLinks(
       href: `${base}/requests`,
       icon: ArrowOppositeDirectionY,
       isActive: page === "requests",
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      href: "#",
+      icon: Gear,
+      isActive: false,
+    },
+  ];
+}
+
+export function buildAppLinks(
+  slug: string,
+  projectId: string,
+  appId: string,
+  segments: string[],
+): ResolvedNavLink[] {
+  const page = segments[4];
+  const base = `/${slug}/projects/${projectId}/apps/${appId}`;
+  return [
+    {
+      key: "deployments",
+      label: "Deployments",
+      href: `${base}/deployments`,
+      icon: Cube,
+      isActive: page === "deployments",
     },
     {
       key: "env-vars",
@@ -155,6 +181,13 @@ export function buildProjectLinks(
       href: `${base}/settings`,
       icon: Gear,
       isActive: page === "settings",
+    },
+    {
+      key: "openapi-diff",
+      label: "OpenAPI Diff",
+      href: `${base}/openapi-diff`,
+      icon: Nodes,
+      isActive: page === "openapi-diff",
     },
   ];
 }

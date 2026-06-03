@@ -2,7 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Dots, Plus } from "@unkey/icons";
+import { Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { ResourceCard } from "../../../_components/list/resource-card";

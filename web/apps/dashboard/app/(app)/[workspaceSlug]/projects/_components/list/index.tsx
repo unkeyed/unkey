@@ -6,8 +6,8 @@ import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
-import { ResourceCard } from "./resource-card";
 import { ProjectCardSkeleton } from "./projects-card-skeleton";
+import { ResourceCard } from "./resource-card";
 
 const MAX_SKELETON_COUNT = 8;
 

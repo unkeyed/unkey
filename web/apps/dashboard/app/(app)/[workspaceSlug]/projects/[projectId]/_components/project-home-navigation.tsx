@@ -1,16 +1,14 @@
 "use client";
-import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-button";
-import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Cube, Plus } from "@unkey/icons";
+import { Cube } from "@unkey/icons";
 
 type ProjectHomeNavigationProps = {
   projectId: string;
-  onCreateApp: () => void;
+  // onCreateApp: () => void;
 };
 
-export const ProjectHomeNavigation = ({ projectId, onCreateApp }: ProjectHomeNavigationProps) => {
+export const ProjectHomeNavigation = ({ projectId }: ProjectHomeNavigationProps) => {
   const workspace = useWorkspaceNavigation();
   const basePath = `/${workspace.slug}/projects`;
 

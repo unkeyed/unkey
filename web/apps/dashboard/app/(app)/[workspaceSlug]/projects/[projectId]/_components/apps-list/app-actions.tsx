@@ -52,7 +52,7 @@ const getAppActionItems = (
       label: "View requests",
       icon: <Layers3 iconSize="md-regular" />,
       onClick: () => {
-        router.push(`${appBase}/requests`);
+        router.push(`/${workspaceSlug}/projects/${projectId}/requests`);
       },
     },
     {

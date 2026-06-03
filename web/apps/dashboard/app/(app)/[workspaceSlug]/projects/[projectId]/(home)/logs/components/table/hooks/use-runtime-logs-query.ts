@@ -2,7 +2,7 @@
 
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import { trpc } from "@/lib/trpc/client";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
 import type { RuntimeLogsFilter } from "../../../types";
@@ -22,6 +22,9 @@ const getLogKey = (log: RuntimeLog): string =>
 
 export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQueryParams) {
   const params = useParams<{ projectId: string }>();
+  const searchParams = useSearchParams();
+  // Optional ?appId= narrows the project-wide view to a single app.
+  const appId = searchParams.get("appId");
   const { isLive } = useRuntimeLogs();
   const queryClient = trpc.useUtils();
 
@@ -51,6 +54,7 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
 
     return {
       projectId: params.projectId,
+      appId: appId ?? null,
       deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
       limit,
       startTime: startTimeFilter ? Number(startTimeFilter.value) : null,
@@ -62,7 +66,7 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
       instanceId: instanceIdFilters.length > 0 ? { filters: instanceIdFilters } : null,
       environmentId: environmentIdFilters.length > 0 ? { filters: environmentIdFilters } : null,
     };
-  }, [filters, limit, params]);
+  }, [filters, limit, params, appId]);
 
   const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } =
     trpc.deploy.runtimeLogs.query.useInfiniteQuery(queryInput, {

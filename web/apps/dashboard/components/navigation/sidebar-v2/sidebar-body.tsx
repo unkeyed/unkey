@@ -5,6 +5,7 @@ import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   buildApiLinks,
+  buildAppLinks,
   buildAuthorizationLinks,
   buildNamespaceLinks,
   buildProjectLinks,
@@ -30,7 +31,9 @@ export function SidebarBody() {
       case "authorization":
         return buildAuthorizationLinks(slug, segments);
       case "project":
-        return buildProjectLinks(slug, context.projectId, segments);
+        return context.appId
+          ? buildAppLinks(slug, context.projectId, context.appId, segments)
+          : buildProjectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(slug, context.apiId, keyAuthId, segments);
       case "namespace":

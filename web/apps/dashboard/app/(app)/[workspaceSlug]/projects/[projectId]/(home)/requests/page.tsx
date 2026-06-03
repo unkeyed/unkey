@@ -1,6 +1,6 @@
 "use client";
+import { ProjectContentWrapper } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/project-content-wrapper";
 import { useState } from "react";
-import { ProjectContentWrapper } from "../../components/project-content-wrapper";
 import { SentinelLogsControlCloud } from "./components/control-cloud";
 import { SentinelLogsControls } from "./components/controls";
 import { SentinelLogDetails } from "./components/table/sentinel-log-details";

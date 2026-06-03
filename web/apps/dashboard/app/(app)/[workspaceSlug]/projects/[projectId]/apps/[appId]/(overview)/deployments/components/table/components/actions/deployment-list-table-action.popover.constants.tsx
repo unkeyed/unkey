@@ -92,7 +92,7 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/requests?since=6h&deploymentId=contains:${selectedDeployment.id}`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/requests?since=6h&deploymentId=contains:${selectedDeployment.id}`,
           );
         },
       },
@@ -102,7 +102,7 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/logs`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/logs?appId=${selectedDeployment.appId}`,
           );
         },
       },

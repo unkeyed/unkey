@@ -74,15 +74,20 @@ export const queryRuntimeLogs = workspaceProcedure
 
     const transformedInputs = transformFilters(input);
 
-    if (transformedInputs.environmentId.length === 0) {
-      const prod = project.environments.find((e) => e.slug === "production") ?? defaultEnvironment;
-      transformedInputs.environmentId = [prod.id];
+    let appId: string | null;
+    if (input.appId) {
+      // App-scoped view: default to the production environment when the user
+      // hasn't picked one, preserving the prior single-app behavior.
+      if (transformedInputs.environmentId.length === 0) {
+        const prod =
+          project.environments.find((e) => e.slug === "production") ?? defaultEnvironment;
+        transformedInputs.environmentId = [prod.id];
+      }
+      appId = input.appId;
+    } else {
+      // Project-wide view: span every app in the project, no forced environment.
+      appId = null;
     }
-
-    const environmentIds = transformedInputs.environmentId;
-    const appId =
-      project.environments.find((e) => environmentIds.includes(e.id))?.appId ??
-      defaultEnvironment.appId;
 
     const { logsQuery } = await clickhouse.runtimeLogs.logs({
       ...transformedInputs,

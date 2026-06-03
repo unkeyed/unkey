@@ -1,11 +1,11 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { useProjectData } from "../../../../../data-provider";
-import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
+import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
 
-export const RuntimeLogsDeploymentFilter = () => {
-  const { filters, updateFilters } = useRuntimeLogsFilters();
+export const SentinelDeploymentFilter = () => {
+  const { filters, updateFilters } = useSentinelLogsFilters();
   const { deployments } = useProjectData();
 
   const options = deployments.map((deployment, i) => ({
@@ -23,9 +23,9 @@ export const RuntimeLogsDeploymentFilter = () => {
       checkPath="slug"
       selectionMode="multiple"
       renderOptionContent={(checkbox) => (
-        <div className="text-accent-12 text-xs flex items-center gap-4.5">
-          <span className="text-accent-9">{checkbox.gitBranch}</span>
-          <span className="font-mono">{checkbox.slug}</span>
+        <div className="text-accent-12 text-xs">
+          <span className="font-medium">{checkbox.gitBranch}</span>
+          <span className="text-accent-9 ml-1 font-mono">{checkbox.slug.slice(0, 8)}</span>
         </div>
       )}
       createFilterValue={(option) => ({

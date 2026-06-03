@@ -53,18 +53,6 @@ export const useBreadcrumbConfig = ({
       segment: "deployments",
     },
     {
-      id: "requests",
-      label: "Requests",
-      href: `${appBase}/requests`,
-      segment: "requests",
-    },
-    {
-      id: "logs",
-      label: "Logs",
-      href: `${appBase}/logs`,
-      segment: "logs",
-    },
-    {
       id: "env-vars",
       label: "Environment Variables",
       href: `${appBase}/env-vars`,

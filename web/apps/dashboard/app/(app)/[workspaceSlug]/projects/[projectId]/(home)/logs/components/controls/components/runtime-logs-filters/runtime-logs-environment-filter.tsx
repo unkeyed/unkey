@@ -1,7 +1,7 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { useProjectData } from "../../../../../data-provider";
 import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 export const RuntimeLogsEnvironmentFilter = () => {
