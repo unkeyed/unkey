@@ -27,12 +27,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Uncomment after done testing
-      #- name: Verify tag is on main
-      #  run: |
-      #    git fetch origin main
-      #    commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
-      #    git merge-base --is-ancestor "$commit" origin/main
+      - name: Verify tag is on main
+        run: |
+          git fetch origin main
+          commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+          git merge-base --is-ancestor "$commit" origin/main
 
       - name: Parse tag
         id: tag
@@ -41,9 +40,15 @@ jobs:
           service="${tag%%/*}"
           version="${tag#*/}"
 
+          prerelease=false
+          if [[ "$version" == *-* ]]; then
+            prerelease=true
+          fi
+
           echo "service=$service" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "image=ghcr.io/unkeyed/$service:$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
 
       - uses: ./.depot/actions/setup-bazel
         with:
@@ -73,6 +78,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          args=()
+          if [[ "${{ steps.tag.outputs.prerelease }}" == "true" ]]; then
+            args+=(--prerelease)
+          fi
           gh release create "${GITHUB_REF_NAME}" \
             --title "${{ steps.tag.outputs.service }} ${{ steps.tag.outputs.version }}" \
-            --notes "Image: ${{ steps.tag.outputs.image }}"
+            --notes "Image: ${{ steps.tag.outputs.image }}" \
+            "${args[@]}"

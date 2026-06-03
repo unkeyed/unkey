@@ -1,0 +1,95 @@
+---
+title: "Builds"
+description: "How Unkey builds service images with Bazel"
+---
+
+Service images are built entirely by Bazel. There is no Dockerfile and no
+`docker build` step. For how a built image then ships to production, see
+[Releases](./releases).
+
+## Why Bazel produces the images
+
+We use Bazel for image production for three reasons:
+
+1. **Content-addressed caching all the way through.** Every output is hashed,
+   so an unchanged service produces an identical binary, layer, and image
+   digest. CI does no work and pushes nothing on a no-op change, and a
+   developer's local build can pull CI's outputs from the remote cache.
+2. **Reproducibility across machines.** Two developers and a CI runner produce
+   byte-identical images for the same commit. That property is what makes the
+   shared cache useful in the first place. A Dockerfile build does not give us
+   this without significant extra work.
+3. **One source of truth for service wiring.** The same `BUILD.bazel` that
+   compiles a binary also declares how it gets packaged and shipped. Adding a
+   service is one `service_image` macro call rather than a Dockerfile, a
+   build script, and a CI snippet that drift apart over time.
+
+## What ships in an image
+
+Every service image is the same shape:
+
+- **A single static Go binary** at `/`. No libc, no shared libraries, no init
+  scripts. The image entrypoint is the binary path directly, not a shell
+  invocation.
+- **Distroless base.** No shell, no busybox, no package manager. Attack
+  surface is minimal and the image contains exactly what the service needs to
+  run. This is also why container probes have to be HTTP-based; there is no
+  `sh` to exec.
+- **Multi-arch manifest.** Each release publishes an OCI index referencing
+  amd64 and arm64 variants built in parallel from the same Go source.
+  `docker pull` resolves to the right architecture automatically, so
+  deployments don't care whether the cluster is x86 or Graviton.
+
+These choices are tightly coupled. Static binaries are required because the
+distroless base has no dynamic loader. The distroless base is what lets us
+use a direct binary entrypoint. The multi-arch index lets the same tag work
+across our cluster types.
+
+## Where things live
+
+Build configuration is colocated with each service:
+
+- `build/<service>/main.go` is the entrypoint. It wires a TOML config
+  command via `build/util` and calls into the service's `Run` function.
+  Runtime behavior (instance IDs, clocks, TLS loading, normalization) stays
+  in `svc/.../run.go`. The entrypoint is intentionally thin so it does not
+  become a second service runtime.
+- `build/<service>/BUILD.bazel` declares the per-arch `go_binary` targets
+  and calls the `service_image` macro from `//build/util:service_image.bzl`.
+  The macro generates everything else: tarballs, per-arch OCI images, the
+  multi-arch index, plus `:push` (to GHCR) and `:load` (into local Docker).
+
+Colocating the macro call with the binary it wraps is intentional. The macro
+relies on local target naming and the binary's output directory matching the
+package layout, so moving image targets out of the service package would
+break the build.
+
+## Local images
+
+Tilt and the dashboard `docker-compose` setup use the same images Bazel
+produces, just under the local `unkey/<service>:dev` tag:
+
+| Local environment | Image source |
+| --- | --- |
+| `dev/k8s` (Tilt) | `bazel run //build/<service>:load` via Tilt's `custom_build` |
+| Dashboard compose | `make oci-load` loads all service images via Bazel |
+
+Because the same image runs locally and in production, you can reproduce
+production-image issues in dev without a separate codepath. There is no
+"dev image" that diverges from the shipped one.
+
+## Adding a new service image
+
+1. Add `build/<service>/main.go` with a call to `util.RunServiceCommand`.
+2. Add `build/<service>/BUILD.bazel` with per-arch `go_binary` targets and a
+   `service_image(...)` call from `//build/util:service_image.bzl`.
+3. Add the service's tag pattern to `.depot/workflows/service-release.yaml`
+   so the release workflow picks up `<service>/vx.y.z` pushes.
+4. Wire it into local dev: a `bazel run //build/<service>:load` line in
+   `make oci-load`, a block in `dev/Tiltfile`, and any compose file that
+   needs it.
+5. Run `make bazel` to regenerate gazelle-managed BUILD files.
+
+Keep new entrypoints thin. Anything that looks like service behavior, such
+as defaults, injected clocks, or generated instance IDs, belongs in the
+service package, not in `build/<service>/main.go`.
