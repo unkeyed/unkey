@@ -30,38 +30,48 @@ export const listApps = workspaceProcedure
 
     const appIds = appRows.map((a) => a.id);
 
-    const [latestDeploymentRows, routeRows, repoRows] = await Promise.all([
-      // firstRowPerApp keeps the first row per appId; ORDER BY ends in a
-      // unique tiebreaker (id) so ties don't pick nondeterministically.
-      db
-        .select({
-          appId: deployments.appId,
-          id: deployments.id,
-          createdAt: deployments.createdAt,
-        })
-        .from(deployments)
-        .where(and(eq(deployments.workspaceId, workspaceId), inArray(deployments.appId, appIds)))
-        .orderBy(deployments.appId, desc(deployments.createdAt), desc(deployments.id)),
-      db
-        .select({
-          appId: frontlineRoutes.appId,
-          fullyQualifiedDomainName: frontlineRoutes.fullyQualifiedDomainName,
-          updatedAt: frontlineRoutes.updatedAt,
-          id: frontlineRoutes.id,
-        })
-        .from(frontlineRoutes)
-        .where(
-          and(
-            eq(frontlineRoutes.projectId, input.projectId),
-            inArray(frontlineRoutes.appId, appIds),
-          ),
-        )
-        .orderBy(
-          frontlineRoutes.appId,
-          sql`(${frontlineRoutes.sticky} = 'live') DESC`,
-          desc(frontlineRoutes.updatedAt),
-          desc(frontlineRoutes.id),
+    // Rank rows per app in SQL (deployments and routes are unbounded, so
+    // fetching them all just to keep the first per app doesn't scale). The
+    // ORDER BY ends in a unique tiebreaker (id) so ties don't pick
+    // nondeterministically.
+    const rankedDeployments = db
+      .select({
+        appId: deployments.appId,
+        id: deployments.id,
+        rn: sql<number>`ROW_NUMBER() OVER (PARTITION BY ${deployments.appId} ORDER BY ${deployments.createdAt} DESC, ${deployments.id} DESC)`.as(
+          "rn",
         ),
+      })
+      .from(deployments)
+      .where(and(eq(deployments.workspaceId, workspaceId), inArray(deployments.appId, appIds)))
+      .as("ranked_deployments");
+
+    const rankedRoutes = db
+      .select({
+        appId: frontlineRoutes.appId,
+        fullyQualifiedDomainName: frontlineRoutes.fullyQualifiedDomainName,
+        rn: sql<number>`ROW_NUMBER() OVER (PARTITION BY ${frontlineRoutes.appId} ORDER BY (${frontlineRoutes.sticky} = 'live') DESC, ${frontlineRoutes.updatedAt} DESC, ${frontlineRoutes.id} DESC)`.as(
+          "rn",
+        ),
+      })
+      .from(frontlineRoutes)
+      .where(
+        and(eq(frontlineRoutes.projectId, input.projectId), inArray(frontlineRoutes.appId, appIds)),
+      )
+      .as("ranked_routes");
+
+    const [latestDeploymentRows, routeRows, repoRows] = await Promise.all([
+      db
+        .select({ appId: rankedDeployments.appId, id: rankedDeployments.id })
+        .from(rankedDeployments)
+        .where(eq(rankedDeployments.rn, 1)),
+      db
+        .select({
+          appId: rankedRoutes.appId,
+          fullyQualifiedDomainName: rankedRoutes.fullyQualifiedDomainName,
+        })
+        .from(rankedRoutes)
+        .where(eq(rankedRoutes.rn, 1)),
       db
         .select({
           appId: githubRepoConnections.appId,
@@ -76,9 +86,9 @@ export const listApps = workspaceProcedure
         ),
     ]);
 
-    const latestDeploymentByApp = firstRowPerApp(latestDeploymentRows);
-    const domainByApp = firstRowPerApp(routeRows);
-    const repoByApp = firstRowPerApp(repoRows);
+    const latestDeploymentByApp = new Map(latestDeploymentRows.map((r) => [r.appId, r]));
+    const domainByApp = new Map(routeRows.map((r) => [r.appId, r]));
+    const repoByApp = new Map(repoRows.map((r) => [r.appId, r]));
 
     const currentDeploymentIds = Array.from(
       new Set(appRows.map((a) => a.currentDeploymentId).filter((id): id is string => Boolean(id))),
@@ -109,7 +119,9 @@ export const listApps = workspaceProcedure
       const currentDeployment = app.currentDeploymentId
         ? currentDeploymentById.get(app.currentDeploymentId)
         : undefined;
-      const hasDeployment = currentDeployment?.gitCommitTimestamp != null;
+      // Image-based deployments carry no git metadata, so gate on the
+      // deployment itself, not on commit fields.
+      const hasDeployment = currentDeployment != null;
 
       return {
         id: app.id,
@@ -133,13 +145,3 @@ export const listApps = workspaceProcedure
       };
     });
   });
-
-function firstRowPerApp<T extends { appId: string }>(rows: T[]): Map<string, T> {
-  const byApp = new Map<string, T>();
-  for (const row of rows) {
-    if (!byApp.has(row.appId)) {
-      byApp.set(row.appId, row);
-    }
-  }
-  return byApp;
-}
