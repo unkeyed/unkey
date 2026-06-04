@@ -25,14 +25,14 @@ export const listApps = workspaceProcedure
       .orderBy(desc(apps.updatedAt), desc(apps.id));
 
     if (appRows.length === 0) {
-      return [] satisfies App[];
+      return [];
     }
 
     const appIds = appRows.map((a) => a.id);
 
     const [latestDeploymentRows, routeRows, repoRows] = await Promise.all([
-      // Each "*-by-app" reducer below picks the first row per appId; ORDER BY
-      // ends in a unique tiebreaker (id) so ties don't pick nondeterministically.
+      // firstRowPerApp keeps the first row per appId; ORDER BY ends in a
+      // unique tiebreaker (id) so ties don't pick nondeterministically.
       db
         .select({
           appId: deployments.appId,
@@ -76,26 +76,9 @@ export const listApps = workspaceProcedure
         ),
     ]);
 
-    const latestDeploymentByApp = new Map<string, string>();
-    for (const row of latestDeploymentRows) {
-      if (!latestDeploymentByApp.has(row.appId)) {
-        latestDeploymentByApp.set(row.appId, row.id);
-      }
-    }
-
-    const domainByApp = new Map<string, string>();
-    for (const row of routeRows) {
-      if (!domainByApp.has(row.appId)) {
-        domainByApp.set(row.appId, row.fullyQualifiedDomainName);
-      }
-    }
-
-    const repoByApp = new Map<string, string>();
-    for (const row of repoRows) {
-      if (!repoByApp.has(row.appId)) {
-        repoByApp.set(row.appId, row.repositoryFullName);
-      }
-    }
+    const latestDeploymentByApp = firstRowPerApp(latestDeploymentRows);
+    const domainByApp = firstRowPerApp(routeRows);
+    const repoByApp = firstRowPerApp(repoRows);
 
     const currentDeploymentIds = Array.from(
       new Set(appRows.map((a) => a.currentDeploymentId).filter((id): id is string => Boolean(id))),
@@ -136,8 +119,8 @@ export const listApps = workspaceProcedure
         defaultBranch: app.defaultBranch,
         currentDeploymentId: app.currentDeploymentId ?? null,
         isRolledBack: Boolean(app.isRolledBack),
-        repositoryFullName: repoByApp.get(app.id) ?? null,
-        latestDeploymentId: latestDeploymentByApp.get(app.id) ?? null,
+        repositoryFullName: repoByApp.get(app.id)?.repositoryFullName ?? null,
+        latestDeploymentId: latestDeploymentByApp.get(app.id)?.id ?? null,
         commitTitle: currentDeployment?.gitCommitMessage ?? null,
         branch: currentDeployment?.gitBranch ?? app.defaultBranch,
         author: currentDeployment?.gitCommitAuthorHandle ?? null,
@@ -146,7 +129,17 @@ export const listApps = workspaceProcedure
           currentDeployment?.gitCommitTimestamp == null
             ? null
             : Number(currentDeployment.gitCommitTimestamp),
-        domain: hasDeployment ? (domainByApp.get(app.id) ?? null) : null,
+        domain: hasDeployment ? (domainByApp.get(app.id)?.fullyQualifiedDomainName ?? null) : null,
       };
     });
   });
+
+function firstRowPerApp<T extends { appId: string }>(rows: T[]): Map<string, T> {
+  const byApp = new Map<string, T>();
+  for (const row of rows) {
+    if (!byApp.has(row.appId)) {
+      byApp.set(row.appId, row);
+    }
+  }
+  return byApp;
+}

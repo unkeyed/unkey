@@ -25,6 +25,9 @@ const DynamicDialogContainer = dynamic(
   { ssr: false },
 );
 
+// Optimistic-insert filler; the server response overwrites these fields.
+const SERVER_PLACEHOLDER = "will-be-replace-by-server";
+
 type Props = {
   defaultOpen?: boolean;
   workspaceSlug: string;
@@ -61,14 +64,14 @@ export const CreateProjectButton = ({
         repositoryFullName: null,
         currentDeploymentId: null,
         isRolledBack: false,
-        id: "will-be-replace-by-server",
+        id: SERVER_PLACEHOLDER,
         latestDeploymentId: null,
-        author: "will-be-replace-by-server",
-        authorAvatar: "will-be-replace-by-server",
-        branch: "will-be-replace-by-server",
+        author: SERVER_PLACEHOLDER,
+        authorAvatar: SERVER_PLACEHOLDER,
+        branch: SERVER_PLACEHOLDER,
         commitTimestamp: Date.now(),
-        commitTitle: "will-be-replace-by-server",
-        domain: "will-be-replace-by-server",
+        commitTitle: SERVER_PLACEHOLDER,
+        domain: SERVER_PLACEHOLDER,
       });
       await tx.isPersisted.promise;
       const { projectId } = tx.metadata as { projectId: string };

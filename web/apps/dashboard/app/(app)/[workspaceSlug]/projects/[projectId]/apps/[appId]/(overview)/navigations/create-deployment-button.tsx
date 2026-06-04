@@ -151,7 +151,7 @@ export const CreateDeploymentButton = ({
       setIsOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       router.push(
-        `/${params.workspaceSlug}/projects/${projectId}/deployments/${data.deploymentId}`,
+        `/${params.workspaceSlug}/projects/${projectId}/apps/${appId}/deployments/${data.deploymentId}`,
       );
     },
     onError(err) {

@@ -12,6 +12,9 @@ import { OnboardingLinks } from "../onboarding-links";
 const formSchema = createAppRequestSchema.omit({ projectId: true });
 type FormValues = z.infer<typeof formSchema>;
 
+// Optimistic-insert filler; the server response overwrites these fields.
+const SERVER_PLACEHOLDER = "will-be-replace-by-server";
+
 type CreateAppStepProps = {
   projectId: string;
   onAppCreated: (id: string) => void;
@@ -42,14 +45,14 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
         repositoryFullName: null,
         currentDeploymentId: null,
         isRolledBack: false,
-        id: "will-be-replace-by-server",
+        id: SERVER_PLACEHOLDER,
         latestDeploymentId: null,
-        author: "will-be-replace-by-server",
-        authorAvatar: "will-be-replace-by-server",
-        branch: "will-be-replace-by-server",
+        author: SERVER_PLACEHOLDER,
+        authorAvatar: SERVER_PLACEHOLDER,
+        branch: SERVER_PLACEHOLDER,
         commitTimestamp: Date.now(),
-        commitTitle: "will-be-replace-by-server",
-        domain: "will-be-replace-by-server",
+        commitTitle: SERVER_PLACEHOLDER,
+        domain: SERVER_PLACEHOLDER,
       });
       await tx.isPersisted.promise;
       onAppCreated((tx.metadata as { appId: string }).appId);
