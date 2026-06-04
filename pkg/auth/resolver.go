@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -14,5 +15,5 @@ import (
 // means the resolver fully authenticated the request, populated WorkspaceID,
 // Subject, Type, Source, and Permissions, and no later resolver will run.
 type Resolver interface {
-	Resolve(ctx context.Context, sess *zen.Session) (*Principal, error)
+	Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error)
 }

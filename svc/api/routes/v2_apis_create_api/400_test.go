@@ -23,7 +23,6 @@ func TestCreateApi_BadRequest(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Auth:      h.Auth,
 		Auditlogs: h.Auditlogs,
 	}
 

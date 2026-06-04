@@ -4,17 +4,16 @@ go_library(
     name = "auth",
     srcs = [
         "doc.go",
-        "principal.go",
         "resolver.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/auth",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/auth/principal",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",
-        "//pkg/rbac",
         "//pkg/zen",
     ],
 )
@@ -24,7 +23,7 @@ go_test(
     srcs = ["service_test.go"],
     embed = [":auth"],
     deps = [
-        "//pkg/rbac",
+        "//pkg/auth/principal",
         "//pkg/zen",
         "@com_github_stretchr_testify//require",
     ],

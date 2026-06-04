@@ -9,7 +9,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/auth/jwt",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/auth",
+        "//pkg/auth/principal",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/jwt",
@@ -22,7 +22,7 @@ go_test(
     srcs = ["resolver_test.go"],
     embed = [":jwt"],
     deps = [
-        "//pkg/auth",
+        "//pkg/auth/principal",
         "//pkg/jwt",
         "//pkg/rbac",
         "//pkg/zen",

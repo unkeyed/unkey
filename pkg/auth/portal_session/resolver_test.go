@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/internal/services/portal"
-	"github.com/unkeyed/unkey/pkg/auth"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -47,8 +47,8 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.NoError(t, err)
-	require.Equal(t, auth.PrincipalVersion, principal.Version)
-	require.Equal(t, auth.PrincipalTypePortalSession, principal.Type)
+	require.Equal(t, authprincipal.Version, principal.Version)
+	require.Equal(t, authprincipal.TypePortalSession, principal.Type)
 	require.Equal(t, "customer_123", principal.Subject.ID)
 	require.Equal(t, "ws_123", principal.WorkspaceID)
 	require.NotNil(t, principal.Source.PortalSession)

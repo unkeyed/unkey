@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
@@ -54,7 +54,7 @@ func NewResolver(secret []byte) (*Resolver, error) {
 }
 
 // Resolve claims JWT-shaped bearer tokens and leaves other credentials to later resolvers.
-func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*auth.Principal, error) {
+func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*principal.Principal, error) {
 	token, err := zen.Bearer(sess)
 	if err != nil {
 		return nil, nil
@@ -101,17 +101,17 @@ func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*auth.Principa
 		name = claims.Subject
 	}
 
-	return &auth.Principal{
-		Version: auth.PrincipalVersion,
-		Subject: auth.Subject{
+	return &principal.Principal{
+		Version: principal.Version,
+		Subject: principal.Subject{
 			ID:   claims.Subject,
 			Name: name,
-			Type: auth.SubjectTypeUser,
+			Type: principal.SubjectTypeUser,
 		},
-		Type: auth.PrincipalTypeJWT,
-		Source: auth.Source{
+		Type: principal.TypeJWT,
+		Source: principal.Source{
 			Key: nil,
-			JWT: &auth.JWTSource{
+			JWT: &principal.JWTSource{
 				Header:    header,
 				Payload:   payload,
 				Signature: segments[2],

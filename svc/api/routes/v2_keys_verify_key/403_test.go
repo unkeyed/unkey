@@ -17,7 +17,6 @@ func TestForbidden_NoVerifyPermissions(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Auth:      h.Auth,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 	}

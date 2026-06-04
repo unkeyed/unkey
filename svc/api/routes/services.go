@@ -29,12 +29,10 @@ type Services struct {
 	// Database provides access to the primary MySQL database for persistence.
 	Database db.Database
 
-	// Keys handles API key authentication, verification, and authorization
-	// checks for incoming requests.
+	// Keys handles API key verification and key mutation operations.
 	Keys keys.KeyService
 
-	// Auth normalizes supported credential sources into principals and performs
-	// RBAC authorization checks.
+	// Auth normalizes supported credential sources into principals for protected routes.
 	Auth auth.Service
 
 	// ClickHouse provides query access to ClickHouse for analytics.

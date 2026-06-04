@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/auth"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -48,8 +48,8 @@ func TestResolver_ResolveJWT(t *testing.T) {
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.NoError(t, err)
-	require.Equal(t, auth.PrincipalVersion, principal.Version)
-	require.Equal(t, auth.PrincipalTypeJWT, principal.Type)
+	require.Equal(t, authprincipal.Version, principal.Version)
+	require.Equal(t, authprincipal.TypeJWT, principal.Type)
 	require.Equal(t, "user_123", principal.Subject.ID)
 	require.Equal(t, "Dashboard User", principal.Subject.Name)
 	require.Equal(t, "ws_123", principal.WorkspaceID)

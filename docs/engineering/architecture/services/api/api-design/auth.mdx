@@ -5,30 +5,35 @@ description: "API authentication concepts, principals, and permission checks"
 
 API authentication turns request credentials into a principal, then checks
 whether that principal can perform the requested operation. The credential might
-come from a root key, a browser session, or another source in the future, but
-the rest of the API can reason about the same concepts.
+come from a root key, a browser session, or another credential source, but the
+rest of the API can reason about the same concepts.
 
 This design keeps authentication source details out of business logic. Handlers
-receive a workspace scope, an audit subject, and a permission set. They don't
-need to know how the caller proved its identity.
+read a principal from the request session, then use that principal for
+permission checks, workspace scoping, and audit actor metadata. They don't need
+to know how the caller proved its identity.
 
 ## How it works
 
-The API auth flow has four conceptual steps:
+The API auth flow has five conceptual steps:
 
 1. Find a credential on the request.
 2. Verify that credential with the system that owns it.
 3. Normalize the verified caller into a principal.
-4. Check the principal's permissions before data access or mutation.
+4. Attach the principal to the request session.
+5. Check the principal's permissions before data access or mutation.
 
 ```mermaid
 flowchart TD
     A["Incoming request"] --> B["Credential"]
     B --> C["Verification"]
     C --> D["Principal"]
-    D --> E["Permission check"]
-    E --> F["Scoped API operation"]
-    D --> G["Audit subject"]
+    D --> E["Session"]
+    E --> F["Workspace API rate limit"]
+    F --> G["Handler"]
+    G --> H["Permission check"]
+    H --> I["Scoped API operation"]
+    D --> J["Audit subject"]
 ```
 
 The principal is the boundary between authentication and the rest of the API. It
@@ -42,6 +47,40 @@ That boundary is the main reason the API uses a unified auth flow. It lets the
 API add or change credential sources without spreading source-specific logic
 through handlers.
 
+## Request lifecycle
+
+Protected API routes authenticate in middleware before the handler runs. The
+middleware resolves the credential, stores the resulting principal on the
+session, and applies workspace-level API rate limiting with the principal's
+workspace scope.
+
+Handlers do not authenticate requests. A handler reads the principal from the
+session and fails closed if the protected route was registered without the auth
+middleware. After it has a principal, the handler checks the permission required
+for the operation and uses the principal's workspace ID for reads, writes,
+cache keys, and audit logs.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Middleware
+    participant Session
+    participant Handler
+
+    Client->>Middleware: Send protected API request
+    Middleware->>Middleware: Verify credential
+    Middleware->>Session: Store principal
+    Middleware->>Middleware: Apply workspace API rate limit
+    Middleware->>Handler: Continue request
+    Handler->>Session: Read principal
+    Handler->>Handler: Check permissions
+    Handler->>Handler: Execute scoped operation
+```
+
+The session does not store a separate workspace ID. Request metadata that needs
+the workspace, such as error logs or request metrics, reads it from the stored
+principal. If a request has no principal, the workspace value is empty.
+
 ## Credential sources
 
 Credential sources differ in how they prove identity, how long they live, and
@@ -52,7 +91,7 @@ concept.
 flowchart LR
     A["Root key"] --> D["Principal"]
     B["Portal session"] --> D
-    C["Future JWT"] -.-> D
+    C["JWT"] -.-> D
     D --> E["Workspace"]
     D --> F["Audit actor"]
     D --> G["Permissions"]
@@ -65,9 +104,9 @@ Portal sessions represent an end user acting through the customer portal. They
 are browser-oriented credentials and grant the permissions attached to that
 session.
 
-JWTs are a future source for short-lived bearer authentication. The important
-design constraint is that adding JWTs does not change how handlers authorize
-or audit requests.
+JWT support is scaffolded for short-lived bearer authentication. The important
+design constraint is that adding a credential source does not change how
+handlers authorize or audit requests.
 
 ## Principal model
 
@@ -89,6 +128,11 @@ authentication to the audit log implementation.
 The API principal shape intentionally stays close to the frontline principal
 model. Long term, the API can run behind frontline and consume the same concept
 instead of maintaining a separate auth model.
+
+The principal owns permission evaluation for API handlers. That keeps the
+handler call site direct: read the authenticated principal, ask whether it can
+perform the required operation, then execute the operation. The permission
+system still owns RBAC query evaluation and error semantics.
 
 ## Permission checks
 
@@ -115,6 +159,24 @@ broader predicate, such as "does this caller have any permission to verify keys
 for API resources?" Those predicates still belong to the permission system
 because they answer an authorization question, not an authentication question.
 
+Permission checks must happen before the handler performs data access or
+mutation that depends on the requested operation. Authentication middleware
+only proves the request's identity and enforces workspace-level request policy.
+It does not grant access to every operation in that workspace.
+
+## Workspace API rate limiting
+
+Workspace API rate limiting is a protected-route middleware concern. It runs
+after authentication because the rate limit key is the authenticated principal's
+workspace ID, and it runs before the handler because the limit applies to every
+protected API operation.
+
+The implementation is bundled with authentication middleware instead of a
+separate middleware layer. This keeps the ordering invariant local:
+authentication must produce a principal before workspace-level request policy
+can run. If more post-auth request policies accumulate, the API can split this
+into a separate workspace policy middleware.
+
 ## Audit logging
 
 Audit logging records the action performed by an authenticated principal. It
@@ -131,11 +193,12 @@ A unified principal adds a small normalization layer, but it removes repeated
 credential-specific branching from handlers. That makes it easier to add new
 credential sources without changing every API operation.
 
-Keeping authorization with the authentication boundary makes the call site
-explicit: authenticate the request, then authorize the operation. The
-alternative is to put permission methods on the principal, but that makes the
-principal depend on authorization behavior. The API treats the principal as data
-and keeps policy evaluation in the authentication and permission layers.
+Putting permission checks on the principal makes handler code read in the same
+order as the request lifecycle: get the principal, authorize the operation, and
+execute the operation. The tradeoff is that the principal package depends on
+RBAC query evaluation. That dependency is acceptable because the principal
+already carries the permission set, and the method is a thin fail-closed wrapper
+around the permission system.
 
 The model also keeps audit logging separate from authentication. Authentication
 produces the subject that audit logging needs, but the audit system owns how

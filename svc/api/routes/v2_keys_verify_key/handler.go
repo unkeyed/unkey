@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
 
-	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -31,7 +30,6 @@ const DefaultCost = 1
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
 	DB        db.Database
-	Auth      auth.Service
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 }
@@ -48,7 +46,7 @@ func (h *Handler) Path() string {
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Authentication
-	principal, err := h.Auth.Authenticate(ctx, s)
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -57,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// If not, return a proper permissions error immediately without looking up the key.
 	// This prevents returning NOT_FOUND for every request when the principal lacks any verify permission.
 	if !rbac.HasAnyPermission(principal.Permissions, rbac.Api, rbac.VerifyKey) {
-		return h.Auth.Authorize(ctx, principal, rbac.Or(
+		return principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -117,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	err = h.Auth.Authorize(ctx, principal, rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",

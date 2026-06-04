@@ -1,15 +1,39 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "middleware",
-    srcs = ["errors.go"],
+    srcs = [
+        "authentication.go",
+        "errors.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/api/internal/middleware",
     visibility = ["//svc/api:__subpackages__"],
     deps = [
+        "//internal/services/caches",
+        "//internal/services/keys/db",
+        "//internal/services/ratelimit",
+        "//pkg/auth",
+        "//pkg/cache",
         "//pkg/codes",
+        "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/zen",
         "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "middleware_test",
+    srcs = ["authentication_test.go"],
+    embed = [":middleware"],
+    deps = [
+        "//internal/services/keys/db",
+        "//internal/services/ratelimit",
+        "//pkg/auth/principal",
+        "//pkg/cache",
+        "//pkg/clock",
+        "//pkg/zen",
+        "@com_github_stretchr_testify//require",
     ],
 )

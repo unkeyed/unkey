@@ -26,8 +26,9 @@ noise.
 
 The API service composes domain services into handlers during startup.
 
-- Authentication service for normalizing request credentials into principals and
-  checking permissions.
+- Authentication service for normalizing request credentials into principals.
+  Protected handlers read the principal from the session and use it for
+  permission checks.
 - Key service for root key verification, key authorization, and key mutations.
 - [Rate limiting](/architecture/ratelimiting/overview) for standalone
   limits, key verification limits, and workspace API throttling.

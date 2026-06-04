@@ -10,7 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/services/portal",
-        "//pkg/auth",
+        "//pkg/auth/principal",
         "//pkg/zen",
     ],
 )
@@ -21,7 +21,7 @@ go_test(
     embed = [":portal_session"],
     deps = [
         "//internal/services/portal",
-        "//pkg/auth",
+        "//pkg/auth/principal",
         "//pkg/rbac",
         "//pkg/zen",
         "@com_github_stretchr_testify//require",

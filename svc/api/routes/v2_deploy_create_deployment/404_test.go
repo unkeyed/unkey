@@ -22,8 +22,7 @@ func TestProjectNotFound(t *testing.T) {
 	})
 
 	route := &handler.Handler{
-		DB:   h.DB,
-		Keys: h.Keys,
+		DB: h.DB,
 		CtrlClient: &testutil.MockDeploymentClient{
 			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
 				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
@@ -72,8 +71,7 @@ func TestCrossWorkspaceProjectIsolation(t *testing.T) {
 
 	var capturedProjectID string
 	route := &handler.Handler{
-		DB:   h.DB,
-		Keys: h.Keys,
+		DB: h.DB,
 		CtrlClient: &testutil.MockDeploymentClient{
 			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
 				capturedProjectID = req.ProjectId
@@ -113,8 +111,7 @@ func TestEnvironmentNotFound(t *testing.T) {
 	})
 
 	route := &handler.Handler{
-		DB:   h.DB,
-		Keys: h.Keys,
+		DB: h.DB,
 		CtrlClient: &testutil.MockDeploymentClient{
 			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
 				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))

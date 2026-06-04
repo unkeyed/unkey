@@ -2,80 +2,135 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
 type stubResolver struct {
-	principal *Principal
+	principal *principal.Principal
 	err       error
+	calls     int
 }
 
-func (r stubResolver) Resolve(_ context.Context, _ *zen.Session) (*Principal, error) {
+func (r *stubResolver) Resolve(_ context.Context, _ *zen.Session) (*principal.Principal, error) {
+	r.calls++
 	return r.principal, r.err
 }
 
+// TestServiceAuthenticate_UsesFirstResolvedPrincipal verifies resolver ordering
+// is deterministic and stops after the first authenticated principal. This
+// matters because multiple credential sources may be configured, but only one
+// source may define the request's workspace, subject, and permissions.
 func TestServiceAuthenticate_UsesFirstResolvedPrincipal(t *testing.T) {
 	t.Parallel()
 
-	// The service must stop at the first resolver that authenticates the request.
-	want := &Principal{
-		Version: PrincipalVersion,
-		Subject: Subject{
-			ID:   "user_123",
-			Name: "Dashboard User",
-			Type: SubjectTypeUser,
-		},
-		Type:        PrincipalTypeJWT,
-		Source:      Source{Key: nil, JWT: nil, PortalSession: nil},
-		WorkspaceID: "ws_123",
-		Permissions: []string{"api.*.create_api"},
-	}
-	service := New(stubResolver{}, stubResolver{principal: want})
+	first := &stubResolver{}
+	second := &stubResolver{principal: testPrincipal("ws_123")}
+	third := &stubResolver{principal: testPrincipal("ws_other")}
+	service := New(first, second, third)
 
-	principal, err := service.Authenticate(context.Background(), &zen.Session{})
+	got, err := service.Authenticate(context.Background(), &zen.Session{})
 
 	require.NoError(t, err)
-	require.Equal(t, want, principal)
+	require.Same(t, second.principal, got)
+	require.Equal(t, 1, first.calls)
+	require.Equal(t, 1, second.calls)
+	require.Zero(t, third.calls)
 }
 
-func TestServiceAuthorize_ChecksPrincipalPermissions(t *testing.T) {
+// TestServiceAuthenticate_ReusesSessionPrincipal verifies authentication is
+// idempotent within a request once a principal is already attached. Reuse keeps
+// middleware layers from reinterpreting credentials after the session already
+// has the principal that handlers will authorize.
+func TestServiceAuthenticate_ReusesSessionPrincipal(t *testing.T) {
 	t.Parallel()
 
-	// Authorize must accept a principal whose permissions satisfy the query.
-	service := New()
-	principal := &Principal{
-		Version:     "",
-		Subject:     Subject{ID: "", Name: "", Type: ""},
-		Type:        "",
-		Source:      Source{Key: nil, JWT: nil, PortalSession: nil},
-		WorkspaceID: "",
-		Permissions: []string{"api.*.create_api"},
-	}
+	existing := testPrincipal("ws_123")
+	resolver := &stubResolver{principal: testPrincipal("ws_other")}
+	service := New(resolver)
+	sess := &zen.Session{}
+	sess.SetPrincipal(existing)
 
-	err := service.Authorize(context.Background(), principal, rbac.T(rbac.Tuple{
-		ResourceType: rbac.Api,
-		ResourceID:   "*",
-		Action:       rbac.CreateAPI,
-	}))
+	got, err := service.Authenticate(context.Background(), sess)
 
 	require.NoError(t, err)
+	require.Same(t, existing, got)
+	require.Zero(t, resolver.calls)
 }
 
-func TestServiceAuthorize_RejectsMissingPrincipal(t *testing.T) {
+// TestServiceAuthenticate_StoresResolvedPrincipalOnSession verifies successful
+// authentication publishes the principal for later middleware and handlers.
+// The service, not each handler, owns this write so protected route behavior is
+// consistent across credential sources.
+func TestServiceAuthenticate_StoresResolvedPrincipalOnSession(t *testing.T) {
 	t.Parallel()
 
-	// Authorize must fail closed when called before authentication.
-	service := New()
+	want := testPrincipal("ws_123")
+	service := New(&stubResolver{principal: want})
+	sess := &zen.Session{}
 
-	err := service.Authorize(context.Background(), nil, rbac.T(rbac.Tuple{
-		ResourceType: rbac.Api,
-		ResourceID:   "*",
-		Action:       rbac.CreateAPI,
-	}))
+	got, err := service.Authenticate(context.Background(), sess)
+
+	require.NoError(t, err)
+	require.Same(t, want, got)
+	require.Same(t, want, sess.Principal())
+}
+
+// TestServiceAuthenticate_StopsOnResolverError verifies verification errors fail
+// closed and prevent later resolvers from claiming the request. A resolver error
+// means the request contained that resolver's credential shape and verification
+// rejected it, so trying a later source would create an auth bypass path.
+func TestServiceAuthenticate_StopsOnResolverError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("invalid credential")
+	first := &stubResolver{err: wantErr}
+	second := &stubResolver{principal: testPrincipal("ws_123")}
+	service := New(first, second)
+
+	got, err := service.Authenticate(context.Background(), &zen.Session{})
+
+	require.ErrorIs(t, err, wantErr)
+	require.Nil(t, got)
+	require.Equal(t, 1, first.calls)
+	require.Zero(t, second.calls)
+}
+
+// TestServiceAuthenticate_ReturnsBearerErrorWhenNoResolverMatches verifies
+// unmatched requests still require a bearer credential. This pins the anonymous
+// request behavior: no resolver match is an authentication failure, not an empty
+// principal with no permissions.
+func TestServiceAuthenticate_ReturnsBearerErrorWhenNoResolverMatches(t *testing.T) {
+	t.Parallel()
+
+	service := New(&stubResolver{})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+	got, err := service.Authenticate(context.Background(), sess)
 
 	require.Error(t, err)
+	require.Nil(t, got)
+}
+
+func testPrincipal(workspaceID string) *principal.Principal {
+	return &principal.Principal{
+		Version: principal.Version,
+		Subject: principal.Subject{
+			ID:   "user_123",
+			Name: "Dashboard User",
+			Type: principal.SubjectTypeUser,
+		},
+		Type:        principal.TypeJWT,
+		Source:      principal.Source{Key: nil, JWT: nil, PortalSession: nil},
+		WorkspaceID: workspaceID,
+		Permissions: []string{"api.*.create_api"},
+	}
 }

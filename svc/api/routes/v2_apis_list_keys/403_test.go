@@ -22,7 +22,6 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:       h.DB,
-		Keys:     h.Keys,
 		Vault:    h.Vault,
 		ApiCache: h.Caches.LiveApiByID,
 	}

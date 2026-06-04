@@ -30,9 +30,14 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		return nil, emptyLog, fault.Wrap(err, fault.Internal("rawKey is empty"))
 	}
 
+	principal, err := sess.GetPrincipal()
+	if err != nil {
+		return nil, emptyLog, err
+	}
+
 	migration, err := keysdb.Query.FindKeyMigrationByID(ctx, s.db.RO(), keysdb.FindKeyMigrationByIDParams{
 		ID:          migrationID,
-		WorkspaceID: sess.AuthorizedWorkspaceID(),
+		WorkspaceID: principal.WorkspaceID,
 	})
 	if err != nil {
 		if mysql.IsNotFound(err) {

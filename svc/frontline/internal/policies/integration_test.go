@@ -109,7 +109,6 @@ func newTestHarness(t *testing.T) *testHarness {
 		Region:           "test",
 		UsageLimiter:     usageLimiter,
 		KeyCache:         keyCache,
-		QuotaCache:       nil,
 	})
 	require.NoError(t, err)
 

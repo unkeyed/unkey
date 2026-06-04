@@ -14,7 +14,6 @@ go_library(
         "status.go",
         "validation.go",
         "verifier.go",
-        "workspace_ratelimit.go",
     ],
     importpath = "github.com/unkeyed/unkey/internal/services/keys",
     visibility = ["//:__subpackages__"],
@@ -25,7 +24,7 @@ go_library(
         "//internal/services/ratelimit",
         "//internal/services/usagelimiter",
         "//pkg/assert",
-        "//pkg/auth",
+        "//pkg/auth/principal",
         "//pkg/base58",
         "//pkg/batch",
         "//pkg/cache",
@@ -50,12 +49,16 @@ go_test(
     srcs = [
         "create_test.go",
         "get_test.go",
+        "resolvers_test.go",
     ],
     embed = [":keys"],
     deps = [
+        "//internal/services/keys/db",
+        "//pkg/auth/principal",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/hash",
+        "//pkg/zen",
         "@com_github_stretchr_testify//require",
     ],
 )

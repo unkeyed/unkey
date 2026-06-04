@@ -70,7 +70,7 @@ func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo) Middlewar
 				}
 
 				apiRequestBuffer.Buffer(schema.ApiRequest{
-					WorkspaceID:     s.WorkspaceID,
+					WorkspaceID:     s.AuthorizedWorkspaceID(),
 					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),
 					Host:            s.r.Host,

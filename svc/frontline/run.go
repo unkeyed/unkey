@@ -488,7 +488,6 @@ func buildEngine(
 		Region:           region,
 		UsageLimiter:     usageLimiter,
 		KeyCache:         keyCache,
-		QuotaCache:       nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)

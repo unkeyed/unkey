@@ -9,7 +9,6 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -26,7 +25,6 @@ type (
 
 type Handler struct {
 	DB        db.Database
-	Auth      auth.Service
 	Auditlogs auditlogs.AuditLogService
 }
 
@@ -39,7 +37,7 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	principal, err := h.Auth.Authenticate(ctx, s)
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -49,7 +47,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = h.Auth.Authorize(ctx, principal, rbac.T(rbac.Tuple{
+	err = principal.Authorize(rbac.T(rbac.Tuple{
 		ResourceType: rbac.Api,
 		ResourceID:   "*",
 		Action:       rbac.CreateAPI,

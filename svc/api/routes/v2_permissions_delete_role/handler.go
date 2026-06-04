@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -22,7 +21,6 @@ type Response = openapi.V2PermissionsDeleteRoleResponseBody
 // Handler implements zen.Route interface for the v2 permissions delete role endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 }
 
@@ -41,8 +39,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.deleteRole")
 
 	// 1. Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -52,19 +49,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
 			Action:       rbac.DeleteRole,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}
 
 	role, err := db.Query.FindRoleByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindRoleByIdOrNameWithPermsParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		Search:      req.Role,
 	})
 	if err != nil {
@@ -107,11 +104,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.RoleDeleteEvent,
-				ActorType:     auditlog.RootKeyActor,
-				ActorID:       auth.Key.ID,
-				ActorName:     "root key",
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
 				Display:       "Deleted " + role.ID,
 				RemoteIP:      s.Location(),

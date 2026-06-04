@@ -3,7 +3,7 @@ package keys
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -19,7 +19,7 @@ func NewRootKeyResolver(keys KeyService) *RootKeyResolver {
 
 // Resolve authenticates a root key and intentionally ignores verification emit logging.
 // The API action itself is still audited by handlers using the returned principal.
-func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*auth.Principal, error) {
+func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
 	key, _, err := r.keys.GetRootKey(ctx, sess)
 	if err != nil {
 		return nil, err
@@ -35,16 +35,16 @@ func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*auth
 		permissions = key.Permissions
 	}
 
-	return &auth.Principal{
-		Version: auth.PrincipalVersion,
-		Subject: auth.Subject{
+	return &principal.Principal{
+		Version: principal.Version,
+		Subject: principal.Subject{
 			ID:   key.Key.ID,
 			Name: name,
-			Type: auth.SubjectTypeRootKey,
+			Type: principal.SubjectTypeRootKey,
 		},
-		Type: auth.PrincipalTypeAPIKey,
-		Source: auth.Source{
-			Key: &auth.KeySource{
+		Type: principal.TypeAPIKey,
+		Source: principal.Source{
+			Key: &principal.KeySource{
 				KeyID:       key.Key.ID,
 				KeySpaceID:  key.Key.KeyAuthID,
 				Permissions: permissions,

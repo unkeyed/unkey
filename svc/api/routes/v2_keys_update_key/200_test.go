@@ -30,7 +30,6 @@ func TestUpdateKeySuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -133,7 +132,6 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -209,7 +207,6 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -289,7 +286,6 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -321,6 +317,15 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	}
 
 	externalID := "shared_identity_deadlock_test"
+
+	// Warm up the validator's schema cache with a single request so the
+	// concurrent burst exercises the deadlock regression rather than the
+	// validator's first-time schema rendering path.
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId:      keyIDs[0],
+		ExternalId: nullable.NewNullableWithValue(externalID),
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
 
 	g := errgroup.Group{}
 	for _, keyID := range keyIDs {
@@ -375,7 +380,6 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,

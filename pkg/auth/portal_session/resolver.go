@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/portal"
-	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -24,7 +24,7 @@ func NewResolver(portal portal.Service) *Resolver {
 }
 
 // Resolve claims cookie-only portal requests and yields to explicit bearer auth.
-func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*auth.Principal, error) {
+func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
 	if sess == nil || sess.Request() == nil {
 		return nil, nil
 	}
@@ -45,18 +45,18 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*auth.Princi
 		return nil, err
 	}
 
-	return &auth.Principal{
-		Version: auth.PrincipalVersion,
-		Subject: auth.Subject{
+	return &principal.Principal{
+		Version: principal.Version,
+		Subject: principal.Subject{
 			ID:   session.ExternalID,
 			Name: session.ExternalID,
-			Type: auth.SubjectTypeUser,
+			Type: principal.SubjectTypeUser,
 		},
-		Type: auth.PrincipalTypePortalSession,
-		Source: auth.Source{
+		Type: principal.TypePortalSession,
+		Source: principal.Source{
 			Key: nil,
 			JWT: nil,
-			PortalSession: &auth.PortalSessionSource{
+			PortalSession: &principal.PortalSessionSource{
 				SessionID:      cookie.Value,
 				PortalConfigID: session.PortalConfigID,
 				ExternalID:     session.ExternalID,

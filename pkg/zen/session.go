@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -34,11 +35,6 @@ type Session struct {
 	w http.ResponseWriter // Wrapped with statusRecorder to capture status code
 	r *http.Request
 
-	// The workspace making the request.
-	// We extract this from the root key or regular key
-	// and must set it before the metrics middleware finishes.
-	WorkspaceID string
-
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
@@ -50,6 +46,8 @@ type Session struct {
 	// This is set by the error handling middleware before it converts the error
 	// to an HTTP response, allowing the metrics middleware to log the full error.
 	internalError string
+
+	principal *principal.Principal
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
@@ -114,16 +112,48 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		// Replace body with a fresh reader for subsequent middleware
 		s.r.Body = io.NopCloser(bytes.NewReader(s.requestBody))
 	}
-	s.WorkspaceID = ""
+	s.principal = nil
 	return nil
 }
 
-// AuthorizedWorkspaceID returns the workspace ID associated with the authenticated
-// request. This is populated by authentication middleware.
+// AuthorizedWorkspaceID returns the workspace ID associated with the request.
 //
 // Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
-	return s.WorkspaceID
+	if s.principal != nil {
+		return s.principal.WorkspaceID
+	}
+	return ""
+}
+
+// SetPrincipal stores the authenticated principal for request-wide metadata.
+func (s *Session) SetPrincipal(principal *principal.Principal) {
+	s.principal = principal
+}
+
+// Principal returns the authenticated principal associated with this request.
+//
+// Returns nil when the request has not been authenticated or authentication did
+// not resolve a principal.
+func (s *Session) Principal() *principal.Principal {
+	return s.principal
+}
+
+// GetPrincipal returns the authenticated principal associated with this request.
+//
+// Returns a request-ready fault when authentication middleware did not attach a
+// principal. Handlers use this to fail closed when a protected route is
+// registered without the required authentication middleware.
+func (s *Session) GetPrincipal() (*principal.Principal, error) {
+	if s.principal == nil {
+		return nil, fault.New("missing principal",
+			fault.Code(codes.Auth.Authentication.Missing.URN()),
+			fault.Internal("principal is missing from session"),
+			fault.Public("You must authenticate before accessing this resource."),
+		)
+	}
+
+	return s.principal, nil
 }
 
 // DisableClickHouseLogging prevents this request from being logged to ClickHouse.
@@ -563,11 +593,10 @@ func (s *Session) reset() {
 	s.w = nil
 	s.r = nil
 
-	s.WorkspaceID = ""
-
 	s.requestBody = nil
 	s.responseStatus = 0
 	s.responseBody = nil
 	s.logRequestToClickHouse = true // Reset ClickHouse logging control to default (enabled)
 	s.internalError = ""
+	s.principal = nil
 }

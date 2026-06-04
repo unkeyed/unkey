@@ -6,7 +6,6 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -23,7 +22,6 @@ type (
 
 type Handler struct {
 	DB         db.Database
-	Keys       keys.KeyService
 	CtrlClient ctrl.DeployServiceClient
 }
 
@@ -36,8 +34,7 @@ func (h *Handler) Method() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -49,7 +46,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Resolve project + app in a single query by workspace + slugs
 	row, err := db.Query.FindAppByWorkspaceAndSlugs(ctx, h.DB.RO(), db.FindAppByWorkspaceAndSlugsParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		ProjectSlug: req.Project,
 		AppSlug:     req.App,
 	})
@@ -64,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.Wrap(err, fault.Internal("failed to find project and app"))
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
 			ResourceID:   "*",
@@ -75,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   row.Project.ID,
 			Action:       rbac.CreateDeployment,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}

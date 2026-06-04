@@ -1,4 +1,4 @@
-package keys
+package middleware
 
 import (
 	"context"
@@ -9,7 +9,10 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -17,31 +20,61 @@ import (
 
 const workspaceRatelimitNamespace = "workspace.ratelimit"
 
-// checkWorkspaceRateLimit enforces per-workspace API rate limiting based on
-// the quota table.
+// AuthenticationConfig configures authentication and workspace-level request policy.
+type AuthenticationConfig struct {
+	// Auth resolves request credentials into a session principal.
+	Auth auth.Service
+
+	// Database loads workspace quota rows when they are not cached.
+	Database db.Database
+
+	// QuotaCache caches workspace quota rows by workspace ID.
+	QuotaCache cache.Cache[string, keysdb.Quotas]
+
+	// Ratelimit enforces workspace-level API request quotas.
+	Ratelimit ratelimit.Service
+}
+
+// WithAuthentication authenticates the request and applies workspace-level rate limiting.
 //
-// NULL limit/duration = unlimited (no rate limiting configured).
-// 0 limit = zero requests allowed.
-// On any internal error (cache miss, rate limiter failure) the check fails
-// open to avoid blocking legitimate traffic.
-func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session) error {
-	// When quotaCache is nil, workspace rate limiting is disabled.
-	if s.quotaCache == nil {
+// Handlers behind this middleware can call [zen.Session.GetPrincipal] and then
+// perform route-specific authorization. Workspace rate limiting lives here so
+// every credential source is checked consistently after authentication resolves
+// the workspace and before business logic runs.
+func WithAuthentication(config AuthenticationConfig) zen.Middleware {
+	return func(next zen.HandleFunc) zen.HandleFunc {
+		return func(ctx context.Context, sess *zen.Session) error {
+			principal, err := config.Auth.Authenticate(ctx, sess)
+			if err != nil {
+				return err
+			}
+
+			if err := checkWorkspaceRateLimit(ctx, sess, config, principal.WorkspaceID); err != nil {
+				return err
+			}
+
+			return next(ctx, sess)
+		}
+	}
+}
+
+func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config AuthenticationConfig, workspaceID string) error {
+	if config.QuotaCache == nil || config.Ratelimit == nil {
 		return nil
 	}
 
-	quota, _, err := s.quotaCache.SWR(ctx, sess.AuthorizedWorkspaceID(), func(ctx context.Context) (keysdb.Quotas, error) {
-		return keysdb.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), sess.AuthorizedWorkspaceID())
+	quota, _, err := config.QuotaCache.SWR(ctx, workspaceID, func(ctx context.Context) (keysdb.Quotas, error) {
+		return keysdb.Query.FindQuotaByWorkspaceID(ctx, config.Database.RO(), workspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		logger.Error("workspace rate limit: failed to load quota",
-			"workspace_id", sess.AuthorizedWorkspaceID(),
+			"workspace_id", workspaceID,
 			"error", err.Error(),
 		)
-		return nil // fail open
+		// Workspace API rate limiting fails open when quota lookup is unavailable.
+		return nil
 	}
 
-	// NULL = unlimited, no rate limiting configured
 	if !quota.RatelimitApiLimit.Valid || !quota.RatelimitApiDuration.Valid {
 		return nil
 	}
@@ -49,7 +82,6 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	limit := quota.RatelimitApiLimit.Int32
 	duration := time.Duration(quota.RatelimitApiDuration.Int32) * time.Millisecond
 
-	// 0 = explicitly blocked, no requests allowed
 	if limit == 0 || duration == 0 {
 		return fault.New("workspace rate limit exceeded",
 			fault.Code(codes.User.TooManyRequests.WorkspaceRateLimited.URN()),
@@ -60,10 +92,10 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 		)
 	}
 
-	resp, err := s.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
-		WorkspaceID: sess.AuthorizedWorkspaceID(),
+	resp, err := config.Ratelimit.Ratelimit(ctx, ratelimit.RatelimitRequest{
+		WorkspaceID: workspaceID,
 		Namespace:   workspaceRatelimitNamespace,
-		Identifier:  sess.AuthorizedWorkspaceID(),
+		Identifier:  workspaceID,
 		Limit:       int64(limit),
 		Duration:    duration,
 		Cost:        1,
@@ -71,13 +103,13 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	})
 	if err != nil {
 		logger.Error("workspace rate limit: ratelimiter error",
-			"workspace_id", sess.AuthorizedWorkspaceID(),
+			"workspace_id", workspaceID,
 			"error", err.Error(),
 		)
-		return nil // fail open
+		// Workspace API rate limiting fails open when the limiter backend is unavailable.
+		return nil
 	}
 
-	// Set standard rate limit headers (IETF draft-ietf-httpapi-ratelimit-headers)
 	resetSeconds := max(int64(time.Until(resp.Reset).Seconds()), 0)
 
 	sess.AddHeader("RateLimit-Limit", strconv.FormatInt(resp.Limit, 10))

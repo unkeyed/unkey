@@ -4,5 +4,5 @@
 // repository's local [github.com/unkeyed/unkey/pkg/jwt] verifier instead of
 // adding another JWT dependency. Tokens must carry standard temporal claims and
 // the workspace, subject, and permission claims needed to construct an
-// [github.com/unkeyed/unkey/pkg/auth.Principal].
+// [github.com/unkeyed/unkey/pkg/auth/principal.Principal].
 package jwt

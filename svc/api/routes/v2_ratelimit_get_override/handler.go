@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -25,7 +24,6 @@ type (
 // Handler implements zen.Route interface for the v2 ratelimit get override endpoint
 type Handler struct {
 	DB             db.Database
-	Keys           keys.KeyService
 	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
 
@@ -41,8 +39,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -52,7 +49,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ns, found, err := h.getNamespace(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
+	ns, found, err := h.getNamespace(ctx, principal.WorkspaceID, req.Namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -73,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   ns.ID,
@@ -84,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.ReadOverride,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}

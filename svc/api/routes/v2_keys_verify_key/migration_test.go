@@ -25,14 +25,12 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 
 	migrateRoute := &migrateHandler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		ApiCache:  h.Caches.LiveApiByID,
 	}
 
 	verifyRoute := &handler.Handler{
 		DB:        h.DB,
-		Auth:      h.Auth,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 	}

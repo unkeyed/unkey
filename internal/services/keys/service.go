@@ -22,8 +22,7 @@ type Config struct {
 	// KeyVerifications buffers key verification events for ClickHouse.
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 
-	KeyCache   cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
-	QuotaCache cache.Cache[string, db.Quotas]        // Cache for workspace quota lookups
+	KeyCache cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
 }
 
 type service struct {
@@ -36,9 +35,6 @@ type service struct {
 
 	// hash -> cached key data (includes pre-parsed IP whitelist)
 	keyCache cache.Cache[string, db.CachedKeyData]
-
-	// workspace_id -> quota (for workspace rate limiting)
-	quotaCache cache.Cache[string, db.Quotas]
 }
 
 // New creates a new keys service instance with the provided configuration.
@@ -56,7 +52,6 @@ func New(config Config) (*service, error) {
 		keyVerifications: kv,
 		region:           config.Region,
 		keyCache:         config.KeyCache,
-		quotaCache:       config.QuotaCache,
 	}, nil
 }
 

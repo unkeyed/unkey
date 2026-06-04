@@ -1,20 +1,26 @@
-package auth
+package principal
 
-// PrincipalVersion is the current schema version for API auth principals.
-const PrincipalVersion = "v1"
+import (
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/rbac"
+)
 
-// PrincipalType identifies the authentication method that produced a principal.
-type PrincipalType string
+// Version is the current schema version for API auth principals.
+const Version = "v1"
+
+// Type identifies the authentication method that produced a principal.
+type Type string
 
 const (
-	// PrincipalTypeAPIKey is emitted when an API key authenticated the request.
-	PrincipalTypeAPIKey PrincipalType = "API_KEY"
+	// TypeAPIKey is emitted when an API key authenticated the request.
+	TypeAPIKey Type = "API_KEY"
 
-	// PrincipalTypeJWT is emitted when a JWT authenticated the request.
-	PrincipalTypeJWT PrincipalType = "JWT"
+	// TypeJWT is emitted when a JWT authenticated the request.
+	TypeJWT Type = "JWT"
 
-	// PrincipalTypePortalSession is emitted when a portal session authenticated the request.
-	PrincipalTypePortalSession PrincipalType = "PORTAL_SESSION"
+	// TypePortalSession is emitted when a portal session authenticated the request.
+	TypePortalSession Type = "PORTAL_SESSION"
 )
 
 // SubjectType classifies the entity represented by a principal subject.
@@ -40,7 +46,7 @@ type Principal struct {
 	Subject Subject
 
 	// Type identifies which authentication method produced this principal.
-	Type PrincipalType
+	Type Type
 
 	// Source carries the method-specific authentication details. Resolvers
 	// populate exactly one field for an authenticated principal.
@@ -51,6 +57,22 @@ type Principal struct {
 
 	// Permissions is the flat RBAC permission set granted to this principal.
 	Permissions []string
+}
+
+// Authorize evaluates this principal's permissions against the query.
+//
+// A nil principal is treated as an authentication failure because callers must
+// authenticate before checking permissions.
+func (p *Principal) Authorize(query rbac.PermissionQuery) error {
+	if p == nil {
+		return fault.New("missing principal",
+			fault.Code(codes.Auth.Authentication.Missing.URN()),
+			fault.Internal("principal is nil"),
+			fault.Public("You must authenticate before authorizing this request."),
+		)
+	}
+
+	return rbac.Check(query, p.Permissions)
 }
 
 // Subject identifies the authenticated entity and how it appears in audit logs.
@@ -91,8 +113,8 @@ type KeySource struct {
 
 // JWTSource carries decoded JWT details used by the API auth resolver.
 //
-// This shape is a WIP placeholder for the future JWT auth source. The API does
-// not register JWT authentication yet.
+// This shape is a WIP placeholder for JWT authentication. The API does not
+// register JWT authentication yet.
 type JWTSource struct {
 	// Header is the decoded token header, when captured by the resolver.
 	Header map[string]any
