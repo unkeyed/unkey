@@ -1,5 +1,5 @@
 "use client";
-import { DisabledWrapper } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/disabled-wrapper";
+import { DisabledWrapper } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/disabled-wrapper";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useFlag } from "@/lib/flags/provider";
 import { useVirtualizer } from "@tanstack/react-virtual";

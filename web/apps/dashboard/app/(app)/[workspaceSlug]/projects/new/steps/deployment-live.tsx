@@ -5,14 +5,14 @@ import { trpc } from "@/lib/trpc/client";
 import { Check } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
-import { DeploymentInfo } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
-import { DeploymentProgress } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
-import { deriveStatusFromSteps } from "../../[projectId]/(overview)/deployments/[deploymentId]/deployment-utils";
+import { ProjectDataProvider } from "../../[projectId]/apps/[appId]/(overview)/data-provider";
+import { DeploymentInfo } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
+import { DeploymentProgress } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
+import { deriveStatusFromSteps } from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/deployment-utils";
 import {
   DeploymentLayoutProvider,
   useDeployment,
-} from "../../[projectId]/(overview)/deployments/[deploymentId]/layout-provider";
+} from "../../[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/layout-provider";
 import { OnboardingStepContainer } from "../onboarding-step-container";
 import { OnboardingStepHeader } from "../onboarding-step-header";
 
