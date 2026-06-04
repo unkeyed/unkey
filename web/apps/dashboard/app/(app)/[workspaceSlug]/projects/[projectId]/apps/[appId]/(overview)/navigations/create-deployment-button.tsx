@@ -1,15 +1,18 @@
 "use client";
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
+import { eq, useLiveQuery } from "@tanstack/react-db";
+import { ChevronDown, CodeBranch, Layers2, Plus } from "@unkey/icons";
 import {
   Button,
   FormDescription,
   FormInput,
   FormLabel,
+  InfoTooltip,
   Select,
   SelectContent,
   SelectItem,
@@ -28,6 +31,10 @@ import { RepoDisplay } from "../../../../../_components/list/repo-display";
 import { useAppId, useProjectData } from "../data-provider";
 import { parseForkRef } from "./parse-fork-ref";
 
+// Soft cap on the past-image list; older images are still deployable by
+// pasting their reference into the input.
+const MAX_IMAGE_ROWS = 10;
+
 const DynamicDialogContainer = dynamic(
   () =>
     import("@unkey/ui").then((mod) => ({
@@ -36,7 +43,17 @@ const DynamicDialogContainer = dynamic(
   { ssr: false },
 );
 
-function createFormSchema(repoName?: string) {
+function createFormSchema(repoName?: string, imageMode = false) {
+  if (imageMode) {
+    return z.object({
+      environment: z.string().min(1, "Environment is required"),
+      name: z
+        .string()
+        .trim()
+        .min(1, "An image reference is required")
+        .regex(/^\S+$/, "Image reference cannot contain spaces"),
+    });
+  }
   return z.object({
     environment: z.string().min(1, "Environment is required"),
     name: z
@@ -81,12 +98,21 @@ export const CreateDeploymentButton = ({
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string }>();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  const { projectId, project, environments } = useProjectData();
+  const { projectId, environments, deployments } = useProjectData();
   const appId = useAppId();
 
-  const repositoryFullName = project?.repositoryFullName ?? null;
+  // Repo connections are per-app, not per-project; the project-level
+  // repositoryFullName is just some app's connection in this project.
+  const appsQuery = useLiveQuery(
+    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    [projectId],
+  );
+  const app = (appsQuery.data ?? []).find((a) => a.id === appId);
+
+  const repositoryFullName = app?.repositoryFullName ?? null;
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
-  const defaultBranch = project?.branch ?? "main";
+  const defaultBranch = app?.defaultBranch ?? "main";
+  const isCliApp = !appsQuery.isLoading && app != null && !repositoryFullName;
 
   const installations = trpc.github.getInstallations.useQuery(
     { projectId, appId },
@@ -116,7 +142,7 @@ export const CreateDeploymentButton = ({
   const defaultEnvironmentSlug =
     environments.find((e) => e.slug === "production")?.slug ?? environments[0]?.slug ?? "";
 
-  const formSchema = createFormSchema(repo);
+  const formSchema = createFormSchema(repo, isCliApp);
 
   const {
     register,
@@ -165,9 +191,20 @@ export const CreateDeploymentButton = ({
       projectId,
       appId,
       environmentSlug: values.environment,
-      gitRef: values.name,
+      ...(isCliApp
+        ? { source: "image" as const, image: values.name }
+        : { source: "git" as const, gitRef: values.name }),
     });
   }
+
+  // Past successfully deployed prebuilt images, deduped by image ref
+  // (deployments are ordered newest-first, so the latest deployment wins).
+  const imageRows = deployments
+    .filter(
+      (d, i, all) =>
+        d.image && d.status === "ready" && all.findIndex((o) => o.image === d.image) === i,
+    )
+    .slice(0, MAX_IMAGE_ROWS);
 
   return (
     <>
@@ -188,7 +225,11 @@ export const CreateDeploymentButton = ({
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         title="Create Deployment"
-        subTitle="Deploy from a specific commit or branch reference"
+        subTitle={
+          isCliApp
+            ? "Deploy a prebuilt image or redeploy a previous one"
+            : "Deploy from a specific commit or branch reference"
+        }
         preventAutoFocus
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
@@ -269,19 +310,23 @@ export const CreateDeploymentButton = ({
             </fieldset>
             <div className="flex flex-col gap-2">
               <FormInput
-                label="Commit or Branch Reference"
+                label={isCliApp ? "Image Reference" : "Commit or Branch Reference"}
                 className="min-h-9"
                 description={
-                  repositoryFullName
-                    ? "Paste a commit, branch, PR URL, or fork reference (e.g. fork-owner:branch) to deploy."
-                    : "Paste a valid commit, branch reference, or PR URL to create a new deployment."
+                  isCliApp
+                    ? "Paste a Docker image reference to deploy, or pick a previously deployed image below."
+                    : repositoryFullName
+                      ? "Paste a commit, branch, PR URL, or fork reference (e.g. fork-owner:branch) to deploy."
+                      : "Paste a valid commit, branch reference, or PR URL to create a new deployment."
                 }
                 error={errors.name?.message}
                 {...register("name")}
                 placeholder={
-                  repositoryFullName
-                    ? `https://github.com/${repositoryFullName}/tree/${defaultBranch}`
-                    : "Enter a commit SHA, branch, or PR URL"
+                  isCliApp
+                    ? "registry.example.com/my-app:v1.2.3"
+                    : repositoryFullName
+                      ? `https://github.com/${repositoryFullName}/tree/${defaultBranch}`
+                      : "Enter a commit SHA, branch, or PR URL"
                 }
               />
               {forkRepoName && (
@@ -296,6 +341,34 @@ export const CreateDeploymentButton = ({
             </div>
           </form>
 
+          {isCliApp && imageRows.length > 0 && (
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4 overflow-hidden">
+              {imageRows.map((deployment) => (
+                <button
+                  key={deployment.id}
+                  type="button"
+                  onClick={() => setValue("name", deployment.image ?? "", { shouldValidate: true })}
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors cursor-pointer text-[13px] text-grayA-11"
+                >
+                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
+                    <InfoTooltip
+                      content={deployment.image}
+                      asChild
+                      position={{ align: "start", side: "top" }}
+                    >
+                      <span className="truncate">{deployment.image}</span>
+                    </InfoTooltip>
+                  </span>
+                  <TimestampInfo
+                    value={deployment.createdAt}
+                    displayType="relative"
+                    className="text-gray-11 shrink-0 ml-3"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
           {repositoryFullName && (
             <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4">
               {repoDetails.isLoading &&
@@ -304,7 +377,7 @@ export const CreateDeploymentButton = ({
                     key={`skeleton-${
                       // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders
                       i
-                    }`}
+                      }`}
                     className="flex items-center justify-between px-3 py-2 h-[36.5px]"
                   >
                     <span className="flex items-center gap-1.5">

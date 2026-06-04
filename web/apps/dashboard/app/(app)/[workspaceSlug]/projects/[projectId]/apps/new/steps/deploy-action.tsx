@@ -42,7 +42,9 @@ export const DeployAction = ({
         className="rounded-lg"
         disabled={deploy.isLoading || disabled}
         loading={deploy.isLoading}
-        onClick={() => deploy.mutate({ projectId, appId, environmentSlug: "production" })}
+        onClick={() =>
+          deploy.mutate({ projectId, appId, environmentSlug: "production", source: "default" })
+        }
       >
         Deploy
       </Button>

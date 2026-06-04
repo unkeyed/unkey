@@ -21,6 +21,7 @@ export const deploymentSchema = z.object({
   gitCommitTimestamp: z.number().int().nullable(),
   prNumber: z.number().int().nullable(),
   forkRepositoryFullName: z.string().nullable(),
+  image: z.string().nullable(),
   hasOpenApiSpec: z.boolean(),
   status: z.enum(DEPLOYMENT_STATUSES),
   instances: z.array(

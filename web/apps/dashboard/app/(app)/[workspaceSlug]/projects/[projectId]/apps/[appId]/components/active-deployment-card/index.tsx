@@ -1,6 +1,7 @@
 "use client";
 
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/env-status-badge";
+import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import type { LastExit } from "@/lib/types/deploy";
 import {
@@ -8,7 +9,8 @@ import {
   formatMemoryParts,
   formatStorageParts,
 } from "@/lib/utils/deployment-formatters";
-import { CodeBranch, CodeCommit } from "@unkey/icons";
+import { eq, useLiveQuery } from "@tanstack/react-db";
+import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { Card } from "../../(overview)/components/card";
@@ -50,10 +52,18 @@ export function ActiveDeploymentCard({
   isRolledBack,
   environmentSlug,
 }: ActiveDeploymentCardProps) {
-  const { getDeploymentById, isDeploymentsLoading, project } = useProjectData();
+  const { getDeploymentById, isDeploymentsLoading, projectId } = useProjectData();
   const deployment =
     directDeployment ?? (deploymentId ? getDeploymentById(deploymentId) : undefined);
-  const repoFullName = project?.repositoryFullName;
+  // Repo connections are per-app; the project-level repositoryFullName is
+  // just some app's connection in this project.
+  const appsQuery = useLiveQuery(
+    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    [projectId],
+  );
+  const repoFullName = (appsQuery.data ?? []).find(
+    (a) => a.id === deployment?.appId,
+  )?.repositoryFullName;
   const sourceRepo = deployment?.forkRepositoryFullName || repoFullName;
 
   if (isDeploymentsLoading) {
@@ -142,6 +152,22 @@ export function ActiveDeploymentCard({
 
           <MetadataCell label="Source">
             <div className="flex items-center gap-2 min-w-0">
+              {/* Prebuilt-image deployments have no git metadata; show the
+                  image reference as the source instead. */}
+              {!deployment.gitBranch && !deployment.gitCommitSha && (
+                <InfoTooltip
+                  content={deployment.image ?? "No source info"}
+                  variant="inverted"
+                  position={{ side: "top", align: "start" }}
+                >
+                  <span className="flex items-center gap-1 min-w-0">
+                    <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                    <span className="font-mono text-xs text-accent-12 truncate max-w-48">
+                      {deployment.image ?? "unknown"}
+                    </span>
+                  </span>
+                </InfoTooltip>
+              )}
               {deployment.gitBranch && (
                 <GitHubLink
                   href={

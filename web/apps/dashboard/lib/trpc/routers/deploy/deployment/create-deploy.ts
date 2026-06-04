@@ -17,6 +17,12 @@ import {
   resolveSourceRepo,
 } from "./resolve-deploy-ref";
 
+const baseInput = z.object({
+  projectId: z.string().min(1, "Project ID is required"),
+  appId: z.string().min(1).optional(),
+  environmentSlug: z.string().min(1, "Environment slug is required"),
+});
+
 type RepoConn = { installationId: number; repositoryFullName: string };
 
 type GitCommit = {
@@ -28,12 +34,23 @@ type GitCommit = {
 export const createDeploy = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .input(
-    z.object({
-      projectId: z.string().min(1, "Project ID is required"),
-      appId: z.string().min(1).optional(),
-      environmentSlug: z.string().min(1, "Environment slug is required"),
-      gitRef: z.string().optional(),
-    }),
+    z.discriminatedUnion("source", [
+      baseInput.extend({
+        source: z.literal("git"),
+        gitRef: z.string().min(1, "A git ref is required"),
+      }),
+      baseInput.extend({
+        source: z.literal("image"),
+        image: z
+          .string()
+          .trim()
+          .min(1, "An image reference is required")
+          .regex(/^\S+$/, "Image reference cannot contain whitespace"),
+      }),
+      // Server decides: git-connected apps deploy HEAD of the default
+      // branch, others reuse the live deployment's image.
+      baseInput.extend({ source: z.literal("default") }),
+    ]),
   )
   .mutation(async ({ input, ctx }) => {
     const ctrl = createCtrlClient(DeployService);
@@ -70,7 +87,7 @@ export const createDeploy = workspaceProcedure
       }
 
       let gitCommit: GitCommit | undefined;
-      if (input.gitRef) {
+      if (input.source === "git") {
         const parsed = parseDeployRef(input.gitRef);
 
         const repoConn = await db.query.githubRepoConnections.findFirst({
@@ -93,6 +110,7 @@ export const createDeploy = workspaceProcedure
           appId: environment.appId,
           environmentSlug: input.environmentSlug,
           ...(gitCommit ? { gitCommit } : {}),
+          ...(input.source === "image" ? { dockerImage: input.image } : {}),
         })
         .catch((err) => {
           console.error(err);

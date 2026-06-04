@@ -3,7 +3,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Layers3, Plus } from "@unkey/icons";
+import { Github, Plus, Terminal } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
@@ -24,7 +24,13 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
 
   return (
     <Crumb
-      icon={<Layers3 className="size-3.5 text-accent-11" iconSize="sm-regular" />}
+      icon={
+        current?.repositoryFullName ? (
+          <Github className="size-3.5 text-accent-11" iconSize="sm-regular" />
+        ) : (
+          <Terminal className="size-3.5 text-accent-11" iconSize="sm-regular" />
+        )
+      }
       label={current?.name ?? appId}
       loading={appsQuery.isLoading}
       href={`/${workspace.slug}/projects/${projectId}/apps/${appId}/deployments`}
