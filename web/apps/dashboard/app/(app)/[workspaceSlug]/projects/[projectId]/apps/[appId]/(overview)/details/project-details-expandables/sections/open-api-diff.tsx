@@ -32,8 +32,11 @@ export const OpenApiDiff = () => {
   const appId = useAppId();
 
   const appQuery = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.id, appId)),
-    [appId],
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
   );
   const currentDeploymentId = appQuery.data?.[0]?.currentDeploymentId;
 

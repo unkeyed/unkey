@@ -1,6 +1,7 @@
 "use client";
 import { collection } from "@/lib/collections";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
+import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, FormInput, useStepWizard } from "@unkey/ui";
@@ -66,13 +67,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const slug = e.target.value
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
-    setValue("slug", slug);
+    setValue("slug", slugify(e.target.value));
   };
 
   return (

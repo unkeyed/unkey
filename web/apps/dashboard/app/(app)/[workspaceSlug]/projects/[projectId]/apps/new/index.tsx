@@ -46,17 +46,7 @@ export const AppSetupWizard = () => {
     <StepWizard.Root defaultStepId={initialStep}>
       <StepWizard.Step id="create-app" label="Create app">
         <OnboardingStepContainer>
-          <OnboardingStepHeader
-            title="Deploy your app"
-            showIconRow
-            subtitle={
-              <>
-                Connect a GitHub repo and get a live URL in minutes.
-                <br />
-                Unkey handles builds, infra, scaling, and routing.
-              </>
-            }
-          />
+          {deployYourAppHeader}
           <CreateAppStep projectId={projectId} onAppCreated={setAppId} />
         </OnboardingStepContainer>
       </StepWizard.Step>
@@ -64,17 +54,7 @@ export const AppSetupWizard = () => {
         <StepWizard.Step id="connect-github" label="Connect GitHub">
           {appId ? (
             <OnboardingStepContainer>
-              <OnboardingStepHeader
-                title="Deploy your app"
-                showIconRow
-                subtitle={
-                  <>
-                    Connect a GitHub repo and get a live URL in minutes.
-                    <br />
-                    Unkey handles builds, infra, scaling, and routing.
-                  </>
-                }
-              />
+              {deployYourAppHeader}
               <ConnectGithubStep projectId={projectId} appId={appId} onBeforeNavigate={bypass} />
             </OnboardingStepContainer>
           ) : null}
@@ -134,3 +114,17 @@ export const AppSetupWizard = () => {
     </StepWizard.Root>
   );
 };
+
+const deployYourAppHeader = (
+  <OnboardingStepHeader
+    title="Deploy your app"
+    showIconRow
+    subtitle={
+      <>
+        Connect a GitHub repo and get a live URL in minutes.
+        <br />
+        Unkey handles builds, infra, scaling, and routing.
+      </>
+    }
+  />
+);

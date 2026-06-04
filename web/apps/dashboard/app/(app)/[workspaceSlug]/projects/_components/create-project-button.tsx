@@ -6,6 +6,7 @@ import {
   type CreateProjectRequestSchema,
   createProjectRequestSchema,
 } from "@/lib/collections/deploy/projects";
+import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Plus } from "@unkey/icons";
@@ -49,13 +50,7 @@ export const CreateProjectButton = ({
   });
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const slug = e.target.value
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
-    setValue("slug", slug);
+    setValue("slug", slugify(e.target.value));
   };
 
   async function onSubmit(values: CreateProjectRequestSchema) {
@@ -77,7 +72,7 @@ export const CreateProjectButton = ({
       });
       await tx.isPersisted.promise;
       const { projectId } = tx.metadata as { projectId: string };
-      router.push(`/${workspaceSlug}/projects/${projectId}`);
+      router.push(`/${workspaceSlug}/projects/${projectId}/apps/new`);
       setIsOpen(false);
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

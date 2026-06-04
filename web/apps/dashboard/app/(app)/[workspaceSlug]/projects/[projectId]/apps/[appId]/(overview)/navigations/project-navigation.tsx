@@ -3,8 +3,6 @@ import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-but
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { useLiveQuery } from "@tanstack/react-db";
 import { ArrowDottedRotateAnticlockwise, ChevronExpandY, Cube } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
@@ -33,18 +31,8 @@ type ProjectNavigationProps = {
 
 export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
   const workspace = useWorkspaceNavigation();
-  const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).select(({ project }) => ({
-      id: project.id,
-      name: project.name,
-    })),
-  );
-
-  const { projectId, project, getDeploymentById } = useProjectData();
+  const { projectId, project, isProjectLoading, getDeploymentById } = useProjectData();
   const appId = useAppId();
-  const activeProject = project
-    ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
-    : undefined;
 
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({
@@ -88,7 +76,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     return (
       <div className="flex gap-4 items-center">
         <div className="gap-2.5 items-center flex">
-          {activeProject?.repositoryFullName && (
+          {project?.repositoryFullName && (
             <InfoTooltip
               asChild
               content="Create a deployment from a commit or branch"
@@ -124,7 +112,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     );
   };
 
-  if (projects.isLoading) {
+  if (isProjectLoading) {
     const loadingBreadcrumbs = [
       {
         id: "projects",
@@ -163,7 +151,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     );
   }
 
-  if (!activeProject) {
+  if (!project) {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>

@@ -3,7 +3,7 @@
 import { collection } from "@/lib/collections";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
 
@@ -21,8 +21,11 @@ export function DeleteApp() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const appsQuery = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.id, appId)),
-    [appId],
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
   );
   const appName = appsQuery.data?.[0]?.name ?? "";
 
