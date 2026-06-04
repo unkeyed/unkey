@@ -95,6 +95,10 @@ export function MetricCard({
 }: MetricCardProps) {
   const config = METRIC_CONFIGS[metricType];
   const parts = formatMetricParts(metricType, currentValue, config.unit);
+  const noData = isError || isLoading;
+  const valueText = noData ? "‒" : parts.value;
+  const secondaryText = noData ? "‒" : secondaryValue?.numeric;
+  const gradientColor = isError ? "hsl(var(--error-9))" : config.color;
 
   return (
     <div className="border border-gray-4 bg-grayA-1 w-full rounded-[14px] flex flex-col">
@@ -121,13 +125,13 @@ export function MetricCard({
           )}
         </div>
         <div className="ml-auto flex items-baseline gap-1">
-          <span className="text-gray-12 font-medium text-[13px] tabular-nums">{parts.value}</span>
+          <span className="text-gray-12 font-medium text-[13px] tabular-nums">{valueText}</span>
           <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
           {secondaryValue && (
             <>
               <span className="text-grayA-9 text-[11px]">/</span>
               <span className="text-gray-12 font-medium text-[12px] tabular-nums">
-                {secondaryValue.numeric}
+                {secondaryText}
               </span>
               <span className="text-grayA-10 text-[11px]">{secondaryValue.unit}</span>
             </>
@@ -137,7 +141,7 @@ export function MetricCard({
       <div
         className="flex flex-col rounded-b-[14px]"
         style={{
-          background: `linear-gradient(to top, color-mix(in srgb, ${config.color} 6%, transparent), transparent)`,
+          background: `linear-gradient(to top, color-mix(in srgb, ${gradientColor} 6%, transparent), transparent)`,
         }}
       >
         {config.chartVariant === "area" ? (
