@@ -26,6 +26,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auth"
+	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
@@ -312,10 +313,27 @@ func Run(ctx context.Context, cfg Config) error {
 		SessionCache: caches.PortalSession,
 	})
 
-	authSvc := auth.New(
+	authResolvers := []auth.Resolver{}
+	if len(cfg.JWTSecrets) > 0 {
+		jwtSecrets := make([][]byte, 0, len(cfg.JWTSecrets))
+		for i, secret := range cfg.JWTSecrets {
+			if secret == "" {
+				return fmt.Errorf("jwt_secrets[%d] must not be empty", i)
+			}
+			jwtSecrets = append(jwtSecrets, []byte(secret))
+		}
+
+		jwtResolver, jwtErr := authjwt.NewMultiResolver(jwtSecrets...)
+		if jwtErr != nil {
+			return fmt.Errorf("unable to create JWT auth resolver: %w", jwtErr)
+		}
+		authResolvers = append(authResolvers, jwtResolver)
+	}
+	authResolvers = append(authResolvers,
 		portalsession.NewResolver(portalSvc),
 		keys.NewRootKeyResolver(keySvc),
 	)
+	authSvc := auth.New(authResolvers...)
 
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)

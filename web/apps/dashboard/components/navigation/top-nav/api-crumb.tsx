@@ -2,6 +2,8 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { useQuery } from "@tanstack/react-query";
 import { Nodes, Plus } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
@@ -9,10 +11,18 @@ import type { CrumbPopoverItem } from "./crumb-popover";
 export function ApiCrumb({ apiId }: { apiId: string }) {
   const workspace = useWorkspaceNavigation();
   const { data } = trpc.api.queryApiKeyDetails.useQuery({ apiId }, { enabled: !!apiId });
+  const { data: proxiedApi } = useQuery({
+    queryKey: ["dashboard-api-proxy", "apis.getApi", apiId],
+    enabled: Boolean(apiId),
+    queryFn: async () => {
+      const response = await getUnkeyClient().apis.getApi({ apiId });
+      return response.data;
+    },
+  });
 
-  const apiName = data?.currentApi?.name ?? apiId;
+  const apiName = proxiedApi?.name ?? data?.currentApi?.name ?? apiId;
   const siblings = data?.workspaceApis ?? [];
-  const loading = !data;
+  const loading = !proxiedApi && !data;
 
   const items: CrumbPopoverItem[] = siblings.map((api) => ({
     id: api.id,

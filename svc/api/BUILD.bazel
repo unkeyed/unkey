@@ -21,6 +21,7 @@ go_library(
         "//internal/services/ratelimit",
         "//internal/services/usagelimiter",
         "//pkg/auth",
+        "//pkg/auth/jwt",
         "//pkg/auth/portal_session",
         "//pkg/batch",
         "//pkg/buildinfo",

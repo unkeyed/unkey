@@ -6,6 +6,8 @@ import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { useQuery } from "@tanstack/react-query";
 import type { Workspace } from "@unkey/db";
 import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
@@ -65,6 +67,7 @@ interface NavbarContentProps {
   workspace: Workspace;
   isMobile: boolean;
   layoutData: ApiLayoutData;
+  proxiedApiName?: string;
 }
 
 // Loading state component
@@ -103,6 +106,7 @@ const NavbarContent = ({
   workspace,
   isMobile = false,
   layoutData,
+  proxiedApiName,
 }: NavbarContentProps) => {
   const shouldFetchKey = Boolean(keyspaceId && keyId);
 
@@ -131,7 +135,10 @@ const NavbarContent = ({
   }
 
   const specificKey = keyData?.keys.find((key) => key.id === keyId);
-  const { currentApi } = layoutData;
+  const currentApi = {
+    ...layoutData.currentApi,
+    name: proxiedApiName ?? layoutData.currentApi.name,
+  };
 
   // Define base path for API navigation
   const base = `/${workspace.slug}/apis/${currentApi.id}`;
@@ -244,6 +251,14 @@ export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarP
       retryDelay: 1000,
     },
   );
+  const { data: proxiedApi } = useQuery({
+    queryKey: ["dashboard-api-proxy", "apis.getApi", apiId],
+    enabled: Boolean(apiId),
+    queryFn: async () => {
+      const response = await getUnkeyClient().apis.getApi({ apiId });
+      return response.data;
+    },
+  });
 
   // Show loading state while fetching data
   if (isLoading || !layoutData) {
@@ -265,6 +280,7 @@ export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarP
       workspace={workspace}
       isMobile={isMobile}
       layoutData={layoutData}
+      proxiedApiName={proxiedApi?.name}
     />
   );
 };

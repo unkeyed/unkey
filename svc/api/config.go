@@ -98,6 +98,15 @@ type Config struct {
 	// When a customer has a verified custom domain, that domain is used instead.
 	PortalBaseURL string `toml:"portal_base_url" config:"default=https://portal.unkey.com"`
 
+	// JWTSecrets enables short-lived bearer JWT authentication when set.
+	// Dashboard proxy routes sign tokens with the first configured secret. The
+	// API verifies incoming tokens against every secret in the ordered list so a
+	// new secret can be added before removing an old one.
+	//
+	// Leave empty to disable JWT authentication and accept only root keys or
+	// portal sessions.
+	JWTSecrets []string `toml:"jwt_secrets"`
+
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
 	Pprof *config.PprofConfig `toml:"pprof"`

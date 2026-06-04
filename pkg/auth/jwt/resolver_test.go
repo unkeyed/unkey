@@ -17,7 +17,11 @@ import (
 func TestResolver_ResolveJWT(t *testing.T) {
 	t.Parallel()
 
-	// A valid API JWT must resolve into the shared principal shape.
+	// This test verifies the happy path used by the dashboard proxy: a short-lived
+	// bearer JWT with workspace, subject, display name, and RBAC permissions is
+	// converted into the same principal shape used by root keys and portal
+	// sessions. That principal is what downstream middleware and handlers rely on
+	// for workspace scoping, audit subjects, and permission checks.
 	secret := []byte("local-test-secret-with-at-least-32-bytes")
 	signer, err := tokenjwt.NewHS256Signer[Claims](secret)
 	require.NoError(t, err)
@@ -59,10 +63,96 @@ func TestResolver_ResolveJWT(t *testing.T) {
 	require.True(t, rbac.HasAnyPermission(principal.Permissions, rbac.Api, rbac.CreateAPI))
 }
 
+func TestResolver_ResolveJWTWithRotatedSecret(t *testing.T) {
+	t.Parallel()
+
+	// Secret rotation requires the API to keep accepting tokens signed by the
+	// previous dashboard secret while new tokens are signed with the replacement
+	// secret. The resolver tries configured secrets in order, so this test signs
+	// with the retired secret and verifies that authentication still succeeds when
+	// the active secret is listed first and the retired secret is retained second.
+	activeSecret := []byte("active-test-secret-with-at-least-32-bytes")
+	retiredSecret := []byte("retired-test-secret-with-at-least-32-bytes")
+	signer, err := tokenjwt.NewHS256Signer[Claims](retiredSecret)
+	require.NoError(t, err)
+
+	now := time.Now()
+	token, err := signer.Sign(Claims{
+		RegisteredClaims: tokenjwt.RegisteredClaims{
+			Issuer:    Issuer,
+			Subject:   "user_123",
+			Audience:  []string{Audience},
+			ExpiresAt: now.Add(time.Minute).Unix(),
+			NotBefore: now.Add(-time.Second).Unix(),
+			IssuedAt:  now.Unix(),
+		},
+		WorkspaceID: "ws_123",
+		Permissions: []string{"api.*.create_api"},
+	})
+	require.NoError(t, err)
+
+	resolver, err := NewMultiResolver(activeSecret, retiredSecret)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+	principal, err := resolver.Resolve(context.Background(), sess)
+	require.NoError(t, err)
+	require.Equal(t, authprincipal.TypeJWT, principal.Type)
+	require.Equal(t, "user_123", principal.Subject.ID)
+	require.Equal(t, "ws_123", principal.WorkspaceID)
+}
+
+func TestResolver_RejectsJWTWithUnexpectedIssuer(t *testing.T) {
+	t.Parallel()
+
+	// The dashboard proxy is the only trusted JWT issuer for this resolver. This
+	// test protects that boundary by signing an otherwise valid token with the
+	// correct secret and audience but a different issuer. If this token were
+	// accepted, any service with the shared secret could mint API principals
+	// without identifying as the dashboard issuer.
+	secret := []byte("local-test-secret-with-at-least-32-bytes")
+	signer, err := tokenjwt.NewHS256Signer[Claims](secret)
+	require.NoError(t, err)
+
+	now := time.Now()
+	token, err := signer.Sign(Claims{
+		RegisteredClaims: tokenjwt.RegisteredClaims{
+			Issuer:    "unexpected.unkey.com",
+			Subject:   "user_123",
+			Audience:  []string{Audience},
+			ExpiresAt: now.Add(time.Minute).Unix(),
+			NotBefore: now.Add(-time.Second).Unix(),
+			IssuedAt:  now.Unix(),
+		},
+		WorkspaceID: "ws_123",
+		Permissions: []string{"api.*.create_api"},
+	})
+	require.NoError(t, err)
+
+	resolver, err := NewResolver(secret)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+	principal, err := resolver.Resolve(context.Background(), sess)
+	require.Error(t, err)
+	require.Nil(t, principal)
+}
+
 func TestResolver_IgnoresNonJWTBearer(t *testing.T) {
 	t.Parallel()
 
-	// Non-JWT bearer tokens must be left for later credential resolvers.
+	// Root keys and other opaque bearer credentials share the Authorization header
+	// with JWTs. The JWT resolver must only claim token-shaped JWTs so it does not
+	// turn an opaque root key into a malformed-JWT error before the root-key
+	// resolver has a chance to authenticate it.
 	resolver, err := NewResolver([]byte("local-test-secret-with-at-least-32-bytes"))
 	require.NoError(t, err)
 
@@ -79,7 +169,10 @@ func TestResolver_IgnoresNonJWTBearer(t *testing.T) {
 func TestResolver_RejectsJWTWithoutTemporalClaims(t *testing.T) {
 	t.Parallel()
 
-	// JWTs must carry temporal claims so the resolver never accepts timeless bearer tokens.
+	// Dashboard proxy JWTs are bearer credentials, so accepting timeless tokens
+	// would make a leaked token useful indefinitely. The resolver requires exp,
+	// nbf, and iat even though the lower-level JWT package can parse a token
+	// without them.
 	secret := []byte("local-test-secret-with-at-least-32-bytes")
 	signer, err := tokenjwt.NewHS256Signer[Claims](secret)
 	require.NoError(t, err)

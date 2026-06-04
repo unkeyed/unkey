@@ -31,6 +31,7 @@ data:
     token = "your-local-dev-key"
 
     portal_base_url = "http://localhost:3100"
+    jwt_secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
 
     [observability.tracing]
     sample_rate = 1.0

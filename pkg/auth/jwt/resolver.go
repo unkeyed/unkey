@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -37,20 +39,38 @@ type Claims struct {
 
 // Resolver authenticates bearer JWTs into auth principals.
 type Resolver struct {
-	verifier tokenjwt.Verifier[Claims]
+	verifiers []tokenjwt.Verifier[Claims]
 }
 
 // NewResolver creates a resolver that verifies HS256 JWTs with the shared secret.
 func NewResolver(secret []byte) (*Resolver, error) {
-	verifier, err := tokenjwt.NewHS256Verifier[Claims](
-		secret,
-		tokenjwt.WithIssuer(Issuer),
-		tokenjwt.WithAudience(Audience),
-	)
-	if err != nil {
-		return nil, err
+	return NewMultiResolver(secret)
+}
+
+// NewMultiResolver creates a resolver that verifies HS256 JWTs with any configured secret.
+//
+// Secrets are tried in order. Callers should put the active signing secret first
+// and keep recently retired secrets later in the list until every token signed
+// with those secrets has expired.
+func NewMultiResolver(secrets ...[]byte) (*Resolver, error) {
+	if len(secrets) == 0 {
+		return nil, errors.New("at least one JWT secret is required")
 	}
-	return &Resolver{verifier: verifier}, nil
+
+	verifiers := make([]tokenjwt.Verifier[Claims], 0, len(secrets))
+	for i, secret := range secrets {
+		verifier, err := tokenjwt.NewHS256Verifier[Claims](
+			secret,
+			tokenjwt.WithIssuer(Issuer),
+			tokenjwt.WithAudience(Audience),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("create verifier for jwt secret %d: %w", i, err)
+		}
+		verifiers = append(verifiers, verifier)
+	}
+
+	return &Resolver{verifiers: verifiers}, nil
 }
 
 // Resolve claims JWT-shaped bearer tokens and leaves other credentials to later resolvers.
@@ -64,7 +84,7 @@ func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*principal.Pri
 	}
 	segments := strings.Split(token, ".")
 
-	claims, err := r.verifier.Verify(token)
+	claims, err := r.verify(token)
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
@@ -136,4 +156,21 @@ func decodeSegment(segment string) (map[string]any, error) {
 		return map[string]any{}, nil
 	}
 	return decoded, nil
+}
+
+func (r *Resolver) verify(token string) (Claims, error) {
+	var lastErr error
+	for _, verifier := range r.verifiers {
+		claims, err := verifier.Verify(token)
+		if err == nil {
+			return claims, nil
+		}
+		lastErr = err
+	}
+
+	var zero Claims
+	if lastErr == nil {
+		return zero, errors.New("no JWT verifiers configured")
+	}
+	return zero, lastErr
 }
