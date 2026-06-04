@@ -177,6 +177,7 @@ const fetchProjectInstallation = async (
         and(eq(table.id, projectId), eq(table.workspaceId, workspaceId)),
       columns: {
         id: true,
+        slug: true,
       },
       with: {
         workspace: {
@@ -208,6 +209,7 @@ const fetchProjectInstallation = async (
 
   return {
     installationPk: project.workspace?.githubAppInstallations?.[0]?.pk ?? null,
+    projectSlug: project.slug,
   };
 };
 
@@ -355,10 +357,21 @@ export const githubRouter = t.router({
           });
         });
 
+      // The dashboard routes by slug; resolve the app slug for redirect URLs.
+      const stateAppId = parsedState.appId;
+      const app = stateAppId
+        ? await db.query.apps.findFirst({
+            where: (table, { and, eq }) =>
+              and(eq(table.id, stateAppId), eq(table.workspaceId, ctx.workspace.id)),
+            columns: { slug: true },
+          })
+        : undefined;
+
       return {
         workspaceSlug: ctx.workspace.slug,
-        projectId,
+        projectSlug: projectInstallation.projectSlug,
         appId: parsedState.appId,
+        appSlug: app?.slug ?? null,
         returnTo: parsedState.returnTo ?? null,
       };
     }),

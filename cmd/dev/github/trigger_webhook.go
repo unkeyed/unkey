@@ -243,7 +243,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 			env = "production"
 		}
 		fmt.Printf("Environment: %s\n", env)
-		fmt.Printf("Dashboard: http://localhost:3000/%s/projects/%s/deployments\n", workspace.Slug, projectID)
+		fmt.Printf("Dashboard: http://localhost:3000/%s/projects/%s/apps/%s/deployments\n", workspace.Slug, project.Slug, appRow.App.Slug)
 		return nil
 
 	case http.StatusUnauthorized:

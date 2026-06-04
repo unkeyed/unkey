@@ -1035,7 +1035,7 @@ func (w *Workflow) initGitHubStatus(
 	envLabel := formatEnvironmentLabel(project.Slug, app.Slug, environment.Slug)
 	prefix := formatDomainPrefix(project.Slug, app.Slug)
 	envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, environment.Slug, workspace.Slug, w.defaultDomain)
-	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s", w.dashboardURL, workspace.Slug, project.ID, deployment.ID)
+	logURL := fmt.Sprintf("%s/%s/projects/%s/apps/%s/deployments/%s", w.dashboardURL, workspace.Slug, project.Slug, app.Slug, deployment.ID)
 
 	var existingGHDeploymentID int64
 	if deployment.GithubDeploymentID.Valid {

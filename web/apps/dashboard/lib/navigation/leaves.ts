@@ -109,11 +109,11 @@ export function buildAuthorizationLinks(slug: string, segments: string[]): Resol
 
 export function buildProjectLinks(
   slug: string,
-  projectId: string,
+  projectSlug: string,
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[2];
-  const base = `/${slug}/projects/${projectId}`;
+  const base = `/${slug}/projects/${projectSlug}`;
   return [
     {
       key: "overview",
@@ -148,12 +148,13 @@ export function buildProjectLinks(
 
 export function buildAppLinks(
   slug: string,
-  projectId: string,
-  appId: string,
+  projectSlug: string,
+  appSlug: string,
+  appId: string | undefined,
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[4];
-  const base = `/${slug}/projects/${projectId}/apps/${appId}`;
+  const base = `/${slug}/projects/${projectSlug}/apps/${appSlug}`;
   return [
     {
       key: "deployments",
@@ -188,7 +189,7 @@ export function buildAppLinks(
     {
       key: "logs",
       label: "Logs",
-      href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
+      href: `/${slug}/projects/${projectSlug}/logs${appId ? `?appId=${appId}` : ""}`,
       icon: Layers3,
       isActive: false,
       separatorAbove: true,
@@ -196,7 +197,7 @@ export function buildAppLinks(
     {
       key: "requests",
       label: "Requests",
-      href: `/${slug}/projects/${projectId}/requests?since=6h&appId=${appId}`,
+      href: `/${slug}/projects/${projectSlug}/requests?since=6h${appId ? `&appId=${appId}` : ""}`,
       icon: ArrowOppositeDirectionY,
       isActive: false,
     },

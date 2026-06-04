@@ -21,13 +21,13 @@ export default function Page() {
 
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
-      if (data.returnTo === "settings") {
+      if (data.returnTo === "settings" && data.appSlug) {
         router.replace(
-          `/${data.workspaceSlug}/projects/${data.projectId}/apps/${data.appId}/settings`,
+          `/${data.workspaceSlug}/projects/${data.projectSlug}/apps/${data.appSlug}/settings`,
         );
       } else {
         router.replace(
-          `/${data.workspaceSlug}/projects/${data.projectId}/apps/new?step=select-repo&appId=${data.appId}`,
+          `/${data.workspaceSlug}/projects/${data.projectSlug}/apps/new?step=select-repo&appId=${data.appId}`,
         );
       }
     },

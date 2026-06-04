@@ -80,11 +80,11 @@ export function ContextNavigation({ context, onResourceNameFetched }: ContextNav
   const { enhancedNavItems: withApiData, apiName } = useApiKeyspace(withProjects, apiId);
 
   // For project resources, enhance with project name
-  const projectId =
+  const projectSlug =
     context.type === "resource" && context.resourceType === "project"
       ? context.resourceId
       : undefined;
-  const { enhancedNavItems: finalNavItems, projectName } = useProjectData(withApiData, projectId);
+  const { enhancedNavItems: finalNavItems, projectName } = useProjectData(withApiData, projectSlug);
 
   // For namespace resources, get namespace name
   const namespaceId =

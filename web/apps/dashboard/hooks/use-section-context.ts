@@ -6,7 +6,7 @@ export type SectionContext =
   | { type: "workspace" }
   | { type: "settings" }
   | { type: "authorization" }
-  | { type: "project"; projectId: string; appId?: string }
+  | { type: "project"; projectSlug: string; appSlug?: string }
   | { type: "api"; apiId: string }
   | { type: "namespace"; namespaceId: string }
   | { type: "identity"; identityId: string };
@@ -15,14 +15,14 @@ export function useSectionContext(): SectionContext {
   const segments = useSelectedLayoutSegments();
   const params = useParams<{
     apiId?: string;
-    projectId?: string;
-    appId?: string;
+    projectSlug?: string;
+    appSlug?: string;
     namespaceId?: string;
     identityId?: string;
   }>();
 
-  if (params.projectId) {
-    return { type: "project", projectId: params.projectId, appId: params.appId };
+  if (params.projectSlug) {
+    return { type: "project", projectSlug: params.projectSlug, appSlug: params.appSlug };
   }
   if (params.apiId) {
     return { type: "api", apiId: params.apiId };

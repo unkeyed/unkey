@@ -17,6 +17,7 @@ func (s *Service) blockDeploymentForApproval(
 	ctx restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
 	project db.Project,
+	app db.App,
 	repo db.GithubRepoConnection,
 	deploymentID string,
 ) error {
@@ -27,8 +28,8 @@ func (s *Service) blockDeploymentForApproval(
 		return err
 	}
 
-	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
-		s.dashboardURL, workspace.Slug, project.ID, deploymentID,
+	logURL := fmt.Sprintf("%s/%s/projects/%s/apps/%s/deployments/%s",
+		s.dashboardURL, workspace.Slug, project.Slug, app.Slug, deploymentID,
 	)
 
 	if !s.allowUnauthenticatedDeployments {

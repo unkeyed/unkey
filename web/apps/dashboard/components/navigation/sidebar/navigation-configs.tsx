@@ -167,11 +167,11 @@ export function createApiNavigation(
  * Specific Project Navigation (resource-level)
  */
 export function createProjectNavigation(
-  projectId: string,
+  projectSlug: string,
   workspace: Workspace,
   segments: string[],
 ): NavItem[] {
-  const basePath = `/${workspace.slug}/projects/${projectId}`;
+  const basePath = `/${workspace.slug}/projects/${projectSlug}`;
 
   const childItems: NavItem[] = [
     // Removed until we hsve something to place in Overview
@@ -179,7 +179,7 @@ export function createProjectNavigation(
     //   icon: Grid,
     //   href: basePath,
     //   label: "Overview",
-    //   active: segments.at(2) === projectId && !segments.at(3),
+    //   active: segments.at(2) === projectSlug && !segments.at(3),
     // },
     {
       icon: Cube,
@@ -223,8 +223,8 @@ export function createProjectNavigation(
     {
       icon: Cube,
       href: basePath,
-      label: projectId, // Will be replaced with actual project name
-      active: segments.includes(projectId),
+      label: projectSlug, // Will be replaced with actual project name
+      active: segments.includes(projectSlug),
       items: childItems,
     },
   ];

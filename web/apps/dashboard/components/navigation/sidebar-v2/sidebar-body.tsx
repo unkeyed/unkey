@@ -1,6 +1,7 @@
 "use client";
 
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
+import { useResolvedApp } from "@/hooks/use-resolved-project";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
@@ -24,6 +25,7 @@ export function SidebarBody() {
     .filter((segment) => !segment.startsWith("("));
   const { slug } = useWorkspaceNavigation();
   const keyAuthId = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
+  const { appId } = useResolvedApp(context.type === "project" ? context.appSlug : undefined);
 
   const links = (() => {
     switch (context.type) {
@@ -35,9 +37,9 @@ export function SidebarBody() {
       case "authorization":
         return buildAuthorizationLinks(slug, segments);
       case "project":
-        return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments)
-          : buildProjectLinks(slug, context.projectId, segments);
+        return context.appSlug
+          ? buildAppLinks(slug, context.projectSlug, context.appSlug, appId, segments)
+          : buildProjectLinks(slug, context.projectSlug, segments);
       case "api":
         return buildApiLinks(slug, context.apiId, keyAuthId, segments);
       case "namespace":

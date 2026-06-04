@@ -72,8 +72,7 @@ export const CreateProjectButton = ({
         domain: SERVER_PLACEHOLDER,
       });
       await tx.isPersisted.promise;
-      const { projectId } = tx.metadata as { projectId: string };
-      router.push(`/${workspaceSlug}/projects/${projectId}/apps/new`);
+      router.push(`/${workspaceSlug}/projects/${values.slug}/apps/new`);
       setIsOpen(false);
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

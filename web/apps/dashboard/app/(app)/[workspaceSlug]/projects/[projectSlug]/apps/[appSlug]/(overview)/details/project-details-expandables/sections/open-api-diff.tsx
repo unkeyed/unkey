@@ -1,0 +1,125 @@
+"use client";
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectSlug]/apps/[appSlug]/(overview)/data-provider";
+import {
+  type DiffStatus,
+  StatusIndicator,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectSlug]/apps/[appSlug]/components/status-indicator";
+import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
+import { collection } from "@/lib/collections";
+import { shortenId } from "@/lib/shorten-id";
+import { trpc } from "@/lib/trpc/client";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { ArrowRight } from "@unkey/icons";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+
+const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
+  if (!data) {
+    return "loading";
+  }
+  if (data.hasBreakingChanges) {
+    return "breaking";
+  }
+
+  // Only show warning if there are actual changes in the changelog
+  if (data.summary?.diff && data.changes && data.changes.length > 0) {
+    return "warning";
+  }
+
+  return "safe";
+};
+
+export const OpenApiDiff = () => {
+  const params = useParams();
+  const { projectId, projectSlug, appSlug } = useProjectData();
+  const appId = useAppId();
+
+  const appQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
+  );
+  const currentDeploymentId = appQuery.data?.[0]?.currentDeploymentId;
+
+  const query = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) =>
+          and(eq(deployment.projectId, projectId), eq(deployment.appId, appId)),
+        )
+        .orderBy(({ deployment }) => deployment.createdAt, "desc")
+        .limit(2)
+        .select((c) => ({
+          id: c.deployment.id,
+        })),
+    [projectId, appId, currentDeploymentId],
+  );
+
+  const newDeployment = query.data?.find((d) => d.id !== currentDeploymentId);
+
+  const diff = trpc.deploy.deployment.getOpenApiDiff.useQuery(
+    {
+      newDeploymentId: newDeployment?.id ?? "",
+      oldDeploymentId: currentDeploymentId ?? "",
+    },
+    { enabled: Boolean(newDeployment?.id) && Boolean(currentDeploymentId) },
+  );
+
+  // @ts-expect-error I have no idea why this whines about type diff
+  const status = getDiffStatus(diff.data);
+
+  if (newDeployment && !currentDeploymentId) {
+    return (
+      <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full max-w-md">
+        <div className="bg-grayA-2 rounded-l-[10px] border-r border-grayA-3 h-full w-[52px] flex items-center justify-center shrink-0">
+          <StatusIndicator status="safe" className="bg-transparent" />
+        </div>
+        <div className="flex flex-col flex-1 px-3 min-w-0">
+          <div className="text-grayA-9 text-xs">current</div>
+          <div className="text-accent-12 font-medium text-xs truncate">
+            {shortenId(newDeployment.id)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!newDeployment) {
+    return null;
+  }
+
+  const diffUrl = `/${params?.workspaceSlug}/projects/${projectSlug}/apps/${appSlug}/openapi-diff?from=${currentDeploymentId}&to=${newDeployment.id}`;
+  return (
+    <Link href={diffUrl} className="hover:opacity-80 transition-opacity block">
+      <div className="gap-4 items-center flex w-full">
+        <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
+          <div className="bg-grayA-2 rounded-l-[10px] border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
+            <StatusIndicator className="bg-transparent" status={status} withSignal />
+          </div>
+          <div className="flex flex-col flex-1 px-3">
+            <div className="text-grayA-9 text-xs">from</div>
+            <div className="text-accent-12 font-medium text-xs">
+              {shortenId(currentDeploymentId ?? "")}
+            </div>
+          </div>
+        </div>
+        <ArrowRight className="shrink-0 text-gray-9 size-[14px]" iconSize="sm-regular" />
+        <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full">
+          <div className="bg-grayA-2 border-r border-grayA-3 h-full w-1/3 flex items-center justify-center">
+            <StatusIndicator className="bg-transparent" />
+          </div>
+          <div className="flex flex-col flex-1 px-3">
+            <div className="text-grayA-9 text-xs">to</div>
+            <div className="text-accent-12 font-medium text-xs">{shortenId(newDeployment.id)}</div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};

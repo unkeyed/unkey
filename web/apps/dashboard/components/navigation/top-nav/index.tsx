@@ -64,9 +64,9 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
     case "workspace":
       return <WorkspaceCrumb href={descriptor.href} />;
     case "project":
-      return <ProjectCrumb projectId={descriptor.projectId} />;
+      return <ProjectCrumb projectSlug={descriptor.projectSlug} />;
     case "app":
-      return <AppCrumb projectId={descriptor.projectId} appId={descriptor.appId} />;
+      return <AppCrumb projectSlug={descriptor.projectSlug} appSlug={descriptor.appSlug} />;
     case "api":
       return <ApiCrumb apiId={descriptor.apiId} />;
     case "namespace":
@@ -81,9 +81,9 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
     case "workspace":
       return "workspace";
     case "project":
-      return `project:${descriptor.projectId}`;
+      return `project:${descriptor.projectSlug}`;
     case "app":
-      return `app:${descriptor.appId}`;
+      return `app:${descriptor.appSlug}`;
     case "api":
       return `api:${descriptor.apiId}`;
     case "namespace":

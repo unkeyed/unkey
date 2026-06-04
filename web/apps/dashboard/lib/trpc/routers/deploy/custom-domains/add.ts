@@ -79,11 +79,26 @@ export const addCustomDomain = workspaceProcedure
           columns: { projectId: true, appId: true },
         });
 
+        // Routes are slug-based; resolve slugs for the settings link.
+        const [existingProject, existingApp] = existing
+          ? await Promise.all([
+              db.query.projects.findFirst({
+                where: (table, { eq }) => eq(table.id, existing.projectId),
+                columns: { slug: true },
+              }),
+              db.query.apps.findFirst({
+                where: (table, { eq }) => eq(table.id, existing.appId),
+                columns: { slug: true },
+              }),
+            ])
+          : [undefined, undefined];
+
         throw new TRPCError({
           code: "CONFLICT",
-          message: existing
-            ? `/${ctx.workspace.slug}/projects/${existing.projectId}/apps/${existing.appId}/settings`
-            : "Domain already registered",
+          message:
+            existingProject && existingApp
+              ? `/${ctx.workspace.slug}/projects/${existingProject.slug}/apps/${existingApp.slug}/settings`
+              : "Domain already registered",
         });
       }
 

@@ -121,10 +121,14 @@ func (s *Service) AddCustomDomain(
 		// redirect to the (authenticated) settings page, which carries the cookie.
 		var redirectURL string
 		ws, wsErr := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
-		if wsErr != nil {
+		proj, projErr := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
+		switch {
+		case wsErr != nil:
 			logger.Warn("failed to fetch workspace for redirect URL", "error", wsErr)
-		} else {
-			settingsPath := fmt.Sprintf("/%s/projects/%s/settings", ws.Slug, req.Msg.GetProjectId())
+		case projErr != nil:
+			logger.Warn("failed to fetch project for redirect URL", "error", projErr)
+		default:
+			settingsPath := fmt.Sprintf("/%s/projects/%s/settings", ws.Slug, proj.Slug)
 			redirectURL = fmt.Sprintf("https://app.unkey.com/integrations/domain-connect/callback?to=%s", url.QueryEscape(settingsPath))
 		}
 

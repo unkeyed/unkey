@@ -7,21 +7,21 @@ import { useMemo } from "react";
  * Hook to enhance Project resource navigation with actual project name.
  * Fetches the project list to find the project and updates the label.
  */
-export const useProjectData = (baseNavItems: NavItem[], projectId?: string) => {
+export const useProjectData = (baseNavItems: NavItem[], projectSlug?: string) => {
   // Fetch all projects
   const { data: projects, isLoading } = trpc.deploy.project.list.useQuery(undefined, {
-    enabled: !!projectId,
+    enabled: !!projectSlug,
   });
 
   const enhancedNavItems = useMemo(() => {
-    if (!projectId) {
+    if (!projectSlug) {
       return baseNavItems;
     }
 
     // If loading, mark the item as loading
     if (isLoading) {
       return baseNavItems.map((item) => {
-        if (item.label === projectId) {
+        if (item.label === projectSlug) {
           return {
             ...item,
             loading: true,
@@ -36,7 +36,7 @@ export const useProjectData = (baseNavItems: NavItem[], projectId?: string) => {
     }
 
     // Find the project in the fetched data
-    const project = projects.find((p) => p.id === projectId);
+    const project = projects.find((p) => p.slug === projectSlug);
 
     // If project not found, return base items unchanged
     if (!project) {
@@ -46,7 +46,7 @@ export const useProjectData = (baseNavItems: NavItem[], projectId?: string) => {
     // Update the parent project item label with the actual project name
     return baseNavItems.map((item) => {
       // Check if this is the project parent item
-      if (item.label === projectId) {
+      if (item.label === projectSlug) {
         return {
           ...item,
           label: project.name,
@@ -55,16 +55,16 @@ export const useProjectData = (baseNavItems: NavItem[], projectId?: string) => {
       }
       return item;
     });
-  }, [baseNavItems, projects, projectId, isLoading]);
+  }, [baseNavItems, projects, projectSlug, isLoading]);
 
   // Get the project name if available
   const projectName = useMemo(() => {
-    if (!projects || !projectId) {
+    if (!projects || !projectSlug) {
       return undefined;
     }
-    const project = projects.find((p) => p.id === projectId);
+    const project = projects.find((p) => p.slug === projectSlug);
     return project?.name;
-  }, [projects, projectId]);
+  }, [projects, projectSlug]);
 
   return {
     enhancedNavItems,
