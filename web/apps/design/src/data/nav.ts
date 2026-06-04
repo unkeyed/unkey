@@ -13,4 +13,8 @@ export const nav: NavSection[] = [
     title: "Primitives",
     items: [{ name: "Skeleton", href: "/primitives/skeleton" }],
   },
+  {
+    title: "Patterns",
+    items: [{ name: "Layout", href: "/patterns/layout" }],
+  },
 ];

@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import { trpc } from "@/lib/trpc/client";
 import {
   Button,
@@ -8,12 +9,11 @@ import {
   SettingCard,
   SettingCardGroup,
   SettingsDangerZone,
-  SettingsShell,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
-import { WorkspaceNavbar } from "../workspace-navbar";
+import { BillingChrome } from "./billing-chrome";
 import { CancelAlert } from "./components/cancel-alert";
 import { CancelPlan } from "./components/cancel-plan";
 import { CurrentPlanCard } from "./components/current-plan-card";
@@ -29,6 +29,7 @@ const ADMIN_ONLY_TOOLTIP = "Admin access required to manage billing";
 export const Client: React.FC = () => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const newNavigation = useFlag("newNavigation");
   const [showPlanModal, setShowPlanModal] = useState(false);
 
   // Server-side `requireWorkspaceAdmin` enforces this on every billing
@@ -53,35 +54,37 @@ export const Client: React.FC = () => {
   // Handle loading states - don't render until we have billing info
   if (billingLoading || !billingInfo) {
     return (
-      <div className="animate-pulse">
-        <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-        <SettingsShell>
-          <div className="flex flex-col gap-2 items-center">
-            <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
-            <span className="leading-4 text-gray-11 text-[13px]">
-              Manage your subscription, usage, and payment methods.
-            </span>
+      <BillingChrome>
+        <div className="animate-pulse">
+          <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
+            {!newNavigation && (
+              <div className="flex flex-col gap-2 items-center">
+                <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
+                <span className="leading-4 text-gray-11 text-[13px]">
+                  Manage your subscription, usage, and payment methods.
+                </span>
+              </div>
+            )}
+            <div className="w-full h-[150px] bg-grayA-3 rounded-lg" />
+            <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
+            <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
           </div>
-          <div className="w-full h-[150px] bg-grayA-3 rounded-lg mt-1" />
-          <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
-          <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
-        </SettingsShell>
-      </div>
+        </div>
+      </BillingChrome>
     );
   }
 
   // Handle error states
   if (billingError) {
     return (
-      <div>
-        <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
+      <BillingChrome>
         <Empty>
           <Empty.Title>Failed to load billing information</Empty.Title>
           <Empty.Description>
             There was an error loading your billing information. Please try again later.
           </Empty.Description>
         </Empty>
-      </div>
+      </BillingChrome>
     );
   }
 
@@ -102,21 +105,22 @@ export const Client: React.FC = () => {
     : undefined;
 
   return (
-    <div>
-      <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-      <SettingsShell>
+    <BillingChrome>
+      <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
         {subscription ? (
           <SubscriptionStatus
             workspaceSlug={workspace.slug}
             status={subscription.status as Stripe.Subscription.Status}
           />
         ) : null}
-        <div className="flex flex-col gap-2 items-center">
-          <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
-          <span className="leading-4 text-gray-11 text-[13px]">
-            Manage your subscription, usage, and payment methods.
-          </span>
-        </div>
+        {!newNavigation && (
+          <div className="flex flex-col gap-2 items-center">
+            <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
+            <span className="leading-4 text-gray-11 text-[13px]">
+              Manage your subscription, usage, and payment methods.
+            </span>
+          </div>
+        )}
 
         {isFreeTier ? <FreeTierAlert /> : null}
 
@@ -205,7 +209,7 @@ export const Client: React.FC = () => {
             <CancelPlan disabled={!isAdmin} disabledReason={ADMIN_ONLY_TOOLTIP} />
           </SettingsDangerZone>
         ) : null}
-      </SettingsShell>
-    </div>
+      </div>
+    </BillingChrome>
   );
 };

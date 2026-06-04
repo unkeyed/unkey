@@ -1,6 +1,9 @@
 "use client";
 
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
+import { PageChrome } from "@/components/page-header/page-chrome";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { PageHeader, PageHeaderActions, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { CopyWorkspaceId } from "./copy-workspace-id";
 import { UpdateWorkspaceName } from "./update-workspace-name";
@@ -13,17 +16,24 @@ export default function SettingsPage() {
   const workspace = useWorkspaceNavigation();
 
   return (
-    <div>
-      <WorkspaceNavbar activePage={{ href: "general", text: "General" }} />
-      <div className="py-3 w-full flex items-center justify-center">
-        <div className="w-[900px] flex flex-col justify-center items-center gap-5 mx-6 mt-4">
-          <div className="w-full flex flex-col">
-            <UpdateWorkspaceName />
-            {/* <UpdateWorkspaceImage /> */}
-            {workspace && <CopyWorkspaceId workspaceId={workspace.id} />}
-          </div>
-        </div>
+    <PageChrome
+      legacyHeader={<WorkspaceNavbar activePage={{ href: "general", text: "General" }} />}
+      header={
+        <PageHeader>
+          <PageHeaderContent>
+            <PageHeaderTitle>General</PageHeaderTitle>
+          </PageHeaderContent>
+          <PageHeaderActions>
+            <CopyableIDButton value={workspace.id} />
+          </PageHeaderActions>
+        </PageHeader>
+      }
+    >
+      <div className="w-full flex flex-col pt-4">
+        <UpdateWorkspaceName />
+        {/* <UpdateWorkspaceImage /> */}
+        <CopyWorkspaceId workspaceId={workspace.id} />
       </div>
-    </div>
+    </PageChrome>
   );
 }

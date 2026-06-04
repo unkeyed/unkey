@@ -1,0 +1,128 @@
+---
+layout: ../../../layouts/layout.astro
+title: Layout — Unkey Design
+---
+import { PageShellExample } from "./_page-shell-example.tsx";
+
+# Layout
+
+Rules and guidelines for building effective page layouts on the Unkey dashboard.
+
+## Basics
+
+
+A simple page shell with a header and actions. 
+
+
+<div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
+  <PageShellExample client:load />
+</div>
+
+```tsx
+import {
+  Button,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderTitle,
+  PageShell,
+} from "@unkey/ui"
+
+<PageShell>
+  <PageHeader>
+    <PageHeaderContent>
+      <PageHeaderTitle>General</PageHeaderTitle>
+      <PageHeaderDescription>Manage your workspace settings.</PageHeaderDescription>
+    </PageHeaderContent>
+    <PageHeaderActions>
+      <Button variant="outline">Copy ID</Button>
+    </PageHeaderActions>
+  </PageHeader>
+  {/* page content */}
+</PageShell>
+```
+
+## Secondary navigation
+
+A `SecondaryNav` rail on the left, the page on the right. Use it for sections with sibling pages.
+
+<div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
+  <PageShellExample client:load rail />
+</div>
+
+Add the rail in the section layout, then each page renders its own `PageShell`.
+
+**`app/settings/layout.tsx`**
+
+```tsx
+import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui"
+import Link from "next/link"
+
+export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex">
+      <SecondaryNav aria-label="Settings">
+        <SecondaryNavTitle>Settings</SecondaryNavTitle>
+        <SecondaryNavGroup>
+          <SecondaryNavItem asChild active>
+            <Link href="/settings/general">General</Link>
+          </SecondaryNavItem>
+          <SecondaryNavItem asChild>
+            <Link href="/settings/team">Team</Link>
+          </SecondaryNavItem>
+        </SecondaryNavGroup>
+      </SecondaryNav>
+      {children}
+    </div>
+  )
+}
+```
+
+**`app/settings/general/page.tsx`**
+
+```tsx
+import {
+  Button,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderTitle,
+  PageShell,
+} from "@unkey/ui"
+
+export default function GeneralPage() {
+  return (
+    <PageShell>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>General</PageHeaderTitle>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <Button variant="outline">Copy ID</Button>
+        </PageHeaderActions>
+      </PageHeader>
+      {/* page content */}
+    </PageShell>
+  )
+}
+```
+
+## Full width
+
+Logs, tables, and editors need the whole viewport, so the body runs edge to edge. The header keeps a gutter and a divider, so its title and actions still line up with the rest of the app.
+
+<div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
+  <PageShellExample client:load fullWidth />
+</div>
+
+## Structure
+
+- **PageShell** — Wraps the page body. Sets the max width, side gutters, and centering so every page shares one measure.
+- **SecondaryNav** — Optional rail for moving between a section's sibling pages. Sits beside the shell.
+- **PageHeader** — The title block at the top of a page. Composed from the parts below.
+- **PageHeaderContent** — The header's left column; stacks the title and description.
+- **PageHeaderTitle** — The page's name, rendered as the `h1`.
+- **PageHeaderDescription** — Optional one-line description under the title.
+- **PageHeaderActions** — The header's right side; holds the page's primary and secondary actions.
+

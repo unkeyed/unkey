@@ -1,5 +1,7 @@
+import { PageChrome } from "@/components/page-header/page-chrome";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { TeamPageClient } from "./client";
 
@@ -14,16 +16,24 @@ export default async function SettingTeamPage() {
 
   const team = workspace?.quotas?.team ?? false;
 
-  return workspace ? (
-    <>
-      <WorkspaceNavbar activePage={{ href: "team", text: "Team" }} />
-      <div className="flex flex-col w-full max-w-6xl mx-auto px-6 py-8">
-        <TeamPageClient team={team} />
-      </div>
-    </>
-  ) : (
-    <div>
-      <div>Workspace not found</div>
-    </div>
+  const header = (
+    <PageHeader>
+      <PageHeaderContent>
+        <PageHeaderTitle>Team</PageHeaderTitle>
+      </PageHeaderContent>
+    </PageHeader>
+  );
+  const legacyHeader = <WorkspaceNavbar activePage={{ href: "team", text: "Team" }} />;
+
+  return (
+    <PageChrome header={header} legacyHeader={legacyHeader}>
+      {workspace ? (
+        <div className="w-full flex flex-col pt-4">
+          <TeamPageClient team={team} />
+        </div>
+      ) : (
+        <div>Workspace not found</div>
+      )}
+    </PageChrome>
   );
 }
