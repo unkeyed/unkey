@@ -44,7 +44,7 @@ export function DeploymentStep({
         icon={
           <GlowIcon
             icon={icon}
-            variant={isError ? "error" : "feature"}
+            variant={isError ? "error" : "brand"}
             glow={showGlow}
             transition
             className="w-full h-full"

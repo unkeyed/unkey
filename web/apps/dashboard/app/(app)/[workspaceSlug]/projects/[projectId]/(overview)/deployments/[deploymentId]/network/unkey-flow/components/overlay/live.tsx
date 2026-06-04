@@ -10,7 +10,7 @@ export const LiveIndicator = () => {
         className="px-2.5 py-1 rounded-[10px] bg-blackA-12 text-xs z-30 text-white"
         position={{ align: "center", side: "top", sideOffset: 5 }}
       >
-        <div className="bg-base-12 flex items-center justify-between gap-2 cursor-pointer">
+        <div className="bg-background flex items-center justify-between gap-2 cursor-pointer">
           <StatusDot healthStatus="health_syncing" />
           <span className="text-accent-12 font-medium text-[13px]">Live</span>
         </div>

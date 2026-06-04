@@ -230,7 +230,7 @@ export function AreaTimeseriesChart({
         {!hideAxes && (
           <CartesianGrid
             vertical={false}
-            stroke="hsl(var(--gray-4))"
+            stroke="var(--gray-4)"
             strokeDasharray="3 3"
             strokeOpacity={0.6}
           />
@@ -242,7 +242,7 @@ export function AreaTimeseriesChart({
           allowDataOverflow={Boolean(effectiveDomain)}
           scale="time"
           tickFormatter={xTickFormatter}
-          tick={hideAxes ? false : { fill: "hsl(var(--gray-10))", fontSize: 10 }}
+          tick={hideAxes ? false : { fill: "var(--gray-10)", fontSize: 10 }}
           tickLine={false}
           axisLine={false}
           ticks={xTicks}
@@ -255,7 +255,7 @@ export function AreaTimeseriesChart({
             tickLine={false}
             axisLine={false}
             tickFormatter={formatYTick}
-            tick={{ fill: "hsl(var(--gray-10))", fontSize: 10 }}
+            tick={{ fill: "var(--gray-10)", fontSize: 10 }}
             ticks={yTicks}
             domain={yDomain}
           />
@@ -264,7 +264,7 @@ export function AreaTimeseriesChart({
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
           cursor={{
-            stroke: "hsl(var(--accent-9))",
+            stroke: "var(--accent-9)",
             strokeWidth: 1,
             strokeDasharray: "3 3",
             strokeOpacity: 0.5,

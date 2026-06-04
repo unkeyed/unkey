@@ -36,11 +36,11 @@ export const ApiListCard = ({ api }: Props) => {
             config={{
               success: {
                 label: "Valid",
-                color: "hsl(var(--accent-4))",
+                color: "var(--accent-4)",
               },
               error: {
                 label: "Invalid",
-                color: "hsl(var(--orange-9))",
+                color: "var(--orange-9)",
               },
             }}
           />

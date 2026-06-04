@@ -9,7 +9,7 @@ export const SkeletonNode = () => {
           className="border-b border-grayA-4 rounded-t-[14px] px-3 py-2.5 flex"
           style={{
             background:
-              "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), light-dark(#FFF, #000)",
+              "radial-gradient(circle at 5% 15%, var(--grayA-3) 0%, transparent 20%), light-dark(#FFF, #000)",
           }}
         >
           <div className="flex items-center gap-3">

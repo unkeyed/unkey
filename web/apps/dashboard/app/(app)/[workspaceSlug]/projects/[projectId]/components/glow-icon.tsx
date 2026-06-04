@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 type GlowIconProps = {
   icon: ReactNode;
-  variant?: "feature" | "error";
+  variant?: "brand" | "error";
   glow?: boolean;
   transition?: boolean;
   className?: string;
@@ -11,7 +11,7 @@ type GlowIconProps = {
 
 export function GlowIcon({
   icon,
-  variant = "feature",
+  variant = "brand",
   glow = true,
   transition = false,
   className,
@@ -19,7 +19,7 @@ export function GlowIcon({
   const glowColor =
     variant === "error"
       ? "bg-linear-to-l from-error-7 to-error-8"
-      : "bg-linear-to-l from-feature-8 to-info-9";
+      : "bg-linear-to-l from-brand-8 to-info-9";
 
   const glowVisible = transition
     ? glow

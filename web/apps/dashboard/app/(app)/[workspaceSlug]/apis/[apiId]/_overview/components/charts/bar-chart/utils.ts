@@ -5,12 +5,12 @@ import { formatOutcomeName } from "../../../utils";
 /**
  * Maps CSS variables from our design system to actual color values
  * @param cssVar CSS variable name (e.g., "success-9")
- * @returns HSL string compatible with chart libraries
+ * @returns CSS color string compatible with chart libraries
  */
 export function cssVarToChartColor(cssVar: string): string {
   // Remove "bg-" prefix if present
   const cleanVar = cssVar.replace("bg-", "");
-  return `hsl(var(--${cleanVar}))`;
+  return `var(--${cleanVar})`;
 }
 
 /**

@@ -11,7 +11,7 @@ const WAVE_AREA = `${WAVE_LINE} L720,100 L0,100 Z`;
 
 export function ChartWaveLoading({ height, color }: ChartWaveLoadingProps) {
   const id = useId().replace(/:/g, "");
-  const waveColor = color || "hsl(var(--gray-8))";
+  const waveColor = color || "var(--gray-8)";
 
   return (
     <div className="w-full relative animate-pulse" style={{ height }}>

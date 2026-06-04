@@ -24,7 +24,7 @@ export function buildSliderRangeStyle(
   const range = maxIndex - minIndex;
   const normalized = range > 0 ? (currentIndex - minIndex) / range : 0;
   return {
-    background: `linear-gradient(to right, hsla(var(--${colorVar}-4)), hsla(var(--${colorVar}-12)))`,
+    background: `linear-gradient(to right, var(--${colorVar}-4), var(--${colorVar}-12))`,
     // 100/normalized stretches the gradient so only the lightest portion fills the range.
     // At normalized=0 (minimum), avoid division by zero; 10000 ensures only a sliver of the lightest color shows.
     backgroundSize: `${normalized > 0 ? 100 / normalized : 10000}% 100%`,

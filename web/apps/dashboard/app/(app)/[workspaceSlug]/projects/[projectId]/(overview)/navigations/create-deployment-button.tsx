@@ -283,11 +283,11 @@ export const CreateDeploymentButton = ({
                 }
               />
               {forkRepoName && (
-                <div className="flex items-center gap-1.5 bg-amber-3 border border-amber-6 rounded-md px-2.5 py-1.5 w-fit">
-                  <CodeBranch iconSize="sm-regular" className="shrink-0 text-amber-11" />
-                  <span className="text-xs text-amber-11">
+                <div className="flex items-center gap-1.5 bg-warning-3 border border-warning-6 rounded-md px-2.5 py-1.5 w-fit">
+                  <CodeBranch iconSize="sm-regular" className="shrink-0 text-warning-11" />
+                  <span className="text-xs text-warning-11">
                     Deploying from fork:{" "}
-                    <span className="font-medium text-amber-12">{forkRepoName}</span>
+                    <span className="font-medium text-warning-11">{forkRepoName}</span>
                   </span>
                 </div>
               )}

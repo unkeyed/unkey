@@ -108,7 +108,7 @@ export function LogsTimeseriesBarChart({
           offset={15}
           allowEscapeViewBox={{ x: true, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none", overflow: "visible" }}
-          cursor={{ fill: "hsl(var(--accent-3))", fillOpacity: 0.4 }}
+          cursor={{ fill: "var(--accent-3)", fillOpacity: 0.4 }}
           content={({ active, payload, label }) => {
             if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
               return null;

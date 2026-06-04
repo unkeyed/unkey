@@ -26,7 +26,7 @@ type MetricConfig = {
 const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   latency: {
     label: "Latency",
-    color: "hsl(var(--bronze-8))",
+    color: "var(--bronze-8)",
     iconBg: "bg-bronze-3",
     iconText: "text-bronze-11",
     unit: "ms",
@@ -35,7 +35,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   rps: {
     label: "RPS",
-    color: "hsl(var(--accent-8))",
+    color: "var(--accent-8)",
     iconBg: "bg-accent-3",
     iconText: "text-accent-11",
     unit: "req/s",
@@ -43,15 +43,15 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   cpu: {
     label: "CPU",
-    color: "hsl(var(--feature-8))",
-    iconBg: "bg-feature-3",
-    iconText: "text-feature-11",
+    color: "var(--brand-8)",
+    iconBg: "bg-brand-3",
+    iconText: "text-brand-11",
     unit: "%",
     chartVariant: "area",
   },
   memory: {
     label: "Memory",
-    color: "hsl(var(--info-8))",
+    color: "var(--info-8)",
     iconBg: "bg-info-3",
     iconText: "text-info-11",
     unit: "%",

@@ -44,7 +44,7 @@ export const ChartEmpty = ({
   const id = useId().replace(/:/g, "");
 
   if (variant === "wave") {
-    const waveColor = color || "hsl(var(--gray-8))";
+    const waveColor = color || "var(--gray-8)";
     return (
       <div className={cn("w-full relative", className)} style={{ height }}>
         <svg

@@ -56,11 +56,11 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
         className="max-w-[560px] border-gray-4 rounded-2xl! p-0 gap-0 overflow-hidden drop-shadow-2xl"
         style={{
           background:
-            "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), hsl(var(--gray-1))",
+            "radial-gradient(circle at 5% 15%, var(--grayA-3) 0%, transparent 20%), var(--gray-1)",
         }}
       >
         <div className="flex flex-col items-center p-10">
-          <div className="size-12 rounded-[14px] bg-gray-12 dark:bg-white flex items-center justify-center mb-4 shadow-[0_0_0_6px_hsl(var(--gray-2)),0_0_0_8px_hsl(var(--gray-4))]">
+          <div className="size-12 rounded-[14px] bg-gray-12 dark:bg-white flex items-center justify-center mb-4 shadow-[0_0_0_6px_var(--gray-2),0_0_0_8px_var(--gray-4)]">
             <ShieldAlert className="text-white dark:text-black size-[22px]" iconSize="md-medium" />
           </div>
 

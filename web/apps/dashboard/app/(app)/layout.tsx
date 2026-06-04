@@ -119,14 +119,14 @@ export default function Layout({ children }: LayoutProps) {
   if (newNavigation) {
     return (
       <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
-        <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
+        <div className="h-dvh w-full flex flex-col overflow-hidden bg-background">
           <TopNav />
           <MobileNavDrawer />
           <div className="flex flex-1 overflow-hidden">
             <SidebarV2 className="bg-gray-1 border-grayA-4" />
             <div className="flex-1 overflow-auto">
               <div
-                className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
+                className="isolate bg-background w-full min-h-full overflow-x-auto flex flex-col items-center"
                 id="layout-wrapper"
               >
                 <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
@@ -140,7 +140,7 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="h-dvh relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
+    <div className="h-dvh relative flex flex-col overflow-hidden bg-background lg:flex-row">
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}
@@ -149,7 +149,7 @@ export default function Layout({ children }: LayoutProps) {
           {/* Main content area */}
           <div className="flex-1 overflow-auto">
             <div
-              className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
+              className="isolate bg-background w-full min-h-full overflow-x-auto flex flex-col items-center"
               id="layout-wrapper"
             >
               {/* Mobile sidebar at the top of content */}

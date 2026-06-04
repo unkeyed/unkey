@@ -30,7 +30,7 @@ export const HiddenValueCell = ({ value, title = "Value", selected }: HiddenValu
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
       <div
         className={cn(
-          "rounded-lg border bg-white dark:bg-base-12 border-accent-4 text-grayA-11 w-[150px] px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px] group-hover:border-grayA-3 font-mono",
+          "rounded-lg border bg-background border-accent-4 text-grayA-11 w-[150px] px-2 py-1 flex gap-2 items-center cursor-pointer h-[28px] group-hover:border-grayA-3 font-mono",
           selected && "border-grayA-3",
         )}
         onClick={(e) => handleClick(e)}

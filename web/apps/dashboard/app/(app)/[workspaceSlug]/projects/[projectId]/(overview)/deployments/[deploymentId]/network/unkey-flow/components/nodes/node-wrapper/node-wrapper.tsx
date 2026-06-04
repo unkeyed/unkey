@@ -30,7 +30,7 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
               // a glance on the graph rather than only when the cursor
               // happens to be over it.
               isUnhealthy &&
-                "ring-2 ring-errorA-5 shadow-[0_0_0_1px_hsl(var(--errorA-5)),0_0_30px_color-mix(in_srgb,hsl(var(--errorA-9))_18%,transparent)]",
+                "ring-2 ring-errorA-5 shadow-[0_0_0_1px_var(--errorA-5),0_0_30px_color-mix(in_srgb,var(--errorA-9)_18%,transparent)]",
             ),
       )}
     >
@@ -56,23 +56,23 @@ function getHealthStyles(health: HealthStatus): { ring: string; glow: string } {
   const styleMap: Record<HealthStatus, { ring: string; glow: string }> = {
     normal: {
       ring: "hover:ring-grayA-2",
-      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_color-mix(in_srgb,hsl(var(--grayA-9))_17.5%,transparent)]",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_var(--grayA-6),0_0_30px_color-mix(in_srgb,var(--grayA-9)_17.5%,transparent)]",
     },
     unhealthy: {
       ring: "hover:ring-errorA-3",
-      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--errorA-3)),0_0_30px_color-mix(in_srgb,hsl(var(--errorA-9))_20%,transparent)]",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_var(--errorA-3),0_0_30px_color-mix(in_srgb,var(--errorA-9)_20%,transparent)]",
     },
     health_syncing: {
       ring: "hover:ring-infoA-3",
-      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--infoA-3)),0_0_30px_color-mix(in_srgb,hsl(var(--infoA-9))_20%,transparent)]",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_var(--infoA-3),0_0_30px_color-mix(in_srgb,var(--infoA-9)_20%,transparent)]",
     },
     unknown: {
       ring: "hover:ring-grayA-2",
-      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_color-mix(in_srgb,hsl(var(--grayA-9))_17.5%,transparent)]",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_var(--grayA-6),0_0_30px_color-mix(in_srgb,var(--grayA-9)_17.5%,transparent)]",
     },
     disabled: {
       ring: "hover:ring-grayA-2",
-      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_hsl(var(--grayA-6)),0_0_30px_color-mix(in_srgb,hsl(var(--grayA-9))_17.5%,transparent)]",
+      glow: "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.15),0_0_0_1px_var(--grayA-6),0_0_30px_color-mix(in_srgb,var(--grayA-9)_17.5%,transparent)]",
     },
   };
   return styleMap[health];

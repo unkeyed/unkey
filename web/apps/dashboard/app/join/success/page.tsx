@@ -32,7 +32,7 @@ function JoinSuccessContent() {
     <div className="min-h-screen bg-black text-white flex items-center justify-center">
       <div className="text-center max-w-md mx-auto px-4">
         <div className="mb-6">
-          <div className="w-16 h-16 border-4 border-gray-800 border-t-white rounded-full animate-spin mx-auto" />
+          <div className="w-16 h-16 border-4 border-gray-4 border-t-white rounded-full animate-spin mx-auto" />
         </div>
 
         <div className="mb-6">
@@ -40,7 +40,7 @@ function JoinSuccessContent() {
             {fromInvite ? "Successfully joined!" : "Authentication complete"}
           </h1>
 
-          <p className="text-gray-400 mb-4">
+          <p className="text-gray-11 mb-4">
             {fromInvite && orgName
               ? `You've been added to ${orgName}. Redirecting to your dashboard...`
               : fromInvite
@@ -49,7 +49,7 @@ function JoinSuccessContent() {
           </p>
         </div>
 
-        <div className="text-sm text-gray-500 mb-4">Redirecting in {countdown} seconds</div>
+        <div className="text-sm text-gray-9 mb-4">Redirecting in {countdown} seconds</div>
 
         <Button onClick={() => router.push("/apis")} variant="primary">
           Continue manually
@@ -66,7 +66,7 @@ export default function JoinSuccessPage() {
         <div className="min-h-screen bg-black text-white flex items-center justify-center">
           <div className="text-center max-w-md mx-auto px-4">
             <div className="mb-6">
-              <div className="w-16 h-16 border-4 border-gray-800 border-t-white rounded-full animate-spin mx-auto" />
+              <div className="w-16 h-16 border-4 border-gray-4 border-t-white rounded-full animate-spin mx-auto" />
             </div>
             <h1 className="text-2xl font-semibold mb-3">Loading...</h1>
           </div>
