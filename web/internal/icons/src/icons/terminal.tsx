@@ -31,7 +31,7 @@ export function Terminal({ iconSize = "xl-thin", ...props }: IconProps) {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={strokeWidth}
-      ></polyline>
+      />
       <line
         x1="9.5"
         y1="14.25"
@@ -43,7 +43,7 @@ export function Terminal({ iconSize = "xl-thin", ...props }: IconProps) {
         strokeLinejoin="round"
         strokeWidth={strokeWidth}
         data-color="color-2"
-      ></line>
+      />
     </svg>
   );
 }

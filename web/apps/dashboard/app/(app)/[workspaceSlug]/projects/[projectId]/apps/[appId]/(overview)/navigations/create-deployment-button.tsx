@@ -6,7 +6,7 @@ import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { ChevronDown, CodeBranch, Layers2, Plus } from "@unkey/icons";
+import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
 import {
   Button,
   FormDescription,
@@ -383,7 +383,7 @@ export const CreateDeploymentButton = ({
                     key={`skeleton-${
                       // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders
                       i
-                      }`}
+                    }`}
                     className="flex items-center justify-between px-3 py-2 h-[36.5px]"
                   >
                     <span className="flex items-center gap-1.5">
