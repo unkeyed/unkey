@@ -48,7 +48,7 @@ export const useBreadcrumbConfig = ({
   const subPages: SubPage[] = [
     {
       id: "deployments",
-      label: "Deployments",
+      label: "Overview",
       href: `${appBase}/deployments`,
       segment: "deployments",
     },

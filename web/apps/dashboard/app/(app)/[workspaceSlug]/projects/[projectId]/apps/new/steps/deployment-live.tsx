@@ -38,43 +38,11 @@ const DeploymentLiveStepContent = ({ projectId, appId }: { projectId: string; ap
   const router = useRouter();
   const ready = deployment.status === "ready";
 
-  const stepsQuery = trpc.deploy.deployment.steps.useQuery(
-    { deploymentId: deployment.id },
-    { refetchInterval: ready ? false : 1_000, refetchOnWindowFocus: false },
-  );
-
-  const derivedStatus = useMemo(
-    () => deriveStatusFromSteps(stepsQuery.data, deployment.status),
-    [stepsQuery.data, deployment.status],
-  );
-
   const deploymentUrl = `/${workspace.slug}/projects/${projectId}/apps/${appId}/deployments/${deployment.id}`;
 
   useEffect(() => {
-    if (ready) {
-      router.replace(deploymentUrl);
-    }
+    router.replace(deploymentUrl);
   }, [ready, router, deploymentUrl]);
 
-  return (
-    <OnboardingStepContainer>
-      <OnboardingStepHeader
-        title={
-          ready ? (
-            <span className="flex items-center gap-3">
-              Deployment complete!
-              <Check iconSize="md-regular" className="text-success-11" />
-            </span>
-          ) : (
-            "Deploying your app"
-          )
-        }
-        subtitle="Building, provisioning infrastructure, and assigning domains..."
-      />
-      <div className="w-[900px] space-y-6">
-        <DeploymentInfo statusOverride={derivedStatus} />
-        <DeploymentProgress stepsData={stepsQuery.data} />
-      </div>
-    </OnboardingStepContainer>
-  );
+  return null
 };
