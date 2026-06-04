@@ -36,7 +36,7 @@ export const AppsList = () => {
               <Empty.Actions className="mt-4 justify-start">
                 <Button size="md" onClick={openCreateApp}>
                   <Plus />
-                  Create app
+                  Create new app
                 </Button>
               </Empty.Actions>
             </Empty>
