@@ -11,6 +11,7 @@ import {
   Layers3,
   Nodes,
   ShieldKey,
+  SquareBulletList,
 } from "@unkey/icons";
 import type { ResolvedNavLink } from "./types";
 
@@ -158,7 +159,7 @@ export function buildAppLinks(
       key: "deployments",
       label: "Deployments",
       href: `${base}/deployments`,
-      icon: Cube,
+      icon: SquareBulletList,
       isActive: page === "deployments",
     },
     {

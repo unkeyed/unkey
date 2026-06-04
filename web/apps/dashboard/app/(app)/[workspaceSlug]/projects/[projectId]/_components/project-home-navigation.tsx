@@ -20,7 +20,7 @@ export const ProjectHomeNavigation = ({ projectId }: ProjectHomeNavigationProps)
           Projects
         </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link href={`${basePath}/${projectId}`} noop active isLast>
-          Apps
+          Overview
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
