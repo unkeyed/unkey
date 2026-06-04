@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Run the Bazel test suite"
-#MISE depends=["oci-load"]
-
 
 bazel test //...
 
