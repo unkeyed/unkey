@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Start dev environment"
-#MISE depends=["install-web"]
+#MISE depends=["install-web", "oci-load"]
 set -euo pipefail
 
 # Make sure you have ./dev/.env.depot populated, or you will get some funny errors.
