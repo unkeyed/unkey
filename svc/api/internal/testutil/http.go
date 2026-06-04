@@ -18,9 +18,12 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/auth/portal_session"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -61,6 +64,7 @@ type Harness struct {
 	DB                         db.Database
 	Caches                     caches.Caches
 	Keys                       keys.KeyService
+	Auth                       auth.Service
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
@@ -259,12 +263,18 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		UsageLimiter:     ulSvc,
 	})
 	require.NoError(t, err)
+	portalService := portal.New(portal.Config{
+		DB:           database,
+		SessionCache: caches.PortalSession,
+	})
+	authService := auth.New(portalsession.NewResolver(portalService), keys.NewRootKeyResolver(keyService))
 
 	h := Harness{
 		t:                          t,
 		srv:                        srv,
 		validator:                  validator,
 		Keys:                       keyService,
+		Auth:                       authService,
 		UsageLimiter:               ulSvc,
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,

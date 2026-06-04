@@ -1,88 +1,142 @@
 ---
 title: "Authentication"
-description: "Authenticating with the Unkey API"
+description: "API authentication concepts, principals, and permission checks"
 ---
 
-Most Unkey API endpoints require authentication using a root key. Root keys provide access to Unkey resources based on assigned permissions.
+API authentication turns request credentials into a principal, then checks
+whether that principal can perform the requested operation. The credential might
+come from a root key, a browser session, or another source in the future, but
+the rest of the API can reason about the same concepts.
 
-## Bearer authentication
+This design keeps authentication source details out of business logic. Handlers
+receive a workspace scope, an audit subject, and a permission set. They don't
+need to know how the caller proved its identity.
 
-Use the `Authorization` header:
+## How it works
 
-```bash
-Authorization: Bearer unkey_1234567890
+The API auth flow has four conceptual steps:
+
+1. Find a credential on the request.
+2. Verify that credential with the system that owns it.
+3. Normalize the verified caller into a principal.
+4. Check the principal's permissions before data access or mutation.
+
+```mermaid
+flowchart TD
+    A["Incoming request"] --> B["Credential"]
+    B --> C["Verification"]
+    C --> D["Principal"]
+    D --> E["Permission check"]
+    E --> F["Scoped API operation"]
+    D --> G["Audit subject"]
 ```
 
-Example:
+The principal is the boundary between authentication and the rest of the API. It
+answers three questions:
 
-```bash
-curl -X POST "https://api.unkey.dev/v1/keys.createKey" \
-  -H "Authorization: Bearer unkey_1234567890" \
-  -H "Content-Type: application/json" \
-  -d '{ "apiId": "api_1234" }'
+- Which workspace is this request scoped to?
+- Who or what appears as the actor in audit logs?
+- Which permissions can this caller use?
+
+That boundary is the main reason the API uses a unified auth flow. It lets the
+API add or change credential sources without spreading source-specific logic
+through handlers.
+
+## Credential sources
+
+Credential sources differ in how they prove identity, how long they live, and
+who they represent. After verification, they all produce the same principal
+concept.
+
+```mermaid
+flowchart LR
+    A["Root key"] --> D["Principal"]
+    B["Portal session"] --> D
+    C["Future JWT"] -.-> D
+    D --> E["Workspace"]
+    D --> F["Audit actor"]
+    D --> G["Permissions"]
 ```
 
-## Security best practices
+Root keys represent machine-to-machine access. They are long-lived credentials
+owned by a workspace and are suitable for public API clients.
 
-Never expose your root key in client-side code or public repositories. Use a backend server to proxy requests for frontend applications.
+Portal sessions represent an end user acting through the customer portal. They
+are browser-oriented credentials and grant the permissions attached to that
+session.
 
-## Root key management
+JWTs are a future source for short-lived bearer authentication. The important
+design constraint is that adding JWTs does not change how handlers authorize
+or audit requests.
 
-Manage root keys in the Unkey dashboard. Best practices:
+## Principal model
 
-1. Use different keys for development, staging, and production.
-2. Rotate keys regularly.
-3. Use clear key names.
+A principal is not the raw credential. It is the normalized identity that the API
+trusts after verification.
 
-## Key permissions system
+A principal contains:
 
-Permissions are tuples of:
+- A workspace scope for reads, writes, and limits.
+- A subject for audit logs.
+- A credential source type for debugging and policy decisions.
+- A permission set for authorization.
 
-- ResourceType: category of resource (api, ratelimit, rbac, identity)
-- ResourceID: specific resource instance
-- Action: operation to perform
+The subject is deliberately separate from the source. For example, a root key
+and a portal session are different sources, but both still need a stable actor
+for audit logs. Keeping the audit subject inside the principal avoids coupling
+authentication to the audit log implementation.
 
-### Available resource types
+The API principal shape intentionally stays close to the frontline principal
+model. Long term, the API can run behind frontline and consume the same concept
+instead of maintaining a separate auth model.
 
-| Resource type | Description |
-| --- | --- |
-| `api` | API resources such as endpoints and keys |
-| `ratelimit` | Rate limiting resources and configuration |
-| `rbac` | Permission and role management |
-| `identity` | User and identity management |
+## Permission checks
 
-### Permission examples
+Authentication only proves who the caller is. Authorization decides what that
+caller can do.
 
-Specific permission to manage a single API:
+The API keeps permission checks after authentication so every operation can ask
+for the permission that matches the resource and action it is about to perform.
+This keeps broad authentication success from becoming broad API access.
 
-```plaintext
-api.api_1234.read_api
-api.api_1234.update_api
+```mermaid
+flowchart TD
+    A["Principal"] --> B["Requested operation"]
+    B --> C["Required permission"]
+    A --> D["Granted permissions"]
+    C --> E["Authorization decision"]
+    D --> E
+    E --> F["Allow"]
+    E --> G["Deny"]
 ```
 
-Wildcard permission to manage all rate limit namespaces:
+Most operations check a concrete resource and action. Some operations need a
+broader predicate, such as "does this caller have any permission to verify keys
+for API resources?" Those predicates still belong to the permission system
+because they answer an authorization question, not an authentication question.
 
-```plaintext
-ratelimit.*.create_namespace
-ratelimit.*.read_namespace
-```
+## Audit logging
 
-## Authentication errors
+Audit logging records the action performed by an authenticated principal. It
+does not need to record the act of verifying the root key itself.
 
-If authentication fails, you receive a 401 or 403 response:
+This distinction matters because credential verification can happen as a
+mechanical step on many requests, while audit logs are meant to capture
+security-relevant product actions. The action audit uses the principal's subject
+as the actor.
 
-```json
-{
-  "meta": {
-    "requestId": "req_abc123xyz789"
-  },
-  "error": {
-    "title": "Unauthorized",
-    "detail": "The provided root key is invalid or has been revoked",
-    "status": 401,
-    "type": "https://unkey.com/docs/errors/unauthorized"
-  }
-}
-```
+## Tradeoffs
 
-Common issues include missing headers, invalid key format, revoked keys, or insufficient permissions.
+A unified principal adds a small normalization layer, but it removes repeated
+credential-specific branching from handlers. That makes it easier to add new
+credential sources without changing every API operation.
+
+Keeping authorization with the authentication boundary makes the call site
+explicit: authenticate the request, then authorize the operation. The
+alternative is to put permission methods on the principal, but that makes the
+principal depend on authorization behavior. The API treats the principal as data
+and keeps policy evaluation in the authentication and permission layers.
+
+The model also keeps audit logging separate from authentication. Authentication
+produces the subject that audit logging needs, but the audit system owns how
+actions are recorded.

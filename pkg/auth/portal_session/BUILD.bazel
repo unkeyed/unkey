@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "portal_session",
+    srcs = [
+        "doc.go",
+        "resolver.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/auth/portal_session",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/portal",
+        "//pkg/auth",
+        "//pkg/zen",
+    ],
+)
+
+go_test(
+    name = "portal_session_test",
+    srcs = ["resolver_test.go"],
+    embed = [":portal_session"],
+    deps = [
+        "//internal/services/portal",
+        "//pkg/auth",
+        "//pkg/rbac",
+        "//pkg/zen",
+        "@com_github_stretchr_testify//require",
+    ],
+)

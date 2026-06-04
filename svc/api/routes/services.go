@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -31,6 +32,10 @@ type Services struct {
 	// Keys handles API key authentication, verification, and authorization
 	// checks for incoming requests.
 	Keys keys.KeyService
+
+	// Auth normalizes supported credential sources into principals and performs
+	// RBAC authorization checks.
+	Auth auth.Service
 
 	// ClickHouse provides query access to ClickHouse for analytics.
 	ClickHouse clickhouse.ClickHouse

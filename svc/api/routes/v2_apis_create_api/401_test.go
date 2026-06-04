@@ -18,7 +18,7 @@ func TestCreateApi_Unauthorized(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
+		Auth:      h.Auth,
 		Auditlogs: h.Auditlogs,
 	}
 

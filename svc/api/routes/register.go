@@ -252,7 +252,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2ApisCreateApi.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -410,6 +410,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		defaultMiddlewares,
 		&v2KeysVerifyKey.Handler{
 			DB:        svc.Database,
+			Auth:      svc.Auth,
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},

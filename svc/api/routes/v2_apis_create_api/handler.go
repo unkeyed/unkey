@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -19,12 +19,14 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-type Request = openapi.V2ApisCreateApiRequestBody
-type Response = openapi.V2ApisCreateApiResponseBody
+type (
+	Request  = openapi.V2ApisCreateApiRequestBody
+	Response = openapi.V2ApisCreateApiResponseBody
+)
 
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
+	Auth      auth.Service
 	Auditlogs auditlogs.AuditLogService
 }
 
@@ -37,8 +39,7 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := h.Auth.Authenticate(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -48,13 +49,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateAPI,
-		}),
-	)))
+	err = h.Auth.Authorize(ctx, principal, rbac.T(rbac.Tuple{
+		ResourceType: rbac.Api,
+		ResourceID:   "*",
+		Action:       rbac.CreateAPI,
+	}))
 	if err != nil {
 		return err
 	}
@@ -63,7 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keySpaceId := uid.New(uid.KeySpacePrefix)
 		err = db.Query.InsertKeySpace(ctx, tx, db.InsertKeySpaceParams{
 			ID:                 keySpaceId,
-			WorkspaceID:        auth.AuthorizedWorkspaceID,
+			WorkspaceID:        principal.WorkspaceID,
 			CreatedAtM:         time.Now().UnixMilli(),
 			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
 			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
@@ -80,7 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = db.Query.InsertApi(ctx, tx, db.InsertApiParams{
 			ID:          apiId,
 			Name:        req.Name,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: principal.WorkspaceID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: keySpaceId},
 			IpWhitelist: sql.NullString{Valid: false, String: ""},
@@ -95,13 +94,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.APICreateEvent,
 				Display:       fmt.Sprintf("Created API %s", apiId),
-				ActorID:       auth.Key.ID,
-				ActorName:     "root key",
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
-				ActorType:     auditlog.RootKeyActor,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",

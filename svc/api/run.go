@@ -19,11 +19,14 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
+	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -305,6 +308,15 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
+	portalSvc := portal.New(portal.Config{
+		DB:           database,
+		SessionCache: caches.PortalSession,
+	})
+
+	authSvc := auth.New(
+		portalsession.NewResolver(portalSvc),
+		keys.NewRootKeyResolver(keySvc),
+	)
 
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)
@@ -350,6 +362,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ApiRequests:          apiRequests,
 		RatelimitEvents:      ratelimits,
 		Keys:                 keySvc,
+		Auth:                 authSvc,
 		Validator:            validator,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,
