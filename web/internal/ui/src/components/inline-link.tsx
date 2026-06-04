@@ -34,7 +34,11 @@ const InlineLink: React.FC<InlineLinkProps> = ({
   ...props
 }) => {
   return (
-    <a href={href} className={cn(className, "underline inline-flex hover:opacity-70")} {...props}>
+    <a
+      href={href}
+      className={cn(className, "underline underline-offset-2 inline-flex hover:opacity-70")}
+      {...props}
+    >
       <span className="inline-flex gap-x-1 items-center">
         {iconPosition === "left" && icon && <span aria-hidden="true">{icon}</span>}
         {label}
