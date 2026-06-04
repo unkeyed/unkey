@@ -17,7 +17,11 @@ import { NavLinkList } from "./nav-link-list";
 
 export function SidebarBody() {
   const context = useSectionContext();
-  const segments = useSelectedLayoutSegments().slice(1);
+  // useSelectedLayoutSegments includes route groups like "(project)"; strip
+  // them so the index-based page lookups in leaves.ts stay stable.
+  const segments = useSelectedLayoutSegments()
+    .slice(1)
+    .filter((segment) => !segment.startsWith("("));
   const { slug } = useWorkspaceNavigation();
   const keyAuthId = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
 
