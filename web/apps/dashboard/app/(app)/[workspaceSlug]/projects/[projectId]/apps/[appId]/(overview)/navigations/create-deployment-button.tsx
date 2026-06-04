@@ -35,6 +35,10 @@ import { parseForkRef } from "./parse-fork-ref";
 // pasting their reference into the input.
 const MAX_IMAGE_ROWS = 10;
 
+// Statuses proving the image deployed successfully at some point; in-flight
+// and failed deployments are excluded.
+const DEPLOYED_STATUSES = new Set(["ready", "stopped", "superseded"]);
+
 const DynamicDialogContainer = dynamic(
   () =>
     import("@unkey/ui").then((mod) => ({
@@ -202,7 +206,9 @@ export const CreateDeploymentButton = ({
   const imageRows = deployments
     .filter(
       (d, i, all) =>
-        d.image && d.status === "ready" && all.findIndex((o) => o.image === d.image) === i,
+        d.image &&
+        DEPLOYED_STATUSES.has(d.status) &&
+        all.findIndex((o) => o.image === d.image) === i,
     )
     .slice(0, MAX_IMAGE_ROWS);
 
