@@ -24,7 +24,7 @@ export function PageShellExample({ rail = false, fullWidth = false }: PageShellE
   if (fullWidth) {
     return (
       <div className="pb-8">
-        <div className="border-grayA-4 border-b px-4 pt-4 pb-4">
+        <div className="border-grayA-4 border-b px-4 pt-4 pb-4 lg:px-6 xl:px-10">
           <PageHeader>
             <PageHeaderContent>
               <PageHeaderTitle>Logs</PageHeaderTitle>

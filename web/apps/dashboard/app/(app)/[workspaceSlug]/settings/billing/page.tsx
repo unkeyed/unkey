@@ -36,18 +36,24 @@ export default function BillingPage() {
 
   // Wait for workspace to load before proceeding
   if (isLoading) {
-    return <PageLoading message="Loading billing..." />;
+    return (
+      <BillingChrome>
+        <PageLoading message="Loading billing..." />
+      </BillingChrome>
+    );
   }
 
   if (isError) {
     return (
-      <Empty>
-        <Empty.Title>Failed to load usage data</Empty.Title>
-        <Empty.Description>
-          {error?.message ||
-            "There was an error loading your usage information. Please try again later."}
-        </Empty.Description>
-      </Empty>
+      <BillingChrome>
+        <Empty>
+          <Empty.Title>Failed to load usage data</Empty.Title>
+          <Empty.Description>
+            {error?.message ||
+              "There was an error loading your usage information. Please try again later."}
+          </Empty.Description>
+        </Empty>
+      </BillingChrome>
     );
   }
   if (isLegacy) {

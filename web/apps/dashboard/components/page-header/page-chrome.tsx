@@ -46,7 +46,7 @@ export function PageChrome({ header, legacyHeader, children, width = "default" }
   if (width === "full") {
     return (
       <>
-        <div className="border-grayA-4 border-b px-4 pt-4 pb-4">{header}</div>
+        <div className="border-grayA-4 border-b px-4 lg:px-6 xl:px-10 pt-4 pb-4">{header}</div>
         {children}
       </>
     );
