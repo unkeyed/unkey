@@ -13,18 +13,18 @@ Permissions follow the pattern `{resource}.{scope}.{action}`. The scope determin
 
 The scope can be either a wildcard (`*`) or a specific resource ID:
 
-- `api.*.create_key` grants `create_key` on **all** APIs in the workspace.
-- `api.api_abc123.create_key` grants `create_key` on **only** that specific API.
+- `api.*.create_key` grants `create_key` on **all** keyspaces in the workspace.
+- `api.api_abc123.create_key` grants `create_key` on **only** that specific keyspace.
 
-The wildcard `*` means "all current and future resources of this type." A root key with `api.*.read_key` automatically gains read access to any API created after the key was issued. A key with `api.api_abc123.read_key` can only read keys belonging to that one API, even if new APIs are created later.
+The wildcard `*` means "all current and future resources of this type." A root key with `api.*.read_key` automatically gains read access to any keyspace created after the key was issued. A key with `api.api_abc123.read_key` can only read keys belonging to that one keyspace, even if new keyspaces are created later.
 
 You can mix wildcards and specific IDs on the same root key. For example, a key for your billing service might have:
 
-- `api.*.verify_key` to verify keys across all APIs
-- `api.api_billing.create_key` to create keys in only the billing API
+- `api.*.verify_key` to verify keys across all keyspaces
+- `api.api_billing.create_key` to create keys in only the billing keyspace
 - `ratelimit.*.limit` to enforce rate limits in any namespace
 
-When configuring a root key in the dashboard, workspace-wide permissions (using `*`) are listed at the top under "Workspace." Below them, under "From APIs," each individual API in your workspace is listed so you can grant API-scoped permissions selectively.
+When configuring a root key in the dashboard, workspace-wide permissions (using `*`) are listed at the top under "Workspace." Below them, under "From APIs," each keyspace in your workspace is listed so you can grant keyspace-scoped permissions selectively.
 
 <Frame>
   <img className="block dark:hidden" src="/platform/root-keys/root-key-permissions-light.png" alt="Permission selection sheet" />
@@ -35,28 +35,28 @@ When configuring a root key in the dashboard, workspace-wide permissions (using 
 
 If a root key attempts an operation it does not have permission for, the Unkey API returns a `403 Forbidden` response with an error indicating which permission is missing. Check the error message to determine which permission to add to the key.
 
-## API permissions
+## Keyspace permissions
 
-These permissions control management of API resources in your workspace.
+These permissions control management of keyspaces in your workspace.
 
 <ResponseField name="api.*.create_api">
-  Create new APIs in the workspace. There is no API-scoped variant of this permission, since the API does not exist yet at creation time.
+  Create new keyspaces in the workspace. There is no keyspace-scoped variant of this permission, since the keyspace does not exist yet at creation time.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.read_api">
-  Read information about an API, including its name, configuration, and keyspace settings. Use `api.*.read_api` to read all APIs.
+  Read information about a keyspace, including its name, configuration, and settings. Use `api.*.read_api` to read all keyspaces.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.update_api">
-  Update an API's configuration. Use `api.*.update_api` to update any API.
+  Update a keyspace's configuration. Use `api.*.update_api` to update any keyspace.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.delete_api">
-  Delete an API and all its associated keys. Granting this on a specific API does not grant delete access to other APIs. Use `api.*.delete_api` to delete any API.
+  Delete a keyspace and all its associated keys. Granting this on a specific keyspace does not grant delete access to other keyspaces. Use `api.*.delete_api` to delete any keyspace.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.read_analytics">
-  Query analytics data for an API using SQL. Use `api.*.read_analytics` to query across all APIs.
+  Query analytics data for a keyspace using SQL. Use `api.*.read_analytics` to query across all keyspaces.
 </ResponseField>
 
 ## Key permissions
@@ -64,31 +64,31 @@ These permissions control management of API resources in your workspace.
 These permissions control creation, verification, and management of API keys.
 
 <ResponseField name="api.{apiId}.create_key">
-  Create new keys in an API's keyspace. Use `api.*.create_key` to create keys in any API.
+  Create new keys in a keyspace. Use `api.*.create_key` to create keys in any keyspace.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.read_key">
-  Read information and analytics about keys, including metadata, expiration, remaining uses, and rate limit configuration. Use `api.*.read_key` to read keys across all APIs.
+  Read information and analytics about keys, including metadata, expiration, remaining uses, and rate limit configuration. Use `api.*.read_key` to read keys across all keyspaces.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.update_key">
-  Update a key's metadata, rate limits, expiration, remaining uses, or other properties. Use `api.*.update_key` to update keys in any API.
+  Update a key's metadata, rate limits, expiration, remaining uses, or other properties. Use `api.*.update_key` to update keys in any keyspace.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.delete_key">
-  Delete keys belonging to an API. Use `api.*.delete_key` to delete keys in any API.
+  Delete keys belonging to a keyspace. Use `api.*.delete_key` to delete keys in any keyspace.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.verify_key">
-  Verify API keys and enforce their rate limits and permissions. This is the permission your backend server needs to validate incoming requests from your users. Use `api.*.verify_key` to verify keys across all APIs.
+  Verify API keys and enforce their rate limits and permissions. This is the permission your backend server needs to validate incoming requests from your users. Use `api.*.verify_key` to verify keys across all keyspaces.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.encrypt_key">
-  Encrypt keys belonging to an API. Unkey stores API keys as hashes by default. With this permission, you can store an encrypted copy of the plaintext key that can be retrieved later. Use `api.*.encrypt_key` for all APIs.
+  Encrypt keys belonging to a keyspace. Unkey stores API keys as hashes by default. With this permission, you can store an encrypted copy of the plaintext key that can be retrieved later. Use `api.*.encrypt_key` for all keyspaces.
 </ResponseField>
 
 <ResponseField name="api.{apiId}.decrypt_key">
-  Decrypt keys belonging to an API. Required to retrieve the original plaintext value of a key that was stored with encryption. Without this permission, you can verify a key but cannot recover its value. Use `api.*.decrypt_key` for all APIs.
+  Decrypt keys belonging to a keyspace. Required to retrieve the original plaintext value of a key that was stored with encryption. Without this permission, you can verify a key but cannot recover its value. Use `api.*.decrypt_key` for all keyspaces.
 </ResponseField>
 
 ## Rate limit permissions
