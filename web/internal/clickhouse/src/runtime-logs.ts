@@ -58,7 +58,6 @@ export function getRuntimeLogs(ch: Querier) {
     const wheres: string[] = [
       "workspace_id = {workspaceId: String}",
       "project_id = {projectId: String}",
-      "app_id = {appId: String}",
       "time BETWEEN {startTime: Int64} AND {endTime: Int64}",
       // Prunes partitions; see INGESTION_LAG_GRACE_MS.
       `toDate(fromUnixTimestamp64Milli(inserted_at))

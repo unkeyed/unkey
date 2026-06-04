@@ -47,13 +47,10 @@ export const querySentinelLogs = workspaceProcedure
         });
       }
 
+      // No environment filter = project-wide: every app and environment.
+      // Environments are per-app, so forcing a single "production" env here
+      // would silently scope the view to one arbitrary app.
       const transformedInputs = transformSentinelLogsFilters(input);
-
-      if (transformedInputs.environmentId.length === 0) {
-        const prod =
-          project.environments.find((e) => e.slug === "production") ?? project.environments[0];
-        transformedInputs.environmentId = [prod.id];
-      }
 
       const { logsQuery, totalQuery } = await clickhouse.sentinel.logs({
         workspaceId: ctx.workspace.id,
