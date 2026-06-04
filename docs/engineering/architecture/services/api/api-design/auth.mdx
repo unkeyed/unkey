@@ -23,19 +23,6 @@ The API auth flow has five conceptual steps:
 4. Attach the principal to the request session.
 5. Check the principal's permissions before data access or mutation.
 
-```mermaid
-flowchart TD
-    A["Incoming request"] --> B["Credential"]
-    B --> C["Verification"]
-    C --> D["Principal"]
-    D --> E["Session"]
-    E --> F["Workspace API rate limit"]
-    F --> G["Handler"]
-    G --> H["Permission check"]
-    H --> I["Scoped API operation"]
-    D --> J["Audit subject"]
-```
-
 The principal is the boundary between authentication and the rest of the API. It
 answers three questions:
 
@@ -91,9 +78,9 @@ concept.
 flowchart LR
     A["Root key"] --> D["Principal"]
     B["Portal session"] --> D
-    C["JWT"] -.-> D
+    C["JWT"] --> D
     D --> E["Workspace"]
-    D --> F["Audit actor"]
+    D --> F["Actor"]
     D --> G["Permissions"]
 ```
 
@@ -104,9 +91,51 @@ Portal sessions represent an end user acting through the customer portal. They
 are browser-oriented credentials and grant the permissions attached to that
 session.
 
-JWT support is scaffolded for short-lived bearer authentication. The important
-design constraint is that adding a credential source does not change how
-handlers authorize or audit requests.
+JWTs represent short-lived bearer authentication from trusted Unkey-owned
+callers. The dashboard proxy uses this source to call the API without exposing a
+root key to browser code. The important design constraint is that adding a
+credential source does not change how handlers authorize or audit requests.
+
+## Dashboard proxy
+
+The dashboard proxy is an internal bridge between browser-authenticated
+dashboard sessions and the API's bearer authentication model. Browser code calls
+the dashboard, not the API directly. The dashboard verifies the user's dashboard
+session, maps the organization to a workspace, mints a short-lived JWT, and
+forwards the API request with that JWT as the bearer credential.
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Dashboard
+    participant API
+
+    Browser->>Dashboard: Call dashboard proxy
+    Dashboard->>Dashboard: Verify dashboard session
+    Dashboard->>Dashboard: Resolve workspace and actor
+    Dashboard->>Dashboard: Mint short-lived JWT
+    Dashboard->>API: Forward request with bearer JWT
+    API->>API: Verify issuer, audience, signature, and time claims
+    API->>API: Normalize JWT claims into principal
+    API->>API: Apply workspace API rate limit
+    API->>API: Check handler permission
+```
+
+The proxy exists so the dashboard can use the same API surface that external
+clients use while keeping browser credentials scoped to the dashboard. The
+browser never receives the API signing secret or a root key. The API still owns
+authorization because it verifies the JWT, builds the principal, applies the
+workspace rate limit, and checks the handler's required permission.
+
+The dashboard signs with one active secret. The API verifies with an ordered
+list of secrets so deployments can rotate signing keys safely. Add the new
+secret to the API verification list before the dashboard starts signing with it,
+then remove the old secret after every token signed with the old secret has
+expired.
+
+The proxy rejects caller-supplied authorization headers. It builds the upstream
+request headers itself so browser cookies and dashboard session headers do not
+cross the service boundary.
 
 ## Principal model
 
@@ -142,17 +171,6 @@ caller can do.
 The API keeps permission checks after authentication so every operation can ask
 for the permission that matches the resource and action it is about to perform.
 This keeps broad authentication success from becoming broad API access.
-
-```mermaid
-flowchart TD
-    A["Principal"] --> B["Requested operation"]
-    B --> C["Required permission"]
-    A --> D["Granted permissions"]
-    C --> E["Authorization decision"]
-    D --> E
-    E --> F["Allow"]
-    E --> G["Deny"]
-```
 
 Most operations check a concrete resource and action. Some operations need a
 broader predicate, such as "does this caller have any permission to verify keys
