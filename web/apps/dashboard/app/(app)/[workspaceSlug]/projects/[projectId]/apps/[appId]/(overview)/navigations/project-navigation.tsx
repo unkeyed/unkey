@@ -3,7 +3,12 @@ import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-but
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { ArrowDottedRotateAnticlockwise, ChevronExpandY, Cube, SquareBulletList } from "@unkey/icons";
+import {
+  ArrowDottedRotateAnticlockwise,
+  ChevronExpandY,
+  Cube,
+  SquareBulletList,
+} from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";

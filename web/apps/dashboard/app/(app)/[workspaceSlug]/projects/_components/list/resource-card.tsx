@@ -17,6 +17,8 @@ type ResourceCardProps = {
   actions?: ReactNode;
   /** Card link target. Projects link to their home; apps link to deployments. */
   href: string;
+  /** Icon shown in the card's avatar slot. Defaults to Cube. */
+  icon?: ReactNode;
 };
 
 export const ResourceCard = ({
@@ -29,6 +31,7 @@ export const ResourceCard = ({
   authorAvatar,
   actions,
   href,
+  icon,
 }: ResourceCardProps) => {
   const [isNavigating, setIsNavigating] = useState(false);
 
@@ -51,7 +54,7 @@ export const ResourceCard = ({
           {isNavigating ? (
             <Loading size={20} className="text-grayA-11" />
           ) : (
-            <Cube iconSize="xl-medium" className="shrink-0 size-5" />
+            (icon ?? <Cube iconSize="xl-medium" className="shrink-0 size-5" />)
           )}
         </div>
         <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">

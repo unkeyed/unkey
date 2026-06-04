@@ -2,7 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Dots, Plus } from "@unkey/icons";
+import { Dots, Github, Plus, Terminal } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { ResourceCard } from "../../../_components/list/resource-card";
@@ -47,6 +47,13 @@ export const AppsList = () => {
               <ResourceCard
                 key={app.id}
                 href={`/${workspace.slug}/projects/${projectId}/apps/${app.id}/deployments`}
+                icon={
+                  app.repositoryFullName ? (
+                    <Github iconSize="xl-medium" className="shrink-0 size-5" />
+                  ) : (
+                    <Terminal iconSize="xl-medium" className="shrink-0 size-5" />
+                  )
+                }
                 name={app.name}
                 domain={app.domain}
                 commitTitle={app.commitTitle}

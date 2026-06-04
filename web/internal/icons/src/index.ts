@@ -156,6 +156,7 @@ export * from "./icons/sun";
 export * from "./icons/tag";
 export * from "./icons/task-checked";
 export * from "./icons/task-unchecked";
+export * from "./icons/terminal";
 export * from "./icons/text-input";
 export * from "./icons/time-clock";
 export * from "./icons/trash";
