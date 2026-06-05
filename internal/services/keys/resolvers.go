@@ -51,14 +51,10 @@ func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*prin
 			Type: principal.SubjectTypeRootKey,
 		},
 		Type: principal.TypeAPIKey,
-		Source: principal.Source{
-			Key: &principal.KeySource{
-				KeyID:       key.Key.ID,
-				KeySpaceID:  key.Key.KeyAuthID,
-				Permissions: permissions,
-			},
-			JWT:           nil,
-			PortalSession: nil,
+		Source: principal.KeySource{
+			KeyID:       key.Key.ID,
+			KeySpaceID:  key.Key.KeyAuthID,
+			Permissions: permissions,
 		},
 		WorkspaceID: key.AuthorizedWorkspaceID,
 		Permissions: key.Permissions,

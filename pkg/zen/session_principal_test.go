@@ -33,7 +33,7 @@ func TestSession_PrincipalScopesWorkspaceMetadata(t *testing.T) {
 		Version:     principal.Version,
 		Subject:     principal.Subject{ID: "root_key_123", Name: "Root Key", Type: principal.SubjectTypeRootKey},
 		Type:        principal.TypeAPIKey,
-		Source:      principal.Source{Key: &principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"}},
+		Source:      principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"},
 		WorkspaceID: "ws_123",
 		Permissions: []string{"api.*.read_key"},
 	}
@@ -60,7 +60,7 @@ func TestSession_ResetClearsPrincipal(t *testing.T) {
 		Version:     principal.Version,
 		Subject:     principal.Subject{ID: "root_key_123", Name: "Root Key", Type: principal.SubjectTypeRootKey},
 		Type:        principal.TypeAPIKey,
-		Source:      principal.Source{Key: &principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"}},
+		Source:      principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"},
 		WorkspaceID: "ws_123",
 		Permissions: []string{"api.*.read_key"},
 	})

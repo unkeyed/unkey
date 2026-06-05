@@ -82,12 +82,11 @@ func TestRootKeyResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	require.Equal(t, "Production root key", p.Subject.Name)
 	require.Equal(t, "ws_123", p.WorkspaceID)
 	require.Equal(t, []string{"api.*.read_key"}, p.Permissions)
-	require.NotNil(t, p.Source.Key)
-	require.Equal(t, "key_123", p.Source.Key.KeyID)
-	require.Equal(t, "ks_123", p.Source.Key.KeySpaceID)
-	require.Equal(t, []string{"api.*.read_key"}, p.Source.Key.Permissions)
-	require.Nil(t, p.Source.JWT)
-	require.Nil(t, p.Source.PortalSession)
+	source, ok := p.Source.(authprincipal.KeySource)
+	require.True(t, ok)
+	require.Equal(t, "key_123", source.KeyID)
+	require.Equal(t, "ks_123", source.KeySpaceID)
+	require.Equal(t, []string{"api.*.read_key"}, source.Permissions)
 }
 
 // TestRootKeyResolver_PropagatesRootKeyError verifies root-key verification

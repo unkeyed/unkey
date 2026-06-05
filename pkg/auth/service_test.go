@@ -129,7 +129,7 @@ func testPrincipal(workspaceID string) *principal.Principal {
 			Type: principal.SubjectTypeUser,
 		},
 		Type:        principal.TypeJWT,
-		Source:      principal.Source{Key: nil, JWT: nil, PortalSession: nil},
+		Source:      principal.JWTSource{},
 		WorkspaceID: workspaceID,
 		Permissions: []string{"api.*.create_api"},
 	}

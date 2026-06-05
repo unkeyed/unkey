@@ -51,10 +51,11 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	require.Equal(t, authprincipal.TypePortalSession, principal.Type)
 	require.Equal(t, "customer_123", principal.Subject.ID)
 	require.Equal(t, "ws_123", principal.WorkspaceID)
-	require.NotNil(t, principal.Source.PortalSession)
-	require.Equal(t, "portal_session_123", principal.Source.PortalSession.SessionID)
-	require.Equal(t, "pc_123", principal.Source.PortalSession.PortalConfigID)
-	require.Equal(t, []string{"api.*.read_key"}, principal.Source.PortalSession.Permissions)
+	source, ok := principal.Source.(authprincipal.PortalSessionSource)
+	require.True(t, ok)
+	require.Equal(t, "portal_session_123", source.SessionID)
+	require.Equal(t, "pc_123", source.PortalConfigID)
+	require.Equal(t, []string{"api.*.read_key"}, source.Permissions)
 	require.True(t, rbac.HasAnyPermission(principal.Permissions, rbac.Api, rbac.ReadKey))
 }
 

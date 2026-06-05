@@ -172,7 +172,7 @@ func testMiddlewarePrincipal(workspaceID string) *principal.Principal {
 			Type: principal.SubjectTypeRootKey,
 		},
 		Type:        principal.TypeAPIKey,
-		Source:      principal.Source{Key: &principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"}},
+		Source:      principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"},
 		WorkspaceID: workspaceID,
 		Permissions: []string{"api.*.read_key"},
 	}

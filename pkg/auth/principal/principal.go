@@ -46,8 +46,7 @@ type Principal struct {
 	// Type identifies which authentication method produced this principal.
 	Type Type
 
-	// Source carries the method-specific authentication details. Resolvers
-	// populate exactly one field for an authenticated principal.
+	// Source carries the method-specific authentication details.
 	Source Source
 
 	// WorkspaceID scopes all handler reads and writes for this principal.
@@ -58,7 +57,6 @@ type Principal struct {
 }
 
 // Authorize evaluates this principal's permissions against the query.
-//
 func (p *Principal) Authorize(query rbac.PermissionQuery) error {
 	return rbac.Check(query, p.Permissions)
 }
@@ -76,15 +74,8 @@ type Subject struct {
 }
 
 // Source is the discriminated union over authentication-method details.
-type Source struct {
-	// Key is populated when Type is API_KEY.
-	Key *KeySource
-
-	// JWT is populated when Type is JWT.
-	JWT *JWTSource
-
-	// PortalSession is populated when Type is PORTAL_SESSION.
-	PortalSession *PortalSessionSource
+type Source interface {
+	principalSource()
 }
 
 // KeySource carries the API key detail that authenticated the request.
@@ -98,6 +89,8 @@ type KeySource struct {
 	// Permissions are the raw RBAC permission strings attached to the key.
 	Permissions []string
 }
+
+func (KeySource) principalSource() {}
 
 // JWTSource carries decoded JWT details used by the API auth resolver.
 //
@@ -113,6 +106,8 @@ type JWTSource struct {
 	// Signature is the raw signature string from the token's third segment.
 	Signature string
 }
+
+func (JWTSource) principalSource() {}
 
 // PortalSessionSource carries the portal session detail that authenticated the request.
 //
@@ -131,3 +126,5 @@ type PortalSessionSource struct {
 	// Permissions are the raw RBAC permission strings attached to the portal session.
 	Permissions []string
 }
+
+func (PortalSessionSource) principalSource() {}

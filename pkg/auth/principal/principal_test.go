@@ -14,8 +14,8 @@ func TestAuthorizeChecksPrincipalPermissions(t *testing.T) {
 	p := &Principal{
 		Version:     "",
 		Subject:     Subject{ID: "", Name: "", Type: ""},
-		Type:        "",
-		Source:      Source{Key: nil, JWT: nil, PortalSession: nil},
+		Type:        TypeAPIKey,
+		Source:      KeySource{},
 		WorkspaceID: "",
 		Permissions: []string{"api.*.create_api"},
 	}

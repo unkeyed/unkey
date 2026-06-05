@@ -57,9 +57,10 @@ func TestResolver_ResolveJWT(t *testing.T) {
 	require.Equal(t, "user_123", principal.Subject.ID)
 	require.Equal(t, "Dashboard User", principal.Subject.Name)
 	require.Equal(t, "ws_123", principal.WorkspaceID)
-	require.NotNil(t, principal.Source.JWT)
-	require.Equal(t, "ws_123", principal.Source.JWT.Payload["wid"])
-	require.NotEmpty(t, principal.Source.JWT.Signature)
+	source, ok := principal.Source.(authprincipal.JWTSource)
+	require.True(t, ok)
+	require.Equal(t, "ws_123", source.Payload["wid"])
+	require.NotEmpty(t, source.Signature)
 	require.True(t, rbac.HasAnyPermission(principal.Permissions, rbac.Api, rbac.CreateAPI))
 }
 

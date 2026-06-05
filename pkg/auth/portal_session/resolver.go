@@ -53,15 +53,11 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			Type: principal.SubjectTypeUser,
 		},
 		Type: principal.TypePortalSession,
-		Source: principal.Source{
-			Key: nil,
-			JWT: nil,
-			PortalSession: &principal.PortalSessionSource{
-				SessionID:      cookie.Value,
-				PortalConfigID: session.PortalConfigID,
-				ExternalID:     session.ExternalID,
-				Permissions:    session.Permissions,
-			},
+		Source: principal.PortalSessionSource{
+			SessionID:      cookie.Value,
+			PortalConfigID: session.PortalConfigID,
+			ExternalID:     session.ExternalID,
+			Permissions:    session.Permissions,
 		},
 		WorkspaceID: session.WorkspaceID,
 		Permissions: session.Permissions,

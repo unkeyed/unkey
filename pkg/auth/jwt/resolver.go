@@ -129,14 +129,10 @@ func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*principal.Pri
 			Type: principal.SubjectTypeUser,
 		},
 		Type: principal.TypeJWT,
-		Source: principal.Source{
-			Key: nil,
-			JWT: &principal.JWTSource{
-				Header:    header,
-				Payload:   payload,
-				Signature: segments[2],
-			},
-			PortalSession: nil,
+		Source: principal.JWTSource{
+			Header:    header,
+			Payload:   payload,
+			Signature: segments[2],
 		},
 		WorkspaceID: claims.WorkspaceID,
 		Permissions: claims.Permissions,
