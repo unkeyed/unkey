@@ -60,7 +60,11 @@ export const listApps = workspaceProcedure
       )
       .as("ranked_routes");
 
-    const [latestDeploymentRows, routeRows, repoRows] = await Promise.all([
+    const currentDeploymentIds = Array.from(
+      new Set(appRows.map((a) => a.currentDeploymentId).filter((id): id is string => Boolean(id))),
+    );
+
+    const [latestDeploymentRows, routeRows, repoRows, currentDeploymentRows] = await Promise.all([
       db
         .select({ appId: rankedDeployments.appId, id: rankedDeployments.id })
         .from(rankedDeployments)
@@ -84,34 +88,29 @@ export const listApps = workspaceProcedure
             inArray(githubRepoConnections.appId, appIds),
           ),
         ),
+      currentDeploymentIds.length
+        ? db
+            .select({
+              id: deployments.id,
+              gitCommitMessage: deployments.gitCommitMessage,
+              gitBranch: deployments.gitBranch,
+              gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
+              gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
+              gitCommitTimestamp: deployments.gitCommitTimestamp,
+            })
+            .from(deployments)
+            .where(
+              and(
+                eq(deployments.workspaceId, workspaceId),
+                inArray(deployments.id, currentDeploymentIds),
+              ),
+            )
+        : Promise.resolve([]),
     ]);
 
     const latestDeploymentByApp = new Map(latestDeploymentRows.map((r) => [r.appId, r]));
     const domainByApp = new Map(routeRows.map((r) => [r.appId, r]));
     const repoByApp = new Map(repoRows.map((r) => [r.appId, r]));
-
-    const currentDeploymentIds = Array.from(
-      new Set(appRows.map((a) => a.currentDeploymentId).filter((id): id is string => Boolean(id))),
-    );
-
-    const currentDeploymentRows = currentDeploymentIds.length
-      ? await db
-          .select({
-            id: deployments.id,
-            gitCommitMessage: deployments.gitCommitMessage,
-            gitBranch: deployments.gitBranch,
-            gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
-            gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
-            gitCommitTimestamp: deployments.gitCommitTimestamp,
-          })
-          .from(deployments)
-          .where(
-            and(
-              eq(deployments.workspaceId, workspaceId),
-              inArray(deployments.id, currentDeploymentIds),
-            ),
-          )
-      : [];
 
     const currentDeploymentById = new Map(currentDeploymentRows.map((d) => [d.id, d]));
 
