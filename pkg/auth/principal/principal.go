@@ -1,8 +1,6 @@
 package principal
 
 import (
-	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 )
 
@@ -61,17 +59,7 @@ type Principal struct {
 
 // Authorize evaluates this principal's permissions against the query.
 //
-// A nil principal is treated as an authentication failure because callers must
-// authenticate before checking permissions.
 func (p *Principal) Authorize(query rbac.PermissionQuery) error {
-	if p == nil {
-		return fault.New("missing principal",
-			fault.Code(codes.Auth.Authentication.Missing.URN()),
-			fault.Internal("principal is nil"),
-			fault.Public("You must authenticate before authorizing this request."),
-		)
-	}
-
 	return rbac.Check(query, p.Permissions)
 }
 

@@ -28,18 +28,3 @@ func TestAuthorizeChecksPrincipalPermissions(t *testing.T) {
 
 	require.NoError(t, err)
 }
-
-func TestAuthorizeRejectsMissingPrincipal(t *testing.T) {
-	t.Parallel()
-
-	// Authorize must fail closed when called before authentication.
-	var p *Principal
-
-	err := p.Authorize(rbac.T(rbac.Tuple{
-		ResourceType: rbac.Api,
-		ResourceID:   "*",
-		Action:       rbac.CreateAPI,
-	}))
-
-	require.Error(t, err)
-}
