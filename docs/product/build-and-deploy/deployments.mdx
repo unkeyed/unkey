@@ -69,6 +69,24 @@ The previous deployment stays running as part of [instant rollbacks](#instant-ro
 </Step>
 </Steps>
 
+## Deployment trigger
+
+Every deployment records **which surface started it** and **who** (or what) was responsible. This shows up as a small badge on the deployment row and on the deployment detail page, so you can tell at a glance whether a version came from a GitHub push, an API call, the CLI, or someone clicking a button in the dashboard.
+
+The possible triggers are:
+
+| Trigger | What it means | Who is attributed |
+| --- | --- | --- |
+| **GitHub** | A push to a connected branch fired a webhook | The GitHub user who pushed (`@handle`) |
+| **Dashboard** | Someone clicked **Deploy** in the Unkey dashboard | The workspace user |
+| **CLI** | `unkey deploy` ran against this project | The root key that authenticated the call |
+| **API** | A direct call to the deploy API created the deployment | The root key that authenticated the call |
+| **Unkey** | Unkey staff re-ran the deployment on your behalf (recovery, hotfix) | Highlighted in amber so it's obvious when this happens |
+
+Hover the badge to see the actor and an optional **reason** — a short free-form note attached to the deployment. The reason is most commonly populated for `Unkey`-triggered deployments (for example, `"rebuild after image loss"`) so the why is visible without digging into [audit logs](/audit-log/introduction).
+
+Deployments created before this attribution shipped don't have a trigger recorded and render without a badge.
+
 ## Instant rollbacks
 
 When a new production deployment goes live, the previous deployment isn't torn down immediately. It stays running so you can [roll back](/build-and-deploy/rollbacks) instantly if something goes wrong. No rebuild, no container startup, just an immediate domain reassignment back to the known-good version.
