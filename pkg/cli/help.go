@@ -271,7 +271,7 @@ func (c *Command) buildFlagName(flag Flag) string {
 
 // flagTypeLabel returns a human-readable type hint for a flag.
 func flagTypeLabel(flag Flag) string {
-	switch flag.(type) {
+	switch f := flag.(type) {
 	case *StringFlag:
 		return "string"
 	case *BoolFlag:
@@ -286,6 +286,10 @@ func flagTypeLabel(flag Flag) string {
 		return "strings"
 	case *DurationFlag:
 		return "duration"
+	case *EnumFlag:
+		// Surface the allowed values directly in the flag signature, e.g.
+		// --bump (patch|minor|major).
+		return "(" + strings.Join(f.Allowed(), "|") + ")"
 	default:
 		return ""
 	}
@@ -330,6 +334,8 @@ func (c *Command) getEnvVar(flag Flag) string {
 		return f.EnvVar()
 	case *DurationFlag:
 		return f.EnvVar()
+	case *EnumFlag:
+		return f.EnvVar()
 	default:
 		return ""
 	}
@@ -361,6 +367,10 @@ func (c *Command) getDefaultValue(flag Flag) string {
 	case *DurationFlag:
 		if f.HasValue() {
 			return f.Value().String()
+		}
+	case *EnumFlag:
+		if val := f.Value(); val != "" {
+			return fmt.Sprintf(`"%s"`, val)
 		}
 	}
 	return ""
