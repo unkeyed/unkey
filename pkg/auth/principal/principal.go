@@ -92,10 +92,7 @@ type KeySource struct {
 
 func (KeySource) principalSource() {}
 
-// JWTSource carries decoded JWT details used by the API auth resolver.
-//
-// This shape is a WIP placeholder for JWT authentication. The API does not
-// register JWT authentication yet.
+// JWTSource carries decoded JWT details used by dashboard-authenticated API requests.
 type JWTSource struct {
 	// Header is the decoded token header, when captured by the resolver.
 	Header map[string]any
