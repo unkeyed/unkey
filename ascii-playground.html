@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unkey ASCII "u" — twinkle field</title>
+    <style>
+      :root {
+        --bg: #0a0a0a; --panel: #111111; --border: #242424;
+        --text: #ededed; --muted: #8a8a8a; --accent: #ededed;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        background: var(--bg); color: var(--text);
+        font: 13px/1.5 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+        display: grid; grid-template-columns: 1fr 340px; height: 100vh; overflow: hidden;
+      }
+      .stage { display: flex; align-items: center; justify-content: center; padding: 40px; min-width: 0; }
+      .stage[data-theme="light"] { background: #fafafa; }
+      /* the contained square the art lives in */
+      .frame {
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 14px; border: 1px solid var(--border); background: #0d0d0d;
+        cursor: crosshair; position: relative;
+      }
+      .stage[data-theme="light"] .frame { background: #f4f4f5; border-color: #e4e4e7; }
+      pre#pre, canvas#cv { margin: 0; display: block; }
+      [hidden] { display: none !important; }
+      pre#pre {
+        font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+        white-space: pre; user-select: none;
+      }
+
+      .panel { background: var(--panel); border-left: 1px solid var(--border); padding: 18px; overflow-y: auto; }
+      .panel h1 { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
+      .panel .sub { color: var(--muted); font-size: 11px; margin: 0 0 4px; }
+      .meter { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; margin: 0 0 12px; }
+      .grp { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 18px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+      .field { margin-bottom: 12px; }
+      .field > label {
+        display: flex; justify-content: space-between; align-items: baseline;
+        font-size: 11px; color: var(--muted); margin-bottom: 5px;
+        text-transform: uppercase; letter-spacing: 0.04em;
+      }
+      .field > label .val { color: var(--text); font-variant-numeric: tabular-nums; }
+      input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+      input[type="text"] {
+        width: 100%; background: #0b0b0b; border: 1px solid var(--border); color: var(--text);
+        border-radius: 6px; padding: 6px 8px; font: 12px ui-monospace, monospace;
+      }
+      .seg { display: flex; gap: 4px; }
+      .seg button {
+        flex: 1; padding: 6px 4px; font-size: 11px; cursor: pointer;
+        background: #0b0b0b; color: var(--muted); border: 1px solid var(--border); border-radius: 6px;
+      }
+      .seg button[aria-pressed="true"] { background: var(--text); color: #000; border-color: var(--text); }
+      .actions { display: flex; gap: 8px; margin-top: 14px; }
+      .actions button {
+        flex: 1; padding: 8px; font-size: 12px; font-weight: 500; cursor: pointer;
+        background: var(--text); color: #000; border: none; border-radius: 6px;
+      }
+      .actions button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+      .toast {
+        position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+        background: var(--text); color: #000; padding: 8px 14px; border-radius: 8px;
+        font-size: 12px; font-weight: 500; opacity: 0; transition: opacity .2s; pointer-events: none;
+      }
+      .toast.show { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <div class="stage" id="stage" data-theme="dark">
+      <div class="frame" id="frame"><pre id="pre"></pre><canvas id="cv" hidden></canvas></div>
+    </div>
+
+    <div class="panel">
+      <h1>Unkey ASCII "u"</h1>
+      <p class="sub">Twinkle + densify under the cursor. Tune, then copy.</p>
+      <p class="meter" id="meter"></p>
+
+      <div class="field">
+        <label>Theme</label>
+        <div class="seg" id="theme">
+          <button data-v="dark" aria-pressed="true">Dark</button>
+          <button data-v="light">Light</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Renderer</label>
+        <div class="seg" id="renderer">
+          <button data-v="pre" aria-pressed="true">&lt;pre&gt; text</button>
+          <button data-v="canvas">Canvas</button>
+        </div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted);margin:-2px 0 6px;cursor:pointer"><input type="checkbox" id="respectRM" style="accent-color:var(--accent)" /> Respect reduced motion (preview fallback)</label>
+
+      <div class="grp">Grid</div>
+      <div class="field"><label>Columns <span class="val" id="colsV"></span></label><input type="range" id="cols" min="24" max="120" step="1" /></div>
+      <div class="field"><label>Font size <span class="val" id="fsV"></span></label><input type="range" id="fs" min="5" max="20" step="0.5" /></div>
+      <div class="field"><label>Char aspect (w/h) <span class="val" id="caV"></span></label><input type="range" id="ca" min="0.45" max="0.75" step="0.01" /></div>
+      <div class="field"><label>Line height <span class="val" id="lhV"></span></label><input type="range" id="lh" min="0.8" max="1.3" step="0.02" /></div>
+      <div class="field"><label>Dot spacing (px) <span class="val" id="gapV"></span></label><input type="range" id="gap" min="0" max="6" step="0.25" /></div>
+      <div class="field"><label>Dot character</label><input type="text" id="dot" maxlength="2" /></div>
+
+      <div class="grp">The "u"</div>
+      <div class="field"><label>Edge cutoff <span class="val" id="cutoffV"></span></label><input type="range" id="cutoff" min="0" max="0.6" step="0.01" /></div>
+      <div class="field"><label>Dot density (in "u") <span class="val" id="glevelV"></span></label><input type="range" id="glevel" min="0.4" max="1" step="0.02" /></div>
+      <div class="field"><label>Grain <span class="val" id="grainV"></span></label><input type="range" id="grain" min="0" max="0.6" step="0.02" /></div>
+
+      <div class="grp">Ambient field</div>
+      <div class="field"><label>Field dot density <span class="val" id="flevelV"></span></label><input type="range" id="flevel" min="0" max="0.4" step="0.005" /></div>
+      <div class="field"><label>Star density <span class="val" id="starDensityV"></span></label><input type="range" id="starDensity" min="0" max="0.4" step="0.01" /></div>
+      <div class="field"><label>Star brightness <span class="val" id="ambV"></span></label><input type="range" id="amb" min="0" max="1" step="0.02" /></div>
+      <div class="field"><label>Twinkle speed <span class="val" id="ambSpeedV"></span></label><input type="range" id="ambSpeed" min="0.1" max="3" step="0.05" /></div>
+      <div class="field"><label>Twinkle sharpness <span class="val" id="ambSharpV"></span></label><input type="range" id="ambSharp" min="1" max="10" step="0.5" /></div>
+
+      <div class="grp">Cursor</div>
+      <div class="field"><label>Radius (px) <span class="val" id="radiusV"></span></label><input type="range" id="radius" min="20" max="220" step="2" /></div>
+      <div class="field"><label>Falloff power <span class="val" id="powV"></span></label><input type="range" id="pow" min="1" max="6" step="0.1" /></div>
+      <div class="field"><label>Density boost <span class="val" id="boostV"></span></label><input type="range" id="boost" min="0" max="1.2" step="0.02" /></div>
+
+      <div class="grp">Sparkle &amp; trail</div>
+      <div class="field"><label>Sparkle amount <span class="val" id="twampV"></span></label><input type="range" id="twamp" min="0" max="2" step="0.05" /></div>
+      <div class="field"><label>Sparkle rate <span class="val" id="twrateV"></span></label><input type="range" id="twrate" min="0.05" max="1" step="0.05" /></div>
+      <div class="field"><label>Rise speed <span class="val" id="riseV"></span></label><input type="range" id="rise" min="0.1" max="1" step="0.02" /></div>
+      <div class="field"><label>Trail decay <span class="val" id="decayV"></span></label><input type="range" id="decay" min="0.7" max="0.98" step="0.005" /></div>
+
+      <div class="grp">Mount reveal</div>
+      <div class="field"><label>Reveal duration (ms) <span class="val" id="revV"></span></label><input type="range" id="rev" min="0" max="3000" step="50" /></div>
+      <div class="actions"><button class="ghost" id="replay">↻ Replay reveal</button></div>
+
+      <div class="actions">
+        <button id="copyReact">Copy React component</button>
+        <button class="ghost" id="copyJson">Config</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      // Unkey favicon "u" — two paths, solid fill. Mask sampled from alpha at runtime.
+      const PATHS =
+        'M170.8 115V340.6H341.2L284.4 397H170.8C139.418 397 114 371.761 114 340.6V115H170.8Z' +
+        '|M398 284.2L341.2 340.6V115H398V284.2Z';
+      const SVG = (() => {
+        const p = PATHS.split('|').map((d) => `<path d="${d}"/>`).join('');
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><g fill="#000">${p}</g></svg>`;
+      })();
+      const SRC = 256; // mask raster resolution
+
+      const $ = (id) => document.getElementById(id);
+      const stage = $('stage'), frame = $('frame'), pre = $('pre'), cv = $('cv'), meter = $('meter');
+      const ctx2d = cv.getContext('2d');
+
+      const cfg = {
+        theme: 'dark', renderer: 'pre',
+        cols: 60, fs: 3, ca: 0.6, lh: 1.0, gap: 0.75, dot: '▪',
+        cutoff: 0.12, glevel: 1.0, grain: 0.06,
+        flevel: 0.075,
+        radius: 90, pow: 3, boost: 0.7,
+        twamp: 1.0, twrate: 0.3, rise: 0.28, decay: 0.93,
+        amb: 0.9, ambSpeed: 0.6, ambSharp: 4, starDensity: 0.06, rev: 1100, respectRM: false,
+      };
+
+      // ---- mask ----
+      let mask = null; // Float32Array SRC*SRC coverage 0..1
+      (function loadMask() {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = SRC; c.height = SRC;
+          const x = c.getContext('2d', { willReadFrequently: true });
+          x.clearRect(0, 0, SRC, SRC);
+          x.drawImage(img, 0, 0, SRC, SRC);
+          const a = x.getImageData(0, 0, SRC, SRC).data;
+          mask = new Float32Array(SRC * SRC);
+          for (let i = 0; i < mask.length; i++) mask[i] = a[i * 4 + 3] / 255;
+          build();
+        };
+        img.src = 'data:image/svg+xml,' + encodeURIComponent(SVG);
+      })();
+      function maskAt(u, v) {
+        const x = Math.min(SRC - 1, Math.max(0, (u * SRC) | 0));
+        const y = Math.min(SRC - 1, Math.max(0, (v * SRC) | 0));
+        return mask[y * SRC + x];
+      }
+
+      // ---- grid + per-cell static data ----
+      let cols = 0, rows = 0, Wc = 0, Hc = 0;
+      let base, energy, thr, dyn, revThresh, isField, isStar, phase;
+      const SS = 2;
+
+      function measureCell() {
+        ctx2d.font = `${cfg.fs}px "JetBrains Mono", ui-monospace, monospace`;
+        // measured advance keeps pre + canvas aligned; ca is a manual nudge, gap spaces the dots out
+        Wc = ctx2d.measureText('0').width * (cfg.ca / 0.6) + cfg.gap;
+        Hc = cfg.fs * cfg.lh + cfg.gap;
+      }
+
+      function build() {
+        if (!mask) return;
+        measureCell();
+        cols = cfg.cols;
+        rows = Math.max(4, Math.round((cols * Wc) / Hc)); // square block
+        const n = cols * rows;
+        base = new Float32Array(n);    // dot probability at rest
+        energy = new Float32Array(n);  // trailing cursor energy
+        thr = new Float32Array(n);     // static per-cell dither threshold
+        dyn = new Float32Array(n);     // re-rolled threshold for sparkle
+        revThresh = new Float32Array(n);
+        isField = new Uint8Array(n);   // 1 = background dot, 0 = part of the "u"
+        isStar = new Uint8Array(n);    // 1 = background dot that twinkles
+        phase = new Float32Array(n);   // per-cell twinkle phase
+
+        const cx = (cols - 1) / 2, cy = (rows - 1) / 2;
+        const maxR = Math.hypot(cx, cy);
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const i = r * cols + c;
+            // supersample glyph coverage
+            let acc = 0;
+            for (let sy = 0; sy < SS; sy++)
+              for (let sx = 0; sx < SS; sx++)
+                acc += maskAt((c + (sx + 0.5) / SS) / cols, (r + (sy + 0.5) / SS) / rows);
+            const cov = acc / (SS * SS);
+
+            // probability a dot is present here. dense in the "u", faint in the field.
+            let b = cfg.flevel;
+            if (cov > cfg.cutoff) {
+              const edge = Math.min(1, (cov - cfg.cutoff) / 0.18); // soft antialiased rim
+              b = cfg.flevel + edge * (cfg.glevel - cfg.flevel) - cfg.grain * Math.random();
+            }
+            base[i] = Math.max(0, b);
+            isField[i] = cov > cfg.cutoff ? 0 : 1;
+            isStar[i] = isField[i] && Math.random() < cfg.starDensity ? 1 : 0;
+            thr[i] = Math.random();
+            dyn[i] = Math.random();
+            phase[i] = Math.random() * Math.PI * 2;
+            // reveal grows from centre outward, dithered by noise
+            revThresh[i] = 0.65 * (Math.hypot(c - cx, r - cy) / maxR) + 0.35 * Math.random();
+          }
+        }
+        layout();
+        replay();
+      }
+
+      function layout() {
+        const wpx = Math.round(cols * Wc), hpx = Math.round(rows * Hc);
+        frame.style.width = wpx + 'px';
+        frame.style.height = hpx + 'px';
+        if (cfg.renderer === 'pre') {
+          pre.hidden = false; cv.hidden = true;
+          pre.style.fontSize = cfg.fs + 'px';
+          pre.style.lineHeight = Hc + 'px';
+          pre.style.letterSpacing = cfg.gap + 'px';
+          pre.style.color = cfg.theme === 'light' ? '#09090b' : '#fafafa';
+        } else {
+          pre.hidden = true; cv.hidden = false;
+          const dpr = window.devicePixelRatio || 1;
+          cv.width = wpx * dpr; cv.height = hpx * dpr;
+          cv.style.width = wpx + 'px'; cv.style.height = hpx + 'px';
+          ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx2d.font = `${cfg.fs}px "JetBrains Mono", ui-monospace, monospace`;
+          ctx2d.textBaseline = 'top';
+        }
+        stage.dataset.theme = cfg.theme;
+      }
+
+      // ---- animation ----
+      const mql = matchMedia('(prefers-reduced-motion: reduce)');
+      let raf = 0, running = false, revStart = -1e9;
+      const ptr = { x: -1e9, y: -1e9, inside: false };
+
+      function replay() { revStart = performance.now(); ensure(); }
+      function ensure() { if (!running) { running = true; raf = requestAnimationFrame(loop); } }
+
+      function falloff(d) {
+        if (d >= cfg.radius) return 0;
+        const t = 1 - d / cfg.radius;
+        return Math.pow(t, cfg.pow);
+      }
+
+      function loop(now) {
+        const reduced = cfg.respectRM && mql.matches; // playground previews motion unless asked to respect RM
+        const revP = reduced || cfg.rev === 0 ? 1 : Math.min(1, (now - revStart) / cfg.rev);
+        let active = revP < 1 || ptr.inside || (!reduced && cfg.amb > 0);
+
+        let out = '';
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const i = r * cols + c;
+
+            // cursor target + trailing energy
+            let e = energy[i];
+            if (!reduced) {
+              let target = 0;
+              if (ptr.inside) {
+                const d = Math.hypot((c + 0.5) * Wc - ptr.x, (r + 0.5) * Hc - ptr.y);
+                target = falloff(d);
+              }
+              e = target > e ? e + (target - e) * cfg.rise : e * cfg.decay;
+              if (e < 0.004) e = 0;
+              energy[i] = e;
+              if (e > 0) active = true;
+            }
+
+            // reveal gate (dither in from centre)
+            const rv = revP >= 1 ? 1 : Math.max(0, Math.min(1, (revP - revThresh[i]) / 0.28));
+
+            let prob = (base[i] + e * cfg.boost) * rv; // probability a dot shows
+            // sparkle: re-roll the dither threshold near the cursor / during reveal
+            let t = thr[i];
+            if (!reduced) {
+              const churn = Math.min(1, Math.max(e, rv < 1 ? rv : 0) * cfg.twamp);
+              if (churn > 0.04) {
+                if (Math.random() < cfg.twrate) dyn[i] = Math.random();
+                t = thr[i] * (1 - churn) + dyn[i] * churn;
+              } else if (isStar[i] && cfg.amb > 0) {
+                // a sparse few background dots slowly pulse in and out of phase, like stars.
+                // gated by rv so they grow in with the centre-out reveal instead of popping in.
+                const ph = phase[i];
+                const sp = cfg.ambSpeed * (0.7 + 0.6 * (ph / 6.2832));
+                const tw = 0.5 + 0.5 * Math.sin(now * 0.001 * sp + ph);
+                prob = Math.max(prob, cfg.amb * tw ** cfg.ambSharp * rv);
+              }
+            }
+            out += prob > t ? cfg.dot : ' ';
+          }
+          if (r < rows - 1) out += '\n';
+        }
+
+        if (cfg.renderer === 'pre') {
+          pre.textContent = out;
+        } else {
+          ctx2d.clearRect(0, 0, cv.width, cv.height);
+          ctx2d.fillStyle = cfg.theme === 'light' ? '#09090b' : '#fafafa';
+          const lines = out.split('\n');
+          for (let r = 0; r < lines.length; r++) {
+            const line = lines[r];
+            for (let c = 0; c < line.length; c++) {
+              const ch = line[c];
+              if (ch !== ' ') ctx2d.fillText(ch, c * Wc, r * Hc);
+            }
+          }
+        }
+
+        if (active) { raf = requestAnimationFrame(loop); }
+        else { running = false; } // idle: stop the loop, zero CPU
+      }
+
+      // ---- pointer ----
+      frame.addEventListener('pointermove', (e) => {
+        const rect = frame.getBoundingClientRect();
+        ptr.x = e.clientX - rect.left; ptr.y = e.clientY - rect.top; ptr.inside = true; ensure();
+      });
+      frame.addEventListener('pointerleave', () => { ptr.inside = false; ensure(); });
+
+      // ---- controls ----
+      function range(id, key, fmt = (v) => v) {
+        const el = $(id), lab = $(id + 'V');
+        const sync = () => { el.value = cfg[key]; if (lab) lab.textContent = fmt(cfg[key]); };
+        sync();
+        el.addEventListener('input', () => {
+          cfg[key] = parseFloat(el.value); if (lab) lab.textContent = fmt(cfg[key]);
+          if (STRUCTURAL.has(key)) build(); else touch(key);
+        });
+      }
+      // params that change per-cell static data need a rebuild; others are live
+      const STRUCTURAL = new Set(['cols', 'fs', 'ca', 'lh', 'gap', 'cutoff', 'glevel', 'grain', 'flevel', 'starDensity']);
+      function touch(key) { ensure(); updMeter(); }
+
+      ['cols', 'fs', 'ca', 'lh', 'gap', 'cutoff', 'glevel', 'grain', 'flevel',
+       'radius', 'pow', 'boost', 'twamp', 'twrate', 'rise', 'decay', 'starDensity', 'amb', 'ambSpeed', 'ambSharp', 'rev'].forEach((k) => {
+        const fmt = k === 'rev' ? (v) => v + 'ms' : k === 'radius' ? (v) => v + 'px' : (v) => v;
+        range(k, k, fmt);
+      });
+
+      function seg(id, key, after) {
+        const w = $(id);
+        w.addEventListener('click', (e) => {
+          const b = e.target.closest('button'); if (!b) return;
+          [...w.children].forEach((x) => x.setAttribute('aria-pressed', x === b));
+          cfg[key] = b.dataset.v; after(); ensure();
+        });
+      }
+      seg('theme', 'theme', layout);
+      seg('renderer', 'renderer', () => { layout(); });
+
+      $('dot').value = cfg.dot;
+      $('dot').addEventListener('input', (e) => { cfg.dot = e.target.value || '▪'; ensure(); });
+      $('respectRM').checked = cfg.respectRM;
+      $('respectRM').addEventListener('change', (e) => { cfg.respectRM = e.target.checked; ensure(); });
+      $('replay').addEventListener('click', replay);
+
+      function updMeter() {
+        meter.textContent = `${cols}×${rows} grid · ${cols * rows} cells · ${Math.round(cols * Wc)}×${Math.round(rows * Hc)}px`;
+      }
+      const _build = build;
+      build = function () { _build(); updMeter(); };
+
+      // ---- export ----
+      function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1400); }
+      function copy(text, m) { navigator.clipboard.writeText(text).then(() => toast(m)).catch(() => toast('Copy failed')); }
+      $('copyJson').addEventListener('click', () => copy(JSON.stringify(cfg, null, 2), 'Config copied'));
+      $('copyReact').addEventListener('click', () => copy(reactComponent(), 'Component copied'));
+
+      function reactComponent() {
+        const C = {
+          cols: cfg.cols, ca: cfg.ca, lh: cfg.lh, gap: cfg.gap, dot: cfg.dot,
+          cutoff: cfg.cutoff, glevel: cfg.glevel, grain: cfg.grain, flevel: cfg.flevel,
+          radius: cfg.radius, pow: cfg.pow, boost: cfg.boost,
+          twamp: cfg.twamp, twrate: cfg.twrate, rise: cfg.rise, decay: cfg.decay,
+          amb: cfg.amb, ambSpeed: cfg.ambSpeed, ambSharp: cfg.ambSharp, starDensity: cfg.starDensity, rev: cfg.rev,
+        };
+        return `"use client";
+// Unkey "u" ASCII twinkle field. Decorative; respects prefers-reduced-motion.
+import { useEffect, useRef } from "react";
+
+const SVG = \`${SVG}\`;
+const C = ${JSON.stringify(C)};
+const SRC = ${SRC}, SS = 2;
+
+export function UnkeyAscii({ fontSize = ${cfg.fs}, className }: { fontSize?: number; className?: string }) {
+  const ref = useRef<HTMLPreElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0, running = false, revStart = -1e9, mask: Float32Array | null = null;
+    let cols = 0, rows = 0, Wc = 0, Hc = 0;
+    let base: Float32Array, energy: Float32Array, thr: Float32Array, dyn: Float32Array, rev: Float32Array, phase: Float32Array, isField: Uint8Array, isStar: Uint8Array;
+    const ptr = { x: -1e9, y: -1e9, inside: false };
+
+    const mc = document.createElement("canvas");
+    const mx = mc.getContext("2d", { willReadFrequently: true })!;
+    const meas = document.createElement("canvas").getContext("2d")!;
+
+    function build() {
+      meas.font = \`\${fontSize}px ui-monospace, monospace\`;
+      Wc = meas.measureText("0").width * (C.ca / 0.6) + C.gap;
+      Hc = fontSize * C.lh + C.gap;
+      cols = C.cols;
+      rows = Math.max(4, Math.round((cols * Wc) / Hc));
+      el.style.fontSize = fontSize + "px";
+      el.style.lineHeight = Hc + "px";
+      el.style.letterSpacing = C.gap + "px";
+      const n = cols * rows;
+      base = new Float32Array(n); energy = new Float32Array(n);
+      thr = new Float32Array(n); dyn = new Float32Array(n); rev = new Float32Array(n);
+      phase = new Float32Array(n); isField = new Uint8Array(n); isStar = new Uint8Array(n);
+      const cx = (cols - 1) / 2, cy = (rows - 1) / 2, maxR = Math.hypot(cx, cy);
+      const at = (u: number, v: number) => {
+        const x = Math.min(SRC - 1, Math.max(0, (u * SRC) | 0));
+        const y = Math.min(SRC - 1, Math.max(0, (v * SRC) | 0));
+        return mask![y * SRC + x];
+      };
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const i = r * cols + c;
+        let acc = 0;
+        for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++)
+          acc += at((c + (sx + 0.5) / SS) / cols, (r + (sy + 0.5) / SS) / rows);
+        const cov = acc / (SS * SS);
+        let b = C.flevel;
+        if (cov > C.cutoff) b = C.flevel + Math.min(1, (cov - C.cutoff) / 0.18) * (C.glevel - C.flevel) - C.grain * Math.random();
+        base[i] = Math.max(0, b);
+        isField[i] = cov > C.cutoff ? 0 : 1;
+        isStar[i] = isField[i] && Math.random() < C.starDensity ? 1 : 0;
+        thr[i] = Math.random(); dyn[i] = Math.random();
+        phase[i] = Math.random() * Math.PI * 2;
+        rev[i] = 0.65 * (Math.hypot(c - cx, r - cy) / maxR) + 0.35 * Math.random();
+      }
+      revStart = performance.now();
+      ensure();
+    }
+    const ensure = () => { if (!running) { running = true; raf = requestAnimationFrame(loop); } };
+
+    function loop(now: number) {
+      const revP = reduced || C.rev === 0 ? 1 : Math.min(1, (now - revStart) / C.rev);
+      let active = revP < 1 || ptr.inside || (!reduced && C.amb > 0);
+      let out = "";
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const i = r * cols + c;
+          let e = energy[i];
+          if (!reduced) {
+            let target = 0;
+            if (ptr.inside) {
+              const d = Math.hypot((c + 0.5) * Wc - ptr.x, (r + 0.5) * Hc - ptr.y);
+              if (d < C.radius) target = Math.pow(1 - d / C.radius, C.pow);
+            }
+            e = target > e ? e + (target - e) * C.rise : e * C.decay;
+            if (e < 0.004) e = 0;
+            energy[i] = e;
+            if (e > 0) active = true;
+          }
+          const rv = revP >= 1 ? 1 : Math.max(0, Math.min(1, (revP - rev[i]) / 0.28));
+          let prob = (base[i] + e * C.boost) * rv;
+          let t = thr[i];
+          if (!reduced) {
+            const churn = Math.min(1, Math.max(e, rv < 1 ? rv : 0) * C.twamp);
+            if (churn > 0.04) {
+              if (Math.random() < C.twrate) dyn[i] = Math.random();
+              t = thr[i] * (1 - churn) + dyn[i] * churn;
+            } else if (isStar[i] && C.amb > 0) {
+              const ph = phase[i];
+              const sp = C.ambSpeed * (0.7 + 0.6 * (ph / 6.2832));
+              const tw = 0.5 + 0.5 * Math.sin(now * 0.001 * sp + ph);
+              prob = Math.max(prob, C.amb * tw ** C.ambSharp * rv);
+            }
+          }
+          out += prob > t ? C.dot : " ";
+        }
+        if (r < rows - 1) out += "\\n";
+      }
+      el.textContent = out;
+      if (active) raf = requestAnimationFrame(loop); else running = false;
+    }
+
+    const onMove = (e: PointerEvent) => {
+      const b = el.getBoundingClientRect();
+      ptr.x = e.clientX - b.left; ptr.y = e.clientY - b.top; ptr.inside = true; ensure();
+    };
+    const onLeave = () => { ptr.inside = false; ensure(); };
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+
+    const img = new Image();
+    img.onload = () => {
+      mc.width = SRC; mc.height = SRC;
+      mx.clearRect(0, 0, SRC, SRC); mx.drawImage(img, 0, 0, SRC, SRC);
+      const a = mx.getImageData(0, 0, SRC, SRC).data;
+      mask = new Float32Array(SRC * SRC);
+      for (let i = 0; i < mask.length; i++) mask[i] = a[i * 4 + 3] / 255;
+      build();
+    };
+    img.src = "data:image/svg+xml," + encodeURIComponent(SVG);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+    };
+  }, [fontSize]);
+
+  return (
+    <pre
+      ref={ref}
+      aria-hidden
+      className={className}
+      style={{ margin: 0, whiteSpace: "pre", userSelect: "none", fontFamily: "var(--font-mono, ui-monospace, monospace)" }}
+    />
+  );
+}
+`;
+      }
+    </script>
+  </body>
+</html>

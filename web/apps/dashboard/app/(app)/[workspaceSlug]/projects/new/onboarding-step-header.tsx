@@ -1,35 +1,19 @@
 "use client";
 import { ChevronLeft, CloudUp, Harddrive, HeartPulse, Location2, Nodes2 } from "@unkey/icons";
 import { Button, useStepWizard } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import type { ReactNode } from "react";
+import { ClassicIconRow } from "../_components/classic-icon-row";
+import { ArtStyleSwitcher, useArtStyle } from "../_components/use-art-style";
+import { IconHalftone } from "./icon-halftone";
 
-type IconBoxProps = {
-  children?: ReactNode;
-  large?: boolean;
-  className?: string;
-};
-
-const IconBox = ({ children, large, className }: IconBoxProps) => (
-  <div
-    className={cn(
-      "shrink-0 flex items-center justify-center rounded-[10px] bg-transparent ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none",
-      large ? "size-16" : "size-9",
-      className,
-    )}
-  >
-    {children}
-  </div>
-);
-
-const iconItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
-  { icon: null, opacity: "opacity-60" },
-  { icon: <Harddrive className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
-  { icon: <Location2 className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-80" },
-  { icon: <CloudUp className="size-9" iconSize="md-thin" />, large: true, opacity: "opacity-90" },
-  { icon: <HeartPulse className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-80" },
-  { icon: <Nodes2 className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
-  { icon: null, opacity: "opacity-60" },
+// Flanked composition (small · large · small), every element a static halftone glyph.
+// Side glyphs are smaller (fewer cols) and dimmer; the cloud is the focal point.
+const rowItems: { icon: ReactNode; cols: number; className: string }[] = [
+  { icon: <Harddrive iconSize="2xl-thin" />, cols: 18, className: "opacity-50" },
+  { icon: <Location2 iconSize="2xl-thin" />, cols: 22, className: "opacity-75" },
+  { icon: <CloudUp iconSize="2xl-thin" />, cols: 40, className: "" },
+  { icon: <HeartPulse iconSize="2xl-thin" />, cols: 22, className: "opacity-75" },
+  { icon: <Nodes2 iconSize="2xl-thin" />, cols: 18, className: "opacity-50" },
 ];
 
 const IconRow = () => (
@@ -40,12 +24,15 @@ const IconRow = () => (
       WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
     }}
   >
-    <div className="flex gap-6 items-center justify-center text-gray-12">
-      {iconItems.map((item, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: its okay to use index
-        <IconBox key={i} large={item.large} className={item.opacity}>
-          {item.icon}
-        </IconBox>
+    <div className="flex gap-5 items-center justify-center">
+      {rowItems.map((item, i) => (
+        <IconHalftone
+          // biome-ignore lint/suspicious/noArrayIndexKey: static row, index is stable
+          key={i}
+          icon={item.icon}
+          cols={item.cols}
+          className={item.className}
+        />
       ))}
     </div>
   </div>
@@ -65,10 +52,12 @@ export const OnboardingStepHeader = ({
   allowBack,
 }: OnboardingStepHeaderProps) => {
   const { back } = useStepWizard();
+  const [style] = useArtStyle();
 
   return (
     <div className="flex flex-col items-center">
-      {showIconRow && <IconRow />}
+      <ArtStyleSwitcher />
+      {showIconRow && (style === "ascii" ? <IconRow /> : <ClassicIconRow />)}
       {allowBack && (
         <Button
           variant="ghost"

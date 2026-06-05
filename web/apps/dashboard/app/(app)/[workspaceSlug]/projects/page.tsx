@@ -1,17 +1,13 @@
 "use client";
 
-import { NewNavigationBanner } from "@/components/navigation/new-navigation-banner";
-import { ProjectsListControls } from "./_components/controls";
 import { ProjectsList } from "./_components/list";
-import { ProjectsListNavigation } from "./navigation";
 
+// TODO(deploy): REMOVE BEFORE MERGE — temporarily renders only the empty state
+// (no navbar/controls) for design review of the "Meet Unkey Deploy" empty page.
 export default function ProjectsPage() {
   return (
-    <div>
-      <ProjectsListNavigation />
-      <ProjectsListControls />
+    <div className="flex flex-1 w-full">
       <ProjectsList />
-      <NewNavigationBanner />
     </div>
   );
 }
