@@ -1,11 +1,11 @@
 "use client";
 
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useMemo } from "react";
-import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 type RegionOption = {
   id: number;

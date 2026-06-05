@@ -1,9 +1,9 @@
 "use client";
 
+import { useRuntimeLogs } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/context/runtime-logs-provider";
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { LiveSwitchButton } from "@/components/logs/live-switch-button";
-import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
-import { useRuntimeLogsFilters } from "../../../hooks/use-runtime-logs-filters";
 
 export const RuntimeLogsLiveSwitch = () => {
   const { isLive, toggleLive } = useRuntimeLogs();

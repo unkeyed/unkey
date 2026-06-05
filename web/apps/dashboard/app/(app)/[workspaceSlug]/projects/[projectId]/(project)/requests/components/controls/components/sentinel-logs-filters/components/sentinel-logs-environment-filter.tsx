@@ -1,10 +1,10 @@
 "use client";
 
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
 
 export const SentinelEnvironmentFilter = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();

@@ -1,5 +1,6 @@
 "use client";
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
+import { useSentinelLogsContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/context/sentinel-logs-provider";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
 import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
@@ -19,7 +20,6 @@ import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { CodeBranch, CodeCommit, User } from "@unkey/icons";
 import { Badge, CopyButton } from "@unkey/ui";
 import type React from "react";
-import { useSentinelLogsContext } from "../../../context/sentinel-logs-provider";
 
 type Props = {
   distanceToTop: number;

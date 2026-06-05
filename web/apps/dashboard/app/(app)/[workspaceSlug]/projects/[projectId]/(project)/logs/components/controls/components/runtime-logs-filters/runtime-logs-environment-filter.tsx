@@ -1,10 +1,10 @@
 "use client";
 
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 export const RuntimeLogsEnvironmentFilter = () => {
   const { filters, updateFilters } = useRuntimeLogsFilters();

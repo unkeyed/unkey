@@ -1,10 +1,13 @@
 "use client";
 
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { useCallback } from "react";
-import { useAppId, useProjectData } from "../../../../data-provider";
 import { SelectedConfig } from "../../shared/selected-config";
 import { GitHubConnected } from "./github-connected";
 import { GitHubNoRepo } from "./github-no-repo";

@@ -1,6 +1,6 @@
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import { trpc } from "@/lib/trpc/client";
 import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
-import { useSentinelLogsFilters } from "../../../../hooks/use-sentinel-logs-filters";
 
 export const SentinelLogsSearch = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();

@@ -1,11 +1,14 @@
 "use client";
 
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { CodeBranch } from "@unkey/icons";
 import { Button, InfoTooltip, SettingCard, toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
-import { useAppId, useProjectData } from "../../../data-provider";
 import { SelectedConfig } from "../shared/selected-config";
 
 export const DefaultBranch = () => {

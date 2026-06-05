@@ -1,12 +1,12 @@
 "use client";
+import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card";
+import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Dots, Github, Plus, Terminal } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
-import { ResourceCard } from "../../../_components/list/resource-card";
-import { ResourceCardSkeleton } from "../../../_components/list/resource-card-skeleton";
 import { ProjectHomeNavigation } from "../project-home-navigation";
 import { AppActions } from "./app-actions";
 

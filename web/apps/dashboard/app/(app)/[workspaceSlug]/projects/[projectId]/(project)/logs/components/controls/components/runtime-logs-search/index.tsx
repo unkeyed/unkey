@@ -1,8 +1,8 @@
 "use client";
 
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { trpc } from "@/lib/trpc/client";
 import { LLMSearch, toast, transformStructuredOutputToFilters } from "@unkey/ui";
-import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 export const RuntimeLogsSearch = () => {
   const { filters, updateFilters } = useRuntimeLogsFilters();

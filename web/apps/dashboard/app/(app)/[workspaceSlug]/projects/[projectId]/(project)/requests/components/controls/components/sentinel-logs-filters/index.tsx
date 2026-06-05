@@ -1,8 +1,8 @@
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useSentinelLogsFilters } from "../../../../hooks/use-sentinel-logs-filters";
 import { SentinelDeploymentFilter } from "./components/sentinel-logs-deployment-filter";
 import { SentinelEnvironmentFilter } from "./components/sentinel-logs-environment-filter";
 import { SentinelMethodsFilter } from "./components/sentinel-logs-methods-filter";

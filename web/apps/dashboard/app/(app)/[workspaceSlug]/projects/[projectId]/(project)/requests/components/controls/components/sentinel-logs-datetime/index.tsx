@@ -1,9 +1,9 @@
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useEffect, useState } from "react";
-import { useSentinelLogsFilters } from "../../../../hooks/use-sentinel-logs-filters";
 
 export const SentinelLogsDateTime = () => {
   const [title, setTitle] = useState<string | null>(null);

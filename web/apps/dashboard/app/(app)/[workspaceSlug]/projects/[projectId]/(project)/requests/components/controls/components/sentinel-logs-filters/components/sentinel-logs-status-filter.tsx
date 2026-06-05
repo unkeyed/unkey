@@ -1,8 +1,8 @@
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import type { LogsFilterValue } from "@/lib/schemas/logs.filter.schema";
 import { Button, Checkbox } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useState } from "react";
-import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
 
 type StatusOption = {
   id: number;

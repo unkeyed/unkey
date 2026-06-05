@@ -1,7 +1,7 @@
+import { useSentinelLogsContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/context/sentinel-logs-provider";
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { LiveSwitchButton } from "@/components/logs/live-switch-button";
-import { useSentinelLogsContext } from "../../../context/sentinel-logs-provider";
-import { useSentinelLogsFilters } from "../../../hooks/use-sentinel-logs-filters";
 
 export const SentinelLogsLiveSwitch = () => {
   const { isLive, toggleLive } = useSentinelLogsContext();

@@ -1,11 +1,11 @@
 "use client";
 
+import { useRuntimeLogs } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/context/runtime-logs-provider";
+import type { RuntimeLogsFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/types";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
-import type { RuntimeLogsFilter } from "../../../types";
 
 const LIVE_POLL_INTERVAL_MS = 5_000;
 // Cap how many realtime rows we hold above the "Live" divider before

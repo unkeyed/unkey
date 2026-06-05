@@ -1,5 +1,6 @@
 "use client";
 
+import { EnvironmentContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environment-provider";
 import { collection } from "@/lib/collections";
 import {
   ENVIRONMENT_SETTINGS_DEFAULTS,
@@ -11,7 +12,6 @@ import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { type PropsWithChildren, useEffect, useMemo, useRef } from "react";
-import { EnvironmentContext } from "../../../[appId]/(overview)/settings/environment-provider";
 
 export const OnboardingEnvironmentSettingsInner = ({
   children,

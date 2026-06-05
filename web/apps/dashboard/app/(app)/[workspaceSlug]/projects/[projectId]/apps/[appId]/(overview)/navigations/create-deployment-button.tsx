@@ -1,5 +1,6 @@
 "use client";
 
+import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
@@ -27,7 +28,6 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { RepoDisplay } from "../../../../../_components/list/repo-display";
 import { useAppId, useProjectData } from "../data-provider";
 import { parseForkRef } from "./parse-fork-ref";
 

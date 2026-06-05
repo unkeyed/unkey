@@ -1,7 +1,7 @@
+import type { RuntimeLog } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/types";
 import { cn } from "@/lib/utils";
 import { XMark } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
-import type { RuntimeLog } from "../../../types";
 
 type Props = {
   log: RuntimeLog;

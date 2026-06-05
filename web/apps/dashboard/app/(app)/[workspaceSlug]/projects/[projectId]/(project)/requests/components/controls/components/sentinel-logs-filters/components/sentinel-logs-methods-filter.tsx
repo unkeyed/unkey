@@ -1,5 +1,5 @@
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
 
 type MethodOption = {
   id: number;

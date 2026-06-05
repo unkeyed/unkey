@@ -1,7 +1,7 @@
 "use client";
 
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
-import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 const OPTIONS = [{ id: "contains" as const, label: "contains" }];
 

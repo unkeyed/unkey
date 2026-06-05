@@ -1,7 +1,7 @@
 "use client";
 
+import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useState } from "react";
-import { ProjectDataProvider } from "../../../[appId]/(overview)/data-provider";
 import { ConfigureDeploymentContent } from "./content";
 import { OnboardingEnvironmentSettingsProvider } from "./environment-provider";
 import { ConfigureDeploymentFallback } from "./fallback";

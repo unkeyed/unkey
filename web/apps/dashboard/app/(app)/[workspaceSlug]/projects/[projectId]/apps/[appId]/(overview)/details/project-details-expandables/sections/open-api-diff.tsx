@@ -1,4 +1,12 @@
 "use client";
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import {
+  type DiffStatus,
+  StatusIndicator,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/status-indicator";
 import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
@@ -7,8 +15,6 @@ import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight } from "@unkey/icons";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { type DiffStatus, StatusIndicator } from "../../../../components/status-indicator";
-import { useAppId, useProjectData } from "../../../data-provider";
 
 const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
   if (!data) {

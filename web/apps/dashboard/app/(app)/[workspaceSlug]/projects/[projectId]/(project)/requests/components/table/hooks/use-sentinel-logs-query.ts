@@ -1,10 +1,10 @@
 "use client";
 
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSentinelLogsFilters } from "../../../hooks/use-sentinel-logs-filters";
 
 type UseSentinelLogsQueryParams = {
   limit?: number;

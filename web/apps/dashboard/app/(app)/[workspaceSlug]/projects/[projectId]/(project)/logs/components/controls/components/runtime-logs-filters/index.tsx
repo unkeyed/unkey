@@ -1,10 +1,10 @@
 "use client";
 
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
 import { RuntimeLogsEnvironmentFilter } from "./runtime-logs-environment-filter";
 import { RuntimeLogsInstanceFilter } from "./runtime-logs-instance-filter";

@@ -1,7 +1,7 @@
 "use client";
 
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 type SeverityOption = {
   id: number;

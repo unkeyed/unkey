@@ -1,5 +1,5 @@
+import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
-import { useSentinelLogsFilters } from "../../../../../hooks/use-sentinel-logs-filters";
 
 export const SentinelPathsFilter = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();

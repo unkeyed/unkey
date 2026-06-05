@@ -1,6 +1,9 @@
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
-import { useAppId, useProjectData } from "../../../data-provider";
 
 type ValidationResult = "valid" | "invalid" | "unknown";
 

@@ -1,8 +1,8 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useProjectData } from "../../../[appId]/(overview)/data-provider";
 
 export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: boolean }) => {
   const { isEnvironmentsLoading } = useProjectData();

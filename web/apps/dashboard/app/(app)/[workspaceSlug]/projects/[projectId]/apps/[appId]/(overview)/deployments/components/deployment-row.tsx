@@ -1,5 +1,8 @@
 "use client";
 
+import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
+import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
@@ -7,9 +10,6 @@ import { TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
-import { LastExitBadge } from "../../../components/active-deployment-card";
-import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
-import { Avatar } from "../../../components/git-avatar";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";
 import { EnvStatusBadge } from "./table/components/env-status-badge";

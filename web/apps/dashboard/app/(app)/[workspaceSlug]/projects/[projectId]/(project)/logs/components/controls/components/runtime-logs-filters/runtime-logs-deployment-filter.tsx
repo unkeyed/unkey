@@ -1,8 +1,8 @@
 "use client";
 
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 
 export const RuntimeLogsDeploymentFilter = () => {
   const { filters, updateFilters } = useRuntimeLogsFilters();

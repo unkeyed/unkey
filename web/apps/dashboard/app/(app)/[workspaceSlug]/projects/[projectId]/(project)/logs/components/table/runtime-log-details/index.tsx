@@ -1,5 +1,6 @@
 "use client";
 
+import { useRuntimeLogs } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/context/runtime-logs-provider";
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { LogDetails as SharedLogDetails } from "@/components/logs/details/log-details";
@@ -7,7 +8,6 @@ import { LogSection } from "@/components/logs/details/log-details/components/log
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
 import { RuntimeLogHeader } from "./runtime-log-header";
 
 type Props = {
