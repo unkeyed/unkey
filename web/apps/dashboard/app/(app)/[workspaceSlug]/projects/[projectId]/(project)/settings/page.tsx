@@ -11,7 +11,7 @@ export default function ProjectSettingsPage() {
         <div className="flex flex-col gap-2 items-center">
           <span className="font-semibold text-gray-12 leading-8 text-lg">Project settings</span>
           <span className="leading-4 text-gray-11 text-[13px]">
-            Manage your project name and slug.
+            Manage your project name.
           </span>
         </div>
         <div className="w-full">

@@ -47,6 +47,12 @@ export function DeleteProject() {
     router.push(`/${workspace?.slug}/projects`);
   };
 
+  // Without a loaded project, projectName is "" and an empty confirmation
+  // input would pass validation, enabling the delete button.
+  if (!project) {
+    return null;
+  }
+
   return (
     <>
       <SettingsZoneRow

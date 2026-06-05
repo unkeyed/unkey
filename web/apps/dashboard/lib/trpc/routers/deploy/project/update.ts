@@ -1,3 +1,4 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { createProjectRequestSchema } from "@/lib/collections/deploy/projects";
 import { and, db, eq } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -5,7 +6,10 @@ import { TRPCError } from "@trpc/server";
 import { projects } from "@unkey/db/src/schema";
 import { z } from "zod";
 
-const updateProjectRequestSchema = createProjectRequestSchema.extend({
+// Slug is intentionally not updatable: generated deployment domains embed the
+// project slug, so renaming it would orphan existing routes and free the slug
+// for another project to collide with.
+const updateProjectRequestSchema = createProjectRequestSchema.pick({ name: true }).extend({
   projectId: z.string().min(1, "Project ID is required"),
 });
 
@@ -18,7 +22,7 @@ export const updateProject = workspaceProcedure
     const project = await db.query.projects.findFirst({
       where: (table, { eq, and }) =>
         and(eq(table.id, input.projectId), eq(table.workspaceId, workspaceId)),
-      columns: { id: true, slug: true },
+      columns: { id: true, name: true },
     });
 
     if (!project) {
@@ -28,28 +32,11 @@ export const updateProject = workspaceProcedure
       });
     }
 
-    if (input.slug !== project.slug) {
-      const existingProject = await db.query.projects.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, workspaceId), eq(table.slug, input.slug)),
-        columns: { id: true },
-      });
-
-      if (existingProject) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `A project with slug "${input.slug}" already exists in this workspace`,
-        });
-      }
-    }
-
     try {
       await db
         .update(projects)
-        .set({ name: input.name, slug: input.slug, updatedAt: Date.now() })
+        .set({ name: input.name, updatedAt: Date.now() })
         .where(and(eq(projects.id, input.projectId), eq(projects.workspaceId, workspaceId)));
-
-      return { id: project.id };
     } catch (err) {
       console.error("Failed to update project:", err);
       throw new TRPCError({
@@ -57,4 +44,24 @@ export const updateProject = workspaceProcedure
         message: "Failed to update project. Our team has been notified of this issue.",
       });
     }
+
+    await insertAuditLogs(db, {
+      workspaceId,
+      actor: { type: "user", id: ctx.user.id },
+      event: "project.update",
+      description: `Updated ${project.id}: name "${project.name}" -> "${input.name}"`,
+      resources: [
+        {
+          type: "project",
+          id: project.id,
+          name: input.name,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
+
+    return { id: project.id };
   });

@@ -153,9 +153,8 @@ export const projects = createCollection<Project, string>(
 
       const updateInput = {
         projectId: original.id,
-        ...createProjectRequestSchema.parse({
+        ...createProjectRequestSchema.pick({ name: true }).parse({
           name: changes.name ?? original.name,
-          slug: changes.slug ?? original.slug,
         }),
       };
       const mutation = trpcClient.deploy.project.update.mutate(updateInput);
@@ -167,12 +166,6 @@ export const projects = createCollection<Project, string>(
           console.error("Failed to update project", err);
 
           switch (err.data?.code) {
-            case "CONFLICT":
-              return {
-                message: "Slug Already Taken",
-                description:
-                  err.message || "A project with this slug already exists in your workspace.",
-              };
             case "FORBIDDEN":
               return {
                 message: "Permission Denied",
