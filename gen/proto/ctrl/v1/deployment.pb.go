@@ -104,53 +104,63 @@ func (DeploymentStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{0}
 }
 
-// Source type for deployment creation
-type SourceType int32
+// DeploymentTrigger identifies which surface initiated a deployment.
+// Persisted on the deployment row for UI display and filtering.
+type DeploymentTrigger int32
 
 const (
-	SourceType_SOURCE_TYPE_UNSPECIFIED SourceType = 0
-	SourceType_SOURCE_TYPE_GIT         SourceType = 1
-	SourceType_SOURCE_TYPE_CLI_UPLOAD  SourceType = 2
+	DeploymentTrigger_DEPLOYMENT_TRIGGER_UNSPECIFIED DeploymentTrigger = 0
+	DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB      DeploymentTrigger = 1
+	DeploymentTrigger_DEPLOYMENT_TRIGGER_API         DeploymentTrigger = 2
+	DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI         DeploymentTrigger = 3
+	DeploymentTrigger_DEPLOYMENT_TRIGGER_DASHBOARD   DeploymentTrigger = 4
+	DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY       DeploymentTrigger = 5
 )
 
-// Enum value maps for SourceType.
+// Enum value maps for DeploymentTrigger.
 var (
-	SourceType_name = map[int32]string{
-		0: "SOURCE_TYPE_UNSPECIFIED",
-		1: "SOURCE_TYPE_GIT",
-		2: "SOURCE_TYPE_CLI_UPLOAD",
+	DeploymentTrigger_name = map[int32]string{
+		0: "DEPLOYMENT_TRIGGER_UNSPECIFIED",
+		1: "DEPLOYMENT_TRIGGER_GITHUB",
+		2: "DEPLOYMENT_TRIGGER_API",
+		3: "DEPLOYMENT_TRIGGER_CLI",
+		4: "DEPLOYMENT_TRIGGER_DASHBOARD",
+		5: "DEPLOYMENT_TRIGGER_UNKEY",
 	}
-	SourceType_value = map[string]int32{
-		"SOURCE_TYPE_UNSPECIFIED": 0,
-		"SOURCE_TYPE_GIT":         1,
-		"SOURCE_TYPE_CLI_UPLOAD":  2,
+	DeploymentTrigger_value = map[string]int32{
+		"DEPLOYMENT_TRIGGER_UNSPECIFIED": 0,
+		"DEPLOYMENT_TRIGGER_GITHUB":      1,
+		"DEPLOYMENT_TRIGGER_API":         2,
+		"DEPLOYMENT_TRIGGER_CLI":         3,
+		"DEPLOYMENT_TRIGGER_DASHBOARD":   4,
+		"DEPLOYMENT_TRIGGER_UNKEY":       5,
 	}
 )
 
-func (x SourceType) Enum() *SourceType {
-	p := new(SourceType)
+func (x DeploymentTrigger) Enum() *DeploymentTrigger {
+	p := new(DeploymentTrigger)
 	*p = x
 	return p
 }
 
-func (x SourceType) String() string {
+func (x DeploymentTrigger) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (SourceType) Descriptor() protoreflect.EnumDescriptor {
+func (DeploymentTrigger) Descriptor() protoreflect.EnumDescriptor {
 	return file_ctrl_v1_deployment_proto_enumTypes[1].Descriptor()
 }
 
-func (SourceType) Type() protoreflect.EnumType {
+func (DeploymentTrigger) Type() protoreflect.EnumType {
 	return &file_ctrl_v1_deployment_proto_enumTypes[1]
 }
 
-func (x SourceType) Number() protoreflect.EnumNumber {
+func (x DeploymentTrigger) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use SourceType.Descriptor instead.
-func (SourceType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use DeploymentTrigger.Descriptor instead.
+func (DeploymentTrigger) EnumDescriptor() ([]byte, []int) {
 	return file_ctrl_v1_deployment_proto_rawDescGZIP(), []int{1}
 }
 
@@ -169,7 +179,24 @@ type CreateDeploymentRequest struct {
 	// If not specified, the container's default entrypoint/cmd is used
 	Command []string `protobuf:"bytes,6,rep,name=command,proto3" json:"command,omitempty"`
 	// App ID to deploy. Required.
-	AppId         string `protobuf:"bytes,7,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	AppId string `protobuf:"bytes,7,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	// Which surface triggered this deployment.
+	Trigger DeploymentTrigger `protobuf:"varint,8,opt,name=trigger,proto3,enum=ctrl.v1.DeploymentTrigger" json:"trigger,omitempty"`
+	// Polymorphic actor id, interpretation depends on `trigger`:
+	//
+	//	dashboard -> user_id
+	//	api / cli -> root_key_id
+	//	github    -> github sender_login (the user who pushed; not necessarily
+	//	             the commit author — for that, see git_commit_author_handle
+	//	             on the deployment row)
+	//	unkey     -> internal user_id
+	//
+	// Trusted by ctrl because the bearer token is the auth boundary — only
+	// trusted backends can reach this RPC.
+	TriggeredBy string `protobuf:"bytes,10,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
+	// Free-form reason. Stored alongside the deployment for audit purposes.
+	// Populated mostly by internal tooling (e.g. "rebuild after image loss").
+	TriggerReason string `protobuf:"bytes,9,opt,name=trigger_reason,json=triggerReason,proto3" json:"trigger_reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,6 +276,27 @@ func (x *CreateDeploymentRequest) GetCommand() []string {
 func (x *CreateDeploymentRequest) GetAppId() string {
 	if x != nil {
 		return x.AppId
+	}
+	return ""
+}
+
+func (x *CreateDeploymentRequest) GetTrigger() DeploymentTrigger {
+	if x != nil {
+		return x.Trigger
+	}
+	return DeploymentTrigger_DEPLOYMENT_TRIGGER_UNSPECIFIED
+}
+
+func (x *CreateDeploymentRequest) GetTriggeredBy() string {
+	if x != nil {
+		return x.TriggeredBy
+	}
+	return ""
+}
+
+func (x *CreateDeploymentRequest) GetTriggerReason() string {
+	if x != nil {
+		return x.TriggerReason
 	}
 	return ""
 }
@@ -1302,7 +1350,7 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xb8\x02\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xb8\x03\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
@@ -1313,7 +1361,11 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\vkeyspace_id\x18\x05 \x01(\tH\x01R\n" +
 	"keyspaceId\x88\x01\x01\x12\x18\n" +
 	"\acommand\x18\x06 \x03(\tR\acommand\x12\x15\n" +
-	"\x06app_id\x18\a \x01(\tR\x05appIdB\r\n" +
+	"\x06app_id\x18\a \x01(\tR\x05appId\x124\n" +
+	"\atrigger\x18\b \x01(\x0e2\x1a.ctrl.v1.DeploymentTriggerR\atrigger\x12!\n" +
+	"\ftriggered_by\x18\n" +
+	" \x01(\tR\vtriggeredBy\x12%\n" +
+	"\x0etrigger_reason\x18\t \x01(\tR\rtriggerReasonB\r\n" +
 	"\v_git_commitB\x0e\n" +
 	"\f_keyspace_id\"\x85\x02\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
@@ -1415,12 +1467,14 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_STOPPED\x10\v\x12 \n" +
 	"\x1cDEPLOYMENT_STATUS_SUPERSEDED\x10\f\x12\x1f\n" +
-	"\x1bDEPLOYMENT_STATUS_CANCELLED\x10\r*Z\n" +
-	"\n" +
-	"SourceType\x12\x1b\n" +
-	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
-	"\x0fSOURCE_TYPE_GIT\x10\x01\x12\x1a\n" +
-	"\x16SOURCE_TYPE_CLI_UPLOAD\x10\x022\xfe\x03\n" +
+	"\x1bDEPLOYMENT_STATUS_CANCELLED\x10\r*\xce\x01\n" +
+	"\x11DeploymentTrigger\x12\"\n" +
+	"\x1eDEPLOYMENT_TRIGGER_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19DEPLOYMENT_TRIGGER_GITHUB\x10\x01\x12\x1a\n" +
+	"\x16DEPLOYMENT_TRIGGER_API\x10\x02\x12\x1a\n" +
+	"\x16DEPLOYMENT_TRIGGER_CLI\x10\x03\x12 \n" +
+	"\x1cDEPLOYMENT_TRIGGER_DASHBOARD\x10\x04\x12\x1c\n" +
+	"\x18DEPLOYMENT_TRIGGER_UNKEY\x10\x052\xfe\x03\n" +
 	"\rDeployService\x12Y\n" +
 	"\x10CreateDeployment\x12 .ctrl.v1.CreateDeploymentRequest\x1a!.ctrl.v1.CreateDeploymentResponse\"\x00\x12P\n" +
 	"\rGetDeployment\x12\x1d.ctrl.v1.GetDeploymentRequest\x1a\x1e.ctrl.v1.GetDeploymentResponse\"\x00\x12A\n" +
@@ -1446,7 +1500,7 @@ var file_ctrl_v1_deployment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ctrl_v1_deployment_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(DeploymentStatus)(0),               // 0: ctrl.v1.DeploymentStatus
-	(SourceType)(0),                     // 1: ctrl.v1.SourceType
+	(DeploymentTrigger)(0),              // 1: ctrl.v1.DeploymentTrigger
 	(*CreateDeploymentRequest)(nil),     // 2: ctrl.v1.CreateDeploymentRequest
 	(*GitCommitInfo)(nil),               // 3: ctrl.v1.GitCommitInfo
 	(*CreateDeploymentResponse)(nil),    // 4: ctrl.v1.CreateDeploymentResponse
@@ -1469,31 +1523,32 @@ var file_ctrl_v1_deployment_proto_goTypes = []any{
 }
 var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	3,  // 0: ctrl.v1.CreateDeploymentRequest.git_commit:type_name -> ctrl.v1.GitCommitInfo
-	0,  // 1: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
-	7,  // 2: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
-	0,  // 3: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
-	20, // 4: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
-	9,  // 5: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
-	8,  // 6: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
-	11, // 7: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
-	10, // 8: ctrl.v1.Topology.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	2,  // 9: ctrl.v1.DeployService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
-	5,  // 10: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
-	12, // 11: ctrl.v1.DeployService.Rollback:input_type -> ctrl.v1.RollbackRequest
-	14, // 12: ctrl.v1.DeployService.Promote:input_type -> ctrl.v1.PromoteRequest
-	16, // 13: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
-	18, // 14: ctrl.v1.DeployService.CancelDeployment:input_type -> ctrl.v1.CancelDeploymentRequest
-	4,  // 15: ctrl.v1.DeployService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
-	6,  // 16: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	13, // 17: ctrl.v1.DeployService.Rollback:output_type -> ctrl.v1.RollbackResponse
-	15, // 18: ctrl.v1.DeployService.Promote:output_type -> ctrl.v1.PromoteResponse
-	17, // 19: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
-	19, // 20: ctrl.v1.DeployService.CancelDeployment:output_type -> ctrl.v1.CancelDeploymentResponse
-	15, // [15:21] is the sub-list for method output_type
-	9,  // [9:15] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	1,  // 1: ctrl.v1.CreateDeploymentRequest.trigger:type_name -> ctrl.v1.DeploymentTrigger
+	0,  // 2: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
+	7,  // 3: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
+	0,  // 4: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
+	20, // 5: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
+	9,  // 6: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
+	8,  // 7: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
+	11, // 8: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
+	10, // 9: ctrl.v1.Topology.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
+	2,  // 10: ctrl.v1.DeployService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
+	5,  // 11: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
+	12, // 12: ctrl.v1.DeployService.Rollback:input_type -> ctrl.v1.RollbackRequest
+	14, // 13: ctrl.v1.DeployService.Promote:input_type -> ctrl.v1.PromoteRequest
+	16, // 14: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
+	18, // 15: ctrl.v1.DeployService.CancelDeployment:input_type -> ctrl.v1.CancelDeploymentRequest
+	4,  // 16: ctrl.v1.DeployService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
+	6,  // 17: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	13, // 18: ctrl.v1.DeployService.Rollback:output_type -> ctrl.v1.RollbackResponse
+	15, // 19: ctrl.v1.DeployService.Promote:output_type -> ctrl.v1.PromoteResponse
+	17, // 20: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
+	19, // 21: ctrl.v1.DeployService.CancelDeployment:output_type -> ctrl.v1.CancelDeploymentResponse
+	16, // [16:22] is the sub-list for method output_type
+	10, // [10:16] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_deployment_proto_init() }

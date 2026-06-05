@@ -30,6 +30,13 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
 
   const sourceRepo = deployment.forkRepositoryFullName || project?.repositoryFullName;
 
+  // A deployment can land in awaiting_approval for two distinct reasons:
+  //   1. fork PR — `forkRepositoryFullName` is populated by detectForkRepo
+  //   2. operator opt-in via FORCE_DEPLOYMENT_APPROVAL=true — same status,
+  //      no fork metadata, often a same-repo push to main
+  // `prNumber` is set for same-repo PRs too, so it can't gate this copy.
+  const isFork = Boolean(deployment.forkRepositoryFullName);
+
   const prUrl =
     project?.repositoryFullName && deployment.prNumber
       ? `https://github.com/${project.repositoryFullName}/pull/${deployment.prNumber}`
@@ -65,11 +72,11 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
           </div>
 
           <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">
-            Authorize Fork Deployment
+            {isFork ? "Authorize Fork Deployment" : "Authorize Deployment"}
           </h1>
 
           <p className="text-[14px] leading-relaxed text-gray-11 text-center mb-4 max-w-100">
-            An external contributor pushed commit{" "}
+            {isFork ? "An external contributor pushed commit " : "Commit "}
             {commitUrl ? (
               <a
                 href={commitUrl}
@@ -95,8 +102,8 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
             ) : (
               <code className={chipClass}>{branchName}</code>
             )}{" "}
-            targeting the <span className="font-semibold text-gray-12">{environment}</span>{" "}
-            environment.
+            {isFork ? "targeting" : "is awaiting approval before deploying to"} the{" "}
+            <span className="font-semibold text-gray-12">{environment}</span> environment.
           </p>
 
           <div className="flex gap-4 mt-0">
@@ -115,11 +122,14 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
                   Review Pull Request
                 </Button>
               </a>
-            ) : (
+            ) : isFork ? (
+              // Fork without a PR shouldn't normally happen but render
+              // the disabled affordance so the modal layout stays
+              // balanced.
               <Button variant="outline" size="xlg" className="px-7" disabled>
                 Review Pull Request
               </Button>
-            )}
+            ) : null}
           </div>
 
           {authorize.error && (

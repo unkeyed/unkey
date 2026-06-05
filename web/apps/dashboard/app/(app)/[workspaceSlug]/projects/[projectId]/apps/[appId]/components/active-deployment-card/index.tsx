@@ -15,6 +15,7 @@ import { match } from "@unkey/match";
 import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
+import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
 import { Avatar } from "../../components/git-avatar";
 import { RegionFlag } from "../../components/region-flag";
 import { DottedLink } from "../dotted-link";
@@ -211,6 +212,16 @@ export function ActiveDeploymentCard({
           {environmentSlug && (
             <MetadataCell label="Environment">
               <span className="text-xs text-accent-12 capitalize">{environmentSlug}</span>
+            </MetadataCell>
+          )}
+
+          {deployment.trigger !== "unknown" && (
+            <MetadataCell label="Triggered By">
+              <DeploymentTriggerBadge
+                trigger={deployment.trigger}
+                triggeredBy={deployment.triggeredBy}
+                triggerReason={deployment.triggerReason}
+              />
             </MetadataCell>
           )}
 
