@@ -95,7 +95,7 @@ export const DeploymentListTableActions = ({
       },
       {
         id: "sentinel-logs",
-        label: "Go to requests ↗",
+        label: "Go to requests",
         icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
         onClick: () => {
           router.push(
@@ -105,7 +105,7 @@ export const DeploymentListTableActions = ({
       },
       {
         id: "runtime-logs",
-        label: "Go to logs ↗",
+        label: "Go to logs",
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
@@ -115,7 +115,7 @@ export const DeploymentListTableActions = ({
       },
       {
         id: "build-steps",
-        label: "Go to build logs ↗",
+        label: "Go to build logs",
         icon: <Hammer2 iconSize="md-regular" />,
         onClick: () => {
           router.push(

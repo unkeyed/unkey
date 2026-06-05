@@ -187,7 +187,7 @@ export function buildAppLinks(
     // out of the app section.
     {
       key: "logs",
-      label: "Logs ↗",
+      label: "Logs",
       href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
       icon: Layers3,
       isActive: false,
@@ -195,7 +195,7 @@ export function buildAppLinks(
     },
     {
       key: "requests",
-      label: "Requests ↗",
+      label: "Requests",
       href: `/${slug}/projects/${projectId}/requests?since=6h&appId=${appId}`,
       icon: ArrowOppositeDirectionY,
       isActive: false,
