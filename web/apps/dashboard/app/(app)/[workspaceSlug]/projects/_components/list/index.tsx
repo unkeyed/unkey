@@ -6,8 +6,8 @@ import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
-import { ProjectCardSkeleton } from "./projects-card-skeleton";
 import { ResourceCard } from "./resource-card";
+import { ResourceCardSkeleton } from "./resource-card-skeleton";
 
 const MAX_SKELETON_COUNT = 8;
 
@@ -30,7 +30,7 @@ export const ProjectsList = () => {
         <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
           {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-            <ProjectCardSkeleton key={i} />
+            <ResourceCardSkeleton key={i} />
           ))}
         </div>
       </div>
@@ -79,11 +79,6 @@ export const ProjectsList = () => {
               branch={project.branch}
               author={project.author}
               authorAvatar={project.authorAvatar}
-              repository={
-                project.repositoryFullName
-                  ? `https://github.com/${project.repositoryFullName}`
-                  : undefined
-              }
               actions={
                 <ProjectActions projectId={project.id}>
                   <Button

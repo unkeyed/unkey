@@ -6,6 +6,7 @@ import {
   type CreateProjectRequestSchema,
   createProjectRequestSchema,
 } from "@/lib/collections/deploy/projects";
+import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
@@ -24,9 +25,6 @@ const DynamicDialogContainer = dynamic(
     })),
   { ssr: false },
 );
-
-// Optimistic-insert filler; the server response overwrites these fields.
-const SERVER_PLACEHOLDER = "will-be-replace-by-server";
 
 type Props = {
   defaultOpen?: boolean;

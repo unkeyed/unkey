@@ -1,6 +1,6 @@
 import { Cube } from "@unkey/icons";
 
-export const ProjectCardSkeleton = () => {
+export const ResourceCardSkeleton = () => {
   return (
     <div className="p-5 flex flex-col border border-grayA-4 rounded-2xl w-full h-full gap-5">
       {/* Top Section */}

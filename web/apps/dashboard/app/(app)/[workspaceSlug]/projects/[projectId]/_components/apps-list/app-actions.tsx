@@ -2,7 +2,7 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Clone, Cloud, Gear, Layers3 } from "@unkey/icons";
+import { ArrowOppositeDirectionY, Clone, Cloud, Gear, Layers3 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter } from "next/navigation";
@@ -48,9 +48,17 @@ const getAppActionItems = (
       divider: true,
     },
     {
+      id: "view-logs",
+      label: "View logs",
+      icon: <Layers3 iconSize="md-regular" />,
+      onClick: () => {
+        router.push(`/${workspaceSlug}/projects/${projectId}/logs?appId=${appId}`);
+      },
+    },
+    {
       id: "view-requests",
       label: "View requests",
-      icon: <Layers3 iconSize="md-regular" />,
+      icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
       onClick: () => {
         router.push(`/${workspaceSlug}/projects/${projectId}/requests`);
       },

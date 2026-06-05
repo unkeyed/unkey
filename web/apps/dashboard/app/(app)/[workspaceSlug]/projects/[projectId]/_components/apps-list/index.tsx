@@ -6,8 +6,11 @@ import { Dots, Github, Plus, Terminal } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { ResourceCard } from "../../../_components/list/resource-card";
+import { ResourceCardSkeleton } from "../../../_components/list/resource-card-skeleton";
 import { ProjectHomeNavigation } from "../project-home-navigation";
 import { AppActions } from "./app-actions";
+
+const MAX_SKELETON_COUNT = 4;
 
 export const AppsList = () => {
   const params = useParams();
@@ -25,7 +28,14 @@ export const AppsList = () => {
     <div className="flex flex-col h-full">
       <ProjectHomeNavigation projectId={projectId} />
       <div className="p-4 flex flex-col gap-4">
-        {apps.isLoading ? null : apps.data.length === 0 ? (
+        {apps.isLoading ? (
+          <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
+            {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
+              <ResourceCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : apps.data.length === 0 ? (
           <div className="w-full flex justify-center items-center p-4">
             <Empty className="w-[400px] flex items-start">
               <Empty.Icon className="w-auto" />
@@ -61,11 +71,6 @@ export const AppsList = () => {
                 branch={app.branch}
                 author={app.author}
                 authorAvatar={app.authorAvatar}
-                repository={
-                  app.repositoryFullName
-                    ? `https://github.com/${app.repositoryFullName}`
-                    : undefined
-                }
                 actions={
                   <AppActions projectId={projectId} appId={app.id}>
                     <Button

@@ -1,6 +1,7 @@
 "use client";
 import { collection } from "@/lib/collections";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
+import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
@@ -11,9 +12,6 @@ import { OnboardingLinks } from "../onboarding-links";
 
 const formSchema = createAppRequestSchema.omit({ projectId: true });
 type FormValues = z.infer<typeof formSchema>;
-
-// Optimistic-insert filler; the server response overwrites these fields.
-const SERVER_PLACEHOLDER = "will-be-replace-by-server";
 
 type CreateAppStepProps = {
   projectId: string;

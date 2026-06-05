@@ -19,7 +19,7 @@ import {
 
 const baseInput = z.object({
   projectId: z.string().min(1, "Project ID is required"),
-  appId: z.string().min(1).optional(),
+  appId: z.string().min(1, "App ID is required"),
   environmentSlug: z.string().min(1, "Environment slug is required"),
 });
 
@@ -74,7 +74,7 @@ export const createDeploy = workspaceProcedure
           eq(environments.projectId, input.projectId),
           eq(environments.slug, input.environmentSlug),
           eq(environments.workspaceId, ctx.workspace.id),
-          ...(input.appId ? [eq(environments.appId, input.appId)] : []),
+          eq(environments.appId, input.appId),
         ),
         columns: { id: true, appId: true },
       });

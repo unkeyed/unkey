@@ -13,7 +13,6 @@ type ResourceCardProps = {
   branch: string;
   author: string | null;
   authorAvatar: string | null;
-  repository?: string;
   actions?: ReactNode;
   /** Card link target. Projects link to their home; apps link to deployments. */
   href: string;
