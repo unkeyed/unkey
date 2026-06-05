@@ -75,8 +75,8 @@ export const queryRuntimeLogs = workspaceProcedure
     const transformedInputs = transformFilters(input);
 
     // App-scoped view: default to the production environment when the user
-    // hasn't picked one, preserving the prior single-app behavior. Without an
-    // appId the view is project-wide: every app, no forced environment.
+    // hasn't picked one. Without an appId the view is project-wide: every
+    // app, no forced environment.
     const appId = input.appId || null;
     if (appId && transformedInputs.environmentId.length === 0) {
       const prod =
