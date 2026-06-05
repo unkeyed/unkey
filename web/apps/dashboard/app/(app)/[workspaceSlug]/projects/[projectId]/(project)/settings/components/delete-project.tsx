@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../../apps/[appId]/(overview)/data-provider";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 
 export function DeleteProject() {
   const { projectId, project } = useProjectData();

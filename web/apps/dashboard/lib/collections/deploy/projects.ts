@@ -183,6 +183,12 @@ export const projects = createCollection<Project, string>(
                 message: "Project Update Failed",
                 description: "Unable to find the project. Please refresh and try again.",
               };
+            case "INTERNAL_SERVER_ERROR":
+              return {
+                message: "Server Error",
+                description:
+                  "We encountered an issue while updating your project. Please try again later or contact support at support@unkey.com",
+              };
             default:
               return {
                 message: "Failed to Update Project",

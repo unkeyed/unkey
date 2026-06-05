@@ -7,7 +7,7 @@ import { Cube, Tag } from "@unkey/icons";
 import { FormInput, SettingCardGroup } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
-import { useProjectData } from "../../../apps/[appId]/(overview)/data-provider";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { SettingField } from "../../../apps/[appId]/(overview)/settings/components/shared/form-blocks";
 import {
   FormSettingCard,
