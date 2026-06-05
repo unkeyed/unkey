@@ -4,6 +4,7 @@ import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[pr
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type UseSentinelLogsQueryParams = {
@@ -21,6 +22,9 @@ export function useSentinelLogsQuery({
 }: UseSentinelLogsQueryParams = {}) {
   const { projectId } = useProjectData();
   const { filters } = useSentinelLogsFilters();
+  const searchParams = useSearchParams();
+  // Optional ?appId= narrows the project-wide view to a single app.
+  const appId = searchParams.get("appId");
   const queryClient = trpc.useUtils();
 
   const [historicalLogsMap, setHistoricalLogsMap] = useState(
@@ -55,6 +59,7 @@ export function useSentinelLogsQuery({
 
     return {
       projectId,
+      appId: appId ?? null,
       deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
       environmentId: environmentIdFilters,
       limit,
@@ -65,7 +70,7 @@ export function useSentinelLogsQuery({
       methods: methodFilters.length > 0 ? methodFilters : null,
       paths: pathFilters.length > 0 ? pathFilters : null,
     };
-  }, [filters, limit, projectId]);
+  }, [filters, limit, projectId, appId]);
 
   const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } =
     trpc.deploy.sentinelLogs.query.useInfiniteQuery(queryInput, {

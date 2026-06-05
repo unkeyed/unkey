@@ -8,5 +8,6 @@ export type ResolvedNavLink = {
   isActive: boolean;
   disabled?: boolean;
   external?: boolean;
+  separatorAbove?: boolean;
   tag?: ReactNode;
 };
