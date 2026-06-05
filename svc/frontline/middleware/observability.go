@@ -155,11 +155,6 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 				attribute.String("code", string(urn)),
 			)
 
-			logger.Info("frontline request",
-				"status_code", statusCode,
-				"code", string(urn),
-			)
-
 			metrics.RequestsTotal.WithLabelValues(metrics.StatusClass(statusCode), string(urn)).Inc()
 
 			return nil
