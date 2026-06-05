@@ -156,5 +156,16 @@ func (c *Config) Validate() error {
 	if (certFile == "") != (keyFile == "") {
 		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided to enable HTTPS")
 	}
+
+	// HS256 requires at least 256 bits of entropy in the shared secret. Shorter
+	// secrets weaken signature security regardless of how long the token lives.
+	for i, secret := range c.JWTSecrets {
+		if len(secret) < minJWTSecretBytes {
+			return fmt.Errorf("jwt_secrets[%d] must be at least %d bytes, got %d", i, minJWTSecretBytes, len(secret))
+		}
+	}
 	return nil
 }
+
+// minJWTSecretBytes is the minimum entropy required for an HS256 signing key.
+const minJWTSecretBytes = 32
