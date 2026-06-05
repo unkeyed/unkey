@@ -65,7 +65,7 @@ type Harness struct {
 	DB                         db.Database
 	Caches                     caches.Caches
 	Keys                       keys.KeyService
-	Auth                       auth.Service
+	Auth                       auth.Authenticator
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse

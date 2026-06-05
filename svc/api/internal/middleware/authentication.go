@@ -23,7 +23,7 @@ const workspaceRatelimitNamespace = "workspace.ratelimit"
 // AuthenticationConfig configures authentication and workspace-level request policy.
 type AuthenticationConfig struct {
 	// Auth resolves request credentials into a session principal.
-	Auth auth.Service
+	Auth auth.Authenticator
 
 	// Database loads workspace quota rows when they are not cached.
 	Database db.Database

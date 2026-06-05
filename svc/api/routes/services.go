@@ -33,7 +33,7 @@ type Services struct {
 	Keys keys.KeyService
 
 	// Auth normalizes supported credential sources into principals for protected routes.
-	Auth auth.Service
+	Auth auth.Authenticator
 
 	// ClickHouse provides query access to ClickHouse for analytics.
 	ClickHouse clickhouse.ClickHouse

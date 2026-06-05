@@ -11,16 +11,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// Service authenticates requests into normalized principals.
-type Service interface {
+// Authenticator authenticates requests into normalized principals.
+type Authenticator interface {
 	// Authenticate resolves the request credential into a normalized principal.
 	// Implementations try configured credential sources in deterministic order
 	// and return the first principal whose resolver claims the request.
 	Authenticate(ctx context.Context, sess *zen.Session) (*principal.Principal, error)
 }
 
-// New builds a service that tries each resolver in the order provided.
-func New(resolvers ...Resolver) Service {
+// New builds an authenticator that tries each resolver in the order provided.
+func New(resolvers ...Resolver) Authenticator {
 	return chain(resolvers)
 }
 
