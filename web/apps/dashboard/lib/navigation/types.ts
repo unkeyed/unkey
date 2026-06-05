@@ -10,3 +10,18 @@ export type ResolvedNavLink = {
   external?: boolean;
   tag?: ReactNode;
 };
+
+export type SidebarAction = {
+  key: string;
+  label: string;
+  icon?: ElementType;
+  href?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+};
+
+export type SidebarContent = {
+  back?: { label: string; href: string };
+  links: ResolvedNavLink[];
+  actions?: SidebarAction[];
+};

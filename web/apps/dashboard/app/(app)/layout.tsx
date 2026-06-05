@@ -2,6 +2,7 @@
 
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
+import { SidebarActionsProvider } from "@/components/navigation/sidebar-v2/sidebar-actions-context";
 import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { TopNav } from "@/components/navigation/top-nav";
@@ -68,6 +69,7 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const { user, workspace, quotas, isLoading, error } = useWorkspace();
   const newNavigation = useFlag("newNavigation");
+  const contextualNav = useFlag("contextualNav");
   useEffect(() => {
     // Don't navigate while loading
     if (isLoading) {
@@ -116,26 +118,28 @@ export default function Layout({ children }: LayoutProps) {
 
   const isImpersonator = user?.impersonator;
 
-  if (newNavigation) {
+  if (newNavigation || contextualNav) {
     return (
-      <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
-        <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
-          <TopNav />
-          <MobileNavDrawer />
-          <div className="flex flex-1 overflow-hidden">
-            <SidebarV2 className="bg-gray-1 border-grayA-4" />
-            <div className="flex-1 overflow-auto">
-              <div
-                className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
-                id="layout-wrapper"
-              >
-                <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
+      <SidebarActionsProvider>
+        <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
+          <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
+            <TopNav />
+            <MobileNavDrawer />
+            <div className="flex flex-1 overflow-hidden">
+              <SidebarV2 className="bg-gray-1 border-grayA-4" />
+              <div className="flex-1 overflow-auto">
+                <div
+                  className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
+                  id="layout-wrapper"
+                >
+                  <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
+                </div>
+                {isImpersonator ? <ImpersonationBanner /> : null}
               </div>
-              {isImpersonator ? <ImpersonationBanner /> : null}
             </div>
           </div>
-        </div>
-      </SidebarProvider>
+        </SidebarProvider>
+      </SidebarActionsProvider>
     );
   }
 

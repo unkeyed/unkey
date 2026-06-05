@@ -28,3 +28,16 @@ export const newNavigation = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+export const contextualNav = flag<boolean, Entities>({
+  key: "contextual-nav",
+  description:
+    "POC sidebar that shows a back button + per-page nav + page-registered actions instead of a static workspace list",
+  defaultValue: true,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});

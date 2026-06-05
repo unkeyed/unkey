@@ -193,6 +193,67 @@ export function buildApiLinks(
   ];
 }
 
+export function buildKeyDetailLinks(
+  slug: string,
+  apiId: string,
+  keyAuthId: string,
+  keyId: string,
+  segments: string[],
+): ResolvedNavLink[] {
+  const page = segments[4];
+  const base = `/${slug}/apis/${apiId}/keys/${keyAuthId}/${keyId}`;
+  return [
+    {
+      key: "overview",
+      label: "Overview",
+      href: base,
+      icon: ArrowOppositeDirectionY,
+      isActive: !page,
+    },
+    {
+      key: "logs",
+      label: "Logs",
+      href: `${base}/logs`,
+      icon: Layers3,
+      isActive: page === "logs",
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      href: `${base}/settings`,
+      icon: Gear,
+      isActive: page === "settings",
+    },
+  ];
+}
+
+export function buildDeploymentLinks(
+  slug: string,
+  projectId: string,
+  appId: string,
+  _deploymentId: string,
+  segments: string[],
+): ResolvedNavLink[] {
+  const page = segments[4];
+  const appBase = `/${slug}/projects/${projectId}/apps/${appId}`;
+  return [
+    {
+      key: "logs",
+      label: "Logs",
+      href: `${appBase}/logs`,
+      icon: Layers3,
+      isActive: page === "logs",
+    },
+    {
+      key: "requests",
+      label: "Requests",
+      href: `${appBase}/requests`,
+      icon: ArrowOppositeDirectionY,
+      isActive: page === "requests",
+    },
+  ];
+}
+
 export function buildNamespaceLinks(
   slug: string,
   namespaceId: string,
