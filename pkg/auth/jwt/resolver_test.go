@@ -166,6 +166,84 @@ func TestResolver_IgnoresNonJWTBearer(t *testing.T) {
 	require.Nil(t, principal)
 }
 
+func TestResolver_RejectsJWTWithWrongAudience(t *testing.T) {
+	t.Parallel()
+
+	// The API resolver is one of several audiences that can be reached with a
+	// shared secret. Accepting a token minted for a different audience would let
+	// a token issued for the portal or another service authenticate against the
+	// API. Audience binding closes that cross-service confusion.
+	secret := []byte("local-test-secret-with-at-least-32-bytes")
+	signer, err := tokenjwt.NewHS256Signer[Claims](secret)
+	require.NoError(t, err)
+
+	now := time.Now()
+	token, err := signer.Sign(Claims{
+		RegisteredClaims: tokenjwt.RegisteredClaims{
+			Issuer:    Issuer,
+			Subject:   "user_123",
+			Audience:  []string{"portal.unkey.com"},
+			ExpiresAt: now.Add(time.Minute).Unix(),
+			NotBefore: now.Add(-time.Second).Unix(),
+			IssuedAt:  now.Unix(),
+		},
+		WorkspaceID: "ws_123",
+		Permissions: []string{"api.*.create_api"},
+	})
+	require.NoError(t, err)
+
+	resolver, err := NewResolver(secret)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+	principal, err := resolver.Resolve(context.Background(), sess)
+	require.Error(t, err)
+	require.Nil(t, principal)
+}
+
+func TestResolver_RejectsExpiredJWT(t *testing.T) {
+	t.Parallel()
+
+	// Short token lifetimes are the primary defense against replay of a leaked
+	// dashboard JWT. This test pins that expiry is enforced through the resolver
+	// layer (not just deep in the verifier) so any future refactor that bypasses
+	// the verifier surfaces immediately.
+	secret := []byte("local-test-secret-with-at-least-32-bytes")
+	signer, err := tokenjwt.NewHS256Signer[Claims](secret)
+	require.NoError(t, err)
+
+	now := time.Now()
+	token, err := signer.Sign(Claims{
+		RegisteredClaims: tokenjwt.RegisteredClaims{
+			Issuer:    Issuer,
+			Subject:   "user_123",
+			Audience:  []string{Audience},
+			ExpiresAt: now.Add(-time.Minute).Unix(),
+			NotBefore: now.Add(-2 * time.Minute).Unix(),
+			IssuedAt:  now.Add(-2 * time.Minute).Unix(),
+		},
+		WorkspaceID: "ws_123",
+		Permissions: []string{"api.*.create_api"},
+	})
+	require.NoError(t, err)
+
+	resolver, err := NewResolver(secret)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+	principal, err := resolver.Resolve(context.Background(), sess)
+	require.Error(t, err)
+	require.Nil(t, principal)
+}
+
 func TestResolver_RejectsJWTWithoutTemporalClaims(t *testing.T) {
 	t.Parallel()
 
