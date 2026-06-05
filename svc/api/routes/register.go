@@ -90,7 +90,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		Ratelimit:  svc.Ratelimit,
 	})
 
-	defaultMiddlewares := []zen.Middleware{
+	publicMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withObservability,
 		withMetrics,
@@ -111,7 +111,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		withAuthentication,
 	}
 
-	srv.RegisterRoute(defaultMiddlewares, &v2Liveness.Handler{})
+	srv.RegisterRoute(publicMiddlewares, &v2Liveness.Handler{})
 
 	// ---------------------------------------------------------------------------
 	// pprof (internal profiling endpoints)
@@ -588,7 +588,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/portal.exchangeSession
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		publicMiddlewares,
 		&v2PortalExchangeSession.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
