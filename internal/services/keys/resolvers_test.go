@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,6 +13,19 @@ import (
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
+
+// newSessionWithAuth builds a session with the given Authorization header set so
+// resolver tests exercise the path where credentials are actually present.
+func newSessionWithAuth(t *testing.T, auth string) *zen.Session {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	if auth != "" {
+		req.Header.Set("Authorization", auth)
+	}
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	return sess
+}
 
 type stubKeyService struct {
 	rootKey *KeyVerifier
@@ -56,7 +71,7 @@ func TestRootKeyResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	}
 	resolver := NewRootKeyResolver(keyService)
 
-	p, err := resolver.Resolve(context.Background(), &zen.Session{})
+	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, "Bearer unkey_root_key"))
 
 	require.NoError(t, err)
 	require.Equal(t, 1, keyService.calls)
@@ -86,9 +101,26 @@ func TestRootKeyResolver_PropagatesRootKeyError(t *testing.T) {
 	keyService := &stubKeyService{err: wantErr}
 	resolver := NewRootKeyResolver(keyService)
 
-	p, err := resolver.Resolve(context.Background(), &zen.Session{})
+	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, "Bearer bad_root_key"))
 
 	require.ErrorIs(t, err, wantErr)
 	require.Nil(t, p)
 	require.Equal(t, 1, keyService.calls)
+}
+
+// TestRootKeyResolver_YieldsWhenAuthorizationMissing verifies the resolver does
+// not claim requests that have no Authorization header. This lets the auth chain
+// surface a generic missing-credentials error rather than leaking the
+// root-key-specific message for portal or unauthenticated callers.
+func TestRootKeyResolver_YieldsWhenAuthorizationMissing(t *testing.T) {
+	t.Parallel()
+
+	keyService := &stubKeyService{}
+	resolver := NewRootKeyResolver(keyService)
+
+	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, ""))
+
+	require.NoError(t, err)
+	require.Nil(t, p)
+	require.Equal(t, 0, keyService.calls)
 }

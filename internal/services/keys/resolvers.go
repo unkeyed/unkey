@@ -20,6 +20,12 @@ func NewRootKeyResolver(keys KeyService) *RootKeyResolver {
 // Resolve authenticates a root key and intentionally ignores verification emit logging.
 // The API action itself is still audited by handlers using the returned principal.
 func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
+	// Yield when no Authorization header is present so the chain surfaces a
+	// generic missing-credentials error rather than a root-key-specific message.
+	if sess == nil || sess.Request() == nil || sess.Request().Header.Get("Authorization") == "" {
+		return nil, nil
+	}
+
 	key, _, err := r.keys.GetRootKey(ctx, sess)
 	if err != nil {
 		return nil, err
