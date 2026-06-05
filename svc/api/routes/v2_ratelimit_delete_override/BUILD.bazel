@@ -10,7 +10,6 @@ go_library(
         "//internal/services/caches",
         "//internal/services/ratelimit/namespace",
         "//pkg/auditlog",
-        "//pkg/auth",
         "//pkg/cache",
         "//pkg/codes",
         "//pkg/db",

@@ -9,7 +9,6 @@ go_library(
         "//gen/proto/vault/v1:vault",
         "//gen/rpc/vault",
         "//internal/services/caches",
-        "//pkg/auth",
         "//pkg/cache",
         "//pkg/codes",
         "//pkg/db",

@@ -6,7 +6,6 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_list_overrides",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/auth",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",

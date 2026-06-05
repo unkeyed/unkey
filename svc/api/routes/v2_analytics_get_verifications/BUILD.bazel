@@ -9,7 +9,6 @@ go_library(
         "//internal/services/analytics",
         "//internal/services/caches",
         "//pkg/array",
-        "//pkg/auth",
         "//pkg/auth/principal",
         "//pkg/cache",
         "//pkg/clickhouse",

@@ -65,8 +65,8 @@ go_test(
     ],
     embed = [":zen"],
     deps = [
-        "//pkg/clickhouse/schema",
         "//pkg/auth/principal",
+        "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/tls",
