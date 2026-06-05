@@ -24,6 +24,8 @@ go_test(
     embed = [":auth"],
     deps = [
         "//pkg/auth/principal",
+        "//pkg/codes",
+        "//pkg/fault",
         "//pkg/zen",
         "@com_github_stretchr_testify//require",
     ],

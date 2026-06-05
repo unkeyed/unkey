@@ -1,4 +1,4 @@
-package keys
+package rootkey
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -28,38 +29,38 @@ func newSessionWithAuth(t *testing.T, auth string) *zen.Session {
 }
 
 type stubKeyService struct {
-	rootKey *KeyVerifier
+	rootKey *keys.KeyVerifier
 	err     error
 	calls   int
 }
 
-func (s *stubKeyService) Get(_ context.Context, _ *zen.Session, _ string) (*KeyVerifier, func(), error) {
+func (s *stubKeyService) Get(_ context.Context, _ *zen.Session, _ string) (*keys.KeyVerifier, func(), error) {
 	return nil, func() {}, errors.New("not implemented")
 }
 
-func (s *stubKeyService) GetRootKey(_ context.Context, _ *zen.Session) (*KeyVerifier, func(), error) {
+func (s *stubKeyService) GetRootKey(_ context.Context, _ *zen.Session) (*keys.KeyVerifier, func(), error) {
 	s.calls++
 	return s.rootKey, func() {}, s.err
 }
 
-func (s *stubKeyService) GetMigrated(_ context.Context, _ *zen.Session, _, _ string) (*KeyVerifier, func(), error) {
+func (s *stubKeyService) GetMigrated(_ context.Context, _ *zen.Session, _, _ string) (*keys.KeyVerifier, func(), error) {
 	return nil, func() {}, errors.New("not implemented")
 }
 
-func (s *stubKeyService) CreateKey(_ context.Context, _ CreateKeyRequest) (CreateKeyResponse, error) {
-	return CreateKeyResponse{}, errors.New("not implemented")
+func (s *stubKeyService) CreateKey(_ context.Context, _ keys.CreateKeyRequest) (keys.CreateKeyResponse, error) {
+	return keys.CreateKeyResponse{}, errors.New("not implemented")
 }
 
-// TestRootKeyResolver_ResolveRootKeyPrincipal verifies a verified root key
-// normalizes into the shared principal shape used by the API. The stubbed key
-// service returns the post-verification object so this test focuses on the
-// resolver's security contract: subject, workspace, source, and permissions all
-// come from the verified root key.
-func TestRootKeyResolver_ResolveRootKeyPrincipal(t *testing.T) {
+// TestResolver_ResolveRootKeyPrincipal verifies a verified root key normalizes
+// into the shared principal shape used by the API. The stubbed key service
+// returns the post-verification object so this test focuses on the resolver's
+// security contract: subject, workspace, source, and permissions all come from
+// the verified root key.
+func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	t.Parallel()
 
 	keyService := &stubKeyService{
-		rootKey: &KeyVerifier{
+		rootKey: &keys.KeyVerifier{
 			Key: keysdb.FindKeyForVerificationRow{
 				ID:        "key_123",
 				KeyAuthID: "ks_123",
@@ -69,7 +70,7 @@ func TestRootKeyResolver_ResolveRootKeyPrincipal(t *testing.T) {
 			AuthorizedWorkspaceID: "ws_123",
 		},
 	}
-	resolver := NewRootKeyResolver(keyService)
+	resolver := NewResolver(keyService)
 
 	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, "Bearer unkey_root_key"))
 
@@ -89,16 +90,16 @@ func TestRootKeyResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	require.Equal(t, []string{"api.*.read_key"}, source.Permissions)
 }
 
-// TestRootKeyResolver_PropagatesRootKeyError verifies root-key verification
-// failures fail closed instead of yielding to later resolvers. A root-key-shaped
-// bearer token that fails verification must not be reinterpreted as another
-// credential type.
-func TestRootKeyResolver_PropagatesRootKeyError(t *testing.T) {
+// TestResolver_PropagatesRootKeyError verifies root-key verification failures
+// fail closed instead of yielding to later resolvers. A root-key-shaped bearer
+// token that fails verification must not be reinterpreted as another credential
+// type.
+func TestResolver_PropagatesRootKeyError(t *testing.T) {
 	t.Parallel()
 
 	wantErr := errors.New("invalid root key")
 	keyService := &stubKeyService{err: wantErr}
-	resolver := NewRootKeyResolver(keyService)
+	resolver := NewResolver(keyService)
 
 	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, "Bearer bad_root_key"))
 
@@ -107,15 +108,15 @@ func TestRootKeyResolver_PropagatesRootKeyError(t *testing.T) {
 	require.Equal(t, 1, keyService.calls)
 }
 
-// TestRootKeyResolver_YieldsWhenAuthorizationMissing verifies the resolver does
-// not claim requests that have no Authorization header. This lets the auth chain
+// TestResolver_YieldsWhenAuthorizationMissing verifies the resolver does not
+// claim requests that have no Authorization header. This lets the auth chain
 // surface a generic missing-credentials error rather than leaking the
 // root-key-specific message for portal or unauthenticated callers.
-func TestRootKeyResolver_YieldsWhenAuthorizationMissing(t *testing.T) {
+func TestResolver_YieldsWhenAuthorizationMissing(t *testing.T) {
 	t.Parallel()
 
 	keyService := &stubKeyService{}
-	resolver := NewRootKeyResolver(keyService)
+	resolver := NewResolver(keyService)
 
 	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, ""))
 

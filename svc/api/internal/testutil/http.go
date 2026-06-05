@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/auth/portal_session"
+	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -267,7 +268,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		DB:           database,
 		SessionCache: caches.PortalSession,
 	})
-	authService := auth.New(portalsession.NewResolver(portalService), keys.NewRootKeyResolver(keyService))
+	authService := auth.New(portalsession.NewResolver(portalService), rootkey.NewResolver(keyService))
 
 	h := Harness{
 		t:                          t,

@@ -23,6 +23,7 @@ go_library(
         "//pkg/auth",
         "//pkg/auth/jwt",
         "//pkg/auth/portal_session",
+        "//pkg/auth/root_key",
         "//pkg/batch",
         "//pkg/buildinfo",
         "//pkg/clickhouse",

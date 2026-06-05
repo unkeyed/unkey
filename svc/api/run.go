@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth"
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
+	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -331,7 +332,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	authResolvers = append(authResolvers,
 		portalsession.NewResolver(portalSvc),
-		keys.NewRootKeyResolver(keySvc),
+		rootkey.NewResolver(keySvc),
 	)
 	authSvc := auth.New(authResolvers...)
 

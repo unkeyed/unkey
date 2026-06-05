@@ -1,24 +1,25 @@
-package keys
+package rootkey
 
 import (
 	"context"
 
+	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// RootKeyResolver resolves bearer credentials with the existing root-key service.
-type RootKeyResolver struct {
-	keys KeyService
+// Resolver resolves bearer credentials with the existing root-key service.
+type Resolver struct {
+	keys keys.KeyService
 }
 
-// NewRootKeyResolver creates a resolver that authenticates bearer root keys.
-func NewRootKeyResolver(keys KeyService) *RootKeyResolver {
-	return &RootKeyResolver{keys: keys}
+// NewResolver creates a resolver that authenticates bearer root keys.
+func NewResolver(keys keys.KeyService) *Resolver {
+	return &Resolver{keys: keys}
 }
 
 // Resolve authenticates a root key.
-func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
+func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
 	// Yield when no Authorization header is present so the chain surfaces a
 	// generic missing-credentials error rather than a root-key-specific message.
 	if sess == nil || sess.Request() == nil || sess.Request().Header.Get("Authorization") == "" {
