@@ -116,27 +116,9 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 	return nil
 }
 
-// AuthorizedWorkspaceID returns the workspace ID associated with the request.
-//
-// Returns an empty string if no authenticated workspace ID is available.
-func (s *Session) AuthorizedWorkspaceID() string {
-	if s.principal != nil {
-		return s.principal.WorkspaceID
-	}
-	return ""
-}
-
 // SetPrincipal stores the authenticated principal for request-wide metadata.
 func (s *Session) SetPrincipal(principal *principal.Principal) {
 	s.principal = principal
-}
-
-// Principal returns the authenticated principal associated with this request.
-//
-// Returns nil when the request has not been authenticated or authentication did
-// not resolve a principal.
-func (s *Session) Principal() *principal.Principal {
-	return s.principal
 }
 
 // GetPrincipal returns the authenticated principal associated with this request.

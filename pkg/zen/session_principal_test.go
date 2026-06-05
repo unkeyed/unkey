@@ -44,8 +44,6 @@ func TestSession_PrincipalScopesWorkspaceMetadata(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Same(t, want, got)
-	require.Same(t, want, sess.Principal())
-	require.Equal(t, "ws_123", sess.AuthorizedWorkspaceID())
 }
 
 // TestSession_ResetClearsPrincipal verifies pooled sessions cannot leak an
@@ -67,6 +65,7 @@ func TestSession_ResetClearsPrincipal(t *testing.T) {
 
 	sess.reset()
 
-	require.Nil(t, sess.Principal())
-	require.Empty(t, sess.AuthorizedWorkspaceID())
+	got, err := sess.GetPrincipal()
+	require.Error(t, err)
+	require.Nil(t, got)
 }

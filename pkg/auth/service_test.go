@@ -81,7 +81,9 @@ func TestServiceAuthenticate_StoresResolvedPrincipalOnSession(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Same(t, want, got)
-	require.Same(t, want, sess.Principal())
+	cached, err := sess.GetPrincipal()
+	require.NoError(t, err)
+	require.Same(t, want, cached)
 }
 
 // TestServiceAuthenticate_StopsOnResolverError verifies verification errors fail

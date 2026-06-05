@@ -29,7 +29,7 @@ type chain []Resolver
 // Authenticate resolves credentials by asking each resolver to claim the request.
 func (c chain) Authenticate(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
 	// Reuse a principal that was already resolved earlier in the request.
-	if p := sess.Principal(); p != nil {
+	if p, err := sess.GetPrincipal(); err == nil {
 		return p, nil
 	}
 
