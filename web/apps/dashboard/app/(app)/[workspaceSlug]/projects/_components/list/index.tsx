@@ -1,7 +1,7 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
-import { BookBookmark, Dots } from "@unkey/icons";
+import { Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
@@ -40,6 +40,8 @@ export const ProjectsList = () => {
     );
   }
 
+  // The no-projects-at-all case is handled one level up in page.tsx (a full-bleed empty state),
+  // so here a zero-length result only happens when a search filters everything out.
   if (projects.data.length === 0) {
     return (
       <div className="w-full flex justify-center items-center h-full p-4">
@@ -47,22 +49,8 @@ export const ProjectsList = () => {
           <Empty.Icon className="w-auto" />
           <Empty.Title>No Projects Found</Empty.Title>
           <Empty.Description className="text-left">
-            {projectName
-              ? `No projects found matching "${projectName}". Try a different search term.`
-              : "There are no projects configured yet. Create your first project to start deploying and managing your applications."}
+            {`No projects found matching "${projectName}". Try a different search term.`}
           </Empty.Description>
-          <Empty.Actions className="mt-4 justify-start">
-            <a
-              href="https://www.unkey.com/docs/introduction"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button size="md">
-                <BookBookmark />
-                Learn about Deploy
-              </Button>
-            </a>
-          </Empty.Actions>
         </Empty>
       </div>
     );
