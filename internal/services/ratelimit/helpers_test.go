@@ -25,6 +25,7 @@ func newTestDB(t testing.TB) DB {
 	database, err := mysql.New(mysql.Config{
 		PrimaryDSN:  cfg.DSN,
 		ReadOnlyDSN: "",
+		Application: "",
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = database.Close() })
@@ -99,6 +100,7 @@ func newIntegrationTestEnv(t *testing.T) *integrationTestEnv {
 	database, err := mysql.New(mysql.Config{
 		PrimaryDSN:  cfg.DSN,
 		ReadOnlyDSN: "",
+		Application: "",
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = database.Close() })

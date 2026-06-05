@@ -7,6 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/sqlcommenter"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -16,19 +17,21 @@ const (
 )
 
 // WrapTxWithContext wraps a standard sql.Tx with our DBTx interface for tracing, using the provided context
-func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context) DBTx {
+func WrapTxWithContext(tx *sql.Tx, mode, application string, ctx context.Context) DBTx {
 	return &TracedTx{
-		tx:   tx,
-		mode: mode,
-		ctx:  ctx,
+		tx:          tx,
+		mode:        mode,
+		application: application,
+		ctx:         ctx,
 	}
 }
 
 // TracedTx wraps a sql.Tx to add tracing to all database operations within a transaction
 type TracedTx struct {
-	tx   *sql.Tx
-	mode string
-	ctx  context.Context // Store the context for commit/rollback tracing
+	tx          *sql.Tx
+	mode        string
+	application string          // service name appended to sqlcommenter tags on outbound queries
+	ctx         context.Context // Store the context for commit/rollback tracing
 }
 
 // Ensure TracedTx implements the DBTx interface
@@ -42,6 +45,8 @@ func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...any) (
 		attribute.String("mode", t.mode),
 		attribute.String("query", query),
 	)
+
+	query = sqlcommenter.Append(query, sqlcommenter.FromContext(ctx, t.application))
 
 	start := time.Now()
 	result, err := t.tx.ExecContext(ctx, query, args...)
@@ -92,6 +97,8 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...any) 
 		attribute.String("query", query),
 	)
 
+	query = sqlcommenter.Append(query, sqlcommenter.FromContext(ctx, t.application))
+
 	start := time.Now()
 	//nolint:sqlclosecheck // Rows returned to caller, who must close them
 	rows, err := t.tx.QueryContext(ctx, query, args...)
@@ -116,6 +123,8 @@ func (t *TracedTx) QueryRowContext(ctx context.Context, query string, args ...an
 		attribute.String("mode", t.mode),
 		attribute.String("query", query),
 	)
+
+	query = sqlcommenter.Append(query, sqlcommenter.FromContext(ctx, t.application))
 
 	start := time.Now()
 	row := t.tx.QueryRowContext(ctx, query, args...)

@@ -10,15 +10,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/sqlcommenter"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 // Replica wraps a standard SQL database connection and implements the gen.DBTX interface
 // to enable interaction with the generated database code.
 type Replica struct {
-	mode      string
-	db        *sql.DB // Underlying database connection
-	debugLogs bool
+	mode        string
+	db          *sql.DB // Underlying database connection
+	debugLogs   bool
+	application string // service name appended to sqlcommenter tags on outbound queries
 }
 
 // Ensure Replica implements the gen.DBTX interface
@@ -37,6 +39,8 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (s
 	if r.debugLogs {
 		logger.Debug("ExecContext", "query", query)
 	}
+
+	query = sqlcommenter.Append(query, sqlcommenter.FromContext(ctx, r.application))
 
 	// Track metrics
 	start := time.Now()
@@ -101,6 +105,8 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (
 		logger.Debug("QueryContext", "query", query)
 	}
 
+	query = sqlcommenter.Append(query, sqlcommenter.FromContext(ctx, r.application))
+
 	// Track metrics
 	start := time.Now()
 	//nolint:sqlclosecheck // Rows returned to caller, who must close them
@@ -132,6 +138,9 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...any
 	if r.debugLogs {
 		logger.Debug("QueryRowContext", "query", query)
 	}
+
+	query = sqlcommenter.Append(query, sqlcommenter.FromContext(ctx, r.application))
+
 	// Track metrics
 	start := time.Now()
 	row := r.db.QueryRowContext(ctx, query, args...)
@@ -179,5 +188,5 @@ func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 	}
 
 	// Wrap the transaction with tracing
-	return WrapTxWithContext(tx, r.mode+"_tx", ctx), nil
+	return WrapTxWithContext(tx, r.mode+"_tx", r.application, ctx), nil
 }

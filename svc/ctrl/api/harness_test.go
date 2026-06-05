@@ -79,6 +79,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
+		Application: "",
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

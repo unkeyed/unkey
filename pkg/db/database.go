@@ -24,6 +24,11 @@ type Config struct {
 	// The readonly replica will be used for most read queries.
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
+
+	// Application identifies the calling service in sqlcommenter tags on outbound
+	// queries. Use the same string this service passes as otel.Config.Application
+	// (e.g. "api", "frontline"). Empty string disables the application tag.
+	Application string
 }
 
 // database implements the Database interface, providing access to database replicas
@@ -95,16 +100,18 @@ func New(config Config) (*database, error) {
 
 	// Initialize primary replica
 	writeReplica := &Replica{
-		db:        write,
-		mode:      "rw",
-		debugLogs: false,
+		db:          write,
+		mode:        "rw",
+		debugLogs:   false,
+		application: config.Application,
 	}
 
 	// Initialize read replica with primary by default
 	readReplica := &Replica{
-		db:        write,
-		mode:      "rw",
-		debugLogs: false,
+		db:          write,
+		mode:        "rw",
+		debugLogs:   false,
+		application: config.Application,
 	}
 
 	// If a separate read-only DSN is provided, establish that connection
@@ -115,9 +122,10 @@ func New(config Config) (*database, error) {
 		}
 
 		readReplica = &Replica{
-			db:        read,
-			mode:      "ro",
-			debugLogs: false,
+			db:          read,
+			mode:        "ro",
+			debugLogs:   false,
+			application: config.Application,
 		}
 		logger.Info("database configured with separate read replica")
 	} else {
