@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -117,6 +119,24 @@ func TestServiceAuthenticate_ReturnsBearerErrorWhenNoResolverMatches(t *testing.
 	got, err := service.Authenticate(context.Background(), sess)
 
 	require.Error(t, err)
+	require.Nil(t, got)
+}
+
+func TestServiceAuthenticate_PreservesMalformedBearerError(t *testing.T) {
+	t.Parallel()
+
+	service := New(&stubResolver{})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "not-a-bearer-token")
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+	got, err := service.Authenticate(context.Background(), sess)
+
+	require.Error(t, err)
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Auth.Authentication.Malformed.URN(), code)
 	require.Nil(t, got)
 }
 

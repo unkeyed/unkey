@@ -54,6 +54,9 @@ func (c chain) Authenticate(ctx context.Context, sess *zen.Session) (*principal.
 		return principal, nil
 	}
 
+	// Preserve Bearer's specific malformed-header errors after every resolver
+	// declined the request. A syntactically valid bearer that no resolver claims
+	// falls through to the generic missing-credentials response below.
 	if _, err := zen.Bearer(sess); err != nil {
 		return nil, err
 	}
