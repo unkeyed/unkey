@@ -38,11 +38,6 @@ func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*prin
 		name = "root key"
 	}
 
-	var permissions []string
-	if len(key.Permissions) > 0 {
-		permissions = key.Permissions
-	}
-
 	return &principal.Principal{
 		Version: principal.Version,
 		Subject: principal.Subject{
@@ -54,7 +49,7 @@ func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*prin
 		Source: principal.KeySource{
 			KeyID:       key.Key.ID,
 			KeySpaceID:  key.Key.KeyAuthID,
-			Permissions: permissions,
+			Permissions: key.Permissions,
 		},
 		WorkspaceID: key.AuthorizedWorkspaceID,
 		Permissions: key.Permissions,
