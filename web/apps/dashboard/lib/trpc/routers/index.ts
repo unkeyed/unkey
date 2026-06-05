@@ -207,7 +207,7 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
-import { getCurrentUser, listMemberships, switchOrg } from "./user";
+import { getCurrentUser, getUserJotIdentity, listMemberships, switchOrg } from "./user";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -396,6 +396,7 @@ export const router = t.router({
   }),
   user: t.router({
     getCurrentUser,
+    getUserJotIdentity,
     listMemberships,
     switchOrg,
   }),
