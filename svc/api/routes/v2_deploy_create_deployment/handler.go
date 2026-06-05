@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -80,6 +81,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// CLI announces itself via X-Unkey-Client: unkey-cli/<version>.
+	// Anything else (or absent) is attributed to the API.
+	trigger := ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API
+	if strings.HasPrefix(s.Request().Header.Get("X-Unkey-Client"), "unkey-cli/") {
+		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
+	}
+
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       row.Project.ID,
@@ -89,6 +97,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		GitCommit: &ctrlv1.GitCommitInfo{
 			Branch: req.Branch,
 		},
+		Trigger:     trigger,
+		TriggeredBy: auth.Key.ID,
 	}
 
 	// Add optional keyspace ID for authentication

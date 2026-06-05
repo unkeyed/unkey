@@ -62,6 +62,9 @@ export const deploymentSchema = z.object({
     })
     .nullable(),
   shutdownSignal: z.enum(["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"]),
+  trigger: z.enum(["unknown", "github", "api", "cli", "dashboard", "unkey"]),
+  triggeredBy: z.string().nullable(),
+  triggerReason: z.string().nullable(),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
   // Most-recent exit info across the deployment's instances. Null when
