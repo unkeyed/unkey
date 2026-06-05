@@ -25,7 +25,10 @@ go_library(
 
 go_test(
     name = "middleware_test",
-    srcs = ["authentication_test.go"],
+    srcs = [
+        "authentication_test.go",
+        "errors_test.go",
+    ],
     embed = [":middleware"],
     deps = [
         "//internal/services/keys/db",
@@ -33,6 +36,9 @@ go_test(
         "//pkg/auth/principal",
         "//pkg/cache",
         "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/logger/loggertest",
         "//pkg/zen",
         "@com_github_stretchr_testify//require",
     ],

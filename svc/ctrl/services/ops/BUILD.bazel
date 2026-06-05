@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ops",
+    srcs = [
+        "rebuild_deployment.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/services/ops",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//svc/ctrl/internal/auth",
+        "//svc/ctrl/services/deployment",
+        "@com_connectrpc_connect//:connect",
+    ],
+)
