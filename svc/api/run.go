@@ -324,7 +324,7 @@ func Run(ctx context.Context, cfg Config) error {
 			jwtSecrets = append(jwtSecrets, []byte(secret))
 		}
 
-		jwtResolver, jwtErr := authjwt.NewMultiResolver(jwtSecrets...)
+		jwtResolver, jwtErr := authjwt.NewResolver(jwtSecrets...)
 		if jwtErr != nil {
 			return fmt.Errorf("unable to create JWT auth resolver: %w", jwtErr)
 		}

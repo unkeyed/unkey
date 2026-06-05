@@ -92,7 +92,7 @@ func TestResolver_ResolveJWTWithRotatedSecret(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	resolver, err := NewMultiResolver(activeSecret, retiredSecret)
+	resolver, err := NewResolver(activeSecret, retiredSecret)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/", nil)

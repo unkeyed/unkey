@@ -42,17 +42,12 @@ type Resolver struct {
 	verifiers []tokenjwt.Verifier[Claims]
 }
 
-// NewResolver creates a resolver that verifies HS256 JWTs with the shared secret.
-func NewResolver(secret []byte) (*Resolver, error) {
-	return NewMultiResolver(secret)
-}
-
-// NewMultiResolver creates a resolver that verifies HS256 JWTs with any configured secret.
+// NewResolver creates a resolver that verifies HS256 JWTs with any configured secret.
 //
 // Secrets are tried in order. Callers should put the active signing secret first
 // and keep recently retired secrets later in the list until every token signed
 // with those secrets has expired.
-func NewMultiResolver(secrets ...[]byte) (*Resolver, error) {
+func NewResolver(secrets ...[]byte) (*Resolver, error) {
 	if len(secrets) == 0 {
 		return nil, errors.New("at least one JWT secret is required")
 	}
