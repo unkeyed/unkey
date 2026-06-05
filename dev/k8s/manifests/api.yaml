@@ -26,12 +26,12 @@ data:
     url = "http://vault:8060"
     token = "vault-test-token-123"
 
+    portal_base_url = "http://localhost:3100"
+    jwt_secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
+
     [control]
     url = "http://ctrl-api:7091"
     token = "your-local-dev-key"
-
-    portal_base_url = "http://localhost:3100"
-    jwt_secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
 
     [observability.tracing]
     sample_rate = 1.0
