@@ -7,29 +7,6 @@ import { ChevronExpandY, Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
 
-const settingsNavbar = [
-  {
-    id: "general",
-    href: "general",
-    text: "General",
-  },
-  {
-    id: "team",
-    href: "team",
-    text: "Team",
-  },
-  {
-    id: "root-keys",
-    href: "root-keys",
-    text: "Root Keys",
-  },
-  {
-    id: "billing",
-    href: "billing",
-    text: "Billing",
-  },
-];
-
 export const WorkspaceNavbar = ({
   activePage,
 }: {
@@ -48,16 +25,7 @@ export const WorkspaceNavbar = ({
             Settings
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
-            <QuickNavPopover
-              items={settingsNavbar.flatMap((setting) => [
-                {
-                  id: setting.href,
-                  label: setting.text,
-                  href: `/${workspace.slug}/settings/${setting.href}`,
-                },
-              ])}
-              shortcutKey="M"
-            >
+            <QuickNavPopover>
               <div className="flex items-center gap-1 p-1 rounded-lg hover:bg-gray-3">
                 {activePage.text}
                 <ChevronExpandY className="size-4" />
