@@ -8,10 +8,10 @@ go_library(
     deps = [
         "//internal/services/auditlogs",
         "//internal/services/caches",
-        "//internal/services/keys",
         "//internal/services/ratelimit",
         "//internal/services/ratelimit/namespace",
         "//pkg/auditlog",
+        "//pkg/auth/principal",
         "//pkg/batch",
         "//pkg/cache",
         "//pkg/clickhouse/schema",

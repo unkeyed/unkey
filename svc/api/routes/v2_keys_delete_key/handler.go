@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -27,7 +26,6 @@ type Response = openapi.V2KeysDeleteKeyResponseBody
 // Handler implements zen.Route interface for the v2 keys.deleteKey endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
@@ -44,8 +42,7 @@ func (h *Handler) Path() string {
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -75,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -84,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Permission check
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -95,7 +92,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Api.ID,
 			Action:       rbac.DeleteKey,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}
@@ -123,10 +120,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
 				Event:         auditlog.KeyDeleteEvent,
-				WorkspaceID:   auth.AuthorizedWorkspaceID,
-				ActorType:     auditlog.RootKeyActor,
-				ActorID:       auth.Key.ID,
-				ActorName:     "root key",
+				WorkspaceID:   principal.WorkspaceID,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
 				Display:       fmt.Sprintf("%s %s", description, key.ID),
 				RemoteIP:      s.Location(),

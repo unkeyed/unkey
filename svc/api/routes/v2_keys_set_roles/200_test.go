@@ -32,7 +32,6 @@ func TestSuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
@@ -364,7 +363,6 @@ func TestSetRolesConcurrent(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:        h.DB,
-		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
@@ -462,7 +460,7 @@ func TestValidationConcurrencyStress(t *testing.T) {
 		})
 	})
 
-	h.Register(route)
+	h.Register(route, h.PublicMiddleware()...)
 
 	// Create a pool of roles so each request uses a different one,
 	// defeating any schema cache that might hide the race.

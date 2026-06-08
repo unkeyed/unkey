@@ -69,14 +69,12 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 
 	// Create key service for proper key generation
 	keyService, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		RateLimiter:      nil,
-		RBAC:             nil,
-		KeyVerifications: keyVerifications,
-		Region:           "test",
-		UsageLimiter:     nil,
-		KeyCache:         nil,
-		QuotaCache:       nil,
+		DB:           db.ToMySQL(database),
+		RateLimiter:  nil,
+		RBAC:         nil,
+		Region:       "test",
+		UsageLimiter: nil,
+		KeyCache:     nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)

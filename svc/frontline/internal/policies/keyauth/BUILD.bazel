@@ -12,6 +12,8 @@ go_library(
     deps = [
         "//gen/proto/frontline/v1:frontline",
         "//internal/services/keys",
+        "//pkg/batch",
+        "//pkg/clickhouse/schema",
         "//pkg/clock",
         "//pkg/codes",
         "//pkg/fault",

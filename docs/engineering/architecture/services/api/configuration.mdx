@@ -75,6 +75,13 @@ token = "${UNKEY_VAULT_TOKEN}"
   Maximum request size in bytes.
 </ResponseField>
 
+<ResponseField name="jwt_secrets" type="string[]">
+  Ordered JWT verification secrets for short-lived API bearer authentication.
+  Leave unset to disable JWT authentication. During rotation, put the active
+  signing secret first and keep retired secrets later in the list until every
+  token signed with those secrets has expired.
+</ResponseField>
+
 <ResponseField name="database" type="object" required>
   MySQL configuration.
   <Expandable title="Fields">
@@ -221,6 +228,21 @@ The Helm chart provides these variables for the default config template:
   pprof password.
 </ResponseField>
 
+## Dashboard proxy configuration
+
+The dashboard proxy needs a signing secret and an API base URL. The API must
+include the same signing secret in `jwt_secrets` before it accepts dashboard
+proxy requests.
+
+<ResponseField name="UNKEY_API_URL" type="env" default="https://api.unkey.com">
+  API base URL that dashboard proxy requests are forwarded to.
+</ResponseField>
+
+<ResponseField name="UNKEY_JWT_SECRET" type="env">
+  Dashboard proxy signing secret. Add the same value to the API
+  `jwt_secrets` list so the API can verify dashboard-minted JWTs.
+</ResponseField>
+
 ## Example configuration
 
 ```toml
@@ -229,6 +251,7 @@ platform = "aws"
 http_port = 7070
 region = "${UNKEY_REGION}"
 redis_url = "${UNKEY_REDIS_URL}"
+jwt_secrets = ["${UNKEY_JWT_SECRET}"]
 
 [observability.tracing]
 sample_rate = 0.1

@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
@@ -38,7 +39,13 @@ func TestErrorMiddleware_500_LogsRichContext(t *testing.T) {
 	h := loggertest.Install(t)
 
 	sess, rec := newSession(t, http.MethodPost, "/v2/keys.verifyKey?debug=1")
-	sess.WorkspaceID = "ws_test_123"
+	sess.SetPrincipal(&principal.Principal{
+		Version:     principal.Version,
+		Subject:     principal.Subject{ID: "key_test", Name: "Test Key", Type: principal.SubjectTypeRootKey},
+		Type:        principal.TypeAPIKey,
+		Source:      principal.KeySource{KeyID: "key_test", KeySpaceID: "ks_test"},
+		WorkspaceID: "ws_test_123",
+	})
 
 	rootErr := fault.New("db connection refused",
 		fault.Code(codes.App.Internal.UnexpectedError.URN()))

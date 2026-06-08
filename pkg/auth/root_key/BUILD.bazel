@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "root_key",
+    srcs = ["resolver.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/auth/root_key",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/keys",
+        "//pkg/auth/principal",
+        "//pkg/zen",
+    ],
+)
+
+go_test(
+    name = "root_key_test",
+    srcs = ["resolver_test.go"],
+    embed = [":root_key"],
+    deps = [
+        "//internal/services/keys",
+        "//internal/services/keys/db",
+        "//pkg/auth/principal",
+        "//pkg/zen",
+        "@com_github_stretchr_testify//require",
+    ],
+)
