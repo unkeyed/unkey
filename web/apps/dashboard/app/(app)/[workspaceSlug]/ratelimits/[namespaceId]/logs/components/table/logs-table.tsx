@@ -2,13 +2,16 @@
 
 import {
   EmptyRatelimitLogs,
+  type EnrichedRatelimitLog,
   createRatelimitLogsColumns,
   getRowClassName,
+  renderRatelimitLogsSkeletonRow,
   useRatelimitLogsQuery,
 } from "@/components/ratelimit-logs-table";
+import { cn } from "@/lib/utils";
 import type { RowSelectionState } from "@tanstack/react-table";
 import { DataTable, PaginationFooter } from "@unkey/ui";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useRatelimitLogsContext } from "../../context/logs";
 
 export const RatelimitLogsTable = () => {
@@ -40,6 +43,29 @@ export const RatelimitLogsTable = () => {
     [selectedLog],
   );
 
+  const rowClassName = useCallback(
+    (log: EnrichedRatelimitLog) =>
+      cn(
+        getRowClassName(log, selectedLog),
+        // During live tail, dim rows that have already aged into the historical
+        // set so the newest streaming rows stand out; hovering restores full
+        // opacity. Lives here, not in getRowClassName, because only the consumer
+        // knows the live-tail and realtime state.
+        isLive &&
+          !realtimeLogs.some((realtime) => realtime.request_id === log.request_id) && [
+            "opacity-50",
+            "hover:opacity-100",
+          ],
+        // When a row is selected, fade and drop the other rows behind it so the
+        // open detail row reads as the focus.
+        selectedLog && {
+          "opacity-50 z-0": selectedLog.request_id !== log.request_id,
+          "opacity-100 z-10": selectedLog.request_id === log.request_id,
+        },
+      ),
+    [isLive, realtimeLogs, selectedLog],
+  );
+
   return (
     <div className="flex flex-col">
       <DataTable
@@ -48,9 +74,10 @@ export const RatelimitLogsTable = () => {
         columns={columns}
         getRowId={(log) => log.request_id}
         isLoading={isLoading}
+        renderSkeletonRow={renderRatelimitLogsSkeletonRow}
         onRowClick={setSelectedLog}
         selectedItem={selectedLog}
-        rowClassName={(log) => getRowClassName(log, selectedLog)}
+        rowClassName={rowClassName}
         enableRowSelection={true}
         rowSelection={rowSelection}
         sorting={sorting}
@@ -59,7 +86,7 @@ export const RatelimitLogsTable = () => {
         config={{ rowHeight: 26, layout: "classic", rowBorders: false, containerPadding: "px-2" }}
         emptyState={<EmptyRatelimitLogs />}
       />
-      {!isLive && totalPages > 1 && (
+      {!isLive && (
         <PaginationFooter
           page={page}
           pageSize={pageSize}

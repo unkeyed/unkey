@@ -18,7 +18,7 @@ export const ResetCell = ({ log, pointerEventsNone }: ResetCellProps) => {
   const parsedReset = body?.reset ?? body?.data?.reset;
 
   if (!parsedReset) {
-    return <>{"<Empty>"}</>;
+    return <>{"<EMPTY>"}</>;
   }
 
   return (

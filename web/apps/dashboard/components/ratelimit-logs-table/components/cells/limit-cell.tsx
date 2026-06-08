@@ -8,5 +8,7 @@ export const LimitCell = ({ log }: { log: EnrichedRatelimitLog }) => {
   }
   const body = safeParseJson(log.response_body);
   const parsedLimit = body?.limit ?? body?.data?.limit;
-  return <div className="font-mono">{parsedLimit ?? "<EMPTY>"}</div>;
+  // Treat a missing or zero limit as empty, matching DurationCell/ResetCell — a
+  // limit of 0 reads as malformed/absent data here, not a meaningful value.
+  return <div className="font-mono">{parsedLimit || "<EMPTY>"}</div>;
 };

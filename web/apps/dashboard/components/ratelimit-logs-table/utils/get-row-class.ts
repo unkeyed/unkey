@@ -1,31 +1,17 @@
 import { cn } from "@/lib/utils";
+import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
 import type { EnrichedRatelimitLog } from "../hooks/use-ratelimit-logs-query";
 
 // A blocked ratelimit request is encoded as status === 0.
 export const BLOCKED_STATUS = 0;
 
-export type StatusStyle = {
-  base: string;
-  hover: string;
-  selected: string;
-  badge: {
-    default: string;
-    selected: string;
-  };
-  focusRing: string;
-};
-
-export const STATUS_STYLES = {
-  success: {
-    base: "text-grayA-9",
-    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
-    selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
-    badge: {
-      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
-      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
-    },
-    focusRing: "focus:ring-accent-7",
-  },
+// Row and badge styles keyed by ratelimit decision severity: `success` for a
+// passed request, `warning` for a blocked one. `success` reuses @unkey/ui's
+// shared STATUS_STYLES so passed rows match every other selectable table;
+// `warning` is the bespoke blocked-request variant with no shared equivalent.
+// Module-private: callers go through getStatusStyle, not the map directly.
+const RATELIMIT_ROW_STYLES = {
+  success: STATUS_STYLES,
   warning: {
     base: "text-warning-11 bg-warning-2",
     hover: "hover:bg-warning-3",
@@ -36,13 +22,13 @@ export const STATUS_STYLES = {
     },
     focusRing: "focus:ring-warning-7",
   },
-};
+} satisfies Record<"success" | "warning", StatusStyle>;
 
 export const getStatusStyle = (status: number): StatusStyle => {
   if (status === BLOCKED_STATUS) {
-    return STATUS_STYLES.warning;
+    return RATELIMIT_ROW_STYLES.warning;
   }
-  return STATUS_STYLES.success;
+  return RATELIMIT_ROW_STYLES.success;
 };
 
 export const getRowClassName = (

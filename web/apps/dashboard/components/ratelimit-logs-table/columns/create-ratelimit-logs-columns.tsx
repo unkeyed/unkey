@@ -9,6 +9,20 @@ import { RegionValueCell } from "../components/cells/region-value-cell";
 import { ResetCell } from "../components/cells/reset-cell";
 import type { EnrichedRatelimitLog } from "../hooks/use-ratelimit-logs-query";
 
+// Column ids, shared with the skeleton renderer so the two never drift. The
+// time/identifier/status values double as TanStack sort ids (see
+// SORT_COLUMN_BY_ID in the query hook) and must match the server sort enum.
+export const RATELIMIT_LOGS_COLUMN_IDS = {
+  TIME: "time",
+  IDENTIFIER: "identifier",
+  STATUS: "status",
+  LIMIT: "limit",
+  DURATION: "duration",
+  RESET: "reset",
+  REGION: "region",
+  ACTIONS: "actions",
+} as const;
+
 type CreateRatelimitLogsColumnsOptions = {
   // Sorting is server-side and only meaningful for historical pages, so the
   // live-tail view passes `false` to disable the sort affordance entirely.
@@ -19,7 +33,7 @@ export const createRatelimitLogsColumns = ({
   enableSorting = false,
 }: CreateRatelimitLogsColumnsOptions = {}): DataTableColumnDef<EnrichedRatelimitLog>[] => [
   {
-    id: "time",
+    id: RATELIMIT_LOGS_COLUMN_IDS.TIME,
     accessorKey: "time",
     header: ({ header }) => <SortableHeader header={header}>Time</SortableHeader>,
     enableSorting,
@@ -43,7 +57,7 @@ export const createRatelimitLogsColumns = ({
     },
   },
   {
-    id: "identifier",
+    id: RATELIMIT_LOGS_COLUMN_IDS.IDENTIFIER,
     accessorKey: "identifier",
     header: ({ header }) => <SortableHeader header={header}>Identifier</SortableHeader>,
     enableSorting,
@@ -55,7 +69,7 @@ export const createRatelimitLogsColumns = ({
     ),
   },
   {
-    id: "status",
+    id: RATELIMIT_LOGS_COLUMN_IDS.STATUS,
     accessorKey: "status",
     header: ({ header }) => <SortableHeader header={header}>Status</SortableHeader>,
     enableSorting,
@@ -65,7 +79,7 @@ export const createRatelimitLogsColumns = ({
     cell: ({ row }) => <RatelimitStatusCell log={row.original} isSelected={row.getIsSelected()} />,
   },
   {
-    id: "limit",
+    id: RATELIMIT_LOGS_COLUMN_IDS.LIMIT,
     header: "Limit",
     enableSorting: false,
     meta: {
@@ -74,7 +88,7 @@ export const createRatelimitLogsColumns = ({
     cell: ({ row }) => <LimitCell log={row.original} />,
   },
   {
-    id: "duration",
+    id: RATELIMIT_LOGS_COLUMN_IDS.DURATION,
     header: "Duration",
     enableSorting: false,
     meta: {
@@ -83,7 +97,7 @@ export const createRatelimitLogsColumns = ({
     cell: ({ row }) => <DurationCell log={row.original} />,
   },
   {
-    id: "reset",
+    id: RATELIMIT_LOGS_COLUMN_IDS.RESET,
     header: "Resets At",
     enableSorting: false,
     meta: {
@@ -97,7 +111,7 @@ export const createRatelimitLogsColumns = ({
     ),
   },
   {
-    id: "region",
+    id: RATELIMIT_LOGS_COLUMN_IDS.REGION,
     accessorKey: "region",
     header: "Region",
     enableSorting: false,
@@ -107,7 +121,7 @@ export const createRatelimitLogsColumns = ({
     cell: ({ row }) => <RegionValueCell log={row.original} />,
   },
   {
-    id: "actions",
+    id: RATELIMIT_LOGS_COLUMN_IDS.ACTIONS,
     header: "",
     enableSorting: false,
     meta: {
