@@ -9,3 +9,6 @@ svc/vault/proto
 
 # Claude Code agent worktrees are copies of the repo, not part of this build
 .claude
+
+# mise task scripts; filenames like `build` collide with Bazel BUILD on case-insensitive filesystems
+.mise

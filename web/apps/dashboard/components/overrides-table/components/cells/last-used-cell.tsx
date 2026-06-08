@@ -1,3 +1,4 @@
+import { STATUS_STYLES } from "@/components/ratelimits-overview-table";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";

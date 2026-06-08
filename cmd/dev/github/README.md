@@ -28,7 +28,7 @@ This opens a browser, walks you through GitHub's App creation UI, then writes:
 ### Step 2: Start the dev environment
 
 ```bash
-make dev
+mise run dev
 ```
 
 Tilt spins up a `github-tunnel` resource that runs ngrok against ctrl-api and patches the GitHub App's webhook URL to point at the public ngrok address. No manual tunnel step needed.
@@ -92,7 +92,7 @@ Requires `ngrok` to be installed.
 
 ### ✗ Failed to connect to webhook endpoint
 
-- Ensure `make dev` is running
+- Ensure `mise run dev` is running
 - Check ctrl-api is healthy: `curl http://localhost:7091/health`
 
 ### ✗ Webhook rejected: invalid signature

@@ -1,5 +1,5 @@
 "use client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
 import { envVarKeySchema } from "@/lib/schemas/env-var";
@@ -7,7 +7,13 @@ import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { trackSave } from "./environment-settings";
-import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
+
+type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
+
+function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
+  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
+  return typeof value === "string" ? value : undefined;
+}
 
 const schema = z.object({
   id: z.string(),
@@ -17,7 +23,7 @@ const schema = z.object({
   description: z.string().nullable(),
   updatedAt: z.number(),
   environmentId: z.string(),
-  projectId: z.string(),
+  appId: z.string(),
 });
 
 export type EnvVar = z.infer<typeof schema>;
@@ -25,15 +31,16 @@ export type EnvVar = z.infer<typeof schema>;
 /**
  * Environment variables collection.
  *
- * IMPORTANT: All queries MUST filter by projectId:
- * .where(({ v }) => eq(v.projectId, projectId))
+ * IMPORTANT: All queries MUST filter by appId:
+ * .where(({ v }) => eq(v.appId, appId))
  */
 export const envVars = createCollection<EnvVar, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
-      const projectId = parseProjectIdFromWhere(opts.where);
-      return projectId ? ["envVars", projectId] : ["envVars"];
+      const { filters } = parseLoadSubsetOptions(opts);
+      const appId = extractStringFilter(filters, "appId", "eq");
+      return appId ? ["envVars", appId] : ["envVars"];
     },
     retry: 3,
     syncMode: "on-demand",
@@ -41,14 +48,14 @@ export const envVars = createCollection<EnvVar, string>(
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 
-      validateProjectIdInQuery(options?.where);
-      const projectId = parseProjectIdFromWhere(options?.where);
+      const { filters } = parseLoadSubsetOptions(options);
+      const appId = extractStringFilter(filters, "appId", "eq");
 
-      if (!projectId) {
-        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
+      if (!appId) {
+        throw new Error("Query must include eq(collection.appId, appId) constraint");
       }
 
-      const data = await trpcClient.deploy.envVar.list.query({ projectId });
+      const data = await trpcClient.deploy.envVar.list.query({ appId });
 
       const result: EnvVar[] = [];
       for (const [_slug, envData] of Object.entries(data)) {
@@ -62,7 +69,7 @@ export const envVars = createCollection<EnvVar, string>(
             description: v.description,
             updatedAt: v.updatedAt,
             environmentId,
-            projectId,
+            appId: v.appId,
           });
         }
       }

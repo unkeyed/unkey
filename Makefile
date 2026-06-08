@@ -107,7 +107,6 @@ test: oci-load clean-docker-test ## Run tests with bazel
 .PHONY: clean-docker-test
 clean-docker-test: ## Clean up dangling test containers
 	@docker rm -vf $$(docker ps -q -f label="owner=testutil-containers") > /dev/null 2>&1 || true
-	@docker rm -vf $$(docker ps -q -f label="owner=dockertest") > /dev/null 2>&1 || true
 
 .PHONY: tunnel
 tunnel: ## Forward ports 80/443 to frontline for *.unkey.local (run in separate terminal)
@@ -129,7 +128,13 @@ down: ## Stop tilt (keeps cluster)
 
 .PHONY: oci-load
 oci-load: build ## Build and load OCI images into Docker
-	bazel run //:oci_load_unkey
+	bazel run //build/api:load
+	bazel run //build/control-api:load
+	bazel run //build/control-worker:load
+	bazel run //build/frontline:load
+	bazel run //build/heimdall:load
+	bazel run //build/krane:load
+	bazel run //build/vault:load
 
 .PHONY: dashboard
 dashboard: build oci-load ## Run local development setup for dashboard
@@ -166,7 +171,7 @@ fuzz: ## Run fuzz tests
 		done; \
 	done
 .PHONY: unkey
-unkey: ## Run unkey CLI (usage: make unkey dev seed local, make unkey run api ARGS="--http-port=7070")
+unkey: ## Run unkey CLI (usage: make unkey dev seed local)
 	@set -a; [ -f .env ] && . ./.env; set +a; bazel run --ui_event_filters=-info --noshow_progress //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
 
 # Catch-all to swallow extra args passed to unkey target (only when unkey is called)

@@ -47,6 +47,7 @@ export type UnkeyAuditLog = {
       | "reporter"
       | "secret"
       | "project"
+      | "app"
       | "identity"
       | "auditLogBucket"
       | "environment"

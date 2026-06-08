@@ -13,13 +13,15 @@ import { ROLE_COLUMN_IDS } from "../../columns/create-roles-columns";
 
 type RenderRolesSkeletonRowProps = {
   columns: DataTableColumnDef<RoleBasic>[];
+  rowHeight: number;
 };
 
-export const renderRolesSkeletonRow = ({ columns }: RenderRolesSkeletonRowProps) =>
+export const renderRolesSkeletonRow = ({ columns, rowHeight }: RenderRolesSkeletonRowProps) =>
   columns.map((column) => (
     <td
       key={column.id}
       className={cn("text-xs align-middle whitespace-nowrap", column.meta?.cellClassName)}
+      style={{ height: `${rowHeight}px` }}
     >
       {column.id === ROLE_COLUMN_IDS.ROLE.id && (
         <NameColumnSkeleton

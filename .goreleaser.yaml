@@ -8,6 +8,9 @@
 
 version: 2
 
+monorepo:
+  tag_prefix: cli/
+
 partial:
   by: goos
 
@@ -67,20 +70,7 @@ npms:
     homepage: "https://unkey.com"
     repository: "https://github.com/unkeyed/unkey"
     license: "AGPL-3.0-only"
-
-dockers_v2:
-  - ids: [unkey]
-    images:
-      - "ghcr.io/unkeyed/unkey"
-    tags:
-      - "v{{ .Version }}"
-    platforms:
-      - linux/amd64
-      - linux/arm64
-    dockerfile: Dockerfile.release
-    labels:
-      "org.opencontainers.image.source": "https://github.com/unkeyed/unkey"
-      "org.opencontainers.image.description": "Unkey API"
+    tag: "{{ if .Prerelease }}next{{ else }}latest{{ end }}"
 
 changelog:
   use: github

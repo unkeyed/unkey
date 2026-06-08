@@ -21,29 +21,37 @@ import (
 
 // GetMigrated uses a special hashing algorithm to retrieve a key from the database and
 // migrates the key to our own hashing algorithm.
-func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey string, migrationID string) (*KeyVerifier, func(), error) {
+func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey string, migrationID string) (*KeyVerifier, error) {
 	ctx, span := tracing.Start(ctx, "keys.GetMigrated")
 	defer span.End()
 
 	err := assert.NotEmpty(rawKey)
 	if err != nil {
-		return nil, emptyLog, fault.Wrap(err, fault.Internal("rawKey is empty"))
+		return nil, fault.Wrap(err, fault.Internal("rawKey is empty"))
+	}
+
+	principal, err := sess.GetPrincipal()
+	if err != nil {
+		return nil, err
 	}
 
 	migration, err := keysdb.Query.FindKeyMigrationByID(ctx, s.db.RO(), keysdb.FindKeyMigrationByIDParams{
 		ID:          migrationID,
-		WorkspaceID: sess.AuthorizedWorkspaceID(),
+		WorkspaceID: principal.WorkspaceID,
 	})
 	if err != nil {
 		if mysql.IsNotFound(err) {
 			// nolint:exhaustruct
 			return &KeyVerifier{
-				Status:  StatusNotFound,
-				message: "migration does not exist",
-			}, emptyLog, nil
+				Status:    StatusNotFound,
+				message:   "migration does not exist",
+				session:   sess,
+				region:    s.region,
+				startTime: time.Now(),
+			}, nil
 		}
 
-		return nil, emptyLog, fault.Wrap(
+		return nil, fault.Wrap(
 			err,
 			fault.Internal("unable to load migration"),
 			fault.Public("We could not load the requested migration."),
@@ -63,7 +71,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			// but prefix can (e.g., "my_company_shortToken_longToken")
 			parts := strings.Split(rawKey, "_")
 			if len(parts) < 3 {
-				return nil, emptyLog, fault.Wrap(
+				return nil, fault.Wrap(
 					fmt.Errorf("expected at least 3 segments, got %d", len(parts)),
 					fault.Code(codes.Auth.Authentication.Malformed.URN()),
 					fault.Public("Invalid key format"),
@@ -95,19 +103,22 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		// then it doesn't exist, and there is nothing to migrate here.
 		// nolint:exhaustruct
 		return &KeyVerifier{
-			Status:  StatusNotFound,
-			message: "key does not exist",
-		}, emptyLog, nil
+			Status:    StatusNotFound,
+			message:   "key does not exist",
+			session:   sess,
+			region:    s.region,
+			startTime: time.Now(),
+		}, nil
 	default:
-		return nil, emptyLog, fault.New(
+		return nil, fault.New(
 			fmt.Sprintf("unsupported migration algorithm %s", migration.Algorithm),
 			fault.Public(fmt.Sprintf("We could not load the requested migration for algorithm %s.", migration.Algorithm)),
 		)
 	}
 
-	key, log, err := s.Get(ctx, sess, h)
+	key, err := s.Get(ctx, sess, h)
 	if err != nil {
-		return nil, log, err
+		return nil, err
 	}
 
 	if key.Key.PendingMigrationID.Valid && key.Key.PendingMigrationID.String == migrationID {
@@ -120,7 +131,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			UpdatedAtM:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 		if err != nil {
-			return nil, log, fault.Wrap(
+			return nil, fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.UnexpectedError.URN()),
 				fault.Public("We could not update the key hash and migration id"),
@@ -134,5 +145,5 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		)
 	}
 
-	return key, log, nil
+	return key, nil
 }

@@ -1,7 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { createCtrlClient } from "@/lib/ctrl-client";
 
-import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
+import { DeployService, DeploymentTrigger } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { and, db, eq } from "@/lib/db";
 import { getPullRequest, listPullRequestsForCommit } from "@/lib/github";
@@ -17,6 +17,12 @@ import {
   resolveSourceRepo,
 } from "./resolve-deploy-ref";
 
+const baseInput = z.object({
+  projectId: z.string().min(1, "Project ID is required"),
+  appId: z.string().min(1, "App ID is required"),
+  environmentSlug: z.string().min(1, "Environment slug is required"),
+});
+
 type RepoConn = { installationId: number; repositoryFullName: string };
 
 type GitCommit = {
@@ -28,11 +34,23 @@ type GitCommit = {
 export const createDeploy = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .input(
-    z.object({
-      projectId: z.string().min(1, "Project ID is required"),
-      environmentSlug: z.string().min(1, "Environment slug is required"),
-      gitRef: z.string().optional(),
-    }),
+    z.discriminatedUnion("source", [
+      baseInput.extend({
+        source: z.literal("git"),
+        gitRef: z.string().min(1, "A git ref is required"),
+      }),
+      baseInput.extend({
+        source: z.literal("image"),
+        image: z
+          .string()
+          .trim()
+          .min(1, "An image reference is required")
+          .regex(/^\S+$/, "Image reference cannot contain whitespace"),
+      }),
+      // Server decides: git-connected apps deploy HEAD of the default
+      // branch, others reuse the live deployment's image.
+      baseInput.extend({ source: z.literal("default") }),
+    ]),
   )
   .mutation(async ({ input, ctx }) => {
     const ctrl = createCtrlClient(DeployService);
@@ -56,6 +74,7 @@ export const createDeploy = workspaceProcedure
           eq(environments.projectId, input.projectId),
           eq(environments.slug, input.environmentSlug),
           eq(environments.workspaceId, ctx.workspace.id),
+          eq(environments.appId, input.appId),
         ),
         columns: { id: true, appId: true },
       });
@@ -68,7 +87,7 @@ export const createDeploy = workspaceProcedure
       }
 
       let gitCommit: GitCommit | undefined;
-      if (input.gitRef) {
+      if (input.source === "git") {
         const parsed = parseDeployRef(input.gitRef);
 
         const repoConn = await db.query.githubRepoConnections.findFirst({
@@ -90,7 +109,10 @@ export const createDeploy = workspaceProcedure
           projectId: input.projectId,
           appId: environment.appId,
           environmentSlug: input.environmentSlug,
+          trigger: DeploymentTrigger.DASHBOARD,
+          triggeredBy: ctx.user.id,
           ...(gitCommit ? { gitCommit } : {}),
+          ...(input.source === "image" ? { dockerImage: input.image } : {}),
         })
         .catch((err) => {
           console.error(err);
@@ -174,15 +196,15 @@ async function resolveFork(
 async function resolveDeployRef(parsed: DeployRef, repoConn: RepoConn): Promise<GitCommit> {
   return match(parsed)
     .with({ kind: "pr" }, async (ref) => {
-      const repoName = repoConn.repositoryFullName.split("/")[1];
-      const sourceRepoName = ref.sourceRepo.split("/")[1];
-      if (sourceRepoName !== repoName) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Pull request URL points to "${ref.sourceRepo}", not the connected repository or a fork of it`,
-        });
-      }
-
+      // Fetch the PR through the connected repo's installation auth.
+      // GitHub will only return a PR that actually exists on
+      // repoConn.repositoryFullName, so a successful fetch is itself
+      // proof that the PR base matches the connected repo. We then
+      // verify that the URL's parsed source repo matches the PR head
+      // GitHub reports, which catches typo-squat URLs like
+      // `https://github.com/evil/myapp/pull/123` aimed at a connected
+      // `unkey/myapp`. Splitting on `/` and comparing the repo name —
+      // the previous behavior — would let those through.
       let pr: Awaited<ReturnType<typeof getPullRequest>>;
       try {
         pr = await getPullRequest(
@@ -198,6 +220,17 @@ async function resolveDeployRef(parsed: DeployRef, repoConn: RepoConn): Promise<
           cause: err,
         });
       }
+
+      const headRepo = pr.head.repo?.full_name;
+      // GitHub owner/repo paths are case-insensitive, so don't reject a
+      // user-supplied URL just because of casing drift.
+      if (!headRepo || headRepo.toLowerCase() !== ref.sourceRepo.toLowerCase()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Pull request URL points to "${ref.sourceRepo}", but PR #${ref.prNumber} on "${repoConn.repositoryFullName}" is from "${headRepo ?? "unknown"}"`,
+        });
+      }
+
       return {
         branch: pr.head.ref,
         forkRepository: detectForkRepo(pr) ?? "",

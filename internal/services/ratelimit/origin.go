@@ -33,15 +33,14 @@ func errorReason(err error) string {
 // caller will retry.
 const originFetchTimeout = 150 * time.Millisecond
 
-// fetchFromOrigin returns the current counter value from the origin. The
-// call is wrapped in the origin circuit breaker so that Redis outages fail
-// fast instead of stalling every request in strict mode. On any failure
-// (circuit tripped, timeout, or Redis error) it returns 0 — callers feed
-// this into atomicMax, which is a no-op against any existing positive
-// counter, so failed fetches preserve whatever local state is already
-// there.
-func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) int64 {
+// fetchFromOrigin returns the current counter value from the origin. The call is
+// wrapped in the origin circuit breaker so that Redis outages fail fast instead
+// of stalling every request in strict mode. On any failure (circuit tripped,
+// timeout, or Redis error) it returns ok=false so callers can preserve local
+// state without marking it fresh.
+func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, op string) (count int64, ok bool) {
 	rk := key.redisKey()
+	metrics.RatelimitOriginOperations.WithLabelValues(op).Inc()
 
 	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
 		start := time.Now()
@@ -50,18 +49,18 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) int64 {
 
 		res, err := s.origin.Get(timeout, rk)
 
-		metrics.RatelimitOriginLatency.WithLabelValues("fetch").Observe(time.Since(start).Seconds())
+		metrics.RatelimitOriginLatency.WithLabelValues(op).Observe(time.Since(start).Seconds())
 		return res, err
 	})
 	if err != nil {
-		metrics.RatelimitOriginErrors.WithLabelValues("fetch", errorReason(err)).Inc()
+		metrics.RatelimitOriginErrors.WithLabelValues(op, errorReason(err)).Inc()
 		logger.Error("unable to get counter value from origin",
 			"key", rk,
 			"error", err.Error(),
 		)
-		return 0
+		return 0, false
 	}
-	return res
+	return res, true
 }
 
 // replayRequests processes buffered rate limit events by synchronizing them
@@ -97,6 +96,8 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		return err
 	}
 
+	metrics.RatelimitOriginOperations.WithLabelValues("sync").Inc()
+
 	durationMs := req.Duration.Milliseconds()
 	sequence := calculateSequence(req.Time, req.Duration)
 	key := counterKey{
@@ -127,6 +128,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	// CAS-merge: update local counter if Redis value is higher.
 	counter := s.loadCounter(key)
 	atomicMax(&counter.val, newCounter)
+	atomicMax(&counter.originFreshUntilMs, s.clock.Now().Add(originFreshDuration).UnixMilli())
 
 	return nil
 }

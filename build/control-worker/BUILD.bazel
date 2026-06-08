@@ -1,0 +1,51 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("//build/util:service_image.bzl", "service_image")
+
+go_library(
+    name = "control_worker_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/build/control-worker",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//build/util",
+        "//svc/ctrl/worker",
+    ],
+)
+
+go_binary(
+    name = "control_worker_linux_amd64",
+    out = "bin/control-worker",
+    embed = [":control_worker_lib"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/unkeyed/unkey/pkg/buildinfo.BuildTime": "{BUILD_TIMESTAMP}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Revision": "{STABLE_GIT_COMMIT}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Version": "{STABLE_VERSION}",
+    },
+)
+
+go_binary(
+    name = "control_worker_linux_arm64",
+    out = "bin/control-worker",
+    embed = [":control_worker_lib"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/unkeyed/unkey/pkg/buildinfo.BuildTime": "{BUILD_TIMESTAMP}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Revision": "{STABLE_GIT_COMMIT}",
+        "github.com/unkeyed/unkey/pkg/buildinfo.Version": "{STABLE_VERSION}",
+    },
+)
+
+service_image(
+    name = "control_worker",
+    binary_name = "control-worker",
+    description = "Unkey Control Worker",
+    local_tag = "unkey/control-worker:dev",
+    repository = "ghcr.io/unkeyed/control-worker",
+)

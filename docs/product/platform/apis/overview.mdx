@@ -1,47 +1,56 @@
 ---
-title: APIs
-description: "An API namespace in Unkey groups related keys, configuration, and analytics. Learn how to create and manage APIs within your workspace."
+title: Keyspaces
+description: "A keyspace in Unkey groups related keys, configuration, and analytics. Learn how to create and manage keyspaces within your workspace."
 ---
 
-An API is a container for related API keys. It doesn't represent a running service or HTTP endpoint. Instead, it provides a boundary for organizing keys by product, environment, or tier.
+A keyspace is a container for related API keys. It doesn't represent a running service or HTTP endpoint. Instead, it provides a boundary for organizing keys by product, environment, or tier. In the dashboard, keyspaces appear under **Keyspaces (APIs)**.
 
-Every key belongs to exactly one API. When you create a key, you specify which API it belongs to by passing an `apiId`.
+Every key belongs to exactly one keyspace. When you create a key, you specify which keyspace it belongs to by passing its `apiId`.
 
-## When to create separate APIs
+## When to create separate keyspaces
 
-Use multiple APIs when you need independent key prefixes, permissions, or analytics boundaries.
+Use multiple keyspaces when you need independent key prefixes, permissions, or analytics boundaries.
 
-| Strategy       | Example API names            | Why                                                    |
+| Strategy       | Example names                | Why                                                    |
 | -------------- | ---------------------------- | ------------------------------------------------------ |
 | By product     | `payments-api`, `search-api` | Different key prefixes and permission sets per product |
 | By environment | `production`, `staging`      | Separate keys and usage tracking per stage             |
 | By tier        | `free-tier`, `enterprise`    | Different default rate limits per plan                 |
 
-A single API works fine if all your keys share the same configuration and you filter by metadata or tags instead.
+A single keyspace works fine if all your keys share the same configuration and you filter by metadata or tags instead.
 
-## Create an API
+## Create a keyspace
 
-1. Navigate to **APIs** in the sidebar.
-2. Click **Create API**.
-3. Enter a name for your API.
+1. Navigate to **Keyspaces (APIs)** in the sidebar.
+2. Click **Create new keyspace**.
+3. Enter a name for your keyspace.
 
-Unkey generates a unique `api_xxx` identifier and a keyspace for the API. You use this identifier when creating keys and querying analytics.
+Unkey generates a unique **API ID** (`api_xxx`) for the keyspace. This is the identifier you pass when creating keys and querying analytics, so keep it handy.
 
-## API settings
+## Keyspace settings
 
-Each API exposes configuration through its settings page.
+Each keyspace exposes configuration through its settings page.
 
 | Setting              | Description                                                                                                                              |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Name                 | Human-readable label shown in the dashboard                                                                                              |
-| Default prefix       | Prefix prepended to every key created in this API (for example, `sk_live`)                                                               |
+| Default prefix       | Prefix prepended to every key created in this keyspace (for example, `sk_live`)                                                          |
 | Default bytes        | Number of random bytes used to generate new keys (default: 16)                                                                           |
 | Store encrypted keys | When enabled, Unkey stores an encrypted copy of each key so it can be recovered later. See [Recovering keys](/security/recovering-keys). |
 | IP whitelist         | Restrict key verification to specific IP addresses. See [IP whitelist](/platform/apis/features/whitelist).                               |
 
-## Keyspace
+## Identifiers
 
-Every API has a keyspace (internally called `key_auth`). The keyspace is the storage and validation boundary for all keys in that API. When Sentinel or the verification endpoint receives a key, it resolves the keyspace by key prefix and validates the key against that keyspace's configuration.
+Each keyspace has two identifiers:
+
+| Identifier  | Format   | Used for                                                                      |
+| ----------- | -------- | ----------------------------------------------------------------------------- |
+| API ID      | `api_xxx` | Creating keys and most API calls — the identifier you'll use most often       |
+| KeySpace ID | `ks_xxx`  | Analytics queries (as `key_space_id`) and Sentinel configuration              |
+
+## Storage and validation
+
+A keyspace is the storage and validation boundary for all of its keys (internally, it's backed by a `key_auth` record). When Sentinel or the verification endpoint receives a key, it resolves the keyspace by key prefix and validates the key against that keyspace's configuration.
 
 The keyspace stores:
 
@@ -53,7 +62,7 @@ The keyspace stores:
 | `store_encrypted_keys` | Whether to store a recoverable encrypted copy of each key                                              |
 | `size_approx`          | Approximate number of live keys in this keyspace                                                       |
 
-Keyspace IDs appear in analytics queries as `key_space_id` and in Sentinel configuration when connecting a keyspace to a deployment.
+KeySpace IDs appear in analytics queries as `key_space_id` and in Sentinel configuration when connecting a keyspace to a deployment.
 
 ### Key format
 
@@ -67,28 +76,28 @@ sk_live_abc123def456ghi789
 
 The prefix is optional but recommended. It makes keys visually identifiable and lets Unkey route verification requests to the correct keyspace without a database lookup.
 
-## Delete an API
+## Delete a keyspace
 
-Deleting an API permanently removes the API, its keyspace, and all associated keys. This action cannot be undone.
+Deleting a keyspace permanently removes it and all of its keys. This action cannot be undone.
 
 <Warning>
-  Delete protection prevents accidental deletion. Disable it in the API settings
-  before deleting.
+  Delete protection prevents accidental deletion. Disable it in the keyspace
+  settings before deleting.
 </Warning>
 
 ## Constraints
 
-| Limit                 | Value          |
-| --------------------- | -------------- |
-| APIs per workspace    | Varies by plan |
-| Key prefix max length | 8 characters   |
-| Default bytes range   | 16 to 32       |
+| Limit                   | Value          |
+| ----------------------- | -------------- |
+| Keyspaces per workspace | Varies by plan |
+| Key prefix max length   | 8 characters   |
+| Default bytes range     | 16 to 32       |
 
 ## Related pages
 
 | Page                                                                | Description                            |
 | ------------------------------------------------------------------- | -------------------------------------- |
-| [API keys](/platform/apis/introduction)                   | Issue, verify, and manage keys         |
+| [API keys](/platform/apis/introduction)                            | Issue, verify, and manage keys         |
 | [Rate limiting](/platform/apis/features/ratelimiting/overview)      | Per-key rate limits                    |
 | [Authorization](/platform/apis/features/authorization/introduction) | Roles and permissions                  |
 | [Analytics](/platform/analytics/overview)                           | Query verification data by keyspace    |

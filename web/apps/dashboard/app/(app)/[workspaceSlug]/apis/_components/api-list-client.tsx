@@ -80,7 +80,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
 
           <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
             <div className="text-center text-sm text-accent-11">
-              Showing {apiList.length} of {apisData?.pages[0]?.total || 0} APIs
+              Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
             </div>
 
             {!isSearching && hasNextPage && (
@@ -103,11 +103,11 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
         <EmptyComponentSpacer>
           <Empty className="m-0 p-0">
             <Empty.Icon />
-            <Empty.Title>No APIs found</Empty.Title>
+            <Empty.Title>No keyspaces found</Empty.Title>
             <Empty.Description>
               {isSearching
-                ? "No APIs match your search criteria. Try a different search term."
-                : "You haven't created any APIs yet. Create one to get started."}
+                ? "No keyspaces match your search criteria. Try a different search term."
+                : "You haven't created any keyspaces yet. Create one to get started."}
             </Empty.Description>
             {!isSearching && (
               <Empty.Actions className="mt-4">

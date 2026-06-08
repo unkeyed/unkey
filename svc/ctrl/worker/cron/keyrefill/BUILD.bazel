@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "keyrefill",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/auditlog",
+        "//pkg/db",
+        "//pkg/healthcheck",
+        "//pkg/logger",
+        "//pkg/uid",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

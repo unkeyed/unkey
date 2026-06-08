@@ -45,7 +45,6 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:             h.DB,
-		Keys:           h.Keys,
 		NamespaceCache: h.Caches.RatelimitNamespace,
 	}
 

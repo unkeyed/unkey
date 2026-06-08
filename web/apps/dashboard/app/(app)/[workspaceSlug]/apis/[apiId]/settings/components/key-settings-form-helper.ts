@@ -85,8 +85,8 @@ export const createMutationHandlers = () => {
      * Success handler for API deletion
      */
     onDeleteSuccess: (keyCount: number) => () => {
-      toast.success("API Deleted", {
-        description: `Your API and ${keyCount} keys have been deleted.`,
+      toast.success("Keyspace Deleted", {
+        description: `Your keyspace and ${keyCount} keys have been deleted.`,
       });
       invalidateAfterApiDeletion();
     },

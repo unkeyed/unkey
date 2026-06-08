@@ -1,0 +1,108 @@
+"use client";
+
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { type Deployment, collection } from "@/lib/collections";
+import { trpc } from "@/lib/trpc/client";
+import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { Button, DialogContainer, toast } from "@unkey/ui";
+import { DeploymentSection } from "./components/deployment-section";
+import { DomainsSection } from "./components/domains-section";
+
+type RollbackDialogProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  targetDeployment: Deployment;
+  currentDeployment: Deployment;
+};
+
+export const RollbackDialog = ({
+  isOpen,
+  onClose,
+  targetDeployment,
+  currentDeployment,
+}: RollbackDialogProps) => {
+  const utils = trpc.useUtils();
+
+  const { projectId } = useProjectData();
+  const appId = useAppId();
+  const domains = useLiveQuery(
+    (q) =>
+      q
+        .from({ domain: collection.domains })
+        .where(({ domain }) => and(eq(domain.projectId, projectId), eq(domain.appId, appId)))
+        .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
+    [projectId, appId],
+  );
+
+  const rollback = trpc.deploy.deployment.rollback.useMutation({
+    onSuccess: () => {
+      utils.invalidate();
+      toast.success("Rollback completed", {
+        description: `Successfully rolled back to deployment ${targetDeployment.id}`,
+      });
+      // hack to revalidate
+      try {
+        collection.projects.utils.refetch();
+        collection.deployments.utils.refetch();
+        collection.domains.utils.refetch();
+      } catch (error) {
+        console.error("Refetch error:", error);
+      }
+
+      onClose();
+    },
+    onError: (error) => {
+      toast.error("Rollback failed", {
+        description: error.message,
+      });
+    },
+  });
+
+  const handleRollback = async () => {
+    await rollback
+      .mutateAsync({
+        targetDeploymentId: targetDeployment.id,
+      })
+      .catch((error) => {
+        console.error("Rollback error:", error);
+      });
+  };
+
+  return (
+    <DialogContainer
+      isOpen={isOpen}
+      onOpenChange={onClose}
+      title="Rollback to version"
+      subTitle="Switch the active deployment to a target stable version"
+      footer={
+        <Button
+          variant="primary"
+          size="xlg"
+          onClick={handleRollback}
+          disabled={rollback.isLoading}
+          loading={rollback.isLoading}
+          className="w-full rounded-lg"
+        >
+          Rollback to target version
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-9">
+        <DeploymentSection
+          title="Current Deployment"
+          deployment={currentDeployment}
+          isCurrent={true}
+        />
+        <DomainsSection domains={domains.data} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isCurrent={false}
+        />
+      </div>
+    </DialogContainer>
+  );
+};

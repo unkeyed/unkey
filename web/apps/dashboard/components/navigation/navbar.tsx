@@ -1,6 +1,5 @@
 "use client";
 
-import { useFlag } from "@/lib/flags/provider";
 import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -63,8 +62,7 @@ NavbarUser.displayName = "GlobalNavbar.User";
 
 const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
   ({ children, href, className, active, isLast, noop, ...props }, ref) => {
-    const newNavigation = useFlag("newNavigation");
-    const renderAsLabel = noop || newNavigation;
+    const renderAsLabel = noop;
     return (
       <li className="flex items-center gap-3">
         {renderAsLabel ? (
@@ -113,9 +111,8 @@ BreadcrumbsEllipsis.displayName = "GlobalNavbar.Breadcrumbs.Ellipsis";
 
 const Breadcrumbs = React.forwardRef<HTMLElement, BaseProps & { icon: React.ReactNode }>(
   ({ children, className, icon, ...props }, ref) => {
-    const newNavigation = useFlag("newNavigation");
     const childrenArray = React.Children.toArray(children);
-    const visibleChildren = newNavigation ? childrenArray.slice(-1) : childrenArray;
+    const visibleChildren = childrenArray.slice(-1);
     return (
       <nav ref={ref} aria-label="breadcrumb" className={cn("flex", className)} {...props}>
         <ol className="flex items-center gap-3">
@@ -157,7 +154,6 @@ Breadcrumbs.Ellipsis = BreadcrumbsEllipsis;
 
 export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
   ({ children, className, ...props }, ref) => {
-    const newNavigation = useFlag("newNavigation");
     const childrenArray = React.Children.toArray(children);
     const breadcrumbs = childrenArray.find(
       (child) => React.isValidElement(child) && child.type === Breadcrumbs,
@@ -168,8 +164,6 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
     const user = childrenArray.find(
       (child) => React.isValidElement(child) && child.type === NavbarUser,
     );
-
-    const renderUser = !newNavigation;
 
     return (
       <nav
@@ -183,7 +177,7 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
         {breadcrumbs}
         <div className="flex-1" />
         {actions}
-        {renderUser && (user || <NavbarUser />)}
+        {user || <NavbarUser />}
       </nav>
     );
   },

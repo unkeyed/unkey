@@ -274,7 +274,7 @@
           },
           {
             "expanded": false,
-            "group": "External APIs",
+            "group": "Keyspaces",
             "icon": "key",
             "pages": [
               "platform/apis/overview",

@@ -5,9 +5,9 @@ export const SettingsClientSkeleton = () => {
   return (
     <SettingsShell>
       <div className="flex flex-col gap-2 items-center">
-        <span className="font-semibold text-gray-12 leading-8 text-lg">API Settings</span>
+        <span className="font-semibold text-gray-12 leading-8 text-lg">Keyspace Settings</span>
         <span className="leading-4 text-gray-11 text-[13px]">
-          Configure your API name, default key settings, and access controls.
+          Configure your keyspace name, default key settings, and access controls.
         </span>
       </div>
       <div className="w-full h-[180px] bg-grayA-3 rounded-lg animate-pulse" />

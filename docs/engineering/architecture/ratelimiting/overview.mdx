@@ -24,7 +24,7 @@ These goals create deliberate tradeoffs:
 | Choice | Benefit | Cost |
 | --- | --- | --- |
 | Local-memory decision first | Low latency and high availability | Simultaneous traffic in different processes can briefly see different views |
-| Async regional convergence | Requests don't wait on the regional origin | A neighboring node may lag until replay or strict mode catches up |
+| Async regional convergence | Requests don't wait on the regional origin | A neighboring node may lag until replay, stale refresh, or strict mode catches up |
 | Async global convergence | No request waits on cross-region coordination | Multi-region bursts can briefly pass before imported counts arrive |
 | Publish only meaningful regional usage | Cross-region writes stay proportional to useful signal | Low regional usage may remain regional only |
 | Sliding-window evaluation over fixed cells | Smooths boundary bursts without per-request histories | Requires reading the current and previous window cells |
@@ -43,7 +43,7 @@ flowchart TB
 
   subgraph process[One process]
     memory[Local atomic counters]
-    strict[Strict-mode reads]
+    originReads[Origin reads]
   end
 
   subgraph region[One region]
@@ -59,10 +59,10 @@ flowchart TB
   regional --> memory
   memory --> counters
   counters --> memory
-  strict --> regional
+  originReads --> regional
 ```
 
-Local counters keep the hot path fast. The regional origin converges nodes inside one region. Global counters converge regional observations across regions for longer windows.
+Local counters keep the hot path fast. The regional origin converges nodes inside one region through asynchronous replay, stale-entry refreshes, and strict-mode reads after denials. Global counters converge regional observations across regions for longer windows and can also raise same-region local counts as a safety net when a node has not yet seen the latest regional-origin value.
 
 ## Pages
 
@@ -77,6 +77,7 @@ These invariants shape the implementation:
 - The request path must not wait on cross-region state.
 - A local count represents only this region's own observations.
 - Imported global count represents other regions and must not be pushed back out.
+- Own-region global-counter imports may raise local count but must not mark regional origin state fresh.
 - A fixed window cell is grow-only while it is active.
 - Sliding-window behavior comes from weighting the previous cell, not from decrementing the current cell.
 - Batch requests must preserve all-or-nothing semantics.

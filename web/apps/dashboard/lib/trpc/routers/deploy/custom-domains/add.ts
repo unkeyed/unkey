@@ -76,13 +76,13 @@ export const addCustomDomain = workspaceProcedure
         const existing = await db.query.customDomains.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.workspaceId, ctx.workspace.id), eq(table.domain, input.domain)),
-          columns: { projectId: true },
+          columns: { projectId: true, appId: true },
         });
 
         throw new TRPCError({
           code: "CONFLICT",
           message: existing
-            ? `/${ctx.workspace.slug}/projects/${existing.projectId}/settings`
+            ? `/${ctx.workspace.slug}/projects/${existing.projectId}/apps/${existing.appId}/settings`
             : "Domain already registered",
         });
       }
