@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#MISE description="Delete local Docker, Bazel, Next.js, and Turborepo caches"
+set -euo pipefail
+
+read -r -p "Delete local Docker data? [Y/n] " delete_docker
+if [[ ! "${delete_docker}" =~ ^[Nn]$ ]]; then
+  docker --context default builder prune --all --force
+  docker --context default system prune --all --force --volumes
+fi
+
+read -r -p "Delete Bazel, Next.js, and Turborepo caches? [Y/n] " delete_caches
+if [[ ! "${delete_caches}" =~ ^[Nn]$ ]]; then
+  bazel shutdown || true
+  bazel clean --expunge || true
+  rm -rf ./.cache
+
+  rm -rf ./**/.turbo
+  rm -rf ./**/.next
+fi
