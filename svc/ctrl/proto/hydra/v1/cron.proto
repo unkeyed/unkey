@@ -51,6 +51,14 @@ service CronService {
   // paused/wedged invocation here cannot block the every-minute handlers.
   // Hourly schedule.
   rpc RunRatelimitGlobalCountersCleanup(RunRatelimitGlobalCountersCleanupRequest) returns (RunRatelimitGlobalCountersCleanupResponse) {}
+
+  // RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
+  // egress, disk) from ClickHouse and pushes each billable workspace's
+  // running total to Stripe as a usage record with action=set, so the
+  // latest hourly value overwrites the prior one. Key = billing period
+  // "YYYY-MM"; the pushed quantity is the absolute month-to-date total, so
+  // retries and overlapping ticks are harmless. Hourly schedule.
+  rpc RunDeployBillingPush(RunDeployBillingPushRequest) returns (RunDeployBillingPushResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -79,4 +87,12 @@ message RunRatelimitGlobalCountersCleanupRequest {}
 message RunRatelimitGlobalCountersCleanupResponse {
   // Number of rows deleted.
   int64 rows_deleted = 1;
+}
+
+message RunDeployBillingPushRequest {}
+message RunDeployBillingPushResponse {
+  // Number of workspaces a usage record was pushed for.
+  int32 workspaces_pushed = 1;
+  // Total number of meter usage records pushed across all workspaces.
+  int32 meters_pushed = 2;
 }

@@ -71,6 +71,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.6
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.11.1
+	github.com/stripe/stripe-go/v86 v86.0.0
 	github.com/unkeyed/sdks/api/go/v2 v2.6.1
 	github.com/vishvananda/netlink v1.3.1
 	go.opentelemetry.io/contrib/bridges/otelslog v0.14.0

@@ -7,6 +7,7 @@ go_library(
         "event.go",
         "fault_handler.go",
         "global.go",
+        "level.go",
         "multihandler.go",
         "pretty.go",
         "sampler.go",
@@ -25,6 +26,7 @@ go_test(
     name = "logger_test",
     srcs = [
         "fault_handler_test.go",
+        "level_test.go",
         "pretty_test.go",
         "wide_test.go",
     ],
