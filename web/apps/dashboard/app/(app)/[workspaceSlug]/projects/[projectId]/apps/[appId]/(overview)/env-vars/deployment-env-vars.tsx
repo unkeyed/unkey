@@ -13,18 +13,23 @@ import {
 } from "./components/toolbar/env-vars-toolbar";
 
 export function DeploymentEnvVars() {
-  const { projectId, environments } = useProjectData();
+  const { appId, environments } = useProjectData();
   const layout = useOptionalProjectLayout();
   const [searchQuery, setSearchQuery] = useState("");
   const [environmentFilter, setEnvironmentFilter] = useState<EnvironmentFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("last-updated");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
+  if (!appId) {
+    return null;
+  }
+
   return (
     <>
       <div className="flex flex-col gap-5">
         <EnvVarsHeader isAddOpen={isAddOpen} onToggleAdd={() => setIsAddOpen((prev) => !prev)} />
         <AddEnvVarExpandable
+          appId={appId}
           // NOTE: If we are in the onboarding this can start from top of the page
           tableDistanceToTop={layout?.tableDistanceToTop ?? 0}
           isOpen={isAddOpen}
@@ -40,7 +45,7 @@ export function DeploymentEnvVars() {
           onSortChange={setSortBy}
         />
         <EnvVarsList
-          projectId={projectId}
+          appId={appId}
           environments={environments}
           searchQuery={searchQuery}
           environmentFilter={environmentFilter}

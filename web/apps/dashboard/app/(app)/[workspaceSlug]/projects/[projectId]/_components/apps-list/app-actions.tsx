@@ -60,7 +60,7 @@ const getAppActionItems = (
       label: "View requests",
       icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
       onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/requests`);
+        router.push(`/${workspaceSlug}/projects/${projectId}/requests?since=6h&appId=${appId}`);
       },
     },
     {

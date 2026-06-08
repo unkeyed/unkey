@@ -139,9 +139,9 @@ export function buildProjectLinks(
     {
       key: "settings",
       label: "Settings",
-      href: "#",
+      href: `${base}/settings`,
       icon: Gear,
-      isActive: false,
+      isActive: page === "settings",
     },
   ];
 }
