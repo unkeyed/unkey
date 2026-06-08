@@ -6,29 +6,6 @@ import { Badge, Button, CopyButton } from "@unkey/ui";
 import Link from "next/link";
 import { CreateRootKeyButton } from "./components/dialog/create-rootkey-button";
 
-const settingsNavbar = [
-  {
-    id: "general",
-    href: "general",
-    text: "General",
-  },
-  {
-    id: "team",
-    href: "team",
-    text: "Team",
-  },
-  {
-    id: "root-keys",
-    href: "root-keys",
-    text: "Root Keys",
-  },
-  {
-    id: "billing",
-    href: "billing",
-    text: "Billing",
-  },
-];
-
 export const Navigation = ({
   workspace,
   activePage,
@@ -55,16 +32,7 @@ export const Navigation = ({
             noop
             active
           >
-            <QuickNavPopover
-              items={settingsNavbar.flatMap((setting) => [
-                {
-                  id: setting.href,
-                  label: setting.text,
-                  href: `/${workspace.slug}/settings/${setting.href}`,
-                },
-              ])}
-              shortcutKey="M"
-            >
+            <QuickNavPopover>
               <div className="flex items-center gap-1 p-1 rounded-lg hover:bg-gray-3">
                 {activePage.text}
                 <ChevronExpandY className="size-4" />
