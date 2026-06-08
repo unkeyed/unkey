@@ -56,8 +56,12 @@ type ProjectDataContextType = {
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
 
-// Route mounts resolve via [projectSlug]/[appSlug] params; the onboarding
-// wizard mounts with ids it got back from create mutations.
+// Two entry modes. Normal navigation resolves from the [projectSlug]/[appSlug]
+// route params.
+// The onboarding wizard has no [appSlug] segment yet (it lives at /apps/new), so
+// it passes the ids it got back from the create mutations instead. Ids are also
+// what survives the GitHub install full-page redirect, so the wizard carries
+// them rather than slugs (which are renameable and only unique per project).
 type ProjectDataProviderProps = PropsWithChildren<{
   projectId?: string;
   appId?: string;
@@ -73,6 +77,7 @@ export const ProjectDataProvider = ({
 }: ProjectDataProviderProps) => {
   const projectSlug = useProjectSlug();
   const appSlug = useAppSlug();
+  const isAppScoped = Boolean(appIdProp || appSlug);
 
   if (!projectIdProp && !projectSlug) {
     throw new Error("ProjectDataProvider requires a projectId prop or a [projectSlug] route param");
@@ -87,7 +92,31 @@ export const ProjectDataProvider = ({
         ),
     [projectIdProp, projectSlug],
   );
+
+  // App slugs are unique per project, so the apps query filters by the
+  // projectSlug route param directly and resolves in parallel with the project.
+  const appQuery = useLiveQuery(
+    (q) => {
+      if (!projectSlug) {
+        return undefined;
+      }
+      if (appIdProp) {
+        return q
+          .from({ app: collection.apps })
+          .where(({ app }) => and(eq(app.projectSlug, projectSlug), eq(app.id, appIdProp)));
+      }
+      if (appSlug) {
+        return q
+          .from({ app: collection.apps })
+          .where(({ app }) => and(eq(app.projectSlug, projectSlug), eq(app.slug, appSlug)));
+      }
+      return undefined;
+    },
+    [projectSlug, appIdProp, appSlug],
+  );
+
   const project = projectQuery.data?.at(0);
+  const app = appQuery.data?.at(0);
 
   if (!project) {
     return projectQuery.isLoading ? (
@@ -100,14 +129,21 @@ export const ProjectDataProvider = ({
     );
   }
 
-  if (!appIdProp && !appSlug) {
-    return <ResolvedProjectDataProvider project={project}>{children}</ResolvedProjectDataProvider>;
+  if (isAppScoped && !app) {
+    return appQuery.isLoading ? (
+      <LoadingState />
+    ) : (
+      <NotFound
+        title="App not found"
+        description={`No app "${appIdProp ?? appSlug}" in this project`}
+      />
+    );
   }
 
   return (
-    <AppResolver project={project} appId={appIdProp} appSlug={appSlug}>
+    <ResolvedProjectDataProvider project={project} app={app}>
       {children}
-    </AppResolver>
+    </ResolvedProjectDataProvider>
   );
 };
 
@@ -128,50 +164,6 @@ export const useAppId = (): string => {
     throw new Error("useAppId must be used inside an app-scoped (/apps/[appSlug]) route");
   }
   return appId;
-};
-
-// Mounted only when the project is known: the apps collection requires a
-// projectSlug filter (app slugs are only unique per project).
-const AppResolver = ({
-  children,
-  project,
-  appId,
-  appSlug,
-}: PropsWithChildren<{ project: Project; appId?: string; appSlug?: string }>) => {
-  const appQuery = useLiveQuery(
-    (q) =>
-      q.from({ app: collection.apps }).where(({ app }) => {
-        const inProject = eq(app.projectSlug, project.slug);
-        if (appId) {
-          return and(inProject, eq(app.id, appId));
-        }
-        if (appSlug) {
-          return and(inProject, eq(app.slug, appSlug));
-        }
-        // ProjectDataProvider only mounts AppResolver with an appId or appSlug.
-        console.warn("[AppResolver] mounted without appId or appSlug");
-        return and(inProject, eq(app.slug, ""));
-      }),
-    [project.slug, appId, appSlug],
-  );
-  const app = appQuery.data?.at(0);
-
-  if (!app) {
-    return appQuery.isLoading ? (
-      <LoadingState />
-    ) : (
-      <NotFound
-        title="App not found"
-        description={`No app "${appId ?? appSlug}" in this project`}
-      />
-    );
-  }
-
-  return (
-    <ResolvedProjectDataProvider project={project} app={app}>
-      {children}
-    </ResolvedProjectDataProvider>
-  );
 };
 
 const ResolvedProjectDataProvider = ({
