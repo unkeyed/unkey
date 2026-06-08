@@ -1,0 +1,27 @@
+---
+title: "June 8, 2026"
+description: "The project home now lists every app in the project, with project-wide logs and requests in the sidebar and a redesigned create-app flow."
+noindex: true
+---
+
+## New features
+
+### Apps live on the project home page
+
+Opening a project now shows a list of every [app](/platform/apps/overview) in that project instead of redirecting straight into a single app's deployments. Each card surfaces the app's latest deployment, connected GitHub repository or container image, and quick actions for copying the app ID, jumping to logs, requests, deployments, or settings.
+
+Use this when you have more than one deployable service in a project — for example an API server and a background worker that share a repo. From the project home, click **Create new app** to add another one. See [Projects](/platform/projects/overview#project-dashboard) and [Apps](/platform/apps/overview#create-an-app).
+
+### Project-wide logs and requests
+
+[Runtime logs](/observability/logs) and HTTP requests are now scoped to the project in the sidebar, with filters for app and environment. You no longer have to open a single app to see traffic across the project. App-scoped versions are still available from each app's view.
+
+### Image suggestions in the create-app flow
+
+When you create an app and skip the GitHub step to deploy a container image instead, the onboarding flow now suggests images you've previously deployed in this workspace, so you don't have to retype the full reference.
+
+## Updates
+
+- App cards on the project home use the GitHub icon for repo-connected apps, making it easier to scan which apps deploy from source versus a pre-built image.
+- Breadcrumbs and the top navigation have been updated to reflect the new project → app hierarchy.
+- The onboarding "deployment live" confirmation moved to the deployment view, so you land directly on the deployment that just shipped.

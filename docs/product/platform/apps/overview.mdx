@@ -28,7 +28,7 @@ A project can contain multiple apps. Each app has its own pair of default enviro
 
 ## Default app
 
-When you create a project, Unkey creates a default app automatically. For projects with a single service, this is all you need. The dashboard manages the default app transparently, so you interact with it through your project's **Settings** and **Deployments** tabs without selecting an app.
+When you create a project, Unkey creates a default app automatically. For projects with a single service, this is all you need.
 
 ## Multiple apps
 
@@ -41,9 +41,17 @@ Each app in a multi-app project has:
 - Its own environments and deployment history
 - Its own Sentinel policies
 
-<Note>
-  The dashboard does not yet support creating or managing multiple apps within a project. You can deploy to a specific app using the CLI. Contact [support@unkey.com](mailto:support@unkey.com) if you need multi-app projects configured.
-</Note>
+## Create an app
+
+To add another app to an existing project:
+
+1. Open the project from your workspace. The project home lists every app in the project.
+2. Click **Create new app**.
+3. Enter an **App name** and **Slug**. The slug is URL-friendly and auto-generated from the name; it must be unique within the project.
+4. Connect a GitHub repository or skip to deploy with the [CLI](/build-and-deploy/cli) or a container image. If you've previously deployed an image, the onboarding flow suggests it so you don't have to retype the full reference.
+5. Configure build and runtime settings, environment variables, and trigger the first deployment.
+
+You can also create an app from the CLI by deploying with a new `--app` value. Unkey creates the app on first deploy.
 
 ## Deploy to an app
 

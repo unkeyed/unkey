@@ -44,16 +44,20 @@ If you skipped the repository step, the project is created without a connected r
 
 ## Project dashboard
 
-After creation, the project dashboard gives you four tabs:
+The project home page lists every [app](/platform/apps/overview) in the project. Each app card shows its latest deployment, connected repository or container image, and quick actions for copying the app ID, viewing logs, requests, deployments, or settings. Click an app to drill into its deployments and configuration.
 
-| Tab            | What it shows                                                                                   |
-| -------------- | ----------------------------------------------------------------------------------------------- |
-| **Deployments** | Active and past deployments across all environments, with commit info and status                 |
-| **Logs**        | Runtime logs from your running instances                                                        |
-| **Requests**    | HTTP request analytics processed by [the Sentinel](/platform/sentinel/overview)                  |
-| **Settings**    | Build, runtime, and advanced configuration. See [Settings](/platform/projects/settings) for details |
+From the project home you can also click **Create new app** to start the [app onboarding flow](/platform/apps/overview#create-an-app).
 
-The deployments tab is the default view when you open a project.
+The project sidebar gives you these sections:
+
+| Section         | What it shows                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------ |
+| **Project**     | The apps list — the default view when you open a project                                               |
+| **Logs**        | Runtime logs aggregated across every app and environment in the project. Filter by app or environment. |
+| **Requests**    | HTTP request analytics across the project, processed by [the Sentinel](/platform/sentinel/overview)    |
+| **Settings**    | Project-level configuration. See [Settings](/platform/projects/settings) for details                   |
+
+App-scoped views — a specific app's deployments, build and runtime settings, variables, custom domains, and Sentinel policies — live under each app. Open an app from the project home to access them.
 
 ## Delete a project
 
