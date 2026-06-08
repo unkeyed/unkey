@@ -1,17 +1,50 @@
 ---
 title: Settings
-description: "Configure project settings in Unkey including build commands, environment variables, domains, and production branch per app and environment."
+description: "Configure project settings in Unkey including the project name, app build commands, environment variables, domains, and production branch."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The **Settings** tab in your project dashboard configures the [app](/platform/apps/overview) within your project. Each app has its own build, runtime, and advanced settings scoped per environment.
+The **Settings** tab in your project dashboard contains both project-level settings and the configuration for the [apps](/platform/apps/overview) inside the project.
 
-For single-app projects (the default), you manage settings directly from the project dashboard. For multi-app projects, each app has independent configuration.
+## Project settings
 
-See [App settings](/platform/apps/settings) for the full reference of configurable options, including:
+Project settings apply to the whole project, regardless of how many apps it contains.
+
+### Rename a project
+
+The project name is a human-readable label that appears throughout the dashboard. You can change it at any time without affecting deployments, domains, or any other resource.
+
+1. Open the project and go to the **Settings** tab.
+2. Update the **Project name** field.
+3. Click **Save**.
+
+<Note>
+  The project **slug** is not editable. Generated deployment domains embed the slug, so renaming it would break existing URLs. The display name above is independent of the slug and safe to change.
+</Note>
+
+### Delete a project
+
+The **Danger zone** at the bottom of the Settings tab lets you delete the project.
+
+<Warning>
+  Deleting a project permanently removes all of its apps, deployments, environments, custom domains, variables, and associated logs and analytics. This action cannot be undone.
+</Warning>
+
+1. Open the project and go to the **Settings** tab.
+2. Scroll to the **Danger zone** and click **Delete this project**.
+3. Type the project name to confirm.
+4. Click **Delete project**.
+
+Cleanup of underlying resources runs in the background after the project is removed from your workspace.
+
+## App settings
+
+Each app inside a project has its own build, runtime, and advanced settings scoped per environment. For single-app projects (the default), you manage app settings directly from the project dashboard. For multi-app projects, each app has independent configuration.
+
+See [App settings](/platform/apps/settings) for the full reference, including:
 
 - [Build settings](/platform/apps/settings#build-settings) (GitHub repository, Dockerfile, root directory, watch paths)
 - [Runtime settings](/platform/apps/settings#runtime-settings) (regions, instances, CPU, memory, storage, port, command, health check)
