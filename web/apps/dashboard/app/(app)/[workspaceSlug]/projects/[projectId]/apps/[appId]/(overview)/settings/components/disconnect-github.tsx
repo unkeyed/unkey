@@ -2,15 +2,15 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { SettingsZoneRow, toast } from "@unkey/ui";
-import { useProjectData } from "../../data-provider";
+import { useAppId, useProjectData } from "../../data-provider";
 
 export function DisconnectGitHub() {
   const { projectId } = useProjectData();
+  const appId = useAppId();
   const utils = trpc.useUtils();
 
-  const { data } = trpc.github.getInstallations.useQuery({ projectId }, { staleTime: 0 });
+  const { data } = trpc.github.getInstallations.useQuery({ projectId, appId }, { staleTime: 0 });
 
-  const appId = data?.appId;
   const isConnected = Boolean(data?.repoConnection?.repositoryFullName);
 
   const disconnectRepoMutation = trpc.github.disconnectRepo.useMutation({
@@ -24,7 +24,7 @@ export function DisconnectGitHub() {
     },
   });
 
-  if (!isConnected || !appId) {
+  if (!isConnected) {
     return null;
   }
 

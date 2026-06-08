@@ -9,7 +9,7 @@ import { LoadingState } from "@/components/loading-state";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
 
@@ -63,7 +63,10 @@ function ImpersonationBanner() {
 
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, workspace, isLoading, error } = useWorkspace();
+  // The app onboarding flow is a focused full-screen experience without the sidebar.
+  const isAppOnboarding = /\/projects\/[^/]+\/apps\/new$/.test(pathname);
 
   useEffect(() => {
     // Don't navigate while loading
@@ -113,7 +116,7 @@ export default function Layout({ children }: LayoutProps) {
         <TopNav />
         <MobileNavDrawer />
         <div className="flex flex-1 overflow-hidden">
-          <SidebarV2 className="bg-gray-1 border-grayA-4" />
+          {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
           <div className="flex-1 overflow-auto">
             <div
               className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"

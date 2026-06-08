@@ -115,17 +115,27 @@ export const ProjectDataProvider = ({
 
   const environmentsQuery = useLiveQuery(
     (q) =>
-      q.from({ env: collection.environments }).where(({ env }) => eq(env.projectId, projectId)),
-    [projectId],
+      q
+        .from({ env: collection.environments })
+        .where(({ env }) =>
+          appId
+            ? and(eq(env.projectId, projectId), eq(env.appId, appId))
+            : eq(env.projectId, projectId),
+        ),
+    [projectId, appId],
   );
 
   const customDomainsQuery = useLiveQuery(
     (q) =>
       q
         .from({ customDomain: collection.customDomains })
-        .where(({ customDomain }) => eq(customDomain.projectId, projectId))
+        .where(({ customDomain }) =>
+          appId
+            ? and(eq(customDomain.projectId, projectId), eq(customDomain.appId, appId))
+            : eq(customDomain.projectId, projectId),
+        )
         .orderBy(({ customDomain }) => customDomain.createdAt, "desc"),
-    [projectId],
+    [projectId, appId],
   );
 
   const value = useMemo(() => {
@@ -194,4 +204,15 @@ export const useProjectData = () => {
     throw new Error("useProjectData must be used within ProjectDataProvider");
   }
   return context;
+};
+
+// Asserts an app-scoped context. Use in components that only render under
+// /apps/[appId], where appId is always present, to avoid threading optional
+// appId fallbacks through them.
+export const useAppId = (): string => {
+  const { appId } = useProjectData();
+  if (!appId) {
+    throw new Error("useAppId must be used inside an app-scoped (/apps/[appId]) route");
+  }
+  return appId;
 };

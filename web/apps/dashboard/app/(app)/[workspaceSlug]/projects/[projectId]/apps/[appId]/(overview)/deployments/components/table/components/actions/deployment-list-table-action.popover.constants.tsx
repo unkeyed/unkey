@@ -3,7 +3,14 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise, Ban, ChevronUp, Hammer2, Layers3 } from "@unkey/icons";
+import {
+  ArrowDottedRotateAnticlockwise,
+  ArrowOppositeDirectionY,
+  Ban,
+  ChevronUp,
+  Hammer2,
+  Layers3,
+} from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { CancelDialog } from "./cancel-dialog";
@@ -88,27 +95,27 @@ export const DeploymentListTableActions = ({
       },
       {
         id: "sentinel-logs",
-        label: "Go to requests...",
-        icon: <Layers3 iconSize="md-regular" />,
+        label: "Go to requests",
+        icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/requests?since=6h&deploymentId=contains:${selectedDeployment.id}`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/requests?since=6h&deploymentId=contains:${selectedDeployment.id}`,
           );
         },
       },
       {
         id: "runtime-logs",
-        label: "Go to logs...",
+        label: "Go to logs",
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/logs`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/logs?appId=${selectedDeployment.appId}`,
           );
         },
       },
       {
         id: "build-steps",
-        label: "Go to build logs...",
+        label: "Go to build logs",
         icon: <Hammer2 iconSize="md-regular" />,
         onClick: () => {
           router.push(

@@ -6,12 +6,14 @@ import { useWorkspaceNavigation } from "./use-workspace-navigation";
 export type BreadcrumbDescriptor =
   | { type: "workspace"; href: string }
   | { type: "project"; projectId: string }
+  | { type: "app"; projectId: string; appId: string }
   | { type: "api"; apiId: string }
   | { type: "namespace"; namespaceId: string }
   | { type: "identity"; identityId: string };
 
 type RouteParams = {
   projectId?: string;
+  appId?: string;
   apiId?: string;
   namespaceId?: string;
   identityId?: string;
@@ -25,6 +27,9 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
   if (params.projectId) {
     crumbs.push({ type: "project", projectId: params.projectId });
+  }
+  if (params.projectId && params.appId) {
+    crumbs.push({ type: "app", projectId: params.projectId, appId: params.appId });
   }
   if (params.apiId) {
     crumbs.push({ type: "api", apiId: params.apiId });

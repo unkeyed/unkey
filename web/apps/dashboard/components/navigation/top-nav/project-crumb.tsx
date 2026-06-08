@@ -38,7 +38,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
       footer={{
         icon: Plus,
         label: "New project",
-        href: `/${workspace.slug}/projects/new`,
+        href: `/${workspace.slug}/projects?new=true`,
       }}
     />
   );

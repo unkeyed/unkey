@@ -2,7 +2,7 @@
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { SettingsDangerZone, SettingsShell } from "@unkey/ui";
-import { DeleteProject } from "./components/delete-project";
+import { DeleteApp } from "./components/delete-app";
 import { DisconnectGitHub } from "./components/disconnect-github";
 import { DeploymentSettings } from "./deployment-settings";
 import { EnvironmentSettingsProvider } from "./environment-provider";
@@ -23,7 +23,7 @@ export default function SettingsPage() {
       <div className="w-225 mx-auto mt-10 mb-14">
         <SettingsDangerZone>
           <DisconnectGitHub />
-          <DeleteProject />
+          <DeleteApp />
         </SettingsDangerZone>
       </div>
     </EnvironmentSettingsProvider>

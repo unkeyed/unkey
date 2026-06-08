@@ -1,14 +1,12 @@
 "use client";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { useLiveQuery } from "@tanstack/react-db";
-import { ArrowDottedRotateAnticlockwise, Cube } from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, Cube, SquareBulletList } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
-import { useProjectData } from "../data-provider";
+import { useAppId, useProjectData } from "../data-provider";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
 
 const CreateDeploymentButton = dynamic(
@@ -31,25 +29,15 @@ type ProjectNavigationProps = {
 
 export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
   const workspace = useWorkspaceNavigation();
-  const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).select(({ project }) => ({
-      id: project.id,
-      name: project.name,
-    })),
-  );
-
-  const { projectId, appId, project, getDeploymentById } = useProjectData();
-  const activeProject = project
-    ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
-    : undefined;
+  const { projectId, project, isProjectLoading, getDeploymentById } = useProjectData();
+  const appId = useAppId();
 
   const basePath = `/${workspace.slug}/projects`;
   const breadcrumbs = useBreadcrumbConfig({
     projectId,
-    appId: appId ?? "",
+    projectName: project?.name,
+    appId,
     basePath,
-    projects: projects.data || [],
-    activeProject,
   });
 
   const params = useParams();
@@ -87,7 +75,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     return (
       <div className="flex gap-4 items-center">
         <div className="gap-2.5 items-center flex">
-          {activeProject?.repositoryFullName && (
+          {project?.repositoryFullName && (
             <InfoTooltip
               asChild
               content="Create a deployment from a commit or branch"
@@ -122,22 +110,13 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     );
   };
 
-  if (projects.isLoading) {
+  if (isProjectLoading) {
     const loadingBreadcrumbs = [
       {
         id: "projects",
         children: "Projects",
         href: basePath,
         noop: false,
-        active: false,
-        isLast: false,
-      },
-      {
-        id: "project",
-        children: <div className="h-6 w-24 bg-grayA-3 rounded-sm animate-pulse transition-all" />,
-        href: "#",
-        className: "group max-md:hidden",
-        noop: true,
         active: false,
         isLast: false,
       },
@@ -158,7 +137,6 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
             <Navbar.Breadcrumbs.Link
               key={crumb.id}
               href={crumb.href}
-              className={crumb.className}
               noop={crumb.noop}
               active={crumb.active}
               isLast={crumb.isLast}
@@ -171,7 +149,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
     );
   }
 
-  if (!activeProject) {
+  if (!project) {
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
@@ -185,7 +163,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
 
   return (
     <Navbar ref={handleRef} className="h-[65px]">
-      <Navbar.Breadcrumbs icon={<Cube />}>
+      <Navbar.Breadcrumbs icon={<SquareBulletList />}>
         {breadcrumbs.map((breadcrumb) => (
           <Navbar.Breadcrumbs.Link
             key={breadcrumb.id}
