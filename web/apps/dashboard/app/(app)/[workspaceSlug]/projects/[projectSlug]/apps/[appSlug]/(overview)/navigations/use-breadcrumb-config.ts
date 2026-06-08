@@ -1,6 +1,5 @@
 "use client";
 
-import type { QuickNavItem } from "@/components/navbar-popover";
 import type { Navbar } from "@/components/navigation/navbar";
 import { shortenId } from "@/lib/shorten-id";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
@@ -11,12 +10,6 @@ export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.
   id: string;
   /** Internal: determines if this breadcrumb should be rendered */
   shouldRender: boolean;
-  /** Optional QuickNav dropdown configuration */
-  quickNavConfig?: {
-    items: QuickNavItem[];
-    activeItemId?: string;
-    shortcutKey?: string;
-  };
 };
 
 type SubPage = {
@@ -95,7 +88,19 @@ export const useBreadcrumbConfig = ({
       isLast: false,
     },
 
-    // 2. Sub-page with QuickNav (Overview, Deployments, etc.)
+    // 2. Current project
+    {
+      id: "project",
+      children: projectSlug,
+      href: `${basePath}/${projectSlug}`,
+      shouldRender: true,
+      active: false,
+      isLast: false,
+      noop: true,
+      className: "flex",
+    },
+
+    // 3. Sub-page (Overview, Deployments, etc.)
     {
       id: "subpage",
       children: isOnDeploymentDetail ? "Deployments" : activeSubPage.label,
@@ -104,17 +109,6 @@ export const useBreadcrumbConfig = ({
       active: !isOnDeploymentDetail, // Active if not on detail page
       isLast: !isOnDeploymentDetail, // Last if not on detail page
       noop: true,
-      quickNavConfig: {
-        items: subPages.map((page) => ({
-          id: page.id,
-          label: page.label,
-          href: page.href,
-          disabled: page.disabled,
-          disabledTooltip: page.disabledTooltip,
-        })),
-        activeItemId: isOnDeploymentDetail ? "deployments" : undefined,
-        shortcutKey: "M",
-      },
     },
 
     // 3. Deployment ID

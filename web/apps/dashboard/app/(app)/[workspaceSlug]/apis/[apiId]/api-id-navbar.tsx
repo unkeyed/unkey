@@ -133,33 +133,7 @@ const NavbarContent = ({
   const specificKey = keyData?.keys.find((key) => key.id === keyId);
   const { currentApi } = layoutData;
 
-  // Define base path for API navigation
   const base = `/${workspace.slug}/apis/${currentApi.id}`;
-
-  // Create navigation items for QuickNavPopover
-  const navigationItems = [
-    {
-      id: "requests",
-      label: "Requests",
-      href: `/${workspace.slug}/apis/${currentApi.id}`,
-    },
-  ];
-
-  // Add Keys navigation if keyAuthId exists
-  if (currentApi.keyAuthId) {
-    navigationItems.push({
-      id: "keys",
-      label: "Keys",
-      href: `/${workspace.slug}/apis/${currentApi.id}/keys/${currentApi.keyAuthId}`,
-    });
-  }
-
-  // Add Settings navigation
-  navigationItems.push({
-    id: "settings",
-    label: "Settings",
-    href: `/${workspace.slug}/apis/${currentApi.id}/settings`,
-  });
 
   return (
     <div className="w-full">
@@ -179,7 +153,7 @@ const NavbarContent = ({
             <div className="text-accent-10 group-hover:text-accent-12">{currentApi.name}</div>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!shouldFetchKey}>
-            <QuickNavPopover items={navigationItems} shortcutKey="M">
+            <QuickNavPopover>
               <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
                 {activePage?.text ?? ""}
                 <ChevronExpandY className="size-4" />

@@ -1,5 +1,4 @@
 "use client";
-import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Cube } from "@unkey/icons";
@@ -19,7 +18,6 @@ export function ProjectsListNavigation() {
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
         <CreateProjectButton defaultOpen={isNewProject} workspaceSlug={workspace.slug} />
-        <DeployFeedbackButton />
       </Navbar.Actions>
     </Navbar>
   );

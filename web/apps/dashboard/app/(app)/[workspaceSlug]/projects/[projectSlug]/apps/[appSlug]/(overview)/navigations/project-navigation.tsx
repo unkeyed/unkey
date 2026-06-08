@@ -1,14 +1,7 @@
 "use client";
-import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-button";
-import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import {
-  ArrowDottedRotateAnticlockwise,
-  ChevronExpandY,
-  Cube,
-  SquareBulletList,
-} from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, Cube, SquareBulletList } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
@@ -110,7 +103,6 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
               selectedDeployment={selectedDeployment}
             />
           )}
-          <DeployFeedbackButton />
         </div>
       </div>
     );
@@ -179,20 +171,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
             noop={breadcrumb.noop}
             className={breadcrumb.className}
           >
-            {breadcrumb.quickNavConfig ? (
-              <QuickNavPopover
-                items={breadcrumb.quickNavConfig.items}
-                shortcutKey={breadcrumb.quickNavConfig.shortcutKey}
-                activeItemId={breadcrumb.quickNavConfig.activeItemId}
-              >
-                <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-                  {breadcrumb.children}
-                  <ChevronExpandY className="size-4" />
-                </div>
-              </QuickNavPopover>
-            ) : (
-              breadcrumb.children
-            )}
+            {breadcrumb.children}
           </Navbar.Breadcrumbs.Link>
         ))}
       </Navbar.Breadcrumbs>
