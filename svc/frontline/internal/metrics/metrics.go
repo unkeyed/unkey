@@ -9,22 +9,26 @@ import (
 // completed request, labelled by:
 //
 //	status_class 2xx | 3xx | 4xx | 5xx
+//	fault_domain "" on success, else the attribution domain — platform |
+//	             routing | capacity | upstream | client. This is the segment
+//	             that drives alert routing: alerts select fault_domain="..."
+//	             instead of regex-matching the URN. It is the category segment
+//	             of the fault URN (see fault.GetCategory).
 //	code         "" on success, the fault URN string on error
-//	             (e.g. err:unkey:not_found:config_not_found)
+//	             (e.g. err:frontline:routing:config_not_found). High-fidelity
+//	             identifier for dashboards / triage breakdowns.
 //
 // `code != ""` is the success/error split — there is no separate outcome
-// label, the URN carries that bit. The URN is the high-fidelity error
-// identifier; alert routing classifies error categories by URN prefix.
-// region and environment are external labels on the per-region Prometheus
-// and are NOT carried as metric labels.
+// label, the URN carries that bit. region and environment are external labels
+// on the per-region Prometheus and are NOT carried as metric labels.
 var RequestsTotal = lazy.NewCounterVec(
 	prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "frontline",
 		Name:      "requests_total",
-		Help:      "Total requests by status class and fault code (URN).",
+		Help:      "Total requests by status class, attribution domain, and fault code (URN).",
 	},
-	[]string{"status_class", "code"},
+	[]string{"status_class", "fault_domain", "code"},
 )
 
 // InflightRequests is the per-pod count of in-flight requests. Incremented

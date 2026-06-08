@@ -20,15 +20,11 @@ type frontlineRouting struct {
 	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
 	ConfigNotFound Code
 
-	// DeploymentNotFound represents a 404 error - the resolved deployment was
-	// not found or did not match the expected environment.
+	// DeploymentNotFound represents a 404 error - the resolved deployment was not found or did not match the expected environment.
 	DeploymentNotFound Code
 
 	// DeploymentSelectionFailed represents a 500 error - failed to select an available deployment
 	DeploymentSelectionFailed Code
-
-	// DeploymentDisabled represents a 503 error - all deployments are currently disabled
-	DeploymentDisabled Code
 
 	// NoRunningInstances represents a 503 error - no deployments have running instances
 	NoRunningInstances Code
@@ -42,11 +38,8 @@ type frontlineInternal struct {
 	// ConfigLoadFailed represents a 500 error - failed to load configuration
 	ConfigLoadFailed Code
 
-	// InstanceLoadFailed represents a 500 error - failed to load instance information
-	InstanceLoadFailed Code
-
-	// InvalidConfiguration represents a 500 error - the deployment's policy
-	// configuration could not be parsed.
+	// InvalidConfiguration represents a 422 error - the deployment's policy configuration could not be parsed.
+	// This is the config author's fault, not frontline's, hence the config domain rather than platform.
 	InvalidConfiguration Code
 }
 
@@ -59,12 +52,10 @@ type frontlineAuth struct {
 	// InvalidKey represents a 401 error - key not found, disabled, or expired.
 	InvalidKey Code
 
-	// InsufficientPermissions represents a 403 error - the credential lacks
-	// the permissions required by a permission_query.
+	// InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query.
 	InsufficientPermissions Code
 
-	// RateLimited represents a 429 error - the credential or its auto-applied
-	// rate limit was exceeded.
+	// RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded.
 	RateLimited Code
 }
 
@@ -110,34 +101,32 @@ type UnkeyFrontlineErrors struct {
 // for consistent error handling throughout the application.
 var Frontline = UnkeyFrontlineErrors{
 	Proxy: frontlineProxy{
-		BadGateway:         Code{SystemUnkey, CategoryBadGateway, "bad_gateway"},
-		ServiceUnavailable: Code{SystemUnkey, CategoryServiceUnavailable, "service_unavailable"},
-		GatewayTimeout:     Code{SystemUnkey, CategoryGatewayTimeout, "gateway_timeout"},
-		ProxyForwardFailed: Code{SystemUnkey, CategoryBadGateway, "proxy_forward_failed"},
+		BadGateway:         Code{SystemFrontline, CategoryUpstream, "bad_gateway"},
+		ServiceUnavailable: Code{SystemFrontline, CategoryUpstream, "service_unavailable"},
+		GatewayTimeout:     Code{SystemFrontline, CategoryUpstream, "gateway_timeout"},
+		ProxyForwardFailed: Code{SystemFrontline, CategoryUpstream, "proxy_forward_failed"},
 	},
 	Routing: frontlineRouting{
-		ConfigNotFound:            Code{SystemUnkey, CategoryNotFound, "config_not_found"},
-		DeploymentNotFound:        Code{SystemUnkey, CategoryNotFound, "deployment_not_found"},
-		DeploymentSelectionFailed: Code{SystemUnkey, CategoryInternalServerError, "deployment_selection_failed"},
-		DeploymentDisabled:        Code{SystemUnkey, CategoryServiceUnavailable, "deployment_disabled"},
-		NoRunningInstances:        Code{SystemUnkey, CategoryServiceUnavailable, "no_running_instances"},
+		ConfigNotFound:            Code{SystemFrontline, CategoryRouting, "config_not_found"},
+		DeploymentNotFound:        Code{SystemFrontline, CategoryRouting, "deployment_not_found"},
+		DeploymentSelectionFailed: Code{SystemFrontline, CategoryPlatform, "deployment_selection_failed"},
+		NoRunningInstances:        Code{SystemFrontline, CategoryCapacity, "no_running_instances"},
 	},
 	Internal: frontlineInternal{
-		InternalServerError:  Code{SystemUnkey, CategoryInternalServerError, "internal_server_error"},
-		ConfigLoadFailed:     Code{SystemUnkey, CategoryInternalServerError, "config_load_failed"},
-		InstanceLoadFailed:   Code{SystemUnkey, CategoryInternalServerError, "instance_load_failed"},
-		InvalidConfiguration: Code{SystemUnkey, CategoryInternalServerError, "invalid_configuration"},
+		InternalServerError:  Code{SystemFrontline, CategoryPlatform, "internal_server_error"},
+		ConfigLoadFailed:     Code{SystemFrontline, CategoryPlatform, "config_load_failed"},
+		InvalidConfiguration: Code{SystemFrontline, CategoryConfig, "invalid_configuration"},
 	},
 	Auth: frontlineAuth{
-		MissingCredentials:      Code{SystemUnkey, CategoryUnauthorized, "missing_credentials"},
-		InvalidKey:              Code{SystemUnkey, CategoryUnauthorized, "invalid_key"},
-		InsufficientPermissions: Code{SystemUnkey, CategoryForbidden, "insufficient_permissions"},
-		RateLimited:             Code{SystemUnkey, CategoryRateLimited, "rate_limited"},
+		MissingCredentials:      Code{SystemFrontline, CategoryClient, "missing_credentials"},
+		InvalidKey:              Code{SystemFrontline, CategoryClient, "invalid_key"},
+		InsufficientPermissions: Code{SystemFrontline, CategoryClient, "insufficient_permissions"},
+		RateLimited:             Code{SystemFrontline, CategoryClient, "rate_limited"},
 	},
 	Firewall: frontlineFirewall{
-		Denied: Code{SystemUnkey, CategoryForbidden, "firewall_denied"},
+		Denied: Code{SystemFrontline, CategoryClient, "firewall_denied"},
 	},
 	OpenApi: frontlineOpenApi{
-		InvalidRequest: Code{SystemUnkey, CategoryUserBadRequest, "openapi_validation_failed"},
+		InvalidRequest: Code{SystemFrontline, CategoryClient, "openapi_validation_failed"},
 	},
 }
