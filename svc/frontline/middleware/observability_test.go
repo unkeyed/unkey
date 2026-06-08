@@ -50,9 +50,12 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 		{codes.Frontline.Firewall.Denied.URN(), http.StatusForbidden},
 		{codes.Frontline.OpenApi.InvalidRequest.URN(), http.StatusBadRequest},
 
+		// Deployment's own config is invalid — caller-side (422), not a 5xx
+		// frontline fault.
+		{codes.Frontline.Internal.InvalidConfiguration.URN(), http.StatusUnprocessableEntity},
+
 		// Genuine server-side faults — 5xx is correct.
 		{codes.Frontline.Routing.DeploymentSelectionFailed.URN(), http.StatusInternalServerError},
-		{codes.Frontline.Internal.InvalidConfiguration.URN(), http.StatusInternalServerError},
 		{codes.Frontline.Internal.InternalServerError.URN(), http.StatusInternalServerError},
 	}
 
@@ -164,6 +167,46 @@ func TestWithObservability_HTMLFallbackIncludesMetaRequestID(t *testing.T) {
 
 	require.NotEmpty(t, body.Meta.RequestID, "JSON fallback must include meta.requestId")
 	require.Equal(t, sess.RequestID(), body.Meta.RequestID)
+}
+
+// TestWithObservability_ResponseExposesURN verifies that callers receive the
+// full fault URN so they can quote it to support. The same URN is logged under
+// the request ID for correlation.
+func TestWithObservability_ResponseExposesURN(t *testing.T) {
+	t.Parallel()
+
+	urns := []codes.URN{
+		codes.Frontline.Proxy.GatewayTimeout.URN(),
+		codes.Frontline.Auth.RateLimited.URN(),
+		codes.Frontline.Routing.NoRunningInstances.URN(),
+		codes.Frontline.Internal.InvalidConfiguration.URN(),
+		codes.Frontline.Internal.InternalServerError.URN(),
+	}
+
+	mw := WithObservability(stubRenderer{})
+
+	for _, urn := range urns {
+		t.Run(string(urn), func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("Accept", "application/json")
+
+			w := httptest.NewRecorder()
+			sess := &zen.Session{}
+			require.NoError(t, sess.Init(w, req, 0))
+
+			handler := mw(func(_ context.Context, _ *zen.Session) error {
+				return fault.New("boom", fault.Code(urn))
+			})
+			require.NoError(t, handler(context.Background(), sess))
+
+			var body ErrorResponse
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+
+			require.Equal(t, string(urn), body.Error.Code, "caller should receive the full URN")
+		})
+	}
 }
 
 type renderFunc func(errorpage.Data) ([]byte, error)
