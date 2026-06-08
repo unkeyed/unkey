@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "billingmeter",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "noop.go",
+        "stripe.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter",
+    visibility = ["//svc/ctrl:__subpackages__"],
+    deps = [
+        "//pkg/fault",
+        "@com_github_stripe_stripe_go_v86//:stripe-go",
+        "@com_github_stripe_stripe_go_v86//client",
+    ],
+)
+
+go_test(
+    name = "billingmeter_test",
+    srcs = ["stripe_test.go"],
+    embed = [":billingmeter"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

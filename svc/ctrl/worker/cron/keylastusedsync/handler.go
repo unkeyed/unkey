@@ -73,8 +73,6 @@ func (h *Handler) Handle(
 		totalSynced += resp.GetKeysSynced()
 	}
 
-	logger.Info("key last used sync complete", "keys_synced", totalSynced)
-
 	if _, err := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, h.heartbeat.Ping(rc)
 	}, restate.WithName("send heartbeat")); err != nil {

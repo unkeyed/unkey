@@ -32,6 +32,7 @@ go_library(
         "//pkg/logger",
         "//pkg/ptr",
         "//pkg/restate/compensation",
+        "//pkg/restate/restateutil",
         "//pkg/uid",
         "//svc/ctrl/worker/github",
         "@build_buf_gen_go_depot_api_connectrpc_go//depot/core/v1/corev1connect",
