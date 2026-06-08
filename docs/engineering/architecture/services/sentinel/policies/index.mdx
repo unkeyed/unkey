@@ -182,6 +182,6 @@ The engine handles these edge cases when parsing `sentinel_config`:
 2. Add the new type to the `config` oneof in `policy.proto`.
 3. Add a case in the evaluation switch in `svc/sentinel/engine/engine.go`.
 4. Implement the executor (follow `keyauth.go` as a reference).
-5. Run `make generate` to regenerate protobuf code.
+5. Run `mise run generate` to regenerate protobuf code.
 
 Old sentinel versions that do not recognize the new policy type skip it silently, so rollouts are safe.

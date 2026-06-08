@@ -2,12 +2,12 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
 	// CollectionTotal counts collection ticks by result.
-	CollectionTotal = promauto.NewCounterVec(
+	CollectionTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -18,7 +18,7 @@ var (
 	)
 
 	// CollectionDuration tracks how long each collection tick takes.
-	CollectionDuration = promauto.NewHistogram(
+	CollectionDuration = lazy.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -29,7 +29,7 @@ var (
 	)
 
 	// KranePods tracks the current number of krane-managed pods seen on this node.
-	KranePods = promauto.NewGauge(
+	KranePods = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -39,7 +39,7 @@ var (
 	)
 
 	// CgroupReadErrors counts cgroup file read failures.
-	CgroupReadErrors = promauto.NewCounter(
+	CgroupReadErrors = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -50,7 +50,7 @@ var (
 
 	// LifecycleEmitted counts CRI lifecycle checkpoints successfully buffered.
 	// kind is "start" or "stop".
-	LifecycleEmitted = promauto.NewCounterVec(
+	LifecycleEmitted = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -63,7 +63,7 @@ var (
 	// LifecycleDrops counts CRI lifecycle events we could not emit a
 	// checkpoint for. kind is the event type; reason explains the drop so we
 	// can distinguish informer races from cgroup-teardown races.
-	LifecycleDrops = promauto.NewCounterVec(
+	LifecycleDrops = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -78,7 +78,7 @@ var (
 	// loop so we can tell "restart count not yet populated by informer"
 	// apart from "pod genuinely missing". Each skip is a bounded
 	// undercharge of one tick (currently 5s) for the affected pod.
-	PeriodicSkips = promauto.NewCounterVec(
+	PeriodicSkips = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -92,7 +92,7 @@ var (
 	// reason. Lets us distinguish benign cases (pod already terminated
 	// and its sandbox container is gone from containerd) from real bugs
 	// (netns open failed, TCX attach rejected by the kernel).
-	NetworkAttachFailures = promauto.NewCounterVec(
+	NetworkAttachFailures = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -106,7 +106,7 @@ var (
 	// the BPF LRU map (`pod_counters`, keyed by POD_KEY = pod netns cookie).
 	// If this approaches max_entries (16384) we're about to start evicting,
 	// which silently drops traffic from the oldest pods. Alert at 80%.
-	BPFMapEntries = promauto.NewGauge(
+	BPFMapEntries = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -123,7 +123,7 @@ var (
 	// last step before the async flush to ClickHouse). This is the
 	// primary "is the pipeline working?" signal: if it stops climbing,
 	// we're dropping rows regardless of what else the dashboards say.
-	CheckpointsWritten = promauto.NewCounter(
+	CheckpointsWritten = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -136,7 +136,7 @@ var (
 	// tick still held the collector mutex. Each skip is one lost
 	// periodic sample (~5s) for every pod on this node; a non-zero rate
 	// means collection is overrunning its interval.
-	CollectionTicksSkipped = promauto.NewCounter(
+	CollectionTicksSkipped = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -150,7 +150,7 @@ var (
 	// unresolvable pod). Pair with LifecycleEmitted to spot filtering
 	// regressions: if received > emitted by a large margin with no
 	// corresponding LifecycleDrops, we're silently discarding events.
-	CRIEventsReceived = promauto.NewCounterVec(
+	CRIEventsReceived = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -164,7 +164,7 @@ var (
 	// Spikes here mean containerd is restarting or the stream is
 	// flaking, during which lifecycle checkpoints fall back to the
 	// periodic loop (losing up to one interval of final CPU per exit).
-	CRIReconnects = promauto.NewCounter(
+	CRIReconnects = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -177,7 +177,7 @@ var (
 	// readEphemeralUsedBytes silently returns 0 on any error (stat, statfs,
 	// bind-mount detection), which is a bounded undercharge but invisible
 	// without this counter.
-	DiskReadErrors = promauto.NewCounterVec(
+	DiskReadErrors = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -192,7 +192,7 @@ var (
 	// informer cache. Non-zero means the CRI exit event and informer
 	// status update were both missed for that pod; the reconciler cleaned
 	// up the leaked BPF program FDs.
-	NetworkReconcileEvictions = promauto.NewCounter(
+	NetworkReconcileEvictions = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -205,7 +205,7 @@ var (
 	// errors currently degrade silently to zeroCounters in the collector;
 	// a rising counter means the map or its attachments are in a bad
 	// state and pods are being billed zero network bytes.
-	NetworkReadErrors = promauto.NewCounter(
+	NetworkReadErrors = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
@@ -219,7 +219,7 @@ var (
 	// the unsync window sees a partial pod set, which undercharges —
 	// bounded (first ~second of startup) but worth alerting on if it
 	// ever flips back to 0 at runtime (apiserver outage during watch).
-	InformerCacheSynced = promauto.NewGauge(
+	InformerCacheSynced = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",

@@ -75,7 +75,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
       title="Default Prefix"
       description={
         <div className="max-w-[380px]">
-          Sets the default prefix for keys under this API. A trailing underscore is added
+          Sets the default prefix for keys under this keyspace. A trailing underscore is added
           automatically.
         </div>
       }

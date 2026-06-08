@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -20,18 +19,21 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
+	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
+	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
+	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
-	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -41,6 +43,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/tls"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/routes"
@@ -51,6 +55,20 @@ func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
+	}
+
+	if cfg.TLS.CertFile != "" {
+		tlsCfg, tlsErr := tls.NewFromFiles(cfg.TLS.CertFile, cfg.TLS.KeyFile)
+		if tlsErr != nil {
+			return fmt.Errorf("unable to load TLS config: %w", tlsErr)
+		}
+		cfg.TLSConfig = tlsCfg
+	}
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
+	}
+	if cfg.Clock == nil {
+		cfg.Clock = clock.New()
 	}
 
 	if cfg.Observability.Logging != nil {
@@ -73,7 +91,7 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.AddBaseAttrs(slog.Bool("tls_enabled", true))
 	}
 
-	clk := clock.New()
+	clk := cfg.Clock
 
 	reg := promclient.NewRegistry()
 	reg.MustRegister(collectors.NewGoCollector())
@@ -271,74 +289,51 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create auditlogs service: %w", err)
 	}
 
-	// Initialize gossip-based cache invalidation
-	var broadcaster clustering.Broadcaster
-	if cfg.Gossip != nil {
-		logger.Info("Initializing gossip cluster for cache invalidation",
-			"region", cfg.Region,
-			"instanceID", cfg.InstanceID,
-		)
-
-		mux := cluster.NewMessageMux()
-
-		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
-		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
-
-		var secretKey []byte
-		if cfg.Gossip.SecretKey != "" {
-			var decodeErr error
-			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
-			if decodeErr != nil {
-				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
-			}
-		}
-
-		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Region:           cfg.Region,
-			NodeID:           cfg.InstanceID,
-			BindAddr:         cfg.Gossip.BindAddr,
-			BindPort:         cfg.Gossip.LANPort,
-			WANBindPort:      cfg.Gossip.WANPort,
-			WANAdvertiseAddr: cfg.Gossip.WANAdvertiseAddr,
-			LANSeeds:         lanSeeds,
-			WANSeeds:         wanSeeds,
-			SecretKey:        secretKey,
-			OnMessage:        mux.OnMessage,
-		})
-		if clusterErr != nil {
-			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
-				"error", clusterErr,
-			)
-		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
-			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
-			broadcaster = gossipBroadcaster
-			r.Defer(gossipCluster.Close)
-		}
-	}
-
 	caches, err := caches.New(caches.Config{
-		Clock:       clk,
-		Broadcaster: broadcaster,
-		NodeID:      cfg.InstanceID,
+		Clock:  clk,
+		NodeID: cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		KeyCache:         caches.VerificationKeyByHash,
-		QuotaCache:       caches.WorkspaceQuota,
-		RateLimiter:      rlSvc,
-		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
-		Region:           cfg.Region,
-		UsageLimiter:     ulSvc,
+		DB:           db.ToMySQL(database),
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Region:       cfg.Region,
+		UsageLimiter: ulSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
+	portalSvc := portal.New(portal.Config{
+		DB:           database,
+		SessionCache: caches.PortalSession,
+	})
+
+	authResolvers := []auth.Resolver{}
+	if len(cfg.JWTSecrets) > 0 {
+		jwtSecrets := make([][]byte, 0, len(cfg.JWTSecrets))
+		for i, secret := range cfg.JWTSecrets {
+			if secret == "" {
+				return fmt.Errorf("jwt_secrets[%d] must not be empty", i)
+			}
+			jwtSecrets = append(jwtSecrets, []byte(secret))
+		}
+
+		jwtResolver, jwtErr := authjwt.NewResolver(jwtSecrets...)
+		if jwtErr != nil {
+			return fmt.Errorf("unable to create JWT auth resolver: %w", jwtErr)
+		}
+		authResolvers = append(authResolvers, jwtResolver)
+	}
+	authResolvers = append(authResolvers,
+		portalsession.NewResolver(portalSvc),
+		rootkey.NewResolver(keySvc),
+	)
+	authSvc := auth.New(authResolvers...)
 
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)
@@ -383,7 +378,9 @@ func Run(ctx context.Context, cfg Config) error {
 		ClickHouse:           ch,
 		ApiRequests:          apiRequests,
 		RatelimitEvents:      ratelimits,
+		KeyVerifications:     keyVerifications,
 		Keys:                 keySvc,
+		Auth:                 authSvc,
 		Validator:            validator,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,

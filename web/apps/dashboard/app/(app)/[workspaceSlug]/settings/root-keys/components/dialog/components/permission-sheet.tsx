@@ -11,14 +11,16 @@ import {
 } from "@/components/ui/sheet";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissionSheet } from "../hooks/use-permission-sheet";
+import { WORKSPACE_SCOPE } from "../permissions";
 import { PermissionContentList } from "./permission-list";
 import { SearchPermissions } from "./search-permissions";
 
 type PermissionSheetProps = {
   apis: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;
   loadMore?: () => void;
@@ -31,6 +33,7 @@ type PermissionSheetProps = {
 
 export const PermissionSheet = ({
   apis,
+  projects,
   selectedPermissions,
   onChange,
   loadMore,
@@ -48,13 +51,32 @@ export const PermissionSheet = ({
     hasNoResults,
     handleSearchChange,
     handleApiPermissionChange,
+    handleProjectPermissionChange,
     handleWorkspacePermissionChange,
   } = usePermissionSheet({
     apis,
+    projects,
     selectedPermissions,
     onChange,
     editMode,
   });
+
+  const apiScopes = useMemo(
+    () =>
+      apis.map((api) => ({
+        id: api.id,
+        scope: { kind: "api" as const, id: api.id, name: api.name },
+      })),
+    [apis],
+  );
+  const projectScopes = useMemo(
+    () =>
+      projects.map((project) => ({
+        id: project.id,
+        scope: { kind: "project" as const, id: project.id, name: project.name },
+      })),
+    [projects],
+  );
 
   return (
     <Sheet modal={true} open={open} onOpenChange={onOpenChange}>
@@ -83,29 +105,42 @@ export const PermissionSheet = ({
                 </p>
               ) : (
                 <>
-                  {/* Workspace Permissions */}
                   <PermissionContentList
                     selected={selectedPermissions}
                     searchValue={searchValue}
                     key="workspace"
-                    type="workspace"
+                    scope={WORKSPACE_SCOPE}
                     onPermissionChange={handleWorkspacePermissionChange}
                   />
-                  {/* From APIs */}
-                  {apis.length > 0 && (
+                  {apiScopes.length > 0 && (
                     <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
                       {ROOT_KEY_MESSAGES.UI.FROM_APIS}
                     </p>
                   )}
-                  {apis.map((api) => (
+                  {apiScopes.map(({ id, scope }) => (
                     <PermissionContentList
                       selected={selectedPermissions}
                       searchValue={searchValue}
-                      key={api.id}
-                      type="api"
-                      api={api}
+                      key={id}
+                      scope={scope}
                       onPermissionChange={(permissions) =>
-                        handleApiPermissionChange(api.id, permissions)
+                        handleApiPermissionChange(id, permissions)
+                      }
+                    />
+                  ))}
+                  {projectScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_PROJECTS}
+                    </p>
+                  )}
+                  {projectScopes.map(({ id, scope }) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      key={id}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleProjectPermissionChange(id, permissions)
                       }
                     />
                   ))}

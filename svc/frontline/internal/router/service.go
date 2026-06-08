@@ -61,7 +61,7 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 	if decision.Destination == DestinationLocalInstance {
 		routingDecisionsTotal.WithLabelValues(decisionLocal, s.regionPlatform).Inc()
 	} else {
-		routingDecisionsTotal.WithLabelValues(decisionRemote, decision.Address).Inc()
+		routingDecisionsTotal.WithLabelValues(decisionRemote, decision.RemoteRegionAddress).Inc()
 	}
 
 	return decision, nil

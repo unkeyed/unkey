@@ -6,7 +6,7 @@ export type SectionContext =
   | { type: "workspace" }
   | { type: "settings" }
   | { type: "authorization" }
-  | { type: "project"; projectId: string }
+  | { type: "project"; projectId: string; appId?: string }
   | { type: "api"; apiId: string }
   | { type: "namespace"; namespaceId: string }
   | { type: "identity"; identityId: string };
@@ -16,12 +16,13 @@ export function useSectionContext(): SectionContext {
   const params = useParams<{
     apiId?: string;
     projectId?: string;
+    appId?: string;
     namespaceId?: string;
     identityId?: string;
   }>();
 
   if (params.projectId) {
-    return { type: "project", projectId: params.projectId };
+    return { type: "project", projectId: params.projectId, appId: params.appId };
   }
   if (params.apiId) {
     return { type: "api", apiId: params.apiId };

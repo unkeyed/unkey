@@ -1,4 +1,4 @@
-import type { HealthStatus } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
+import type { HealthStatus } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/network/unkey-flow/components/nodes/types";
 import type { Instance } from "@/lib/db";
 
 export const flagCodes = ["us", "de", "au", "jp", "in", "br", "local"] as const;

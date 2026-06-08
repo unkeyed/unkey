@@ -6,6 +6,8 @@ import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { useQuery } from "@tanstack/react-query";
 import type { Workspace } from "@unkey/db";
 import { ChevronExpandY, Gear, Nodes, Plus, TaskUnchecked } from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
@@ -65,13 +67,16 @@ interface NavbarContentProps {
   workspace: Workspace;
   isMobile: boolean;
   layoutData: ApiLayoutData;
+  proxiedApiName?: string;
 }
 
 // Loading state component
 const LoadingNavbar = ({ workspace }: LoadingNavbarProps) => (
   <Navbar>
     <Navbar.Breadcrumbs icon={<Nodes />}>
-      <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`}>APIs</Navbar.Breadcrumbs.Link>
+      <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`}>
+        Keyspaces (APIs)
+      </Navbar.Breadcrumbs.Link>
       <Navbar.Breadcrumbs.Link href="#" className="group" noop>
         <div className="h-6 w-20 bg-grayA-3 rounded-sm animate-pulse transition-all " />
       </Navbar.Breadcrumbs.Link>
@@ -101,6 +106,7 @@ const NavbarContent = ({
   workspace,
   isMobile = false,
   layoutData,
+  proxiedApiName,
 }: NavbarContentProps) => {
   const shouldFetchKey = Boolean(keyspaceId && keyId);
 
@@ -129,35 +135,12 @@ const NavbarContent = ({
   }
 
   const specificKey = keyData?.keys.find((key) => key.id === keyId);
-  const { currentApi } = layoutData;
+  const currentApi = {
+    ...layoutData.currentApi,
+    name: proxiedApiName ?? layoutData.currentApi.name,
+  };
 
-  // Define base path for API navigation
   const base = `/${workspace.slug}/apis/${currentApi.id}`;
-
-  // Create navigation items for QuickNavPopover
-  const navigationItems = [
-    {
-      id: "requests",
-      label: "Requests",
-      href: `/${workspace.slug}/apis/${currentApi.id}`,
-    },
-  ];
-
-  // Add Keys navigation if keyAuthId exists
-  if (currentApi.keyAuthId) {
-    navigationItems.push({
-      id: "keys",
-      label: "Keys",
-      href: `/${workspace.slug}/apis/${currentApi.id}/keys/${currentApi.keyAuthId}`,
-    });
-  }
-
-  // Add Settings navigation
-  navigationItems.push({
-    id: "settings",
-    label: "Settings",
-    href: `/${workspace.slug}/apis/${currentApi.id}/settings`,
-  });
 
   return (
     <div className="w-full">
@@ -167,7 +150,7 @@ const NavbarContent = ({
             href={`/${workspace.slug}/apis`}
             className={isMobile ? "hidden" : "max-md:hidden"}
           >
-            APIs
+            Keyspaces (APIs)
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={base}
@@ -177,7 +160,7 @@ const NavbarContent = ({
             <div className="text-accent-10 group-hover:text-accent-12">{currentApi.name}</div>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage?.href ?? ""} noop active={!shouldFetchKey}>
-            <QuickNavPopover items={navigationItems} shortcutKey="M">
+            <QuickNavPopover>
               <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
                 {activePage?.text ?? ""}
                 <ChevronExpandY className="size-4" />
@@ -242,6 +225,14 @@ export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarP
       retryDelay: 1000,
     },
   );
+  const { data: proxiedApi } = useQuery({
+    queryKey: ["dashboard-api-proxy", "apis.getApi", apiId],
+    enabled: Boolean(apiId),
+    queryFn: async () => {
+      const response = await getUnkeyClient().apis.getApi({ apiId });
+      return response.data;
+    },
+  });
 
   // Show loading state while fetching data
   if (isLoading || !layoutData) {
@@ -263,6 +254,7 @@ export const ApisNavbar = ({ apiId, keyspaceId, keyId, activePage }: ApisNavbarP
       workspace={workspace}
       isMobile={isMobile}
       layoutData={layoutData}
+      proxiedApiName={proxiedApi?.name}
     />
   );
 };

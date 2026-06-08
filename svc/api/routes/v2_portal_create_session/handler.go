@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -28,7 +27,6 @@ type (
 // Handler implements zen.Route for the portal session creation endpoint.
 type Handler struct {
 	DB            db.Database
-	Keys          keys.KeyService
 	Auditlogs     auditlogs.AuditLogService
 	PortalBaseURL string
 }
@@ -62,8 +60,7 @@ func validatePermissionFormat(permissions []string) error {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -77,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	workspaceID := auth.AuthorizedWorkspaceID
+	workspaceID := principal.WorkspaceID
 
 	if !validation.ValidateSlug(req.Slug) {
 		return fault.New("invalid slug",
@@ -171,9 +168,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			{
 				Event:         auditlog.PortalSessionCreateEvent,
 				WorkspaceID:   workspaceID,
-				ActorType:     auditlog.RootKeyActor,
-				ActorID:       auth.Key.ID,
-				ActorName:     "root key",
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
 				Display:       fmt.Sprintf("Created portal session for %s", req.ExternalId),
 				RemoteIP:      s.Location(),

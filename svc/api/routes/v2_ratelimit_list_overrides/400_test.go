@@ -17,8 +17,7 @@ func TestBadRequests(t *testing.T) {
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
 	route := &handler.Handler{
-		DB:   h.DB,
-		Keys: h.Keys,
+		DB: h.DB,
 	}
 
 	h.Register(route)

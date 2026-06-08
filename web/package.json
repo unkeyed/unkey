@@ -16,6 +16,7 @@
   },
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
+  "packageManager": "pnpm@11.5.0",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@types/node": "22.14.0",
@@ -24,22 +25,6 @@
     "typescript": "5.7.3",
     "vitest": "3.2.4"
   },
-  "pnpm": {
-    "overrides": {
-      "@radix-ui/react-dialog": "1.1.15",
-      "@radix-ui/react-popover": "1.1.15",
-      "zod": "4.3.5",
-      "@tanstack/router-generator>zod": "3.24.4",
-      "@tanstack/start-plugin-core>zod": "3.24.4",
-      "@tanstack/router-plugin>zod": "3.24.4",
-      "@tanstack/react-router>zod": "3.24.4",
-      "@tanstack/react-start-plugin>zod": "3.24.4",
-      "@tanstack/react-start-config>zod": "3.24.4",
-      "@types/react": "19.2.4",
-      "@types/react-dom": "19.2.3"
-    }
-  },
-  "packageManager": "pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90",
   "engines": {
     "node": ">=22"
   }

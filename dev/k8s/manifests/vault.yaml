@@ -40,8 +40,9 @@ spec:
     spec:
       containers:
         - name: vault
-          image: unkey/go:dev
-          args: ["run", "vault", "--config", "/etc/unkey/unkey.toml"]
+          image: unkey/vault:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
+          imagePullPolicy: Never
           ports:
             - name: http
               containerPort: 8060
@@ -51,19 +52,15 @@ spec:
               mountPath: /etc/unkey
               readOnly: true
           livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
+            httpGet:
+              path: /health/live
+              port: 8060
             initialDelaySeconds: 5
             periodSeconds: 10
           readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - "wget --header='Content-Type: application/json' --post-data='{}' -qO- http://localhost:8060/vault.v1.VaultService/Liveness"
+            httpGet:
+              path: /health/ready
+              port: 8060
             initialDelaySeconds: 2
             periodSeconds: 5
           resources:

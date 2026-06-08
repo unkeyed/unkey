@@ -6,11 +6,13 @@
 rm
 
 .turbo
+.cache/
 node_modules
 dist
 .next
 
 .tinyb
+.unkey
 
 # contentlayer
 .contentlayer

@@ -1,0 +1,104 @@
+---
+title: "Releases"
+description: "How Unkey ships service images from a git tag to production"
+---
+
+Releases are tag-driven. Pushing a `<service>/vx.y.z` tag from `main` causes
+Depot CI to build the image, push it to GHCR, and cut a GitHub release.
+Promotion through canary into production then happens in the
+[`unkeyed/infra`](https://github.com/unkeyed/infra) repo. For how the image
+itself is built, see [Builds](./builds).
+
+## Design choices worth knowing
+
+- **One image per service, not a monolith.** Each service gets its own
+  GHCR repository (`ghcr.io/unkeyed/<service>`) and its own tag namespace
+  (`<service>/vx.y.z`). Services release independently; bumping `api` does
+  not force a release of `vault`. Helm charts and promotion pins are also
+  per-service for the same reason.
+- **Tags must be on `main`.** Releases ship code that has already passed CI.
+  The release workflow refuses to publish anything for a tag whose commit is
+  not reachable from `origin/main`, so feature branches can never become a
+  release.
+- **The release workflow does not re-test.** Tests ran when the code merged
+  to `main`. The release job's only responsibilities are build, push, and
+  cut a GitHub release.
+- **Tags are immutable.** Once published, a tag (and its image) sticks
+  around as historical record. Bad releases are addressed by forward-fix
+  tags, never by deleting or re-pushing the broken one.
+
+## Releasing a service
+
+The unkey side is two steps: tag the service, then wait for CI to publish
+the image. The infra side (canary rollout, production promotion, rollback)
+lives in the
+[infra deploy guide](https://github.com/unkeyed/infra/blob/main/README.md#deploying-unkey-api)
+and picks up from there.
+
+### 1. Tag the service from `main`
+
+Sync `main`, then tag and push:
+
+```bash
+git fetch origin main
+git checkout main
+git pull --ff-only
+git tag <service>/v<x>.<y>.<z>
+git push origin <service>/v<x>.<y>.<z>
+```
+
+Supported service names are `api`, `frontline`, `vault`, `heimdall`,
+`krane`, `control-api`, `control-worker`. Use semantic versioning and never
+reuse a tag.
+
+#### Pre-release tags
+
+Tags with a SemVer pre-release suffix (anything after a hyphen, e.g.
+`api/v1.2.3-beta`, `vault/v0.4.0-rc.1`, `heimdall/v2.0.0-alpha.3`) are
+supported. They build and push the image the same way and produce a GitHub
+release marked as a pre-release so it does not show up as "Latest". Use them
+when you want a real, immutable artifact to canary in infra without claiming
+it as a stable version. The same rules still apply: the tag must be on
+`main`, and tags are immutable, so iterate by bumping the pre-release suffix
+(`-rc.1` -> `-rc.2`) rather than re-pushing.
+
+```bash
+git tag api/v1.2.3-beta
+git push origin api/v1.2.3-beta
+```
+
+### 2. Wait for CI
+
+`depot ci run list --repo unkeyed/unkey --trigger push --status running`
+shows the in-flight workflow. When it finishes, confirm both artifacts exist
+before moving on:
+
+- The image at `ghcr.io/unkeyed/<service>:v<x>.<y>.<z>` (visible in the
+  GitHub Packages tab, or via `docker manifest inspect`).
+- A GitHub release at `releases/tag/<service>/v<x>.<y>.<z>`.
+
+If the workflow fails, fix the underlying issue on `main` and cut a new
+patch tag. Do not delete and re-push the failed one.
+
+## After CI: deploy in `unkeyed/infra`
+
+Follow the
+[infra deploy guide](https://github.com/unkeyed/infra/blob/main/README.md#deploying-unkey-api).
+Two things to be aware of for per-service releases: helm values live at
+`eks-cluster/helm-chart/<service>/values.yaml` with
+`image.repository: ghcr.io/unkeyed/<service>`, and each service has its own
+production promotion pin under
+`eks-cluster/promotions/production001/<service>.yaml`.
+
+## CLI releases
+
+The CLI ships through a separate path because it is an npm package, not a
+container image. `cli/vx.y.z` tags trigger `.github/workflows/release.yaml`,
+which uses GoReleaser to build the CLI binaries and publish to npm. The
+GoReleaser config is scoped to the `cli/` tag prefix, so a service tag
+never produces CLI artifacts and vice versa.
+
+```bash
+git tag cli/v1.2.3
+git push origin cli/v1.2.3
+```

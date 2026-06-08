@@ -21,6 +21,7 @@ export const listDeployments = workspaceProcedure
   .input(
     z.object({
       projectId: z.string(),
+      appId: z.string().optional(),
       startTime: z.number().int().optional(),
       endTime: z.number().int().optional(),
     }),
@@ -37,6 +38,7 @@ export const listDeployments = workspaceProcedure
           and(
             eq(deployments.workspaceId, ctx.workspace.id),
             eq(deployments.projectId, input.projectId),
+            input.appId ? eq(deployments.appId, input.appId) : undefined,
             input.startTime ? gte(deployments.createdAt, input.startTime) : undefined,
             input.endTime ? lte(deployments.createdAt, input.endTime) : undefined,
           ),
@@ -170,6 +172,7 @@ export const listDeployments = workspaceProcedure
         const desired = desiredStateByAppEnv.get(`${appId}:${deployment.environmentId}`);
         return {
           ...deployment,
+          appId,
           ...normalizeDeploymentRow(deployment),
           instances: instancesByDeployment.get(deployment.id) ?? [],
           lastExit: lastExitByDeployment.get(deployment.id) ?? null,

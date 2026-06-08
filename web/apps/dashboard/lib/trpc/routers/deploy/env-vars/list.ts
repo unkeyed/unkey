@@ -1,4 +1,4 @@
-import { and, db, eq, inArray } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { appEnvironmentVariables, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -6,6 +6,7 @@ import { workspaceProcedure } from "../../../trpc";
 
 const envVarOutputSchema = z.object({
   id: z.string(),
+  appId: z.string(),
   key: z.string(),
   value: z.string(),
   type: z.enum(["recoverable", "writeonly"]),
@@ -21,7 +22,7 @@ const environmentOutputSchema = z.object({
 export const listEnvVars = workspaceProcedure
   .input(
     z.object({
-      projectId: z.string(),
+      appId: z.string(),
     }),
   )
   .query(async ({ ctx, input }) => {
@@ -29,7 +30,7 @@ export const listEnvVars = workspaceProcedure
       const envs = await db.query.environments.findMany({
         where: and(
           eq(environments.workspaceId, ctx.workspace.id),
-          eq(environments.projectId, input.projectId),
+          eq(environments.appId, input.appId),
         ),
         columns: {
           id: true,
@@ -41,15 +42,14 @@ export const listEnvVars = workspaceProcedure
         return {};
       }
 
-      const envIds = envs.map((e) => e.id);
-
       const allVariables = await db.query.appEnvironmentVariables.findMany({
         where: and(
           eq(appEnvironmentVariables.workspaceId, ctx.workspace.id),
-          inArray(appEnvironmentVariables.environmentId, envIds),
+          eq(appEnvironmentVariables.appId, input.appId),
         ),
         columns: {
           id: true,
+          appId: true,
           environmentId: true,
           key: true,
           type: true,
@@ -63,6 +63,7 @@ export const listEnvVars = workspaceProcedure
       for (const v of allVariables) {
         const mapped = {
           id: v.id,
+          appId: v.appId,
           key: v.key,
           value: "••••••••",
           type: v.type,

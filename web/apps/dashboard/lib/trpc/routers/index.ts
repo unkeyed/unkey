@@ -36,6 +36,9 @@ import { searchRolesPermissions } from "./authorization/roles/permissions/search
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
 import { queryUsage } from "./billing/query-usage";
+import { createApp } from "./deploy/app/create";
+import { deleteApp } from "./deploy/app/delete";
+import { listApps } from "./deploy/app/list";
 import { addCustomDomain } from "./deploy/custom-domains/add";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
@@ -111,6 +114,7 @@ import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
+import { updateProject } from "./deploy/project/update";
 
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
@@ -122,7 +126,6 @@ import { githubRouter } from "./github";
 import { createIdentity } from "./identity/create";
 import { deleteIdentity } from "./identity/delete";
 import { getIdentityById } from "./identity/getById";
-import { identityLastVerificationTime } from "./identity/latestVerification";
 import { queryIdentities } from "./identity/query";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
@@ -417,7 +420,6 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
     getById: getIdentityById,
-    latestVerification: identityLastVerificationTime,
     logs: t.router({
       query: queryIdentityLogs,
       timeseries: queryIdentityTimeseries,
@@ -437,8 +439,14 @@ export const router = t.router({
     project: t.router({
       list: listProjects,
       create: createProject,
+      update: updateProject,
       delete: deleteProject,
       creationContext,
+    }),
+    app: t.router({
+      list: listApps,
+      create: createApp,
+      delete: deleteApp,
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,

@@ -3,7 +3,6 @@ package frontline
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -25,11 +24,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -41,6 +38,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/caches"
 	"github.com/unkeyed/unkey/svc/frontline/internal/certmanager"
@@ -64,6 +62,9 @@ func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
 		return fmt.Errorf("bad config: %w", err)
+	}
+	if cfg.InstanceID == "" {
+		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
 	if cfg.Observability.Logging != nil {
 
@@ -245,57 +246,9 @@ func Run(ctx context.Context, cfg Config) error {
 		r.Defer(chClient.Close)
 	}
 
-	var broadcaster clustering.Broadcaster
-	if cfg.Gossip != nil {
-		logger.Info("Gossip cluster configured, initializing cache invalidation",
-			"region", cfg.Region,
-			"instanceID", cfg.InstanceID,
-		)
-
-		mux := cluster.NewMessageMux()
-
-		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
-		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
-
-		var secretKey []byte
-		if cfg.Gossip.SecretKey != "" {
-			var decodeErr error
-			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
-			if decodeErr != nil {
-				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
-			}
-		}
-
-		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Region:           cfg.Region,
-			NodeID:           cfg.InstanceID,
-			BindAddr:         cfg.Gossip.BindAddr,
-			BindPort:         cfg.Gossip.LANPort,
-			WANBindPort:      cfg.Gossip.WANPort,
-			WANAdvertiseAddr: cfg.Gossip.WANAdvertiseAddr,
-			LANSeeds:         lanSeeds,
-			WANSeeds:         wanSeeds,
-			SecretKey:        secretKey,
-			OnMessage:        mux.OnMessage,
-		})
-		if clusterErr != nil {
-			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
-				"error", clusterErr,
-			)
-		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
-			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
-			broadcaster = gossipBroadcaster
-			r.Defer(gossipCluster.Close)
-		}
-	} else {
-		logger.Warn("Gossip not configured, cache invalidation will be local only")
-	}
-
 	cacheSet, err := caches.New(caches.Config{
-		Clock:       clk,
-		Broadcaster: broadcaster,
-		NodeID:      cfg.InstanceID,
+		Clock:  clk,
+		NodeID: cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -528,14 +481,12 @@ func buildEngine(
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:               pkgdb.ToMySQL(database),
-		RateLimiter:      rlSvc,
-		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
-		Region:           region,
-		UsageLimiter:     usageLimiter,
-		KeyCache:         keyCache,
-		QuotaCache:       nil,
+		DB:           pkgdb.ToMySQL(database),
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Region:       region,
+		UsageLimiter: usageLimiter,
+		KeyCache:     keyCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)
@@ -543,9 +494,10 @@ func buildEngine(
 
 	logger.Info("policy engine initialized")
 	eng, err := policies.New(policies.Config{
-		KeyService:  keyService,
-		RateLimiter: rlSvc,
-		Clock:       clk,
+		KeyService:       keyService,
+		RateLimiter:      rlSvc,
+		Clock:            clk,
+		KeyVerifications: keyVerifications,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)

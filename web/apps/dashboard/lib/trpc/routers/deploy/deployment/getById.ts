@@ -95,9 +95,8 @@ export const getById = workspaceProcedure
         });
       }
 
-      const { appId: _, ...rest } = deployment;
       return {
-        ...rest,
+        ...deployment,
         ...normalizeDeploymentRow(deployment),
         instances: instanceRows.map(mapInstanceRow),
         desiredInstanceCount,

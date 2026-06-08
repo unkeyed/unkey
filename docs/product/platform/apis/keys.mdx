@@ -23,13 +23,13 @@ Create → Active → (optional: Disable / Expire / Exhaust credits) → Revoke
 
 ## Create a key
 
-Keys are created through the API, SDK, or dashboard. Each key requires an `apiId` to associate it with an API and its keyspace.
+Keys are created through the API, SDK, or dashboard. Each key requires an `apiId` to associate it with a keyspace.
 
 On creation, you can configure:
 
 | Option        | Description                                                           |
 | ------------- | --------------------------------------------------------------------- |
-| `prefix`      | Override the API's default prefix for this key                        |
+| `prefix`      | Override the keyspace's default prefix for this key                   |
 | `name`        | Human-readable label                                                  |
 | `meta`        | Arbitrary JSON metadata returned on every verification                |
 | `expires`     | Unix timestamp (ms) when the key expires                              |
@@ -103,7 +103,7 @@ See [Revocation](/platform/apis/features/revocation) for details.
 
 By default, Unkey stores only the SHA-256 hash of each key. The plaintext is returned once at creation and never stored.
 
-If the API has **Store encrypted keys** enabled, Unkey also stores an AES-encrypted copy of the key in the vault. This lets you recover the key later through the API with the `decrypt` parameter. Use this when your workflow requires showing users their existing key.
+If the keyspace has **Store encrypted keys** enabled, Unkey also stores an AES-encrypted copy of the key in the vault. This lets you recover the key later through the API with the `decrypt` parameter. Use this when your workflow requires showing users their existing key.
 
 See [Recovering keys](/security/recovering-keys) for details.
 
@@ -121,7 +121,7 @@ See [Recovering keys](/security/recovering-keys) for details.
 
 | Page                                                         | Description                               |
 | ------------------------------------------------------------ | ----------------------------------------- |
-| [APIs overview](/platform/apis/overview)                     | API and keyspace configuration            |
+| [Keyspaces overview](/platform/apis/overview)                | Keyspace configuration                    |
 | [API keys](/platform/apis/introduction)            | Quick start guide with code examples      |
 | [Identities](/platform/identities/overview)                  | Link keys to users for shared rate limits |
 | [Sentinel authentication](/platform/sentinel/authentication) | Verify keys at the gateway                |

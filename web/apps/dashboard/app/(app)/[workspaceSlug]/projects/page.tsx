@@ -1,12 +1,17 @@
-"use server";
-import { LoadingState } from "@/components/loading-state";
-import { Suspense } from "react";
-import { ProjectsClient } from "./projects-client";
+"use client";
 
-export default async function ProjectsPage() {
+import { NewNavigationBanner } from "@/components/navigation/new-navigation-banner";
+import { ProjectsListControls } from "./_components/controls";
+import { ProjectsList } from "./_components/list";
+import { ProjectsListNavigation } from "./navigation";
+
+export default function ProjectsPage() {
   return (
-    <Suspense fallback={<LoadingState message="Loading projects..." />}>
-      <ProjectsClient />
-    </Suspense>
+    <div>
+      <ProjectsListNavigation />
+      <ProjectsListControls />
+      <ProjectsList />
+      <NewNavigationBanner />
+    </div>
   );
 }

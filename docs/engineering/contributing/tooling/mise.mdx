@@ -1,0 +1,152 @@
+---
+title: "Mise"
+description: "How Unkey uses mise for local tooling and repository tasks"
+---
+
+## What mise owns
+
+Unkey uses mise as the local toolchain and task runner. The source of truth is
+`mise.toml`, `mise.lock`, and `.mise/tasks/*`.
+
+Use mise for local repository commands:
+
+```bash
+mise run build
+mise run test
+mise run fmt
+mise exec -- bazel test //pkg/cache:cache_test
+```
+
+Do not use Makefiles for repository workflows. They are legacy and can drift
+from the pinned toolchain.
+
+## Install the toolchain
+
+Install the pinned mise binary, then install the tools from `mise.toml`:
+
+```bash
+./dev/install-mise
+mise install
+```
+
+<Note>
+  If you run into github ratelimit issues, mise can use an auth token to get higher limits
+  You can manually create a token, or use the one from your `gh` cli:
+
+  ```bash
+  GITHUB_TOKEN=$(gh auth token) mise install
+  ```
+
+</Note>
+
+`mise install` installs languages, CLIs, and package managers. It does not run
+repository setup tasks. Repository tasks declare setup work as dependencies, so
+you don't need to run setup-only tasks manually.
+
+## How tools are pinned
+
+Add tools to the `[tools]` section in `mise.toml`. Pin exact versions instead
+of floating versions like `latest`.
+
+```toml
+[tools]
+node = "24.16.0"
+"npm:pnpm" = "8.6.9"
+"github:depot/cli" = "2.101.63"
+```
+
+After changing tools, update `mise.lock`:
+
+```bash
+mise lock <tool>
+```
+
+Use the backend-qualified name when needed, for example:
+
+```bash
+mise lock npm:pnpm
+mise lock github:depot/cli
+```
+
+Run `mise install --locked --yes` after updating the lockfile. This catches
+missing URLs, checksums, and platform entries before another developer hits the
+same issue.
+
+## How tasks work
+
+Repository tasks are executable files under `.mise/tasks/`. The file name is the
+task name. Metadata is declared with `#MISE` comments near the top of the file.
+
+```bash .mise/tasks/example
+#!/usr/bin/env bash
+#MISE description="Run an example workflow"
+#MISE depends=["setup-example"]
+set -euo pipefail
+
+example-tool run
+```
+
+Use task dependencies for setup work. If a task needs another task to prepare
+inputs or local state, add `#MISE depends=["task-name"]` instead of telling
+users to run setup steps by hand.
+
+## Hidden dependency tasks
+
+Some tasks exist only to prepare other tasks. Mark those tasks hidden:
+
+```bash
+#MISE hide=true
+```
+
+Hidden tasks can still run as dependencies. Use them for setup work that users
+usually don't need to invoke directly.
+
+You can inspect hidden tasks when debugging:
+
+```bash
+mise tasks --hidden
+mise tasks deps <task>
+```
+
+## Cache task outputs
+
+Tasks can declare source and output files. Mise skips the task when all outputs
+are newer than the sources.
+
+```bash
+#MISE sources=["path/to/input.json"]
+#MISE outputs=["path/to/output"]
+```
+
+Use this for expensive setup steps with clear inputs and outputs. Do not add
+outputs for tasks that must always run, such as tests or formatters.
+
+## Add a task
+
+When you add a task, follow this checklist:
+
+1. Create an executable script in `.mise/tasks/<name>`.
+2. Add a clear `#MISE description`.
+3. Add `set -euo pipefail` for Bash tasks.
+4. Add `#MISE depends=["task-name"]` when the task has setup dependencies.
+5. Add `#MISE sources` and `#MISE outputs` only when skip behavior is safe.
+6. Mark setup-only tasks with `#MISE hide=true`.
+7. Run `mise tasks validate`.
+8. Run the smallest task or command that proves the task works.
+
+Prefer a task when the command is part of a repeated repository workflow. Use
+`mise exec -- <tool>` for one-off direct tool calls.
+
+## What to expect
+
+Mise tasks run from the repository root unless configured otherwise. Keep task
+scripts explicit about paths, for example `pnpm --dir=web` instead of changing
+directories for the rest of the script.
+
+Task dependencies run before the requested task. Hidden tasks can still run as
+dependencies. `mise tasks` hides them by default, and `mise tasks --hidden`
+shows them.
+
+The lockfile is part of the review surface. If `mise.toml` changes, expect a
+matching `mise.lock` change unless the edit only affects task configuration or
+environment variables.

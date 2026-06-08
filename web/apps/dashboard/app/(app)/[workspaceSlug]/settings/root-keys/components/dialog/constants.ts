@@ -3,7 +3,6 @@ export const ROOT_KEY_CONSTANTS = {
   UNNAMED_KEY: "Unnamed",
   API_URL: "https://api.unkey.com",
   EXPAND_COUNT: 3,
-  WORKSPACE: "workspace",
 } as const;
 
 export const ROOT_KEY_MESSAGES = {
@@ -27,6 +26,7 @@ export const ROOT_KEY_MESSAGES = {
     EDIT_PERMISSIONS: "Edit Permissions...",
     NO_RESULTS: "No results found",
     FROM_APIS: "From APIs",
+    FROM_PROJECTS: "From Projects",
     CREATE_ROOT_KEY: "Create root key",
     UPDATE_ROOT_KEY: "Update root key",
     NEW_ROOT_KEY: "New root key",
@@ -43,6 +43,7 @@ export const ROOT_KEY_MESSAGES = {
     PERMISSIONS: "Permissions",
     WORKSPACE: "All workspace permissions",
     API: "All permissions for",
+    PROJECT: "All permissions for project",
     IMMEDIATE_CREATE: "This root key will be created immediately",
     IMMEDIATE_UPDATE: "This root key will be updated immediately",
   },

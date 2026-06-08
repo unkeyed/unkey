@@ -3,7 +3,8 @@ title: "Architecture"
 description: "API service components, request flow, and dependencies"
 ---
 
-The API service is the primary way users interact with unkey. It exposes an authenticated RPC-style HTTP API for all availble CRUD operations.
+The API service is the primary way users interact with Unkey. It exposes an
+authenticated RPC-style HTTP API for CRUD operations.
 
 ## Request handling pipeline
 
@@ -17,13 +18,18 @@ Most endpoints share a standard middleware stack:
 - One-minute timeout
 - Request validation
 
-Routes that serve internal tooling such as pprof use a reduced stack. The liveness and reference endpoints disable ClickHouse logging to avoid analytics noise.
+Routes that serve internal tooling such as pprof use a reduced stack. The
+liveness and reference endpoints disable ClickHouse logging to avoid analytics
+noise.
 
 ## Core services
 
-The API service composes domain services into handlers registered in [`svc/api/routes/register.go`](https://github.com/unkeyed/unkey/blob/main/svc/api/routes/register.go).
+The API service composes domain services into handlers during startup.
 
-- Key service for authentication, authorization, key verification, and mutations.
+- Authentication service for normalizing request credentials into principals.
+  Protected handlers read the principal from the session and use it for
+  permission checks.
+- Key service for root key verification, key authorization, and key mutations.
 - [Rate limiting](/architecture/ratelimiting/overview) for standalone
   limits, key verification limits, and workspace API throttling.
 - Usage limiter backed by Redis counters and MySQL for credit tracking.
@@ -33,15 +39,18 @@ The API service composes domain services into handlers registered in [`svc/api/r
 
 ## Data and storage
 
-- MySQL stores control plane data such as keys, APIs, identities, and permissions.
+- MySQL stores control plane data such as keys, APIs, identities, and
+  permissions.
 - Redis stores regional counters and rate limiting state.
 - ClickHouse stores verification and analytics events.
 
-ClickHouse is optional. When it is not configured, analytics writes become no-ops.
+ClickHouse is optional. When it is not configured, analytics writes become
+no-ops.
 
 ## Cache invalidation
 
-Cache invalidation uses a gossip cluster when configured. Each node subscribes to invalidation messages and broadcasts cache changes. If gossip fails to initialize, the service continues with local-only invalidation.
+Each node maintains local caches with fresh/stale TTLs. Entries expire on their
+own schedule; there is no distributed invalidation.
 
 ## Control plane and Vault integration
 
@@ -54,4 +63,6 @@ Clients inject `Authorization: Bearer <token>` headers on every request.
 
 ## Reference and schema
 
-The OpenAPI specification is bundled from [`svc/api/openapi`](https://github.com/unkeyed/unkey/blob/main/svc/api/openapi) and served at `/openapi.yaml`. The `/reference` route serves the Scalar API reference UI built from the same spec.
+The OpenAPI specification is bundled into the API service and served at
+`/openapi.yaml`. The `/reference` route serves the Scalar API reference UI built
+from the same spec.

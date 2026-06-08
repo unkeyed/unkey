@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Forward ports 80/443 to frontline for *.unkey.local"
+set -euo pipefail
+
+sudo -v
+while sudo -n true 2>/dev/null; do sleep 50; done &
+while true; do
+  sudo kubectl port-forward -n frontline svc/frontline 443:443 80:80 2>/dev/null
+  echo "port-forward exited, reconnecting..."
+  sleep 1
+done

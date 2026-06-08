@@ -39,7 +39,7 @@ graph LR
 You can query these tables using standard SQL to:
 
 - Aggregate verification counts by time period
-- Group by API, user, or outcome
+- Group by keyspace, user, or outcome
 - Filter by region, tags, or custom criteria
 - Calculate metrics for billing or monitoring
 
@@ -52,7 +52,7 @@ Every verification event contains:
 | `request_id`    | String        | Unique identifier for each request                                                                                                        |
 | `time`          | Int64         | Unix millisecond timestamp                                                                                                                |
 | `workspace_id`  | String        | Your workspace identifier (**automatically filtered** - you don't need to filter by this)                                                 |
-| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`). **Automatically filtered** if your root key is scoped to a single API.                        |
+| `key_space_id`  | String        | Your KeySpace identifier (e.g., `ks_1234`). **Automatically filtered** if your root key is scoped to a single keyspace.                   |
 | `external_id`   | String        | Your user's identifier (e.g., `user_abc`)                                                                                                 |
 | `key_id`        | String        | Individual key identifier                                                                                                                 |
 | `outcome`       | String        | Verification result: `VALID`, `RATE_LIMITED`, `INVALID`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `FORBIDDEN`, `USAGE_EXCEEDED` |

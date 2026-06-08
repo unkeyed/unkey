@@ -11,6 +11,7 @@ go_library(
         "environment.pb.go",
         "oneof_interfaces.go",
         "openapi.pb.go",
+        "ops.pb.go",
         "project.pb.go",
         "secrets.pb.go",
         "service.pb.go",

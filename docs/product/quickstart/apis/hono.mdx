@@ -12,7 +12,7 @@ A Hono app with API key authentication using the `@unkey/hono` middleware. All r
 ## Prerequisites
 
 - [Unkey account](https://app.unkey.com/auth/sign-up) (free)
-- [API created](https://app.unkey.com/apis) in your Unkey dashboard
+- [Keyspace created](https://app.unkey.com/apis) in your Unkey dashboard
 - Node.js 18+ or Bun
 
 <Card
@@ -303,9 +303,12 @@ unkey({
 </Accordion>
 
   <Accordion title="Deploying to Cloudflare Workers?">
-    Use wrangler secrets for your root key: ```bash npx wrangler secret put
-    UNKEY_ROOT_KEY ``` Then access it from your Hono bindings. Add
-    `UNKEY_ROOT_KEY` to your `Bindings` type and read it via
-    `ctx.env.UNKEY_ROOT_KEY` or `env.UNKEY_ROOT_KEY` in your handlers.
+    Use wrangler secrets for your root key:
+
+    ```bash
+    npx wrangler secret put UNKEY_ROOT_KEY
+    ```
+
+    Then access it from your Hono bindings. Add `UNKEY_ROOT_KEY` to your `Bindings` type and read it via `ctx.env.UNKEY_ROOT_KEY` or `env.UNKEY_ROOT_KEY` in your handlers.
   </Accordion>
 </AccordionGroup>

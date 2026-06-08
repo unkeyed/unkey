@@ -15,6 +15,7 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/hydra/v1:hydra",
+        "//internal/services/auditlogs",
         "//pkg/batch",
         "//pkg/buildinfo",
         "//pkg/cache",
@@ -38,6 +39,7 @@ go_library(
         "//svc/ctrl/services/customdomain",
         "//svc/ctrl/services/deployment",
         "//svc/ctrl/services/openapi",
+        "//svc/ctrl/services/ops",
         "//svc/ctrl/services/project",
         "//svc/ctrl/worker/github",
         "@com_github_prometheus_client_golang//prometheus",

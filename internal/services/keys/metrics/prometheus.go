@@ -15,6 +15,12 @@ var (
 	// The type should be either "root_key" or "key"
 	// Use this counter to monitor API traffic patterns.
 	//
+	// Emission is owned by keys.Get via a deferred increment, so every caller
+	// gets the counter for free without remembering to flush. The trade-off is
+	// that statuses set later during KeyVerifier.Verify (FORBIDDEN,
+	// INSUFFICIENT_PERMISSIONS, RATE_LIMITED, USAGE_EXCEEDED) are recorded here
+	// as VALID; use the key_verifications ClickHouse stream for the final outcome.
+	//
 	// Example usage:
 	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
 	KeyVerificationsTotal = lazy.NewCounterVec(

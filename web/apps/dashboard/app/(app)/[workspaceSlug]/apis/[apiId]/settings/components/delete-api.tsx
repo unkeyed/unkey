@@ -28,10 +28,12 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const intent =
-    keys > 0 ? `delete this api and ${keys} key${keys > 1 ? "s" : ""}` : "delete this api";
+    keys > 0
+      ? `delete this keyspace and ${keys} key${keys > 1 ? "s" : ""}`
+      : "delete this keyspace";
 
   const formSchema = z.object({
-    name: z.string().refine((v) => v === api.name, "Please confirm the API name"),
+    name: z.string().refine((v) => v === api.name, "Please confirm the keyspace name"),
     intent: z.string().refine((v) => v === intent, "Please confirm your intent"),
   });
 
@@ -71,7 +73,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       <SettingsZoneRow
         title={
           <div className="inline-flex gap-2">
-            <span>Delete API</span>
+            <span>Delete Keyspace</span>
             {api.deleteProtection && (
               <StatusBadge variant="locked" text="Locked" icon={<Lock iconSize="sm-thin" />} />
             )}
@@ -79,11 +81,11 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         }
         description={
           api.deleteProtection
-            ? "Permanently deletes this API, including all keys and data. This action is locked by Delete Protection."
-            : "Permanently deletes this API, including all keys and data. This action cannot be undone."
+            ? "Permanently deletes this keyspace, including all keys and data. This action is locked by Delete Protection."
+            : "Permanently deletes this keyspace, including all keys and data. This action cannot be undone."
         }
         action={{
-          label: "Delete API",
+          label: "Delete Keyspace",
           onClick: () => setOpen(true),
           disabled: api.deleteProtection === true,
         }}
@@ -91,7 +93,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       <DialogContainer
         isOpen={open}
         onOpenChange={setOpen}
-        title="Delete API"
+        title="Delete Keyspace"
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button
@@ -104,7 +106,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               loading={isSubmitting}
               className="w-full"
             >
-              Delete API
+              Delete Keyspace
             </Button>
             <div className="text-gray-9 text-xs">
               This action cannot be undone – proceed with caution
@@ -114,9 +116,9 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
       >
         <p className="text-gray-11 text-[13px]">
           <span className="font-medium">Warning: </span>
-          Deleting this API will delete all keys and data associated with it. This action cannot be
-          undone. Any tracking, enforcement, and historical insights tied to this API will be
-          permanently lost.
+          Deleting this keyspace will delete all keys and data associated with it. This action
+          cannot be undone. Any tracking, enforcement, and historical insights tied to this keyspace
+          will be permanently lost.
         </p>
         <form id="delete-api-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1">

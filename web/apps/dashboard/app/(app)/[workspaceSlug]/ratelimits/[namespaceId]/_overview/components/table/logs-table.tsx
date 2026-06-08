@@ -1,316 +1,145 @@
 "use client";
 
 import { useSort } from "@/components/logs/hooks/use-sort";
-import { VirtualTable } from "@/components/virtual-table/index";
-import type { Column } from "@/components/virtual-table/types";
-import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
+import {
+  RATELIMITS_OVERVIEW_PAGE_SIZE,
+  createRatelimitsOverviewColumns,
+  getRowClassName,
+  renderRatelimitsOverviewSkeletonRow,
+  useRatelimitsOverviewListPaginated,
+} from "@/components/ratelimits-overview-table";
+import type { RowSelectionState, SortingState } from "@tanstack/react-table";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { Ban, BookBookmark } from "@unkey/icons";
-import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
-import { useState } from "react";
-import { InlineFilter } from "./components/inline-filter";
-import { LogsTableAction } from "./components/logs-actions";
-import { IdentifierColumn } from "./components/override-indicator";
-import { useRatelimitOverviewLogsQuery } from "./hooks/use-logs-query";
-import type { SortFields } from "./query-logs.schema";
-import { STATUS_STYLES, getRowClassName, getStatusStyle } from "./utils/get-row-class";
+import { BookBookmark } from "@unkey/icons";
+import { Button, DataTable, type DataTableConfig, Empty, PaginationFooter } from "@unkey/ui";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { type SortFields, sortFields } from "./query-logs.schema";
 
-// const MAX_LATENCY = 10;
+const TABLE_CONFIG: Partial<DataTableConfig> = {
+  rowHeight: 26,
+  layout: "grid",
+  rowBorders: true,
+  containerPadding: "px-0",
+  loadingRows: RATELIMITS_OVERVIEW_PAGE_SIZE,
+};
+
 export const RatelimitOverviewLogsTable = ({
   namespaceId,
 }: {
   namespaceId: string;
 }) => {
-  const [selectedLog, setSelectedLog] = useState<RatelimitOverviewLog>();
-  const { getSortDirection, toggleSort } = useSort<SortFields>();
-  const { historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
-    useRatelimitOverviewLogsQuery({
-      namespaceId,
-    });
+  const [selectedLog, setSelectedLog] = useState<RatelimitOverviewLog | null>(null);
+  const { sorts, setSorts } = useSort<SortFields>();
 
-  const columns = (namespaceId: string): Column<RatelimitOverviewLog>[] => {
-    return [
-      {
-        key: "identifier",
-        header: "Identifier",
-        width: "18%",
-        headerClassName: "pl-12",
-        render: (log) => {
-          return (
-            <div className="flex gap-3 items-center group/identifier">
-              <IdentifierColumn log={log} />
-              <InlineFilter
-                content="Filter by identifier"
-                filterPair={{ identifiers: log.identifier }}
-              />
-            </div>
-          );
-        },
-      },
-      {
-        key: "passed",
-        header: "Passed Requests",
-        width: "15%",
-        sort: {
-          direction: getSortDirection("passed"),
-          sortable: true,
-          onSort() {
-            toggleSort("passed", false);
-          },
-        },
-        render: (log) => {
-          return (
-            <div className="flex gap-3 items-center group/identifier">
-              <Badge
-                className={cn(
-                  "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-                  selectedLog?.request_id === log.request_id
-                    ? STATUS_STYLES.success.badge.selected
-                    : STATUS_STYLES.success.badge.default,
-                )}
-                title={`${log.passed_count.toLocaleString()} Passed requests`}
-              >
-                {formatNumber(log.passed_count)}
-              </Badge>
-              <InlineFilter
-                filterPair={{ identifiers: log.identifier, status: "passed" }}
-                content="Filter by identifier and passed status"
-              />
-            </div>
-          );
-        },
-      },
-      {
-        key: "blocked",
-        header: "Blocked Requests",
-        width: "15%",
-        sort: {
-          direction: getSortDirection("blocked"),
-          sortable: true,
-          onSort() {
-            toggleSort("blocked", false);
-          },
-        },
-        render: (log) => {
-          const style = getStatusStyle(log);
-          return (
-            <div className="flex gap-3 items-center group/identifier">
-              <Badge
-                className={cn(
-                  "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
-                  selectedLog?.request_id === log.request_id
-                    ? style.badge.selected
-                    : style.badge.default,
-                )}
-                title={`${log.blocked_count.toLocaleString()} Blocked requests`}
-              >
-                <Ban iconSize="sm-regular" />
-                {formatNumber(log.blocked_count)}
-              </Badge>
-              <InlineFilter
-                content="Filter by identifier and blocked status"
-                filterPair={{ identifiers: log.identifier, status: "blocked" }}
-              />
-            </div>
-          );
-        },
-      },
-      {
-        key: "passedTokens",
-        header: "Passed Tokens",
-        width: "15%",
-        sort: {
-          direction: getSortDirection("passed_tokens"),
-          sortable: true,
-          onSort() {
-            toggleSort("passed_tokens", false);
-          },
-        },
-        render: (log) => (
-          <Badge
-            className={cn(
-              "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              selectedLog?.request_id === log.request_id
-                ? STATUS_STYLES.success.badge.selected
-                : STATUS_STYLES.success.badge.default,
-            )}
-            title={`${log.passed_tokens.toLocaleString()} passed tokens`}
-          >
-            {formatNumber(log.passed_tokens)}
-          </Badge>
-        ),
-      },
-      {
-        key: "blockedTokens",
-        header: "Blocked Tokens",
-        width: "15%",
-        sort: {
-          direction: getSortDirection("blocked_tokens"),
-          sortable: true,
-          onSort() {
-            toggleSort("blocked_tokens", false);
-          },
-        },
-        render: (log) => {
-          const blockedTokens = Math.max(log.total_tokens - log.passed_tokens, 0);
-          const style = blockedTokens > 0 ? STATUS_STYLES.blocked : STATUS_STYLES.success;
-          return (
-            <Badge
-              className={cn(
-                "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
-                selectedLog?.request_id === log.request_id
-                  ? style.badge.selected
-                  : style.badge.default,
-              )}
-              title={`${blockedTokens.toLocaleString()} blocked tokens`}
-            >
-              <Ban iconSize="sm-regular" />
-              {formatNumber(blockedTokens)}
-            </Badge>
-          );
-        },
-      },
-      // {
-      //   key: "avgLatency",
-      //   header: "Avg. Latency",
-      //   width: "7.5%",
-      //   sort: {
-      //     direction: getSortDirection("avg_latency"),
-      //     sortable: true,
-      //     onSort() {
-      //       toggleSort("avg_latency", true);
-      //     },
-      //   },
-      //   render: (log) => (
-      //     <div
-      //       className={cn(
-      //         "font-mono pr-4",
-      //         log.avg_latency > MAX_LATENCY
-      //           ? "text-orange-11 font-medium dark:text-warning-11"
-      //           : "text-accent-9",
-      //       )}
-      //     >
-      //       {Math.round(log.avg_latency)}ms
-      //     </div>
-      //   ),
-      // },
-      // {
-      //   key: "p99",
-      //   header: "P99 Latency",
-      //   width: "7.5%",
-      //   sort: {
-      //     direction: getSortDirection("p99_latency"),
-      //     sortable: true,
-      //     onSort() {
-      //       toggleSort("p99_latency", true);
-      //     },
-      //   },
-      //   render: (log) => (
-      //     <div
-      //       className={cn(
-      //         "font-mono pr-4",
-      //         log.p99_latency > MAX_LATENCY
-      //           ? "text-orange-11 font-medium dark:text-warning-11"
-      //           : "text-accent-9",
-      //       )}
-      //     >
-      //       {Math.round(log.p99_latency)}ms
-      //     </div>
-      //   ),
-      // },
-      {
-        key: "lastRequest",
-        header: "Last Request",
-        width: "18%",
-        sort: {
-          direction: getSortDirection("time"),
-          sortable: true,
-          onSort() {
-            toggleSort("time", false, "asc");
-          },
-        },
-        render: (log) => (
-          <TimestampInfo
-            value={log.time}
-            className={cn(
-              "font-mono group-hover:underline decoration-dotted",
-              selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
-            )}
-          />
-        ),
-      },
-      {
-        key: "actions",
-        header: "",
-        width: "auto",
-        render: (log) => (
-          <LogsTableAction
-            overrideDetails={log.override}
-            identifier={log.identifier}
-            namespaceId={namespaceId}
-          />
-        ),
-      },
-    ];
-  };
+  const {
+    historicalLogs,
+    isLoading,
+    isNavigating,
+    page,
+    pageSize,
+    totalPages,
+    totalCount,
+    onPageChange: onPageChangeRaw,
+  } = useRatelimitsOverviewListPaginated({ namespaceId });
+
+  const onPageChange = useCallback(
+    (newPage: number) => {
+      setSelectedLog(null);
+      onPageChangeRaw(newPage);
+    },
+    [onPageChangeRaw],
+  );
+
+  const columns = useMemo(() => createRatelimitsOverviewColumns({ namespaceId }), [namespaceId]);
+
+  const sorting: SortingState = useMemo(
+    () =>
+      sorts.length > 0
+        ? sorts.map((s) => ({ id: s.column, desc: s.direction === "desc" }))
+        : [{ id: "time", desc: true }],
+    [sorts],
+  );
+
+  const sortingRef = useRef(sorting);
+  sortingRef.current = sorting;
+
+  const handleSortingChange = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      const next = typeof updater === "function" ? updater(sortingRef.current) : updater;
+      const validated = next.flatMap((s) => {
+        const result = sortFields.safeParse(s.id);
+        if (!result.success) {
+          return [];
+        }
+        return [{ column: result.data, direction: s.desc ? ("desc" as const) : ("asc" as const) }];
+      });
+      setSorts(validated);
+    },
+    [setSorts],
+  );
+
+  const rowSelection = useMemo<RowSelectionState>(
+    () => (selectedLog ? { [selectedLog.identifier]: true } : {}),
+    [selectedLog],
+  );
+
+  const rowClassNameMemoized = useCallback(
+    (log: RatelimitOverviewLog) => getRowClassName(log, selectedLog),
+    [selectedLog],
+  );
 
   return (
-    <VirtualTable
-      data={historicalLogs}
-      isLoading={isLoading}
-      isFetchingNextPage={isLoadingMore}
-      onRowClick={setSelectedLog}
-      selectedItem={selectedLog}
-      onLoadMore={loadMore}
-      columns={columns(namespaceId)}
-      keyExtractor={(log) => log.identifier}
-      rowClassName={(rowLog) => getRowClassName(rowLog, selectedLog as RatelimitOverviewLog)}
-      loadMoreFooterProps={{
-        itemLabel: "identifiers",
-        buttonText: "Load more logs",
-        hasMore,
-        hide: isLoading,
-        countInfoText: (
-          <div className="flex gap-2">
-            <span>Showing</span>{" "}
-            <span className="text-accent-12">
-              {new Intl.NumberFormat().format(historicalLogs.length)}
-            </span>
-            {totalCount >= 0 && (
-              <>
-                <span>of</span>
-                {new Intl.NumberFormat().format(totalCount)}
-              </>
-            )}
-            <span>rate limit identifiers</span>
+    <div className="flex flex-col">
+      <DataTable
+        data={historicalLogs}
+        isLoading={isLoading}
+        columns={columns}
+        getRowId={(log) => log.identifier}
+        onRowClick={setSelectedLog}
+        selectedItem={selectedLog}
+        rowClassName={rowClassNameMemoized}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
+        manualSorting={true}
+        enableRowSelection={true}
+        rowSelection={rowSelection}
+        config={TABLE_CONFIG}
+        renderSkeletonRow={renderRatelimitsOverviewSkeletonRow}
+        emptyState={
+          <div className="w-full flex justify-center items-center h-full">
+            <Empty className="w-[400px] flex items-start">
+              <Empty.Icon className="w-auto" />
+              <Empty.Title>Logs</Empty.Title>
+              <Empty.Description className="text-left">
+                No rate limit data to show. Once requests are made, you'll see a summary of passed
+                and blocked requests for each rate limit identifier.
+              </Empty.Description>
+              <Empty.Actions className="mt-4 justify-start">
+                <a
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button size="md">
+                    <BookBookmark />
+                    Documentation
+                  </Button>
+                </a>
+              </Empty.Actions>
+            </Empty>
           </div>
-        ),
-      }}
-      emptyState={
-        <div className="w-full flex justify-center items-center h-full">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>Logs</Empty.Title>
-            <Empty.Description className="text-left">
-              No rate limit data to show. Once requests are made, you'll see a summary of passed and
-              blocked requests for each rate limit identifier.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Documentation
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
-      }
-    />
+        }
+      />
+      <PaginationFooter
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        onPageChange={onPageChange}
+        itemLabel="rate limit identifiers"
+        loading={isLoading}
+        disabled={isNavigating}
+      />
+    </div>
   );
 };

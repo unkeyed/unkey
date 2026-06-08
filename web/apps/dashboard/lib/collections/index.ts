@@ -1,4 +1,5 @@
 "use client";
+import { apps } from "./deploy/apps";
 import { customDomains } from "./deploy/custom-domains";
 import { deployments } from "./deploy/deployments";
 import { domains } from "./deploy/domains";
@@ -11,6 +12,7 @@ import { ratelimitNamespaces } from "./ratelimit/namespaces";
 import { ratelimitOverrides } from "./ratelimit/overrides";
 
 // Export types
+export type { App } from "./deploy/apps";
 export type { CustomDomain } from "./deploy/custom-domains";
 export type { DeploymentStatus } from "./deploy/deployment-status";
 export { DEPLOYMENT_STATUSES } from "./deploy/deployment-status";
@@ -33,6 +35,7 @@ export type { Environment } from "./deploy/environments";
 // Global collections
 export const collection = {
   projects,
+  apps,
   ratelimitNamespaces,
   ratelimitOverrides,
   environments,

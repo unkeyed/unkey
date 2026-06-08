@@ -4,6 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Fingerprint } from "@unkey/icons";
 
 import type { JSX } from "react";
+import { IdentitySettingsDialog } from "./components/identity-settings-dialog";
 
 type NavigationProps = {
   readonly identityId: string;
@@ -26,6 +27,9 @@ export function Navigation({ identityId }: NavigationProps): JSX.Element {
           {identityId}
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
+      <Navbar.Actions>
+        <IdentitySettingsDialog identityId={identityId} />
+      </Navbar.Actions>
     </Navbar>
   );
 }
