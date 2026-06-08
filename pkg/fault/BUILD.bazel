@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "fault",
     srcs = [
+        "category.go",
         "code.go",
         "doc.go",
         "flatten.go",
@@ -18,6 +19,7 @@ go_test(
     name = "fault_test",
     size = "small",
     srcs = [
+        "category_test.go",
         "code_test.go",
         "dst_test.go",
         "example_test.go",

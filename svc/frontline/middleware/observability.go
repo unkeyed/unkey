@@ -64,6 +64,8 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 			statusCode := s.StatusCode()
 			hasError := err != nil
 			var urn codes.URN
+			// fault_domain is "" on success and the attribution domain on error.
+			var domain string
 
 			if hasError {
 				tracing.RecordError(span, err)
@@ -80,6 +82,16 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					code = codes.Frontline.Internal.InternalServerError
 				}
 
+				// Attribution domain for the metric: an explicit fault.Category
+				// override if set, else the category segment of the URN. Errors
+				// that carry neither are unattributed — default to platform so
+				// they ring our own alert instead of vanishing.
+				if cat, hasCat := fault.GetCategory(err); hasCat {
+					domain = string(cat)
+				} else {
+					domain = string(codes.CategoryPlatform)
+				}
+
 				pageInfo := getErrorPageInfoFrontline(urn)
 				statusCode = pageInfo.Status
 
@@ -88,15 +100,22 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					userMessage = fault.UserFacingMessage(err)
 				}
 
-				if pageInfo.Status == http.StatusInternalServerError {
-					logger.Error("frontline error",
-						"error", err.Error(),
-						"requestId", s.RequestID(),
-						"publicMessage", userMessage,
-						"status", pageInfo.Status,
-						"path", s.Request().URL.Path,
-						"host", s.Request().Host,
-					)
+				// Log the precise URN for every error so it can be correlated
+				// with the response (which also carries the URN). Server faults
+				// are logged at error level, everything else at info.
+				logArgs := []any{
+					"error", err.Error(),
+					"requestId", s.RequestID(),
+					"code", string(urn),
+					"faultDomain", domain,
+					"status", pageInfo.Status,
+					"path", s.Request().URL.Path,
+					"host", s.Request().Host,
+				}
+				if pageInfo.Status >= http.StatusInternalServerError {
+					logger.Error("frontline error", logArgs...)
+				} else {
+					logger.Info("frontline request error", logArgs...)
 				}
 
 				acceptHeader := s.Request().Header.Get("Accept")
@@ -104,12 +123,15 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					strings.Contains(acceptHeader, "application/*") ||
 					(strings.Contains(acceptHeader, "*/*") && !strings.Contains(acceptHeader, "text/html"))
 
+				// Surface the full URN and its docs link to the caller: it's
+				// the exact string support needs for correlation, and it's
+				// already logged above under the same request ID.
 				var writeErr error
 				if preferJSON {
 					writeErr = s.JSON(pageInfo.Status, ErrorResponse{
 						Meta: ErrorMeta{RequestID: s.RequestID()},
 						Error: ErrorDetail{
-							Code:    string(code.URN()),
+							Code:    string(urn),
 							Message: userMessage,
 						},
 					})
@@ -118,7 +140,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 						StatusCode: pageInfo.Status,
 						Title:      pageInfo.Title,
 						Message:    userMessage,
-						ErrorCode:  string(code.URN()),
+						ErrorCode:  string(urn),
 						DocsURL:    code.DocsURL(),
 						RequestID:  s.RequestID(),
 					})
@@ -127,7 +149,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 						writeErr = s.JSON(pageInfo.Status, ErrorResponse{
 							Meta: ErrorMeta{RequestID: s.RequestID()},
 							Error: ErrorDetail{
-								Code:    string(code.URN()),
+								Code:    string(urn),
 								Message: userMessage,
 							},
 						})
@@ -153,9 +175,10 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 			span.SetAttributes(
 				attribute.Int("status_code", statusCode),
 				attribute.String("code", string(urn)),
+				attribute.String("fault_domain", domain),
 			)
 
-			metrics.RequestsTotal.WithLabelValues(metrics.StatusClass(statusCode), string(urn)).Inc()
+			metrics.RequestsTotal.WithLabelValues(metrics.StatusClass(statusCode), domain, string(urn)).Inc()
 
 			return nil
 		}
@@ -297,10 +320,13 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Message: "Failed to select an instance to handle your request.",
 		}
 	case codes.Frontline.Internal.InvalidConfiguration.URN():
+		// The deployment's own policy config could not be parsed. That is the
+		// config author's problem, not a frontline fault — surface as 422, not
+		// 500, so it doesn't trigger server-error alerting.
 		return errorPageInfo{
-			Status:  http.StatusInternalServerError,
-			Title:   http.StatusText(http.StatusInternalServerError),
-			Message: "The deployment configuration is invalid. Please contact support at support@unkey.com.",
+			Status:  http.StatusUnprocessableEntity,
+			Title:   http.StatusText(http.StatusUnprocessableEntity),
+			Message: "The deployment configuration is invalid. Please check your config or contact support at support@unkey.com.",
 		}
 	case codes.Frontline.Internal.InternalServerError.URN():
 		return errorPageInfo{

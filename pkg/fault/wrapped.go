@@ -26,6 +26,11 @@ type wrapped struct {
 
 	code codes.URN
 
+	// category overrides the attribution category used for this error. When
+	// set, it takes precedence over the category encoded in the code's URN.
+	// Empty means the category is derived from the code (see GetCategory).
+	category codes.Category
+
 	// public contains a user-friendly description of the error that is
 	// safe to expose in API responses. It should provide actionable guidance for
 	// resolving the issue without exposing implementation details.
@@ -54,6 +59,7 @@ func New(message string, wraps ...Wrapper) error {
 	err = &wrapped{
 		err:      nil,
 		code:     "",
+		category: "",
 		location: getLocation(),
 		public:   "",
 		internal: message,

@@ -242,14 +242,16 @@ func processCategory(f *os.File, systemName, domainName, categoryName, domain st
 // generateMissingMDXFiles creates MDX documentation files for error codes that don't have them
 func generateMissingMDXFiles(errorCodes []ErrorCodeInfo) error {
 	// Get the base docs directory path (relative to this file)
-	baseDocsPath := filepath.Join("..", "..", "..", "docs", "product", "errors")
+	baseDocsPath := filepath.Join("..", "..", "docs", "product", "errors")
 
 	created := 0
 	skipped := 0
 
 	for _, errCode := range errorCodes {
-		// Skip sentinel and frontline errors (these are internal, not API errors)
-		if errCode.Domain == "Sentinel" || errCode.Domain == "Frontline" {
+		// Skip sentinel errors (internal, not surfaced to callers). Frontline
+		// errors ARE documented: frontline returns the URN to callers and the
+		// rendered error page links to its docs page.
+		if errCode.Domain == "Sentinel" {
 			skipped++
 			continue
 		}
@@ -308,13 +310,13 @@ description: "%s"
 
 // removeObsoleteMDXFiles deletes MDX files that don't have corresponding error codes
 func removeObsoleteMDXFiles(errorCodes []ErrorCodeInfo) error {
-	baseDocsPath := filepath.Join("..", "..", "..", "docs", "product", "errors")
+	baseDocsPath := filepath.Join("..", "..", "docs", "product", "errors")
 
 	// Build a set of valid file paths from error codes
 	validPaths := make(map[string]bool)
 	for _, errCode := range errorCodes {
-		// Skip sentinel and frontline errors
-		if errCode.Domain == "Sentinel" || errCode.Domain == "Frontline" {
+		// Skip sentinel errors (frontline errors are documented).
+		if errCode.Domain == "Sentinel" {
 			continue
 		}
 
@@ -440,10 +442,24 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 
 	unkeyCategories := make(map[string]*ErrorCategory)
 	userCategories := make(map[string]*ErrorCategory)
+	frontlineCategories := make(map[string]*ErrorCategory)
+
+	addCategory := func(m map[string]*ErrorCategory, category, errorPath string) {
+		if _, exists := m[category]; !exists {
+			titleName := strings.ReplaceAll(category, "_", " ")
+			caser := cases.Title(language.English)
+			m[category] = &ErrorCategory{
+				Name:  caser.String(titleName),
+				Path:  category,
+				Files: []string{},
+			}
+		}
+		m[category].Files = append(m[category].Files, errorPath)
+	}
 
 	for _, errCode := range errorCodes {
-		// Skip sentinel and frontline errors (these are internal, not API errors)
-		if errCode.Domain == "Sentinel" || errCode.Domain == "Frontline" {
+		// Skip sentinel errors (frontline errors are documented).
+		if errCode.Domain == "Sentinel" {
 			continue
 		}
 
@@ -452,39 +468,21 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 			continue
 		}
 
-		system := parts[1]   // "user" or "unkey"
-		category := parts[2] // "bad_request", "application", etc.
+		system := parts[1]   // "user", "unkey", "frontline"
+		category := parts[2] // "bad_request", "application", "upstream", etc.
 		errorName := parts[len(parts)-1]
 
 		// Build the path for this error
 		pathParts := parts[1 : len(parts)-1]
 		errorPath := "errors/" + strings.Join(append(pathParts, errorName), "/")
 
-		if system == "unkey" {
-			if _, exists := unkeyCategories[category]; !exists {
-				// Convert category name to title case
-				titleName := strings.ReplaceAll(category, "_", " ")
-				caser := cases.Title(language.English)
-				titleName = caser.String(titleName)
-				unkeyCategories[category] = &ErrorCategory{
-					Name:  titleName,
-					Path:  category,
-					Files: []string{},
-				}
-			}
-			unkeyCategories[category].Files = append(unkeyCategories[category].Files, errorPath)
-		} else if system == "user" {
-			if _, exists := userCategories[category]; !exists {
-				titleName := strings.ReplaceAll(category, "_", " ")
-				caser := cases.Title(language.English)
-				titleName = caser.String(titleName)
-				userCategories[category] = &ErrorCategory{
-					Name:  titleName,
-					Path:  category,
-					Files: []string{},
-				}
-			}
-			userCategories[category].Files = append(userCategories[category].Files, errorPath)
+		switch system {
+		case "unkey":
+			addCategory(unkeyCategories, category, errorPath)
+		case "user":
+			addCategory(userCategories, category, errorPath)
+		case "frontline":
+			addCategory(frontlineCategories, category, errorPath)
 		}
 	}
 
@@ -493,6 +491,9 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 		sort.Strings(cat.Files)
 	}
 	for _, cat := range userCategories {
+		sort.Strings(cat.Files)
+	}
+	for _, cat := range frontlineCategories {
 		sort.Strings(cat.Files)
 	}
 
@@ -559,6 +560,34 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 		"group": "User Errors",
 		"pages": userErrorsPages,
 	})
+
+	// Add Frontline Errors section
+	frontlineErrorsPages := []interface{}{}
+
+	frontlineCategoryKeys := make([]string, 0, len(frontlineCategories))
+	for k := range frontlineCategories {
+		frontlineCategoryKeys = append(frontlineCategoryKeys, k)
+	}
+	sort.Strings(frontlineCategoryKeys)
+
+	for _, catKey := range frontlineCategoryKeys {
+		cat := frontlineCategories[catKey]
+		catPages := make([]interface{}, len(cat.Files))
+		for i, file := range cat.Files {
+			catPages[i] = file
+		}
+		frontlineErrorsPages = append(frontlineErrorsPages, map[string]interface{}{
+			"group": cat.Name,
+			"pages": catPages,
+		})
+	}
+
+	if len(frontlineErrorsPages) > 0 {
+		errorPages = append(errorPages, map[string]interface{}{
+			"group": "Frontline Errors",
+			"pages": frontlineErrorsPages,
+		})
+	}
 
 	// Update the errors group
 	errorsGroup["pages"] = errorPages
