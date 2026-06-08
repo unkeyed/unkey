@@ -34,17 +34,17 @@ type stubKeyService struct {
 	calls   int
 }
 
-func (s *stubKeyService) Get(_ context.Context, _ *zen.Session, _ string) (*keys.KeyVerifier, func(), error) {
-	return nil, func() {}, errors.New("not implemented")
+func (s *stubKeyService) Get(_ context.Context, _ *zen.Session, _ string) (*keys.KeyVerifier, error) {
+	return nil, errors.New("not implemented")
 }
 
-func (s *stubKeyService) GetRootKey(_ context.Context, _ *zen.Session) (*keys.KeyVerifier, func(), error) {
+func (s *stubKeyService) GetRootKey(_ context.Context, _ *zen.Session) (*keys.KeyVerifier, error) {
 	s.calls++
-	return s.rootKey, func() {}, s.err
+	return s.rootKey, s.err
 }
 
-func (s *stubKeyService) GetMigrated(_ context.Context, _ *zen.Session, _, _ string) (*keys.KeyVerifier, func(), error) {
-	return nil, func() {}, errors.New("not implemented")
+func (s *stubKeyService) GetMigrated(_ context.Context, _ *zen.Session, _, _ string) (*keys.KeyVerifier, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (s *stubKeyService) CreateKey(_ context.Context, _ keys.CreateKeyRequest) (keys.CreateKeyResponse, error) {

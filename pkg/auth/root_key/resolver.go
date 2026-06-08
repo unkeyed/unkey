@@ -26,10 +26,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		return nil, nil
 	}
 
-	// Ignore GetRootKey's verification emit callback here. Auth middleware only
-	// establishes the caller principal; handlers emit action-specific audit events
-	// after authorization.
-	key, _, err := r.keys.GetRootKey(ctx, sess)
+	key, err := r.keys.GetRootKey(ctx, sess)
 	if err != nil {
 		return nil, err
 	}

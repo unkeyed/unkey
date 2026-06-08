@@ -95,7 +95,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Branch: req.Branch,
 		},
 		Trigger:     trigger,
-		TriggeredBy: auth.Key.ID,
+		TriggeredBy: principal.Subject.ID,
 	}
 
 	// Add optional keyspace ID for authentication

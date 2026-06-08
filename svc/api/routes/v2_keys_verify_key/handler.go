@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
 
+	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -29,9 +31,10 @@ const DefaultCost = 1
 
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
+	DB               db.Database
+	Keys             keys.KeyService
+	Auditlogs        auditlogs.AuditLogService
+	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 }
 
 // Method returns the HTTP method this route responds to
@@ -75,13 +78,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, emit, err := h.Keys.Get(ctx, s, hash.Sha256(req.Key))
+	key, err := h.Keys.Get(ctx, s, hash.Sha256(req.Key))
 	if err != nil {
 		return err
 	}
 
 	if key.Status == keys.StatusNotFound && req.MigrationId != nil {
-		key, emit, err = h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
+		key, err = h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
 		if err != nil {
 			return err
 		}
@@ -273,7 +276,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	emit()
+	h.KeyVerifications.Buffer(key.TelemetrySnapshot())
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

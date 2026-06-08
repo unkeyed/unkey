@@ -9,6 +9,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -24,25 +25,25 @@ import (
 // GetRootKey retrieves and validates a root key from the session's Authorization header.
 // Root keys are special administrative keys that can access workspace-level operations.
 // Validation failures are immediately converted to fault errors for root keys.
-func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifier, func(), error) {
+func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifier, error) {
 	ctx, span := tracing.Start(ctx, "keys.GetRootKey")
 	defer span.End()
 
 	rootKey, err := zen.Bearer(sess)
 	if err != nil {
-		return nil, emptyLog, fault.Wrap(err,
+		return nil, fault.Wrap(err,
 			fault.Internal("no bearer"),
 			fault.Public("You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'."),
 		)
 	}
 
-	key, log, err := s.Get(ctx, sess, hash.Sha256(rootKey))
+	key, err := s.Get(ctx, sess, hash.Sha256(rootKey))
 	if err != nil {
-		return nil, log, err
+		return nil, err
 	}
 
 	if key.Status != StatusValid {
-		return nil, log, fault.Wrap(
+		return nil, fault.Wrap(
 			key.ToFault(),
 			fault.Internal("invalid root key"),
 			fault.Public("The provided root key is invalid."),
@@ -54,7 +55,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	// gain access to root key operations using its own workspace as the target.
 	// We return the same error as a non-existent key to avoid leaking that the key exists.
 	if !key.Key.ForWorkspaceID.Valid {
-		return nil, log, fault.New("not a root key",
+		return nil, fault.New("not a root key",
 			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
 			fault.Internal("key does not have ForWorkspaceID set - not a root key"),
 			fault.Public("The provided root key is invalid."),
@@ -68,23 +69,36 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		slog.String("root_key_id", key.Key.ID),
 	))
 
-	return key, log, nil
+	return key, nil
 }
-
-var emptyLog = func() {}
 
 // Get retrieves a key from the database and performs basic validation checks.
 // It returns a KeyVerifier that can be used for further validation with specific options.
 // For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
-func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string) (*KeyVerifier, func(), error) {
+func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string) (kv *KeyVerifier, err error) {
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
 
+	defer func() {
+		if kv == nil {
+			return
+		}
+		keyType := "key"
+		if kv.isRootKey {
+			keyType = "root_key"
+		}
+
+		metrics.KeyVerificationsTotal.WithLabelValues(
+			keyType,
+			string(kv.Status),
+		).Inc()
+	}()
+
 	startTime := time.Now()
 
-	err := assert.NotEmpty(sha256Hash)
+	err = assert.NotEmpty(sha256Hash)
 	if err != nil {
-		return nil, emptyLog, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
+		return nil, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
 	}
 
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedKeyData, error) {
@@ -158,12 +172,15 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		if mysql.IsNotFound(err) {
 			// nolint:exhaustruct
 			return &KeyVerifier{
-				Status:  StatusNotFound,
-				message: "key does not exist",
-			}, emptyLog, nil
+				Status:    StatusNotFound,
+				message:   "key does not exist",
+				session:   sess,
+				region:    s.region,
+				startTime: startTime,
+			}, nil
 		}
 
-		return nil, emptyLog, fault.Wrap(
+		return nil, fault.Wrap(
 			err,
 			fault.Internal("unable to load key"),
 			fault.Public("We could not load the requested key."),
@@ -173,30 +190,35 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	if hit == cache.Null {
 		// nolint:exhaustruct
 		return &KeyVerifier{
-			Status:  StatusNotFound,
-			message: "key does not exist",
-		}, emptyLog, nil
+			Status:    StatusNotFound,
+			message:   "key does not exist",
+			session:   sess,
+			region:    s.region,
+			startTime: startTime,
+		}, nil
 	}
 
 	// ForWorkspace set but that doesn't exist
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
 		// nolint:exhaustruct
 		return &KeyVerifier{
-			Status:  StatusWorkspaceNotFound,
-			message: "workspace not found",
-		}, emptyLog, nil
+			Status:    StatusWorkspaceNotFound,
+			message:   "workspace not found",
+			session:   sess,
+			region:    s.region,
+			startTime: startTime,
+		}, nil
 	}
 
 	// Workspace is disabled or the key is not allowed to be used for workspace operations
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
 		// nolint:exhaustruct
-		kv := &KeyVerifier{
+		kv = &KeyVerifier{
 			Status:                StatusWorkspaceDisabled,
 			message:               "workspace is disabled",
 			session:               sess,
 			rBAC:                  s.rbac,
 			region:                s.region,
-			keyVerifications:      s.keyVerifications,
 			rateLimiter:           s.rateLimiter,
 			usageLimiter:          s.usageLimiter,
 			AuthorizedWorkspaceID: key.WorkspaceID,
@@ -206,13 +228,12 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			spentCredits:          0,
 		}
 
-		return kv, kv.log, nil
+		return kv, nil
 	}
 
-	kv := &KeyVerifier{
+	kv = &KeyVerifier{
 		tags:                  []string{},
 		Key:                   key.FindKeyForVerificationRow,
-		keyVerifications:      s.keyVerifications,
 		rateLimiter:           s.rateLimiter,
 		usageLimiter:          s.usageLimiter,
 		AuthorizedWorkspaceID: key.WorkspaceID,
@@ -235,23 +256,23 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 	if key.DeletedAtM.Valid {
 		kv.setInvalid(StatusNotFound, "key is deleted")
-		return kv, kv.log, nil
+		return kv, nil
 	}
 
 	if key.ApiDeletedAtM.Valid {
 		kv.setInvalid(StatusNotFound, "key is deleted")
-		return kv, kv.log, nil
+		return kv, nil
 	}
 
 	if !key.Enabled {
 		kv.setInvalid(StatusDisabled, "key is disabled")
-		return kv, kv.log, nil
+		return kv, nil
 	}
 
 	if key.Expires.Valid && startTime.After(key.Expires.Time) {
 		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
-		return kv, kv.log, nil
+		return kv, nil
 	}
 
-	return kv, kv.log, nil
+	return kv, nil
 }

@@ -240,7 +240,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
+	authBefore, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
 	require.NoError(t, err)
 
 	err = authBefore.Verify(ctx, keys.WithCredits(1))
@@ -264,7 +264,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	require.Equal(t, 200, res.Status)
 
 	// Verify the key again to check if cache was properly invalidated
-	authAfter, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
+	authAfter, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(key.Key))
 	require.NoError(t, err)
 
 	err = authAfter.Verify(ctx, keys.WithCredits(1))

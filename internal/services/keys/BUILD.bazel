@@ -24,7 +24,6 @@ go_library(
         "//internal/services/usagelimiter",
         "//pkg/assert",
         "//pkg/base58",
-        "//pkg/batch",
         "//pkg/cache",
         "//pkg/clickhouse/schema",
         "//pkg/codes",

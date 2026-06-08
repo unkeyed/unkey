@@ -44,6 +44,10 @@ type Services struct {
 	// RatelimitEvents buffers ratelimit events for ClickHouse.
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 
+	// KeyVerifications buffers key verification outcomes for ClickHouse. Owned
+	// by the v2 keys.verifyKey handler.
+	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
+
 	// Validator performs request payload validation using struct tags.
 	Validator *validation.Validator
 

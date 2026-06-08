@@ -15,7 +15,9 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/counter"
@@ -102,20 +104,20 @@ func newTestHarness(t *testing.T) *testHarness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		RateLimiter:      rateLimiter,
-		RBAC:             rbac.New(),
-		KeyVerifications: nil,
-		Region:           "test",
-		UsageLimiter:     usageLimiter,
-		KeyCache:         keyCache,
+		DB:           db.ToMySQL(database),
+		RateLimiter:  rateLimiter,
+		RBAC:         rbac.New(),
+		Region:       "test",
+		UsageLimiter: usageLimiter,
+		KeyCache:     keyCache,
 	})
 	require.NoError(t, err)
 
 	eng, err := policies.New(policies.Config{
-		KeyService:  keyService,
-		RateLimiter: rateLimiter,
-		Clock:       clk,
+		KeyService:       keyService,
+		RateLimiter:      rateLimiter,
+		Clock:            clk,
+		KeyVerifications: batch.NewNoop[schema.KeyVerification](),
 	})
 	require.NoError(t, err)
 

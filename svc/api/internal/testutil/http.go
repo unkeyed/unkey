@@ -255,13 +255,12 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		KeyCache:         caches.VerificationKeyByHash,
-		RateLimiter:      ratelimitService,
-		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
-		Region:           "test",
-		UsageLimiter:     ulSvc,
+		DB:           db.ToMySQL(database),
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  ratelimitService,
+		RBAC:         rbac.New(),
+		Region:       "test",
+		UsageLimiter: ulSvc,
 	})
 	require.NoError(t, err)
 	portalService := portal.New(portal.Config{

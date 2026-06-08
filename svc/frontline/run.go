@@ -481,13 +481,12 @@ func buildEngine(
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:               pkgdb.ToMySQL(database),
-		RateLimiter:      rlSvc,
-		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
-		Region:           region,
-		UsageLimiter:     usageLimiter,
-		KeyCache:         keyCache,
+		DB:           pkgdb.ToMySQL(database),
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Region:       region,
+		UsageLimiter: usageLimiter,
+		KeyCache:     keyCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)
@@ -495,9 +494,10 @@ func buildEngine(
 
 	logger.Info("policy engine initialized")
 	eng, err := policies.New(policies.Config{
-		KeyService:  keyService,
-		RateLimiter: rlSvc,
-		Clock:       clk,
+		KeyService:       keyService,
+		RateLimiter:      rlSvc,
+		Clock:            clk,
+		KeyVerifications: keyVerifications,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)

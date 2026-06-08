@@ -4,9 +4,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
-	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/rbac"
 )
@@ -19,19 +17,15 @@ type Config struct {
 	Region       string               // Geographic region identifier
 	UsageLimiter usagelimiter.Service // Redis Counter for usage limiting
 
-	// KeyVerifications buffers key verification events for ClickHouse.
-	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
-
 	KeyCache cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
 }
 
 type service struct {
-	db               *db.Database
-	rateLimiter      ratelimit.Service
-	usageLimiter     usagelimiter.Service
-	rbac             *rbac.RBAC
-	keyVerifications *batch.BatchProcessor[schema.KeyVerification]
-	region           string
+	db           *db.Database
+	rateLimiter  ratelimit.Service
+	usageLimiter usagelimiter.Service
+	rbac         *rbac.RBAC
+	region       string
 
 	// hash -> cached key data (includes pre-parsed IP whitelist)
 	keyCache cache.Cache[string, db.CachedKeyData]
@@ -39,19 +33,13 @@ type service struct {
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
-	kv := config.KeyVerifications
-	if kv == nil {
-		kv = batch.NewNoop[schema.KeyVerification]()
-	}
-
 	return &service{
-		db:               db.New(config.DB),
-		rbac:             config.RBAC,
-		rateLimiter:      config.RateLimiter,
-		usageLimiter:     config.UsageLimiter,
-		keyVerifications: kv,
-		region:           config.Region,
-		keyCache:         config.KeyCache,
+		db:           db.New(config.DB),
+		rbac:         config.RBAC,
+		rateLimiter:  config.RateLimiter,
+		usageLimiter: config.UsageLimiter,
+		region:       config.Region,
+		keyCache:     config.KeyCache,
 	}, nil
 }
 
