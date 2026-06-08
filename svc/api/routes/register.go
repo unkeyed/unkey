@@ -83,8 +83,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withErrorHandling := middleware.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
+	withAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
+		Auth:       svc.Auth,
+		Database:   svc.Database,
+		QuotaCache: svc.Caches.WorkspaceQuota,
+		Ratelimit:  svc.Ratelimit,
+	})
 
-	defaultMiddlewares := []zen.Middleware{
+	publicMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withObservability,
 		withMetrics,
@@ -94,7 +100,18 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		withValidation,
 	}
 
-	srv.RegisterRoute(defaultMiddlewares, &v2Liveness.Handler{})
+	protectedMiddlewares := []zen.Middleware{
+		withPanicRecovery,
+		withObservability,
+		withMetrics,
+		withLogging,
+		withErrorHandling,
+		withTimeout,
+		withValidation,
+		withAuthentication,
+	}
+
+	srv.RegisterRoute(publicMiddlewares, &v2Liveness.Handler{})
 
 	// ---------------------------------------------------------------------------
 	// pprof (internal profiling endpoints)
@@ -119,10 +136,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/ratelimit.limit
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2RatelimitLimit.Handler{
 			DB:              svc.Database,
-			Keys:            svc.Keys,
 			RatelimitEvents: svc.RatelimitEvents,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
@@ -133,10 +149,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/ratelimit.multiLimit
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2RatelimitMultiLimit.Handler{
 			DB:              svc.Database,
-			Keys:            svc.Keys,
 			RatelimitEvents: svc.RatelimitEvents,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
@@ -147,10 +162,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/ratelimit.setOverride
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2RatelimitSetOverride.Handler{
 			DB:             svc.Database,
-			Keys:           svc.Keys,
 			Auditlogs:      svc.Auditlogs,
 			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
@@ -158,20 +172,18 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/ratelimit.getOverride
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2RatelimitGetOverride.Handler{
 			DB:             svc.Database,
-			Keys:           svc.Keys,
 			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
 
 	// v2/ratelimit.deleteOverride
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2RatelimitDeleteOverride.Handler{
 			DB:             svc.Database,
-			Keys:           svc.Keys,
 			Auditlogs:      svc.Auditlogs,
 			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
@@ -179,11 +191,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/ratelimit.listOverrides
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2RatelimitListOverrides.Handler{
 
-			DB:   svc.Database,
-			Keys: svc.Keys,
+			DB: svc.Database,
 		},
 	)
 
@@ -192,53 +203,48 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/identities.createIdentity
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2IdentitiesCreateIdentity.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
 
 	// v2/identities.deleteIdentity
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2IdentitiesDeleteIdentity.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
 
 	// v2/identities.getIdentity
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2IdentitiesGetIdentity.Handler{
 
-			DB:   svc.Database,
-			Keys: svc.Keys,
+			DB: svc.Database,
 		},
 	)
 
 	// v2/identities.listIdentities
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2IdentitiesListIdentities.Handler{
 
-			DB:   svc.Database,
-			Keys: svc.Keys,
+			DB: svc.Database,
 		},
 	)
 
 	// v2/identities.updateIdentity
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2IdentitiesUpdateIdentity.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -248,32 +254,27 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/apis.createApi
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2ApisCreateApi.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
 	// v2/apis.getApi
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2ApisGetApi.Handler{
-
 			DB:     svc.Database,
-			Keys:   svc.Keys,
 			Caches: svc.Caches,
 		},
 	)
 
 	// v2/apis.listKeys
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2ApisListKeys.Handler{
-
 			DB:       svc.Database,
-			Keys:     svc.Keys,
 			Vault:    svc.Vault,
 			ApiCache: svc.Caches.LiveApiByID,
 		},
@@ -281,11 +282,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/apis.deleteApi
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2ApisDeleteApi.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Caches:    svc.Caches,
 		},
@@ -296,22 +296,19 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/deploy.createDeployment
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2DeployCreateDeployment.Handler{
-
 			DB:         svc.Database,
-			Keys:       svc.Keys,
 			CtrlClient: svc.CtrlDeploymentClient,
 		},
 	)
 
 	// v2/deploy.getDeployment
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2DeployGetDeployment.Handler{
 
-			DB:   svc.Database,
-			Keys: svc.Keys,
+			DB: svc.Database,
 		},
 	)
 
@@ -320,84 +317,76 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/permissions.createPermission
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PermissionsCreatePermission.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
 
 	// v2/permissions.getPermission
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PermissionsGetPermission.Handler{
 
-			DB:   svc.Database,
-			Keys: svc.Keys,
+			DB: svc.Database,
 		},
 	)
 
 	// v2/permissions.getRole
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PermissionsGetRole.Handler{
 
-			DB:   svc.Database,
-			Keys: svc.Keys,
+			DB: svc.Database,
 		},
 	)
 
 	// v2/permissions.listPermissions
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PermissionsListPermissions.Handler{
 
-			DB:   svc.Database,
-			Keys: svc.Keys,
+			DB: svc.Database,
 		},
 	)
 
 	// v2/permissions.deletePermission
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PermissionsDeletePermission.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
 
 	// v2/permissions.createRole
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PermissionsCreateRole.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
 
 	// v2/permissions.listRoles
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PermissionsListRoles.Handler{
 
-			DB:   svc.Database,
-			Keys: svc.Keys,
+			DB: svc.Database,
 		},
 	)
 
 	// v2/permissions.deleteRole
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PermissionsDeleteRole.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -407,29 +396,29 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.verifyKey
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysVerifyKey.Handler{
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
+			DB:               svc.Database,
+			Keys:             svc.Keys,
+			Auditlogs:        svc.Auditlogs,
+			KeyVerifications: svc.KeyVerifications,
 		},
 	)
 
 	// v2/keys.migrateKeys
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysMigrateKeys.Handler{
 
 			ApiCache:  svc.Caches.LiveApiByID,
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
-			Keys:      svc.Keys,
 		},
 	)
 
 	// v2/keys.createKey
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysCreateKey.Handler{
 
 			DB:        svc.Database,
@@ -441,7 +430,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.rerollKey
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysRerollKey.Handler{
 
 			DB:        svc.Database,
@@ -453,23 +442,20 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.deleteKey
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysDeleteKey.Handler{
 			KeyCache: svc.Caches.VerificationKeyByHash,
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
 
 	// v2/keys.updateKey
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysUpdateKey.Handler{
-
 			DB:           svc.Database,
-			Keys:         svc.Keys,
 			Auditlogs:    svc.Auditlogs,
 			KeyCache:     svc.Caches.VerificationKeyByHash,
 			UsageLimiter: svc.UsageLimiter,
@@ -478,11 +464,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.getKey
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysGetKey.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
 		},
@@ -490,11 +475,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.whoami
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysWhoami.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
 		},
@@ -502,11 +486,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.updateCredits
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysUpdateCredits.Handler{
-
 			DB:           svc.Database,
-			Keys:         svc.Keys,
 			Auditlogs:    svc.Auditlogs,
 			KeyCache:     svc.Caches.VerificationKeyByHash,
 			UsageLimiter: svc.UsageLimiter,
@@ -515,11 +497,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.setRoles
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysSetRoles.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -527,11 +508,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.setPermissions
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysSetPermissions.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -539,11 +519,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.addPermissions
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysAddPermissions.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -551,11 +530,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.addRoles
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysAddRoles.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -563,11 +541,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.removePermissions
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysRemovePermissions.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -575,11 +552,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/keys.removeRoles
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2KeysRemoveRoles.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -590,10 +566,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/analytics.getVerifications
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2AnalyticsGetVerifications.Handler{
 			DB:                         svc.Database,
-			Keys:                       svc.Keys,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 			Caches:                     svc.Caches,
 		},
@@ -604,10 +579,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/portal.createSession
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		protectedMiddlewares,
 		&v2PortalCreateSession.Handler{
 			DB:            svc.Database,
-			Keys:          svc.Keys,
 			Auditlogs:     svc.Auditlogs,
 			PortalBaseURL: svc.PortalBaseURL,
 		},
@@ -615,7 +589,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/portal.exchangeSession
 	srv.RegisterRoute(
-		defaultMiddlewares,
+		publicMiddlewares,
 		&v2PortalExchangeSession.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,

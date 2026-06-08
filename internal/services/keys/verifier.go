@@ -5,10 +5,8 @@ import (
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
-	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
-	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -52,10 +50,9 @@ type KeyVerifier struct {
 	spentCredits int64     // Credits spent during verification
 
 	// Services
-	rateLimiter      ratelimit.Service                             // Rate limiting service
-	usageLimiter     usagelimiter.Service                          // Usage limiting service
-	rBAC             *rbac.RBAC                                    // Role-based access control service
-	keyVerifications *batch.BatchProcessor[schema.KeyVerification] // Buffer for key verification telemetry
+	rateLimiter  ratelimit.Service    // Rate limiting service
+	usageLimiter usagelimiter.Service // Usage limiting service
+	rBAC         *rbac.RBAC           // Role-based access control service
 }
 
 // GetRatelimitConfigs returns the rate limit configurations
@@ -123,10 +120,13 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	return nil
 }
 
-func (k *KeyVerifier) log() {
-	latency := time.Since(k.startTime).Milliseconds()
-
-	k.keyVerifications.Buffer(schema.KeyVerification{
+// TelemetrySnapshot captures the final verification outcome for downstream
+// telemetry sinks (currently the key_verifications ClickHouse stream). Callers
+// should invoke this after Verify completes so that Verify-stage status
+// mutations (FORBIDDEN, INSUFFICIENT_PERMISSIONS, RATE_LIMITED, USAGE_EXCEEDED)
+// are reflected in the snapshot.
+func (k *KeyVerifier) TelemetrySnapshot() schema.KeyVerification {
+	return schema.KeyVerification{
 		RequestID:    k.session.RequestID(),
 		WorkspaceID:  k.Key.WorkspaceID,
 		Time:         time.Now().UnixMilli(),
@@ -138,17 +138,6 @@ func (k *KeyVerifier) log() {
 		Region:       k.region,
 		ExternalID:   k.Key.ExternalID.String,
 		SpentCredits: k.spentCredits,
-		Latency:      float64(latency),
-	})
-
-	keyType := "key"
-	if k.isRootKey {
-		keyType = "root_key"
+		Latency:      float64(time.Since(k.startTime).Milliseconds()),
 	}
-
-	// Emit Prometheus metrics for key verification
-	metrics.KeyVerificationsTotal.WithLabelValues(
-		keyType,
-		string(k.Status), // code
-	).Inc()
 }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -36,7 +35,6 @@ const (
 
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	ApiCache  cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
@@ -53,8 +51,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -64,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   req.ApiId,
@@ -75,12 +72,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.CreateKey,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}
 
-	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.ApiId}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: req.ApiId}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
@@ -109,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if api.WorkspaceID != principal.WorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"),
@@ -117,7 +114,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	migration, err := db.Query.FindKeyMigrationByID(ctx, h.DB.RO(), db.FindKeyMigrationByIDParams{ID: req.MigrationId, WorkspaceID: auth.AuthorizedWorkspaceID})
+	migration, err := db.Query.FindKeyMigrationByID(ctx, h.DB.RO(), db.FindKeyMigrationByIDParams{ID: req.MigrationId, WorkspaceID: principal.WorkspaceID})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(
@@ -178,7 +175,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Hash:               key.Hash,
 				KeySpaceID:         api.KeyAuth.ID,
 				Start:              "", // Unknown at this point
-				WorkspaceID:        auth.AuthorizedWorkspaceID,
+				WorkspaceID:        principal.WorkspaceID,
 				Name:               sql.NullString{Valid: name != "", String: name},
 				Meta:               sql.NullString{Valid: false, String: ""},
 				PendingMigrationID: sql.NullString{Valid: true, String: migration.ID},
@@ -288,7 +285,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if len(identitiesToFind) > 0 {
 			identities, err := db.Query.FindIdentitiesByExternalId(ctx, tx, db.FindIdentitiesByExternalIdParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				ExternalIds: identitiesToFind,
 				Deleted:     false,
 			})
@@ -307,7 +304,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if len(permissionsToFind) > 0 {
 			permissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				Slugs:       permissionsToFind,
 			})
 			if err != nil && !db.IsNotFound(err) {
@@ -325,7 +322,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if len(rolesToFind) > 0 {
 			roles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				Names:       rolesToFind,
 			})
 			if err != nil && !db.IsNotFound(err) {
@@ -351,7 +348,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			identitiesToInsert = append(identitiesToInsert, db.InsertIdentityParams{
 				ID:          id,
 				ExternalID:  externalId,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				Environment: "default",
 				CreatedAt:   now,
 				Meta:        []byte("{}"),
@@ -368,7 +365,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			id := uid.New(uid.PermissionPrefix)
 			permissionsToInsert = append(permissionsToInsert, db.InsertPermissionParams{
 				PermissionID: id,
-				WorkspaceID:  auth.AuthorizedWorkspaceID,
+				WorkspaceID:  principal.WorkspaceID,
 				Name:         slug,
 				Slug:         slug,
 				Description:  dbtype.NullString{Valid: false, String: ""},
@@ -386,7 +383,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			id := uid.New(uid.RolePrefix)
 			rolesToInsert = append(rolesToInsert, db.InsertRoleParams{
 				RoleID:      id,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				Name:        name,
 				Description: sql.NullString{Valid: false, String: ""},
 				CreatedAt:   now,
@@ -406,7 +403,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				for _, ratelimit := range *key.Ratelimits {
 					ratelimitsToInsert = append(ratelimitsToInsert, db.InsertKeyRatelimitParams{
 						ID:          uid.New(uid.RatelimitPrefix),
-						WorkspaceID: auth.AuthorizedWorkspaceID,
+						WorkspaceID: principal.WorkspaceID,
 						KeyID:       sql.NullString{String: keyParams.ID, Valid: true},
 						Name:        ratelimit.Name,
 						Limit:       uint64(ratelimit.Limit),
@@ -435,17 +432,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					keyPermissionsToInsert = append(keyPermissionsToInsert, db.InsertKeyPermissionParams{
 						KeyID:        keyParams.ID,
 						PermissionID: *permissionID,
-						WorkspaceID:  auth.AuthorizedWorkspaceID,
+						WorkspaceID:  principal.WorkspaceID,
 						CreatedAt:    now,
 						UpdatedAt:    sql.NullInt64{Valid: false, Int64: 0},
 					})
 
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID:   auth.AuthorizedWorkspaceID,
+						WorkspaceID:   principal.WorkspaceID,
 						Event:         auditlog.AuthConnectPermissionKeyEvent,
-						ActorType:     auditlog.RootKeyActor,
-						ActorID:       auth.Key.ID,
-						ActorName:     "root key",
+						ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+						ActorID:       principal.Subject.ID,
+						ActorName:     principal.Subject.Name,
 						ActorMeta:     map[string]any{},
 						Display:       fmt.Sprintf("Added permission %s to key %s", permission, keyParams.ID),
 						RemoteIP:      s.Location(),
@@ -481,16 +478,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					keyRolesToInsert = append(keyRolesToInsert, db.InsertKeyRoleParams{
 						KeyID:       keyParams.ID,
 						RoleID:      *roleID,
-						WorkspaceID: auth.AuthorizedWorkspaceID,
+						WorkspaceID: principal.WorkspaceID,
 						CreatedAtM:  now,
 					})
 
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID:   auth.AuthorizedWorkspaceID,
+						WorkspaceID:   principal.WorkspaceID,
 						Event:         auditlog.AuthConnectRoleKeyEvent,
-						ActorType:     auditlog.RootKeyActor,
-						ActorID:       auth.Key.ID,
-						ActorName:     "root key",
+						ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+						ActorID:       principal.Subject.ID,
+						ActorName:     principal.Subject.Name,
 						ActorMeta:     map[string]any{},
 						Display:       fmt.Sprintf("Connected role %s to key %s", role, keyParams.ID),
 						RemoteIP:      s.Location(),
@@ -517,11 +514,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.KeyCreateEvent,
-				ActorType:     auditlog.RootKeyActor,
-				ActorID:       auth.Key.ID,
-				ActorName:     "root key",
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
 				Display:       fmt.Sprintf("Created key %s in migration %s", keyParams.ID, migration.ID),
 				RemoteIP:      s.Location(),

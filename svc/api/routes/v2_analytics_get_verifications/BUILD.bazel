@@ -8,8 +8,8 @@ go_library(
     deps = [
         "//internal/services/analytics",
         "//internal/services/caches",
-        "//internal/services/keys",
         "//pkg/array",
+        "//pkg/auth/principal",
         "//pkg/cache",
         "//pkg/clickhouse",
         "//pkg/clickhouse/query-parser",
