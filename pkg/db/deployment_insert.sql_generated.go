@@ -39,10 +39,16 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     healthcheck,
     pr_number,
     fork_repository_full_name,
+    ` + "`" + `trigger` + "`" + `,
+    triggered_by,
+    trigger_reason,
     created_at,
     updated_at
 )
 VALUES (
+    ?,
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -99,6 +105,9 @@ type InsertDeploymentParams struct {
 	Healthcheck                   dbtype.NullHealthcheck      `db:"healthcheck"`
 	PrNumber                      sql.NullInt64               `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
+	DeploymentTrigger             DeploymentsTrigger          `db:"deployment_trigger"`
+	TriggeredBy                   sql.NullString              `db:"triggered_by"`
+	TriggerReason                 sql.NullString              `db:"trigger_reason"`
 	CreatedAt                     int64                       `db:"created_at"`
 	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
 }
@@ -131,10 +140,16 @@ type InsertDeploymentParams struct {
 //	    healthcheck,
 //	    pr_number,
 //	    fork_repository_full_name,
+//	    `trigger`,
+//	    triggered_by,
+//	    trigger_reason,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -190,6 +205,9 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.Healthcheck,
 		arg.PrNumber,
 		arg.ForkRepositoryFullName,
+		arg.DeploymentTrigger,
+		arg.TriggeredBy,
+		arg.TriggerReason,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

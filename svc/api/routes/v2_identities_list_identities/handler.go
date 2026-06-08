@@ -2,9 +2,6 @@ package handler
 
 import (
 	"context"
-	"net/http"
-
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -12,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	"net/http"
 )
 
 type (
@@ -21,8 +19,7 @@ type (
 
 // Handler implements zen.Route interface for the v2 identities list identities endpoint
 type Handler struct {
-	DB   db.Database
-	Keys keys.KeyService
+	DB db.Database
 }
 
 // Method returns the HTTP method this route responds to
@@ -37,8 +34,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -54,7 +50,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Query one extra record to check if there are more results
 	identities, err := db.Query.ListIdentities(ctx, h.DB.RO(), db.ListIdentitiesParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		Deleted:     false,
 		IDCursor:    cursor,
 		Limit:       int32(limit + 1), // nolint:gosec
@@ -90,7 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 		)
 
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(permissionCheck))
+		err = principal.Authorize(permissionCheck)
 		if err != nil {
 			return err
 		}

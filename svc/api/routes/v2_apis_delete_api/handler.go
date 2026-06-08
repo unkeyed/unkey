@@ -9,7 +9,6 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -28,7 +27,6 @@ type (
 // Handler implements zen.Route interface for the v2 APIs delete API endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	Caches    caches.Caches
 }
@@ -45,8 +43,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -55,7 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -66,7 +63,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   req.ApiId,
 			Action:       rbac.DeleteAPI,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}
@@ -86,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if api.WorkspaceID != principal.WorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
@@ -126,11 +123,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// Create audit log for API deletion
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: principal.WorkspaceID,
 			Event:       auditlog.APIDeleteEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.Key.ID,
-			ActorName:   "root key",
+			ActorType:   auditlog.AuditLogActor(principal.Subject.Type),
+			ActorID:     principal.Subject.ID,
+			ActorName:   principal.Subject.Name,
 			ActorMeta:   map[string]any{},
 			Display:     fmt.Sprintf("Deleted API %s", req.ApiId),
 			Resources: []auditlog.AuditLogResource{
@@ -156,7 +153,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Caches.LiveApiByID.SetNull(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.ApiId})
+	h.Caches.LiveApiByID.SetNull(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: req.ApiId})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

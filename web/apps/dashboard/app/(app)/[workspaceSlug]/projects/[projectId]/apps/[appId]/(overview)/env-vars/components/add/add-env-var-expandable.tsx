@@ -1,3 +1,4 @@
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { Switch } from "@/components/ui/switch";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { collection } from "@/lib/collections";
@@ -19,7 +20,6 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray } from "react-hook-form";
-import { useProjectData } from "../../../data-provider";
 import { useDropZone } from "../../hooks/use-drop-zone";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
@@ -27,21 +27,23 @@ import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 
 type AddEnvVarExpandableProps = {
+  appId: string;
   tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
 };
 
 export const AddEnvVarExpandable = ({
+  appId,
   tableDistanceToTop,
   isOpen,
   onClose,
 }: AddEnvVarExpandableProps) => {
-  const { projectId, environments } = useProjectData();
+  const { environments } = useProjectData();
 
   const { data: existingEnvVars } = useLiveQuery(
-    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.projectId, projectId)),
-    [projectId],
+    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.appId, appId)),
+    [appId],
   );
 
   const {
@@ -59,7 +61,7 @@ export const AddEnvVarExpandable = ({
     saveCurrentValues,
     loadSavedValues,
   } = usePersistedForm<EnvVarsFormValues>(
-    `env-vars-add-${projectId}`,
+    `env-vars-add-${appId}`,
     {
       resolver: zodResolver(envVarsSchema),
       mode: "onChange",
@@ -216,7 +218,7 @@ export const AddEnvVarExpandable = ({
             Add Environment Variable
           </span>
           <span className="text-gray-11 text-[13px] leading-5">
-            Set a key-value pair for your project.
+            Set a key-value pair for your app.
           </span>
         </div>
         <SlidePanel.Close

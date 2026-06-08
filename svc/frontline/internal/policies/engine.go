@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	rl "github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -28,9 +30,10 @@ const PrincipalHeader = "X-Unkey-Principal"
 
 // Config holds the configuration for creating a new Engine.
 type Config struct {
-	KeyService  keys.KeyService
-	RateLimiter rl.Service
-	Clock       clock.Clock
+	KeyService       keys.KeyService
+	RateLimiter      rl.Service
+	Clock            clock.Clock
+	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 }
 
 // Evaluator evaluates policies against incoming requests.
@@ -60,6 +63,7 @@ func New(cfg Config) (*Engine, error) {
 		assert.NotNil(cfg.KeyService, "cfg.KeyService must not be nil"),
 		assert.NotNil(cfg.RateLimiter, "cfg.RateLimiter must not be nil"),
 		assert.NotNil(cfg.Clock, "cfg.Clock must not be nil"),
+		assert.NotNil(cfg.KeyVerifications, "cfg.KeyVerifications must not be nil"),
 	); err != nil {
 		return nil, err
 	}
@@ -69,7 +73,7 @@ func New(cfg Config) (*Engine, error) {
 	}
 
 	return &Engine{
-		keyAuth:     keyauthExec.New(cfg.KeyService, cfg.Clock),
+		keyAuth:     keyauthExec.New(cfg.KeyService, cfg.Clock, cfg.KeyVerifications),
 		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
 		firewall:    firewallExec.New(),
 		openapi:     openapi,

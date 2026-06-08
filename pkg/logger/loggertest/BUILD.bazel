@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "loggertest",
+    srcs = ["capture.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/logger/loggertest",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/logger",
+        "@com_github_stretchr_testify//require",
+    ],
+)

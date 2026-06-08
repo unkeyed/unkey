@@ -21,7 +21,7 @@ import {
 import { EnvVarSelectionBar } from "./env-var-selection-bar";
 
 type EnvVarsListProps = {
-  projectId: string;
+  appId: string;
   environments: Environment[];
   searchQuery: string;
   environmentFilter: EnvironmentFilter;
@@ -29,7 +29,7 @@ type EnvVarsListProps = {
 };
 
 export function EnvVarsList({
-  projectId,
+  appId,
   environments,
   searchQuery,
   environmentFilter,
@@ -57,8 +57,8 @@ export function EnvVarsList({
   }, []);
 
   const { data: envVarData, isLoading } = useLiveQuery(
-    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.projectId, projectId)),
-    [projectId],
+    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.appId, appId)),
+    [appId],
   );
 
   const displayRows = useMemo((): DisplayRow[] => {

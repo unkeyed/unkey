@@ -20,11 +20,10 @@ func TestGetRootKey_ErrorHandling_ReturnsError(t *testing.T) {
 	// This test validates that GetRootKey properly handles errors from Get()
 	// Before the fix, GetRootKey would panic when trying to access key.Key.ForWorkspaceID.Valid
 	// after Get() returned an error with nil key. Now it should return the error safely.
-	key, log, err := s.GetRootKey(ctx, nil)
+	key, err := s.GetRootKey(ctx, nil)
 
 	require.Error(t, err)
 	require.Nil(t, key)
-	require.NotNil(t, log)
 
 	// Verify specific error code for missing auth when session is nil
 	code, ok := fault.GetCode(err)
@@ -41,12 +40,11 @@ func TestGetRootKey_WithEmptyRawKey_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 
 	// Call Get with empty raw key to test the assert.NotEmpty validation
-	key, log, err := s.Get(ctx, nil, "")
+	key, err := s.Get(ctx, nil, "")
 
 	// Verify that we get an error for empty key
 	require.Error(t, err)
 	require.Nil(t, key)
-	require.NotNil(t, log)
 	require.Contains(t, err.Error(), "sha256Hash is empty")
 }
 
@@ -57,11 +55,10 @@ func TestGet_WithEmptyRawKey_ReturnsError(t *testing.T) {
 	s := &service{}
 	ctx := context.Background()
 
-	key, log, err := s.Get(ctx, nil, "")
+	key, err := s.Get(ctx, nil, "")
 
 	require.Error(t, err)
 	require.Nil(t, key)
-	require.NotNil(t, log)
 	require.Contains(t, err.Error(), "sha256Hash is empty")
 }
 
@@ -78,11 +75,10 @@ func TestGet_EmptyString_Variants(t *testing.T) {
 	}
 
 	for _, empty := range emptyVariants {
-		key, log, err := s.Get(ctx, nil, empty)
+		key, err := s.Get(ctx, nil, empty)
 
 		require.Error(t, err)
 		require.Nil(t, key)
-		require.NotNil(t, log)
 		require.Contains(t, err.Error(), "sha256Hash is empty")
 	}
 }

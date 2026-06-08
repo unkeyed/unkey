@@ -2,9 +2,6 @@ package handler
 
 import (
 	"context"
-	"net/http"
-
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -13,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	"net/http"
 )
 
 type (
@@ -22,8 +20,7 @@ type (
 
 // Handler implements zen.Route interface for the v2 permissions list roles endpoint
 type Handler struct {
-	DB   db.Database
-	Keys keys.KeyService
+	DB db.Database
 }
 
 // Method returns the HTTP method this route responds to
@@ -41,8 +38,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listRoles")
 
 	// 1. Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -55,13 +51,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	cursor := ptr.SafeDeref(req.Cursor, "")
 	limit := ptr.SafeDeref(req.Limit, 100)
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
 			Action:       rbac.ReadRole,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}
@@ -70,7 +66,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctx,
 		h.DB.RO(),
 		db.ListRolesParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: principal.WorkspaceID,
 			IDCursor:    cursor,
 			//nolint:gosec
 			Limit: int32(limit) + 1,

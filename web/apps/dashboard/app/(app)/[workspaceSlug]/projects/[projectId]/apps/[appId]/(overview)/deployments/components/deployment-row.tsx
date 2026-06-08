@@ -1,15 +1,16 @@
 "use client";
 
+import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
+import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
 import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { CodeBranch, CodeCommit } from "@unkey/icons";
+import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
-import { LastExitBadge } from "../../../components/active-deployment-card";
-import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
-import { Avatar } from "../../../components/git-avatar";
+import { DeploymentTriggerBadge } from "../../../../../components/deployment-trigger-badge";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";
 import { EnvStatusBadge } from "./table/components/env-status-badge";
@@ -89,7 +90,18 @@ export function DeploymentRow({
             link swallows hover/focus events and the exit-reason tooltip
             never opens. */}
         <div className="relative z-20 md:w-[20%] md:shrink-0 flex flex-col gap-1 items-start">
-          <DeploymentStatusBadge status={deployment.status} />
+          <div className="flex items-center gap-2">
+            {/* Trigger sits before status: "this came from GitHub → it
+                failed" reads more naturally than the reverse, and the
+                small icon stays out of the way of the louder status pill. */}
+            <DeploymentTriggerBadge
+              trigger={deployment.trigger}
+              triggeredBy={deployment.triggeredBy}
+              triggerReason={deployment.triggerReason}
+              iconOnly
+            />
+            <DeploymentStatusBadge status={deployment.status} />
+          </div>
           <DeploymentDuration
             status={deployment.status}
             createdAt={deployment.createdAt}
@@ -131,7 +143,21 @@ export function DeploymentRow({
               {deployment.gitCommitSha.slice(0, 7)}
             </span>
           </div>
-        ) : null}
+        ) : deployment.image ? (
+          // Prebuilt-image deployments have no git metadata; show the image
+          // reference as the source instead.
+          <div className="flex items-center gap-2 min-w-0">
+            <Layers2 iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span
+              className="font-mono text-xs text-accent-12 truncate leading-4"
+              title={deployment.image}
+            >
+              {deployment.image}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-9 leading-4">No source info</span>
+        )}
         {deployment.gitCommitMessage ? (
           <div className="flex items-center gap-2 min-w-0">
             <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />

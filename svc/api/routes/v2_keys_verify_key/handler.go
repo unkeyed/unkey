@@ -10,6 +10,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
 
+	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -29,9 +31,10 @@ const DefaultCost = 1
 
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
+	DB               db.Database
+	Keys             keys.KeyService
+	Auditlogs        auditlogs.AuditLogService
+	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 }
 
 // Method returns the HTTP method this route responds to
@@ -46,17 +49,16 @@ func (h *Handler) Path() string {
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Authentication
-	auth, rootEmit, err := h.Keys.GetRootKey(ctx, s)
-	defer rootEmit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
-	// Check if the root key has ANY verify permissions at all.
+	// Check if the principal has ANY verify permissions at all.
 	// If not, return a proper permissions error immediately without looking up the key.
-	// This prevents returning NOT_FOUND for every request when the root key simply lacks verify permissions entirely.
-	if !auth.HasAnyPermission(rbac.Api, rbac.VerifyKey) {
-		return auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	// This prevents returning NOT_FOUND for every request when the principal lacks any verify permission.
+	if !rbac.HasAnyPermission(principal.Permissions, rbac.Api, rbac.VerifyKey) {
+		return principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -67,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   "<API_ID>",
 				Action:       rbac.VerifyKey,
 			}),
-		)))
+		))
 	}
 
 	// Request validation
@@ -76,20 +78,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, emit, err := h.Keys.Get(ctx, s, hash.Sha256(req.Key))
+	key, err := h.Keys.Get(ctx, s, hash.Sha256(req.Key))
 	if err != nil {
 		return err
 	}
 
 	if key.Status == keys.StatusNotFound && req.MigrationId != nil {
-		key, emit, err = h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
+		key, err = h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
 		if err != nil {
 			return err
 		}
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.Key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.Key.WorkspaceID != principal.WorkspaceID {
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
@@ -116,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -127,10 +129,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Key.ApiID,
 			Action:       rbac.VerifyKey,
 		}),
-	)))
+	))
 	if err != nil {
-		// We are just respond with a 200 OK with a not found since the user doesn't have permission to verify the key
-		// this would otherwise leak the keys existence otherwise
+		// Return 200 OK with NOT_FOUND because returning a permission error here
+		// would leak that the key exists.
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
@@ -274,7 +276,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	emit()
+	h.KeyVerifications.Buffer(key.TelemetrySnapshot())
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

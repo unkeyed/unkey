@@ -20,7 +20,6 @@ func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Keys:           h.Keys,
 		Ratelimit:      h.Ratelimit,
 		DB:             h.DB,
 		NamespaceCache: h.Caches.RatelimitNamespace,
@@ -129,7 +128,6 @@ func TestMissingAuthorizationHeader(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Keys:           h.Keys,
 		Ratelimit:      h.Ratelimit,
 		DB:             h.DB,
 		NamespaceCache: h.Caches.RatelimitNamespace,

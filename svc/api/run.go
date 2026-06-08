@@ -19,11 +19,16 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
+	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
+	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
+	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -293,18 +298,42 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		KeyCache:         caches.VerificationKeyByHash,
-		QuotaCache:       caches.WorkspaceQuota,
-		RateLimiter:      rlSvc,
-		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
-		Region:           cfg.Region,
-		UsageLimiter:     ulSvc,
+		DB:           db.ToMySQL(database),
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  rlSvc,
+		RBAC:         rbac.New(),
+		Region:       cfg.Region,
+		UsageLimiter: ulSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
+	portalSvc := portal.New(portal.Config{
+		DB:           database,
+		SessionCache: caches.PortalSession,
+	})
+
+	authResolvers := []auth.Resolver{}
+	if len(cfg.JWTSecrets) > 0 {
+		jwtSecrets := make([][]byte, 0, len(cfg.JWTSecrets))
+		for i, secret := range cfg.JWTSecrets {
+			if secret == "" {
+				return fmt.Errorf("jwt_secrets[%d] must not be empty", i)
+			}
+			jwtSecrets = append(jwtSecrets, []byte(secret))
+		}
+
+		jwtResolver, jwtErr := authjwt.NewResolver(jwtSecrets...)
+		if jwtErr != nil {
+			return fmt.Errorf("unable to create JWT auth resolver: %w", jwtErr)
+		}
+		authResolvers = append(authResolvers, jwtResolver)
+	}
+	authResolvers = append(authResolvers,
+		portalsession.NewResolver(portalSvc),
+		rootkey.NewResolver(keySvc),
+	)
+	authSvc := auth.New(authResolvers...)
 
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)
@@ -349,7 +378,9 @@ func Run(ctx context.Context, cfg Config) error {
 		ClickHouse:           ch,
 		ApiRequests:          apiRequests,
 		RatelimitEvents:      ratelimits,
+		KeyVerifications:     keyVerifications,
 		Keys:                 keySvc,
+		Auth:                 authSvc,
 		Validator:            validator,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,

@@ -674,6 +674,13 @@ func (w *Workflow) configureRouting(
 		}
 	}
 
+	// CLI deploys reuse the same git SHA across iterative `unkey deploy`
+	// runs, so the per-commit domain needs a random suffix to avoid
+	// successive deploys overwriting each other. Webhook/dashboard/api
+	// deploys always advance the SHA so they don't need it. The trigger
+	// column on the deployment row is the authoritative signal.
+	uniquifyCommitDomain := deployment.Trigger == db.DeploymentsTriggerCli
+
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
@@ -683,8 +690,7 @@ func (w *Workflow) configureRouting(
 		deployment.GitBranch.String,
 		forkOwner,
 		w.defaultDomain,
-		// TODO: source type is hardcoded to CLI_UPLOAD regardless of actual source type
-		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
+		uniquifyCommitDomain,
 		deployment.ID,
 	)
 
