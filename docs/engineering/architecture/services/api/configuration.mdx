@@ -75,11 +75,37 @@ token = "${UNKEY_VAULT_TOKEN}"
   Maximum request size in bytes.
 </ResponseField>
 
-<ResponseField name="jwt_secrets" type="string[]">
-  Ordered JWT verification secrets for short-lived API bearer authentication.
-  Leave unset to disable JWT authentication. During rotation, put the active
-  signing secret first and keep retired secrets later in the list until every
-  token signed with those secrets has expired.
+<ResponseField name="auth" type="object[]">
+  Ordered authentication resolver configuration. Each entry registers one auth
+  mechanism.
+  <Expandable title="Fields">
+    <ResponseField name="auth.type" type="string" required>
+      Auth mechanism. Supported values are `jwt`, `portal_session`, and
+      `root_key`.
+    </ResponseField>
+    <ResponseField name="auth.issuer" type="string">
+      Expected JWT `iss` claim for `type = "jwt"`.
+    </ResponseField>
+    <ResponseField name="auth.audience" type="string">
+      Optional expected JWT `aud` claim for `type = "jwt"`. Omit this field
+      for providers that do not emit an audience claim.
+    </ResponseField>
+    <ResponseField name="auth.enabled" type="bool" default="true">
+      Optional explicit enable flag. `false` is invalid; remove the auth entry
+      instead.
+    </ResponseField>
+    <ResponseField name="auth.secrets" type="string[]">
+      Ordered JWT verification secrets for `type = "jwt"`. During
+      rotation, put the active signing secret first and keep retired secrets
+      later in the list until every token signed with those secrets has expired.
+      Configure either `secrets` or `jwks_url`, never both.
+    </ResponseField>
+    <ResponseField name="auth.jwks_url" type="string">
+      JWKS endpoint for `type = "jwt"`. The API fetches the JSON Web Key
+      Set at startup and verifies incoming JWTs against usable RSA signing keys
+      from the response. Configure either `jwks_url` or `secrets`, never both.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 <ResponseField name="database" type="object" required>
@@ -230,17 +256,25 @@ The Helm chart provides these variables for the default config template:
 
 ## Dashboard proxy configuration
 
-The dashboard proxy needs a signing secret and an API base URL. The API must
-include the same signing secret in `jwt_secrets` before it accepts dashboard
-proxy requests.
+The dashboard proxy forwards the WorkOS access token when a WorkOS session is
+available. The API verifies that token through a `type = "jwt"` auth entry
+configured with the WorkOS issuer and JWKS URL. WorkOS access tokens include the
+organization as `org_id`, and the API reads Unkey RBAC permissions from the
+token's `permissions` claim.
+
+Local development still uses a dashboard-minted fallback JWT when no WorkOS
+access token exists. For that path, the dashboard needs a signing secret and the
+API must include the same secret in a `type = "jwt"` auth entry. The local
+fallback JWT includes the dashboard proxy permission set directly, so every
+local dashboard user is effectively an API admin.
 
 <ResponseField name="UNKEY_API_URL" type="env" default="https://api.unkey.com">
   API base URL that dashboard proxy requests are forwarded to.
 </ResponseField>
 
 <ResponseField name="UNKEY_JWT_SECRET" type="env">
-  Dashboard proxy signing secret. Add the same value to the API
-  `jwt_secrets` list so the API can verify dashboard-minted JWTs.
+  Local dashboard proxy signing secret. Add the same value to the API JWT auth
+  entry's `secrets` list so the API can verify dashboard-minted fallback JWTs.
 </ResponseField>
 
 ## Example configuration
@@ -251,7 +285,18 @@ platform = "aws"
 http_port = 7070
 region = "${UNKEY_REGION}"
 redis_url = "${UNKEY_REDIS_URL}"
-jwt_secrets = ["${UNKEY_JWT_SECRET}"]
+
+[[auth]]
+type = "jwt"
+issuer = "https://api.workos.com"
+jwks_url = "${UNKEY_JWT_JWKS_URL}"
+
+[[auth]]
+type = "portal_session"
+
+[[auth]]
+type = "root_key"
+enabled = true
 
 [observability.tracing]
 sample_rate = 0.1

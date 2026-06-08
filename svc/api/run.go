@@ -312,27 +312,52 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:           database,
 		SessionCache: caches.PortalSession,
 	})
+	jwtWorkspaceLookup := authjwt.WorkspaceLookupFunc(func(ctx context.Context, orgID string) (string, error) {
+		workspace, lookupErr := db.WithRetryContext(ctx, func() (db.Workspace, error) {
+			return db.Query.FindWorkspaceByOrgID(ctx, database.RO(), orgID)
+		})
+		if lookupErr != nil {
+			return "", lookupErr
+		}
+		return workspace.ID, nil
+	})
 
 	authResolvers := []auth.Resolver{}
-	if len(cfg.JWTSecrets) > 0 {
-		jwtSecrets := make([][]byte, 0, len(cfg.JWTSecrets))
-		for i, secret := range cfg.JWTSecrets {
-			if secret == "" {
-				return fmt.Errorf("jwt_secrets[%d] must not be empty", i)
+	for i, authConfig := range cfg.Auth {
+		switch authConfig := authConfig.(type) {
+		case JWTAuthConfig:
+			jwtSecrets := make([][]byte, 0, len(authConfig.Secrets))
+			for j, secret := range authConfig.Secrets {
+				if secret == "" {
+					return fmt.Errorf("auth[%d].secrets[%d] must not be empty", i, j)
+				}
+				jwtSecrets = append(jwtSecrets, []byte(secret))
 			}
-			jwtSecrets = append(jwtSecrets, []byte(secret))
+			if len(jwtSecrets) > 0 {
+				jwtResolver, jwtErr := authjwt.NewResolver(jwtWorkspaceLookup, authConfig.Issuer, authConfig.Audience, jwtSecrets...)
+				if jwtErr != nil {
+					return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
+				}
+				authResolvers = append(authResolvers, jwtResolver)
+				continue
+			}
+			if authConfig.JWKSURL != "" {
+				jwtResolver, jwtErr := authjwt.NewResolverWithJWKSURL(ctx, jwtWorkspaceLookup, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL)
+				if jwtErr != nil {
+					return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
+				}
+				authResolvers = append(authResolvers, jwtResolver)
+				continue
+			}
+			return fmt.Errorf("auth[%d] jwt requires exactly one of secrets or jwks_url", i)
+		case PortalSessionAuthConfig:
+			authResolvers = append(authResolvers, portalsession.NewResolver(portalSvc))
+		case RootKeyAuthConfig:
+			authResolvers = append(authResolvers, rootkey.NewResolver(keySvc))
+		default:
+			return fmt.Errorf("unsupported auth config at auth[%d]", i)
 		}
-
-		jwtResolver, jwtErr := authjwt.NewResolver(jwtSecrets...)
-		if jwtErr != nil {
-			return fmt.Errorf("unable to create JWT auth resolver: %w", jwtErr)
-		}
-		authResolvers = append(authResolvers, jwtResolver)
 	}
-	authResolvers = append(authResolvers,
-		portalsession.NewResolver(portalSvc),
-		rootkey.NewResolver(keySvc),
-	)
 	authSvc := auth.New(authResolvers...)
 
 	r.Defer(keySvc.Close)
