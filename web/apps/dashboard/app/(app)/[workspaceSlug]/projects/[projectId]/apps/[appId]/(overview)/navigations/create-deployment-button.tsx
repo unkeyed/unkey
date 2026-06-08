@@ -6,7 +6,7 @@ import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
 import {
   Button,
@@ -107,16 +107,19 @@ export const CreateDeploymentButton = ({
 
   // Repo connections are per-app, not per-project; the project-level
   // repositoryFullName is just some app's connection in this project.
-  const appsQuery = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
+  const appQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
   );
-  const app = (appsQuery.data ?? []).find((a) => a.id === appId);
+  const app = appQuery.data?.[0];
 
   const repositoryFullName = app?.repositoryFullName ?? null;
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
   const defaultBranch = app?.defaultBranch ?? "main";
-  const isCliApp = !appsQuery.isLoading && app != null && !repositoryFullName;
+  const isCliApp = !appQuery.isLoading && app != null && !repositoryFullName;
 
   const installations = trpc.github.getInstallations.useQuery(
     { projectId, appId },

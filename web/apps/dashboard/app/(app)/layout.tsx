@@ -2,13 +2,10 @@
 
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
-import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
-import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import { LoadingState } from "@/components/loading-state";
-import { useFlag } from "@/lib/flags/provider";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
@@ -67,10 +64,10 @@ function ImpersonationBanner() {
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, workspace, quotas, isLoading, error } = useWorkspace();
-  const newNavigation = useFlag("newNavigation");
+  const { user, workspace, isLoading, error } = useWorkspace();
   // The app onboarding flow is a focused full-screen experience without the sidebar.
   const isAppOnboarding = /\/projects\/[^/]+\/apps\/new$/.test(pathname);
+
   useEffect(() => {
     // Don't navigate while loading
     if (isLoading) {
@@ -111,61 +108,26 @@ export default function Layout({ children }: LayoutProps) {
     );
   }
 
-  // Combine workspace with quotas for AppSidebar
-  const workspaceWithQuotas = {
-    ...workspace,
-    quotas,
-  };
-
   const isImpersonator = user?.impersonator;
 
-  if (newNavigation) {
-    return (
-      <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
-        <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
-          <TopNav />
-          <MobileNavDrawer />
-          <div className="flex flex-1 overflow-hidden">
-            {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
-            <div className="flex-1 overflow-auto">
-              <div
-                className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
-                id="layout-wrapper"
-              >
-                <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
-              </div>
-              {isImpersonator ? <ImpersonationBanner /> : null}
-            </div>
-          </div>
-        </div>
-      </SidebarProvider>
-    );
-  }
-
   return (
-    <div className="h-dvh relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
-      <SidebarProvider>
+    <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
+      <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
+        <TopNav />
+        <MobileNavDrawer />
         <div className="flex flex-1 overflow-hidden">
-          {/* Desktop Sidebar */}
-          {!isAppOnboarding && (
-            <AppSidebar workspace={workspaceWithQuotas} className="bg-gray-1 border-grayA-4" />
-          )}
-
-          {/* Main content area */}
+          {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
           <div className="flex-1 overflow-auto">
             <div
               className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
               id="layout-wrapper"
             >
-              {/* Mobile sidebar at the top of content */}
-              <SidebarMobile />
-
               <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
             </div>
             {isImpersonator ? <ImpersonationBanner /> : null}
           </div>
         </div>
-      </SidebarProvider>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }

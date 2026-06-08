@@ -21,7 +21,7 @@ import {
 import { EnvVarSelectionBar } from "./env-var-selection-bar";
 
 type EnvVarsListProps = {
-  projectId: string;
+  appId: string;
   environments: Environment[];
   searchQuery: string;
   environmentFilter: EnvironmentFilter;
@@ -29,7 +29,7 @@ type EnvVarsListProps = {
 };
 
 export function EnvVarsList({
-  projectId,
+  appId,
   environments,
   searchQuery,
   environmentFilter,
@@ -57,13 +57,9 @@ export function EnvVarsList({
   }, []);
 
   const { data: envVarData, isLoading } = useLiveQuery(
-    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.projectId, projectId)),
-    [projectId],
+    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.appId, appId)),
+    [appId],
   );
-
-  // envVars carry only environmentId (no appId). Scope to this app's
-  // environments so other apps' variables never show or get edited here.
-  const appEnvIds = useMemo(() => new Set(environments.map((e) => e.id)), [environments]);
 
   const displayRows = useMemo((): DisplayRow[] => {
     if (!envVarData) {
@@ -74,9 +70,6 @@ export function EnvVarsList({
 
     const filtered: EnvVarItem[] = [];
     for (const v of envVarData) {
-      if (!appEnvIds.has(v.environmentId)) {
-        continue;
-      }
       if (query && !v.key.toLowerCase().includes(query)) {
         continue;
       }
@@ -109,7 +102,7 @@ export function EnvVarsList({
     }
 
     return rows;
-  }, [envVarData, environments, appEnvIds, deferredQuery, environmentFilter, sortBy]);
+  }, [envVarData, environments, deferredQuery, environmentFilter, sortBy]);
 
   const {
     selectedIds,
