@@ -1,16 +1,16 @@
+import { Err, Ok, type Result } from "@unkey/error";
 import { z } from "zod";
+import type { QueryError } from "./client/error";
 import type { Querier } from "./client/interface";
 
 const TABLE = "default.runtime_logs_raw_v1";
 
 const MAX_PAGE_SIZE = 1_000;
 
-// The table is PARTITION BY toDate(inserted_at) (for clean TTL drops), so
-// pruning partitions requires constraining inserted_at, not just `time`.
-// This grace window covers ingestion lag between event time and arrival.
+// Table is PARTITION BY toDate(inserted_at); grace covers ingestion lag so
+// partition pruning still hits the right partitions for events near the edge.
 const INGESTION_LAG_GRACE_MS = 2 * 60 * 60 * 1000;
 
-// Fail fast on the server instead of hanging until the HTTP client timeout.
 const MAX_EXECUTION_TIME_SECONDS = 20;
 
 export const runtimeLogsRequestSchema = z.object({
@@ -31,7 +31,6 @@ export const runtimeLogsRequestSchema = z.object({
 
 export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
 
-// Public shape + the n+1 limit bump for hasMore + derived inserted_at bounds.
 const runtimeLogsQueryParamsSchema = runtimeLogsRequestSchema.extend({
   limit: z
     .int()
@@ -53,6 +52,19 @@ export const runtimeLog = z.object({
 
 export type RuntimeLog = z.infer<typeof runtimeLog>;
 
+// Read attributes_text (plain String) instead of the dynamic `attributes`
+// JSON column: JSON fans out into ~1k subcolumn files per part, so on CH
+// Cloud cold queries pay ~1k S3 GetObjects for the marks alone.
+const runtimeLogRow = z.object({
+  time: z.int(),
+  severity: z.string(),
+  message: z.string(),
+  deployment_id: z.string(),
+  region: z.string(),
+  k8s_pod_name: z.string(),
+  attributes_text: z.string().nullable(),
+});
+
 export function getRuntimeLogs(ch: Querier) {
   return async (args: RuntimeLogsRequest) => {
     const wheres: string[] = [
@@ -60,7 +72,6 @@ export function getRuntimeLogs(ch: Querier) {
       "project_id = {projectId: String}",
       "app_id = {appId: String}",
       "time BETWEEN {startTime: Int64} AND {endTime: Int64}",
-      // Prunes partitions; see INGESTION_LAG_GRACE_MS.
       `toDate(fromUnixTimestamp64Milli(inserted_at))
             BETWEEN toDate(fromUnixTimestamp64Milli({partitionStartTime: Int64}))
                 AND toDate(fromUnixTimestamp64Milli({partitionEndTime: Int64}))`,
@@ -79,8 +90,7 @@ export function getRuntimeLogs(ch: Querier) {
       wheres.push("region IN {region: Array(String)}");
     }
     if (args.message !== null && args.message !== "") {
-      // lower() on both sides so the ngrambf_v1 skip index on lower(message)
-      // is eligible.
+      // lower() on both sides keeps the ngrambf_v1 skip index eligible.
       wheres.push("positionCaseInsensitive(lower(message), lower({message: String})) > 0");
     }
     if (args.k8sPodNames.length > 0) {
@@ -92,7 +102,7 @@ export function getRuntimeLogs(ch: Querier) {
 
     const filterConditions = wheres.join("\n          AND ");
 
-    // +1 over the requested page size lets us compute hasMore without count(*).
+    // +1 to derive hasMore without a count(*).
     const pageSize = Math.min(Math.max(args.limit, 1), MAX_PAGE_SIZE);
     const fetchLimit = pageSize + 1;
 
@@ -100,7 +110,7 @@ export function getRuntimeLogs(ch: Querier) {
       query: `
         SELECT
           time, severity, message, deployment_id,
-          region, k8s_pod_name, attributes
+          region, k8s_pod_name, attributes_text
         FROM ${TABLE}
         WHERE ${filterConditions}
         ORDER BY time DESC, deployment_id DESC
@@ -110,16 +120,41 @@ export function getRuntimeLogs(ch: Querier) {
           optimize_move_to_prewhere = 1,
           max_execution_time = ${MAX_EXECUTION_TIME_SECONDS}`,
       params: runtimeLogsQueryParamsSchema,
-      schema: runtimeLog,
+      schema: runtimeLogRow,
+    });
+
+    const rowsPromise = logsQuery({
+      ...args,
+      limit: fetchLimit,
+      partitionStartTime: args.startTime - INGESTION_LAG_GRACE_MS,
+      partitionEndTime: args.endTime + INGESTION_LAG_GRACE_MS,
     });
 
     return {
-      logsQuery: logsQuery({
-        ...args,
-        limit: fetchLimit,
-        partitionStartTime: args.startTime - INGESTION_LAG_GRACE_MS,
-        partitionEndTime: args.endTime + INGESTION_LAG_GRACE_MS,
-      }),
+      logsQuery: rowsPromise.then(
+        (res): Result<RuntimeLog[], QueryError> =>
+          res.err ? Err(res.err) : Ok(res.val.map(toRuntimeLog)),
+      ),
     };
   };
+}
+
+function toRuntimeLog(row: z.infer<typeof runtimeLogRow>): RuntimeLog {
+  const { attributes_text, ...rest } = row;
+  return { ...rest, attributes: parseAttributes(attributes_text) };
+}
+
+function parseAttributes(text: string | null): RuntimeLog["attributes"] {
+  if (text === null || text === "" || text === "{}") {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as RuntimeLog["attributes"];
+    }
+  } catch {
+    // Malformed JSON: drop attributes rather than fail the whole page.
+  }
+  return null;
 }
