@@ -14,6 +14,7 @@ export const deploymentSelectFields = {
   gitCommitTimestamp: deployments.gitCommitTimestamp,
   prNumber: deployments.prNumber,
   forkRepositoryFullName: deployments.forkRepositoryFullName,
+  image: deployments.image,
   status: deployments.status,
   trigger: deployments.trigger,
   triggeredBy: deployments.triggeredBy,

@@ -1,3 +1,4 @@
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { Switch } from "@/components/ui/switch";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { collection } from "@/lib/collections";
@@ -19,7 +20,6 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray } from "react-hook-form";
-import { useProjectData } from "../../../data-provider";
 import { useDropZone } from "../../hooks/use-drop-zone";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
@@ -216,7 +216,7 @@ export const AddEnvVarExpandable = ({
             Add Environment Variable
           </span>
           <span className="text-gray-11 text-[13px] leading-5">
-            Set a key-value pair for your project.
+            Set a key-value pair for your app.
           </span>
         </div>
         <SlidePanel.Close

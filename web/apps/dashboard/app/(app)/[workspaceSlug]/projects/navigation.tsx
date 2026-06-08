@@ -1,13 +1,15 @@
 "use client";
 import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-button";
-import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Cube, Plus } from "@unkey/icons";
-import Link from "next/link";
+import { Cube } from "@unkey/icons";
+import { useSearchParams } from "next/navigation";
+import { CreateProjectButton } from "./_components/create-project-button";
 
 export function ProjectsListNavigation() {
   const workspace = useWorkspaceNavigation();
+  const searchParams = useSearchParams();
+  const isNewProject = searchParams.get("new") === "true";
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube iconSize="md-medium" className="text-gray-12" />}>
@@ -16,12 +18,7 @@ export function ProjectsListNavigation() {
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
-        <Link href={`/${workspace.slug}/projects/new`}>
-          <NavbarActionButton title="Create new project" className="cursor-pointer">
-            <Plus />
-            Create new project
-          </NavbarActionButton>
-        </Link>
+        <CreateProjectButton defaultOpen={isNewProject} workspaceSlug={workspace.slug} />
         <DeployFeedbackButton />
       </Navbar.Actions>
     </Navbar>

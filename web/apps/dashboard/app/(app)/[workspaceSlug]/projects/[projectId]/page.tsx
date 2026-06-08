@@ -1,5 +1,5 @@
-import { LegacyAppRedirect } from "./_components/legacy-app-redirect";
+import { AppsList } from "./_components/apps-list";
 
 export default function ProjectPage() {
-  return <LegacyAppRedirect suffix="deployments" />;
+  return <AppsList />;
 }
