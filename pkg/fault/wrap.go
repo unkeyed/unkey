@@ -32,6 +32,7 @@ func Wrap(err error, wraps ...Wrapper) error {
 		err:      err,
 		location: getLocation(),
 		code:     "",
+		category: "",
 		internal: "",
 		public:   "",
 	}
@@ -44,6 +45,9 @@ func Wrap(err error, wraps ...Wrapper) error {
 			if nextWrapped, ok := nextErr.(*wrapped); ok {
 				if nextWrapped.code != "" && result.code == "" {
 					result.code = nextWrapped.code
+				}
+				if nextWrapped.category != "" && result.category == "" {
+					result.category = nextWrapped.category
 				}
 				if nextWrapped.internal != "" {
 					if result.internal == "" {
@@ -81,6 +85,7 @@ func Internal(message string) Wrapper {
 		return &wrapped{
 			err:      err,
 			code:     "",
+			category: "",
 			location: "",
 			internal: message,
 			public:   "",
@@ -103,6 +108,7 @@ func Public(message string) Wrapper {
 		return &wrapped{
 			err:      err,
 			code:     "",
+			category: "",
 			location: "",
 			internal: "",
 			public:   message,
@@ -125,6 +131,36 @@ func Code(code codes.URN) Wrapper {
 		return &wrapped{
 			err:      err,
 			code:     code,
+			category: "",
+			location: "",
+			internal: "",
+			public:   "",
+		}
+	}
+}
+
+// Category creates a Wrapper that overrides the attribution category for an
+// error, taking precedence over the category encoded in the code's URN. Prefer
+// encoding the category in the URN (err:<service>:<category>:<specific>); use
+// this only for inherited codes you cannot restate. Read it back with
+// GetCategory.
+//
+// Example:
+//
+//	err := fault.Wrap(baseErr,
+//	    fault.Code(codes.User.BadRequest.RequestTimeout.URN()),
+//	    fault.Category(codes.CategoryUpstream),
+//	)
+func Category(category codes.Category) Wrapper {
+	return func(err error) error {
+		if err == nil {
+			return nil
+		}
+
+		return &wrapped{
+			err:      err,
+			code:     "",
+			category: category,
 			location: "",
 			internal: "",
 			public:   "",
