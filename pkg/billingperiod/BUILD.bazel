@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "billingperiod",
+    srcs = ["billingperiod.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/billingperiod",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "billingperiod_test",
+    srcs = ["billingperiod_test.go"],
+    embed = [":billingperiod"],
+    deps = ["@com_github_stretchr_testify//require"],
+)
