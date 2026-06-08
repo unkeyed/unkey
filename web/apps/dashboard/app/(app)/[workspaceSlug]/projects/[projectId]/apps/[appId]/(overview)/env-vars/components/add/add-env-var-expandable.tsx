@@ -27,21 +27,23 @@ import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 
 type AddEnvVarExpandableProps = {
+  appId: string;
   tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
 };
 
 export const AddEnvVarExpandable = ({
+  appId,
   tableDistanceToTop,
   isOpen,
   onClose,
 }: AddEnvVarExpandableProps) => {
-  const { projectId, environments } = useProjectData();
+  const { environments } = useProjectData();
 
   const { data: existingEnvVars } = useLiveQuery(
-    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.projectId, projectId)),
-    [projectId],
+    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.appId, appId)),
+    [appId],
   );
 
   const {
@@ -59,7 +61,7 @@ export const AddEnvVarExpandable = ({
     saveCurrentValues,
     loadSavedValues,
   } = usePersistedForm<EnvVarsFormValues>(
-    `env-vars-add-${projectId}`,
+    `env-vars-add-${appId}`,
     {
       resolver: zodResolver(envVarsSchema),
       mode: "onChange",
