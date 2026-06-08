@@ -1,9 +1,11 @@
 "use client";
 import { LoadingState } from "@/components/loading-state";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
-import { useResolvedProject } from "@/hooks/use-resolved-project";
+import { useProjectSlug } from "@/hooks/use-route-slugs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { StepWizard } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -23,7 +25,17 @@ export const AppSetupWizard = () => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
 
-  const { projectSlug, projectId } = useResolvedProject();
+  const projectSlug = useProjectSlug();
+  const projectQuery = useLiveQuery(
+    (q) =>
+      projectSlug
+        ? q
+            .from({ project: collection.projects })
+            .where(({ project }) => eq(project.slug, projectSlug))
+        : undefined,
+    [projectSlug],
+  );
+  const projectId = projectQuery.data?.at(0)?.id;
 
   // Step id to start the wizard at (e.g. "select-repo"). When the GitHub
   // callback redirects here, earlier steps are already complete so we skip ahead.
@@ -43,6 +55,10 @@ export const AppSetupWizard = () => {
     router.replace(`/${workspace.slug}/projects/${projectSlug}`);
   };
 
+  if (!projectSlug) {
+    console.warn("[AppSetupWizard] missing projectSlug route param");
+    return <LoadingState />;
+  }
   // Steps thread projectId into mutations immediately; wait for the slug to
   // resolve before mounting the wizard.
   if (!projectId) {
@@ -54,7 +70,7 @@ export const AppSetupWizard = () => {
       <StepWizard.Step id="create-app" label="Create app">
         <OnboardingStepContainer>
           {deployYourAppHeader}
-          <CreateAppStep projectId={projectId} onAppCreated={setAppId} />
+          <CreateAppStep projectId={projectId} projectSlug={projectSlug} onAppCreated={setAppId} />
         </OnboardingStepContainer>
       </StepWizard.Step>
       {!hasGithubInstallation && (

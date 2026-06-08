@@ -1,9 +1,10 @@
 "use client";
 
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
-import { useResolvedApp } from "@/hooks/use-resolved-project";
+import { useProjectSlug } from "@/hooks/use-route-slugs";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
 import {
   buildApiLinks,
   buildAppLinks,
@@ -13,6 +14,7 @@ import {
   buildSettingsLinks,
   buildWorkspaceSections,
 } from "@/lib/navigation/leaves";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
@@ -25,7 +27,19 @@ export function SidebarBody() {
     .filter((segment) => !segment.startsWith("("));
   const { slug } = useWorkspaceNavigation();
   const keyAuthId = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
-  const { appId } = useResolvedApp(context.type === "project" ? context.appSlug : undefined);
+
+  const projectSlug = useProjectSlug();
+  const appSlug = context.type === "project" ? context.appSlug : undefined;
+  const appQuery = useLiveQuery(
+    (q) =>
+      projectSlug && appSlug
+        ? q
+            .from({ app: collection.apps })
+            .where(({ app }) => and(eq(app.projectSlug, projectSlug), eq(app.slug, appSlug)))
+        : undefined,
+    [projectSlug, appSlug],
+  );
+  const appId = appQuery.data?.at(0)?.id;
 
   const links = (() => {
     switch (context.type) {

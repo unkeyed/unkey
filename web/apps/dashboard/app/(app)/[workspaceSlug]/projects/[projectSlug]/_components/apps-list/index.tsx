@@ -1,7 +1,7 @@
 "use client";
 import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card";
 import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
-import { useResolvedProject } from "@/hooks/use-resolved-project";
+import { useProjectSlug } from "@/hooks/use-route-slugs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
@@ -15,27 +15,26 @@ const MAX_SKELETON_COUNT = 4;
 
 export const AppsList = () => {
   const workspace = useWorkspaceNavigation();
-  const { projectSlug, projectId } = useResolvedProject();
+  const projectSlug = useProjectSlug();
   const basePath = `/${workspace.slug}/projects/${projectSlug}`;
 
   return (
     <div className="flex flex-col h-full">
       <ProjectHomeNavigation projectSlug={projectSlug ?? ""} />
       <div className="p-4 flex flex-col gap-4">
-        {/* The apps collection requires a projectId filter; wait for the slug to resolve. */}
-        {projectId ? <AppsGrid projectId={projectId} basePath={basePath} /> : null}
+        {projectSlug ? <AppsGrid projectSlug={projectSlug} basePath={basePath} /> : null}
       </div>
     </div>
   );
 };
 
-const AppsGrid = ({ projectId, basePath }: { projectId: string; basePath: string }) => {
+const AppsGrid = ({ projectSlug, basePath }: { projectSlug: string; basePath: string }) => {
   const router = useRouter();
   const openCreateApp = () => router.push(`${basePath}/apps/new`);
 
   const apps = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
+    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectSlug, projectSlug)),
+    [projectSlug],
   );
 
   if (apps.isLoading) {

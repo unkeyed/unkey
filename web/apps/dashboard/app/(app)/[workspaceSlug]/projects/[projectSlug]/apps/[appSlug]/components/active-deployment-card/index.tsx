@@ -53,14 +53,14 @@ export function ActiveDeploymentCard({
   isRolledBack,
   environmentSlug,
 }: ActiveDeploymentCardProps) {
-  const { getDeploymentById, isDeploymentsLoading, projectId } = useProjectData();
+  const { getDeploymentById, isDeploymentsLoading, projectSlug } = useProjectData();
   const deployment =
     directDeployment ?? (deploymentId ? getDeploymentById(deploymentId) : undefined);
   // Repo connections are per-app; the project-level repositoryFullName is
   // just some app's connection in this project.
   const appsQuery = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
+    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectSlug, projectSlug)),
+    [projectSlug],
   );
   const repoFullName = (appsQuery.data ?? []).find(
     (a) => a.id === deployment?.appId,

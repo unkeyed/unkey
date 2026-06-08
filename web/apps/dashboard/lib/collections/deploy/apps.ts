@@ -7,6 +7,7 @@ import { queryClient, trpcClient } from "../client";
 const schema = z.object({
   id: z.string(),
   projectId: z.string(),
+  projectSlug: z.string(),
   name: z.string(),
   slug: z.string(),
   defaultBranch: z.string(),
@@ -47,29 +48,29 @@ function extractStringFilter(filters: ParsedFilter[], fieldName: string, operato
 /**
  * Global apps collection.
  *
- * IMPORTANT: All queries MUST filter by projectId:
- * .where(({ app }) => eq(app.projectId, projectId))
+ * IMPORTANT: All queries MUST filter by projectSlug:
+ * .where(({ app }) => eq(app.projectSlug, projectSlug))
  */
 export const apps = createCollection<App, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
-      const projectId = extractStringFilter(filters, "projectId", "eq");
-      return projectId ? ["apps", projectId] : ["apps"];
+      const projectSlug = extractStringFilter(filters, "projectSlug", "eq");
+      return projectSlug ? ["apps", projectSlug] : ["apps"];
     },
     retry: 3,
     syncMode: "on-demand",
     refetchInterval: 5000,
     queryFn: async (ctx) => {
       const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
-      const projectId = extractStringFilter(filters, "projectId", "eq");
+      const projectSlug = extractStringFilter(filters, "projectSlug", "eq");
 
-      if (!projectId) {
-        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
+      if (!projectSlug) {
+        throw new Error("Query must include eq(collection.projectSlug, projectSlug) constraint");
       }
 
-      return trpcClient.deploy.app.list.query({ projectId });
+      return trpcClient.deploy.app.list.query({ projectSlug });
     },
     getKey: (item) => item.id,
     id: "apps",

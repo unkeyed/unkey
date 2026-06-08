@@ -14,7 +14,7 @@ import { z } from "zod";
 import { useAppId, useProjectData } from "../../data-provider";
 
 export function DeleteApp() {
-  const { projectId, projectSlug } = useProjectData();
+  const { projectSlug } = useProjectData();
   const appId = useAppId();
   const { workspace } = useWorkspace();
   const router = useRouter();
@@ -24,8 +24,8 @@ export function DeleteApp() {
     (q) =>
       q
         .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
+        .where(({ app }) => and(eq(app.projectSlug, projectSlug), eq(app.id, appId))),
+    [projectSlug, appId],
   );
   const appName = appsQuery.data?.[0]?.name ?? "";
 

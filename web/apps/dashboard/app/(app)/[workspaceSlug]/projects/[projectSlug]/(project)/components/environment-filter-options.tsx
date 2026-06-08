@@ -7,11 +7,11 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 // Logs and requests are project-wide and every app has e.g. a "production"
 // environment, so the app name is needed to tell same-slug options apart.
 export function useEnvironmentFilterOptions(): EnvironmentFilterOption[] {
-  const { environments, projectId } = useProjectData();
+  const { environments, projectSlug } = useProjectData();
 
   const apps = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
+    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectSlug, projectSlug)),
+    [projectSlug],
   );
   const appNameById = new Map((apps.data ?? []).map((app) => [app.id, app.name]));
 

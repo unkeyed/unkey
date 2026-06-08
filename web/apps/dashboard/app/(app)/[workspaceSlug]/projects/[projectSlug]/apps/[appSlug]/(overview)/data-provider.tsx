@@ -1,6 +1,7 @@
 "use client";
 
 import { LoadingState } from "@/components/loading-state";
+import { useAppSlug, useProjectSlug } from "@/hooks/use-route-slugs";
 import { collection } from "@/lib/collections";
 import type { App } from "@/lib/collections/deploy/apps";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
@@ -10,7 +11,6 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Empty } from "@unkey/ui";
-import { useParams } from "next/navigation";
 import {
   type PropsWithChildren,
   type ReactNode,
@@ -71,9 +71,8 @@ export const ProjectDataProvider = ({
   projectId: projectIdProp,
   appId: appIdProp,
 }: ProjectDataProviderProps) => {
-  const params = useParams();
-  const projectSlug = typeof params?.projectSlug === "string" ? params.projectSlug : undefined;
-  const appSlug = typeof params?.appSlug === "string" ? params.appSlug : undefined;
+  const projectSlug = useProjectSlug();
+  const appSlug = useAppSlug();
 
   if (!projectIdProp && !projectSlug) {
     throw new Error("ProjectDataProvider requires a projectId prop or a [projectSlug] route param");
@@ -132,7 +131,7 @@ export const useAppId = (): string => {
 };
 
 // Mounted only when the project is known: the apps collection requires a
-// projectId filter (app slugs are only unique per project).
+// projectSlug filter (app slugs are only unique per project).
 const AppResolver = ({
   children,
   project,
@@ -141,14 +140,19 @@ const AppResolver = ({
 }: PropsWithChildren<{ project: Project; appId?: string; appSlug?: string }>) => {
   const appQuery = useLiveQuery(
     (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) =>
-          appId
-            ? and(eq(app.projectId, project.id), eq(app.id, appId))
-            : and(eq(app.projectId, project.id), eq(app.slug, appSlug ?? "")),
-        ),
-    [project.id, appId, appSlug],
+      q.from({ app: collection.apps }).where(({ app }) => {
+        const inProject = eq(app.projectSlug, project.slug);
+        if (appId) {
+          return and(inProject, eq(app.id, appId));
+        }
+        if (appSlug) {
+          return and(inProject, eq(app.slug, appSlug));
+        }
+        // ProjectDataProvider only mounts AppResolver with an appId or appSlug.
+        console.warn("[AppResolver] mounted without appId or appSlug");
+        return and(inProject, eq(app.slug, ""));
+      }),
+    [project.slug, appId, appSlug],
   );
   const app = appQuery.data?.at(0);
 

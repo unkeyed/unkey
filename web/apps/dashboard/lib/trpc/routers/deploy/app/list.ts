@@ -5,10 +5,21 @@ import { apps, deployments, frontlineRoutes, githubRepoConnections } from "@unke
 import { z } from "zod";
 
 export const listApps = workspaceProcedure
-  .input(z.object({ projectId: z.string() }))
+  .input(z.object({ projectSlug: z.string() }))
   .use(withRatelimit(ratelimit.read))
   .query(async ({ ctx, input }): Promise<App[]> => {
     const workspaceId = ctx.workspace.id;
+
+    const project = await db.query.projects.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.slug, input.projectSlug), eq(table.workspaceId, workspaceId)),
+      columns: { id: true },
+    });
+
+    if (!project) {
+      return [];
+    }
+    const projectId = project.id;
 
     const appRows = await db
       .select({
@@ -21,7 +32,7 @@ export const listApps = workspaceProcedure
         isRolledBack: apps.isRolledBack,
       })
       .from(apps)
-      .where(and(eq(apps.workspaceId, workspaceId), eq(apps.projectId, input.projectId)))
+      .where(and(eq(apps.workspaceId, workspaceId), eq(apps.projectId, projectId)))
       .orderBy(desc(apps.updatedAt), desc(apps.id));
 
     if (appRows.length === 0) {
@@ -55,9 +66,7 @@ export const listApps = workspaceProcedure
         ),
       })
       .from(frontlineRoutes)
-      .where(
-        and(eq(frontlineRoutes.projectId, input.projectId), inArray(frontlineRoutes.appId, appIds)),
-      )
+      .where(and(eq(frontlineRoutes.projectId, projectId), inArray(frontlineRoutes.appId, appIds)))
       .as("ranked_routes");
 
     const currentDeploymentIds = Array.from(
@@ -125,6 +134,7 @@ export const listApps = workspaceProcedure
       return {
         id: app.id,
         projectId: app.projectId,
+        projectSlug: input.projectSlug,
         name: app.name,
         slug: app.slug,
         defaultBranch: app.defaultBranch,

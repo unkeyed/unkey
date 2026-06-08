@@ -15,10 +15,11 @@ type FormValues = z.infer<typeof formSchema>;
 
 type CreateAppStepProps = {
   projectId: string;
+  projectSlug: string;
   onAppCreated: (id: string) => void;
 };
 
-export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) => {
+export const CreateAppStep = ({ projectId, projectSlug, onAppCreated }: CreateAppStepProps) => {
   const { next } = useStepWizard();
 
   const {
@@ -37,6 +38,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
     try {
       const tx = collection.apps.insert({
         projectId,
+        projectSlug,
         name: values.name,
         slug: values.slug,
         defaultBranch: "main",

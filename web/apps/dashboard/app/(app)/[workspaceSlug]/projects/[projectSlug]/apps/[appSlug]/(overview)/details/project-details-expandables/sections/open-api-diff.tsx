@@ -41,8 +41,8 @@ export const OpenApiDiff = () => {
     (q) =>
       q
         .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
+        .where(({ app }) => and(eq(app.projectSlug, projectSlug), eq(app.id, appId))),
+    [projectSlug, appId],
   );
   const currentDeploymentId = appQuery.data?.[0]?.currentDeploymentId;
 
