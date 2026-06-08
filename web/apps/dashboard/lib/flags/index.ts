@@ -20,7 +20,7 @@ export const helloWorld = flag<boolean, Entities>({
 export const newNavigation = flag<boolean, Entities>({
   key: "new-navigation",
   description: "Renders the redesigned top breadcrumb header and contextual sidebar",
-  defaultValue: false,
+  defaultValue: true,
   options: [
     { value: false, label: "Off" },
     { value: true, label: "On" },

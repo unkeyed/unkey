@@ -1,16 +1,18 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
-import { ProjectCard } from "./projects-card";
-import { ProjectCardSkeleton } from "./projects-card-skeleton";
+import { ResourceCard } from "./resource-card";
+import { ResourceCardSkeleton } from "./resource-card-skeleton";
 
 const MAX_SKELETON_COUNT = 8;
 
 export const ProjectsList = () => {
+  const workspace = useWorkspaceNavigation();
   const { filters } = useProjectsFilters();
   const projectName = filters.find((f) => f.field === "query")?.value ?? "";
 
@@ -25,15 +27,10 @@ export const ProjectsList = () => {
   if (projects.isLoading) {
     return (
       <div className="p-4">
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))",
-          }}
-        >
+        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
           {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-            <ProjectCardSkeleton key={i} />
+            <ResourceCardSkeleton key={i} />
           ))}
         </div>
       </div>
@@ -70,16 +67,11 @@ export const ProjectsList = () => {
 
   return (
     <div className="p-4">
-      <div
-        className="grid gap-4"
-        style={{
-          gridTemplateColumns: "repeat(auto-fit, minmax(325px, 370px))",
-        }}
-      >
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
-            <ProjectCard
-              projectId={project.id}
+            <ResourceCard
+              href={`/${workspace.slug}/projects/${project.id}`}
               name={project.name}
               domain={project.domain}
               commitTitle={project.commitTitle}
@@ -87,11 +79,6 @@ export const ProjectsList = () => {
               branch={project.branch}
               author={project.author}
               authorAvatar={project.authorAvatar}
-              repository={
-                project.repositoryFullName
-                  ? `https://github.com/${project.repositoryFullName}`
-                  : undefined
-              }
               actions={
                 <ProjectActions projectId={project.id}>
                   <Button

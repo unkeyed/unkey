@@ -1,4 +1,3 @@
-"use client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
@@ -13,6 +12,15 @@ const schema = z.object({
   defaultBranch: z.string(),
   currentDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
+  repositoryFullName: z.string().nullable(),
+  latestDeploymentId: z.string().nullable(),
+  // Flattened current-deployment fields for the shared deployable card.
+  commitTitle: z.string().nullable(),
+  branch: z.string(),
+  author: z.string().nullable(),
+  authorAvatar: z.string().nullable(),
+  commitTimestamp: z.number().int().nullable(),
+  domain: z.string().nullable(),
 });
 
 export const createAppRequestSchema = z.object({
