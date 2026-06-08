@@ -50,9 +50,10 @@ function ProjectNameCard({ project }: { project: Project }) {
   ]);
 
   const onSubmit = async (values: z.infer<typeof nameSchema>) => {
-    collection.projects.update(project.id, (draft) => {
+    const tx = collection.projects.update(project.id, (draft) => {
       draft.name = values.name;
     });
+    await tx.isPersisted.promise;
   };
 
   return (
