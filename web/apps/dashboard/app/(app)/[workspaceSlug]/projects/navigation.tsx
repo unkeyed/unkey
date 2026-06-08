@@ -1,5 +1,4 @@
 "use client";
-import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-button";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -22,7 +21,6 @@ export function ProjectsListNavigation() {
             Create new project
           </NavbarActionButton>
         </Link>
-        <DeployFeedbackButton />
       </Navbar.Actions>
     </Navbar>
   );
