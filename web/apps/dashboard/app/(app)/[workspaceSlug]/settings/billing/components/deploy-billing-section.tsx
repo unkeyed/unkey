@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from "react";
 
 const ADMIN_ONLY_TOOLTIP = "Admin access required to manage billing";
-const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before subscribing to Unkey Deploy";
+const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before subscribing to a Compute plan";
 
 type DeployBillingSectionProps = {
   isAdmin: boolean;
@@ -56,7 +56,7 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
   const subscribe = trpc.stripe.subscribeDeploy.useMutation({
     onSuccess: async () => {
       setPlanModalOpen(false);
-      toast.success("Subscribed to Unkey Deploy");
+      toast.success("Subscribed to Compute");
       await revalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -64,7 +64,7 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
   const change = trpc.stripe.changeDeployPlan.useMutation({
     onSuccess: async () => {
       setPlanModalOpen(false);
-      toast.success("Unkey Deploy plan changed");
+      toast.success("Compute plan changed");
       await revalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -72,7 +72,7 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
   const cancel = trpc.stripe.cancelDeploy.useMutation({
     onSuccess: async () => {
       setCancelOpen(false);
-      toast.info("Unkey Deploy cancelled");
+      toast.info("Compute cancelled");
       await revalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -102,11 +102,11 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
     <div className="w-full">
       <SettingCardGroup>
         <SettingCard
-          title="Unkey Deploy"
+          title="Compute"
           description={
             currentPlan
               ? `You are on the ${currentPlanOption?.name ?? currentPlan} plan. Usage is billed on top of the plan fee.`
-              : "Deploy requires a plan. Subscribe to start deploying projects."
+              : "Subscribe to a Compute plan to start deploying projects."
           }
         >
           <div className="w-full flex h-full items-center justify-end gap-4">
@@ -133,11 +133,11 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
       {currentPlan ? (
         <SettingsDangerZone>
           <SettingsZoneRow
-            title="Cancel Unkey Deploy"
+            title="Cancel Compute"
             description={
               manageDisabled
                 ? ADMIN_ONLY_TOOLTIP
-                : "Stops Unkey Deploy immediately and removes it from your subscription. Usage so far is billed; the plan fee is not refunded."
+                : "Stops Compute immediately and removes it from your subscription. Usage so far is billed; the plan fee is not refunded."
             }
             action={{
               label: "Cancel Deploy",
@@ -166,8 +166,8 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
       <DialogContainer
         isOpen={isCancelOpen}
         onOpenChange={setCancelOpen}
-        title="Cancel Unkey Deploy"
-        subTitle="Stop deploying with this workspace"
+        title="Cancel Compute"
+        subTitle="Turn off Compute for this workspace"
         footer={
           <Button
             type="button"
@@ -178,12 +178,12 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
             loading={cancel.isLoading}
             onClick={() => cancel.mutate()}
           >
-            Cancel Unkey Deploy
+            Cancel Compute
           </Button>
         }
       >
         <div className="text-gray-11 text-[13px] leading-6">
-          Cancelling stops Unkey Deploy immediately: your deployments stop and no further usage is
+          Cancelling stops Compute immediately: your deployments stop and no further usage is
           billed. Usage up to now is still charged, and the plan fee already paid is not refunded.
         </div>
       </DialogContainer>
@@ -234,7 +234,7 @@ const DeployPlanModal: React.FC<DeployPlanModalProps> = ({
     <DialogContainer
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title={currentPlan ? "Change Unkey Deploy plan" : "Choose an Unkey Deploy plan"}
+      title={currentPlan ? "Change Compute plan" : "Choose a Compute plan"}
       subTitle="The plan fee is billed monthly; usage is billed on top."
       footer={
         <Button

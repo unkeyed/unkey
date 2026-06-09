@@ -204,6 +204,7 @@ import { createSubscription } from "./stripe/createSubscription";
 import { getBillingInfo } from "./stripe/getBillingInfo";
 import { getCheckoutSession } from "./stripe/getCheckoutSession";
 import { getCustomer } from "./stripe/getCustomer";
+import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
 import { getDeployPlans } from "./stripe/getDeployPlans";
 import { getDeploySubscription } from "./stripe/getDeploySubscription";
 import { getProducts } from "./stripe/getProducts";
@@ -321,6 +322,7 @@ export const router = t.router({
     cancelDeploy,
     getDeploySubscription,
     getDeployPlans,
+    getDeployEntitlement,
   }),
   github: githubRouter,
   plain: t.router({
