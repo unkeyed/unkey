@@ -50,6 +50,9 @@ export const SentinelLogsTable = () => {
         ),
       }}
       emptyState={<EmptyState />}
+      // VirtualTable defaulted to 26px dense rows and 50 loading rows; DataTable's
+      // defaults (36px / 10) differ, so set them explicitly to preserve the layout.
+      config={{ rowHeight: 26, layout: "classic", rowBorders: false, loadingRows: 50 }}
     />
   );
 };
