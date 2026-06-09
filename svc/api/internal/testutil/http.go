@@ -18,9 +18,13 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/auth/portal_session"
+	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -54,13 +58,15 @@ type Harness struct {
 	srv       *zen.Server
 	validator *validation.Validator
 
-	middleware []zen.Middleware
+	middleware       []zen.Middleware
+	publicMiddleware []zen.Middleware
 
 	// DB provides direct database access for verifying side effects or setting up
 	// test data that the seeder methods don't cover.
 	DB                         db.Database
 	Caches                     caches.Caches
 	Keys                       keys.KeyService
+	Auth                       auth.Authenticator
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
@@ -249,22 +255,26 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		KeyCache:         caches.VerificationKeyByHash,
-		QuotaCache:       caches.WorkspaceQuota,
-		RateLimiter:      ratelimitService,
-		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
-		Region:           "test",
-		UsageLimiter:     ulSvc,
+		DB:           db.ToMySQL(database),
+		KeyCache:     caches.VerificationKeyByHash,
+		RateLimiter:  ratelimitService,
+		RBAC:         rbac.New(),
+		Region:       "test",
+		UsageLimiter: ulSvc,
 	})
 	require.NoError(t, err)
+	portalService := portal.New(portal.Config{
+		DB:           database,
+		SessionCache: caches.PortalSession,
+	})
+	authService := auth.New(portalsession.NewResolver(portalService), rootkey.NewResolver(keyService))
 
 	h := Harness{
 		t:                          t,
 		srv:                        srv,
 		validator:                  validator,
 		Keys:                       keyService,
+		Auth:                       authService,
 		UsageLimiter:               ulSvc,
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,
@@ -277,29 +287,49 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		AnalyticsConnectionManager: analyticsConnManager,
 		Auditlogs:                  audit,
 		Caches:                     caches,
-		middleware: []zen.Middleware{
+		middleware:                 nil,
+		publicMiddleware: []zen.Middleware{
 			zen.WithObservability(),
 			zen.WithLogging(),
 			middleware.WithErrorHandling(),
 			zen.WithValidation(validator),
 		},
 	}
+	h.middleware = []zen.Middleware{
+		zen.WithObservability(),
+		zen.WithLogging(),
+		middleware.WithErrorHandling(),
+		zen.WithValidation(validator),
+		middleware.WithAuthentication(middleware.AuthenticationConfig{
+			Auth:       authService,
+			Database:   database,
+			QuotaCache: caches.WorkspaceQuota,
+			Ratelimit:  ratelimitService,
+		}),
+	}
 
 	return &h
 }
 
-// Register adds a route to the test server with the standard middleware stack.
-// Pass custom middleware to override the defaults, which include observability,
-// logging, error handling, and validation. Passing no middleware uses the defaults.
-func (h *Harness) Register(route zen.Route, middleware ...zen.Middleware) {
-	if len(middleware) == 0 {
-		middleware = h.middleware
+// Register adds a route to the test server with the protected middleware stack.
+// Pass custom middleware to override the defaults. Passing no middleware uses
+// the same auth, workspace policy, error handling, and validation path as
+// protected production routes.
+func (h *Harness) Register(route zen.Route, middlewares ...zen.Middleware) {
+	if len(middlewares) == 0 {
+		middlewares = h.middleware
 	}
 
 	h.srv.RegisterRoute(
-		middleware,
+		middlewares,
 		route,
 	)
+}
+
+// PublicMiddleware returns the middleware stack for routes that authenticate
+// inside the handler or intentionally do not require an authenticated principal.
+func (h *Harness) PublicMiddleware() []zen.Middleware {
+	return h.publicMiddleware
 }
 
 // CreateRootKey creates a root key that authorizes operations on the given workspace.

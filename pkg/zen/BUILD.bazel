@@ -27,6 +27,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/zen",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/auth/principal",
         "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",
@@ -59,10 +60,12 @@ go_test(
         "session_bind_query_test.go",
         "session_body_limit_test.go",
         "session_body_read_error_test.go",
+        "session_principal_test.go",
         "writer_test.go",
     ],
     embed = [":zen"],
     deps = [
+        "//pkg/auth/principal",
         "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",

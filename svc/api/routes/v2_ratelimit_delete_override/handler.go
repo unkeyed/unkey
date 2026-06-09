@@ -9,7 +9,6 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -28,7 +27,6 @@ type (
 
 type Handler struct {
 	DB             db.Database
-	Keys           keys.KeyService
 	Auditlogs      auditlogs.AuditLogService
 	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
@@ -42,8 +40,7 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -53,7 +50,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ns, found, err := h.getNamespace(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
+	ns, found, err := h.getNamespace(ctx, principal.WorkspaceID, req.Namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -77,7 +74,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   ns.ID,
@@ -88,7 +85,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.DeleteOverride,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}
@@ -117,12 +114,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.RatelimitDeleteOverrideEvent,
 				Display:       fmt.Sprintf("Deleted override %s.", override.ID),
-				ActorID:       auth.Key.ID,
-				ActorType:     auditlog.RootKeyActor,
-				ActorName:     "root key",
+				ActorID:       principal.Subject.ID,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
@@ -156,8 +153,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.NamespaceCache.Remove(ctx,
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.ID},
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.Name},
+		cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: ns.ID},
+		cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: ns.Name},
 	)
 
 	return s.JSON(http.StatusOK, Response{

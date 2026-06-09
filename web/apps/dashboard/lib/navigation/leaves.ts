@@ -11,6 +11,7 @@ import {
   Layers3,
   Nodes,
   ShieldKey,
+  SquareBulletList,
 } from "@unkey/icons";
 import type { ResolvedNavLink } from "./types";
 
@@ -76,10 +77,14 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
   ];
 }
 
-export function buildSettingsLinks(slug: string, segments: string[]): ResolvedNavLink[] {
+export function buildSettingsLinks(
+  slug: string,
+  segments: string[],
+  options: { deletionRecoveryPage?: boolean } = {},
+): ResolvedNavLink[] {
   const page = segments[1];
   const base = `/${slug}/settings`;
-  return [
+  const links: ResolvedNavLink[] = [
     { key: "general", label: "General", href: `${base}/general`, isActive: page === "general" },
     { key: "team", label: "Team", href: `${base}/team`, isActive: page === "team" },
     {
@@ -88,8 +93,20 @@ export function buildSettingsLinks(slug: string, segments: string[]): ResolvedNa
       href: `${base}/root-keys`,
       isActive: page === "root-keys",
     },
+    ...(options.deletionRecoveryPage
+      ? [
+          {
+            key: "scheduled-deletions",
+            label: "Scheduled Deletions",
+            href: `${base}/scheduled-deletions`,
+            isActive: page === "scheduled-deletions",
+          },
+        ]
+      : []),
     { key: "billing", label: "Billing", href: `${base}/billing`, isActive: page === "billing" },
   ];
+
+  return links;
 }
 
 export function buildAuthorizationLinks(slug: string, segments: string[]): ResolvedNavLink[] {
@@ -115,11 +132,11 @@ export function buildProjectLinks(
   const base = `/${slug}/projects/${projectId}`;
   return [
     {
-      key: "deployments",
-      label: "Deployments",
-      href: `${base}/deployments`,
+      key: "overview",
+      label: "Overview",
+      href: base,
       icon: Cube,
-      isActive: page === "deployments",
+      isActive: !page,
     },
     {
       key: "logs",
@@ -134,6 +151,32 @@ export function buildProjectLinks(
       href: `${base}/requests`,
       icon: ArrowOppositeDirectionY,
       isActive: page === "requests",
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      href: `${base}/settings`,
+      icon: Gear,
+      isActive: page === "settings",
+    },
+  ];
+}
+
+export function buildAppLinks(
+  slug: string,
+  projectId: string,
+  appId: string,
+  segments: string[],
+): ResolvedNavLink[] {
+  const page = segments[4];
+  const base = `/${slug}/projects/${projectId}/apps/${appId}`;
+  return [
+    {
+      key: "deployments",
+      label: "Deployments",
+      href: `${base}/deployments`,
+      icon: SquareBulletList,
+      isActive: page === "deployments",
     },
     {
       key: "env-vars",
@@ -156,6 +199,31 @@ export function buildProjectLinks(
       icon: Gear,
       isActive: page === "settings",
     },
+    // Project-level views scoped to this app; separated since they navigate
+    // out of the app section.
+    {
+      key: "logs",
+      label: "Logs",
+      href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
+      icon: Layers3,
+      isActive: false,
+      separatorAbove: true,
+    },
+    {
+      key: "requests",
+      label: "Requests",
+      href: `/${slug}/projects/${projectId}/requests?since=6h&appId=${appId}`,
+      icon: ArrowOppositeDirectionY,
+      isActive: false,
+    },
+    // Will be polished and added back in the future iterations
+    // {
+    //   key: "openapi-diff",
+    //   label: "OpenAPI Diff",
+    //   href: `${base}/openapi-diff`,
+    //   icon: Nodes,
+    //   isActive: page === "openapi-diff",
+    // },
   ];
 }
 

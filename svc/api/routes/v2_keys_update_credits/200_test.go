@@ -25,7 +25,6 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:           h.DB,
-		Keys:         h.Keys,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
 		UsageLimiter: h.UsageLimiter,
@@ -178,7 +177,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 			Remaining:   &initialCredits,
 		})
 
-		authBefore, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
+		authBefore, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
 		require.NoError(t, err)
 
 		err = authBefore.Verify(ctx, keys.WithCredits(1))
@@ -205,7 +204,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, newCredits, updatedRemaining)
 
 		// Verify the key again to check if cache was properly invalidated
-		authAfter, _, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
+		authAfter, err := h.Keys.Get(ctx, &zen.Session{}, hash.Sha256(cacheTestKey.Key))
 		require.NoError(t, err)
 
 		err = authAfter.Verify(ctx, keys.WithCredits(1))

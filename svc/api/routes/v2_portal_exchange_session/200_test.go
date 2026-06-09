@@ -20,7 +20,7 @@ func TestExchangeSessionSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
-	h.Register(route)
+	h.Register(route, h.PublicMiddleware()...)
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	portalConfigID := uid.New(uid.PortalConfigPrefix)

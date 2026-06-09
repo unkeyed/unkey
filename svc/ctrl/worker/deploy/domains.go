@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
@@ -27,7 +26,7 @@ type newDomain struct {
 //
 // 1. Per-commit domain: `<prefix>-git-<sha>-<workspace>.<apex>`
 //   - Never reassigned, provides stable URL for specific commit
-//   - For CLI uploads, adds random suffix to prevent collisions
+//   - For CLI uploads, appends a deployment-ID-derived suffix to prevent collisions
 //
 // 2. Per-branch domain: `<prefix>-git-<branch>-<workspace>.<apex>`
 //   - Sticky to branch, always points to latest deployment of that branch
@@ -49,7 +48,19 @@ type newDomain struct {
 // generated domains. Currently the only app slug is "default" which adds no
 // useful information to the domain and just makes URLs longer. Remove this
 // exclusion and always include appSlug once the dashboard supports renaming apps.
-func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, branchName, forkOwner, apex string, source ctrlv1.SourceType, deploymentID string) []newDomain {
+//
+// `uniquifyCommitDomain` controls whether the per-commit domain gets an
+// additional suffix derived from the deployment ID. CLI uploads send the same
+// git SHA repeatedly across iterative `unkey deploy` runs, so without a suffix
+// successive deploys collide on the per-commit domain. Git-driven deploys never
+// repeat a SHA so they don't need it. Callers derive this from the deployment's
+// trigger column.
+func buildDomains(
+	workspaceSlug, projectSlug, appSlug, environmentSlug,
+	gitSha, branchName, forkOwner, apex string,
+	uniquifyCommitDomain bool,
+	deploymentID string,
+) []newDomain {
 	// Build the project-app prefix for domain names.
 	// Skip "default" app slug since it's not configurable yet and would just
 	// add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
@@ -71,7 +82,7 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 	// journal mismatch. We take the tail of the deployment ID since each
 	// deployment has a unique slug already.
 	disambiguator := ""
-	if source == ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD {
+	if uniquifyCommitDomain {
 		tail := sluggify(deploymentID)
 		if len(tail) > 4 {
 			tail = tail[len(tail)-4:]

@@ -114,6 +114,7 @@ import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
+import { updateProject } from "./deploy/project/update";
 
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
@@ -444,6 +445,7 @@ export const router = t.router({
     project: t.router({
       list: listProjects,
       create: createProject,
+      update: updateProject,
       delete: deleteProject,
       creationContext,
     }),

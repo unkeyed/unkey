@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -27,7 +26,6 @@ type (
 
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
@@ -44,8 +42,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -70,14 +67,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"), fault.Public("The specified key was not found."),
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(
+	err = principal.Authorize(
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -97,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.AddRoleToKey,
 			}),
 		),
-	))
+	)
 	if err != nil {
 		return err
 	}
@@ -111,7 +108,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		Names:       req.Roles,
 	})
 	if err != nil {
@@ -170,16 +167,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
 					KeyID:       req.KeyId,
 					RoleID:      role.ID,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: principal.WorkspaceID,
 					CreatedAtM:  time.Now().UnixMilli(),
 				})
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					WorkspaceID:   principal.WorkspaceID,
 					Event:         auditlog.AuthConnectRoleKeyEvent,
-					ActorType:     auditlog.RootKeyActor,
-					ActorID:       auth.Key.ID,
-					ActorName:     "root key",
+					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+					ActorID:       principal.Subject.ID,
+					ActorName:     principal.Subject.Name,
 					ActorMeta:     map[string]any{},
 					Display:       fmt.Sprintf("Added role %s to key %s", role.Name, req.KeyId),
 					RemoteIP:      s.Location(),

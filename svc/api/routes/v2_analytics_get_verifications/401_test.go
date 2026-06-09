@@ -13,7 +13,6 @@ func Test401_NoAuthHeader(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -36,7 +35,6 @@ func Test401_InvalidRootKey(t *testing.T) {
 
 	route := &Handler{
 		DB:                         h.DB,
-		Keys:                       h.Keys,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}

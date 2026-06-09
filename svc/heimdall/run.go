@@ -8,11 +8,15 @@ import (
 	"net/http"
 	"time"
 
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/heimdall/internal/collector"
 	"github.com/unkeyed/unkey/svc/heimdall/internal/metrics"
@@ -44,6 +48,19 @@ func Run(ctx context.Context, cfg Config) error {
 		"collection_interval", cfg.CollectionInterval.String(),
 		"cgroup_driver", cgroupDriver.String(),
 	)
+
+	// Own registry instead of the global default. The lazy metric wrappers in
+	// internal/metrics register on first use into whatever SetRegistry points
+	// at; pinning it here keeps heimdall's metrics out of any registry shared
+	// with code that happens to import this binary. The default registry gave
+	// us Go runtime and process metrics for free, so re-add those collectors
+	// explicitly to preserve the scrape output.
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("heimdall")
 
 	ch, err := clickhouse.New(clickhouse.Config{URL: cfg.ClickHouseURL})
 	if err != nil {
@@ -174,7 +191,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// the node runs. The chart defaults to 9402.
 	//
 	// Paths:
-	//   GET /metrics        Prometheus scrape endpoint (promhttp.Handler)
+	//   GET /metrics        Prometheus scrape endpoint (serves reg)
 	//   GET /health/live    kubelet liveness probe
 	//   GET /health/ready   kubelet readiness probe (informer cache synced)
 	//   GET /health/startup kubelet startup probe
@@ -189,7 +206,8 @@ func Run(ctx context.Context, cfg Config) error {
 		// started and isn't shutting down, which already captures the
 		// "collector is live and initialized" condition.
 		mux := http.NewServeMux()
-		mux.Handle("GET /metrics", promhttp.Handler())
+		//nolint:exhaustruct
+		mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		r.RegisterHealth(mux, "/health")
 
 		addr := fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort)
