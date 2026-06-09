@@ -46,23 +46,36 @@ export const deleteIdentity = workspaceProcedure
 
     await db
       .transaction(async (tx) => {
+        const isDuplicateKeyError = (e: unknown) =>
+          e instanceof Error && "code" in e && (e as { code: string }).code === "ER_DUP_ENTRY";
+
         const softDelete = () =>
           tx
             .update(schema.identities)
             .set({ deleted: true })
             .where(eq(schema.identities.id, identity.id));
 
+        // True if this identity is already soft-deleted, in which case a
+        // concurrent request beat us to it and the delete is idempotently done.
+        const isAlreadySoftDeleted = async () =>
+          Boolean(
+            await tx.query.identities.findFirst({
+              where: (table, { and, eq }) =>
+                and(eq(table.id, identity.id), eq(table.deleted, true)),
+              columns: { id: true },
+            }),
+          );
+
         try {
           await softDelete();
         } catch (err) {
           // The unique index spans (workspaceId, externalId, deleted), so at
-          // most one soft-deleted row may exist per externalId. If this
-          // externalId was previously deleted, recreated, and is now being
-          // deleted again, the soft delete collides with that stale
-          // deleted=true row. Hard-delete the stale row (and its ratelimits)
-          // and retry, mirroring the public API handler
+          // most one soft-deleted row may exist per externalId. A collision
+          // here means either a stale deleted=true row left over from a
+          // previously deleted+recreated externalId, or a concurrent delete of
+          // this same identity. Mirrors the public API handler
           // (svc/api/routes/v2_identities_delete_identity/handler.go).
-          if (!(err instanceof Error && "code" in err && err.code === "ER_DUP_ENTRY")) {
+          if (!isDuplicateKeyError(err)) {
             throw err;
           }
 
@@ -77,12 +90,31 @@ export const deleteIdentity = workspaceProcedure
             columns: { id: true },
           });
 
-          if (stale) {
-            await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.identityId, stale.id));
-            await tx.delete(schema.identities).where(eq(schema.identities.id, stale.id));
+          if (!stale) {
+            // No stale row to clear: a concurrent request already soft-deleted
+            // this identity. Treat as an idempotent success and skip audit
+            // logs — the concurrent request already wrote them.
+            if (await isAlreadySoftDeleted()) {
+              return;
+            }
+            throw err;
           }
 
-          await softDelete();
+          // Hard-delete the stale row (and its ratelimits), then retry.
+          await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.identityId, stale.id));
+          await tx.delete(schema.identities).where(eq(schema.identities.id, stale.id));
+
+          try {
+            await softDelete();
+          } catch (retryErr) {
+            // A concurrent request soft-deleted this identity between our
+            // cleanup and retry. Idempotent success — audit logs already
+            // written by that request.
+            if (isDuplicateKeyError(retryErr) && (await isAlreadySoftDeleted())) {
+              return;
+            }
+            throw retryErr;
+          }
         }
 
         await insertAuditLogs(tx, {
