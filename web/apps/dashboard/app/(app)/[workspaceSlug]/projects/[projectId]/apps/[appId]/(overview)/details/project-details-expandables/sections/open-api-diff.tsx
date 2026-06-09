@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/status-indicator";
 import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { collection } from "@/lib/collections";
+import { openapiDiffPath } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -33,7 +34,7 @@ const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
 };
 
 export const OpenApiDiff = () => {
-  const params = useParams();
+  const params = useParams<{ workspaceSlug: string }>();
   const { projectId } = useProjectData();
   const appId = useAppId();
 
@@ -94,7 +95,13 @@ export const OpenApiDiff = () => {
     return null;
   }
 
-  const diffUrl = `/${params?.workspaceSlug}/projects/${params?.projectId}/apps/${appId}/openapi-diff?from=${currentDeploymentId}&to=${newDeployment.id}`;
+  const diffUrl = openapiDiffPath({
+    workspaceSlug: params.workspaceSlug,
+    projectId,
+    appId,
+    from: currentDeploymentId ?? "",
+    to: newDeployment.id,
+  });
   return (
     <Link href={diffUrl} className="hover:opacity-80 transition-opacity block">
       <div className="gap-4 items-center flex w-full">

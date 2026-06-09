@@ -1,5 +1,6 @@
 "use client";
 import { LoadingState } from "@/components/loading-state";
+import { appSettingsPath, newAppPath } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Empty, toast } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,11 +24,20 @@ export default function Page() {
     onSuccess: (data) => {
       if (data.returnTo === "settings") {
         router.replace(
-          `/${data.workspaceSlug}/projects/${data.projectId}/apps/${data.appId}/settings`,
+          appSettingsPath({
+            workspaceSlug: data.workspaceSlug,
+            projectId: data.projectId,
+            appId: data.appId,
+          }),
         );
       } else {
         router.replace(
-          `/${data.workspaceSlug}/projects/${data.projectId}/apps/new?step=select-repo&appId=${data.appId}`,
+          newAppPath({
+            workspaceSlug: data.workspaceSlug,
+            projectId: data.projectId,
+            step: "select-repo",
+            appId: data.appId,
+          }),
         );
       }
     },

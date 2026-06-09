@@ -1,6 +1,7 @@
 "use client";
 
 import type { Navbar } from "@/components/navigation/navbar";
+import { appPath, projectPath, projectsPath } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import type { ComponentPropsWithoutRef } from "react";
@@ -25,19 +26,19 @@ export const useBreadcrumbConfig = ({
   projectId,
   projectName,
   appId,
-  basePath,
+  workspaceSlug,
 }: {
   projectId: string;
   projectName?: string;
   appId: string;
-  basePath: string;
+  workspaceSlug: string;
 }): BreadcrumbItem[] => {
   const segments = useSelectedLayoutSegments() ?? [];
   const params = useParams();
   const deploymentId = params?.deploymentId as string | undefined;
 
   // All tabs live under the app, e.g. /projects/[projectId]/apps/[appId]/deployments
-  const appBase = `${basePath}/${projectId}/apps/${appId}`;
+  const appBase = appPath({ workspaceSlug, projectId, appId });
 
   // Sub-pages configuration - matches the existing structure
   const subPages: SubPage[] = [
@@ -84,7 +85,7 @@ export const useBreadcrumbConfig = ({
     {
       id: "projects",
       children: "Projects",
-      href: basePath,
+      href: projectsPath({ workspaceSlug }),
       shouldRender: true,
       active: false,
       isLast: false,
@@ -94,7 +95,7 @@ export const useBreadcrumbConfig = ({
     {
       id: "project",
       children: projectName || projectId,
-      href: `${basePath}/${projectId}`,
+      href: projectPath({ workspaceSlug, projectId }),
       shouldRender: true,
       active: false,
       isLast: false,

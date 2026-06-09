@@ -13,6 +13,7 @@ import {
   ShieldKey,
   SquareBulletList,
 } from "@unkey/icons";
+import { appPath, projectLogsPath, projectPath, projectRequestsPath, projectsPath } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
 export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
@@ -21,7 +22,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     {
       key: "projects",
       label: "Projects",
-      href: `/${slug}/projects`,
+      href: projectsPath({ workspaceSlug: slug }),
       icon: Cube,
       isActive: top === "projects",
     },
@@ -113,7 +114,7 @@ export function buildProjectLinks(
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[2];
-  const base = `/${slug}/projects/${projectId}`;
+  const base = projectPath({ workspaceSlug: slug, projectId });
   return [
     {
       key: "overview",
@@ -153,7 +154,7 @@ export function buildAppLinks(
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[4];
-  const base = `/${slug}/projects/${projectId}/apps/${appId}`;
+  const base = appPath({ workspaceSlug: slug, projectId, appId });
   return [
     {
       key: "deployments",
@@ -188,7 +189,7 @@ export function buildAppLinks(
     {
       key: "logs",
       label: "Logs",
-      href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
+      href: projectLogsPath({ workspaceSlug: slug, projectId, appId }),
       icon: Layers3,
       isActive: false,
       separatorAbove: true,
@@ -196,7 +197,7 @@ export function buildAppLinks(
     {
       key: "requests",
       label: "Requests",
-      href: `/${slug}/projects/${projectId}/requests?since=6h&appId=${appId}`,
+      href: projectRequestsPath({ workspaceSlug: slug, projectId, since: "6h", appId }),
       icon: ArrowOppositeDirectionY,
       isActive: false,
     },

@@ -2,6 +2,12 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import {
+  appDeploymentsPath,
+  appSettingsPath,
+  projectLogsPath,
+  projectRequestsPath,
+} from "@/lib/navigation/routes";
 import { ArrowOppositeDirectionY, Clone, Cloud, Gear, Layers3 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -27,7 +33,7 @@ const getAppActionItems = (
   appId: string,
   router: AppRouterInstance,
 ): MenuItem[] => {
-  const appBase = `/${workspaceSlug}/projects/${projectId}/apps/${appId}`;
+  const appScope = { workspaceSlug, projectId, appId };
 
   return [
     {
@@ -52,7 +58,7 @@ const getAppActionItems = (
       label: "View logs",
       icon: <Layers3 iconSize="md-regular" />,
       onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/logs?appId=${appId}`);
+        router.push(projectLogsPath(appScope));
       },
     },
     {
@@ -60,7 +66,7 @@ const getAppActionItems = (
       label: "View requests",
       icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
       onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/requests?since=6h&appId=${appId}`);
+        router.push(projectRequestsPath({ ...appScope, since: "6h" }));
       },
     },
     {
@@ -68,7 +74,7 @@ const getAppActionItems = (
       label: "View deployments",
       icon: <Cloud iconSize="md-regular" />,
       onClick: () => {
-        router.push(`${appBase}/deployments`);
+        router.push(appDeploymentsPath(appScope));
       },
     },
     {
@@ -76,7 +82,7 @@ const getAppActionItems = (
       label: "App settings",
       icon: <Gear iconSize="md-medium" />,
       onClick: () => {
-        router.push(`${appBase}/settings`);
+        router.push(appSettingsPath(appScope));
       },
     },
   ];

@@ -1,5 +1,6 @@
 "use client";
 
+import { projectSettingsPath } from "@/lib/navigation/routes";
 import { Ban, CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
@@ -69,7 +70,7 @@ export function DeploymentSkipped() {
             </span>
           </div>
         </div>
-        <Link href={`/${workspaceSlug}/projects/${projectId}/settings`}>
+        <Link href={projectSettingsPath({ workspaceSlug, projectId })}>
           <Button variant="primary" size="sm" className="px-3 shrink-0">
             Go to Settings
           </Button>

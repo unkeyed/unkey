@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { deploymentPath } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { CopyButton } from "@unkey/ui";
 import { useProjectData } from "../(overview)/data-provider";
@@ -13,9 +14,11 @@ type DeploymentIdLinkProps = {
 export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
   const workspace = useWorkspaceNavigation();
   const { projectId, getDeploymentById } = useProjectData();
+  // appId comes from the deployment record, not the route: project-level logs and
+  // requests render rows from many apps. A miss (deployment outside the loaded
+  // window) leaves no appId, so show the id without a link instead of crashing.
   const appId = getDeploymentById(deploymentId)?.appId;
 
-  // no appId means the deployment is not in the loaded collection, show the id without a broken link
   if (!appId) {
     return (
       <div className="flex items-center gap-2">
@@ -27,7 +30,7 @@ export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
 
   return (
     <DottedLink
-      href={`/${workspace.slug}/projects/${projectId}/apps/${appId}/deployments/${deploymentId}`}
+      href={deploymentPath({ workspaceSlug: workspace.slug, projectId, appId, deploymentId })}
       copyValue={deploymentId}
     >
       <span className="font-mono">{shortenId(deploymentId)}</span>

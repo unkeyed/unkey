@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { projectsPath } from "@/lib/navigation/routes";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -8,7 +9,7 @@ export default function WorkspacePage() {
   const workspace = useWorkspaceNavigation();
 
   useEffect(() => {
-    router.replace(`/${workspace.slug}/projects`);
+    router.replace(projectsPath({ workspaceSlug: workspace.slug }));
   }, [router, workspace.slug]);
 
   return null;

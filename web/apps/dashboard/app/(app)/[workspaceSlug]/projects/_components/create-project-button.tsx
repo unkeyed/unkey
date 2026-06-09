@@ -7,6 +7,7 @@ import {
   createProjectRequestSchema,
 } from "@/lib/collections/deploy/projects";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
+import { newAppPath } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
@@ -73,7 +74,7 @@ export const CreateProjectButton = ({
       });
       await tx.isPersisted.promise;
       const { projectId } = tx.metadata as { projectId: string };
-      router.push(`/${workspaceSlug}/projects/${projectId}/apps/new`);
+      router.push(newAppPath({ workspaceSlug, projectId }));
       setIsOpen(false);
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

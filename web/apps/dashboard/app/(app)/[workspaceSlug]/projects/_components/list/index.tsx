@@ -1,6 +1,7 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { projectPath } from "@/lib/navigation/routes";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -71,7 +72,7 @@ export const ProjectsList = () => {
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
             <ResourceCard
-              href={`/${workspace.slug}/projects/${project.id}`}
+              href={projectPath({ workspaceSlug: workspace.slug, projectId: project.id })}
               name={project.name}
               domain={project.domain}
               commitTitle={project.commitTitle}

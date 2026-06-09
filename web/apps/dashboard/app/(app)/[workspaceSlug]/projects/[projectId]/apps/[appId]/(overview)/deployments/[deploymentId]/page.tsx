@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { projectDeploymentsPath } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -112,7 +113,11 @@ export default function DeploymentOverview() {
       {view}
       <DeploymentApproval
         isOpen={awaitingApproval}
-        onClose={() => router.push(`/${workspace.slug}/projects/${params.projectId}/deployments`)}
+        onClose={() =>
+          router.push(
+            projectDeploymentsPath({ workspaceSlug: workspace.slug, projectId: params.projectId }),
+          )
+        }
         deployment={deployment}
       />
     </ProjectContentWrapper>
