@@ -46,19 +46,44 @@ export const deleteIdentity = workspaceProcedure
 
     await db
       .transaction(async (tx) => {
-        await tx
-          .update(schema.identities)
-          .set({
-            deleted: true,
-          })
-          .where(eq(schema.identities.id, identity.id))
-          .catch((_err) => {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "We are unable to delete this identity. Please try again or contact support@unkey.com",
-            });
+        const softDelete = () =>
+          tx
+            .update(schema.identities)
+            .set({ deleted: true })
+            .where(eq(schema.identities.id, identity.id));
+
+        try {
+          await softDelete();
+        } catch (err) {
+          // The unique index spans (workspaceId, externalId, deleted), so at
+          // most one soft-deleted row may exist per externalId. If this
+          // externalId was previously deleted, recreated, and is now being
+          // deleted again, the soft delete collides with that stale
+          // deleted=true row. Hard-delete the stale row (and its ratelimits)
+          // and retry, mirroring the public API handler
+          // (svc/api/routes/v2_identities_delete_identity/handler.go).
+          if (!(err instanceof Error && "code" in err && err.code === "ER_DUP_ENTRY")) {
+            throw err;
+          }
+
+          const stale = await tx.query.identities.findFirst({
+            where: (table, { and, eq, ne }) =>
+              and(
+                eq(table.workspaceId, ctx.workspace.id),
+                eq(table.externalId, identity.externalId),
+                eq(table.deleted, true),
+                ne(table.id, identity.id),
+              ),
+            columns: { id: true },
           });
+
+          if (stale) {
+            await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.identityId, stale.id));
+            await tx.delete(schema.identities).where(eq(schema.identities.id, stale.id));
+          }
+
+          await softDelete();
+        }
 
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
