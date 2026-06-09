@@ -23,9 +23,17 @@ export function projectSettingsPath(scope: ProjectScope): string {
   return `${projectPath(scope)}/settings`;
 }
 
-export function projectLogsPath({ appId, ...scope }: ProjectScope & { appId?: string }): string {
+export function projectLogsPath({ appId,deploymentId, ...scope }: ProjectScope & { appId?: string,deploymentId?: string, }): string {
+    const params: string[] = [];
+  if (appId) {
+    params.push(`appId=${appId}`);
+  }
+  if (deploymentId) {
+    // `contains:` is the log-table filter syntax for a deployment id.
+    params.push(`deploymentId=contains:${deploymentId}`);
+  }
   const base = `${projectPath(scope)}/logs`;
-  return appId ? `${base}?appId=${appId}` : base;
+  return params.length ? `${base}?${params.join("&")}` : base;
 }
 
 export function projectRequestsPath({

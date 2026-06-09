@@ -119,6 +119,7 @@ export const DeploymentListTableActions = ({
               workspaceSlug: workspace.slug,
               projectId: selectedDeployment.projectId,
               appId: selectedDeployment.appId,
+              deploymentId: selectedDeployment.id
             }),
           );
         },
