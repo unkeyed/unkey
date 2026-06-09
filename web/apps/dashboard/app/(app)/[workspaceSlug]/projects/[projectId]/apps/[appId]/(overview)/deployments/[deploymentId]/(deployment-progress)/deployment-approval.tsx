@@ -1,6 +1,7 @@
 "use client";
 
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { githubBranchUrl, githubCommitUrl, githubPullUrl } from "@/lib/github-urls";
 import { trpc } from "@/lib/trpc/client";
 import { ShieldAlert } from "@unkey/icons";
 import { Button, Dialog, DialogContent } from "@unkey/ui";
@@ -37,20 +38,9 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
   // `prNumber` is set for same-repo PRs too, so it can't gate this copy.
   const isFork = Boolean(deployment.forkRepositoryFullName);
 
-  const prUrl =
-    project?.repositoryFullName && deployment.prNumber
-      ? `https://github.com/${project.repositoryFullName}/pull/${deployment.prNumber}`
-      : null;
-
-  const commitUrl =
-    sourceRepo && deployment.gitCommitSha
-      ? `https://github.com/${sourceRepo}/commit/${deployment.gitCommitSha}`
-      : null;
-
-  const branchUrl =
-    sourceRepo && deployment.gitBranch
-      ? `https://github.com/${sourceRepo}/tree/${deployment.gitBranch}`
-      : null;
+  const prUrl = githubPullUrl(project?.repositoryFullName, deployment.prNumber);
+  const commitUrl = githubCommitUrl(sourceRepo, deployment.gitCommitSha);
+  const branchUrl = githubBranchUrl(sourceRepo, deployment.gitBranch);
 
   const branchName = deployment.gitBranch ?? "unknown";
   const commitSha = deployment.gitCommitSha?.slice(0, 7) ?? "unknown";

@@ -16,6 +16,9 @@ const schema = z.object({
   latestDeploymentId: z.string().nullable(),
   // Flattened current-deployment fields for the shared deployable card.
   commitTitle: z.string().nullable(),
+  commitSha: z.string().nullable(),
+  forkRepositoryFullName: z.string().nullable(),
+  prNumber: z.number().int().nullable(),
   branch: z.string(),
   author: z.string().nullable(),
   authorAvatar: z.string().nullable(),

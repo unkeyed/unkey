@@ -147,10 +147,13 @@ export const listProjects = workspaceProcedure
           .select({
             id: deployments.id,
             gitCommitMessage: deployments.gitCommitMessage,
+            gitCommitSha: deployments.gitCommitSha,
             gitBranch: deployments.gitBranch,
             gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
             gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
             gitCommitTimestamp: deployments.gitCommitTimestamp,
+            prNumber: deployments.prNumber,
+            forkRepositoryFullName: deployments.forkRepositoryFullName,
           })
           .from(deployments)
           .where(
@@ -169,15 +172,19 @@ export const listProjects = workspaceProcedure
         ? currentDeploymentById.get(primaryApp.currentDeploymentId)
         : undefined;
       const hasDeployment = currentDeployment?.gitCommitTimestamp != null;
+      const repositoryFullName = repoByProject.get(project.id) ?? null;
 
       return {
         id: project.id,
         name: project.name,
         slug: project.slug,
-        repositoryFullName: repoByProject.get(project.id) ?? null,
+        repositoryFullName,
         currentDeploymentId: primaryApp?.currentDeploymentId ?? null,
         isRolledBack: primaryApp?.isRolledBack ?? false,
         commitTitle: currentDeployment?.gitCommitMessage ?? null,
+        commitSha: currentDeployment?.gitCommitSha ?? null,
+        forkRepositoryFullName: currentDeployment?.forkRepositoryFullName ?? null,
+        prNumber: currentDeployment?.prNumber ?? null,
         branch: currentDeployment?.gitBranch ?? "main",
         author: currentDeployment?.gitCommitAuthorHandle ?? null,
         authorAvatar: currentDeployment?.gitCommitAuthorAvatarUrl ?? null,

@@ -4,6 +4,7 @@ import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/li
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
+import { githubBranchUrl, githubRepoUrl } from "@/lib/github-urls";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -262,7 +263,7 @@ export const CreateDeploymentButton = ({
           {repositoryFullName && (
             <div className="flex items-start gap-2 flex-col">
               <RepoDisplay
-                url={`https://github.com/${repositoryFullName}`}
+                url={githubRepoUrl(repositoryFullName) ?? ""}
                 className="bg-grayA-4 px-1.5 font-medium text-xs text-gray-12 rounded-full min-h-[22px]"
               />
               {repoDetails.data?.pushedAt ? (
@@ -334,7 +335,7 @@ export const CreateDeploymentButton = ({
                   isCliApp
                     ? "registry.example.com/my-app:v1.2.3"
                     : repositoryFullName
-                      ? `https://github.com/${repositoryFullName}/tree/${defaultBranch}`
+                      ? (githubBranchUrl(repositoryFullName, defaultBranch) ?? "")
                       : "Enter a commit SHA, branch, or PR URL"
                 }
               />
