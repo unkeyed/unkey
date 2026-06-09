@@ -1,23 +1,16 @@
 "use client";
 
-import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
-import { VirtualTable } from "@/components/virtual-table/index";
-import type { Column } from "@/components/virtual-table/types";
-import { formatNumber } from "@/lib/fmt";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { cn } from "@/lib/utils";
-import { formatLatency } from "@/lib/utils/metric-formatters";
-import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
-import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
-import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
-import { useSentinelLogsContext } from "../../context/sentinel-logs-provider";
-import { useSentinelLogsQuery } from "./hooks/use-sentinel-logs-query";
 import {
-  WARNING_ICON_STYLES,
+  createSentinelLogsColumns,
   getRowClassName,
   getSelectedClassName,
-  getStatusStyle,
-} from "./utils/get-row-class";
+  useSentinelLogsQuery,
+} from "@/components/sentinel-logs-table";
+import { formatNumber } from "@/lib/fmt";
+import { BookBookmark } from "@unkey/icons";
+import { Button, DataTable, Empty } from "@unkey/ui";
+import { useMemo } from "react";
+import { useSentinelLogsContext } from "../../context/sentinel-logs-provider";
 
 export const SentinelLogsTable = () => {
   const { setSelectedLog, selectedLog, isLive } = useSentinelLogsContext();
@@ -27,23 +20,25 @@ export const SentinelLogsTable = () => {
       pollIntervalMs: 2000,
     });
 
+  const columns = useMemo(() => createSentinelLogsColumns(), []);
+
   return (
-    <VirtualTable
+    <DataTable
       data={historicalLogs}
       realtimeData={realtimeLogs}
-      isLoading={isLoading}
-      isFetchingNextPage={isLoadingMore}
-      onLoadMore={loadMore}
       columns={columns}
+      getRowId={(log) => log.request_id}
+      isLoading={isLoading}
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
-      keyExtractor={(log) => log.request_id}
       rowClassName={(log) => getRowClassName(log, selectedLog, isLive, realtimeLogs)}
       selectedClassName={getSelectedClassName}
       loadMoreFooterProps={{
         hide: isLoading,
         buttonText: "Load more logs",
-        hasMore,
+        hasMore: hasMore ?? false,
+        onLoadMore: loadMore,
+        isFetchingNextPage: isLoadingMore,
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span>
@@ -79,105 +74,3 @@ const EmptyState = () => (
     </Empty>
   </div>
 );
-
-const WarningIcon = ({ status }: { status: number }) => (
-  <TriangleWarning2
-    iconSize="md-regular"
-    className={cn(
-      WARNING_ICON_STYLES.base,
-      status < 400 && "invisible",
-      status >= 400 && status < 500 && WARNING_ICON_STYLES.warning,
-      status >= 500 && WARNING_ICON_STYLES.error,
-    )}
-  />
-);
-
-const columns: Column<SentinelLogsResponse>[] = [
-  {
-    key: "time",
-    header: "Time",
-    width: "10%",
-    headerClassName: "pl-8",
-    render: (log) => (
-      <div className="flex items-center gap-3 px-2">
-        <WarningIcon status={log.response_status} />
-        <div className="flex-1 min-w-0">
-          <TimestampInfo
-            value={log.time}
-            className="font-mono group-hover:underline decoration-dotted"
-          />
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: "region",
-    header: "Region",
-    width: "10%",
-    render: (log) => (
-      <div className="flex items-center gap-1.5">
-        <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
-        <span className="font-mono text-xs text-gray-11">{log.region}</span>
-      </div>
-    ),
-  },
-  {
-    key: "response_status",
-    header: "Status",
-    width: "5%",
-    render: (log) => {
-      const style = getStatusStyle(log.response_status);
-      return (
-        <Badge
-          className={cn(
-            "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-            style.badge.default,
-          )}
-        >
-          {log.response_status}
-        </Badge>
-      );
-    },
-  },
-  {
-    key: "method",
-    header: "Method",
-    width: "5%",
-    render: (log) => (
-      <Badge
-        className={cn(
-          "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-          getStatusStyle(log.response_status).badge.default,
-        )}
-      >
-        {log.method}
-      </Badge>
-    ),
-  },
-  {
-    key: "host",
-    header: "Host",
-    width: "25%",
-    render: (log) => (
-      <div className="font-mono pr-4 truncate" title={log.host}>
-        {log.host}
-      </div>
-    ),
-  },
-  {
-    key: "path",
-    header: "Path",
-    width: "25%",
-    render: (log) => (
-      <div className="font-mono pr-4 truncate max-w-[250px]" title={log.path}>
-        {log.path}
-      </div>
-    ),
-  },
-  {
-    key: "total_latency",
-    header: "Total Latency",
-    width: "10%",
-    render: (log) => <div className="font-mono pr-4">{formatLatency(log.total_latency)}</div>,
-  },
-];
