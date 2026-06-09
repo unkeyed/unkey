@@ -14,14 +14,15 @@ export type ProjectCardApp = {
 type ProjectCardProps = {
   name: string;
   projectId: string;
-  /** Total number of apps in the project (may exceed `apps.length`). */
   appCount: number;
-  /** Apps to render in the stack, already ordered. Only the first few are shown. */
   apps: ProjectCardApp[];
   actions: ReactNode;
 };
 
 const MAX_VISIBLE_APPS = 4;
+
+const BLOB_BASE =
+  "size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center -ml-2 hover:bg-gray-4 transition-colors";
 
 function AppSourceIcon({
   source,
@@ -65,12 +66,11 @@ export function ProjectCard({ name, projectId, appCount, apps, actions }: Projec
         aria-label={`View ${name} project`}
       />
 
-      {/*Top Section > Project name + actions*/}
       <div className="flex gap-4 items-start justify-between min-h-5">
         <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
           <Link
             href={projectPath}
-            className="font-medium text-sm leading-5 text-accent-12 truncate"
+            className="font-medium text-sm leading-5 text-accent-12 truncate min-w-0"
           >
             {name}
           </Link>
@@ -78,9 +78,8 @@ export function ProjectCard({ name, projectId, appCount, apps, actions }: Projec
         <div className="relative shrink-0">{actions}</div>
       </div>
 
-      {/*Bottom Section > App stack + count*/}
       {appCount === 0 ? (
-        <span className="text-xs text-gray-9">No apps yet</span>
+        <span className="text-xs text-gray-11">No apps yet</span>
       ) : (
         <div className="relative z-10 w-fit">
           <AppIconStack apps={apps} appCount={appCount} projectPath={projectPath} />
@@ -97,6 +96,7 @@ function AppIconStack({
 }: { apps: ProjectCardApp[]; appCount: number; projectPath: string }) {
   const visible = apps.slice(0, MAX_VISIBLE_APPS);
   const overflow = appCount - visible.length;
+  const appHref = (appId: string) => `${projectPath}/apps/${appId}/deployments`;
 
   return (
     <div className="flex items-center">
@@ -109,9 +109,9 @@ function AppIconStack({
           position={{ side: "top" }}
         >
           <Link
-            href={`${projectPath}/apps/${app.id}/deployments`}
+            href={appHref(app.id)}
             aria-label={`View ${app.name}`}
-            className="size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center -ml-2 first:ml-0 text-gray-12 hover:bg-gray-4 transition-colors"
+            className={`${BLOB_BASE} first:ml-0 text-gray-12`}
           >
             <AppSourceIcon source={app.source} className="size-3.5 shrink-0" />
           </Link>
@@ -123,17 +123,17 @@ function AppIconStack({
             <Link
               href={projectPath}
               aria-label={`View all ${appCount} apps`}
-              className="size-7 rounded-full bg-gray-3 ring-2 ring-gray-1 flex items-center justify-center -ml-2 text-[10px] font-medium text-gray-11 hover:bg-gray-4 transition-colors"
+              className={`${BLOB_BASE} text-[10px] font-medium text-gray-11`}
             >
               +{overflow}
             </Link>
           </HoverCardTrigger>
           <HoverCardContent align="start" className="w-56 p-1">
-            <div className="flex flex-col">
+            <div className="flex flex-col max-h-64 overflow-y-auto">
               {apps.map((app) => (
                 <Link
                   key={app.id}
-                  href={`${projectPath}/apps/${app.id}/deployments`}
+                  href={appHref(app.id)}
                   className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-gray-12 hover:bg-grayA-3 transition-colors"
                 >
                   <AppSourceIcon source={app.source} className="size-3.5 shrink-0 text-gray-11" />

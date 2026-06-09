@@ -2,7 +2,7 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Clone, Gear, Layers3, Terminal } from "@unkey/icons";
+import { ArrowOppositeDirectionY, Clone, Gear, Layers3 } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "view-requests",
       label: "View requests",
-      icon: <Layers3 iconSize="md-regular" />,
+      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
       onClick: () => {
         router.push(`/${workspace.slug}/projects/${projectId}/requests`);
       },
@@ -45,7 +45,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "view-logs",
       label: "View logs",
-      icon: <Terminal iconSize="md-regular" />,
+      icon: <Layers3 iconSize="md-medium" />,
       onClick: () => {
         router.push(`/${workspace.slug}/projects/${projectId}/logs`);
       },

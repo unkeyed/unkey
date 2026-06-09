@@ -95,7 +95,6 @@ export const listProjects = workspaceProcedure
         })
         .from(githubRepoConnections)
         .where(eq(githubRepoConnections.workspaceId, workspaceId)),
-      // Every app in each project, newest first, for the card's app stack.
       db
         .select({
           projectId: apps.projectId,
@@ -145,8 +144,6 @@ export const listProjects = workspaceProcedure
       repoByProject.set(row.projectId, row.repositoryFullName);
     }
 
-    // Apps with a GitHub repo connection render the GitHub icon and show the
-    // repo next to their name; the rest fall back to the generic code icon.
     const repoByApp = new Map(repoRows.map((row) => [row.appId, row.repositoryFullName]));
 
     const appsByProject = new Map<string, Project["apps"]>();
