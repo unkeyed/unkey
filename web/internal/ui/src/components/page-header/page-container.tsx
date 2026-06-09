@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import { cn } from "../../lib/utils";
 
 type PageWidth = "default" | "full";
@@ -9,17 +9,18 @@ type PageWidth = "default" | "full";
  * themselves — `full` runs the body edge to edge while the header keeps its
  * gutter and divider.
  */
-const PageContainer = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { width?: PageWidth }
->(({ width = "default", className, ...props }, ref) => (
-  <div
-    ref={ref}
-    data-width={width}
-    className={cn("group/page flex w-full flex-col", className)}
-    {...props}
-  />
-));
-PageContainer.displayName = "PageContainer";
+function PageContainer({
+  width = "default",
+  className,
+  ...props
+}: React.ComponentProps<"div"> & { width?: PageWidth }) {
+  return (
+    <div
+      data-width={width}
+      className={cn("group/page flex w-full flex-col", className)}
+      {...props}
+    />
+  );
+}
 
 export { PageContainer };

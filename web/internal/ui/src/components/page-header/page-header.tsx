@@ -1,10 +1,9 @@
-import * as React from "react";
+import type * as React from "react";
 import { cn } from "../../lib/utils";
 
-const PageHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+function PageHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
     <div
-      ref={ref}
       className={cn(
         "mx-auto flex w-full max-w-7xl items-start justify-between gap-3 px-4 pt-6",
         "group-data-[width=full]/page:max-w-none group-data-[width=full]/page:border-b group-data-[width=full]/page:border-grayA-4 group-data-[width=full]/page:pb-4 group-data-[width=full]/page:pt-4",
@@ -12,45 +11,31 @@ const PageHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
       )}
       {...props}
     />
-  ),
-);
-PageHeader.displayName = "PageHeader";
+  );
+}
 
-const PageHeaderContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex flex-col gap-0.5 min-w-0", className)} {...props} />
-  ),
-);
-PageHeaderContent.displayName = "PageHeaderContent";
+function PageHeaderContent({ className, ...props }: React.ComponentProps<"div">) {
+  return <div className={cn("flex flex-col gap-0.5 min-w-0", className)} {...props} />;
+}
 
-const PageHeaderTitle = React.forwardRef<
-  HTMLHeadingElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h1
-    ref={ref}
-    className={cn(
-      "text-[22px] font-semibold tracking-tight leading-tight text-accent-12 m-0",
-      className,
-    )}
-    {...props}
-  />
-));
-PageHeaderTitle.displayName = "PageHeaderTitle";
+function PageHeaderTitle({ className, ...props }: React.ComponentProps<"h1">) {
+  return (
+    <h1
+      className={cn(
+        "text-[22px] font-semibold tracking-tight leading-tight text-accent-12 m-0",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 
-const PageHeaderDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <p ref={ref} className={cn("text-[13px] leading-5 text-accent-11 m-0", className)} {...props} />
-));
-PageHeaderDescription.displayName = "PageHeaderDescription";
+function PageHeaderDescription({ className, ...props }: React.ComponentProps<"p">) {
+  return <p className={cn("text-[13px] leading-5 text-accent-11 m-0", className)} {...props} />;
+}
 
-const PageHeaderActions = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex items-center gap-2 shrink-0", className)} {...props} />
-  ),
-);
-PageHeaderActions.displayName = "PageHeaderActions";
+function PageHeaderActions({ className, ...props }: React.ComponentProps<"div">) {
+  return <div className={cn("flex items-center gap-2 shrink-0", className)} {...props} />;
+}
 
 export { PageHeader, PageHeaderContent, PageHeaderTitle, PageHeaderDescription, PageHeaderActions };
