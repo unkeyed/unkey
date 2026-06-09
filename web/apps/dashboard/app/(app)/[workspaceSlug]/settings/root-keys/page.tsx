@@ -1,5 +1,5 @@
 "use client";
-import { PageChrome } from "@/components/page-header/page-chrome";
+import { PageContainer } from "@/components/page-header/page-container";
 import { PageHeader, PageHeaderActions, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { RootKeysListControlCloud } from "./components/control-cloud";
 import { RootKeysListControls } from "./components/controls";
@@ -8,7 +8,7 @@ import { RootKeysList } from "./components/table/root-keys-list";
 
 export default function RootKeysPage() {
   return (
-    <PageChrome
+    <PageContainer
       width="full"
       header={
         <PageHeader>
@@ -26,6 +26,6 @@ export default function RootKeysPage() {
         <RootKeysListControlCloud />
         <RootKeysList />
       </div>
-    </PageChrome>
+    </PageContainer>
   );
 }

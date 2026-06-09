@@ -1,6 +1,6 @@
 "use client";
 
-import { PageChrome } from "@/components/page-header/page-chrome";
+import { PageContainer } from "@/components/page-header/page-container";
 import {
   Button,
   PageHeader,
@@ -12,14 +12,9 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-/**
- * Shared chrome for the billing screens. Billing renders several bodies
- * (loading, error, legacy, paid/free), so each wraps in this rather than
- * repeating the header.
- */
-export function BillingChrome({ children }: { children: ReactNode }) {
+export function BillingContainer({ children }: { children: ReactNode }) {
   return (
-    <PageChrome
+    <PageContainer
       header={
         <PageHeader>
           <PageHeaderContent>
@@ -46,6 +41,6 @@ export function BillingChrome({ children }: { children: ReactNode }) {
       }
     >
       {children}
-    </PageChrome>
+    </PageContainer>
   );
 }

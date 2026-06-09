@@ -12,7 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
-import { BillingChrome } from "./billing-chrome";
+import { BillingContainer } from "./billing-container";
 import { CancelAlert } from "./components/cancel-alert";
 import { CancelPlan } from "./components/cancel-plan";
 import { CurrentPlanCard } from "./components/current-plan-card";
@@ -52,7 +52,7 @@ export const Client: React.FC = () => {
   // Handle loading states - don't render until we have billing info
   if (billingLoading || !billingInfo) {
     return (
-      <BillingChrome>
+      <BillingContainer>
         <div className="animate-pulse">
           <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
             <div className="w-full h-[150px] bg-grayA-3 rounded-lg" />
@@ -60,21 +60,21 @@ export const Client: React.FC = () => {
             <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
           </div>
         </div>
-      </BillingChrome>
+      </BillingContainer>
     );
   }
 
   // Handle error states
   if (billingError) {
     return (
-      <BillingChrome>
+      <BillingContainer>
         <Empty>
           <Empty.Title>Failed to load billing information</Empty.Title>
           <Empty.Description>
             There was an error loading your billing information. Please try again later.
           </Empty.Description>
         </Empty>
-      </BillingChrome>
+      </BillingContainer>
     );
   }
 
@@ -95,7 +95,7 @@ export const Client: React.FC = () => {
     : undefined;
 
   return (
-    <BillingChrome>
+    <BillingContainer>
       <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
         {subscription ? (
           <SubscriptionStatus
@@ -192,6 +192,6 @@ export const Client: React.FC = () => {
           </SettingsDangerZone>
         ) : null}
       </div>
-    </BillingChrome>
+    </BillingContainer>
   );
 };

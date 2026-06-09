@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Button, Empty, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
-import { BillingChrome } from "./billing-chrome";
+import { BillingContainer } from "./billing-container";
 import { Client } from "./client";
 
 export default function BillingPage() {
@@ -37,15 +37,15 @@ export default function BillingPage() {
   // Wait for workspace to load before proceeding
   if (isLoading) {
     return (
-      <BillingChrome>
+      <BillingContainer>
         <PageLoading message="Loading billing..." />
-      </BillingChrome>
+      </BillingContainer>
     );
   }
 
   if (isError) {
     return (
-      <BillingChrome>
+      <BillingContainer>
         <Empty>
           <Empty.Title>Failed to load usage data</Empty.Title>
           <Empty.Description>
@@ -53,7 +53,7 @@ export default function BillingPage() {
               "There was an error loading your usage information. Please try again later."}
           </Empty.Description>
         </Empty>
-      </BillingChrome>
+      </BillingContainer>
     );
   }
   if (isLegacy) {
@@ -62,7 +62,7 @@ export default function BillingPage() {
     const ratelimits = usage?.billableRatelimits || 0;
 
     return (
-      <BillingChrome>
+      <BillingContainer>
         <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
           <div className="w-full">
             <SettingCard
@@ -111,7 +111,7 @@ export default function BillingPage() {
             </div>
           </SettingCard>
         </div>
-      </BillingChrome>
+      </BillingContainer>
     );
   }
 

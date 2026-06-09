@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 
 /** Constrains and centers a page's content with the standard horizontal gutters. */
-const PageShell = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+const PageBody = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
@@ -11,6 +11,6 @@ const PageShell = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivE
     />
   ),
 );
-PageShell.displayName = "PageShell";
+PageBody.displayName = "PageBody";
 
-export { PageShell };
+export { PageBody };

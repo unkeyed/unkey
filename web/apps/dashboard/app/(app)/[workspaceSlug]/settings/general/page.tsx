@@ -1,7 +1,7 @@
 "use client";
 
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
-import { PageChrome } from "@/components/page-header/page-chrome";
+import { PageContainer } from "@/components/page-header/page-container";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { PageHeader, PageHeaderActions, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { CopyWorkspaceId } from "./copy-workspace-id";
@@ -15,7 +15,7 @@ export default function SettingsPage() {
   const workspace = useWorkspaceNavigation();
 
   return (
-    <PageChrome
+    <PageContainer
       header={
         <PageHeader>
           <PageHeaderContent>
@@ -32,6 +32,6 @@ export default function SettingsPage() {
         {/* <UpdateWorkspaceImage /> */}
         <CopyWorkspaceId workspaceId={workspace.id} />
       </div>
-    </PageChrome>
+    </PageContainer>
   );
 }

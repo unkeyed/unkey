@@ -1,26 +1,26 @@
 import {
   Button,
+  PageBody,
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderDescription,
   PageHeaderTitle,
-  PageShell,
   SecondaryNav,
   SecondaryNavGroup,
   SecondaryNavItem,
   SecondaryNavTitle,
 } from "@unkey/ui";
 
-type PageShellExampleProps = {
+type PageBodyExampleProps = {
   /** Add a `SecondaryNav` rail to the left of the page. */
   rail?: boolean;
-  /** Drop `PageShell` and run the content edge to edge. */
+  /** Drop `PageBody` and run the content edge to edge. */
   fullWidth?: boolean;
 };
 
-/** A bare page: `PageShell` and `PageHeader` with a placeholder for the body. */
-export function PageShellExample({ rail = false, fullWidth = false }: PageShellExampleProps) {
+/** A bare page: `PageBody` and `PageHeader` with a placeholder for the body. */
+export function PageBodyExample({ rail = false, fullWidth = false }: PageBodyExampleProps) {
   if (fullWidth) {
     return (
       <div className="pb-8">
@@ -41,7 +41,7 @@ export function PageShellExample({ rail = false, fullWidth = false }: PageShellE
   }
 
   const page = (
-    <PageShell className="min-w-0 flex-1 pt-6 pb-8">
+    <PageBody className="min-w-0 flex-1 pt-6 pb-8">
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>General</PageHeaderTitle>
@@ -52,7 +52,7 @@ export function PageShellExample({ rail = false, fullWidth = false }: PageShellE
         </PageHeaderActions>
       </PageHeader>
       <div className="mt-4 h-48 rounded-lg bg-grayA-3" />
-    </PageShell>
+    </PageBody>
   );
 
   if (!rail) {

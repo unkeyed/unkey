@@ -1,28 +1,28 @@
 "use client";
 
-import { PageShell } from "@unkey/ui";
+import { PageBody } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 /**
- * - `default` constrains and centers the page in a {@link PageShell}, for forms
+ * - `default` constrains and centers the page in a {@link PageBody}, for forms
  *   and detail pages.
  * - `full` runs the body edge to edge, for dense pages (logs, tables) that own
  *   their width. The header keeps the standard gutter and a full-width divider.
  */
 type PageWidth = "default" | "full";
 
-type PageChromeProps = {
+type PageContainerProps = {
   header: ReactNode;
   children: ReactNode;
   width?: PageWidth;
 };
 
 /**
- * Wraps a page header and body in the standard shell. Full-width pages get their
+ * Wraps a page header and body in the standard measure. Full-width pages get their
  * header gutter and divider here, once, so individual pages never restyle the
  * header — they just pass `width="full"`.
  */
-export function PageChrome({ header, children, width = "default" }: PageChromeProps) {
+export function PageContainer({ header, children, width = "default" }: PageContainerProps) {
   if (width === "full") {
     return (
       <>
@@ -33,9 +33,9 @@ export function PageChrome({ header, children, width = "default" }: PageChromePr
   }
 
   return (
-    <PageShell className="pt-6">
+    <PageBody className="pt-6">
       {header}
       {children}
-    </PageShell>
+    </PageBody>
   );
 }

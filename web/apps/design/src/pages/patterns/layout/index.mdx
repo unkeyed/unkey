@@ -2,7 +2,7 @@
 layout: ../../../layouts/layout.astro
 title: Layout — Unkey Design
 ---
-import { PageShellExample } from "./_page-shell-example.tsx";
+import { PageBodyExample } from "./_page-body-example.tsx";
 
 # Layout
 
@@ -11,11 +11,11 @@ Rules and guidelines for building effective page layouts on the Unkey dashboard.
 ## Basics
 
 
-A simple page shell with a header and actions. 
+A simple page with a header and actions.
 
 
 <div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
-  <PageShellExample client:load />
+  <PageBodyExample client:load />
 </div>
 
 ```tsx
@@ -26,10 +26,10 @@ import {
   PageHeaderContent,
   PageHeaderDescription,
   PageHeaderTitle,
-  PageShell,
+  PageBody,
 } from "@unkey/ui"
 
-<PageShell>
+<PageBody>
   <PageHeader>
     <PageHeaderContent>
       <PageHeaderTitle>General</PageHeaderTitle>
@@ -40,7 +40,7 @@ import {
     </PageHeaderActions>
   </PageHeader>
   {/* page content */}
-</PageShell>
+</PageBody>
 ```
 
 ## Secondary navigation
@@ -48,10 +48,10 @@ import {
 A `SecondaryNav` rail on the left, the page on the right. Use it for sections with sibling pages.
 
 <div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
-  <PageShellExample client:load rail />
+  <PageBodyExample client:load rail />
 </div>
 
-Add the rail in the section layout, then each page renders its own `PageShell`.
+Add the rail in the section layout, then each page renders its own `PageBody`.
 
 **`app/settings/layout.tsx`**
 
@@ -88,12 +88,12 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
-  PageShell,
+  PageBody,
 } from "@unkey/ui"
 
 export default function GeneralPage() {
   return (
-    <PageShell>
+    <PageBody>
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>General</PageHeaderTitle>
@@ -103,7 +103,7 @@ export default function GeneralPage() {
         </PageHeaderActions>
       </PageHeader>
       {/* page content */}
-    </PageShell>
+    </PageBody>
   )
 }
 ```
@@ -113,13 +113,13 @@ export default function GeneralPage() {
 Logs, tables, and editors need the whole viewport, so the body runs edge to edge. The header keeps a gutter and a divider, so its title and actions still line up with the rest of the app.
 
 <div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
-  <PageShellExample client:load fullWidth />
+  <PageBodyExample client:load fullWidth />
 </div>
 
 ## Structure
 
-- **PageShell** — Wraps the page body. Sets the max width, side gutters, and centering so every page shares one measure.
-- **SecondaryNav** — Optional rail for moving between a section's sibling pages. Sits beside the shell.
+- **PageBody** — Wraps the page body. Sets the max width, side gutters, and centering so every page shares one measure.
+- **SecondaryNav** — Optional rail for moving between a section's sibling pages. Sits beside the page body.
 - **PageHeader** — The title block at the top of a page. Composed from the parts below.
 - **PageHeaderContent** — The header's left column; stacks the title and description.
 - **PageHeaderTitle** — The page's name, rendered as the `h1`.

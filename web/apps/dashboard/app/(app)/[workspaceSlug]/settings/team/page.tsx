@@ -1,4 +1,4 @@
-import { PageChrome } from "@/components/page-header/page-chrome";
+import { PageContainer } from "@/components/page-header/page-container";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
@@ -24,7 +24,7 @@ export default async function SettingTeamPage() {
   );
 
   return (
-    <PageChrome header={header}>
+    <PageContainer header={header}>
       {workspace ? (
         <div className="w-full flex flex-col pt-4">
           <TeamPageClient team={team} />
@@ -32,6 +32,6 @@ export default async function SettingTeamPage() {
       ) : (
         <div>Workspace not found</div>
       )}
-    </PageChrome>
+    </PageContainer>
   );
 }
