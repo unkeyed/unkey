@@ -2,10 +2,6 @@
  * Single source of truth for building github.com web links. Every builder returns
  * undefined when a required part is missing so callers can fall back to plain text
  * instead of rendering a broken link.
- *
- * Commit and branch links should use the fork-aware source repo
- * (`forkRepositoryFullName || repositoryFullName`); PR links always use the base
- * repo, since the PR lives on the repo it targets.
  */
 import { buildUrl } from "@/lib/navigation/url";
 
