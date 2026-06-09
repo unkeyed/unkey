@@ -3,7 +3,7 @@
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/env-status-badge";
 import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { githubBranchUrl, githubCommitUrl } from "@/lib/github-urls";
+import { githubUrl } from "@/lib/github-url";
 import type { LastExit } from "@/lib/types/deploy";
 import {
   formatCpuParts,
@@ -108,7 +108,7 @@ export function ActiveDeploymentCard({
           </div>
           <div className="flex items-center gap-3 min-w-0">
             {deployment.gitCommitMessage && (
-              <GitHubLink href={githubCommitUrl(sourceRepo, deployment.gitCommitSha)}>
+              <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                 <div className="flex items-center gap-1.5 min-w-0">
                   <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
                   <span className="text-xs text-accent-12 truncate">
@@ -165,7 +165,7 @@ export function ActiveDeploymentCard({
                 </InfoTooltip>
               )}
               {deployment.gitBranch && (
-                <GitHubLink href={githubBranchUrl(sourceRepo, deployment.gitBranch)}>
+                <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
                   <span className="flex items-center gap-1">
                     <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
                     <span className="font-mono text-xs text-accent-12 truncate max-w-32">
@@ -177,7 +177,7 @@ export function ActiveDeploymentCard({
               {deployment.gitCommitSha && (
                 <>
                   {deployment.gitBranch && <span className="text-gray-9 text-xs">·</span>}
-                  <GitHubLink href={githubCommitUrl(sourceRepo, deployment.gitCommitSha)}>
+                  <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                     <span className="flex items-center gap-1">
                       {!deployment.gitBranch && (
                         <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />

@@ -1,7 +1,7 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { githubDeploymentUrl } from "@/lib/github-urls";
+import { githubUrl } from "@/lib/github-url";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -76,7 +76,7 @@ export const ProjectsList = () => {
               name={project.name}
               domain={project.domain}
               commitTitle={project.commitTitle}
-              sourceUrl={githubDeploymentUrl({
+              sourceUrl={githubUrl.deployment({
                 repoFullName: project.repositoryFullName,
                 forkRepoFullName: project.forkRepositoryFullName,
                 prNumber: project.prNumber,

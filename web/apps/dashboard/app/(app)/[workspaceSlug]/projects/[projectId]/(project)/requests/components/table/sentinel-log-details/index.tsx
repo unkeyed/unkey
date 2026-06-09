@@ -11,7 +11,7 @@ import { LogSection } from "@/components/logs/details/log-details/components/log
 import { collection } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
-import { githubBranchUrl, githubCommitUrl } from "@/lib/github-urls";
+import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
@@ -283,8 +283,8 @@ const formatDeploymentInfo = (
   }
 
   const shortSha = deployment.gitCommitSha?.substring(0, 7);
-  const branchUrl = githubBranchUrl(sourceRepo, deployment.gitBranch);
-  const commitUrl = githubCommitUrl(sourceRepo, deployment.gitCommitSha);
+  const branchUrl = githubUrl.branch(sourceRepo, deployment.gitBranch);
+  const commitUrl = githubUrl.commit(sourceRepo, deployment.gitCommitSha);
   const truncatedMessage =
     deployment.gitCommitMessage && deployment.gitCommitMessage.length > 50
       ? `${deployment.gitCommitMessage.substring(0, 50)}...`

@@ -3,7 +3,7 @@ import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/l
 import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { githubDeploymentUrl } from "@/lib/github-urls";
+import { githubUrl } from "@/lib/github-url";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Dots, Github, Plus, Terminal } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -68,7 +68,7 @@ export const AppsList = () => {
                 name={app.name}
                 domain={app.domain}
                 commitTitle={app.commitTitle}
-                sourceUrl={githubDeploymentUrl({
+                sourceUrl={githubUrl.deployment({
                   repoFullName: app.repositoryFullName,
                   forkRepoFullName: app.forkRepositoryFullName,
                   prNumber: app.prNumber,
