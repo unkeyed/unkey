@@ -37,8 +37,6 @@ export const ProjectsList = () => {
     );
   }
 
-  // The no-projects-at-all case is handled one level up in page.tsx (a full-bleed empty state),
-  // so here a zero-length result only happens when a search filters everything out.
   if (projects.data.length === 0) {
     return (
       <div className="w-full flex justify-center items-center h-full p-4">

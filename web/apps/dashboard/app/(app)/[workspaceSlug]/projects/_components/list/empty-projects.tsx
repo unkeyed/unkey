@@ -23,9 +23,6 @@ const IconBox = ({ children, large, className }: IconBoxProps) => (
   </div>
 );
 
-// The project box (center, focal) with repo (GitHub) and build (code) as its immediate flanks, then
-// regions (globe) and liveness (pulse) on the outer edges. Boxes dim toward the edges and the row
-// fades out at both ends so the box stays the focus.
 const flankItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
   { icon: <Earth className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-50" },
   { icon: <Github className="size-[18px]" iconSize="md-medium" />, opacity: "opacity-75" },
@@ -63,23 +60,27 @@ export function EmptyProjects() {
 
         <h2 className="text-accent-12 font-semibold text-2xl leading-8 mb-1">Projects</h2>
         <p className="text-accent-11 text-sm leading-6 max-w-md text-balance mb-6">
-          Build, deploy and scale your API inside Unkey. Create a project to get started,
-          free during beta.
+          Build, deploy and scale your API inside Unkey. Create a project to get started, free
+          during beta.
         </p>
 
-        <div className="flex items-center justify-center gap-3">
-          <Link href={`/${workspace.slug}/projects/new`}>
-            <Button variant="primary" size="md">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
+          <Link
+            href={`/${workspace.slug}/projects/new`}
+            className="w-full max-w-[200px] sm:w-auto sm:max-w-none"
+          >
+            <Button variant="primary" size="md" className="w-full sm:w-auto">
               Create your first project
               <ArrowRight />
             </Button>
           </Link>
           <a
-            href="https://www.unkey.com/docs/quickstart/docs"
+            href="https://www.unkey.com/docs/quickstart/deploy"
             target="_blank"
             rel="noopener noreferrer"
+            className="w-full max-w-[200px] sm:w-auto sm:max-w-none"
           >
-            <Button variant="outline" size="md">
+            <Button variant="outline" size="md" className="w-full sm:w-auto">
               <BookBookmark />
               Read the docs
             </Button>

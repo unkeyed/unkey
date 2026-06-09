@@ -11,8 +11,6 @@ import { ProjectsListNavigation } from "./navigation";
 export default function ProjectsPage() {
   const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
 
-  // A workspace with no projects yet gets a special full-bleed empty state: no list header,
-  // controls, or navigation banner, so the "create your first project" moment stands alone.
   if (!projects.isLoading && projects.data.length === 0) {
     return <EmptyProjects />;
   }
