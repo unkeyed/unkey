@@ -16,3 +16,18 @@ export const helloWorld = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+// deployBilling gates the entire Unkey Deploy billing UI (subscribe / change /
+// cancel, usage, credits). Defaults off so prod shows nothing until we flip
+// workspaces in for the GA rollout.
+export const deployBilling = flag<boolean, Entities>({
+  key: "deploy-billing",
+  description: "Show the Unkey Deploy billing UI. Off until GA rollout.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
