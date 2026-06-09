@@ -2,6 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployPlans";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
@@ -78,11 +79,21 @@ export const createSubscription = workspaceProcedure
         message: "Workspaces does not have a stripe account.",
       });
     }
+
+    // A Compute-first workspace already has a subscription, carrying only
+    // Deploy items. Both products live on one subscription (one invoice), so
+    // the API item is appended to it — mirroring how subscribeDeploy appends
+    // Deploy items to an API-first subscription. Only a subscription that
+    // already carries an API plan item is refused.
+    let existingSub: Stripe.Subscription | undefined;
     if (ctx.workspace.stripeSubscriptionId) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: `Customer ${ctx.workspace.stripeCustomerId} already has a subscription.`,
-      });
+      existingSub = await stripe.subscriptions.retrieve(ctx.workspace.stripeSubscriptionId);
+      if (findApiItem(deployBillingConfig(), existingSub.items.data)) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `Customer ${ctx.workspace.stripeCustomerId} already has an API plan.`,
+        });
+      }
     }
 
     const customer = await stripe.customers.retrieve(ctx.workspace.stripeCustomerId);
@@ -94,29 +105,40 @@ export const createSubscription = workspaceProcedure
     }
 
     /**
-     * `error_if_incomplete` makes Stripe reject the create call with a 402 if the first
+     * `error_if_incomplete` makes Stripe reject the call with a 402 if the first
      * invoice cannot be paid (e.g. card declined). We rely on this to keep the workspace
      * on the Free tier when a first-time signup's payment fails — no DB writes happen
      * unless the subscription is fully active.
      */
     let sub: Stripe.Subscription;
     try {
-      sub = await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [
-          {
-            price: product.default_price.toString(),
-          },
-        ],
-        billing_cycle_anchor_config: {
-          day_of_month: 1,
-        },
-        // clover+ defaults new subscriptions to "flexible" billing mode,
-        // which itemizes prorations differently. Stay on classic.
-        billing_mode: { type: "classic" },
-        proration_behavior: "always_invoice",
-        payment_behavior: "error_if_incomplete",
-      });
+      sub = existingSub
+        ? await stripe.subscriptions.update(existingSub.id, {
+            items: [
+              {
+                price: product.default_price.toString(),
+              },
+            ],
+            proration_behavior: "always_invoice",
+            payment_behavior: "error_if_incomplete",
+          })
+        : await stripe.subscriptions.create({
+            customer: customer.id,
+            items: [
+              {
+                price: product.default_price.toString(),
+              },
+            ],
+            billing_cycle_anchor_config: {
+              day_of_month: 1,
+            },
+            // clover+ defaults new subscriptions to "flexible" billing mode,
+            // which itemizes prorations differently and would change the
+            // Deploy credit-grant net-fee math. Stay on classic.
+            billing_mode: { type: "classic" },
+            proration_behavior: "always_invoice",
+            payment_behavior: "error_if_incomplete",
+          });
     } catch (err) {
       if (err instanceof Stripe.errors.StripeCardError) {
         throw new TRPCError({
@@ -137,9 +159,11 @@ export const createSubscription = workspaceProcedure
       throw err;
     }
 
-    if (sub.status !== "active" && sub.status !== "trialing") {
+    if (!existingSub && sub.status !== "active" && sub.status !== "trialing") {
       // Defensive guard: error_if_incomplete should make this unreachable, but never
-      // grant tier access to a subscription that isn't actually paid.
+      // grant tier access to a subscription that isn't actually paid. Only the
+      // freshly created subscription is cancelled here — on the append path the
+      // subscription pre-exists and carries the Compute plan.
       try {
         await stripe.subscriptions.cancel(sub.id);
       } catch (cancelErr) {
