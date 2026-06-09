@@ -26,14 +26,14 @@ export const cancelDeploy = workspaceProcedure
     if (!config) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Unkey Deploy billing is not configured.",
+        message: "Compute billing is not configured.",
       });
     }
 
     if (!ctx.workspace.stripeSubscriptionId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Workspace has no Unkey Deploy plan to cancel.",
+        message: "Workspace has no Compute plan to cancel.",
       });
     }
 
@@ -44,7 +44,7 @@ export const cancelDeploy = workspaceProcedure
     if (deployItems.length === 0) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Workspace has no Unkey Deploy plan to cancel.",
+        message: "Workspace has no Compute plan to cancel.",
       });
     }
 
@@ -72,7 +72,7 @@ export const cancelDeploy = workspaceProcedure
       workspaceId: ctx.workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "workspace.update",
-      description: "Cancelled Unkey Deploy.",
+      description: "Cancelled Compute.",
       resources: [],
       context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
     });

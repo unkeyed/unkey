@@ -11,12 +11,13 @@ import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Plus } from "@unkey/icons";
-import { Button, FormInput } from "@unkey/ui";
+import { Button, FormInput, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useDeployGate } from "./hooks/use-deploy-gate";
 
 const DynamicDialogContainer = dynamic(
   () =>
@@ -38,6 +39,12 @@ export const CreateProjectButton = ({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const router = useRouter();
+
+  // When gated (deployBilling on + no Deploy entitlement), disable creation so
+  // the button is never a dead-end click; the projects screen carries the
+  // "Choose a plan" paywall. The authoritative gate is in ctrl-api.
+  const { gated } = useDeployGate();
+
   const {
     register,
     handleSubmit,
@@ -89,15 +96,22 @@ export const CreateProjectButton = ({
 
   return (
     <>
-      <NavbarActionButton
-        title="Create new project"
-        {...rest}
-        color="default"
-        onClick={() => setIsOpen(true)}
+      <InfoTooltip
+        content="A Compute plan is required to create projects."
+        disabled={!gated}
+        asChild
       >
-        <Plus />
-        Create new project
-      </NavbarActionButton>
+        <NavbarActionButton
+          title="Create new project"
+          {...rest}
+          color="default"
+          disabled={gated}
+          onClick={() => setIsOpen(true)}
+        >
+          <Plus />
+          Create new project
+        </NavbarActionButton>
+      </InfoTooltip>
 
       <DynamicDialogContainer
         isOpen={isOpen}

@@ -129,6 +129,20 @@ type Config struct {
 	// ClickHouse configures the analytics database connection used for
 	// container lifecycle event ingestion.
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
+
+	// DeployGate configures the Unkey Deploy project-creation entitlement gate.
+	DeployGate DeployGateConfig `toml:"deploy_gate"`
+}
+
+// DeployGateConfig configures the Unkey Deploy project-creation gate, which
+// requires a workspace to have a Deploy entitlement (a synced plan or a manual
+// override) before it can create projects.
+type DeployGateConfig struct {
+	// Enforce hard-blocks project creation for workspaces without a Deploy
+	// entitlement. Default false: the gate runs in observe mode, logging when it
+	// would block but allowing creation, so the signal can be validated before
+	// enforcing. Flip to true (config change + redeploy) to enforce.
+	Enforce bool `toml:"enforce"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

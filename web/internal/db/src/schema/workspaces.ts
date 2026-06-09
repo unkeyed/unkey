@@ -42,6 +42,15 @@ export const workspaces = mysqlTable("workspaces", {
   deployPlan: varchar("deploy_plan", { length: 64 }),
 
   /**
+   * Manual Deploy entitlement override for internal / comped workspaces, owned
+   * by us and never touched by the Stripe webhook. NULL = no override. When set
+   * (to a plan value), the deploy gate treats the workspace as entitled even
+   * without a paid deploy_plan. Kept separate from deployPlan so that stays a
+   * pure Stripe mirror.
+   */
+  deployPlanOverride: varchar("deploy_plan_override", { length: 64 }),
+
+  /**
    * feature flags
    *
    * betaFeatures may be toggled by the user for early access

@@ -38,21 +38,21 @@ export const subscribeDeploy = workspaceProcedure
     if (!config) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Unkey Deploy billing is not configured.",
+        message: "Compute billing is not configured.",
       });
     }
 
     if (!ctx.workspace.stripeCustomerId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Add a payment method before subscribing to Unkey Deploy.",
+        message: "Add a payment method before subscribing to a Compute plan.",
       });
     }
 
     if (ctx.workspace.deployPlan) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Workspace already has an Unkey Deploy plan. Use change instead.",
+        message: "Workspace already has a Compute plan. Use change instead.",
       });
     }
 
@@ -67,7 +67,7 @@ export const subscribeDeploy = workspaceProcedure
       if (findDeployItems(config, sub.items.data).length > 0) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: "Workspace already has Unkey Deploy items on its subscription.",
+          message: "Workspace already has Compute items on its subscription.",
         });
       }
 
@@ -134,7 +134,7 @@ export const subscribeDeploy = workspaceProcedure
       workspaceId: ctx.workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "workspace.update",
-      description: `Subscribed to Unkey Deploy ${input.plan} plan.`,
+      description: `Subscribed to Compute ${input.plan} plan.`,
       resources: [],
       context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
     });

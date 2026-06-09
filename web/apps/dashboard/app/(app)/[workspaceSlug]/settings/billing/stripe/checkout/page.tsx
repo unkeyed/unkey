@@ -8,7 +8,21 @@ import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
-export default async function StripeRedirect() {
+/**
+ * Intents the billing page can attach to a checkout round-trip, so /success
+ * knows what the user was actually trying to do. "compute" / "api" reopen
+ * that product's plan picker after the card is added; "payment" means the
+ * card itself was the goal. Their presence also tells /success to skip the
+ * legacy forced API plan modal.
+ */
+const CHECKOUT_INTENTS = ["compute", "api", "payment"] as const;
+
+export default async function StripeRedirect(props: {
+  searchParams: Promise<{ intent?: string }>;
+}) {
+  const { intent: rawIntent } = await props.searchParams;
+  const intent = CHECKOUT_INTENTS.find((known) => known === rawIntent);
+
   const { orgId, role } = await getAuth();
 
   if (!orgId) {
@@ -57,7 +71,9 @@ export default async function StripeRedirect() {
     client_reference_id: ws.id,
     billing_address_collection: "auto",
     mode: "setup",
-    success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}${
+      intent ? `&intent=${intent}` : ""
+    }`,
     currency: "USD",
     customer_creation: "always",
   });
