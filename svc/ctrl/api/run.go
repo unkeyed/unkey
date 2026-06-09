@@ -285,9 +285,10 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
-		Database: database,
-		Restate:  restateClient,
-		Bearer:   cfg.AuthToken,
+		Database:          database,
+		Restate:           restateClient,
+		Bearer:            cfg.AuthToken,
+		EnforceDeployGate: cfg.DeployGate.Enforce,
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
