@@ -1,7 +1,6 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useFlag } from "@/lib/flags/provider";
 import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -15,16 +14,9 @@ const ITEMS = [
 ] as const;
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
-  const newNavigation = useFlag("newNavigation");
   const workspace = useWorkspaceNavigation();
   const segments = useSelectedLayoutSegments();
   const active = segments[0] ?? "general";
-
-  // The redesigned section sidebar only exists in the new shell. With the flag
-  // off, pages render their own legacy Navbar and the layout is a passthrough.
-  if (!newNavigation) {
-    return <>{children}</>;
-  }
 
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">

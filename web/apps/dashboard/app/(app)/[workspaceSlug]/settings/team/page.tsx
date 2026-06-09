@@ -2,7 +2,6 @@ import { PageChrome } from "@/components/page-header/page-chrome";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
-import { WorkspaceNavbar } from "../workspace-navbar";
 import { TeamPageClient } from "./client";
 
 export const revalidate = 0;
@@ -23,10 +22,9 @@ export default async function SettingTeamPage() {
       </PageHeaderContent>
     </PageHeader>
   );
-  const legacyHeader = <WorkspaceNavbar activePage={{ href: "team", text: "Team" }} />;
 
   return (
-    <PageChrome header={header} legacyHeader={legacyHeader}>
+    <PageChrome header={header}>
       {workspace ? (
         <div className="w-full flex flex-col pt-4">
           <TeamPageClient team={team} />

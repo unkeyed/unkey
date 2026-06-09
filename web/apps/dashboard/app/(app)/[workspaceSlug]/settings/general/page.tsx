@@ -4,7 +4,6 @@ import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { PageChrome } from "@/components/page-header/page-chrome";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { PageHeader, PageHeaderActions, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
-import { WorkspaceNavbar } from "../workspace-navbar";
 import { CopyWorkspaceId } from "./copy-workspace-id";
 import { UpdateWorkspaceName } from "./update-workspace-name";
 
@@ -17,7 +16,6 @@ export default function SettingsPage() {
 
   return (
     <PageChrome
-      legacyHeader={<WorkspaceNavbar activePage={{ href: "general", text: "General" }} />}
       header={
         <PageHeader>
           <PageHeaderContent>

@@ -1,6 +1,5 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useFlag } from "@/lib/flags/provider";
 import { trpc } from "@/lib/trpc/client";
 import {
   Button,
@@ -29,7 +28,6 @@ const ADMIN_ONLY_TOOLTIP = "Admin access required to manage billing";
 export const Client: React.FC = () => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const newNavigation = useFlag("newNavigation");
   const [showPlanModal, setShowPlanModal] = useState(false);
 
   // Server-side `requireWorkspaceAdmin` enforces this on every billing
@@ -57,14 +55,6 @@ export const Client: React.FC = () => {
       <BillingChrome>
         <div className="animate-pulse">
           <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
-            {!newNavigation && (
-              <div className="flex flex-col gap-2 items-center">
-                <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
-                <span className="leading-4 text-gray-11 text-[13px]">
-                  Manage your subscription, usage, and payment methods.
-                </span>
-              </div>
-            )}
             <div className="w-full h-[150px] bg-grayA-3 rounded-lg" />
             <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
             <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
@@ -113,14 +103,6 @@ export const Client: React.FC = () => {
             status={subscription.status as Stripe.Subscription.Status}
           />
         ) : null}
-        {!newNavigation && (
-          <div className="flex flex-col gap-2 items-center">
-            <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
-            <span className="leading-4 text-gray-11 text-[13px]">
-              Manage your subscription, usage, and payment methods.
-            </span>
-          </div>
-        )}
 
         {isFreeTier ? <FreeTierAlert /> : null}
 

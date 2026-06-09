@@ -11,18 +11,15 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { WorkspaceNavbar } from "../workspace-navbar";
 
 /**
  * Shared chrome for the billing screens. Billing renders several bodies
  * (loading, error, legacy, paid/free), so each wraps in this rather than
- * repeating the header. Under the new navigation it renders a `PageHeader`;
- * with the flag off it falls back to the legacy `WorkspaceNavbar`.
+ * repeating the header.
  */
 export function BillingChrome({ children }: { children: ReactNode }) {
   return (
     <PageChrome
-      legacyHeader={<WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />}
       header={
         <PageHeader>
           <PageHeaderContent>
