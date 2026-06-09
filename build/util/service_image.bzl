@@ -26,6 +26,10 @@ def service_image(name, repository, local_tag, description, binary_name = None):
     if binary_name == None:
         binary_name = name
 
+    # strip_prefix is relative to this macro caller's BUILD package. Callers
+    # must define the go_binary targets in the same package as this macro
+    # invocation; otherwise "bin" won't match and the binary lands at
+    # /build/<svc>/bin/<svc> inside the image instead of /<svc>.
     pkg_tar(
         name = name + "_tar_linux_amd64",
         srcs = [":" + name + "_linux_amd64"],

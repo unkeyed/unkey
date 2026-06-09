@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 #MISE description="Build and load OCI images into Docker"
-#MISE depends=["build"]
 set -euo pipefail
 
-bazel run //:oci_load_unkey
+bazel run //build/api:load
+bazel run //build/control-api:load
+bazel run //build/control-worker:load
+bazel run //build/frontline:load
+bazel run //build/heimdall:load
+bazel run //build/krane:load
+bazel run //build/vault:load

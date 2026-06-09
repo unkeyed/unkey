@@ -2,7 +2,6 @@
 
 import { useDismissibleBanner } from "@/hooks/use-dismissible-banner";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useFlag } from "@/lib/flags/provider";
 import { trpc } from "@/lib/trpc/client";
 import { Badge, BannerCard, Button } from "@unkey/ui";
 import { motion, useReducedMotion } from "framer-motion";
@@ -25,7 +24,6 @@ function NewNavigationIllustration() {
 }
 
 export function NewNavigationBanner() {
-  const enabled = useFlag("newNavigation");
   const workspace = useWorkspaceNavigation();
   const { dismissed, dismiss } = useDismissibleBanner("new-navigation-v1");
   const reduceMotion = useReducedMotion();
@@ -34,13 +32,10 @@ export function NewNavigationBanner() {
   // only makes sense for workspaces that actually have APIs. A workspace with
   // none has nothing that got renamed (e.g. a fresh signup on an empty
   // projects page), so we skip the query and the banner entirely.
-  const { data } = trpc.api.overview.query.useQuery(
-    { limit: 1 },
-    { enabled: enabled && !dismissed },
-  );
+  const { data } = trpc.api.overview.query.useQuery({ limit: 1 }, { enabled: !dismissed });
   const hasApis = (data?.total ?? 0) > 0;
 
-  if (!enabled || dismissed || !hasApis) {
+  if (dismissed || !hasApis) {
     return null;
   }
 

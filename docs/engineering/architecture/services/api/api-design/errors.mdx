@@ -28,13 +28,20 @@ Error responses use the same top-level envelope but return an `error` object ins
 
 ## Error format
 
-The format follows RFC7807 Problem Details inside the Unkey envelope:
+All API errors use `application/json` as the response media type. The error
+object is inspired by RFC7807 Problem Details, but Unkey doesn't return a
+top-level `application/problem+json` document. The Problem Details-style fields
+live inside the Unkey response envelope:
 
 - title: short summary
 - detail: human-readable explanation
 - status: HTTP status code
 - type: URI for documentation
 - errors: optional validation details
+
+Don't document new v2 errors as `application/problem+json`. Use the same
+`application/json` media type as successful responses so clients, SDKs, and
+agents can parse every response with the same content-type rule.
 
 ## Common error types
 
@@ -47,6 +54,22 @@ The format follows RFC7807 Problem Details inside the Unkey envelope:
 | 409 | conflict | Conflicts with current state |
 | 429 | rate-limited | Rate limit exceeded |
 | 500 | internal-server-error | Unexpected server error |
+
+## Status codes and domain outcomes
+
+HTTP status codes describe whether Unkey could process the HTTP request. They
+don't describe normal product decisions.
+
+Use `200` when Unkey successfully processes a request, even if the domain result
+is negative. For example, key verification can return `200` with `data.valid:
+false`, and rate limiting can return `200` with `data.success: false`.
+
+Use `4xx` when the request can't be processed as submitted, such as invalid JSON,
+failed validation, missing authentication, insufficient permissions, or a missing
+resource. Use `5xx` when Unkey fails to process a valid request.
+
+Don't use HTTP status codes as business logic for expected decisions. Model the
+decision in the response data instead.
 
 ## Validation errors
 

@@ -64,4 +64,7 @@ const (
 	// Portal events
 	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
+
+	// Deployment events
+	DeploymentRebuildEvent AuditLogEvent = "deployment.rebuild"
 )

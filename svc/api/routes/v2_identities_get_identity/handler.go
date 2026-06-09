@@ -2,9 +2,6 @@ package handler
 
 import (
 	"context"
-	"net/http"
-
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -12,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	"net/http"
 )
 
 type Request = openapi.V2IdentitiesGetIdentityRequestBody
@@ -21,8 +19,7 @@ type Response = openapi.V2IdentitiesGetIdentityResponseBody
 
 // Handler implements zen.Route interface for the v2 identities get identity endpoint
 type Handler struct {
-	DB   db.Database
-	Keys keys.KeyService
+	DB db.Database
 }
 
 // Method returns the HTTP method this route responds to
@@ -37,8 +34,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -49,7 +45,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
@@ -77,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check permissions using either wildcard or the specific identity ID
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
@@ -88,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   identity.ID,
 			Action:       rbac.ReadIdentity,
 		}),
-	)))
+	))
 	if err != nil {
 		return err
 	}

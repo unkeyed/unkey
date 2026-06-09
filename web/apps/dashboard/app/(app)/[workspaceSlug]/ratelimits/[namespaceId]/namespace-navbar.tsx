@@ -77,14 +77,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
             className="group"
             noop
           >
-            <QuickNavPopover
-              items={data.map((ns) => ({
-                id: ns.id,
-                label: ns.name,
-                href: `/${workspace.slug}/ratelimits/${ns.id}`,
-              }))}
-              shortcutKey="N"
-            >
+            <QuickNavPopover>
               <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
                 {namespace?.name}
                 <ChevronExpandY className="size-4" />
@@ -92,31 +85,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
             </QuickNavPopover>
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
-            <QuickNavPopover
-              items={[
-                {
-                  id: "requests",
-                  label: "Requests",
-                  href: `/${workspace.slug}/ratelimits/${namespaceId}`,
-                },
-                {
-                  id: "logs",
-                  label: "Logs",
-                  href: `/${workspace.slug}/ratelimits/${namespaceId}/logs`,
-                },
-                {
-                  id: "settings",
-                  label: "Settings",
-                  href: `/${workspace.slug}/ratelimits/${namespaceId}/settings`,
-                },
-                {
-                  id: "overrides",
-                  label: "Overrides",
-                  href: `/${workspace.slug}/ratelimits/${namespaceId}/overrides`,
-                },
-              ]}
-              shortcutKey="M"
-            >
+            <QuickNavPopover>
               <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
                 {activePage.text}
                 <ChevronExpandY className="size-4" />

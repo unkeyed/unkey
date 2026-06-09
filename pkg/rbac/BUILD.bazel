@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "rbac",
     srcs = [
+        "check.go",
         "doc.go",
         "lexer.go",
         "parser.go",
@@ -22,6 +23,7 @@ go_test(
     name = "rbac_test",
     size = "small",
     srcs = [
+        "check_test.go",
         "integration_test.go",
         "lexer_test.go",
         "parse_test.go",

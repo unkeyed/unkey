@@ -1,3 +1,6 @@
+// Optimistic-insert filler; the server response overwrites these fields.
+export const SERVER_PLACEHOLDER = "will-be-replaced-by-server";
+
 /**
  * Parses projectId from where expression.
  *

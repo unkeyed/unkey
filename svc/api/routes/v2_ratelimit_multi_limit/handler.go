@@ -9,10 +9,10 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -36,7 +36,6 @@ type (
 // Handler implements zen.Route interface for the v2 ratelimit multiLimit endpoint
 type Handler struct {
 	DB              db.Database
-	Keys            keys.KeyService
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
@@ -56,8 +55,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -78,7 +76,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Batch load all namespaces
-	namespaces, missing, err := h.getNamespaces(ctx, auth.AuthorizedWorkspaceID, names)
+	namespaces, missing, err := h.getNamespaces(ctx, principal.WorkspaceID, names)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -88,18 +86,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Auto-create any missing namespaces
 	if len(missing) > 0 {
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(
+		err = principal.Authorize(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
 				ResourceID:   "*",
 				Action:       rbac.CreateNamespace,
 			}),
-		))
+		)
 		if err != nil {
 			return err
 		}
 
-		created, createErr := h.createNamespaces(ctx, s, auth, missing)
+		created, createErr := h.createNamespaces(ctx, s, principal, missing)
 		if createErr != nil {
 			return createErr
 		}
@@ -126,7 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Action:       rbac.Limit,
 	})
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(wildcardPermission, rbac.And(requiredPerms...))))
+	err = principal.Authorize(rbac.Or(wildcardPermission, rbac.And(requiredPerms...)))
 	if err != nil {
 		return err
 	}
@@ -169,7 +167,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		cost := ptr.SafeDeref(check.Cost, 1)
 		ratelimitReqs[i] = ratelimit.RatelimitRequest{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: principal.WorkspaceID,
 			Namespace:   ns.ID,
 			Identifier:  check.Identifier,
 			Duration:    time.Duration(duration) * time.Millisecond,
@@ -207,7 +205,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			meta := checkMetadata[i]
 			h.RatelimitEvents.Buffer(schema.Ratelimit{
 				RequestID:   s.RequestID(),
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				Time:        startMillis,
 				NamespaceID: meta.namespaceID,
 				Identifier:  meta.identifier,
@@ -312,7 +310,7 @@ func (h *Handler) getNamespaces(ctx context.Context, workspaceID string, names [
 	return found, missing, nil
 }
 
-func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, auth *keys.KeyVerifier, names []string) (map[string]db.FindRatelimitNamespace, error) {
+func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principal *principal.Principal, names []string) (map[string]db.FindRatelimitNamespace, error) {
 	created, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (map[string]db.FindRatelimitNamespace, error) {
 		now := time.Now().UnixMilli()
 		result := make(map[string]db.FindRatelimitNamespace, len(names))
@@ -327,19 +325,19 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, auth *ke
 
 			insertParams[i] = db.InsertRatelimitNamespaceParams{
 				ID:          id,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				Name:        name,
 				CreatedAt:   now,
 			}
 
 			auditLogs[i] = auditlog.AuditLog{
-				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.RatelimitNamespaceCreateEvent,
 				Display:       "Created ratelimit namespace " + name,
-				ActorID:       auth.Key.ID,
-				ActorName:     auth.Key.Name.String,
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
-				ActorType:     auditlog.RootKeyActor,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
 				CorrelationID: "",
@@ -369,7 +367,7 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, auth *ke
 				id := nameToID[name]
 				result[name] = db.FindRatelimitNamespace{
 					ID:                id,
-					WorkspaceID:       auth.AuthorizedWorkspaceID,
+					WorkspaceID:       principal.WorkspaceID,
 					Name:              name,
 					CreatedAtM:        now,
 					UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
@@ -398,12 +396,12 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, auth *ke
 	// For any names not in the result (due to race), re-fetch from DB.
 	for _, name := range names {
 		if ns, ok := created[name]; ok {
-			h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: name}, ns)
-			h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.ID}, ns)
+			h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: name}, ns)
+			h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: ns.ID}, ns)
 		} else {
 			// Race: re-fetch from the primary to avoid replica lag
 			row, fetchErr := db.Query.FindRatelimitNamespace(ctx, h.DB.RW(), db.FindRatelimitNamespaceParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: principal.WorkspaceID,
 				Namespace:   name,
 			})
 			if fetchErr != nil {
@@ -414,8 +412,8 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, auth *ke
 			}
 			ns := namespace.ParseNamespaceRow(row)
 			created[name] = ns
-			h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: name}, ns)
-			h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.ID}, ns)
+			h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: name}, ns)
+			h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: ns.ID}, ns)
 		}
 	}
 

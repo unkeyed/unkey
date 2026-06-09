@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -24,7 +23,6 @@ type Response = openapi.V2KeysRemovePermissionsResponseBody
 // Handler implements zen.Route interface for the v2 keys remove permissions endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
@@ -42,8 +40,7 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 1. Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -68,7 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -76,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(
+	err = principal.Authorize(
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -98,7 +95,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}),
 			),
 		),
-	))
+	)
 	if err != nil {
 		return err
 	}
@@ -118,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: principal.WorkspaceID,
 		Slugs:       req.Permissions,
 	})
 	if err != nil {
@@ -164,11 +161,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			for _, permission := range permissionsToRemove {
 				idsToRemove = append(idsToRemove, permission.ID)
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					WorkspaceID:   principal.WorkspaceID,
 					Event:         auditlog.AuthDisconnectPermissionKeyEvent,
-					ActorType:     auditlog.RootKeyActor,
-					ActorID:       auth.Key.ID,
-					ActorName:     "root key",
+					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+					ActorID:       principal.Subject.ID,
+					ActorName:     principal.Subject.Name,
 					ActorMeta:     map[string]any{},
 					Display:       fmt.Sprintf("Removed permission %s from key %s", permission.Name, req.KeyId),
 					RemoteIP:      s.Location(),

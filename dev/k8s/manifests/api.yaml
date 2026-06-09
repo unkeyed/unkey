@@ -15,6 +15,10 @@ data:
     test_mode = false
     max_request_body_size = 10485760
 
+    portal_base_url = "http://localhost:3100"
+    jwt_secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
+
+
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
@@ -26,11 +30,10 @@ data:
     url = "http://vault:8060"
     token = "vault-test-token-123"
 
+
     [control]
     url = "http://ctrl-api:7091"
     token = "your-local-dev-key"
-
-    portal_base_url = "http://localhost:3100"
 
     [observability.tracing]
     sample_rate = 1.0

@@ -14,6 +14,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -36,6 +37,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"golang.org/x/net/http2"
@@ -225,13 +227,25 @@ func Run(ctx context.Context, cfg Config) error {
 	r.RegisterHealth(mux)
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deployment.New(deployment.Config{
+
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	if err != nil {
+		return fmt.Errorf("failed to create audit log service: %w", err)
+	}
+
+	deploymentSvc := deployment.New(deployment.Config{
 		Database:                        database,
 		Restate:                         restateClient,
 		RestateAdmin:                    restateAdminClient,
 		GitHub:                          ghClient,
+		Auditlogs:                       auditlogSvc,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		Bearer:                          cfg.AuthToken,
+	})
+	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
+	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
+		DeploymentService: deploymentSvc,
+		Bearer:            cfg.AuthToken,
 	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(openapi.Config{
@@ -271,10 +285,9 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
-		Database:   database,
-		Restate:    restateClient,
-		AppService: appSvc,
-		Bearer:     cfg.AuthToken,
+		Database: database,
+		Restate:  restateClient,
+		Bearer:   cfg.AuthToken,
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {

@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "principal",
+    srcs = [
+        "doc.go",
+        "principal.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/auth/principal",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/rbac"],
+)
+
+go_test(
+    name = "principal_test",
+    srcs = ["principal_test.go"],
+    embed = [":principal"],
+    deps = [
+        "//pkg/rbac",
+        "@com_github_stretchr_testify//require",
+    ],
+)

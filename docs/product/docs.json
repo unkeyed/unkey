@@ -542,6 +542,58 @@
                     ]
                   }
                 ]
+              },
+              {
+                "group": "Frontline Errors",
+                "pages": [
+                  {
+                    "group": "Capacity",
+                    "pages": [
+                      "errors/frontline/capacity/no_running_instances"
+                    ]
+                  },
+                  {
+                    "group": "Client",
+                    "pages": [
+                      "errors/frontline/client/firewall_denied",
+                      "errors/frontline/client/insufficient_permissions",
+                      "errors/frontline/client/invalid_key",
+                      "errors/frontline/client/missing_credentials",
+                      "errors/frontline/client/openapi_validation_failed",
+                      "errors/frontline/client/rate_limited"
+                    ]
+                  },
+                  {
+                    "group": "Config",
+                    "pages": [
+                      "errors/frontline/config/invalid_configuration"
+                    ]
+                  },
+                  {
+                    "group": "Platform",
+                    "pages": [
+                      "errors/frontline/platform/config_load_failed",
+                      "errors/frontline/platform/deployment_selection_failed",
+                      "errors/frontline/platform/internal_server_error"
+                    ]
+                  },
+                  {
+                    "group": "Routing",
+                    "pages": [
+                      "errors/frontline/routing/config_not_found",
+                      "errors/frontline/routing/deployment_not_found"
+                    ]
+                  },
+                  {
+                    "group": "Upstream",
+                    "pages": [
+                      "errors/frontline/upstream/bad_gateway",
+                      "errors/frontline/upstream/gateway_timeout",
+                      "errors/frontline/upstream/proxy_forward_failed",
+                      "errors/frontline/upstream/service_unavailable"
+                    ]
+                  }
+                ]
               }
             ]
           }

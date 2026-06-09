@@ -200,63 +200,56 @@ const (
 	// Proxy
 
 	// BadGateway represents a 502 error - invalid response from upstream server
-	UnkeyFrontlineErrorsProxyBadGateway URN = "err:unkey:bad_gateway:bad_gateway"
+	UnkeyFrontlineErrorsProxyBadGateway URN = "err:frontline:upstream:bad_gateway"
 	// ServiceUnavailable represents a 503 error - backend service is unavailable
-	UnkeyFrontlineErrorsProxyServiceUnavailable URN = "err:unkey:service_unavailable:service_unavailable"
+	UnkeyFrontlineErrorsProxyServiceUnavailable URN = "err:frontline:upstream:service_unavailable"
 	// GatewayTimeout represents a 504 error - upstream server timeout
-	UnkeyFrontlineErrorsProxyGatewayTimeout URN = "err:unkey:gateway_timeout:gateway_timeout"
+	UnkeyFrontlineErrorsProxyGatewayTimeout URN = "err:frontline:upstream:gateway_timeout"
 	// ProxyForwardFailed represents a 502 error - failed to forward request to backend
-	UnkeyFrontlineErrorsProxyProxyForwardFailed URN = "err:unkey:bad_gateway:proxy_forward_failed"
+	UnkeyFrontlineErrorsProxyProxyForwardFailed URN = "err:frontline:upstream:proxy_forward_failed"
 
 	// Routing
 
 	// ConfigNotFound represents a 404 error - no configuration found for the requested hostname
-	UnkeyFrontlineErrorsRoutingConfigNotFound URN = "err:unkey:not_found:config_not_found"
-	// DeploymentNotFound represents a 404 error - the resolved deployment was
-	// not found or did not match the expected environment.
-	UnkeyFrontlineErrorsRoutingDeploymentNotFound URN = "err:unkey:not_found:deployment_not_found"
+	UnkeyFrontlineErrorsRoutingConfigNotFound URN = "err:frontline:routing:config_not_found"
+	// DeploymentNotFound represents a 404 error - the resolved deployment was not found or did not match the expected environment.
+	UnkeyFrontlineErrorsRoutingDeploymentNotFound URN = "err:frontline:routing:deployment_not_found"
 	// DeploymentSelectionFailed represents a 500 error - failed to select an available deployment
-	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:unkey:internal_server_error:deployment_selection_failed"
-	// DeploymentDisabled represents a 503 error - all deployments are currently disabled
-	UnkeyFrontlineErrorsRoutingDeploymentDisabled URN = "err:unkey:service_unavailable:deployment_disabled"
+	UnkeyFrontlineErrorsRoutingDeploymentSelectionFailed URN = "err:frontline:platform:deployment_selection_failed"
 	// NoRunningInstances represents a 503 error - no deployments have running instances
-	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:unkey:service_unavailable:no_running_instances"
+	UnkeyFrontlineErrorsRoutingNoRunningInstances URN = "err:frontline:capacity:no_running_instances"
 
 	// Internal
 
 	// InternalServerError represents a 500 error - internal server error
-	UnkeyFrontlineErrorsInternalInternalServerError URN = "err:unkey:internal_server_error:internal_server_error"
+	UnkeyFrontlineErrorsInternalInternalServerError URN = "err:frontline:platform:internal_server_error"
 	// ConfigLoadFailed represents a 500 error - failed to load configuration
-	UnkeyFrontlineErrorsInternalConfigLoadFailed URN = "err:unkey:internal_server_error:config_load_failed"
-	// InstanceLoadFailed represents a 500 error - failed to load instance information
-	UnkeyFrontlineErrorsInternalInstanceLoadFailed URN = "err:unkey:internal_server_error:instance_load_failed"
-	// InvalidConfiguration represents a 500 error - the deployment's policy
-	// configuration could not be parsed.
-	UnkeyFrontlineErrorsInternalInvalidConfiguration URN = "err:unkey:internal_server_error:invalid_configuration"
+	UnkeyFrontlineErrorsInternalConfigLoadFailed URN = "err:frontline:platform:config_load_failed"
+	// InvalidConfiguration represents a 422 error - the deployment's policy configuration could not be parsed.
+	// This is the config author's fault, not frontline's, hence the config domain rather than platform.
+	UnkeyFrontlineErrorsInternalInvalidConfiguration URN = "err:frontline:config:invalid_configuration"
 
 	// Auth
 
 	// MissingCredentials represents a 401 error - no credentials found in the request.
-	UnkeyFrontlineErrorsAuthMissingCredentials URN = "err:unkey:unauthorized:missing_credentials"
+	UnkeyFrontlineErrorsAuthMissingCredentials URN = "err:frontline:client:missing_credentials"
 	// InvalidKey represents a 401 error - key not found, disabled, or expired.
-	UnkeyFrontlineErrorsAuthInvalidKey URN = "err:unkey:unauthorized:invalid_key"
-	// InsufficientPermissions represents a 403 error - the credential lacks
-	// the permissions required by a permission_query.
-	UnkeyFrontlineErrorsAuthInsufficientPermissions URN = "err:unkey:forbidden:insufficient_permissions"
-	// RateLimited represents a 429 error - the credential or its auto-applied
-	// rate limit was exceeded.
-	UnkeyFrontlineErrorsAuthRateLimited URN = "err:unkey:rate_limited:rate_limited"
+	UnkeyFrontlineErrorsAuthInvalidKey URN = "err:frontline:client:invalid_key"
+	// InsufficientPermissions represents a 403 error - the credential lacks the permissions required by a permission_query.
+	UnkeyFrontlineErrorsAuthInsufficientPermissions URN = "err:frontline:client:insufficient_permissions"
+	// RateLimited represents a 429 error - the credential or its auto-applied rate limit was exceeded.
+	UnkeyFrontlineErrorsAuthRateLimited URN = "err:frontline:client:rate_limited"
 
 	// Firewall
 
 	// Denied represents a 403 error - request rejected by a Firewall policy
 	// with action=DENY.
-	UnkeyFrontlineErrorsFirewallDenied URN = "err:unkey:forbidden:firewall_denied"
+	UnkeyFrontlineErrorsFirewallDenied URN = "err:frontline:client:firewall_denied"
 
 	// OpenApi
 
 	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
-	UnkeyFrontlineErrorsOpenApiInvalidRequest URN = "err:unkey:bad_request:openapi_validation_failed"
+	UnkeyFrontlineErrorsOpenApiInvalidRequest URN = "err:frontline:client:openapi_validation_failed"
 
 	// ----------------
 	// UnkeyPortalErrors

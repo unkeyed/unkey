@@ -9,8 +9,8 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
@@ -48,7 +48,6 @@ var (
 // Handler implements zen.Route interface for the v2 Analytics get verifications endpoint
 type Handler struct {
 	DB                         db.Database
-	Keys                       keys.KeyService
 	AnalyticsConnectionManager analytics.ConnectionManager
 	Caches                     caches.Caches
 }
@@ -65,8 +64,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -77,19 +75,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Get workspace-specific ClickHouse connection and settings first
-	conn, settings, err := h.AnalyticsConnectionManager.GetConnection(ctx, auth.AuthorizedWorkspaceID)
+	conn, settings, err := h.AnalyticsConnectionManager.GetConnection(ctx, principal.WorkspaceID)
 	if err != nil {
 		return err
 	}
 
 	// Build a list of keySpaceIds that the root key has permissions for.
-	securityFilters, err := h.buildSecurityFilters(ctx, auth)
+	securityFilters, err := h.buildSecurityFilters(ctx, principal)
 	if err != nil {
 		return err
 	}
 
 	parser := chquery.NewParser(chquery.Config{
-		WorkspaceID:       auth.AuthorizedWorkspaceID,
+		WorkspaceID:       principal.WorkspaceID,
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
 		SecurityFilters:   securityFilters,
 		TableAliases:      tableAliases,
@@ -115,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	keySpaceIds := parser.ExtractColumn("key_space_id")
 	if len(keySpaceIds) > 0 {
-		apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, auth, keySpaceIds)
+		apiPermissions, permErr := h.buildAPIPermissionsFromKeySpaces(ctx, principal, keySpaceIds)
 		if permErr != nil {
 			return permErr
 		}
@@ -123,7 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Verify user has at least one of: api.*.read_analytics OR (api.<api_id1>.read_analytics AND api.<api_id2>.read_analytics)
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(permissionChecks...)))
+	err = principal.Authorize(rbac.Or(permissionChecks...))
 	if err != nil {
 		return err
 	}
@@ -146,14 +144,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.
 // Returns filters that restrict queries to only the key_space_ids the user has access to.
-func (h *Handler) buildSecurityFilters(ctx context.Context, auth *keys.KeyVerifier) ([]chquery.SecurityFilter, error) {
-	allowedAPIIds := extractAllowedAPIIds(auth.Permissions)
+func (h *Handler) buildSecurityFilters(ctx context.Context, principal *principal.Principal) ([]chquery.SecurityFilter, error) {
+	allowedAPIIds := extractAllowedAPIIds(principal.Permissions)
 	if len(allowedAPIIds) == 0 {
 		return []chquery.SecurityFilter{}, nil
 	}
 
 	// Fetch key auths for the allowed API IDs
-	apis, err := h.fetchKeyAuthsByAPIIds(ctx, auth.AuthorizedWorkspaceID, allowedAPIIds)
+	apis, err := h.fetchKeyAuthsByAPIIds(ctx, principal.WorkspaceID, allowedAPIIds)
 	if err != nil {
 		return nil, err
 	}
@@ -210,8 +208,8 @@ func (h *Handler) fetchKeyAuthsByAPIIds(ctx context.Context, workspaceID string,
 
 // buildAPIPermissionsFromKeySpaces fetches key spaces and builds RBAC permissions for them.
 // Returns an error if any key space is not found.
-func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, auth *keys.KeyVerifier, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
-	keySpaces, keySpaceHits, err := h.fetchKeyAuthsByKeyAuthIds(ctx, auth.AuthorizedWorkspaceID, keySpaceIds)
+func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *principal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
+	keySpaces, keySpaceHits, err := h.fetchKeyAuthsByKeyAuthIds(ctx, principal.WorkspaceID, keySpaceIds)
 	if err != nil {
 		return nil, err
 	}

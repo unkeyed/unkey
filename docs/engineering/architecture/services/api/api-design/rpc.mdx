@@ -3,7 +3,9 @@ title: "RPC-style API"
 description: "Action-oriented API design"
 ---
 
-Unkey uses an RPC-style API that focuses on actions rather than resources.
+Unkey v2 APIs use an RPC-style design that focuses on actions rather than
+resources. New v2 endpoints must follow this pattern unless an explicit design
+review accepts an exception.
 
 ```plaintext
 https://api.unkey.com/v2/{service}.{procedure}
@@ -16,7 +18,11 @@ Examples:
 
 ## HTTP methods
 
-All operations use POST. This keeps request patterns consistent and allows complex request bodies.
+All v2 operations use `POST`, except liveness and health endpoints. This keeps
+request patterns consistent and lets every operation accept a typed JSON body.
+
+Don't add REST-style resource routes to v2. Use `POST /v2/{service}.{procedure}`
+for reads, writes, list operations, and command-style actions.
 
 ## Request format
 
@@ -43,6 +49,47 @@ curl -X POST "https://api.unkey.com/v2/keys.createKey" \
 - analytics
 - identities
 - permissions
+
+## Operation names
+
+Endpoint names use `{service}.{procedure}`. The OpenAPI `operationId` must match
+the endpoint name so docs, SDKs, and agents see the same action name.
+
+Use procedure names that describe the action from the caller's perspective:
+
+- `createApi`
+- `getKey`
+- `listRoles`
+- `updateIdentity`
+- `deletePermission`
+- `addPermissions`
+- `removeRoles`
+- `setOverride`
+
+Prefer established verbs before adding a new verb. If a new verb is necessary,
+document the behavior before adding endpoints that use it.
+
+## Verb meanings
+
+RPC APIs rely on verb consistency. Use these meanings for v2 procedures:
+
+- `create`: create a new resource. If the resource already exists, return a
+  conflict or document the idempotent behavior explicitly.
+- `get`: read one resource.
+- `list`: read a collection. Use pagination when the collection can grow.
+- `update`: partially update a resource using three-state update semantics.
+- `delete`: remove, invalidate, or tombstone a resource. Document soft-delete
+  and hard-delete behavior explicitly.
+- `add`: incrementally add members to a collection. Adding an existing member
+  must be idempotent.
+- `remove`: incrementally remove members from a collection. Removing a missing
+  member must be idempotent.
+- `set`: replace or upsert a singular configuration object or collection.
+  Document whether omitted members are removed.
+
+Domain verbs such as `verify`, `limit`, `exchange`, `reroll`, and `migrate` are
+allowed when the standard verbs don't describe the operation clearly. Domain
+verbs must document side effects and idempotency.
 
 ## Benefits
 
