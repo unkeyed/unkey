@@ -111,7 +111,11 @@ export default function DeploymentOverview() {
       {view}
       <DeploymentApproval
         isOpen={awaitingApproval}
-        onClose={() => router.push(`/${workspace.slug}/projects/${deployment.projectId}/apps/${deployment.appId}/deployments`)}
+        onClose={() =>
+          router.push(
+            `/${workspace.slug}/projects/${deployment.projectId}/apps/${deployment.appId}/deployments`,
+          )
+        }
         deployment={deployment}
       />
     </ProjectContentWrapper>
