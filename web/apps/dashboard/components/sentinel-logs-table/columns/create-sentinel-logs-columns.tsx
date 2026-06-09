@@ -69,7 +69,7 @@ export const createSentinelLogsColumns = (): DataTableColumnDef<SentinelLogsResp
       return (
         <Badge
           className={cn(
-            "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
+            "uppercase px-1.5 rounded-md font-mono whitespace-nowrap",
             style.badge.default,
           )}
         >
@@ -89,7 +89,7 @@ export const createSentinelLogsColumns = (): DataTableColumnDef<SentinelLogsResp
     cell: ({ row }) => (
       <Badge
         className={cn(
-          "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
+          "uppercase px-1.5 rounded-md font-mono whitespace-nowrap",
           getStatusStyle(row.original.response_status).badge.default,
         )}
       >
@@ -120,7 +120,7 @@ export const createSentinelLogsColumns = (): DataTableColumnDef<SentinelLogsResp
       width: "25%",
     },
     cell: ({ row }) => (
-      <div className="font-mono pr-4 truncate max-w-[250px]" title={row.original.path}>
+      <div className="font-mono pr-4 truncate max-w-62.5" title={row.original.path}>
         {row.original.path}
       </div>
     ),
