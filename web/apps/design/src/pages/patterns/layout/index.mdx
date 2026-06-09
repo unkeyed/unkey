@@ -12,7 +12,7 @@ import fullWidthSource from "./_full-width.tsx?highlight";
 
 # Layout
 
-Rules and guidelines for building effective page layouts on the Unkey dashboard.
+Examples of how to build effective page layouts on the Unkey dashboard.
 
 ## Basics
 
@@ -26,7 +26,7 @@ A simple page with a header and actions.
 
 ## Secondary navigation
 
-A `SecondaryNav` rail on the left, the page on the right. Use it for sections with sibling pages.
+Use a secondary navigation when pages have sections nested one level deep within them.
 
 <Preview client:load bleed code={secondaryNavSource}>
   <SecondaryNavExample />
@@ -36,7 +36,7 @@ Add the rail in the section layout, then let each page render its own `PageBody`
 
 ## Full width
 
-Logs, tables, and editors need the whole viewport, so the body runs edge to edge. The header keeps a gutter and a divider, so its title and actions still line up with the rest of the app.
+For full width pages like logs, requests, use the full width prop to let your page span the entire width of the viewport.
 
 <Preview client:load bleed code={fullWidthSource}>
   <FullWidthExample />
