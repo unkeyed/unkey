@@ -15,9 +15,6 @@ type DeploymentFilter = { field: string; value: string | number };
 type DeploymentIdFilterProps<T extends DeploymentFilter> = {
   filters: T[];
   updateFilters: (filters: T[]) => void;
-  // Builds a page-specific filter value (Sentinel vs Runtime carry distinct
-  // field/operator unions), so the caller owns the exact shape and we stay
-  // type-safe without casts.
   createDeploymentFilter: (value: string) => T;
 };
 
@@ -79,7 +76,10 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
     const deploymentFilters = Array.from(values).map(createDeploymentFilter);
 
     updateFilters([...otherFilters, ...deploymentFilters]);
-  }, [filters, checkedIds, customId, createDeploymentFilter, updateFilters]);
+
+    setCheckedIds(new Set(Array.from(values).filter((id) => latestIds.has(id))));
+    setCustomId(Array.from(values).find((id) => !latestIds.has(id)) ?? "");
+  }, [filters, checkedIds, customId, latestIds, createDeploymentFilter, updateFilters]);
 
   return (
     <div className="flex flex-col p-2">
