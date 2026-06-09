@@ -26,6 +26,7 @@ go_test(
     name = "cli_test",
     size = "small",
     srcs = [
+        "enum_flag_test.go",
         "flag_test.go",
         "help_test.go",
         "parser_test.go",

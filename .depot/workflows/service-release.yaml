@@ -29,6 +29,14 @@ jobs:
 
       - name: Verify tag is on main
         run: |
+          version="${GITHUB_REF_NAME#*/}"
+          # Pre-release tags (anything with a SemVer suffix, e.g. -rc.1) may be
+          # cut from any branch so they can be canaried before merging. Stable
+          # tags must still be reachable from origin/main.
+          if [[ "$version" == *-* ]]; then
+            echo "Pre-release tag $GITHUB_REF_NAME; skipping main-branch check."
+            exit 0
+          fi
           git fetch origin main
           commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
           git merge-base --is-ancestor "$commit" origin/main
@@ -84,5 +92,5 @@ jobs:
           fi
           gh release create "${GITHUB_REF_NAME}" \
             --title "${{ steps.tag.outputs.service }} ${{ steps.tag.outputs.version }}" \
-            --notes "Image: ${{ steps.tag.outputs.image }}" \
+            --generate-notes \
             "${args[@]}"
