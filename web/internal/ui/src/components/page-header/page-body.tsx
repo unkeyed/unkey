@@ -6,7 +6,11 @@ const PageBody = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("w-full max-w-7xl mx-auto px-4 lg:px-6 xl:px-10 pt-2", className)}
+      className={cn(
+        "mx-auto w-full max-w-7xl px-4",
+        "group-data-[width=full]/page:max-w-none group-data-[width=full]/page:px-0",
+        className,
+      )}
       {...props}
     />
   ),

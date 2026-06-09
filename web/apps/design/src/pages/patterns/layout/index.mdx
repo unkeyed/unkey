@@ -2,7 +2,13 @@
 layout: ../../../layouts/layout.astro
 title: Layout — Unkey Design
 ---
-import { PageBodyExample } from "./_page-body-example.tsx";
+import { Preview } from "../../../components/preview.tsx";
+import { BasicExample } from "./_basic.tsx";
+import { SecondaryNavExample } from "./_secondary-nav.tsx";
+import { FullWidthExample } from "./_full-width.tsx";
+import basicSource from "./_basic.tsx?highlight";
+import secondaryNavSource from "./_secondary-nav.tsx?highlight";
+import fullWidthSource from "./_full-width.tsx?highlight";
 
 # Layout
 
@@ -14,115 +20,24 @@ Rules and guidelines for building effective page layouts on the Unkey dashboard.
 A simple page with a header and actions.
 
 
-<div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
-  <PageBodyExample client:load />
-</div>
-
-```tsx
-import {
-  Button,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderContent,
-  PageHeaderDescription,
-  PageHeaderTitle,
-  PageBody,
-} from "@unkey/ui"
-
-<PageBody>
-  <PageHeader>
-    <PageHeaderContent>
-      <PageHeaderTitle>General</PageHeaderTitle>
-      <PageHeaderDescription>Manage your workspace settings.</PageHeaderDescription>
-    </PageHeaderContent>
-    <PageHeaderActions>
-      <Button variant="outline">Copy ID</Button>
-    </PageHeaderActions>
-  </PageHeader>
-  {/* page content */}
-</PageBody>
-```
+<Preview client:load bleed code={basicSource}>
+  <BasicExample />
+</Preview>
 
 ## Secondary navigation
 
 A `SecondaryNav` rail on the left, the page on the right. Use it for sections with sibling pages.
 
-<div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
-  <PageBodyExample client:load rail />
-</div>
+<Preview client:load bleed code={secondaryNavSource}>
+  <SecondaryNavExample />
+</Preview>
 
-Add the rail in the section layout, then each page renders its own `PageBody`.
-
-**`app/settings/layout.tsx`**
-
-```tsx
-import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui"
-import Link from "next/link"
-
-export default function SettingsLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex">
-      <SecondaryNav aria-label="Settings">
-        <SecondaryNavTitle>Settings</SecondaryNavTitle>
-        <SecondaryNavGroup>
-          <SecondaryNavItem asChild active>
-            <Link href="/settings/general">General</Link>
-          </SecondaryNavItem>
-          <SecondaryNavItem asChild>
-            <Link href="/settings/team">Team</Link>
-          </SecondaryNavItem>
-        </SecondaryNavGroup>
-      </SecondaryNav>
-      {children}
-    </div>
-  )
-}
-```
-
-**`app/settings/general/page.tsx`**
-
-```tsx
-import {
-  Button,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderContent,
-  PageHeaderTitle,
-  PageBody,
-} from "@unkey/ui"
-
-export default function GeneralPage() {
-  return (
-    <PageBody>
-      <PageHeader>
-        <PageHeaderContent>
-          <PageHeaderTitle>General</PageHeaderTitle>
-        </PageHeaderContent>
-        <PageHeaderActions>
-          <Button variant="outline">Copy ID</Button>
-        </PageHeaderActions>
-      </PageHeader>
-      {/* page content */}
-    </PageBody>
-  )
-}
-```
+Add the rail in the section layout, then let each page render its own `PageBody`.
 
 ## Full width
 
 Logs, tables, and editors need the whole viewport, so the body runs edge to edge. The header keeps a gutter and a divider, so its title and actions still line up with the rest of the app.
 
-<div className="not-prose my-6 overflow-hidden rounded-xl border bg-background">
-  <PageBodyExample client:load fullWidth />
-</div>
-
-## Structure
-
-- **PageBody** — Wraps the page body. Sets the max width, side gutters, and centering so every page shares one measure.
-- **SecondaryNav** — Optional rail for moving between a section's sibling pages. Sits beside the page body.
-- **PageHeader** — The title block at the top of a page. Composed from the parts below.
-- **PageHeaderContent** — The header's left column; stacks the title and description.
-- **PageHeaderTitle** — The page's name, rendered as the `h1`.
-- **PageHeaderDescription** — Optional one-line description under the title.
-- **PageHeaderActions** — The header's right side; holds the page's primary and secondary actions.
-
+<Preview client:load bleed code={fullWidthSource}>
+  <FullWidthExample />
+</Preview>
