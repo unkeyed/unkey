@@ -2,6 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployPlans";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
@@ -87,20 +88,16 @@ export const updateSubscription = workspaceProcedure
 
     // Derive the current subscription item from the existing subscription
     // rather than trusting a client-supplied `oldProductId`. The client should
-    // not be able to influence which item gets repriced.
-    const item = sub.items.data[0];
+    // not be able to influence which item gets repriced. On a mixed
+    // subscription the Deploy items (plan-fee + meters) are skipped — items[0]
+    // would be one of them on a Compute-first subscription, and repricing it
+    // to an API price would destroy the Compute plan.
+    const item = findApiItem(deployBillingConfig(), sub.items.data);
 
     if (!item) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Subscription has no items to update.",
-      });
-    }
-
-    if (!item.id) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Subscription item is missing an ID.",
+        message: "Subscription has no API plan item to update.",
       });
     }
 

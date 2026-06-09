@@ -197,13 +197,18 @@ import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
+import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
+import { changeDeployPlan } from "./stripe/changeDeployPlan";
 import { createSubscription } from "./stripe/createSubscription";
 import { getBillingInfo } from "./stripe/getBillingInfo";
 import { getCheckoutSession } from "./stripe/getCheckoutSession";
 import { getCustomer } from "./stripe/getCustomer";
+import { getDeployPlans } from "./stripe/getDeployPlans";
+import { getDeploySubscription } from "./stripe/getDeploySubscription";
 import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
+import { subscribeDeploy } from "./stripe/subscribeDeploy";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
@@ -311,6 +316,11 @@ export const router = t.router({
     getProducts,
     getSetupIntent,
     updateWorkspaceStripeCustomer,
+    subscribeDeploy,
+    changeDeployPlan,
+    cancelDeploy,
+    getDeploySubscription,
+    getDeployPlans,
   }),
   github: githubRouter,
   plain: t.router({
