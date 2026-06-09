@@ -14,9 +14,7 @@ type DeploymentIdLinkProps = {
 export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
   const workspace = useWorkspaceNavigation();
   const { projectId, getDeploymentById } = useProjectData();
-  // appId comes from the deployment record, not the route: project-level logs and
-  // requests render rows from many apps. A miss (deployment outside the loaded
-  // window) leaves no appId, so show the id without a link instead of crashing.
+  // no appId means the deployment is not in the loaded collection, show the id without a broken link
   const appId = getDeploymentById(deploymentId)?.appId;
 
   if (!appId) {

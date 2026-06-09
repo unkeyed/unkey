@@ -1,6 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { projectDeploymentsPath } from "@/lib/navigation/routes";
+import { appDeploymentsPath } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -25,7 +25,7 @@ export default function DeploymentOverview() {
   const { refetchDomains } = useProjectData();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const params = useParams<{ projectId: string }>();
+  const params = useParams<{ projectId: string; appId: string }>();
 
   const ready = deployment.status === "ready";
   const skipped = deployment.status === "skipped";
@@ -115,7 +115,11 @@ export default function DeploymentOverview() {
         isOpen={awaitingApproval}
         onClose={() =>
           router.push(
-            projectDeploymentsPath({ workspaceSlug: workspace.slug, projectId: params.projectId }),
+            appDeploymentsPath({
+              workspaceSlug: workspace.slug,
+              projectId: params.projectId,
+              appId: params.appId,
+            }),
           )
         }
         deployment={deployment}

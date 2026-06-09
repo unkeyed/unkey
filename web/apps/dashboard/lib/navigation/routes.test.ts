@@ -6,7 +6,6 @@ import {
   deploymentPath,
   newAppPath,
   openapiDiffPath,
-  projectDeploymentsPath,
   projectLogsPath,
   projectPath,
   projectRequestsPath,
@@ -32,7 +31,6 @@ describe("project-scoped paths", () => {
   it("builds project leaf paths", () => {
     const scope = { workspaceSlug: ws, projectId };
     expect(projectSettingsPath(scope)).toBe("/acme/projects/proj_123/settings");
-    expect(projectDeploymentsPath(scope)).toBe("/acme/projects/proj_123/deployments");
   });
 });
 

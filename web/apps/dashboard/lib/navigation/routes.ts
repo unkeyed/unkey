@@ -22,11 +22,6 @@ export function projectSettingsPath(scope: ProjectScope): string {
   return `${projectPath(scope)}/settings`;
 }
 
-/** Project-level deployments view, distinct from a single app's deployments. */
-export function projectDeploymentsPath(scope: ProjectScope): string {
-  return `${projectPath(scope)}/deployments`;
-}
-
 export function projectLogsPath({ appId, ...scope }: ProjectScope & { appId?: string }): string {
   const base = `${projectPath(scope)}/logs`;
   return appId ? `${base}?appId=${appId}` : base;
