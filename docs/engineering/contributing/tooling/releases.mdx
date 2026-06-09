@@ -16,10 +16,11 @@ itself is built, see [Builds](./builds).
   (`<service>/vx.y.z`). Services release independently; bumping `api` does
   not force a release of `vault`. Helm charts and promotion pins are also
   per-service for the same reason.
-- **Tags must be on `main`.** Releases ship code that has already passed CI.
-  The release workflow refuses to publish anything for a tag whose commit is
-  not reachable from `origin/main`, so feature branches can never become a
-  release.
+- **Stable tags must be on `main`.** Stable releases ship code that has
+  already passed CI. The release workflow refuses to publish a stable tag
+  whose commit is not reachable from `origin/main`, so a feature branch can
+  never become a stable release. Pre-release tags (e.g. `-rc.1`) are exempt
+  and may be cut from any branch so they can be canaried before merging.
 - **The release workflow does not re-test.** Tests ran when the code merged
   to `main`. The release job's only responsibilities are build, push, and
   cut a GitHub release.
@@ -35,36 +36,56 @@ lives in the
 [infra deploy guide](https://github.com/unkeyed/infra/blob/main/README.md#deploying-unkey-api)
 and picks up from there.
 
-### 1. Tag the service from `main`
+### 1. Tag the service with `mise run release`
 
-Sync `main`, then tag and push:
+`mise run release` is the supported way to cut a release. Everything after the
+`--` is passed to the tool. It fetches `origin/main` and all tags first, so the
+version it picks and the "already exists" check reflect origin rather than your
+local state. It then prints the plan and the commits and PRs merged since the
+last release, asks for confirmation, and pushes one tag at a time (GitHub drops
+tag-push events when more than three land at once).
 
 ```bash
-git fetch origin main
-git checkout main
-git pull --ff-only
-git tag <service>/v<x>.<y>.<z>
-git push origin <service>/v<x>.<y>.<z>
+# preview without tagging anything
+mise run release -- --dry-run api
+
+# patch-bump api and frontline from their latest tags, confirm, push
+mise run release -- api frontline
 ```
 
-Supported service names are `api`, `frontline`, `vault`, `heimdall`,
-`krane`, `control-api`, `control-worker`. Use semantic versioning and never
-reuse a tag.
+Supported services are `api`, `frontline`, `vault`, `heimdall`, `krane`,
+`control-api`, `control-worker`, and `cli`. The version is auto-numbered from
+the service's existing tags (patch bump by default). For a service's very
+first release there is nothing to number from, so pass an explicit version
+(e.g. `api@v0.1.0`).
+
+Common variations:
+
+```bash
+mise run release -- --bump minor api               # minor bump instead of patch
+mise run release -- --rc api                        # next release candidate (-rc.N)
+mise run release -- --version v1.2.3 api vault      # pin an exact version for both
+mise run release -- api@v1.2.3 vault@v0.4.0-rc.1    # per-service explicit versions
+```
+
+`--version` pins an exact version and cannot be combined with
+`--bump`/`--rc`/`--pre`. `--yes` skips the confirmation prompt, `--no-log`
+hides the changelog, and `--no-fetch` skips the origin fetch for offline use.
 
 #### Pre-release tags
 
-Tags with a SemVer pre-release suffix (anything after a hyphen, e.g.
-`api/v1.2.3-beta`, `vault/v0.4.0-rc.1`, `heimdall/v2.0.0-alpha.3`) are
-supported. They build and push the image the same way and produce a GitHub
-release marked as a pre-release so it does not show up as "Latest". Use them
-when you want a real, immutable artifact to canary in infra without claiming
-it as a stable version. The same rules still apply: the tag must be on
-`main`, and tags are immutable, so iterate by bumping the pre-release suffix
-(`-rc.1` -> `-rc.2`) rather than re-pushing.
+`--rc` (shorthand for `--pre rc`) cuts the next release candidate; `--pre
+<label>` does the same for any SemVer pre-release label (`beta`, `alpha`, ...).
+Pre-releases build and push the image the same way but produce a GitHub release
+marked as a pre-release, so it does not show up as "Latest". Use them when you
+want a real, immutable artifact to canary in infra without claiming it as a
+stable version. Unlike stable tags, a pre-release may be cut from any branch,
+so you can canary a feature branch before merging it to `main`. Tags are
+immutable, so iterate by bumping the suffix (`-rc.1` -> `-rc.2`); the tool does
+this automatically on each run.
 
 ```bash
-git tag api/v1.2.3-beta
-git push origin api/v1.2.3-beta
+mise run release -- --rc api     # api/v1.2.3-rc.1, then -rc.2 on the next run
 ```
 
 ### 2. Wait for CI
@@ -90,6 +111,65 @@ Two things to be aware of for per-service releases: helm values live at
 production promotion pin under
 `eks-cluster/promotions/production001/<service>.yaml`.
 
+## Walkthrough: shipping a new `api` minor
+
+A full run from code on `main` to production, canarying a release candidate
+first. Substitute your own service and version.
+
+1. **Preview the plan.** See what the tool would tag without touching origin.
+
+   ```bash
+   mise run release -- --dry-run --bump minor --rc api
+   ```
+
+   It prints the next version (e.g. `api/v1.3.0-rc.1`) and the commits and PRs
+   merged since the last `api` release.
+
+2. **Cut the release candidate.** Drop `--dry-run` and confirm at the prompt.
+
+   ```bash
+   mise run release -- --bump minor --rc api
+   ```
+
+   The tag is pushed and the tool prints the `depot ci run list` command.
+
+3. **Wait for CI and confirm artifacts.** Watch the run, then check the image
+   at `ghcr.io/unkeyed/api:v1.3.0-rc.1` and the GitHub pre-release exist
+   (see [step 2 above](#2-wait-for-ci)).
+
+4. **Canary the RC in infra.** Pin `api` to `v1.3.0-rc.1` and roll it out per
+   the [infra deploy guide](https://github.com/unkeyed/infra/blob/main/README.md#deploying-unkey-api).
+   Watch metrics until you trust it.
+
+5. **Cut the stable tag.** Same commit, now without `--rc`. The bump matches
+   the RC so you get `api/v1.3.0`.
+
+   ```bash
+   mise run release -- --bump minor api
+   ```
+
+6. **Wait for CI, then promote.** Confirm `ghcr.io/unkeyed/api:v1.3.0` and the
+   GitHub release exist, then update the production promotion pin in infra.
+
+If anything looks wrong, never delete or re-push a tag. Fix forward on `main`
+and cut the next patch or RC.
+
+## Tagging by hand
+
+`mise run release` is preferred, but the tags it pushes are ordinary git tags,
+so you can create them directly when the tool is unavailable (for example from
+a machine without the Go toolchain). Sync `main` first, and remember that
+stable tags must be on `main` and that CI drops tag-push events when more than
+three are pushed at once, so push one at a time.
+
+```bash
+git fetch origin main --tags
+git checkout main
+git pull --ff-only
+git tag <service>/v<x>.<y>.<z>
+git push origin <service>/v<x>.<y>.<z>
+```
+
 ## CLI releases
 
 The CLI ships through a separate path because it is an npm package, not a
@@ -98,7 +178,9 @@ which uses GoReleaser to build the CLI binaries and publish to npm. The
 GoReleaser config is scoped to the `cli/` tag prefix, so a service tag
 never produces CLI artifacts and vice versa.
 
+Tag it the same way as a service; only the downstream CI differs:
+
 ```bash
-git tag cli/v1.2.3
-git push origin cli/v1.2.3
+mise run release -- cli              # auto patch-bump from the latest cli tag
+mise run release -- cli@v1.2.3       # or pin an explicit version
 ```

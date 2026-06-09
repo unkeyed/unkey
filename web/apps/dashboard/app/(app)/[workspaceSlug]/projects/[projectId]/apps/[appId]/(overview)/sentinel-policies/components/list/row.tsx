@@ -243,12 +243,7 @@ function EnvSwitch({
         onKeyDown={(e) => e.stopPropagation()}
       >
         <span className="text-[13px] text-gray-11 capitalize whitespace-nowrap">{slug}</span>
-        <Switch
-          checked={envPolicy.enabled}
-          onCheckedChange={() => onToggle(id)}
-          className="h-5 w-10 data-[state=checked]:bg-info-9 data-[state=checked]:ring-2 data-[state=checked]:ring-infoA-5 data-[state=unchecked]:bg-grayA-6 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-5"
-          thumbClassName="h-4 w-4 data-[state=checked]:translate-x-5"
-        />
+        <Switch checked={envPolicy.enabled} onCheckedChange={() => onToggle(id)} size="sm" />
       </span>
     );
   }
