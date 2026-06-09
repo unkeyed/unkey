@@ -1,9 +1,11 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { Clone, Heart } from "@unkey/icons";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { Clone, Gear, Layers3, Terminal } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
 type ProjectActionsProps = {
@@ -11,25 +13,13 @@ type ProjectActionsProps = {
 };
 
 export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
-  const menuItems = getProjectActionItems(projectId);
+  const router = useRouter();
+  const workspace = useWorkspaceNavigation();
 
-  return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
-};
-
-const getProjectActionItems = (projectId: string): MenuItem[] => {
-  return [
-    {
-      id: "favorite-project",
-      label: "Add favorite",
-      icon: <Heart iconSize="md-medium" />,
-      onClick: () => {},
-      divider: true,
-      disabled: true,
-    },
+  const menuItems: MenuItem[] = [
     {
       id: "copy-project-id",
       label: "Copy project ID",
-      className: "mt-1",
       icon: <Clone iconSize="md-medium" />,
       onClick: () => {
         navigator.clipboard
@@ -42,6 +32,33 @@ const getProjectActionItems = (projectId: string): MenuItem[] => {
             toast.error("Failed to copy to clipboard");
           });
       },
+      divider: true,
+    },
+    {
+      id: "view-requests",
+      label: "View requests",
+      icon: <Layers3 iconSize="md-regular" />,
+      onClick: () => {
+        router.push(`/${workspace.slug}/projects/${projectId}/requests`);
+      },
+    },
+    {
+      id: "view-logs",
+      label: "View logs",
+      icon: <Terminal iconSize="md-regular" />,
+      onClick: () => {
+        router.push(`/${workspace.slug}/projects/${projectId}/logs`);
+      },
+    },
+    {
+      id: "project-settings",
+      label: "Project settings",
+      icon: <Gear iconSize="md-medium" />,
+      onClick: () => {
+        router.push(`/${workspace.slug}/projects/${projectId}/settings`);
+      },
     },
   ];
+
+  return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };

@@ -59,6 +59,8 @@ export const CreateProjectButton = ({
       const tx = collection.projects.insert({
         name: values.name,
         slug: values.slug,
+        appCount: 0,
+        apps: [],
         repositoryFullName: null,
         currentDeploymentId: null,
         isRolledBack: false,

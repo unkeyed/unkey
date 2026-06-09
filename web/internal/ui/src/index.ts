@@ -28,6 +28,7 @@ export * from "./components/logo";
 export * from "./components/llm-search";
 export * from "./components/llm-search/components/search-icon";
 export * from "./components/dialog/popover";
+export * from "./components/hover-card";
 export * from "./components/settings-card";
 export * from "./components/skeleton";
 export * from "./components/timestamp-info";
