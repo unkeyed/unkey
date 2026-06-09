@@ -1,5 +1,6 @@
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -58,16 +59,19 @@ export const getBillingInfo = workspaceProcedure
         : false,
     ]);
 
+    // The API plan item, skipping Deploy items: on a Compute-first
+    // subscription items[0] is a Deploy price, not the API plan.
+    const apiItem = subscription
+      ? findApiItem(await deployBillingConfig(), subscription.items.data)
+      : undefined;
+    // Product via the item's price; the plan field is legacy.
+    const apiProduct = apiItem?.price.product;
+    const currentProductId = typeof apiProduct === "string" ? apiProduct : apiProduct?.id;
+
     // Check if user has an active enterprise subscription
     let enterpriseProductId: string | undefined;
-    try {
-      const currentProductId = subscription?.items.data.at(0)?.plan.product?.toString();
-      if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
-        enterpriseProductId = currentProductId;
-      }
-    } catch (error) {
-      // If subscription retrieval fails, default to showing only Pro products
-      console.error("Error checking enterprise subscription:", error);
+    if (currentProductId && e.STRIPE_PRODUCT_IDS_ENTERPRISE.includes(currentProductId)) {
+      enterpriseProductId = currentProductId;
     }
 
     const productIds = enterpriseProductId
@@ -93,6 +97,6 @@ export const getBillingInfo = workspaceProcedure
           }
         : undefined,
       hasPreviousSubscriptions,
-      currentProductId: subscription?.items.data.at(0)?.plan.product?.toString() ?? undefined,
+      currentProductId,
     };
   });

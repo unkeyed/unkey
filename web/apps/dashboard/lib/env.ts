@@ -90,6 +90,23 @@ const stripeSchema = z.object({
   STRIPE_PRODUCT_IDS_PRO: z.string().transform((s) => s.split(",")),
   STRIPE_PRODUCT_IDS_ENTERPRISE: z.string().transform((s) => s.split(",")),
   STRIPE_WEBHOOK_SECRET: z.string(),
+  // Unkey Deploy plan-fee price lookup_keys, one per plan. subscribeDeploy /
+  // changeDeployPlan resolve these to the current active price and attach (or
+  // swap) the plan-fee for the chosen tier. lookup_keys (not price ids) so a
+  // reprice needs no env change. Optional so environments without Deploy
+  // billing configured still parse; the Deploy mutations reject with a clear
+  // error when unset.
+  STRIPE_LOOKUP_DEPLOY_STARTER: z.string().optional(),
+  STRIPE_LOOKUP_DEPLOY_PRO: z.string().optional(),
+  STRIPE_LOOKUP_DEPLOY_BUSINESS: z.string().optional(),
+  // Unkey Deploy metered usage price lookup_keys, shared across all plans.
+  // Resolved and attached alongside the plan-fee on subscribe; usage is billed
+  // from the meter events the ctrl billing worker pushes (CPU / memory /
+  // egress / disk).
+  STRIPE_LOOKUP_DEPLOY_METER_CPU: z.string().optional(),
+  STRIPE_LOOKUP_DEPLOY_METER_MEMORY: z.string().optional(),
+  STRIPE_LOOKUP_DEPLOY_METER_EGRESS: z.string().optional(),
+  STRIPE_LOOKUP_DEPLOY_METER_DISK: z.string().optional(),
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);
