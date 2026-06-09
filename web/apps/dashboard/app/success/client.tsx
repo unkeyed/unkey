@@ -29,9 +29,15 @@ type Props = {
       requestsPerMonth: number;
     };
   }>;
+  /**
+   * What the user was doing when they got sent through checkout (set by the
+   * two-product billing page). Carried back to the billing page, which opens
+   * the matching plan picker; its presence disables the legacy forced modal.
+   */
+  intent?: string;
 };
 
-export function SuccessClient({ workSpaceSlug, showPlanSelection, products }: Props) {
+export function SuccessClient({ workSpaceSlug, showPlanSelection, products, intent }: Props) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(!!(showPlanSelection && products && workSpaceSlug));
 
@@ -43,11 +49,15 @@ export function SuccessClient({ workSpaceSlug, showPlanSelection, products }: Pr
 
     // Redirect based on workspace availability
     if (workSpaceSlug) {
-      router.push(routes.settings.billing({ workspaceSlug: workSpaceSlug }));
+      router.push(
+        `${routes.settings.billing({ workspaceSlug: workSpaceSlug })}${
+          intent ? `?intent=${encodeURIComponent(intent)}` : ""
+        }`,
+      );
     } else {
       router.push("/");
     }
-  }, [router, workSpaceSlug, showPlanSelection, products]);
+  }, [router, workSpaceSlug, showPlanSelection, products, intent]);
 
   if (showPlanSelection && products && workSpaceSlug) {
     return (

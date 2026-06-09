@@ -27,14 +27,14 @@ export const changeDeployPlan = workspaceProcedure
     if (!config) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Unkey Deploy billing is not configured.",
+        message: "Compute billing is not configured.",
       });
     }
 
     if (!ctx.workspace.stripeSubscriptionId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Workspace has no Unkey Deploy plan to change.",
+        message: "Workspace has no Compute plan to change.",
       });
     }
 
@@ -47,7 +47,7 @@ export const changeDeployPlan = workspaceProcedure
     if (!planFeeItem) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Workspace has no Unkey Deploy plan to change.",
+        message: "Workspace has no Compute plan to change.",
       });
     }
 
@@ -90,7 +90,7 @@ export const changeDeployPlan = workspaceProcedure
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "workspace.update",
-        description: `Changed Unkey Deploy plan to ${input.plan}.`,
+        description: `Changed Compute plan to ${input.plan}.`,
         resources: [],
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });

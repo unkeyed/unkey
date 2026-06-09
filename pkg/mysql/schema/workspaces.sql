@@ -9,6 +9,7 @@ CREATE TABLE `workspaces` (
 	`stripe_customer_id` varchar(256),
 	`stripe_subscription_id` varchar(256),
 	`deploy_plan` varchar(64),
+	`deploy_plan_override` varchar(64),
 	`beta_features` json NOT NULL,
 	`subscriptions` json,
 	`enabled` boolean NOT NULL DEFAULT true,
