@@ -128,9 +128,25 @@ WORKOS_COOKIE_PASSWORD=<your base64 password>
 
 Stripe billing:
 
-```plaintext
-STRIPE_SECRET_KEY=<your Stripe secret key>
+The dashboard subscription flow needs all four variables in
+`web/apps/dashboard/.env`. If any is missing the dashboard treats Stripe as
+unconfigured and billing calls fail.
+
+The product ID lists come pre-filled in `.env.example` (Flo's sandbox catalog),
+so you only add two values:
+
+- `STRIPE_SECRET_KEY` - a test-mode key (`sk_test_...`) from Flo's sandbox.
+- `STRIPE_WEBHOOK_SECRET` - from forwarding events to your local dashboard:
+
+```bash
+stripe listen --forward-to http://localhost:3000/api/webhooks/stripe
 ```
+
+To set up a fresh Stripe sandbox (products, meters, prices), follow the catalog
+guide in the infra repo: <a href="https://github.com/unkeyed/infra/blob/main/docs/services/stripe-billing.md" target="_blank">Stripe Billing</a>.
+
+The Deploy billing push (the control-plane worker) is separate and needs only a
+secret key in `dev/.env.stripe`. See [Deploy Billing Push](/architecture/services/control-plane/worker/workflows/deploy-billing).
 
 ### Feature flags
 
