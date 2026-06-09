@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -28,7 +27,6 @@ type (
 // Handler implements zen.Route interface for the v2 ratelimit set override endpoint
 type Handler struct {
 	DB             db.Database
-	Keys           keys.KeyService
 	Auditlogs      auditlogs.AuditLogService
 	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
@@ -51,8 +49,7 @@ type setOverrideResult struct {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -66,7 +63,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (setOverrideResult, error) {
 		var zero setOverrideResult
 		nsRow, txErr := db.Query.FindRatelimitNamespace(ctx, tx, db.FindRatelimitNamespaceParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: principal.WorkspaceID,
 			Namespace:   req.Namespace,
 		})
 		if txErr != nil {
@@ -86,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		txErr = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		txErr = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
 				ResourceID:   nsRow.ID,
@@ -97,13 +94,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   "*",
 				Action:       rbac.SetOverride,
 			}),
-		)))
+		))
 		if txErr != nil {
 			return zero, txErr
 		}
 
 		override, txErr := db.Query.FindRatelimitOverrideByIdentifier(ctx, tx, db.FindRatelimitOverrideByIdentifierParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: principal.WorkspaceID,
 			NamespaceID: nsRow.ID,
 			Identifier:  req.Identifier,
 		})
@@ -125,7 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		txErr = db.Query.InsertRatelimitOverride(ctx, tx, db.InsertRatelimitOverrideParams{
 			ID:          ovrID,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: principal.WorkspaceID,
 			NamespaceID: nsRow.ID,
 			Identifier:  req.Identifier,
 			Limit:       uint64(req.Limit),    // nolint:gosec
@@ -143,11 +140,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		txErr = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.RatelimitSetOverrideEvent,
-				ActorID:       auth.Key.ID,
-				ActorType:     auditlog.RootKeyActor,
-				ActorName:     "root key",
+				ActorID:       principal.Subject.ID,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
@@ -180,8 +177,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Invalidate cache for this namespace after the transaction commits
 	h.NamespaceCache.Remove(ctx,
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.namespaceID},
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: result.namespaceName},
+		cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: result.namespaceID},
+		cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: result.namespaceName},
 	)
 
 	return s.JSON(http.StatusOK, Response{

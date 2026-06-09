@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -28,9 +29,11 @@ type Services struct {
 	// Database provides access to the primary MySQL database for persistence.
 	Database db.Database
 
-	// Keys handles API key authentication, verification, and authorization
-	// checks for incoming requests.
+	// Keys handles API key verification and key mutation operations.
 	Keys keys.KeyService
+
+	// Auth normalizes supported credential sources into principals for protected routes.
+	Auth auth.Authenticator
 
 	// ClickHouse provides query access to ClickHouse for analytics.
 	ClickHouse clickhouse.ClickHouse
@@ -40,6 +43,10 @@ type Services struct {
 
 	// RatelimitEvents buffers ratelimit events for ClickHouse.
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
+
+	// KeyVerifications buffers key verification outcomes for ClickHouse. Owned
+	// by the v2 keys.verifyKey handler.
+	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 
 	// Validator performs request payload validation using struct tags.
 	Validator *validation.Validator

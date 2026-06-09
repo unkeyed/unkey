@@ -8,6 +8,8 @@ import (
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -19,15 +21,19 @@ import (
 
 // Executor handles KeyAuth policy evaluation by wrapping the existing KeyService.
 type Executor struct {
-	keyService keys.KeyService
-	clock      clock.Clock
+	keyService       keys.KeyService
+	clock            clock.Clock
+	keyVerifications *batch.BatchProcessor[schema.KeyVerification]
 }
 
-// New creates a new KeyAuth policy executor.
-func New(keyService keys.KeyService, clk clock.Clock) *Executor {
+// New creates a new KeyAuth policy executor. keyVerifications receives one
+// telemetry snapshot per request that produced a KeyVerifier, regardless of the
+// final outcome.
+func New(keyService keys.KeyService, clk clock.Clock, keyVerifications *batch.BatchProcessor[schema.KeyVerification]) *Executor {
 	return &Executor{
-		keyService: keyService,
-		clock:      clk,
+		keyService:       keyService,
+		clock:            clk,
+		keyVerifications: keyVerifications,
 	}
 }
 
@@ -49,8 +55,7 @@ func (e *Executor) Execute(
 	}
 
 	keyHash := hash.Sha256(rawKey)
-	verifier, logFn, err := e.keyService.Get(ctx, sess, keyHash)
-	defer logFn()
+	verifier, err := e.keyService.Get(ctx, sess, keyHash)
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Auth.InvalidKey.URN()),
@@ -58,6 +63,9 @@ func (e *Executor) Execute(
 			fault.Public("Authentication failed. The provided API key is invalid."),
 		)
 	}
+	// Capture the final verifier state (after any Verify-stage mutations) into
+	// the key_verifications stream regardless of which branch returns below.
+	defer func() { e.keyVerifications.Buffer(verifier.TelemetrySnapshot()) }()
 
 	// Fail fast on states that verification cannot recover from (not found,
 	// disabled, expired, workspace disabled, etc.) before spending a credit.

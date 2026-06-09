@@ -36,7 +36,7 @@ type ClickHouseConfig struct {
 // any field left at its zero value after parsing, and validation runs
 // automatically via [Config.Validate].
 //
-// Several fields — Clock, TLSConfig, and the [TestConfig] group — are
+// Several fields, Clock, TLSConfig, and the [TestConfig] group, are
 // runtime-only and cannot be set through a config file. They are tagged
 // toml:"-" and must be set programmatically after loading.
 type Config struct {
@@ -45,12 +45,12 @@ type Config struct {
 	// messages so that a node can ignore its own broadcasts.
 	InstanceID string `toml:"instance_id"`
 
-	// Platform identifies the cloud platform where this node runs
-	// (e.g. "aws", "gcp", "hetzner", "kubernetes"). Appears in structured
+	// Platform identifies the cloud platform where this node runs. Examples
+	// include "aws", "gcp", "hetzner", and "kubernetes". Appears in structured
 	// logs and metrics labels for filtering by infrastructure.
 	Platform string `toml:"platform"`
 
-	// Image is the container image identifier (e.g. "unkey/api:v1.2.3").
+	// Image is the container image identifier, such as "unkey/api:v1.2.3".
 	// Logged at startup for correlating deployments with behavior changes.
 	Image string `toml:"image"`
 
@@ -59,7 +59,7 @@ type Config struct {
 	// use ephemeral ports.
 	HttpPort int `toml:"http_port" config:"default=7070,min=1,max=65535"`
 
-	// Region is the geographic region identifier (e.g. "us-east-1", "eu-west-1").
+	// Region is the geographic region identifier, such as "us-east-1" or "eu-west-1".
 	// Included in structured logs and used by the key service when recording
 	// which region served a verification request.
 	Region string `toml:"region" config:"default=unknown"`
@@ -92,10 +92,20 @@ type Config struct {
 	// Control configures the deployment management service. See [config.ControlConfig].
 	Control config.ControlConfig `toml:"control"`
 
-	// PortalBaseURL is the base URL for the customer portal (e.g. "https://portal.unkey.com").
+	// PortalBaseURL is the base URL for the customer portal.
+	// Example: "https://portal.unkey.com"
 	// Used to construct session redirect URLs in portal.createSession responses.
 	// When a customer has a verified custom domain, that domain is used instead.
 	PortalBaseURL string `toml:"portal_base_url" config:"default=https://portal.unkey.com"`
+
+	// JWTSecrets enables short-lived bearer JWT authentication when set.
+	// Dashboard proxy routes sign tokens with the first configured secret. The
+	// API verifies incoming tokens against every secret in the ordered list so a
+	// new secret can be added before removing an old one.
+	//
+	// Leave empty to disable JWT authentication and accept only root keys or
+	// portal sessions.
+	JWTSecrets []string `toml:"jwt_secrets"`
 
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
@@ -111,8 +121,8 @@ type Config struct {
 	// entrypoint after loading the config file and must not be set in TOML.
 	TLSConfig *tls.Config `toml:"-"`
 
-	// Test groups runtime-only overrides for integration tests. Zero in
-	// production — no fields can be set from TOML.
+	// Test groups runtime-only overrides for integration tests. All fields are
+	// zero in production and cannot be set from TOML.
 	Test TestConfig `toml:"-"`
 }
 
@@ -139,13 +149,23 @@ type TestConfig struct {
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
 //
-// Currently validates that TLS certificate and key paths are either both
-// provided or both absent — setting only one is an error.
+// Validate rejects TLS configuration that provides only one certificate path.
 func (c *Config) Validate() error {
 	certFile := c.TLS.CertFile
 	keyFile := c.TLS.KeyFile
 	if (certFile == "") != (keyFile == "") {
 		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided to enable HTTPS")
 	}
+
+	// HS256 requires at least 256 bits of entropy in the shared secret. Shorter
+	// secrets weaken signature security regardless of how long the token lives.
+	for i, secret := range c.JWTSecrets {
+		if len(secret) < minJWTSecretBytes {
+			return fmt.Errorf("jwt_secrets[%d] must be at least %d bytes, got %d", i, minJWTSecretBytes, len(secret))
+		}
+	}
 	return nil
 }
+
+// minJWTSecretBytes is the minimum entropy required for an HS256 signing key.
+const minJWTSecretBytes = 32

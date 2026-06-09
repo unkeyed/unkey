@@ -6,6 +6,7 @@
 rm
 
 .turbo
+.cache/
 node_modules
 dist
 .next

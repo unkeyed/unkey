@@ -48,8 +48,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
-	defer emit()
+	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.WorkspaceID != principal.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -118,7 +117,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(checks))
+	err = principal.Authorize(checks)
 	if err != nil {
 		return err
 	}
@@ -216,7 +215,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			if encryption != nil {
 				err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
-					WorkspaceID:     auth.AuthorizedWorkspaceID,
+					WorkspaceID:     principal.WorkspaceID,
 					KeyID:           keyID,
 					CreatedAt:       now,
 					Encrypted:       encryption.GetEncrypted(),
@@ -333,11 +332,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			var auditLogs []auditlog.AuditLog
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.KeyRerollEvent,
-				ActorType:     auditlog.RootKeyActor,
-				ActorID:       auth.Key.ID,
-				ActorName:     "root key",
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
 				Display:       fmt.Sprintf("Rerolled key (%s) to (%s)", req.KeyId, keyID),
 				RemoteIP:      s.Location(),

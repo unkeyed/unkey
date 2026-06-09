@@ -25,9 +25,14 @@ import (
 // not zen.Session), but the request id lets you pivot to the wide event
 // that does carry them.
 func errorLogAttrs(s *zen.Session, err error, status int, urn codes.URN) []any {
+	workspaceID := ""
+	if principal, principalErr := s.GetPrincipal(); principalErr == nil {
+		workspaceID = principal.WorkspaceID
+	}
+
 	return []any{
 		"error", err,
-		"workspaceId", s.AuthorizedWorkspaceID(),
+		"workspaceId", workspaceID,
 		"requestId", s.RequestID(),
 		"code", string(urn),
 		"publicMessage", fault.UserFacingMessage(err),

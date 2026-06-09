@@ -1,23 +1,26 @@
 "use client";
 
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { CodeBranch } from "@unkey/icons";
 import { Button, InfoTooltip, SettingCard, toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
-import { useProjectData } from "../../../data-provider";
 import { SelectedConfig } from "../shared/selected-config";
 
 export const DefaultBranch = () => {
   const { projectId } = useProjectData();
+  const appId = useAppId();
   const utils = trpc.useUtils();
 
   const { data, isLoading } = trpc.github.getInstallations.useQuery(
-    { projectId },
+    { projectId, appId },
     { staleTime: 0, refetchOnWindowFocus: true },
   );
 
-  const appId = data?.appId;
   const repoConnection = data?.repoConnection;
   const currentDefaultBranch = data?.defaultBranch ?? "main";
 
@@ -87,7 +90,7 @@ export const DefaultBranch = () => {
   }
 
   // Only show when a repo is connected
-  if (!repoConnection || !appId) {
+  if (!repoConnection) {
     return null;
   }
 
@@ -95,7 +98,7 @@ export const DefaultBranch = () => {
   const hasChanges = selectedBranch !== null && selectedBranch !== currentDefaultBranch;
 
   const handleSave = () => {
-    if (!hasChanges || !appId) {
+    if (!hasChanges) {
       return;
     }
     updateMutation.mutate({ appId, defaultBranch: effectiveBranch });

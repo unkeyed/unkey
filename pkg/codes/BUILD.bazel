@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "codes",
@@ -6,15 +6,24 @@ go_library(
         "codes.go",
         "constants_gen.go",
         "doc.go",
+        "frontline.go",
         "generate_run.go",
         "nil.go",
         "unkey_application.go",
         "unkey_auth.go",
         "unkey_data.go",
-        "unkey_ingress.go",
         "unkey_portal.go",
         "user_request.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/codes",
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "codes_test",
+    srcs = ["frontline_test.go"],
+    deps = [
+        ":codes",
+        "@com_github_stretchr_testify//require",
+    ],
 )

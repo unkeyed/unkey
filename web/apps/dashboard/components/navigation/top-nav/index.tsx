@@ -10,6 +10,7 @@ import { Fragment } from "react";
 import { HelpButton } from "../sidebar/help-button";
 import { UserButton } from "../sidebar/user-button";
 import { ApiCrumb } from "./api-crumb";
+import { AppCrumb } from "./app-crumb";
 import { CrumbSeparator } from "./crumb";
 import { TopNavFeedbackButton } from "./feedback-button";
 import { IdentityCrumb } from "./identity-crumb";
@@ -64,6 +65,8 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
       return <WorkspaceCrumb href={descriptor.href} />;
     case "project":
       return <ProjectCrumb projectId={descriptor.projectId} />;
+    case "app":
+      return <AppCrumb projectId={descriptor.projectId} appId={descriptor.appId} />;
     case "api":
       return <ApiCrumb apiId={descriptor.apiId} />;
     case "namespace":
@@ -79,6 +82,8 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
       return "workspace";
     case "project":
       return `project:${descriptor.projectId}`;
+    case "app":
+      return `app:${descriptor.appId}`;
     case "api":
       return `api:${descriptor.apiId}`;
     case "namespace":

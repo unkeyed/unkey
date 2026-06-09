@@ -6,7 +6,6 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_permissions",
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/services/keys",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
