@@ -4,6 +4,7 @@ import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
+import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import {
@@ -120,6 +121,20 @@ export const POST = async (req: Request): Promise<Response> => {
             eventId: event.id,
           });
           return new Response("OK", { status: 200 });
+        }
+
+        // Sync the Deploy plan signal before the skip-paths below: a plan
+        // add/change/remove must always be mirrored, even when the rest of the
+        // update is a no-op (renewal, card update, etc.) or bails on the API-tier
+        // quota validation, which a Deploy-only subscription does not satisfy.
+        // Only write when it actually changed, so the common renewal case (plan
+        // unchanged) does no DB write.
+        const deployPlan = detectDeployPlan(sub);
+        if (deployPlan !== ws.deployPlan) {
+          await db
+            .update(schema.workspaces)
+            .set({ deployPlan })
+            .where(eq(schema.workspaces.id, ws.id));
         }
 
         const previousAttributes = event.data.previous_attributes;
@@ -329,6 +344,8 @@ export const POST = async (req: Request): Promise<Response> => {
           .set({
             stripeSubscriptionId: null,
             tier: "Free",
+            // The subscription is gone, so the Deploy plan goes with it.
+            deployPlan: null,
           })
           .where(eq(schema.workspaces.id, ws.id));
 
@@ -405,6 +422,26 @@ export const POST = async (req: Request): Promise<Response> => {
        */
       try {
         const sub = event.data.object as Stripe.Subscription;
+
+        // Mirror the Deploy plan signal when the new subscription already carries
+        // a Deploy plan-fee item (the free-tier path creates a subscription with
+        // Deploy items as its initial set). Best-effort: if the workspace row is
+        // not linked to this subscription yet, a later subscription.updated syncs
+        // it. Done before the alert-only logic below so an early return can't skip
+        // it.
+        const wsForDeploy = await db.query.workspaces.findFirst({
+          where: (table, { and, eq, isNull }) =>
+            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+        });
+        if (wsForDeploy) {
+          const deployPlan = detectDeployPlan(sub);
+          if (deployPlan !== wsForDeploy.deployPlan) {
+            await db
+              .update(schema.workspaces)
+              .set({ deployPlan })
+              .where(eq(schema.workspaces.id, wsForDeploy.id));
+          }
+        }
 
         if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
           return new Response("OK");
