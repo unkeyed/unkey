@@ -3,22 +3,6 @@ import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
-/**
- * A section-level navigation rail. On desktop it renders as a left sidebar; on
- * smaller screens it collapses to a horizontal scrolling bar. Items are links,
- * so inject your router's link via `asChild`:
- *
- * ```tsx
- * <SecondaryNav aria-label="Settings">
- *   <SecondaryNavTitle>Settings</SecondaryNavTitle>
- *   <SecondaryNavGroup>
- *     <SecondaryNavItem asChild active>
- *       <Link href="/settings/general">General</Link>
- *     </SecondaryNavItem>
- *   </SecondaryNavGroup>
- * </SecondaryNav>
- * ```
- */
 const SecondaryNav = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(
   ({ className, ...props }, ref) => (
     <nav
@@ -34,7 +18,6 @@ const SecondaryNav = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElem
 );
 SecondaryNav.displayName = "SecondaryNav";
 
-/** The section heading shown above the items. Hidden on the mobile bar. */
 const SecondaryNavTitle = React.forwardRef<
   HTMLHeadingElement,
   React.HTMLAttributes<HTMLHeadingElement>
@@ -50,10 +33,6 @@ const SecondaryNavTitle = React.forwardRef<
 ));
 SecondaryNavTitle.displayName = "SecondaryNavTitle";
 
-/**
- * Groups related items. On the mobile bar the group dissolves so its items
- * flow inline.
- */
 const SecondaryNavGroup = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div ref={ref} className={cn("contents md:flex md:flex-col md:gap-1", className)} {...props} />
@@ -78,7 +57,6 @@ const secondaryNavItemVariants = cva(
 
 type SecondaryNavItemProps = React.AnchorHTMLAttributes<HTMLAnchorElement> &
   VariantProps<typeof secondaryNavItemVariants> & {
-    /** Render the passed child as the item (e.g. a framework `Link`). */
     asChild?: boolean;
   };
 

@@ -12,10 +12,8 @@ import type { ReactNode } from "react";
 type PageWidth = "default" | "full";
 
 type PageChromeProps = {
-  /** The page header, typically a `<PageHeader>`. */
   header: ReactNode;
   children: ReactNode;
-  /** How the page is measured. Defaults to `default`. */
   width?: PageWidth;
 };
 
