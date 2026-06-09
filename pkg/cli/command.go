@@ -83,6 +83,17 @@ func (c *Command) RequireString(name string) string {
 	return sf.Value()
 }
 
+// Enum returns the value of an enum flag by name
+// Returns empty string if flag doesn't exist or isn't an EnumFlag
+func (c *Command) Enum(name string) string {
+	if flag, ok := c.flagMap[name]; ok {
+		if ef, ok := flag.(*EnumFlag); ok {
+			return ef.Value()
+		}
+	}
+	return ""
+}
+
 // Duration returns the value of a duration flag by name
 // Returns 0 if flag doesn't exist or isn't a DurationFlag
 func (c *Command) Duration(name string) time.Duration {

@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "release_lib",
+    srcs = [
+        "changelog.go",
+        "git.go",
+        "main.go",
+        "release.go",
+        "semver.go",
+        "tags.go",
+        "validate.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/tools/release",
+    visibility = ["//visibility:private"],
+    deps = ["//pkg/cli"],
+)
+
+go_binary(
+    name = "release",
+    embed = [":release_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "release_test",
+    srcs = [
+        "main_test.go",
+        "semver_test.go",
+    ],
+    embed = [":release_lib"],
+    deps = ["@com_github_stretchr_testify//require"],
+)
