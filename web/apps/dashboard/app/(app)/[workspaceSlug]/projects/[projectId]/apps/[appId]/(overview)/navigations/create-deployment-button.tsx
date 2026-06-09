@@ -4,7 +4,7 @@ import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/li
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
-import { deploymentPath } from "@/lib/navigation/routes";
+import { deploymentPath } from "@/lib/navigation/routes/projects";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";

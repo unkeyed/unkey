@@ -3,7 +3,7 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
-import { deploymentPath, projectLogsPath, projectRequestsPath } from "@/lib/navigation/routes";
+import { deploymentPath, projectLogsPath, projectRequestsPath } from "@/lib/navigation/routes/projects";
 import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,

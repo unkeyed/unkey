@@ -1,6 +1,6 @@
 "use client";
 import { LoadingState } from "@/components/loading-state";
-import { appSettingsPath, newAppPath } from "@/lib/navigation/routes";
+import { appSettingsPath, newAppPath } from "@/lib/navigation/routes/projects";
 import { trpc } from "@/lib/trpc/client";
 import { Empty, toast } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";

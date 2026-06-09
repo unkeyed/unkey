@@ -13,7 +13,7 @@ import {
   ShieldKey,
   SquareBulletList,
 } from "@unkey/icons";
-import { appPath, projectLogsPath, projectPath, projectRequestsPath, projectsPath } from "./routes";
+import { appPath, projectLogsPath, projectPath, projectRequestsPath, projectsPath } from "./routes/projects";
 import type { ResolvedNavLink } from "./types";
 
 export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {

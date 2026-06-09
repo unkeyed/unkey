@@ -1,6 +1,6 @@
 "use client";
 
-import { projectSettingsPath } from "@/lib/navigation/routes";
+import { projectSettingsPath } from "@/lib/navigation/routes/projects";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Strong } from "./summary-helpers";

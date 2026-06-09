@@ -1,7 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { deploymentPath } from "@/lib/navigation/routes";
+import { deploymentPath } from "@/lib/navigation/routes/projects";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ProjectDataProvider } from "../../[appId]/(overview)/data-provider";

@@ -1,7 +1,7 @@
 "use client";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { projectsPath } from "@/lib/navigation/routes";
+import { projectsPath } from "@/lib/navigation/routes/projects";
 import { ArrowDottedRotateAnticlockwise, Cube, SquareBulletList } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";

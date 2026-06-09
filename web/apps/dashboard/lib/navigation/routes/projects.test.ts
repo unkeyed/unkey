@@ -11,7 +11,7 @@ import {
   projectRequestsPath,
   projectSettingsPath,
   projectsPath,
-} from "./routes";
+} from "./projects";
 
 const ws = "acme";
 const projectId = "proj_123";

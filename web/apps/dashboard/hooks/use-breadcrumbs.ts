@@ -1,6 +1,6 @@
 "use client";
 
-import { projectsPath } from "@/lib/navigation/routes";
+import { projectsPath } from "@/lib/navigation/routes/projects";
 import { useParams } from "next/navigation";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 

@@ -2,7 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { projectPath, projectsPath } from "@/lib/navigation/routes";
+import { projectPath, projectsPath } from "@/lib/navigation/routes/projects";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Cube, Plus } from "@unkey/icons";
 import { Crumb } from "./crumb";

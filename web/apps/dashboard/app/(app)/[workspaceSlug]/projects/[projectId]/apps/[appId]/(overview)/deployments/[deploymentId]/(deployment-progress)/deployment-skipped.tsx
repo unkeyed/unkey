@@ -1,6 +1,6 @@
 "use client";
 
-import { projectSettingsPath } from "@/lib/navigation/routes";
+import { projectSettingsPath } from "@/lib/navigation/routes/projects";
 import { Ban, CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";

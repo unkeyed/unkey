@@ -1,6 +1,6 @@
 "use client";
 
-import { appSettingsPath, deploymentPath } from "@/lib/navigation/routes";
+import { appSettingsPath, deploymentPath } from "@/lib/navigation/routes/projects";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";

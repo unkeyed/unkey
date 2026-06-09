@@ -1,6 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { appDeploymentsPath } from "@/lib/navigation/routes";
+import { appDeploymentsPath } from "@/lib/navigation/routes/projects";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { useParams, useRouter, useSearchParams } from "next/navigation";

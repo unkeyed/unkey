@@ -3,7 +3,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
-import { deploymentPath } from "@/lib/navigation/routes";
+import { deploymentPath } from "@/lib/navigation/routes/projects";
 import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";

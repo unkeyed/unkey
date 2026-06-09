@@ -1,7 +1,7 @@
 "use client";
 
 import type { Navbar } from "@/components/navigation/navbar";
-import { appPath, projectPath, projectsPath } from "@/lib/navigation/routes";
+import { appPath, projectPath, projectsPath } from "@/lib/navigation/routes/projects";
 import { shortenId } from "@/lib/shorten-id";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import type { ComponentPropsWithoutRef } from "react";

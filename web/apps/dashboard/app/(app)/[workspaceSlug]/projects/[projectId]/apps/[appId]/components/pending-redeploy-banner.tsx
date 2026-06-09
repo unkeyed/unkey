@@ -6,7 +6,7 @@ import {
   dismissSettingsBanner,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/environment-settings";
-import { deploymentPath } from "@/lib/navigation/routes";
+import { deploymentPath } from "@/lib/navigation/routes/projects";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Hammer2, XMark } from "@unkey/icons";

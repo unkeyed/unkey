@@ -1,8 +1,9 @@
 /**
- * Single source of truth for dashboard route paths in the /projects area.
+ * Route builders for the /projects area (projects, apps, deployments).
  * Every builder takes the minimal scope object it needs and returns a string.
  */
-type WorkspaceScope = { workspaceSlug: string };
+import type { WorkspaceScope } from "./shared";
+
 type ProjectScope = WorkspaceScope & { projectId: string };
 type AppScope = ProjectScope & { appId: string };
 

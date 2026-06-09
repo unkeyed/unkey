@@ -1,7 +1,7 @@
 "use client";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { projectPath } from "@/lib/navigation/routes";
+import { projectPath } from "@/lib/navigation/routes/projects";
 import { trpc } from "@/lib/trpc/client";
 import { StepWizard } from "@unkey/ui";
 import { useParams, useRouter, useSearchParams } from "next/navigation";

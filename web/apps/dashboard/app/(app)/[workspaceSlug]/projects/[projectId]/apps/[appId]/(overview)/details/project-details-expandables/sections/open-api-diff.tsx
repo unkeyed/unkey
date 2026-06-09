@@ -9,7 +9,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/status-indicator";
 import type { GetOpenApiDiffResponse } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { collection } from "@/lib/collections";
-import { openapiDiffPath } from "@/lib/navigation/routes";
+import { openapiDiffPath } from "@/lib/navigation/routes/projects";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";

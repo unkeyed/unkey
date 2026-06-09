@@ -1,6 +1,6 @@
 "use client";
 
-import { deploymentPath } from "@/lib/navigation/routes";
+import { deploymentPath } from "@/lib/navigation/routes/projects";
 import { trpc } from "@/lib/trpc/client";
 import { Hammer2 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";

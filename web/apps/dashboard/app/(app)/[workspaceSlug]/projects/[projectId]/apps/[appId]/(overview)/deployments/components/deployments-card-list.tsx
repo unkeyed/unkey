@@ -1,7 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { deploymentPath } from "@/lib/navigation/routes";
+import { deploymentPath } from "@/lib/navigation/routes/projects";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectData } from "../../data-provider";

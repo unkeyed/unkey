@@ -1,6 +1,6 @@
 "use client";
 
-import { projectsPath } from "@/lib/navigation/routes";
+import { projectsPath } from "@/lib/navigation/routes/projects";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

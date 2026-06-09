@@ -7,7 +7,7 @@ import {
   appSettingsPath,
   projectLogsPath,
   projectRequestsPath,
-} from "@/lib/navigation/routes";
+} from "@/lib/navigation/routes/projects";
 import { ArrowOppositeDirectionY, Clone, Cloud, Gear, Layers3 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";

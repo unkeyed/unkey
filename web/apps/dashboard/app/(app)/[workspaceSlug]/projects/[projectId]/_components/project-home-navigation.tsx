@@ -2,7 +2,7 @@
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { newAppPath, projectPath, projectsPath } from "@/lib/navigation/routes";
+import { newAppPath, projectPath, projectsPath } from "@/lib/navigation/routes/projects";
 import { Cube, Plus } from "@unkey/icons";
 import Link from "next/link";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { deploymentPath } from "@/lib/navigation/routes";
+import { deploymentPath } from "@/lib/navigation/routes/projects";
 import { shortenId } from "@/lib/shorten-id";
 import { CopyButton } from "@unkey/ui";
 import { useProjectData } from "../(overview)/data-provider";

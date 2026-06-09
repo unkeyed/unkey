@@ -7,7 +7,7 @@ import {
   createProjectRequestSchema,
 } from "@/lib/collections/deploy/projects";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
-import { newAppPath } from "@/lib/navigation/routes";
+import { newAppPath } from "@/lib/navigation/routes/projects";
 import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";

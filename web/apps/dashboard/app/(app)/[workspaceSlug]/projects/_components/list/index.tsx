@@ -1,7 +1,7 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { projectPath } from "@/lib/navigation/routes";
+import { projectPath } from "@/lib/navigation/routes/projects";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark, Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";

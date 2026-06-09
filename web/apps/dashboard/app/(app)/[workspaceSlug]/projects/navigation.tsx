@@ -1,7 +1,7 @@
 "use client";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { projectsPath } from "@/lib/navigation/routes";
+import { projectsPath } from "@/lib/navigation/routes/projects";
 import { Cube } from "@unkey/icons";
 import { useSearchParams } from "next/navigation";
 import { CreateProjectButton } from "./_components/create-project-button";
