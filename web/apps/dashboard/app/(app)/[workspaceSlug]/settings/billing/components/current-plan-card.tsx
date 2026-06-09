@@ -1,6 +1,7 @@
 "use client";
-import { Button, InfoTooltip, SettingCard } from "@unkey/ui";
+import { Button, InfoTooltip } from "@unkey/ui";
 import { useCallback } from "react";
+import { BillingCard, billingButton } from "./billing-card";
 
 type CurrentPlanCardProps = {
   currentProduct?: {
@@ -27,32 +28,31 @@ export const CurrentPlanCard = ({
   const price = currentProduct?.dollar ?? 0;
 
   return (
-    <SettingCard
+    <BillingCard
+      label="Current plan"
       title={
-        <div className="flex items-center gap-2">
-          <span>{planName}</span>
-          <span className="text-xs bg-info-3 text-info-11 px-2 py-0.5 rounded-full font-normal">
+        <div className="flex items-center gap-2.5">
+          <span className="font-medium text-base text-gray-12 tracking-tight">{planName}</span>
+          <span className="rounded-sm border border-successA-3 bg-successA-2 px-1.5 py-0.5 font-mono text-[10px] text-success-11 uppercase tracking-wider">
             Active
           </span>
         </div>
       }
-      description={`$${price}/mo`}
-      contentWidth="w-full lg:w-[320px]"
+      description={<span className="font-mono text-[13px] text-gray-10">${price}/mo</span>}
     >
-      <div className="w-full flex h-full items-center justify-end gap-4">
-        <InfoTooltip content={disabledReason ?? ""} disabled={!disabled || !disabledReason} asChild>
-          <span>
-            <Button
-              variant="outline"
-              className="px-2.5 py-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
-              onClick={handleChangePlan}
-              disabled={disabled}
-            >
-              {currentProduct ? "Change Plan" : "Upgrade"}
-            </Button>
-          </span>
-        </InfoTooltip>
-      </div>
-    </SettingCard>
+      <InfoTooltip content={disabledReason ?? ""} disabled={!disabled || !disabledReason} asChild>
+        <span>
+          <Button
+            variant="outline"
+            size="lg"
+            className={billingButton}
+            onClick={handleChangePlan}
+            disabled={disabled}
+          >
+            {currentProduct ? "Change Plan" : "Upgrade"}
+          </Button>
+        </span>
+      </InfoTooltip>
+    </BillingCard>
   );
 };

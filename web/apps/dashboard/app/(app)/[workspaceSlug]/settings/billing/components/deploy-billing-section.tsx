@@ -4,17 +4,9 @@ import { formatPrice } from "@/lib/fmt";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import {
-  Button,
-  DialogContainer,
-  InfoTooltip,
-  SettingCard,
-  SettingCardGroup,
-  SettingsDangerZone,
-  SettingsZoneRow,
-  toast,
-} from "@unkey/ui";
+import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
+import { BillingCard, BillingCardGroup, BillingSection, billingButton } from "./billing-card";
 
 const ADMIN_ONLY_TOOLTIP = "Admin access required to manage billing";
 const NEEDS_PAYMENT_TOOLTIP = "Add a payment method before subscribing to a Compute plan";
@@ -36,7 +28,6 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
 }) => {
   const trpcUtils = trpc.useUtils();
   const [isPlanModalOpen, setPlanModalOpen] = useState(false);
-  const [isCancelOpen, setCancelOpen] = useState(false);
 
   const { data: subscription, isLoading: subscriptionLoading } =
     trpc.stripe.getDeploySubscription.useQuery(undefined, { staleTime: 30_000 });
@@ -69,17 +60,8 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
     },
     onError: (err) => toast.error(err.message),
   });
-  const cancel = trpc.stripe.cancelDeploy.useMutation({
-    onSuccess: async () => {
-      setCancelOpen(false);
-      toast.info("Compute cancelled");
-      await revalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
   if (subscriptionLoading || plansLoading) {
-    return <div className="w-full h-[120px] bg-grayA-3 rounded-lg animate-pulse" />;
+    return <div className="w-full h-[120px] bg-grayA-3 animate-pulse" />;
   }
 
   // Deploy billing not configured server-side: hide the section entirely.
@@ -99,54 +81,51 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
     : ADMIN_ONLY_TOOLTIP;
 
   return (
-    <div className="w-full">
-      <SettingCardGroup>
-        <SettingCard
-          title="Compute"
+    <BillingSection label="Compute">
+      <BillingCardGroup>
+        <BillingCard
+          label="Current plan"
+          title={
+            currentPlan ? (
+              <span className="font-medium text-base text-gray-12 tracking-tight">
+                {currentPlanOption?.name ?? currentPlan}
+              </span>
+            ) : undefined
+          }
           description={
-            currentPlan
-              ? `You are on the ${currentPlanOption?.name ?? currentPlan} plan. Usage is billed on top of the plan fee.`
-              : "Subscribe to a Compute plan to start deploying projects."
+            currentPlan ? (
+              currentPlanOption?.amount != null ? (
+                <span>
+                  <span className="font-mono">{formatPrice(currentPlanOption.amount)}/mo</span> +
+                  usage
+                </span>
+              ) : (
+                "Custom pricing. Usage is billed on top of the plan fee."
+              )
+            ) : (
+              "Subscribe to a Compute plan to start deploying projects."
+            )
           }
         >
-          <div className="w-full flex h-full items-center justify-end gap-4">
-            <InfoTooltip
-              content={currentPlan ? ADMIN_ONLY_TOOLTIP : subscribeTooltip}
-              disabled={currentPlan ? !manageDisabled : !subscribeDisabled}
-              asChild
-            >
-              <span>
-                <Button
-                  variant={currentPlan ? "outline" : "primary"}
-                  className="py-2 px-3 font-medium text-sm"
-                  disabled={currentPlan ? manageDisabled : subscribeDisabled}
-                  onClick={() => setPlanModalOpen(true)}
-                >
-                  {currentPlan ? "Change plan" : "Choose a plan"}
-                </Button>
-              </span>
-            </InfoTooltip>
-          </div>
-        </SettingCard>
-      </SettingCardGroup>
-
-      {currentPlan ? (
-        <SettingsDangerZone>
-          <SettingsZoneRow
-            title="Cancel Compute"
-            description={
-              manageDisabled
-                ? ADMIN_ONLY_TOOLTIP
-                : "Stops Compute immediately and removes it from your subscription. Usage so far is billed; the plan fee is not refunded."
-            }
-            action={{
-              label: "Cancel Deploy",
-              onClick: () => setCancelOpen(true),
-              disabled: manageDisabled,
-            }}
-          />
-        </SettingsDangerZone>
-      ) : null}
+          <InfoTooltip
+            content={currentPlan ? ADMIN_ONLY_TOOLTIP : subscribeTooltip}
+            disabled={currentPlan ? !manageDisabled : !subscribeDisabled}
+            asChild
+          >
+            <span>
+              <Button
+                variant={currentPlan ? "outline" : "primary"}
+                size="lg"
+                className={billingButton}
+                disabled={currentPlan ? manageDisabled : subscribeDisabled}
+                onClick={() => setPlanModalOpen(true)}
+              >
+                {currentPlan ? "Change plan" : "Choose a plan"}
+              </Button>
+            </span>
+          </InfoTooltip>
+        </BillingCard>
+      </BillingCardGroup>
 
       <DeployPlanModal
         isOpen={isPlanModalOpen}
@@ -162,32 +141,7 @@ export const DeployBillingSection: React.FC<DeployBillingSectionProps> = ({
           }
         }}
       />
-
-      <DialogContainer
-        isOpen={isCancelOpen}
-        onOpenChange={setCancelOpen}
-        title="Cancel Compute"
-        subTitle="Turn off Compute for this workspace"
-        footer={
-          <Button
-            type="button"
-            variant="primary"
-            color="danger"
-            size="xlg"
-            className="w-full rounded-lg"
-            loading={cancel.isLoading}
-            onClick={() => cancel.mutate()}
-          >
-            Cancel Compute
-          </Button>
-        }
-      >
-        <div className="text-gray-11 text-[13px] leading-6">
-          Cancelling stops Compute immediately: your deployments stop and no further usage is
-          billed. Usage up to now is still charged, and the plan fee already paid is not refunded.
-        </div>
-      </DialogContainer>
-    </div>
+    </BillingSection>
   );
 };
 
@@ -236,12 +190,13 @@ const DeployPlanModal: React.FC<DeployPlanModalProps> = ({
       onOpenChange={onOpenChange}
       title={currentPlan ? "Change Compute plan" : "Choose a Compute plan"}
       subTitle="The plan fee is billed monthly; usage is billed on top."
+      className="rounded-none!"
       footer={
         <Button
           type="button"
           variant="primary"
           size="xlg"
-          className="w-full rounded-lg"
+          className={cn("w-full", billingButton)}
           loading={isSubmitting}
           disabled={ctaDisabled}
           onClick={() => {
@@ -254,7 +209,7 @@ const DeployPlanModal: React.FC<DeployPlanModalProps> = ({
         </Button>
       }
     >
-      <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 border-t border-l border-grayA-4 sm:grid-cols-3">
         {plans.map((plan) => {
           const isCurrent = plan.plan === currentPlan;
           const isSelected = plan.plan === selected;
@@ -264,27 +219,42 @@ const DeployPlanModal: React.FC<DeployPlanModalProps> = ({
               key={plan.plan}
               onClick={() => setSelected(plan.plan)}
               className={cn(
-                "w-full text-left rounded-lg border px-4 py-3 transition-colors",
-                isSelected ? "border-accent-9 bg-accentA-2" : "border-grayA-4 hover:bg-grayA-2",
+                "relative flex min-w-0 flex-col gap-5 border-r border-b border-grayA-4 px-5 pt-5 pb-6 text-left transition-colors",
+                "outline-none focus-visible:bg-grayA-2",
+                isSelected ? "bg-grayA-2 ring-1 ring-inset ring-gray-12" : "hover:bg-grayA-2",
               )}
             >
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-12 text-sm">{plan.name}</span>
-                <span className="text-gray-12 text-sm">
-                  {plan.amount !== null ? (
-                    <>
-                      {formatPrice(plan.amount)}
-                      {plan.interval ? `/${plan.interval}` : ""}
-                    </>
-                  ) : (
-                    "Contact us"
-                  )}
+                <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-gray-11">
+                  {plan.name}
                 </span>
+                {isCurrent ? (
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-gray-9">
+                    Current
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex items-baseline gap-1">
+                {plan.amount !== null ? (
+                  <>
+                    <span className="text-3xl font-medium tracking-tight text-gray-12">
+                      {formatPrice(plan.amount)}
+                    </span>
+                    {plan.interval ? (
+                      <span className="text-gray-9 text-sm">
+                        /{plan.interval === "month" ? "mo" : plan.interval}
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="font-medium text-gray-12 text-xl tracking-tight">
+                    Contact us
+                  </span>
+                )}
               </div>
               {plan.description ? (
-                <p className="text-gray-10 text-[13px] mt-1">{plan.description}</p>
+                <p className="text-[13px] text-gray-10 leading-snug">{plan.description}</p>
               ) : null}
-              {isCurrent ? <p className="text-gray-9 text-xs mt-1">Current plan</p> : null}
             </button>
           );
         })}

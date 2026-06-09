@@ -2,20 +2,19 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
 import { trpc } from "@/lib/trpc/client";
-import {
-  Button,
-  Empty,
-  InfoTooltip,
-  SettingCard,
-  SettingCardGroup,
-  SettingsDangerZone,
-  SettingsShell,
-} from "@unkey/ui";
+import { Button, Empty, InfoTooltip, SettingsShell } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
 import { WorkspaceNavbar } from "../workspace-navbar";
+import {
+  BillingCard,
+  BillingCardGroup,
+  BillingSection,
+  billingButton,
+} from "./components/billing-card";
 import { CancelAlert } from "./components/cancel-alert";
+import { CancelCompute } from "./components/cancel-compute";
 import { CancelPlan } from "./components/cancel-plan";
 import { CurrentPlanCard } from "./components/current-plan-card";
 import { DeployBillingSection } from "./components/deploy-billing-section";
@@ -53,21 +52,30 @@ export const Client: React.FC = () => {
     staleTime: 30_000, // 30 seconds
   });
 
+  // The Compute cancellation lives in the shared danger zone below, so the
+  // page needs to know whether a Compute plan is active. React-query dedupes
+  // this with the identical query inside DeployBillingSection.
+  const { data: deploySubscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
+    staleTime: 30_000,
+    enabled: deployBillingEnabled,
+  });
+  const hasComputePlan = deployBillingEnabled && Boolean(deploySubscription?.plan);
+
   // Handle loading states - don't render until we have billing info
   if (billingLoading || !billingInfo) {
     return (
       <div className="animate-pulse">
         <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
         <SettingsShell>
-          <div className="flex flex-col gap-2 items-center">
-            <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
-            <span className="leading-4 text-gray-11 text-[13px]">
+          <div className="flex w-full flex-col gap-1.5">
+            <span className="font-medium text-gray-12 text-lg tracking-tight">Billing</span>
+            <span className="text-[13px] text-gray-11 leading-5">
               Manage your subscription, usage, and payment methods.
             </span>
           </div>
-          <div className="w-full h-[150px] bg-grayA-3 rounded-lg mt-1" />
-          <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
-          <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
+          <div className="w-full h-[150px] bg-grayA-3 mt-1" />
+          <div className="w-full h-[90px] bg-grayA-3" />
+          <div className="w-full h-[90px] bg-grayA-3" />
         </SettingsShell>
       </div>
     );
@@ -114,9 +122,9 @@ export const Client: React.FC = () => {
             status={subscription.status as Stripe.Subscription.Status}
           />
         ) : null}
-        <div className="flex flex-col gap-2 items-center">
-          <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
-          <span className="leading-4 text-gray-11 text-[13px]">
+        <div className="flex w-full flex-col gap-1.5">
+          <span className="font-medium text-gray-12 text-lg tracking-tight">Billing</span>
+          <span className="text-[13px] text-gray-11 leading-5">
             Manage your subscription, usage, and payment methods.
           </span>
         </div>
@@ -124,8 +132,8 @@ export const Client: React.FC = () => {
         {isFreeTier ? <FreeTierAlert /> : null}
 
         {workspace.stripeCustomerId ? (
-          <div className="w-full">
-            <SettingCardGroup>
+          <BillingSection label="API plan">
+            <BillingCardGroup>
               <CurrentPlanCard
                 currentProduct={currentProduct}
                 onChangePlan={() => setShowPlanModal(true)}
@@ -133,29 +141,7 @@ export const Client: React.FC = () => {
                 disabledReason={ADMIN_ONLY_TOOLTIP}
               />
               <Usage quota={currentProduct?.quotas?.requestsPerMonth ?? MAX_QUOTA} />
-              <SettingCard
-                title="Billing Portal"
-                description="Manage payment methods and see your invoices."
-              >
-                <div className="w-full flex h-full items-center justify-end gap-4">
-                  <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
-                    <span>
-                      <Button
-                        variant="outline"
-                        className="py-2 px-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
-                        aria-label="Open billing portal"
-                        disabled={!isAdmin}
-                        onClick={() => {
-                          router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
-                        }}
-                      >
-                        Open Portal
-                      </Button>
-                    </span>
-                  </InfoTooltip>
-                </div>
-              </SettingCard>
-            </SettingCardGroup>
+            </BillingCardGroup>
 
             <PlanSelectionModal
               isOpen={showPlanModal}
@@ -165,36 +151,35 @@ export const Client: React.FC = () => {
               workspaceSlug={workspace.slug}
               isChangingPlan={Boolean(subscription)}
             />
-          </div>
+          </BillingSection>
         ) : (
-          <div className="w-full">
-            <SettingCardGroup>
-              <SettingCard
-                title="Add payment method"
+          <BillingSection label="API plan">
+            <BillingCardGroup>
+              <BillingCard
+                label="Payment method"
+                title="Add a payment method"
                 description="Before upgrading, you need to add a payment method."
-                contentWidth="w-full lg:w-[320px]"
               >
-                <div className="flex justify-end w-full">
-                  <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
-                    <span>
-                      <Button
-                        variant="outline"
-                        className="px-3 py-2 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
-                        aria-label="Add payment method"
-                        disabled={!isAdmin}
-                        onClick={() => {
-                          router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
-                        }}
-                      >
-                        Add payment method
-                      </Button>
-                    </span>
-                  </InfoTooltip>
-                </div>
-              </SettingCard>
+                <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+                  <span>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className={billingButton}
+                      aria-label="Add payment method"
+                      disabled={!isAdmin}
+                      onClick={() => {
+                        router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
+                      }}
+                    >
+                      Add payment method
+                    </Button>
+                  </span>
+                </InfoTooltip>
+              </BillingCard>
               <Usage quota={currentProduct?.quotas?.requestsPerMonth ?? MAX_QUOTA} />
-            </SettingCardGroup>
-          </div>
+            </BillingCardGroup>
+          </BillingSection>
         )}
 
         {deployBillingEnabled ? (
@@ -204,16 +189,51 @@ export const Client: React.FC = () => {
           />
         ) : null}
 
+        {workspace.stripeCustomerId ? (
+          <BillingSection label="Billing portal">
+            <BillingCardGroup>
+              <BillingCard
+                title="Payment methods and invoices"
+                description="Opens the Stripe billing portal. Covers every subscription in this workspace."
+              >
+                <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+                  <span>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className={billingButton}
+                      aria-label="Open billing portal"
+                      disabled={!isAdmin}
+                      onClick={() => {
+                        router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
+                      }}
+                    >
+                      Open Portal
+                    </Button>
+                  </span>
+                </InfoTooltip>
+              </BillingCard>
+            </BillingCardGroup>
+          </BillingSection>
+        ) : null}
+
         <CancelAlert
           cancelAt={subscription?.cancelAt}
           disabled={!isAdmin}
           disabledReason={ADMIN_ONLY_TOOLTIP}
         />
 
-        {allowCancel ? (
-          <SettingsDangerZone>
-            <CancelPlan disabled={!isAdmin} disabledReason={ADMIN_ONLY_TOOLTIP} />
-          </SettingsDangerZone>
+        {allowCancel || hasComputePlan ? (
+          <BillingSection label="Danger zone">
+            <BillingCardGroup className="border-error-7 divide-error-7">
+              {hasComputePlan ? (
+                <CancelCompute disabled={!isAdmin} disabledReason={ADMIN_ONLY_TOOLTIP} />
+              ) : null}
+              {allowCancel ? (
+                <CancelPlan disabled={!isAdmin} disabledReason={ADMIN_ONLY_TOOLTIP} />
+              ) : null}
+            </BillingCardGroup>
+          </BillingSection>
         ) : null}
       </SettingsShell>
     </div>

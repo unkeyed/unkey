@@ -1,8 +1,9 @@
 "use client";
 import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
-import { SettingsZone, SettingsZoneRow, toast } from "@unkey/ui";
+import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import { billingButton } from "./billing-card";
 
 export const CancelAlert: React.FC<{
   cancelAt?: number;
@@ -58,17 +59,25 @@ export const CancelAlert: React.FC<{
     );
 
   return (
-    <SettingsZone variant="warning" title="Cancellation Scheduled">
-      <SettingsZoneRow
-        title="Subscription ending"
-        description={description}
-        action={{
-          label: "Resubscribe",
-          onClick: () => uncancelSubscription.mutate(),
-          loading: uncancelSubscription.isLoading,
-          disabled: uncancelSubscription.isLoading || Boolean(props.disabled),
-        }}
-      />
-    </SettingsZone>
+    <div className="flex w-full flex-col gap-3 border border-warning-7 bg-warning-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-1">
+        <span className="font-mono text-[11px] text-warning-11 uppercase tracking-wider">
+          Cancellation scheduled
+        </span>
+        <p className="font-medium text-gray-12 text-sm">Subscription ending</p>
+        <p className="text-[13px] text-gray-10 leading-snug">{description}</p>
+      </div>
+      <Button
+        variant="primary"
+        color="warning"
+        size="lg"
+        className={`shrink-0 ${billingButton}`}
+        loading={uncancelSubscription.isLoading}
+        disabled={uncancelSubscription.isLoading || Boolean(props.disabled)}
+        onClick={() => uncancelSubscription.mutate()}
+      >
+        Resubscribe
+      </Button>
+    </div>
   );
 };

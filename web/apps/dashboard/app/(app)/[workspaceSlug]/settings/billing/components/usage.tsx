@@ -1,7 +1,7 @@
 "use client";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { SettingCard } from "@unkey/ui";
+import { BillingCard } from "./billing-card";
 
 export const Usage: React.FC<{
   quota: number;
@@ -26,28 +26,18 @@ export const Usage: React.FC<{
 
   if (isLoading) {
     return (
-      <SettingCard
-        title="Usage this month"
-        description="Valid key verifications and ratelimits."
-        className="w-full"
-        contentWidth="w-full lg:w-[320px]"
-      >
+      <BillingCard label="Usage this month" description="Valid key verifications and ratelimits.">
         <div className="w-full flex h-full items-center justify-end gap-4">
           <div className="h-5 w-32 bg-gray-4 animate-pulse rounded-sm" />
           <div className="h-6 w-6 bg-gray-4 animate-pulse rounded-full" />
         </div>
-      </SettingCard>
+      </BillingCard>
     );
   }
 
   if (error) {
     return (
-      <SettingCard
-        title="Usage this month"
-        description="Valid key verifications and ratelimits."
-        className="w-full"
-        contentWidth="w-full lg:w-[320px]"
-      >
+      <BillingCard label="Usage this month" description="Valid key verifications and ratelimits.">
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm text-red-11">Failed to load usage: {error.message}</p>
           <button
@@ -58,22 +48,17 @@ export const Usage: React.FC<{
             Retry
           </button>
         </div>
-      </SettingCard>
+      </BillingCard>
     );
   }
 
   if (!usage) {
     return (
-      <SettingCard
-        title="Usage this month"
-        description="Valid key verifications and ratelimits."
-        className="w-full"
-        contentWidth="w-full lg:w-[320px]"
-      >
+      <BillingCard label="Usage this month" description="Valid key verifications and ratelimits.">
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm text-gray-11">No usage data available</p>
         </div>
-      </SettingCard>
+      </BillingCard>
     );
   }
 
@@ -89,21 +74,27 @@ export const Usage: React.FC<{
   const current = verifications + ratelimits;
   const max = quota;
   const percent = max > 0 ? Math.round((current / max) * 100) : 0;
+  const barPercent = clamp(0, percent, 100);
 
   return (
-    <SettingCard
-      title="Usage this month"
+    <BillingCard
+      label="Usage this month"
       description="Valid key verifications and ratelimits."
-      border="both"
-      className="w-full"
-      contentWidth="w-full lg:w-[320px]"
+      footer={
+        // Decorative: the exact numbers are rendered as text in the row above.
+        <div className="h-1 w-full bg-grayA-3" aria-hidden>
+          <div
+            className={percent >= 100 ? "h-full bg-error-9" : "h-full bg-gray-12"}
+            style={{ width: `${barPercent}%` }}
+          />
+        </div>
+      }
     >
-      <div className="w-full flex h-full items-center justify-end gap-4">
-        <p className="text-sm font-semibold text-gray-12">
-          {formatNumber(current)} / {formatNumber(max)} ({percent}%)
-        </p>
-      </div>
-    </SettingCard>
+      <p className="font-mono text-[13px] text-gray-12">
+        {formatNumber(current)} / {formatNumber(max)}{" "}
+        <span className="text-gray-9">({percent}%)</span>
+      </p>
+    </BillingCard>
   );
 };
 function clamp(min: number, value: number, max: number): number {

@@ -1,7 +1,8 @@
 "use client";
-import { Button, SettingCard } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type { Stripe } from "stripe";
+import { billingButton } from "./billing-card";
 
 export const SubscriptionStatus: React.FC<{
   status: Stripe.Subscription.Status;
@@ -13,22 +14,25 @@ export const SubscriptionStatus: React.FC<{
 
   if (statusList.includes(props.status)) {
     return (
-      <SettingCard
-        title="Payment Required"
-        description="There is a problem with your payment. Please resolve it."
-        border="both"
-        className="border-error-7 bg-error-3"
-      >
-        <div className="flex justify-end w-full">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() => router.push(`/${props.workspaceSlug}/settings/billing/stripe/portal`)}
-          >
-            Open Portal
-          </Button>
+      <div className="flex w-full flex-col gap-3 border border-error-7 bg-error-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-[11px] text-error-11 uppercase tracking-wider">
+            Payment required
+          </span>
+          <p className="font-medium text-gray-12 text-sm">There is a problem with your payment.</p>
+          <p className="text-[13px] text-gray-10 leading-snug">
+            Open the billing portal to resolve it.
+          </p>
         </div>
-      </SettingCard>
+        <Button
+          variant="primary"
+          size="lg"
+          className={`shrink-0 ${billingButton}`}
+          onClick={() => router.push(`/${props.workspaceSlug}/settings/billing/stripe/portal`)}
+        >
+          Open Portal
+        </Button>
+      </div>
     );
   }
   return null;

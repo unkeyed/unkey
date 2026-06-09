@@ -40,7 +40,9 @@ export const getDeployPlans = workspaceProcedure.query(async () => {
 
       return {
         plan,
-        name: resolvedProduct?.name ?? plan,
+        // Strip the "Deploy" brand prefix from the Stripe product name; the
+        // section is already labelled "Compute" and the tier is just the level.
+        name: (resolvedProduct?.name ?? plan).replace(/^deploy\s+/i, ""),
         description: resolvedProduct?.description ?? null,
         amount: price.unit_amount ?? null,
         currency: price.currency,

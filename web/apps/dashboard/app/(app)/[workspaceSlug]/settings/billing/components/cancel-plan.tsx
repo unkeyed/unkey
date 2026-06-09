@@ -1,9 +1,11 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, SettingsZoneRow, toast } from "@unkey/ui";
+import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BillingCard, billingButton } from "./billing-card";
 
 type CancelPlanProps = {
   disabled?: boolean;
@@ -37,25 +39,32 @@ export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabl
 
   return (
     <>
-      <SettingsZoneRow
-        title="Cancel subscription"
+      <BillingCard
+        title="Cancel API subscription"
         description={
           disabled && disabledReason
             ? disabledReason
-            : "Cancelling your subscription will downgrade your workspace to the free tier."
+            : "Downgrades your workspace to the free tier at the end of the billing period. Compute is not affected."
         }
-        action={{
-          label: "Cancel Plan",
-          onClick: () => setIsDialogOpen(true),
-          disabled,
-        }}
-      />
+      >
+        <Button
+          variant="outline"
+          color="danger"
+          size="lg"
+          className={billingButton}
+          disabled={disabled}
+          onClick={() => setIsDialogOpen(true)}
+        >
+          Cancel API plan
+        </Button>
+      </BillingCard>
 
       <DialogContainer
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        title="Cancel subscription"
+        title="Cancel API subscription"
         subTitle="Downgrade your workspace to the free tier"
+        className="rounded-none!"
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button
@@ -63,7 +72,7 @@ export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabl
               variant="primary"
               color="danger"
               size="xlg"
-              className="w-full rounded-lg"
+              className={cn("w-full", billingButton)}
               loading={cancelSubscription.isLoading}
               onClick={() => cancelSubscription.mutate()}
             >
@@ -75,7 +84,7 @@ export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabl
           </div>
         }
       >
-        <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
+        <div className="bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
           <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
             <TriangleWarning2 iconSize="sm-regular" className="text-white" />
           </div>
