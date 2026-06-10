@@ -66,7 +66,7 @@ export function CrumbPopover({
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-64 p-0 rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md"
+        className="w-64 p-0"
         sideOffset={8}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
@@ -90,9 +90,9 @@ export function CrumbPopover({
             placeholder={searchPlaceholder}
             className="text-[13px] placeholder:text-[13px] placeholder:text-accent-8"
           />
-          <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-thin">
+          <CommandList>
             <CommandEmpty className="py-6">{emptyText}</CommandEmpty>
-            <CommandGroup className="max-h-[260px] overflow-y-auto">
+            <CommandGroup>
               {items.map((item) => {
                 const isCurrent = item.id === currentId;
                 return (
@@ -107,7 +107,7 @@ export function CrumbPopover({
                     <Check
                       iconSize="sm-regular"
                       className={cn(
-                        "ml-auto shrink-0 text-accent-12",
+                        "shrink-0 text-accent-12",
                         isCurrent ? "opacity-100" : "opacity-0",
                       )}
                     />
@@ -165,7 +165,7 @@ function FooterRow({
     <CommandItem
       value={`__footer__${footer.label}`}
       onSelect={onSelect}
-      className="flex items-center gap-2 py-1 mt-0 overflow-hidden"
+      className="flex items-center gap-2 py-1 mt-0"
     >
       {body}
     </CommandItem>
