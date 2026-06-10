@@ -528,13 +528,24 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
   };
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
     <div
       className={cn(
         "flex items-center gap-1 truncate text-accent-12",
         sortable && "cursor-pointer",
       )}
       onClick={sortable ? handleSort : undefined}
+      onKeyDown={
+        sortable
+          ? (e: React.KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleSort();
+              }
+            }
+          : undefined
+      }
+      role={sortable ? "button" : undefined}
+      tabIndex={sortable ? 0 : undefined}
     >
       <span>{column.header}</span>
       {sortable && (

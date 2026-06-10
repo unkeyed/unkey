@@ -76,8 +76,10 @@ const RegionTags = ({
             />
             {r}
             {canRemove && (
-              //biome-ignore lint/a11y/useKeyWithClickEvents: we can't use button here otherwise we'll nest two buttons
-              <span
+              // The surrounding tag is a span (even as TooltipTrigger asChild), so a native button does not nest interactives.
+              <button
+                type="button"
+                aria-label={`Remove region ${r}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemove(r);
@@ -85,7 +87,7 @@ const RegionTags = ({
                 className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
               >
                 <XMark iconSize="sm-regular" />
-              </span>
+              </button>
             )}
           </span>
         );
