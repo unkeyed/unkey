@@ -1,6 +1,7 @@
 "use client";
 import { HelpButton } from "@/components/navigation/sidebar/help-button";
 import { signOut } from "@/lib/auth/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
 import {
@@ -14,11 +15,20 @@ import {
 
 export function OnboardingContent() {
   const { body, submit, isDisabled, isLoading } = useWorkspaceStep();
+  const queryClient = useQueryClient();
 
   return (
     <FullScreenLayout className="px-4 pt-6">
       <div className="absolute top-4 right-4">
-        <Button variant="ghost" size="sm" onClick={() => signOut()} className="text-gray-11">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={async () => {
+            queryClient.clear();
+            await signOut();
+          }}
+          className="text-gray-11"
+        >
           Sign out
         </Button>
       </div>
