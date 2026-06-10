@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+#MISE description="Resend every Stripe event for a customer to the local webhook (run `stripe listen` first)"
+
+# Re-sends every Stripe event that references <customer_id> to your configured
+# webhook endpoints, oldest first, so a local dashboard re-processes the whole
+# history. Start the forwarder in another terminal first, otherwise the resent
+# events have nowhere to land:
+#
+#   stripe listen --forward-to localhost:3000/api/webhooks/stripe
+#
+# The customer and the events must live in the same Stripe account the CLI is
+# pointed at. If the customer was created by the dashboard, that's the account
+# behind STRIPE_SECRET_KEY, which may be a non-default `stripe login` profile.
+# Pass that profile as the second argument (and use the same --project-name on
+# `stripe listen`).
+#
+# Usage: mise run stripe-replay <customer_id> [profile]
+
+set -eo pipefail
+
+customer="${1:-}"
+profile="${2:-}"
+if [[ -z "$customer" ]]; then
+  echo "usage: mise run stripe-replay <customer_id> [profile]" >&2
+  exit 1
+fi
+
+for bin in stripe jq; do
+  if ! command -v "$bin" >/dev/null 2>&1; then
+    echo "missing \`$bin\` on PATH" >&2
+    exit 1
+  fi
+done
+
+# Empty when no profile is given, so the stripe calls are a no-op then.
+pn=()
+if [[ -n "$profile" ]]; then
+  pn=(--project-name "$profile")
+fi
+
+# Page through events newest-first, keeping the ids that reference the customer.
+# Subscription/invoice events expose it as data.object.customer; customer.*
+# events as data.object.id.
+ids=()
+after=""
+while true; do
+  args=(events list "${pn[@]}" --limit 100)
+  [[ -n "$after" ]] && args+=(--starting-after "$after")
+
+  rc=0
+  page=$(stripe "${args[@]}") || rc=$?
+  if [[ $rc -ne 0 ]]; then
+    echo "stripe events list failed (exit $rc) — try \`stripe login\`${profile:+ --project-name=$profile}" >&2
+    exit 1
+  fi
+
+  while IFS= read -r id; do
+    [[ -n "$id" ]] && ids+=("$id")
+  done < <(echo "$page" | jq -r --arg c "$customer" \
+    '.data[] | select(.data.object.customer == $c or .data.object.id == $c) | .id')
+
+  # Quote the result so an empty/missing value can't make the test choke.
+  has_more=$(echo "$page" | jq -r '.has_more')
+  [[ "$has_more" == "true" ]] || break
+  after=$(echo "$page" | jq -r '.data[-1].id')
+done
+
+if [[ ${#ids[@]} -eq 0 ]]; then
+  echo "no events reference $customer — is the CLI pointed at the account that owns it? (try a [profile])" >&2
+  exit 0
+fi
+
+# ids are newest-first; replay oldest-first so e.g. subscription.created lands
+# before subscription.updated.
+echo "replaying ${#ids[@]} events for $customer (oldest first)"
+for (( i=${#ids[@]} - 1; i >= 0; i-- )); do
+  echo "  resend ${ids[i]}"
+  stripe events resend "${pn[@]}" "${ids[i]}" >/dev/null
+done
+echo "done"
