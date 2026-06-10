@@ -2,8 +2,9 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { ArrowRight, BookBookmark, Code, Cube, Earth, Github, HeartPulse } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import Link from "next/link";
-import type { ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import { type ReactNode, useState } from "react";
+import { CreateProjectDialog } from "../create-project-dialog";
 
 type IconBoxProps = {
   children?: ReactNode;
@@ -33,6 +34,7 @@ const flankItems: { icon: ReactNode; large?: boolean; opacity: string }[] = [
 
 const ProjectIconRow = () => (
   <div
+    aria-hidden="true"
     className="p-2 mb-8"
     style={{
       maskImage: "linear-gradient(to right, transparent, black 20%, black 80%, transparent)",
@@ -52,6 +54,8 @@ const ProjectIconRow = () => (
 
 export function EmptyProjects() {
   const workspace = useWorkspaceNavigation();
+  const searchParams = useSearchParams();
+  const [isDialogOpen, setIsDialogOpen] = useState(searchParams.get("new") === "true");
 
   return (
     <div className="grow w-full flex justify-center items-center p-12">
@@ -65,15 +69,15 @@ export function EmptyProjects() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
-          <Link
-            href={`/${workspace.slug}/projects/new`}
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => setIsDialogOpen(true)}
             className="w-full max-w-[200px] sm:w-auto sm:max-w-none"
           >
-            <Button variant="primary" size="md" className="w-full sm:w-auto">
-              Create your first project
-              <ArrowRight />
-            </Button>
-          </Link>
+            Create your first project
+            <ArrowRight />
+          </Button>
           <a
             href="https://www.unkey.com/docs/quickstart/deploy"
             target="_blank"
@@ -87,6 +91,12 @@ export function EmptyProjects() {
           </a>
         </div>
       </div>
+
+      <CreateProjectDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        workspaceSlug={workspace.slug}
+      />
     </div>
   );
 }
