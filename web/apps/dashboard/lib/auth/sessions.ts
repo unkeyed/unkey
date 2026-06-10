@@ -1,10 +1,49 @@
 "use server";
 
 import { env } from "@/lib/env";
+import * as Sentry from "@sentry/nextjs";
 import type { NextRequest } from "next/server";
 import { getCookie, getCookieOptionsAsString, setSessionCookie } from "./cookies";
 import { auth } from "./server";
 import { LOCAL_ORG_ID, LOCAL_ORG_ROLE, LOCAL_USER_ID, UNKEY_SESSION_COOKIE } from "./types";
+
+type SessionFailureReason =
+  | "refresh_failed"
+  | "validation_unrefreshable"
+  | "validation_threw"
+  | "unexpected_error";
+
+// Diagnostic instrumentation for the GitHub-callback logout. Reaching any of
+// these branches returns a null session, which makes the proxy redirect the
+// user to sign-in. We only get here when a session cookie was present, so this
+// reports unexpected logouts and ignores anonymous visitors.
+//
+// Prime suspect: a single-use refresh-token race. A sealed session's refresh
+// token is consumed on first use, but one navigation can trigger several
+// refreshes of the same token — the proxy middleware, the tRPC context's
+// getAuth, and its post-login retry all call updateSession(req) with the same
+// cookie. The first refresh rotates the token; the rest throw "already used".
+// Remove once the cause is confirmed and the refresh path is deduped.
+function reportSessionFailure(
+  reason: SessionFailureReason,
+  request: NextRequest | undefined,
+  error: unknown,
+): void {
+  Sentry.captureException(error instanceof Error ? error : new Error(`auth: ${reason}`), {
+    level: "warning",
+    tags: {
+      auth_failure: reason,
+      // request => proxy middleware (edge); no request => RSC/server-component
+      // session reads. Lets us see which context lost the refresh race.
+      auth_context: request ? "request" : "no_request",
+    },
+    extra: {
+      // pathname only; the query string carries the signed GitHub `state`
+      // token and installation id, which must not reach Sentry.
+      path: request?.nextUrl.pathname ?? null,
+    },
+  });
+}
 
 type SessionResult = {
   session: {
@@ -151,18 +190,22 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
               headers,
             };
           }
-        } catch (_refreshError) {
+        } catch (refreshError) {
           // If refresh fails, treat as no session
+          reportSessionFailure("refresh_failed", request, refreshError);
           return { session: null, headers };
         }
       }
 
       // Session is neither valid nor refreshable
+      reportSessionFailure("validation_unrefreshable", request, undefined);
       return { session: null, headers };
-    } catch (_validationError) {
+    } catch (validationError) {
+      reportSessionFailure("validation_threw", request, validationError);
       return { session: null, headers };
     }
-  } catch (_error) {
+  } catch (error) {
+    reportSessionFailure("unexpected_error", request, error);
     return { session: null, headers };
   }
 }
