@@ -1,5 +1,6 @@
 "use client";
 import { HelpButton } from "@/components/navigation/sidebar/help-button";
+import { signOut } from "@/lib/auth/utils";
 import { Button, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
 import {
@@ -16,6 +17,16 @@ export function OnboardingContent() {
 
   return (
     <FullScreenLayout className="px-4 pt-6">
+      <div className="absolute top-4 right-4">
+        <button
+          type="button"
+          onClick={() => signOut()}
+          className="text-gray-11 hover:text-gray-12 text-sm transition-colors"
+        >
+          Sign out
+        </button>
+      </div>
+
       <Logo />
 
       <FullScreenContent className="max-w-sm py-10 sm:max-w-md lg:max-w-lg">
