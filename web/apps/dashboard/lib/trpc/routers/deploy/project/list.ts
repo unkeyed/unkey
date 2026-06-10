@@ -38,6 +38,7 @@ export const listProjects = workspaceProcedure
       // nondeterministic winner across requests.
       db
         .select({
+          id: apps.id,
           projectId: apps.projectId,
           currentDeploymentId: apps.currentDeploymentId,
           isRolledBack: apps.isRolledBack,
@@ -89,22 +90,28 @@ export const listProjects = workspaceProcedure
         ),
       db
         .select({
-          projectId: githubRepoConnections.projectId,
+          appId: githubRepoConnections.appId,
           repositoryFullName: githubRepoConnections.repositoryFullName,
         })
         .from(githubRepoConnections)
-        .where(eq(githubRepoConnections.workspaceId, workspaceId)),
+        .where(
+          and(
+            eq(githubRepoConnections.workspaceId, workspaceId),
+            inArray(githubRepoConnections.projectId, projectIds),
+          ),
+        ),
     ]);
 
     const primaryAppByProject = new Map<
       string,
-      { currentDeploymentId: string; isRolledBack: boolean }
+      { appId: string; currentDeploymentId: string; isRolledBack: boolean }
     >();
     for (const row of appRows) {
       if (!row.currentDeploymentId || primaryAppByProject.has(row.projectId)) {
         continue;
       }
       primaryAppByProject.set(row.projectId, {
+        appId: row.id,
         currentDeploymentId: row.currentDeploymentId,
         isRolledBack: Boolean(row.isRolledBack),
       });
@@ -126,12 +133,14 @@ export const listProjects = workspaceProcedure
       domainByProject.set(row.projectId, row.fullyQualifiedDomainName);
     }
 
-    const repoByProject = new Map<string, string>();
+    // Keyed by appId so the repo matches the app supplying the commit/PR below;
+    // a multi-app project would otherwise pair a commit with the wrong repo.
+    const repoByApp = new Map<string, string>();
     for (const row of repoRows) {
-      if (repoByProject.has(row.projectId)) {
+      if (repoByApp.has(row.appId)) {
         continue;
       }
-      repoByProject.set(row.projectId, row.repositoryFullName);
+      repoByApp.set(row.appId, row.repositoryFullName);
     }
 
     const currentDeploymentIds = Array.from(
@@ -172,7 +181,7 @@ export const listProjects = workspaceProcedure
         ? currentDeploymentById.get(primaryApp.currentDeploymentId)
         : undefined;
       const hasDeployment = currentDeployment?.gitCommitTimestamp != null;
-      const repositoryFullName = repoByProject.get(project.id) ?? null;
+      const repositoryFullName = primaryApp ? (repoByApp.get(primaryApp.appId) ?? null) : null;
 
       return {
         id: project.id,

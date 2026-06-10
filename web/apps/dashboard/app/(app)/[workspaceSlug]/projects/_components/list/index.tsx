@@ -51,7 +51,6 @@ export const ProjectsList = () => {
       </div>
     );
   }
-
   return (
     <div className="p-4">
       <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
