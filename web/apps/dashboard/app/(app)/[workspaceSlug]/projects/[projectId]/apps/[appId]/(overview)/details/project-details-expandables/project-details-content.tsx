@@ -1,3 +1,4 @@
+import { githubUrl } from "@/lib/github-url";
 import { Cube } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useProjectData } from "../../data-provider";
@@ -29,9 +30,7 @@ export const ProjectDetailsContent = () => {
 
   const detailSections = createDetailSections({
     ...data.deployment,
-    repository: data.project.repositoryFullName
-      ? `https://github.com/${data.project.repositoryFullName}`
-      : null,
+    repository: githubUrl.repo(data.project.repositoryFullName) ?? null,
   });
 
   // This "environment" domain never changes even when you do a rollback this one stays stable.

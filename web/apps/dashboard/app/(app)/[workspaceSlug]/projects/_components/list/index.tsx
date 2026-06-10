@@ -1,6 +1,7 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { githubUrl } from "@/lib/github-url";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -50,7 +51,6 @@ export const ProjectsList = () => {
       </div>
     );
   }
-
   return (
     <div className="p-4">
       <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
@@ -61,6 +61,12 @@ export const ProjectsList = () => {
               name={project.name}
               domain={project.domain}
               commitTitle={project.commitTitle}
+              sourceUrl={githubUrl.deployment({
+                repoFullName: project.repositoryFullName,
+                forkRepoFullName: project.forkRepositoryFullName,
+                prNumber: project.prNumber,
+                sha: project.commitSha,
+              })}
               commitTimestamp={project.commitTimestamp}
               branch={project.branch}
               author={project.author}
