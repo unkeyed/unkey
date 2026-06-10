@@ -234,7 +234,7 @@ export function InfiniteCanvas({
     <div className="relative w-full h-full">
       <svg
         ref={svgRef}
-        className={`w-full h-full dark:bg-black bg-gray-1 ${locked ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+        className={`w-full h-full dark:bg-gray-2 bg-gray-1 ${locked ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         onMouseDown={locked ? undefined : handleMouseDown}
         onMouseMove={locked ? undefined : handleMouseMove}
         onMouseUp={locked ? undefined : handleMouseUp}

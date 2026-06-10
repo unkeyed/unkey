@@ -119,7 +119,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
   }
 
   return (
-    <div className="pointer-events-auto fixed bottom-4 right-4 z-50 w-80 bg-gray-1 border border-grayA-6 rounded-lg shadow-xl">
+    <div className="pointer-events-auto fixed bottom-4 right-4 z-50 w-80 bg-background-overlay border border-grayA-6 rounded-lg shadow-xl">
       <div className="flex items-center justify-between p-3 border-b border-grayA-4">
         <div className="flex items-center gap-2">
           <Layers3 iconSize="sm-medium" className="text-accent-9" />

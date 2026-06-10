@@ -43,7 +43,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       className={cn(
-        "w-full overflow-hidden rounded-lg border border-grayA-4 bg-white dark:bg-black",
+        "w-full overflow-hidden rounded-lg border border-grayA-4 bg-white dark:bg-gray-2",
         className,
       )}
     >

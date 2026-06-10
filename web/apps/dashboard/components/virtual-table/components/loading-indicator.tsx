@@ -66,7 +66,7 @@ export const LoadMoreFooter = ({
         <button
           type="button"
           onClick={handleOpen}
-          className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group"
+          className="bg-background-overlay border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group"
           title={`${buttonText} • ${totalVisible} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ export const LoadMoreFooter = ({
       )}
     >
       <div
-        className={`w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-xs mb-5 transition-all duration-200 hover:shadow-lg ${
+        className={`w-[740px] border bg-background-overlay border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-xs mb-5 transition-all duration-200 hover:shadow-lg ${
           shouldShow ? "pointer-events-auto" : "pointer-events-none"
         }`}
         aria-hidden={!shouldShow}

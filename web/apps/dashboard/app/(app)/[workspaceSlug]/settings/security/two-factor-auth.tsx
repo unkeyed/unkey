@@ -173,7 +173,7 @@ function EnrollDialog() {
               </p>
               {/* Keep the code on its own line so it never line-wraps, and
                   offer one-click copy. */}
-              <div className="flex w-full items-center justify-between gap-2 rounded-lg border border-grayA-5 bg-gray-2 dark:bg-black px-3 py-2">
+              <div className="flex w-full items-center justify-between gap-2 rounded-lg border border-grayA-5 bg-gray-2 px-3 py-2">
                 <code className="font-mono text-sm text-accent-12 whitespace-nowrap overflow-x-auto">
                   {enrollment.secret}
                 </code>

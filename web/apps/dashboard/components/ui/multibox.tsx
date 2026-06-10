@@ -31,7 +31,7 @@ export function MultiboxChips({ className, ...props }: ComboboxPrimitive.Chips.P
   return (
     <ComboboxPrimitive.Chips
       className={cn(
-        "relative flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border border-gray-5 bg-gray-2 px-1.5 py-1 pr-8 text-[13px] leading-5 text-grayA-12 transition-colors duration-300 dark:bg-black",
+        "relative flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border border-gray-5 bg-gray-2 px-1.5 py-1 pr-8 text-[13px] leading-5 text-grayA-12 transition-colors duration-300",
         "hover:border-gray-8",
         "focus-within:border-accent-12 focus-within:ring-2 focus-within:ring-gray-5",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50",
@@ -115,7 +115,7 @@ export function MultiboxContent({
       <ComboboxPrimitive.Positioner className="isolate z-200" sideOffset={sideOffset} {...props}>
         <ComboboxPrimitive.Popup
           className={cn(
-            "max-h-[min(var(--available-height),300px)] w-(--anchor-width) overflow-y-auto overflow-x-hidden rounded-lg border border-grayA-4 bg-white p-1 shadow-md scrollbar-thin dark:bg-black",
+            "max-h-[min(var(--available-height),300px)] w-(--anchor-width) overflow-y-auto overflow-x-hidden rounded-lg border border-grayA-4 bg-background-overlay p-1 shadow-md scrollbar-thin",
             className,
           )}
         >

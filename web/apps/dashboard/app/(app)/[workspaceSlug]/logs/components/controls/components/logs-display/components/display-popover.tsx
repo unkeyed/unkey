@@ -156,7 +156,7 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={children as React.ReactElement} />
       <PopoverContent
-        className="bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu p-2 border-gray-6 rounded-lg w-96"
+        className="bg-background-overlay drop-shadow-2xl transform-gpu p-2 border-gray-6 rounded-lg w-96"
         align="start"
         onKeyDown={handleKeyNavigation}
       >

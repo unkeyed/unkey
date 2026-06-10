@@ -168,7 +168,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
   );
 
   const containerClassName = cn(
-    "overflow-auto relative pb-4 bg-white dark:bg-black",
+    "overflow-auto relative pb-4 bg-white dark:bg-gray-2",
     config.containerPadding || "px-2",
   );
 
@@ -186,7 +186,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
               <col key={col.id ?? idx} style={{ width: colWidths[idx] }} />
             ))}
           </colgroup>
-          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+          <thead className="sticky top-0 z-10 bg-white dark:bg-gray-2">
             <tr>
               {table.getHeaderGroups()[0]?.headers.map((header) => (
                 <th
@@ -237,7 +237,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
           </colgroup>
 
           {/* Header */}
-          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+          <thead className="sticky top-0 z-10 bg-white dark:bg-gray-2">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (

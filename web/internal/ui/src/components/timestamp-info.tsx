@@ -147,7 +147,7 @@ const TimestampInfo: React.FC<{
               toast.error("Failed to copy to clipboard");
             });
         }}
-        className="flex items-center hover:bg-gray-3 text-left cursor-pointer w-full px-5 py-2"
+        className="flex items-center hover:bg-gray-3 dark:hover:bg-gray-4 text-left cursor-pointer w-full px-5 py-2"
       >
         <span className="w-32 text-left truncate text-accent-9">{label}</span>
         <span className={cn("ml-2 text-xs text-accent-12", copied ? "text-success-11" : "")}>
@@ -175,7 +175,7 @@ const TimestampInfo: React.FC<{
         align={alignProp ?? align}
         side={sideProp ?? "right"}
         anchor={externalAnchor}
-        className="font-mono p-0 bg-gray-1 shadow-2xl text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-grayA-4"
+        className="font-mono p-0 bg-background-overlay shadow-2xl text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-grayA-4"
       >
         <div className="py-3">
           <TooltipRow label="UTC" value={utc} />
