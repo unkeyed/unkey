@@ -12,6 +12,7 @@ import { Signature } from "../src/components/signature";
 export type Props = {
   username: string;
   date: string;
+  workspaceSlug: string;
 };
 
 export function PaymentIssue({ username, date }: Props) {
@@ -49,6 +50,7 @@ export function PaymentIssue({ username, date }: Props) {
 PaymentIssue.PreviewProps = {
   username: "Mr. Pilkington",
   date: "Tue Oct 01 2024", // Date().toDateString
+  workspaceSlug: "demo-workspace",
 } satisfies Props;
 
 // biome-ignore lint/style/noDefaultExport: Too scared to modify that one
