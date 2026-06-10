@@ -19,6 +19,7 @@ CREATE TABLE `workspaces` (
 	CONSTRAINT `workspaces_id_unique` UNIQUE(`id`),
 	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`),
 	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`),
-	CONSTRAINT `workspaces_k8s_namespace_unique` UNIQUE(`k8s_namespace`)
+	CONSTRAINT `workspaces_k8s_namespace_unique` UNIQUE(`k8s_namespace`),
+	CONSTRAINT `workspaces_stripe_subscription_id_unique` UNIQUE(`stripe_subscription_id`)
 );
 
