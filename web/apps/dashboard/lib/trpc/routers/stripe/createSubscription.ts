@@ -257,14 +257,35 @@ export const createSubscription = workspaceProcedure
     );
 
     if (outcome === "lostRace") {
-      // Another request attached a different subscription first. Cancel the one we
-      // just created so the customer is not billed twice.
+      // Another request attached a different subscription first. Cancelling stops
+      // future billing, but `error_if_incomplete` means an active subscription has
+      // already paid its first invoice — so we must also refund that invoice, or the
+      // customer keeps a duplicate paid charge.
       try {
         await stripe.subscriptions.cancel(sub.id);
       } catch (cancelErr) {
         console.error(
           `Failed to cancel duplicate subscription ${sub.id} for workspace ${ctx.workspace.id}. It is still active in Stripe and must be cancelled manually:`,
           cancelErr,
+        );
+      }
+      try {
+        const invoiceId =
+          typeof sub.latest_invoice === "string" ? sub.latest_invoice : sub.latest_invoice?.id;
+        if (invoiceId) {
+          const invoice = await stripe.invoices.retrieve(invoiceId);
+          const paymentIntentId =
+            typeof invoice.payment_intent === "string"
+              ? invoice.payment_intent
+              : invoice.payment_intent?.id;
+          if (invoice.amount_paid > 0 && paymentIntentId) {
+            await stripe.refunds.create({ payment_intent: paymentIntentId });
+          }
+        }
+      } catch (refundErr) {
+        console.error(
+          `Failed to refund the first invoice of duplicate subscription ${sub.id} for workspace ${ctx.workspace.id}. The customer was charged twice and must be refunded manually:`,
+          refundErr,
         );
       }
       throw new TRPCError({
