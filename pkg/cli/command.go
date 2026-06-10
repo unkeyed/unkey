@@ -35,6 +35,12 @@ type Command struct {
 	AcceptsArgs bool       // Whether this command accepts positional arguments
 	commandPath string     // Full command path for MDX generation (e.g., "run api")
 
+	// RequireOneOf lists groups of flag names where exactly one flag per
+	// group must be set (e.g. [][]string{{"customer", "clock"}} accepts
+	// --customer or --clock, but not both and not neither). Validated after
+	// parsing, before Action runs, alongside Required() flags.
+	RequireOneOf [][]string
+
 	// Runtime state (populated during parsing)
 	args    []string        // Non-flag arguments passed to command
 	flagMap map[string]Flag // Map for O(1) flag lookup
