@@ -90,9 +90,12 @@ export const OverridesTable = ({ namespaceId }: Props) => {
         loading={isLoading}
         hide={totalPages === 1}
       />
+      {/* Conditionally mounted (rather than letting isModalOpen toggle visibility)
+          so the dialog's form re-initializes its defaultValues from the clicked
+          override — react-hook-form only reads defaults on mount. */}
       {selectedOverride && (
         <IdentifierDialog
-          isModalOpen={!!selectedOverride}
+          isModalOpen={true}
           onOpenChange={(open) => {
             if (!open) {
               setSelectedOverride(null);
