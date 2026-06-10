@@ -18,13 +18,9 @@ export function OnboardingContent() {
   return (
     <FullScreenLayout className="px-4 pt-6">
       <div className="absolute top-4 right-4">
-        <button
-          type="button"
-          onClick={() => signOut()}
-          className="text-gray-11 hover:text-gray-12 text-sm transition-colors"
-        >
+        <Button variant="ghost" size="sm" onClick={() => signOut()} className="text-gray-11">
           Sign out
-        </button>
+        </Button>
       </div>
 
       <Logo />
