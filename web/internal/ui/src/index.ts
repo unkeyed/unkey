@@ -24,7 +24,7 @@ export * from "./components/id";
 export * from "./components/info-tooltip";
 export * from "./components/inline-link";
 export * from "./components/loading";
-export * from "./components/page-header";
+export * from "./components/page";
 export * from "./components/logo";
 export * from "./components/llm-search";
 export * from "./components/llm-search/components/search-icon";

@@ -8,7 +8,7 @@ function SecondaryNav({ className, ...props }: React.ComponentProps<"nav">) {
     <nav
       className={cn(
         "flex shrink-0 gap-1 overflow-x-auto border-b border-grayA-4 px-3 py-2",
-        "md:w-60 md:flex-col md:gap-4 md:overflow-x-visible md:overflow-y-auto md:border-r md:border-b-0 md:px-3 md:py-5",
+        "md:w-60 md:flex-col md:gap-3 md:overflow-x-visible md:overflow-y-auto md:border-r md:border-b-0 md:px-3 md:py-4",
         className,
       )}
       {...props}
@@ -37,7 +37,7 @@ const secondaryNavItemVariants = cva(
   {
     variants: {
       active: {
-        true: "bg-grayA-3 text-accent-12 font-medium",
+        true: "bg-grayA-3 text-accent-12 font-medium tracking-tight",
         false: "text-accent-11 hover:bg-grayA-3 hover:text-accent-12",
       },
     },
