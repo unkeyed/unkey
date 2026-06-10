@@ -99,7 +99,7 @@ const SlidePanelRoot = ({
         aria-hidden={!isOpen}
         inert={!isOpen || undefined}
         className={cn(
-          "fixed dark:bg-black bg-white border border-gray-4 rounded-xl overflow-hidden z-51",
+          "fixed bg-background-overlay border border-gray-4 rounded-xl overflow-hidden z-51",
           "transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]",
           "shadow-md",
           "flex flex-col",
@@ -138,7 +138,7 @@ type SlidePanelHeaderProps = {
 const SlidePanelHeader = ({ children, className }: SlidePanelHeaderProps) => (
   <div
     className={cn(
-      "flex items-start justify-between border-b border-gray-4 px-8 py-5 bg-white dark:bg-black ",
+      "flex items-start justify-between border-b border-gray-4 px-8 py-5 bg-background-overlay ",
       className,
     )}
   >
@@ -186,7 +186,7 @@ type SlidePanelFooterProps = {
 };
 
 const SlidePanelFooter = ({ children, className }: SlidePanelFooterProps) => (
-  <div className={cn("bg-white dark:bg-black border-t border-gray-4 px-8 py-5", className)}>
+  <div className={cn("bg-background-overlay border-t border-gray-4 px-8 py-5", className)}>
     {children}
   </div>
 );

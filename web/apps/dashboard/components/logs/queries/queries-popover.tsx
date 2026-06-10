@@ -98,7 +98,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
           {children}
         </PopoverTrigger>
         <PopoverContent
-          className="flex flex-col min-w-107 max-w-200 h-[calc(100dvh-120px)] max-h-190 bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-r border-gray-4"
+          className="flex flex-col min-w-107 max-w-200 h-[calc(100dvh-120px)] max-h-190 bg-background-overlay rounded-lg p-2 pb-0 shadow-lg border-r border-gray-4"
           align="start"
           onKeyDown={handleKeyNavigation}
         >

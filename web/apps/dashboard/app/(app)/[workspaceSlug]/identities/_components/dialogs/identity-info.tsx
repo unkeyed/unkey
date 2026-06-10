@@ -4,7 +4,7 @@ import { InfoTooltip } from "@unkey/ui";
 
 export const IdentityInfo = ({ identity }: { identity: IdentityForActions }) => {
   return (
-    <div className="flex gap-5 items-center bg-white dark:bg-black border border-grayA-5 rounded-xl py-5 pl-[18px] pr-[26px]">
+    <div className="flex gap-5 items-center bg-white dark:bg-gray-2 border border-grayA-5 rounded-xl py-5 pl-[18px] pr-[26px]">
       <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded-sm">
         <Fingerprint iconSize="sm-regular" />
       </div>

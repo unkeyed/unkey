@@ -160,7 +160,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       </SettingField>
       <WideContent>
         {customDomains.length > 0 && (
-          <div className="border border-gray-4 rounded-lg overflow-hidden mt-1 dark:bg-black bg-white">
+          <div className="border border-gray-4 rounded-lg overflow-hidden mt-1 dark:bg-gray-2 bg-white">
             {customDomains.map((d) => (
               <CustomDomainRow
                 key={d.id}

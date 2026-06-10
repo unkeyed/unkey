@@ -9,7 +9,7 @@ const codeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-grayA-5 focus:outline-hidden focus:ring-0 bg-white dark:bg-black text-[11px] py-2",
+          "border-grayA-5 focus:outline-hidden focus:ring-0 bg-white dark:bg-gray-2 text-[11px] py-2",
         ghost: "border-none bg-transparent text-[11px] py-2",
         legacy:
           "text-primary bg-background-subtle rounded-md hover:border-primary focus:outline-hidden focus:ring-0 border-grayA-4",

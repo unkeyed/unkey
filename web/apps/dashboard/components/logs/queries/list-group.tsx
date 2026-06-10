@@ -165,7 +165,7 @@ export function ListGroup({
       </div>
       <div
         className={cn(
-          "flex flex-row bg-white dark:bg-black h-px mt-[7px] mb-[8px] w-full",
+          "flex flex-row bg-white dark:bg-gray-2 h-px mt-[7px] mb-[8px] w-full",
           index < total - 1 && "border-b border-b-gray-3",
         )}
       />

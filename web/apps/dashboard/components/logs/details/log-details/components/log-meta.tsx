@@ -6,7 +6,7 @@ export const LogMetaSection = ({ content }: { content: React.ReactNode }) => {
     <div className="flex flex-col gap-1 mt-[16px] px-4">
       <div className="border bg-gray-2 border-gray-4 rounded-[10px] relative group">
         <div className="text-gray-11 text-[12px] leading-6 px-[14px] py-1.5 font-sans">Meta</div>
-        <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2">
+        <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-gray-2 px-3.5 py-2">
           <pre className="whitespace-pre-wrap leading-relaxed text-xs text-accent-12">
             {content ?? EMPTY_TEXT}
           </pre>

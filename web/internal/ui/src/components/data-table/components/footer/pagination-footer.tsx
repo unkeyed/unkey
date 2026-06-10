@@ -48,7 +48,7 @@ export const PaginationFooter = memo(function PaginationFooter({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="cursor-pointer text-grayA-9 hover:text-grayA-11 bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
+          className="cursor-pointer text-grayA-9 hover:text-grayA-11 bg-background-overlay border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export const PaginationFooter = memo(function PaginationFooter({
       {loading ? (
         <PaginationFooterSkeleton />
       ) : (
-        <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
+        <div className="w-[740px] border bg-background-overlay border-gray-6 flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
           <div className="flex flex-col w-full">
             {/* Header content */}
             {headerContent && <div className="flex items-center w-full">{headerContent}</div>}

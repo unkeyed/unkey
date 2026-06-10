@@ -45,7 +45,7 @@ const DEFAULT_POPOVER_PROPS = {
   side: "bottom" as const,
   align: "center" as const,
   className:
-    "bg-white dark:bg-black flex flex-col items-center justify-center border-grayA-4 overflow-hidden rounded-[10px]! p-0 gap-0 min-w-[344px]",
+    "bg-background-overlay flex flex-col items-center justify-center border-grayA-4 overflow-hidden rounded-[10px]! p-0 gap-0 min-w-[344px]",
   onOpenAutoFocus: (e: Event) => e.preventDefault(),
 };
 

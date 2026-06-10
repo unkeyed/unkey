@@ -77,7 +77,7 @@ export function SelectedItemsList<T extends BaseItem>({
               <ItemComponent
                 key={item.id}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black border border-gray-5 rounded-md text-xs w-full",
+                  "flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-2 border border-gray-5 rounded-md text-xs w-full",
                   itemHeight,
                 )}
                 {...itemProps}
