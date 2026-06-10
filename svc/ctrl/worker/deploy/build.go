@@ -137,13 +137,29 @@ func (w *Workflow) buildDockerImageFromGit(
 		"project_id", params.ProjectID)
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
+		// A fork PR (or a redeploy of one) builds a Dockerfile we do not trust.
+		// PrNumber covers the live fork-PR approval path; ForkRepository covers
+		// redeploys of a fork deployment (which carry no PrNumber).
+		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
+
 		// Get GitHub installation token for BuildKit to fetch the repo
 		var ghToken githubclient.InstallationToken
-		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
+		switch {
+		case w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID:
 			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
 			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
 				"repository", params.Repository)
-		} else {
+		case isForkBuild:
+			// The fork-controlled Dockerfile can mount the GIT_AUTH_TOKEN secret,
+			// so hand BuildKit only a read-only token scoped to the base repo.
+			// An exfiltrated token then grants nothing the PR author cannot
+			// already read, instead of the App's full installation-wide access.
+			token, err := w.github.GetScopedInstallationToken(params.InstallationID, params.Repository, map[string]string{"contents": "read"})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get scoped GitHub installation token: %w", err)
+			}
+			ghToken = token
+		default:
 			token, err := w.github.GetInstallationToken(params.InstallationID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
@@ -217,22 +233,7 @@ func (w *Workflow) buildDockerImageFromGit(
 			contextPath = ""
 		}
 
-		// Build git context URL with commit SHA or PR ref.
-		// Format: https://github.com/owner/repo.git#<ref>:<subdir>
-		// For fork PRs, use refs/pull/<number>/head so BuildKit can fetch
-		// the fork's commits from the base repo.
-		ref := params.CommitSHA
-		if params.PrNumber > 0 {
-			ref = fmt.Sprintf("refs/pull/%d/head", params.PrNumber)
-		}
-		buildRepo := params.Repository
-		if params.ForkRepository != "" {
-			buildRepo = params.ForkRepository
-		}
-		gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
-		if contextPath != "" {
-			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
-		}
+		gitContextURL := buildGitContextURL(params.Repository, params.ForkRepository, params.CommitSHA, params.PrNumber, contextPath)
 
 		logger.Info("Starting build execution",
 			"image_name", imageName,
@@ -247,12 +248,21 @@ func (w *Workflow) buildDockerImageFromGit(
 		buildStatusCh := make(chan *client.SolveStatus, 100)
 		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
 
+		// Never inject decrypted env vars into an untrusted fork build: the
+		// fork-controlled Dockerfile could mount them as a BuildKit secret and
+		// exfiltrate them. Preview env vars are still injected at container
+		// runtime, where they are actually needed.
+		buildEnvVars := envVars
+		if isForkBuild {
+			buildEnvVars = nil
+		}
+
 		// Choose solver options based on authentication mode
 		var solverOptions client.SolveOpt
 		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
-			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
+			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, buildEnvVars)
 		} else {
-			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
+			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, buildEnvVars)
 		}
 		if err != nil {
 			return nil, restate.TerminalError(fmt.Errorf("failed to build solver options: %w", err))
@@ -281,6 +291,29 @@ func (w *Workflow) buildDockerImageFromGit(
 		// Whichever bound fires first wins.
 		restate.WithMaxRetryAttempts(runMaxAttempts),
 		restate.WithMaxRetryDuration(buildImageRetryCeiling))
+}
+
+// buildGitContextURL builds the BuildKit git context URL for a build.
+// Format: https://github.com/owner/repo.git#<ref>[:<subdir>]
+//
+// For a fork PR (prNumber > 0) it fetches refs/pull/<n>/head from the BASE repo:
+// GitHub exposes that ref only on the base, never on the fork, so buildRepo must
+// stay as the base repo. Only a concrete fork commit SHA (e.g. a redeploy, where
+// prNumber is 0) is fetched directly from forkRepository.
+func buildGitContextURL(repository, forkRepository, commitSHA string, prNumber int64, contextPath string) string {
+	ref := commitSHA
+	buildRepo := repository
+	switch {
+	case prNumber > 0:
+		ref = fmt.Sprintf("refs/pull/%d/head", prNumber)
+	case forkRepository != "":
+		buildRepo = forkRepository
+	}
+
+	if contextPath != "" {
+		return fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
+	}
+	return fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
 }
 
 // buildEnvFileSecret serializes env vars into a .env-formatted byte slice

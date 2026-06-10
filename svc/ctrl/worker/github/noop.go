@@ -28,6 +28,11 @@ func (n *Noop) GetInstallationToken(_ int64) (InstallationToken, error) {
 	return InstallationToken{}, errNotConfigured
 }
 
+// GetScopedInstallationToken returns an error indicating GitHub is not configured.
+func (n *Noop) GetScopedInstallationToken(_ int64, _ string, _ map[string]string) (InstallationToken, error) {
+	return InstallationToken{}, errNotConfigured
+}
+
 // GetBranchHeadCommit returns an error indicating GitHub is not configured.
 func (n *Noop) GetBranchHeadCommit(_ int64, _ string, _ string) (CommitInfo, error) {
 	return CommitInfo{}, errNotConfigured

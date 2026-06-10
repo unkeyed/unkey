@@ -7,6 +7,12 @@ type GitHubClient interface {
 	// GetInstallationToken retrieves an access token for a specific installation.
 	GetInstallationToken(installationID int64) (InstallationToken, error)
 
+	// GetScopedInstallationToken mints an installation token restricted to a
+	// single repository with the given permissions, e.g. {"contents":"read"}.
+	// repo is the "owner/repo" full name. Use for untrusted fork PR builds so an
+	// exfiltrated token grants only minimal, single-repo access.
+	GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error)
+
 	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
 	// repository using the given installation's credentials.
 	GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error)

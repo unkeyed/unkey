@@ -201,6 +201,56 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 	return value, nil
 }
 
+// scopedTokenRequest is the body for POST /app/installations/{id}/access_tokens
+// when minting a downscoped token. An empty body grants the App's full
+// installation-wide permissions; setting these fields restricts the token.
+type scopedTokenRequest struct {
+	// Repositories lists repo names (not owner/repo) the token may access.
+	Repositories []string `json:"repositories"`
+	// Permissions maps permission name to access level, e.g. {"contents":"read"}.
+	Permissions map[string]string `json:"permissions"`
+}
+
+// GetScopedInstallationToken mints an installation token restricted to a single
+// repository with the given permissions.
+//
+// Use this for untrusted (fork PR) builds: the fork-controlled Dockerfile can
+// mount the BuildKit GIT_AUTH_TOKEN secret, so the token must carry nothing
+// beyond read access to the one repo the PR author can already read. repo is the
+// "owner/repo" full name; only the repo name is sent per the GitHub API.
+//
+// Unlike [Client.GetInstallationToken] this is not cached: scoped tokens vary by
+// repo and permission set, and fork builds are infrequent.
+func (c *Client) GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error) {
+	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
+		return InstallationToken{}, err
+	}
+
+	repoName := repo
+	if idx := strings.LastIndex(repo, "/"); idx >= 0 {
+		repoName = repo[idx+1:]
+	}
+
+	jwtToken, err := c.generateJWT()
+	if err != nil {
+		return InstallationToken{}, err
+	}
+
+	apiURL := fmt.Sprintf(
+		"https://api.github.com/app/installations/%d/access_tokens",
+		installationID,
+	)
+
+	return request[InstallationToken](
+		c.httpClient,
+		http.MethodPost,
+		apiURL,
+		githubHeaders(jwtToken),
+		scopedTokenRequest{Repositories: []string{repoName}, Permissions: permissions},
+		http.StatusCreated,
+	)
+}
+
 // GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
 // repository. It uses an installation token to authenticate the request.
 func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error) {
