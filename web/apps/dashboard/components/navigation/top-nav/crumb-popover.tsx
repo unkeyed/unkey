@@ -90,7 +90,7 @@ export function CrumbPopover({
                     key={item.id}
                     value={item.label}
                     onSelect={() => selectItem(item)}
-                    className="flex items-center gap-2 py-1 mt-0 overflow-hidden"
+                    className="flex items-center gap-2 py-1 mt-0"
                   >
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge ? <span className="shrink-0">{item.badge}</span> : null}
