@@ -64,17 +64,7 @@ export function CrumbPopover({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-64 p-0"
-        sideOffset={8}
-        onOpenAutoFocus={(e) => {
-          e.preventDefault();
-          if (e.currentTarget instanceof HTMLElement) {
-            e.currentTarget.querySelector<HTMLInputElement>("[cmdk-input]")?.focus();
-          }
-        }}
-      >
+      <PopoverContent align="start" className="w-64 p-0" sideOffset={8}>
         <Command
           filter={(value, search) => {
             if (value.startsWith("__footer__")) {
