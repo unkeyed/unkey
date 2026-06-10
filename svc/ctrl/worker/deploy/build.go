@@ -137,9 +137,9 @@ func (w *Workflow) buildDockerImageFromGit(
 		"project_id", params.ProjectID)
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
-		// A fork PR (or a redeploy of one) builds a Dockerfile we do not trust.
-		// PrNumber covers the live fork-PR approval path; ForkRepository covers
-		// redeploys of a fork deployment (which carry no PrNumber).
+		// A fork build runs a Dockerfile we do not trust. PrNumber > 0 is a live
+		// fork PR (clones the base via refs/pull/<n>/head); ForkRepository != ""
+		// is a dashboard deploy of a fork ref by SHA (clones the fork directly).
 		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
 
 		// tokenless selects the no-secret solver path: no GIT_AUTH_TOKEN secret is
@@ -272,22 +272,37 @@ func (w *Workflow) buildDockerImageFromGit(
 //
 // For a fork PR (prNumber > 0) it fetches refs/pull/<n>/head from the BASE repo:
 // GitHub exposes that ref only on the base, never on the fork, so buildRepo must
-// stay as the base repo. Only a concrete fork commit SHA (e.g. a redeploy, where
-// prNumber is 0) is fetched directly from forkRepository.
+// stay as the base repo. Only a concrete fork commit SHA (e.g. a dashboard
+// deploy of a fork ref, where prNumber is 0) is fetched directly from
+// forkRepository.
 func buildGitContextURL(repository, forkRepository, commitSHA string, prNumber int64, contextPath string) string {
 	ref := commitSHA
-	buildRepo := repository
-	switch {
-	case prNumber > 0:
+	if prNumber > 0 {
 		ref = fmt.Sprintf("refs/pull/%d/head", prNumber)
-	case forkRepository != "":
-		buildRepo = forkRepository
 	}
+	buildRepo := cloneRepoFor(repository, forkRepository, prNumber)
 
 	if contextPath != "" {
 		return fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
 	}
 	return fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
+}
+
+// cloneRepoFor returns the repository BuildKit actually clones. A live fork PR
+// (prNumber > 0) clones the BASE repo via refs/pull/<n>/head; a fork ref
+// deployed by concrete SHA (prNumber == 0) clones the fork itself. Token
+// scoping and visibility probing must target this repo, not blindly the base.
+func cloneRepoFor(repository, forkRepository string, prNumber int64) string {
+	if prNumber == 0 && forkRepository != "" {
+		return forkRepository
+	}
+	return repository
+}
+
+// repoOwner returns the owner segment of an "owner/repo" full name.
+func repoOwner(fullName string) string {
+	owner, _, _ := strings.Cut(fullName, "/")
+	return owner
 }
 
 // buildEnvFileSecret serializes env vars into a .env-formatted byte slice
@@ -582,14 +597,20 @@ func (w *Workflow) processBuildStatus(
 // source, least-privilege in three tiers:
 //
 //   - unauthenticated public deploy: no token at all (tokenless).
-//   - fork build (untrusted Dockerfile): a public base clones anonymously; a
-//     private base gets a read-only token scoped to that one repo, so an
+//   - fork build (untrusted Dockerfile): a public clone target needs no token;
+//     a private one gets a read-only token scoped to that single repo, so an
 //     exfiltrated token reads only what the PR author already can.
-//   - trusted build: a read-only token, but installation-wide, so private
-//     submodules and cross-repo deps still resolve.
+//   - trusted build: a read-only token, also scoped to the single repo being
+//     cloned. A Dockerfile pulling private cross-repo deps or submodules will
+//     see a clone 404; widen the scope only if that surfaces in practice.
 //
-// A failed visibility probe is treated as private: it never falls back to the
-// tokenless path on an inconclusive check.
+// Probing and scoping both target the repo BuildKit actually clones: the base
+// for a live fork PR (refs/pull/<n>/head only exists there), the fork itself
+// for a fork ref deployed by SHA. A private fork outside the base's
+// installation is unreachable by any token this installation can mint, so it
+// fails fast with a terminal error instead of a confusing git failure
+// mid-build. An inconclusive visibility probe never falls back to the
+// tokenless path.
 func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (githubclient.InstallationToken, bool, error) {
 	var noToken githubclient.InstallationToken
 
@@ -599,19 +620,28 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 		return noToken, true, nil
 	}
 
-	// A fork build needs no token when the base is public; otherwise it scopes
-	// the token to that single repo. A trusted build leaves scopeRepo empty for
-	// an installation-wide token so submodules and cross-repo deps resolve.
-	scopeRepo := ""
+	scopeRepo := cloneRepoFor(params.Repository, params.ForkRepository, params.PrNumber)
 	if isForkBuild {
-		public, err := w.github.RepoIsPublic(params.Repository)
-		if err != nil {
-			logger.Warn("base repo visibility check failed; using scoped read-only token",
-				"repository", params.Repository, "error", err)
-		} else if public {
+		// Same owner as the base means the fork lives in the same GitHub App
+		// installation (installations cover one account), so a token can be
+		// scoped to it. A different owner is out of reach entirely.
+		externalFork := repoOwner(scopeRepo) != repoOwner(params.Repository)
+
+		public, err := w.github.RepoIsPublic(scopeRepo)
+		switch {
+		case err != nil && externalFork:
+			// No safe fallback exists: a scoped token cannot cover an external
+			// repo. Plain (retryable) error since rate limits self-heal.
+			return noToken, false, fmt.Errorf("could not determine visibility of fork repository %s: %w", scopeRepo, err)
+		case err != nil:
+			logger.Warn("repo visibility check failed; using scoped read-only token",
+				"repository", scopeRepo, "error", err)
+		case public:
 			return noToken, true, nil
+		case externalFork:
+			return noToken, false, restate.TerminalError(fmt.Errorf(
+				"cannot access private fork repository %s: it is outside this GitHub App installation", scopeRepo))
 		}
-		scopeRepo = params.Repository
 	}
 
 	token, err := w.github.GetScopedInstallationToken(params.InstallationID, scopeRepo, map[string]string{"contents": "read"})

@@ -15,6 +15,8 @@ type GitHubClient interface {
 
 	// RepoIsPublic reports whether repo ("owner/repo") is publicly accessible via
 	// an unauthenticated request. A public repo can be cloned without any token.
+	// Returns an error (never a silent false) when the probe is inconclusive,
+	// e.g. rate limited.
 	RepoIsPublic(repo string) (bool, error)
 
 	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub

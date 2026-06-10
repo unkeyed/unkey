@@ -91,6 +91,7 @@ type Client struct {
 	tokenCache        cache.Cache[int64, InstallationToken]
 	scopedTokenCache  cache.Cache[string, InstallationToken]
 	collaboratorCache cache.Cache[collaboratorKey, bool]
+	visibilityCache   cache.Cache[string, bool]
 }
 
 // NewClient creates a [Client] with the given configuration. Returns an error if
@@ -134,6 +135,20 @@ func NewClient(config ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
+	// The probe is unauthenticated (60 req/hr per IP), so cache hard: repo
+	// visibility almost never flips, and a flip only delays the optimal token
+	// choice by one cache window, never grants access.
+	visibilityCache, err := cache.New(cache.Config[string, bool]{
+		Fresh:    10 * time.Minute,
+		Stale:    1 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "github_repo_visibility",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		config:            config,
 		baseURL:           "https://api.github.com",
@@ -142,6 +157,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 		tokenCache:        tokenCache,
 		scopedTokenCache:  scopedTokenCache,
 		collaboratorCache: collaboratorCache,
+		visibilityCache:   visibilityCache,
 	}, nil
 }
 
@@ -219,9 +235,30 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 // by BuildKit anonymously, so a fork build needs no token at all; a private repo
 // (404) requires one. This tests the exact property we care about (anonymous
 // cloneability) rather than trusting a cached visibility flag.
+//
+// Only 200 and 404 are treated as answers. Rate limits and server errors return
+// an error instead of false, so an exhausted unauthenticated quota (60 req/hr
+// per IP) is never mistaken for "private". Results are cached to keep probe
+// volume well under that quota.
 func (c *Client) RepoIsPublic(repo string) (bool, error) {
-	apiURL := fmt.Sprintf("%s/repos/%s", c.baseURL, repo)
-	return statusCheck(c.httpClient, http.MethodGet, apiURL, githubHeaders(""), http.StatusOK)
+	value, _, err := c.visibilityCache.SWR(
+		context.Background(),
+		repo,
+		func(_ context.Context) (bool, error) {
+			return probeRepoVisibility(c.httpClient, c.baseURL, repo)
+		},
+		func(err error) cache.Op {
+			if err != nil {
+				return cache.Noop
+			}
+			return cache.WriteValue
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+
+	return value, nil
 }
 
 // scopedTokenRequest is the body for POST /app/installations/{id}/access_tokens

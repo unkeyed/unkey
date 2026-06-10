@@ -37,8 +37,7 @@ func (n *Noop) GetScopedInstallationToken(_ int64, _ string, _ map[string]string
 // unauthenticated request. Works even when GitHub App credentials are absent.
 func (n *Noop) RepoIsPublic(repo string) (bool, error) {
 	httpClient := &http.Client{Timeout: 30 * time.Second}
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s", repo)
-	return statusCheck(httpClient, http.MethodGet, apiURL, githubHeaders(""), http.StatusOK)
+	return probeRepoVisibility(httpClient, "https://api.github.com", repo)
 }
 
 // GetBranchHeadCommit returns an error indicating GitHub is not configured.
