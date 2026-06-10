@@ -18,15 +18,17 @@ type RefreshButtonProps = {
 const REFRESH_TIMEOUT_MS = 1000;
 
 const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButtonProps) => {
-  const [isLoading, setIsLoading] = useState(false);
+  // Not a fetch lifecycle flag: a fixed cooldown that debounces refreshes and
+  // pauses live mode while the refetch settles.
+  const [isCoolingDown, setIsCoolingDown] = useState(false);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleRefresh = () => {
-    if (isLoading) {
+    if (isCoolingDown) {
       return;
     }
     const isLiveBefore = Boolean(isLive);
-    setIsLoading(true);
+    setIsCoolingDown(true);
     toggleLive?.(false);
     onRefresh();
 
@@ -35,7 +37,7 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
     }
 
     refreshTimeoutRef.current = setTimeout(() => {
-      setIsLoading(false);
+      setIsCoolingDown(false);
       if (isLiveBefore) {
         toggleLive?.(true);
       }
@@ -52,7 +54,7 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
       content="Refresh unavailable - please select a relative time filter in the 'Since' dropdown"
       variant="inverted"
       position={{ side: "bottom", align: "center" }}
-      disabled={isEnabled && !isLoading}
+      disabled={isEnabled && !isCoolingDown}
       asChild
     >
       <div>
@@ -61,8 +63,8 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
           variant="ghost"
           size="md"
           title={isEnabled ? "Refresh data (Shortcut: ⌥+⇧+W)" : ""}
-          disabled={!isEnabled || isLoading}
-          loading={isLoading}
+          disabled={!isEnabled || isCoolingDown}
+          loading={isCoolingDown}
           className="flex w-full items-center justify-center rounded-lg border border-gray-4 group overflow-hidden"
         >
           <Refresh3 className="size-4" />
