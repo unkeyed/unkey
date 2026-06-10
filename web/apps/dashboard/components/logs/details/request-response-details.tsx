@@ -60,15 +60,27 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
   };
 
   const renderField = (field: Field<T[number]>, index: number) => {
+    const isCopyable = !field.skipTooltip;
     const baseContent = (
-      // biome-ignore lint/a11y/useKeyWithClickEvents: no need
       <div
         className={cn(
           "flex w-full justify-between border-grayA-3 border-solid pr-3 py-3 items-center cursor-pointer",
           "border-b",
           field.className,
         )}
-        onClick={field.skipTooltip ? undefined : () => handleClick(field)}
+        onClick={isCopyable ? () => handleClick(field) : undefined}
+        onKeyDown={
+          isCopyable
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleClick(field);
+                }
+              }
+            : undefined
+        }
+        role={isCopyable ? "button" : undefined}
+        tabIndex={isCopyable ? 0 : undefined}
       >
         <span className="text-accent-11 text-[13px] lg:no-wrap text-left">{field.label}</span>
         <span className="text-accent-12 text-right w-3/4">

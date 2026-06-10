@@ -119,8 +119,8 @@ const TimestampInfo: React.FC<{
   const TooltipRow = ({ label, value }: { label: string; value: string }) => {
     const [copied, setCopied] = useState(false);
     return (
-      //biome-ignore lint/a11y/useKeyWithClickEvents: no need
-      <span
+      <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           navigator.clipboard.writeText(value);
@@ -133,7 +133,7 @@ const TimestampInfo: React.FC<{
         <span className={cn("ml-2 text-xs text-accent-12", copied ? "text-success-11" : "")}>
           {copied ? "Copied!" : value}
         </span>
-      </span>
+      </button>
     );
   };
 
