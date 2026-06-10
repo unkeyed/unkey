@@ -1,31 +1,35 @@
 "use client";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import {
+  PageBody,
+  PageContainer,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderTitle,
+} from "@unkey/ui";
 import { RootKeysListControlCloud } from "./components/control-cloud";
 import { RootKeysListControls } from "./components/controls";
+import { CreateRootKeyButton } from "./components/dialog/create-rootkey-button";
 import { RootKeysList } from "./components/table/root-keys-list";
-import { Navigation } from "./navigation";
 
 export default function RootKeysPage() {
-  const workspace = useWorkspaceNavigation();
-
   return (
-    <div>
-      <Navigation
-        workspace={{
-          id: workspace.id,
-          name: workspace.name,
-          slug: workspace.slug ?? "",
-        }}
-        activePage={{
-          href: "root-keys",
-          text: "Root Keys",
-        }}
-      />
-      <div className="flex flex-col">
-        <RootKeysListControls />
-        <RootKeysListControlCloud />
-        <RootKeysList />
-      </div>
-    </div>
+    <PageContainer width="full">
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Root Keys</PageHeaderTitle>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <CreateRootKeyButton />
+        </PageHeaderActions>
+      </PageHeader>
+      <PageBody>
+        <div className="flex flex-col">
+          <RootKeysListControls />
+          <RootKeysListControlCloud />
+          <RootKeysList />
+        </div>
+      </PageBody>
+    </PageContainer>
   );
 }
