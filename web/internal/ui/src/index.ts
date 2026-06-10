@@ -20,6 +20,7 @@ export * from "./components/drawer";
 export * from "./components/drover";
 export * from "./components/empty";
 export * from "./components/form";
+export * from "./components/full-screen-layout";
 export * from "./components/id";
 export * from "./components/info-tooltip";
 export * from "./components/inline-link";
