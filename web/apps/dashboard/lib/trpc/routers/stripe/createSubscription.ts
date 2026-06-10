@@ -111,6 +111,9 @@ export const createSubscription = workspaceProcedure
         billing_cycle_anchor_config: {
           day_of_month: 1,
         },
+        // clover+ defaults new subscriptions to "flexible" billing mode,
+        // which itemizes prorations differently. Stay on classic.
+        billing_mode: { type: "classic" },
         proration_behavior: "always_invoice",
         payment_behavior: "error_if_incomplete",
       });

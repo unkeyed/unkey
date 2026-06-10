@@ -1,4 +1,10 @@
 import type Stripe from "stripe";
+import {
+  invoiceLineIsProration,
+  invoicePaymentIntentId,
+  invoiceSubscriptionId,
+  subscriptionCurrentPeriodStart,
+} from "./invoiceCompat";
 import type { PreviousAttributes } from "./subscriptionUtils";
 
 /**
@@ -249,19 +255,18 @@ export class PaymentRecoveryDetector {
    */
   private async isSubscriptionChangePayment(invoice: Stripe.Invoice): Promise<boolean> {
     try {
-      // Check for subscription-related indicators
-      if (!invoice.subscription) {
+      // Check for subscription-related indicators. Dual-shape read: the
+      // invoice may come from a webhook endpoint pinned to a pre-basil version.
+      const subscriptionId = invoiceSubscriptionId(invoice);
+      if (!subscriptionId) {
         return false;
       }
-
-      const subscriptionId =
-        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription.id;
 
       // Check if this is a proration invoice, used in mid cycle upgrades
       if (invoice.lines?.data) {
         const hasProrationLines = invoice.lines.data.some(
           (line) =>
-            line.proration === true || line.description?.toLowerCase().includes("proration"),
+            invoiceLineIsProration(line) || line.description?.toLowerCase().includes("proration"),
         );
 
         if (hasProrationLines) {
@@ -277,14 +282,18 @@ export class PaymentRecoveryDetector {
 
           // Check if the invoice was created at the start of the billing period
           // Subscription changes typically create invoices immediately, while
-          // regular billing invoices are created at period boundaries
-          const currentPeriodStart = subscription.current_period_start;
-          const invoiceCreated = invoice.created;
-          const timeSincePeriodStart = invoiceCreated - currentPeriodStart;
+          // regular billing invoices are created at period boundaries.
+          // Basil moved the period to the items; earliest item start is the
+          // subscription's period start for our single-period subscriptions.
+          // An unknown start (no item reported a period) skips this shortcut
+          // and falls through to the attempt-count heuristics below.
+          const currentPeriodStart = subscriptionCurrentPeriodStart(subscription);
+          const timeSincePeriodStart =
+            currentPeriodStart === undefined ? null : invoice.created - currentPeriodStart;
 
           // If invoice was created within 1 hour of period start, it's likely regular billing
           const oneHourInSeconds = 60 * 60;
-          if (timeSincePeriodStart <= oneHourInSeconds) {
+          if (timeSincePeriodStart !== null && timeSincePeriodStart <= oneHourInSeconds) {
             console.info("Invoice created at period start, treating as regular billing", {
               invoiceId: invoice.id,
               subscriptionId,
@@ -359,13 +368,10 @@ export class PaymentRecoveryDetector {
         return true;
       }
 
-      // If there's a payment intent, check its charges
-      if (invoice.payment_intent) {
-        const paymentIntentId =
-          typeof invoice.payment_intent === "string"
-            ? invoice.payment_intent
-            : invoice.payment_intent.id;
-
+      // If there's a payment intent, check its charges. Dual-shape read:
+      // modern invoices carry a payments list, legacy ones a payment_intent.
+      const paymentIntentId = invoicePaymentIntentId(invoice);
+      if (paymentIntentId) {
         let charges: Stripe.ApiList<Stripe.Charge>;
         try {
           // Retrieve charges for this payment intent
@@ -446,8 +452,7 @@ export class PaymentRecoveryDetector {
         customerName = customer.name || "";
       }
 
-      const subscriptionId =
-        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      const subscriptionId = invoiceSubscriptionId(invoice);
 
       // Extract failure reason for payment_failed events (from event data only)
       let failureReason: string | undefined;
