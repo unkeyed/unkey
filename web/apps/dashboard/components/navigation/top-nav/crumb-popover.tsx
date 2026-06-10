@@ -64,7 +64,17 @@ export function CrumbPopover({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent align="start" className="w-64 p-0" sideOffset={8}>
+      <PopoverContent
+        align="start"
+        className="w-64 p-0 rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md"
+        sideOffset={8}
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          if (e.currentTarget instanceof HTMLElement) {
+            e.currentTarget.querySelector<HTMLInputElement>("[cmdk-input]")?.focus();
+          }
+        }}
+      >
         <Command
           filter={(value, search) => {
             if (value.startsWith("__footer__")) {
@@ -76,10 +86,13 @@ export function CrumbPopover({
             return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
           }}
         >
-          <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            className="text-xs placeholder:text-xs placeholder:text-accent-8"
+          />
+          <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-thin">
             <CommandEmpty className="py-6">{emptyText}</CommandEmpty>
-            <CommandGroup>
+            <CommandGroup className="max-h-[260px] overflow-y-auto">
               {items.map((item) => {
                 const isCurrent = item.id === currentId;
                 return (
@@ -87,14 +100,14 @@ export function CrumbPopover({
                     key={item.id}
                     value={item.label}
                     onSelect={() => selectItem(item)}
-                    className="gap-2"
+                    className="flex items-center gap-2 py-1 mt-0 overflow-hidden"
                   >
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge ? <span className="shrink-0">{item.badge}</span> : null}
                     <Check
                       iconSize="sm-regular"
                       className={cn(
-                        "size-3.5 shrink-0 text-accent-12",
+                        "ml-auto shrink-0 text-accent-12",
                         isCurrent ? "opacity-100" : "opacity-0",
                       )}
                     />
@@ -141,7 +154,7 @@ function FooterRow({
   if (footer.href) {
     return (
       <CommandItem asChild value={`__footer__${footer.label}`} onSelect={onSelect}>
-        <Link href={footer.href} className="gap-2">
+        <Link href={footer.href} className="flex items-center gap-2 py-1 mt-0 overflow-hidden">
           {body}
         </Link>
       </CommandItem>
@@ -149,7 +162,11 @@ function FooterRow({
   }
 
   return (
-    <CommandItem value={`__footer__${footer.label}`} onSelect={onSelect} className="gap-2">
+    <CommandItem
+      value={`__footer__${footer.label}`}
+      onSelect={onSelect}
+      className="flex items-center gap-2 py-1 mt-0 overflow-hidden"
+    >
       {body}
     </CommandItem>
   );
