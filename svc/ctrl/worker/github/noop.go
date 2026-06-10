@@ -33,6 +33,14 @@ func (n *Noop) GetScopedInstallationToken(_ int64, _ string, _ map[string]string
 	return InstallationToken{}, errNotConfigured
 }
 
+// RepoIsPublic reports whether repo is publicly accessible using an
+// unauthenticated request. Works even when GitHub App credentials are absent.
+func (n *Noop) RepoIsPublic(repo string) (bool, error) {
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s", repo)
+	return statusCheck(httpClient, http.MethodGet, apiURL, githubHeaders(""), http.StatusOK)
+}
+
 // GetBranchHeadCommit returns an error indicating GitHub is not configured.
 func (n *Noop) GetBranchHeadCommit(_ int64, _ string, _ string) (CommitInfo, error) {
 	return CommitInfo{}, errNotConfigured

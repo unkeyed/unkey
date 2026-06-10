@@ -201,34 +201,52 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 	return value, nil
 }
 
+// RepoIsPublic reports whether repo ("owner/repo") is publicly accessible, using
+// an unauthenticated GitHub API request. A public repo (HTTP 200) can be cloned
+// by BuildKit anonymously, so a fork build needs no token at all; a private repo
+// (404) requires one. This tests the exact property we care about (anonymous
+// cloneability) rather than trusting a cached visibility flag.
+func (c *Client) RepoIsPublic(repo string) (bool, error) {
+	apiURL := fmt.Sprintf("%s/repos/%s", c.baseURL, repo)
+	return statusCheck(c.httpClient, http.MethodGet, apiURL, githubHeaders(""), http.StatusOK)
+}
+
 // scopedTokenRequest is the body for POST /app/installations/{id}/access_tokens
 // when minting a downscoped token. An empty body grants the App's full
 // installation-wide permissions; setting these fields restricts the token.
 type scopedTokenRequest struct {
-	// Repositories lists repo names (not owner/repo) the token may access.
-	Repositories []string `json:"repositories"`
+	// Repositories lists repo names (not owner/repo) the token may access. When
+	// omitted, the token spans all of the installation's repositories.
+	Repositories []string `json:"repositories,omitempty"`
 	// Permissions maps permission name to access level, e.g. {"contents":"read"}.
 	Permissions map[string]string `json:"permissions"`
 }
 
-// GetScopedInstallationToken mints an installation token restricted to a single
-// repository with the given permissions.
+// GetScopedInstallationToken mints an installation token downscoped to the given
+// permissions, e.g. {"contents":"read"}. permissions must be a subset of what
+// the App was granted at install.
 //
-// Use this for untrusted (fork PR) builds: the fork-controlled Dockerfile can
-// mount the BuildKit GIT_AUTH_TOKEN secret, so the token must carry nothing
-// beyond read access to the one repo the PR author can already read. repo is the
-// "owner/repo" full name; only the repo name is sent per the GitHub API.
+// If repo (an "owner/repo" full name) is non-empty the token is restricted to
+// that single repository; if empty the token spans all of the installation's
+// repositories. Use the single-repo form for untrusted (fork PR) builds so an
+// exfiltrated token grants only read access to the one repo the PR author can
+// already read; use the all-repos read-only form for trusted builds to strip
+// write access while still allowing private cross-repo dependency clones.
 //
-// Unlike [Client.GetInstallationToken] this is not cached: scoped tokens vary by
-// repo and permission set, and fork builds are infrequent.
+// Unlike [Client.GetInstallationToken] this is not cached: downscoped tokens
+// vary by repo and permission set.
 func (c *Client) GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error) {
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
 		return InstallationToken{}, err
 	}
 
-	repoName := repo
-	if idx := strings.LastIndex(repo, "/"); idx >= 0 {
-		repoName = repo[idx+1:]
+	var repositories []string
+	if repo != "" {
+		repoName := repo
+		if idx := strings.LastIndex(repo, "/"); idx >= 0 {
+			repoName = repo[idx+1:]
+		}
+		repositories = []string{repoName}
 	}
 
 	jwtToken, err := c.generateJWT()
@@ -246,7 +264,7 @@ func (c *Client) GetScopedInstallationToken(installationID int64, repo string, p
 		http.MethodPost,
 		apiURL,
 		githubHeaders(jwtToken),
-		scopedTokenRequest{Repositories: []string{repoName}, Permissions: permissions},
+		scopedTokenRequest{Repositories: repositories, Permissions: permissions},
 		http.StatusCreated,
 	)
 }
@@ -263,7 +281,8 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 
 	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
-		logger.Error("failed to fetch branch head commit",
+		logger.Error(
+			"failed to fetch branch head commit",
 			"installation_id", installationID,
 			"repo", repo,
 			"branch", branch,

@@ -142,25 +142,38 @@ func (w *Workflow) buildDockerImageFromGit(
 		// redeploys of a fork deployment (which carry no PrNumber).
 		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
 
-		// Get GitHub installation token for BuildKit to fetch the repo
+		// tokenless selects the no-secret solver path: no GIT_AUTH_TOKEN secret is
+		// registered, so a fork-controlled Dockerfile has nothing to mount.
 		var ghToken githubclient.InstallationToken
+		tokenless := false
 		switch {
 		case w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID:
-			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
+			tokenless = true
 			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
 				"repository", params.Repository)
 		case isForkBuild:
-			// The fork-controlled Dockerfile can mount the GIT_AUTH_TOKEN secret,
-			// so hand BuildKit only a read-only token scoped to the base repo.
-			// An exfiltrated token then grants nothing the PR author cannot
-			// already read, instead of the App's full installation-wide access.
-			token, err := w.github.GetScopedInstallationToken(params.InstallationID, params.Repository, map[string]string{"contents": "read"})
+			// Untrusted Dockerfile: a public base clones anonymously (no token);
+			// a private base gets a read-only token scoped to that one repo.
+			public, err := w.github.RepoIsPublic(params.Repository)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get scoped GitHub installation token: %w", err)
+				// Never drop to the tokenless path on an inconclusive check.
+				logger.Warn("base repo visibility check failed; using scoped read-only token",
+					"repository", params.Repository, "error", err)
+				public = false
 			}
-			ghToken = token
+			if public {
+				tokenless = true
+			} else {
+				token, err := w.github.GetScopedInstallationToken(params.InstallationID, params.Repository, map[string]string{"contents": "read"})
+				if err != nil {
+					return nil, fmt.Errorf("failed to get scoped GitHub installation token: %w", err)
+				}
+				ghToken = token
+			}
 		default:
-			token, err := w.github.GetInstallationToken(params.InstallationID)
+			// Trusted build only clones: read-only, but installation-wide so
+			// private submodules and cross-repo deps still resolve.
+			token, err := w.github.GetScopedInstallationToken(params.InstallationID, "", map[string]string{"contents": "read"})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
 			}
@@ -235,7 +248,8 @@ func (w *Workflow) buildDockerImageFromGit(
 
 		gitContextURL := buildGitContextURL(params.Repository, params.ForkRepository, params.CommitSHA, params.PrNumber, contextPath)
 
-		logger.Info("Starting build execution",
+		logger.Info(
+			"Starting build execution",
 			"image_name", imageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
@@ -257,9 +271,9 @@ func (w *Workflow) buildDockerImageFromGit(
 			buildEnvVars = nil
 		}
 
-		// Choose solver options based on authentication mode
+		// Choose solver options based on whether a GitHub token is injected.
 		var solverOptions client.SolveOpt
-		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
+		if tokenless {
 			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, buildEnvVars)
 		} else {
 			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, buildEnvVars)
