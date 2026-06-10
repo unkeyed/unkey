@@ -2884,6 +2884,18 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, db DBTX, arg ResetCustomDomainVerificationParams) error
+	// Clears every billing linkage on a workspace, returning it to the Free
+	// tier. Mirrors what the customer.subscription.deleted webhook writes, plus
+	// stripe_customer_id, which no webhook ever clears. Used by the
+	// `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
+	//
+	//  UPDATE `workspaces`
+	//  SET stripe_customer_id = NULL,
+	//      stripe_subscription_id = NULL,
+	//      deploy_plan = NULL,
+	//      tier = 'Free'
+	//  WHERE id = ?
+	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`
@@ -3232,6 +3244,17 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateProjectDepotID(ctx context.Context, db DBTX, arg UpdateProjectDepotIDParams) error
+	// Overwrites a workspace's quota row, team flag included. Unlike UpsertQuota
+	// (whose ON DUPLICATE KEY UPDATE deliberately leaves `team` untouched), this
+	// sets every field, so it fits full resets like `unkey dev stripe reset`.
+	//
+	//  UPDATE quota
+	//  SET requests_per_month = ?,
+	//      audit_logs_retention_days = ?,
+	//      logs_retention_days = ?,
+	//      team = ?
+	//  WHERE workspace_id = ?
+	UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`
