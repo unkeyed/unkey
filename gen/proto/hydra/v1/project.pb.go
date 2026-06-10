@@ -22,26 +22,26 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type DeleteProjectRequest struct {
+type DeleteProjectPermanentlyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteProjectRequest) Reset() {
-	*x = DeleteProjectRequest{}
+func (x *DeleteProjectPermanentlyRequest) Reset() {
+	*x = DeleteProjectPermanentlyRequest{}
 	mi := &file_hydra_v1_project_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteProjectRequest) String() string {
+func (x *DeleteProjectPermanentlyRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteProjectRequest) ProtoMessage() {}
+func (*DeleteProjectPermanentlyRequest) ProtoMessage() {}
 
-func (x *DeleteProjectRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteProjectPermanentlyRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_project_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -53,31 +53,31 @@ func (x *DeleteProjectRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteProjectRequest.ProtoReflect.Descriptor instead.
-func (*DeleteProjectRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteProjectPermanentlyRequest.ProtoReflect.Descriptor instead.
+func (*DeleteProjectPermanentlyRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_project_proto_rawDescGZIP(), []int{0}
 }
 
-type DeleteProjectResponse struct {
+type DeleteProjectPermanentlyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteProjectResponse) Reset() {
-	*x = DeleteProjectResponse{}
+func (x *DeleteProjectPermanentlyResponse) Reset() {
+	*x = DeleteProjectPermanentlyResponse{}
 	mi := &file_hydra_v1_project_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteProjectResponse) String() string {
+func (x *DeleteProjectPermanentlyResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteProjectResponse) ProtoMessage() {}
+func (*DeleteProjectPermanentlyResponse) ProtoMessage() {}
 
-func (x *DeleteProjectResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteProjectPermanentlyResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_project_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -89,20 +89,194 @@ func (x *DeleteProjectResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteProjectResponse.ProtoReflect.Descriptor instead.
-func (*DeleteProjectResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteProjectPermanentlyResponse.ProtoReflect.Descriptor instead.
+func (*DeleteProjectPermanentlyResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_project_proto_rawDescGZIP(), []int{1}
+}
+
+type MarkProjectForDeletionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// deletion_id is minted by the public ctrl handler and used as the
+	// single shared identifier across every cascaded descendant.
+	DeletionId string `protobuf:"bytes,1,opt,name=deletion_id,json=deletionId,proto3" json:"deletion_id,omitempty"`
+	// delete_permanently_at is stored on the deletions row only at the
+	// root; cascaded children point at the same row via deletion_id and
+	// do not duplicate the timestamp.
+	DeletePermanentlyAt int64 `protobuf:"varint,2,opt,name=delete_permanently_at,json=deletePermanentlyAt,proto3" json:"delete_permanently_at,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *MarkProjectForDeletionRequest) Reset() {
+	*x = MarkProjectForDeletionRequest{}
+	mi := &file_hydra_v1_project_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkProjectForDeletionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkProjectForDeletionRequest) ProtoMessage() {}
+
+func (x *MarkProjectForDeletionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_project_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkProjectForDeletionRequest.ProtoReflect.Descriptor instead.
+func (*MarkProjectForDeletionRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_project_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *MarkProjectForDeletionRequest) GetDeletionId() string {
+	if x != nil {
+		return x.DeletionId
+	}
+	return ""
+}
+
+func (x *MarkProjectForDeletionRequest) GetDeletePermanentlyAt() int64 {
+	if x != nil {
+		return x.DeletePermanentlyAt
+	}
+	return 0
+}
+
+type MarkProjectForDeletionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkProjectForDeletionResponse) Reset() {
+	*x = MarkProjectForDeletionResponse{}
+	mi := &file_hydra_v1_project_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkProjectForDeletionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkProjectForDeletionResponse) ProtoMessage() {}
+
+func (x *MarkProjectForDeletionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_project_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkProjectForDeletionResponse.ProtoReflect.Descriptor instead.
+func (*MarkProjectForDeletionResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_project_proto_rawDescGZIP(), []int{3}
+}
+
+type RestoreProjectRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreProjectRequest) Reset() {
+	*x = RestoreProjectRequest{}
+	mi := &file_hydra_v1_project_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreProjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreProjectRequest) ProtoMessage() {}
+
+func (x *RestoreProjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_project_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreProjectRequest.ProtoReflect.Descriptor instead.
+func (*RestoreProjectRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_project_proto_rawDescGZIP(), []int{4}
+}
+
+type RestoreProjectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreProjectResponse) Reset() {
+	*x = RestoreProjectResponse{}
+	mi := &file_hydra_v1_project_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreProjectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreProjectResponse) ProtoMessage() {}
+
+func (x *RestoreProjectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_project_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreProjectResponse.ProtoReflect.Descriptor instead.
+func (*RestoreProjectResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_project_proto_rawDescGZIP(), []int{5}
 }
 
 var File_hydra_v1_project_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_project_proto_rawDesc = "" +
 	"\n" +
-	"\x16hydra/v1/project.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x16\n" +
-	"\x14DeleteProjectRequest\"\x17\n" +
-	"\x15DeleteProjectResponse2c\n" +
-	"\x0eProjectService\x12K\n" +
-	"\x06Delete\x12\x1e.hydra.v1.DeleteProjectRequest\x1a\x1f.hydra.v1.DeleteProjectResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x92\x01\n" +
+	"\x16hydra/v1/project.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"!\n" +
+	"\x1fDeleteProjectPermanentlyRequest\"\"\n" +
+	" DeleteProjectPermanentlyResponse\"t\n" +
+	"\x1dMarkProjectForDeletionRequest\x12\x1f\n" +
+	"\vdeletion_id\x18\x01 \x01(\tR\n" +
+	"deletionId\x122\n" +
+	"\x15delete_permanently_at\x18\x02 \x01(\x03R\x13deletePermanentlyAt\" \n" +
+	"\x1eMarkProjectForDeletionResponse\"\x17\n" +
+	"\x15RestoreProjectRequest\"\x18\n" +
+	"\x16RestoreProjectResponse2\xbc\x02\n" +
+	"\x0eProjectService\x12l\n" +
+	"\x11DeletePermanently\x12).hydra.v1.DeleteProjectPermanentlyRequest\x1a*.hydra.v1.DeleteProjectPermanentlyResponse\"\x00\x12f\n" +
+	"\x0fMarkForDeletion\x12'.hydra.v1.MarkProjectForDeletionRequest\x1a(.hydra.v1.MarkProjectForDeletionResponse\"\x00\x12N\n" +
+	"\aRestore\x12\x1f.hydra.v1.RestoreProjectRequest\x1a .hydra.v1.RestoreProjectResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x92\x01\n" +
 	"\fcom.hydra.v1B\fProjectProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -117,16 +291,24 @@ func file_hydra_v1_project_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_project_proto_rawDescData
 }
 
-var file_hydra_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hydra_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_project_proto_goTypes = []any{
-	(*DeleteProjectRequest)(nil),  // 0: hydra.v1.DeleteProjectRequest
-	(*DeleteProjectResponse)(nil), // 1: hydra.v1.DeleteProjectResponse
+	(*DeleteProjectPermanentlyRequest)(nil),  // 0: hydra.v1.DeleteProjectPermanentlyRequest
+	(*DeleteProjectPermanentlyResponse)(nil), // 1: hydra.v1.DeleteProjectPermanentlyResponse
+	(*MarkProjectForDeletionRequest)(nil),    // 2: hydra.v1.MarkProjectForDeletionRequest
+	(*MarkProjectForDeletionResponse)(nil),   // 3: hydra.v1.MarkProjectForDeletionResponse
+	(*RestoreProjectRequest)(nil),            // 4: hydra.v1.RestoreProjectRequest
+	(*RestoreProjectResponse)(nil),           // 5: hydra.v1.RestoreProjectResponse
 }
 var file_hydra_v1_project_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.ProjectService.Delete:input_type -> hydra.v1.DeleteProjectRequest
-	1, // 1: hydra.v1.ProjectService.Delete:output_type -> hydra.v1.DeleteProjectResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	0, // 0: hydra.v1.ProjectService.DeletePermanently:input_type -> hydra.v1.DeleteProjectPermanentlyRequest
+	2, // 1: hydra.v1.ProjectService.MarkForDeletion:input_type -> hydra.v1.MarkProjectForDeletionRequest
+	4, // 2: hydra.v1.ProjectService.Restore:input_type -> hydra.v1.RestoreProjectRequest
+	1, // 3: hydra.v1.ProjectService.DeletePermanently:output_type -> hydra.v1.DeleteProjectPermanentlyResponse
+	3, // 4: hydra.v1.ProjectService.MarkForDeletion:output_type -> hydra.v1.MarkProjectForDeletionResponse
+	5, // 5: hydra.v1.ProjectService.Restore:output_type -> hydra.v1.RestoreProjectResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -143,7 +325,7 @@ func file_hydra_v1_project_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_project_proto_rawDesc), len(file_hydra_v1_project_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

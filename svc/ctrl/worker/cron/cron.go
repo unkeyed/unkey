@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/permanentdelete"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/ratelimitcleanup"
 
@@ -39,6 +40,7 @@ type Service struct {
 	auditLogExport   *auditlogexport.Handler
 	keyLastUsedSync  *keylastusedsync.Handler
 	keyRefill        *keyrefill.Handler
+	permanentDelete  *permanentdelete.Handler
 	quotaCheck       *quotacheck.Handler
 	ratelimitCleanup *ratelimitcleanup.Handler
 }
@@ -132,12 +134,20 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	permanentDeleteH, err := permanentdelete.New(permanentdelete.Config{
+		DB:    cfg.DB,
+		Clock: cfg.Clock,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogExport:                 auditLogExportH,
 		keyLastUsedSync:                keyLastUsedSyncH,
 		keyRefill:                      keyRefillH,
+		permanentDelete:                permanentDeleteH,
 		quotaCheck:                     quotaCheckH,
 		ratelimitCleanup:               ratelimitCleanupH,
 	}, nil
@@ -176,4 +186,11 @@ func (s *Service) RunRatelimitGlobalCountersCleanup(
 	req *hydrav1.RunRatelimitGlobalCountersCleanupRequest,
 ) (*hydrav1.RunRatelimitGlobalCountersCleanupResponse, error) {
 	return s.ratelimitCleanup.Handle(ctx, req)
+}
+
+func (s *Service) RunPermanentDelete(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunPermanentDeleteRequest,
+) (*hydrav1.RunPermanentDeleteResponse, error) {
+	return s.permanentDelete.Handle(ctx, req)
 }

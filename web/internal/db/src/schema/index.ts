@@ -13,6 +13,7 @@ export * from "./clickhouse_workspace_settings";
 // Deployment platform tables
 export * from "./projects";
 export * from "./apps";
+export * from "./deletions";
 export * from "./app_build_settings";
 export * from "./app_runtime_settings";
 export * from "./app_regional_settings";

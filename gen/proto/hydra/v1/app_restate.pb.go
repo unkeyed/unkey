@@ -18,9 +18,17 @@ import (
 // AppService manages app lifecycle.
 // Key: app_id
 type AppServiceClient interface {
-	// Delete removes an app and cleans up associated resources.
-	// Key: app_id
-	Delete(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteAppRequest, *DeleteAppResponse]
+	// DeletePermanently removes the app and cascades hard cleanup.
+	DeletePermanently(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteAppPermanentlyRequest, *DeleteAppPermanentlyResponse]
+	// MarkForDeletion sets the app's deletion_id to req.deletion_id and
+	// cascades to every live environment under it carrying the same id.
+	// The deletions row was already written by the cascade root; this
+	// handler just points the app at it.
+	MarkForDeletion(opts ...sdk_go.ClientOption) sdk_go.Client[*MarkAppForDeletionRequest, *MarkAppForDeletionResponse]
+	// Restore clears the app's deletion_id only if it equals
+	// req.deletion_id. Apps deleted independently carry a different id
+	// and are skipped. Cascades to environments with the same id.
+	Restore(opts ...sdk_go.ClientOption) sdk_go.Client[*RestoreAppRequest, *RestoreAppResponse]
 }
 
 type appServiceClient struct {
@@ -37,21 +45,45 @@ func NewAppServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOp
 		cOpts,
 	}
 }
-func (c *appServiceClient) Delete(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteAppRequest, *DeleteAppResponse] {
+func (c *appServiceClient) DeletePermanently(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteAppPermanentlyRequest, *DeleteAppPermanentlyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*DeleteAppRequest](sdk_go.Object[*DeleteAppResponse](c.ctx, "hydra.v1.AppService", c.key, "Delete", cOpts...))
+	return sdk_go.WithRequestType[*DeleteAppPermanentlyRequest](sdk_go.Object[*DeleteAppPermanentlyResponse](c.ctx, "hydra.v1.AppService", c.key, "DeletePermanently", cOpts...))
+}
+
+func (c *appServiceClient) MarkForDeletion(opts ...sdk_go.ClientOption) sdk_go.Client[*MarkAppForDeletionRequest, *MarkAppForDeletionResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*MarkAppForDeletionRequest](sdk_go.Object[*MarkAppForDeletionResponse](c.ctx, "hydra.v1.AppService", c.key, "MarkForDeletion", cOpts...))
+}
+
+func (c *appServiceClient) Restore(opts ...sdk_go.ClientOption) sdk_go.Client[*RestoreAppRequest, *RestoreAppResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RestoreAppRequest](sdk_go.Object[*RestoreAppResponse](c.ctx, "hydra.v1.AppService", c.key, "Restore", cOpts...))
 }
 
 // AppServiceIngressClient is the ingress client API for hydra.v1.AppService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type AppServiceIngressClient interface {
-	// Delete removes an app and cleans up associated resources.
-	// Key: app_id
-	Delete() ingress.Requester[*DeleteAppRequest, *DeleteAppResponse]
+	// DeletePermanently removes the app and cascades hard cleanup.
+	DeletePermanently() ingress.Requester[*DeleteAppPermanentlyRequest, *DeleteAppPermanentlyResponse]
+	// MarkForDeletion sets the app's deletion_id to req.deletion_id and
+	// cascades to every live environment under it carrying the same id.
+	// The deletions row was already written by the cascade root; this
+	// handler just points the app at it.
+	MarkForDeletion() ingress.Requester[*MarkAppForDeletionRequest, *MarkAppForDeletionResponse]
+	// Restore clears the app's deletion_id only if it equals
+	// req.deletion_id. Apps deleted independently carry a different id
+	// and are skipped. Cascades to environments with the same id.
+	Restore() ingress.Requester[*RestoreAppRequest, *RestoreAppResponse]
 }
 
 type appServiceIngressClient struct {
@@ -68,9 +100,19 @@ func NewAppServiceIngressClient(client *ingress.Client, key string) AppServiceIn
 	}
 }
 
-func (c *appServiceIngressClient) Delete() ingress.Requester[*DeleteAppRequest, *DeleteAppResponse] {
+func (c *appServiceIngressClient) DeletePermanently() ingress.Requester[*DeleteAppPermanentlyRequest, *DeleteAppPermanentlyResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*DeleteAppRequest, *DeleteAppResponse](c.client, c.serviceName, "Delete", &c.key, &codec)
+	return ingress.NewRequester[*DeleteAppPermanentlyRequest, *DeleteAppPermanentlyResponse](c.client, c.serviceName, "DeletePermanently", &c.key, &codec)
+}
+
+func (c *appServiceIngressClient) MarkForDeletion() ingress.Requester[*MarkAppForDeletionRequest, *MarkAppForDeletionResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*MarkAppForDeletionRequest, *MarkAppForDeletionResponse](c.client, c.serviceName, "MarkForDeletion", &c.key, &codec)
+}
+
+func (c *appServiceIngressClient) Restore() ingress.Requester[*RestoreAppRequest, *RestoreAppResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RestoreAppRequest, *RestoreAppResponse](c.client, c.serviceName, "Restore", &c.key, &codec)
 }
 
 // AppServiceServer is the server API for hydra.v1.AppService service.
@@ -80,9 +122,17 @@ func (c *appServiceIngressClient) Delete() ingress.Requester[*DeleteAppRequest, 
 // AppService manages app lifecycle.
 // Key: app_id
 type AppServiceServer interface {
-	// Delete removes an app and cleans up associated resources.
-	// Key: app_id
-	Delete(ctx sdk_go.ObjectContext, req *DeleteAppRequest) (*DeleteAppResponse, error)
+	// DeletePermanently removes the app and cascades hard cleanup.
+	DeletePermanently(ctx sdk_go.ObjectContext, req *DeleteAppPermanentlyRequest) (*DeleteAppPermanentlyResponse, error)
+	// MarkForDeletion sets the app's deletion_id to req.deletion_id and
+	// cascades to every live environment under it carrying the same id.
+	// The deletions row was already written by the cascade root; this
+	// handler just points the app at it.
+	MarkForDeletion(ctx sdk_go.ObjectContext, req *MarkAppForDeletionRequest) (*MarkAppForDeletionResponse, error)
+	// Restore clears the app's deletion_id only if it equals
+	// req.deletion_id. Apps deleted independently carry a different id
+	// and are skipped. Cascades to environments with the same id.
+	Restore(ctx sdk_go.ObjectContext, req *RestoreAppRequest) (*RestoreAppResponse, error)
 }
 
 // UnimplementedAppServiceServer should be embedded to have
@@ -92,8 +142,14 @@ type AppServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAppServiceServer struct{}
 
-func (UnimplementedAppServiceServer) Delete(ctx sdk_go.ObjectContext, req *DeleteAppRequest) (*DeleteAppResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Delete not implemented"), 501)
+func (UnimplementedAppServiceServer) DeletePermanently(ctx sdk_go.ObjectContext, req *DeleteAppPermanentlyRequest) (*DeleteAppPermanentlyResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method DeletePermanently not implemented"), 501)
+}
+func (UnimplementedAppServiceServer) MarkForDeletion(ctx sdk_go.ObjectContext, req *MarkAppForDeletionRequest) (*MarkAppForDeletionResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method MarkForDeletion not implemented"), 501)
+}
+func (UnimplementedAppServiceServer) Restore(ctx sdk_go.ObjectContext, req *RestoreAppRequest) (*RestoreAppResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Restore not implemented"), 501)
 }
 func (UnimplementedAppServiceServer) testEmbeddedByValue() {}
 
@@ -114,6 +170,8 @@ func NewAppServiceServer(srv AppServiceServer, opts ...sdk_go.ServiceDefinitionO
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.AppService", sOpts...)
-	router = router.Handler("Delete", sdk_go.NewObjectHandler(srv.Delete))
+	router = router.Handler("DeletePermanently", sdk_go.NewObjectHandler(srv.DeletePermanently))
+	router = router.Handler("MarkForDeletion", sdk_go.NewObjectHandler(srv.MarkForDeletion))
+	router = router.Handler("Restore", sdk_go.NewObjectHandler(srv.Restore))
 	return router
 }

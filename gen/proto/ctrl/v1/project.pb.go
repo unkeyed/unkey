@@ -170,9 +170,12 @@ func (x *DeleteProjectRequest) GetProjectId() string {
 }
 
 type DeleteProjectResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Epoch-ms at which the cron sweep is expected to permanently delete
+	// the project. Until then, callers can undo via RestoreProject.
+	DeletePermanentlyAt int64 `protobuf:"varint,1,opt,name=delete_permanently_at,json=deletePermanentlyAt,proto3" json:"delete_permanently_at,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *DeleteProjectResponse) Reset() {
@@ -205,6 +208,93 @@ func (*DeleteProjectResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_project_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *DeleteProjectResponse) GetDeletePermanentlyAt() int64 {
+	if x != nil {
+		return x.DeletePermanentlyAt
+	}
+	return 0
+}
+
+type RestoreProjectRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreProjectRequest) Reset() {
+	*x = RestoreProjectRequest{}
+	mi := &file_ctrl_v1_project_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreProjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreProjectRequest) ProtoMessage() {}
+
+func (x *RestoreProjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_project_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreProjectRequest.ProtoReflect.Descriptor instead.
+func (*RestoreProjectRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_project_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RestoreProjectRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+type RestoreProjectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreProjectResponse) Reset() {
+	*x = RestoreProjectResponse{}
+	mi := &file_ctrl_v1_project_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreProjectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreProjectResponse) ProtoMessage() {}
+
+func (x *RestoreProjectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_project_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreProjectResponse.ProtoReflect.Descriptor instead.
+func (*RestoreProjectResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_project_proto_rawDescGZIP(), []int{5}
+}
+
 var File_ctrl_v1_project_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_project_proto_rawDesc = "" +
@@ -218,11 +308,17 @@ const file_ctrl_v1_project_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"5\n" +
 	"\x14DeleteProjectRequest\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\"\x17\n" +
-	"\x15DeleteProjectResponse2\xb4\x01\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\"K\n" +
+	"\x15DeleteProjectResponse\x122\n" +
+	"\x15delete_permanently_at\x18\x01 \x01(\x03R\x13deletePermanentlyAt\"6\n" +
+	"\x15RestoreProjectRequest\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\"\x18\n" +
+	"\x16RestoreProjectResponse2\x89\x02\n" +
 	"\x0eProjectService\x12P\n" +
 	"\rCreateProject\x12\x1d.ctrl.v1.CreateProjectRequest\x1a\x1e.ctrl.v1.CreateProjectResponse\"\x00\x12P\n" +
-	"\rDeleteProject\x12\x1d.ctrl.v1.DeleteProjectRequest\x1a\x1e.ctrl.v1.DeleteProjectResponse\"\x00B\x8b\x01\n" +
+	"\rDeleteProject\x12\x1d.ctrl.v1.DeleteProjectRequest\x1a\x1e.ctrl.v1.DeleteProjectResponse\"\x00\x12S\n" +
+	"\x0eRestoreProject\x12\x1e.ctrl.v1.RestoreProjectRequest\x1a\x1f.ctrl.v1.RestoreProjectResponse\"\x00B\x8b\x01\n" +
 	"\vcom.ctrl.v1B\fProjectProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
 var (
@@ -237,20 +333,24 @@ func file_ctrl_v1_project_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_project_proto_rawDescData
 }
 
-var file_ctrl_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ctrl_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ctrl_v1_project_proto_goTypes = []any{
-	(*CreateProjectRequest)(nil),  // 0: ctrl.v1.CreateProjectRequest
-	(*CreateProjectResponse)(nil), // 1: ctrl.v1.CreateProjectResponse
-	(*DeleteProjectRequest)(nil),  // 2: ctrl.v1.DeleteProjectRequest
-	(*DeleteProjectResponse)(nil), // 3: ctrl.v1.DeleteProjectResponse
+	(*CreateProjectRequest)(nil),   // 0: ctrl.v1.CreateProjectRequest
+	(*CreateProjectResponse)(nil),  // 1: ctrl.v1.CreateProjectResponse
+	(*DeleteProjectRequest)(nil),   // 2: ctrl.v1.DeleteProjectRequest
+	(*DeleteProjectResponse)(nil),  // 3: ctrl.v1.DeleteProjectResponse
+	(*RestoreProjectRequest)(nil),  // 4: ctrl.v1.RestoreProjectRequest
+	(*RestoreProjectResponse)(nil), // 5: ctrl.v1.RestoreProjectResponse
 }
 var file_ctrl_v1_project_proto_depIdxs = []int32{
 	0, // 0: ctrl.v1.ProjectService.CreateProject:input_type -> ctrl.v1.CreateProjectRequest
 	2, // 1: ctrl.v1.ProjectService.DeleteProject:input_type -> ctrl.v1.DeleteProjectRequest
-	1, // 2: ctrl.v1.ProjectService.CreateProject:output_type -> ctrl.v1.CreateProjectResponse
-	3, // 3: ctrl.v1.ProjectService.DeleteProject:output_type -> ctrl.v1.DeleteProjectResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: ctrl.v1.ProjectService.RestoreProject:input_type -> ctrl.v1.RestoreProjectRequest
+	1, // 3: ctrl.v1.ProjectService.CreateProject:output_type -> ctrl.v1.CreateProjectResponse
+	3, // 4: ctrl.v1.ProjectService.DeleteProject:output_type -> ctrl.v1.DeleteProjectResponse
+	5, // 5: ctrl.v1.ProjectService.RestoreProject:output_type -> ctrl.v1.RestoreProjectResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -267,7 +367,7 @@ func file_ctrl_v1_project_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_project_proto_rawDesc), len(file_ctrl_v1_project_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

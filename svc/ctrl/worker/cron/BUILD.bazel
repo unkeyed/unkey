@@ -16,6 +16,7 @@ go_library(
         "//svc/ctrl/worker/cron/auditlogexport",
         "//svc/ctrl/worker/cron/keylastusedsync",
         "//svc/ctrl/worker/cron/keyrefill",
+        "//svc/ctrl/worker/cron/permanentdelete",
         "//svc/ctrl/worker/cron/quotacheck",
         "//svc/ctrl/worker/cron/ratelimitcleanup",
         "@com_github_restatedev_sdk_go//:sdk-go",
@@ -27,10 +28,12 @@ go_test(
     srcs = [
         "key_last_used_sync_integration_test.go",
         "key_refill_integration_test.go",
+        "permanent_delete_integration_test.go",
         "quota_check_integration_test.go",
     ],
     deps = [
         "//gen/proto/hydra/v1:hydra",
+        "//pkg/clock",
         "//pkg/db",
         "//pkg/uid",
         "//svc/ctrl/integration/harness",

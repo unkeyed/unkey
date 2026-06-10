@@ -84,7 +84,7 @@ export function DeleteProject() {
               Delete project
             </Button>
             <div className="text-gray-9 text-xs">
-              This action cannot be undone – proceed with caution
+              You can restore within 72 hours; after that, the project is permanently removed.
             </div>
           </div>
         }
@@ -95,10 +95,10 @@ export function DeleteProject() {
           </div>
           <div className="text-error-12 text-[13px] leading-6">
             <span className="font-medium">Warning:</span> deleting{" "}
-            <span className="font-medium">{projectName}</span> will remove all of its apps,
-            deployments, environments, custom domains, and associated data. This action cannot be
-            undone. Any monitoring, logs, and historical data tied to this project will be
-            permanently lost.
+            <span className="font-medium">{projectName}</span> hides it from the API immediately and
+            schedules removal of all deployments, environments, custom domains, and associated data
+            after a 72-hour grace period. You can restore it from Workspace Settings until the grace
+            period elapses; after that, monitoring, logs, and historical data are permanently lost.
           </div>
         </div>
         <form id="delete-project-form" onSubmit={handleSubmit(onSubmit)}>

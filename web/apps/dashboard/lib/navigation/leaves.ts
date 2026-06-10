@@ -77,10 +77,14 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
   ];
 }
 
-export function buildSettingsLinks(slug: string, segments: string[]): ResolvedNavLink[] {
+export function buildSettingsLinks(
+  slug: string,
+  segments: string[],
+  options: { deletionRecoveryPage?: boolean } = {},
+): ResolvedNavLink[] {
   const page = segments[1];
   const base = `/${slug}/settings`;
-  return [
+  const links: ResolvedNavLink[] = [
     { key: "general", label: "General", href: `${base}/general`, isActive: page === "general" },
     { key: "team", label: "Team", href: `${base}/team`, isActive: page === "team" },
     {
@@ -89,8 +93,20 @@ export function buildSettingsLinks(slug: string, segments: string[]): ResolvedNa
       href: `${base}/root-keys`,
       isActive: page === "root-keys",
     },
+    ...(options.deletionRecoveryPage
+      ? [
+          {
+            key: "scheduled-deletions",
+            label: "Scheduled Deletions",
+            href: `${base}/scheduled-deletions`,
+            isActive: page === "scheduled-deletions",
+          },
+        ]
+      : []),
     { key: "billing", label: "Billing", href: `${base}/billing`, isActive: page === "billing" },
   ];
+
+  return links;
 }
 
 export function buildAuthorizationLinks(slug: string, segments: string[]): ResolvedNavLink[] {

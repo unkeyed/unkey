@@ -9,17 +9,22 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// Delete removes an app by delegating environment cleanup to each environment's
-// virtual object, then deleting app-level resources and the app record itself.
+// DeletePermanently removes the app by waiting for each environment's
+// permanent delete to complete before deleting app-level resources and
+// the app row itself. Sequential synchronous Requests keep the cascade
+// ordered: when this handler returns, every descendant is gone.
+//
+// The deletions row is owned by the cascade root (project) — this
+// handler does not touch it.
 //
 // Key: app_id
-func (s *Service) Delete(
+func (s *Service) DeletePermanently(
 	ctx restate.ObjectContext,
-	_ *hydrav1.DeleteAppRequest,
-) (*hydrav1.DeleteAppResponse, error) {
+	_ *hydrav1.DeleteAppPermanentlyRequest,
+) (*hydrav1.DeleteAppPermanentlyResponse, error) {
 	appID := restate.Key(ctx)
 
-	logger.Info("starting app deletion", "app_id", appID)
+	logger.Info("starting app permanent deletion", "app_id", appID)
 
 	envIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
 		return db.Query.ListEnvironmentIdsByApp(runCtx, s.db.RO(), appID)
@@ -29,10 +34,12 @@ func (s *Service) Delete(
 	}
 
 	for _, envID := range envIDs {
-		logger.Info("deleting environment", "app_id", appID, "environment_id", envID)
-
-		envClient := hydrav1.NewEnvironmentServiceClient(ctx, envID)
-		envClient.Delete().Send(&hydrav1.DeleteEnvironmentRequest{})
+		logger.Info("deleting environment permanently", "app_id", appID, "environment_id", envID)
+		if _, err := hydrav1.NewEnvironmentServiceClient(ctx, envID).
+			DeletePermanently().
+			Request(&hydrav1.DeleteEnvironmentPermanentlyRequest{}); err != nil {
+			return nil, fmt.Errorf("environment %s permanent delete: %w", envID, err)
+		}
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -47,7 +54,7 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete app: %w", err)
 	}
 
-	logger.Info("app deletion complete", "app_id", appID)
+	logger.Info("app permanent deletion complete", "app_id", appID)
 
-	return &hydrav1.DeleteAppResponse{}, nil
+	return &hydrav1.DeleteAppPermanentlyResponse{}, nil
 }

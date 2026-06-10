@@ -11,11 +11,33 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 service AppService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // Delete removes an app and cleans up associated resources.
-  // Key: app_id
-  rpc Delete(DeleteAppRequest) returns (DeleteAppResponse) {}
+  // DeletePermanently removes the app and cascades hard cleanup.
+  rpc DeletePermanently(DeleteAppPermanentlyRequest) returns (DeleteAppPermanentlyResponse) {}
+
+  // MarkForDeletion sets the app's deletion_id to req.deletion_id and
+  // cascades to every live environment under it carrying the same id.
+  // The deletions row was already written by the cascade root; this
+  // handler just points the app at it.
+  rpc MarkForDeletion(MarkAppForDeletionRequest) returns (MarkAppForDeletionResponse) {}
+
+  // Restore clears the app's deletion_id only if it equals
+  // req.deletion_id. Apps deleted independently carry a different id
+  // and are skipped. Cascades to environments with the same id.
+  rpc Restore(RestoreAppRequest) returns (RestoreAppResponse) {}
 }
 
-message DeleteAppRequest {}
+message DeleteAppPermanentlyRequest {}
+message DeleteAppPermanentlyResponse {}
 
-message DeleteAppResponse {}
+message MarkAppForDeletionRequest {
+  // deletion_id is the single shared id minted at the cascade root.
+  string deletion_id = 1;
+}
+message MarkAppForDeletionResponse {}
+
+message RestoreAppRequest {
+  // deletion_id is the cascade root's id. A child whose own deletion_id
+  // does not match is left alone (it was deleted independently).
+  string deletion_id = 1;
+}
+message RestoreAppResponse {}

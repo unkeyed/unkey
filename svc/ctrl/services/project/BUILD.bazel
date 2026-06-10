@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "create_project.go",
         "delete_project.go",
+        "restore_project.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/services/project",
@@ -14,6 +15,7 @@ go_library(
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/hydra/v1:hydra",
         "//pkg/assert",
+        "//pkg/clock",
         "//pkg/db",
         "//pkg/uid",
         "//svc/ctrl/internal/auth",

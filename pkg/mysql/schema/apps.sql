@@ -8,6 +8,7 @@ CREATE TABLE `apps` (
 	`default_branch` varchar(256) NOT NULL DEFAULT 'main',
 	`current_deployment_id` varchar(256),
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
+	`deletion_id` varchar(64),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -17,4 +18,6 @@ CREATE TABLE `apps` (
 );
 
 CREATE INDEX `apps_workspace_idx` ON `apps` (`workspace_id`);
+
+CREATE INDEX `apps_deletion_id_idx` ON `apps` (`deletion_id`);
 

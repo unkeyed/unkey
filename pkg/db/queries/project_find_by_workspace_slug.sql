@@ -8,5 +8,7 @@ SELECT
     created_at,
     updated_at
 FROM projects
-WHERE workspace_id = ? AND slug = ?
+WHERE workspace_id = ?
+  AND slug = ?
+  AND deletion_id IS NULL
 LIMIT 1;

@@ -3,6 +3,7 @@
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import {
   buildApiLinks,
   buildAppLinks,
@@ -24,6 +25,7 @@ export function SidebarBody() {
     .filter((segment) => !segment.startsWith("("));
   const { slug } = useWorkspaceNavigation();
   const keyAuthId = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
+  const deletionRecoveryPage = useFlag("deletionRecoveryPage");
 
   const links = (() => {
     switch (context.type) {
@@ -31,7 +33,7 @@ export function SidebarBody() {
       case "identity":
         return buildWorkspaceSections(slug, segments);
       case "settings":
-        return buildSettingsLinks(slug, segments);
+        return buildSettingsLinks(slug, segments, { deletionRecoveryPage });
       case "authorization":
         return buildAuthorizationLinks(slug, segments);
       case "project":

@@ -39,14 +39,24 @@ const (
 	// ProjectServiceDeleteProjectProcedure is the fully-qualified name of the ProjectService's
 	// DeleteProject RPC.
 	ProjectServiceDeleteProjectProcedure = "/ctrl.v1.ProjectService/DeleteProject"
+	// ProjectServiceRestoreProjectProcedure is the fully-qualified name of the ProjectService's
+	// RestoreProject RPC.
+	ProjectServiceRestoreProjectProcedure = "/ctrl.v1.ProjectService/RestoreProject"
 )
 
 // ProjectServiceClient is a client for the ctrl.v1.ProjectService service.
 type ProjectServiceClient interface {
 	// Create a new project within a workspace
 	CreateProject(context.Context, *connect.Request[v1.CreateProjectRequest]) (*connect.Response[v1.CreateProjectResponse], error)
-	// Delete a project and all associated resources
+	// Schedule a project for permanent deletion after a grace period. The
+	// project is hidden from the API immediately; a cron sweep performs the
+	// actual cascade once the grace period has elapsed. Use RestoreProject
+	// to cancel before the cron fires.
 	DeleteProject(context.Context, *connect.Request[v1.DeleteProjectRequest]) (*connect.Response[v1.DeleteProjectResponse], error)
+	// Cancel a previously scheduled DeleteProject. No-op if the project is
+	// not currently scheduled for deletion. Fails if the project no longer
+	// exists (the cron has already run).
+	RestoreProject(context.Context, *connect.Request[v1.RestoreProjectRequest]) (*connect.Response[v1.RestoreProjectResponse], error)
 }
 
 // NewProjectServiceClient constructs a client for the ctrl.v1.ProjectService service. By default,
@@ -72,13 +82,20 @@ func NewProjectServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(projectServiceMethods.ByName("DeleteProject")),
 			connect.WithClientOptions(opts...),
 		),
+		restoreProject: connect.NewClient[v1.RestoreProjectRequest, v1.RestoreProjectResponse](
+			httpClient,
+			baseURL+ProjectServiceRestoreProjectProcedure,
+			connect.WithSchema(projectServiceMethods.ByName("RestoreProject")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // projectServiceClient implements ProjectServiceClient.
 type projectServiceClient struct {
-	createProject *connect.Client[v1.CreateProjectRequest, v1.CreateProjectResponse]
-	deleteProject *connect.Client[v1.DeleteProjectRequest, v1.DeleteProjectResponse]
+	createProject  *connect.Client[v1.CreateProjectRequest, v1.CreateProjectResponse]
+	deleteProject  *connect.Client[v1.DeleteProjectRequest, v1.DeleteProjectResponse]
+	restoreProject *connect.Client[v1.RestoreProjectRequest, v1.RestoreProjectResponse]
 }
 
 // CreateProject calls ctrl.v1.ProjectService.CreateProject.
@@ -91,12 +108,24 @@ func (c *projectServiceClient) DeleteProject(ctx context.Context, req *connect.R
 	return c.deleteProject.CallUnary(ctx, req)
 }
 
+// RestoreProject calls ctrl.v1.ProjectService.RestoreProject.
+func (c *projectServiceClient) RestoreProject(ctx context.Context, req *connect.Request[v1.RestoreProjectRequest]) (*connect.Response[v1.RestoreProjectResponse], error) {
+	return c.restoreProject.CallUnary(ctx, req)
+}
+
 // ProjectServiceHandler is an implementation of the ctrl.v1.ProjectService service.
 type ProjectServiceHandler interface {
 	// Create a new project within a workspace
 	CreateProject(context.Context, *connect.Request[v1.CreateProjectRequest]) (*connect.Response[v1.CreateProjectResponse], error)
-	// Delete a project and all associated resources
+	// Schedule a project for permanent deletion after a grace period. The
+	// project is hidden from the API immediately; a cron sweep performs the
+	// actual cascade once the grace period has elapsed. Use RestoreProject
+	// to cancel before the cron fires.
 	DeleteProject(context.Context, *connect.Request[v1.DeleteProjectRequest]) (*connect.Response[v1.DeleteProjectResponse], error)
+	// Cancel a previously scheduled DeleteProject. No-op if the project is
+	// not currently scheduled for deletion. Fails if the project no longer
+	// exists (the cron has already run).
+	RestoreProject(context.Context, *connect.Request[v1.RestoreProjectRequest]) (*connect.Response[v1.RestoreProjectResponse], error)
 }
 
 // NewProjectServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -118,12 +147,20 @@ func NewProjectServiceHandler(svc ProjectServiceHandler, opts ...connect.Handler
 		connect.WithSchema(projectServiceMethods.ByName("DeleteProject")),
 		connect.WithHandlerOptions(opts...),
 	)
+	projectServiceRestoreProjectHandler := connect.NewUnaryHandler(
+		ProjectServiceRestoreProjectProcedure,
+		svc.RestoreProject,
+		connect.WithSchema(projectServiceMethods.ByName("RestoreProject")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.ProjectService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ProjectServiceCreateProjectProcedure:
 			projectServiceCreateProjectHandler.ServeHTTP(w, r)
 		case ProjectServiceDeleteProjectProcedure:
 			projectServiceDeleteProjectHandler.ServeHTTP(w, r)
+		case ProjectServiceRestoreProjectProcedure:
+			projectServiceRestoreProjectHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -139,4 +176,8 @@ func (UnimplementedProjectServiceHandler) CreateProject(context.Context, *connec
 
 func (UnimplementedProjectServiceHandler) DeleteProject(context.Context, *connect.Request[v1.DeleteProjectRequest]) (*connect.Response[v1.DeleteProjectResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ProjectService.DeleteProject is not implemented"))
+}
+
+func (UnimplementedProjectServiceHandler) RestoreProject(context.Context, *connect.Request[v1.RestoreProjectRequest]) (*connect.Response[v1.RestoreProjectResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ProjectService.RestoreProject is not implemented"))
 }

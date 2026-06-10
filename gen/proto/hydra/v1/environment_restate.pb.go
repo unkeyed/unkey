@@ -18,9 +18,19 @@ import (
 // EnvironmentService manages environment lifecycle.
 // Key: environment_id
 type EnvironmentServiceClient interface {
-	// Delete removes an environment and cleans up associated resources.
-	// Key: environment_id
-	Delete(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteEnvironmentRequest, *DeleteEnvironmentResponse]
+	// DeletePermanently removes the environment and its associated
+	// resources.
+	DeletePermanently(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteEnvironmentPermanentlyRequest, *DeleteEnvironmentPermanentlyResponse]
+	// MarkForDeletion sets the environment's deletion_id to
+	// req.deletion_id and flips every non-terminal deployment under it
+	// to status='stopped' so krane scales the pods to zero. The deletions
+	// row was already written by the cascade root. There is no further
+	// cascade — deployments are not first-class soft-delete resources.
+	MarkForDeletion(opts ...sdk_go.ClientOption) sdk_go.Client[*MarkEnvironmentForDeletionRequest, *MarkEnvironmentForDeletionResponse]
+	// Restore clears the environment's deletion_id only if it equals
+	// req.deletion_id. Does not revive deployment status; the user is
+	// expected to trigger a fresh deployment.
+	Restore(opts ...sdk_go.ClientOption) sdk_go.Client[*RestoreEnvironmentRequest, *RestoreEnvironmentResponse]
 }
 
 type environmentServiceClient struct {
@@ -37,21 +47,47 @@ func NewEnvironmentServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.
 		cOpts,
 	}
 }
-func (c *environmentServiceClient) Delete(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteEnvironmentRequest, *DeleteEnvironmentResponse] {
+func (c *environmentServiceClient) DeletePermanently(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteEnvironmentPermanentlyRequest, *DeleteEnvironmentPermanentlyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*DeleteEnvironmentRequest](sdk_go.Object[*DeleteEnvironmentResponse](c.ctx, "hydra.v1.EnvironmentService", c.key, "Delete", cOpts...))
+	return sdk_go.WithRequestType[*DeleteEnvironmentPermanentlyRequest](sdk_go.Object[*DeleteEnvironmentPermanentlyResponse](c.ctx, "hydra.v1.EnvironmentService", c.key, "DeletePermanently", cOpts...))
+}
+
+func (c *environmentServiceClient) MarkForDeletion(opts ...sdk_go.ClientOption) sdk_go.Client[*MarkEnvironmentForDeletionRequest, *MarkEnvironmentForDeletionResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*MarkEnvironmentForDeletionRequest](sdk_go.Object[*MarkEnvironmentForDeletionResponse](c.ctx, "hydra.v1.EnvironmentService", c.key, "MarkForDeletion", cOpts...))
+}
+
+func (c *environmentServiceClient) Restore(opts ...sdk_go.ClientOption) sdk_go.Client[*RestoreEnvironmentRequest, *RestoreEnvironmentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RestoreEnvironmentRequest](sdk_go.Object[*RestoreEnvironmentResponse](c.ctx, "hydra.v1.EnvironmentService", c.key, "Restore", cOpts...))
 }
 
 // EnvironmentServiceIngressClient is the ingress client API for hydra.v1.EnvironmentService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type EnvironmentServiceIngressClient interface {
-	// Delete removes an environment and cleans up associated resources.
-	// Key: environment_id
-	Delete() ingress.Requester[*DeleteEnvironmentRequest, *DeleteEnvironmentResponse]
+	// DeletePermanently removes the environment and its associated
+	// resources.
+	DeletePermanently() ingress.Requester[*DeleteEnvironmentPermanentlyRequest, *DeleteEnvironmentPermanentlyResponse]
+	// MarkForDeletion sets the environment's deletion_id to
+	// req.deletion_id and flips every non-terminal deployment under it
+	// to status='stopped' so krane scales the pods to zero. The deletions
+	// row was already written by the cascade root. There is no further
+	// cascade — deployments are not first-class soft-delete resources.
+	MarkForDeletion() ingress.Requester[*MarkEnvironmentForDeletionRequest, *MarkEnvironmentForDeletionResponse]
+	// Restore clears the environment's deletion_id only if it equals
+	// req.deletion_id. Does not revive deployment status; the user is
+	// expected to trigger a fresh deployment.
+	Restore() ingress.Requester[*RestoreEnvironmentRequest, *RestoreEnvironmentResponse]
 }
 
 type environmentServiceIngressClient struct {
@@ -68,9 +104,19 @@ func NewEnvironmentServiceIngressClient(client *ingress.Client, key string) Envi
 	}
 }
 
-func (c *environmentServiceIngressClient) Delete() ingress.Requester[*DeleteEnvironmentRequest, *DeleteEnvironmentResponse] {
+func (c *environmentServiceIngressClient) DeletePermanently() ingress.Requester[*DeleteEnvironmentPermanentlyRequest, *DeleteEnvironmentPermanentlyResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*DeleteEnvironmentRequest, *DeleteEnvironmentResponse](c.client, c.serviceName, "Delete", &c.key, &codec)
+	return ingress.NewRequester[*DeleteEnvironmentPermanentlyRequest, *DeleteEnvironmentPermanentlyResponse](c.client, c.serviceName, "DeletePermanently", &c.key, &codec)
+}
+
+func (c *environmentServiceIngressClient) MarkForDeletion() ingress.Requester[*MarkEnvironmentForDeletionRequest, *MarkEnvironmentForDeletionResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*MarkEnvironmentForDeletionRequest, *MarkEnvironmentForDeletionResponse](c.client, c.serviceName, "MarkForDeletion", &c.key, &codec)
+}
+
+func (c *environmentServiceIngressClient) Restore() ingress.Requester[*RestoreEnvironmentRequest, *RestoreEnvironmentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RestoreEnvironmentRequest, *RestoreEnvironmentResponse](c.client, c.serviceName, "Restore", &c.key, &codec)
 }
 
 // EnvironmentServiceServer is the server API for hydra.v1.EnvironmentService service.
@@ -80,9 +126,19 @@ func (c *environmentServiceIngressClient) Delete() ingress.Requester[*DeleteEnvi
 // EnvironmentService manages environment lifecycle.
 // Key: environment_id
 type EnvironmentServiceServer interface {
-	// Delete removes an environment and cleans up associated resources.
-	// Key: environment_id
-	Delete(ctx sdk_go.ObjectContext, req *DeleteEnvironmentRequest) (*DeleteEnvironmentResponse, error)
+	// DeletePermanently removes the environment and its associated
+	// resources.
+	DeletePermanently(ctx sdk_go.ObjectContext, req *DeleteEnvironmentPermanentlyRequest) (*DeleteEnvironmentPermanentlyResponse, error)
+	// MarkForDeletion sets the environment's deletion_id to
+	// req.deletion_id and flips every non-terminal deployment under it
+	// to status='stopped' so krane scales the pods to zero. The deletions
+	// row was already written by the cascade root. There is no further
+	// cascade — deployments are not first-class soft-delete resources.
+	MarkForDeletion(ctx sdk_go.ObjectContext, req *MarkEnvironmentForDeletionRequest) (*MarkEnvironmentForDeletionResponse, error)
+	// Restore clears the environment's deletion_id only if it equals
+	// req.deletion_id. Does not revive deployment status; the user is
+	// expected to trigger a fresh deployment.
+	Restore(ctx sdk_go.ObjectContext, req *RestoreEnvironmentRequest) (*RestoreEnvironmentResponse, error)
 }
 
 // UnimplementedEnvironmentServiceServer should be embedded to have
@@ -92,8 +148,14 @@ type EnvironmentServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedEnvironmentServiceServer struct{}
 
-func (UnimplementedEnvironmentServiceServer) Delete(ctx sdk_go.ObjectContext, req *DeleteEnvironmentRequest) (*DeleteEnvironmentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Delete not implemented"), 501)
+func (UnimplementedEnvironmentServiceServer) DeletePermanently(ctx sdk_go.ObjectContext, req *DeleteEnvironmentPermanentlyRequest) (*DeleteEnvironmentPermanentlyResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method DeletePermanently not implemented"), 501)
+}
+func (UnimplementedEnvironmentServiceServer) MarkForDeletion(ctx sdk_go.ObjectContext, req *MarkEnvironmentForDeletionRequest) (*MarkEnvironmentForDeletionResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method MarkForDeletion not implemented"), 501)
+}
+func (UnimplementedEnvironmentServiceServer) Restore(ctx sdk_go.ObjectContext, req *RestoreEnvironmentRequest) (*RestoreEnvironmentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Restore not implemented"), 501)
 }
 func (UnimplementedEnvironmentServiceServer) testEmbeddedByValue() {}
 
@@ -114,6 +176,8 @@ func NewEnvironmentServiceServer(srv EnvironmentServiceServer, opts ...sdk_go.Se
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.EnvironmentService", sOpts...)
-	router = router.Handler("Delete", sdk_go.NewObjectHandler(srv.Delete))
+	router = router.Handler("DeletePermanently", sdk_go.NewObjectHandler(srv.DeletePermanently))
+	router = router.Handler("MarkForDeletion", sdk_go.NewObjectHandler(srv.MarkForDeletion))
+	router = router.Handler("Restore", sdk_go.NewObjectHandler(srv.Restore))
 	return router
 }
