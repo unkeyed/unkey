@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 interface PostAuthInvitationHandlerProps {
   /**
@@ -27,11 +27,11 @@ export function PostAuthInvitationHandler({
 }: PostAuthInvitationHandlerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [hasProcessed, setHasProcessed] = useState(false);
+  const isProcessingRef = useRef(false);
+  const hasProcessedRef = useRef(false);
 
   useEffect(() => {
-    if (!autoProcess || hasProcessed) {
+    if (!autoProcess || hasProcessedRef.current) {
       return;
     }
 
@@ -47,13 +47,13 @@ export function PostAuthInvitationHandler({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [autoProcess, hasProcessed, searchParams]);
+  }, [autoProcess, searchParams]);
 
   const processInvitation = async (invitationToken: string, retryCount = 0) => {
-    if (isProcessing) {
+    if (isProcessingRef.current) {
       return;
     }
-    setIsProcessing(true);
+    isProcessingRef.current = true;
 
     try {
       const response = await fetch("/api/auth/invitation", {
@@ -87,7 +87,7 @@ export function PostAuthInvitationHandler({
       } else {
         // If authentication failed and we haven't retried too many times, try again
         if (response.status === 401 && retryCount < 2) {
-          setIsProcessing(false);
+          isProcessingRef.current = false;
           setTimeout(() => {
             processInvitation(invitationToken, retryCount + 1);
           }, 1000);
@@ -101,7 +101,7 @@ export function PostAuthInvitationHandler({
 
       // Retry on network errors if we haven't retried too many times
       if (retryCount < 2) {
-        setIsProcessing(false);
+        isProcessingRef.current = false;
         setTimeout(() => {
           processInvitation(invitationToken, retryCount + 1);
         }, 2000);
@@ -110,8 +110,8 @@ export function PostAuthInvitationHandler({
 
       onComplete?.(false, errorMessage);
     } finally {
-      setIsProcessing(false);
-      setHasProcessed(true);
+      isProcessingRef.current = false;
+      hasProcessedRef.current = true;
     }
   };
 

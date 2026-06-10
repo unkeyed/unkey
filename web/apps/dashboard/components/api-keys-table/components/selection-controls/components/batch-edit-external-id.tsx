@@ -18,7 +18,7 @@ export const BatchEditExternalId = ({
   onClose,
 }: BatchEditExternalIdProps): JSX.Element => {
   const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
-  const [selectedExternalId, setSelectedExternalId] = useState<string | null>(null);
+  const selectedExternalIdRef = useRef<string | null>(null);
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -32,7 +32,7 @@ export const BatchEditExternalId = ({
       ownerType: "v2",
       identity: {
         id: selectedIdentityId,
-        externalId: selectedExternalId,
+        externalId: selectedExternalIdRef.current,
       },
     });
   };
@@ -145,7 +145,7 @@ export const BatchEditExternalId = ({
             value={selectedIdentityId}
             onChange={(identityId: string | null, externalId: string | null) => {
               setSelectedIdentityId(identityId);
-              setSelectedExternalId(externalId);
+              selectedExternalIdRef.current = externalId;
             }}
             disabled={updateKeyOwner.isLoading}
           />

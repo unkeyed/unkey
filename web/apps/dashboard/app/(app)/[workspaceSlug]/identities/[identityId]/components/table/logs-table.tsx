@@ -24,7 +24,7 @@ import {
   TriangleWarning2,
 } from "@unkey/icons";
 import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";
 
@@ -139,7 +139,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
     );
   };
 
-  const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
+  const hoveredLogIdRef = useRef<string | null>(null);
   const { queryTime: timestamp } = useQueryTime();
   const utils = trpc.useUtils();
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,8 +156,8 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
 
   const handleRowHover = useCallback(
     (log: IdentityLog) => {
-      if (log.request_id !== hoveredLogId) {
-        setHoveredLogId(log.request_id);
+      if (log.request_id !== hoveredLogIdRef.current) {
+        hoveredLogIdRef.current = log.request_id;
 
         // Debounce the prefetch so rapid mouse movement across rows
         // doesn't fire N separate queryLogs API calls.
@@ -189,11 +189,11 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
         }, 150);
       }
     },
-    [hoveredLogId, utils.logs.queryLogs, timestamp],
+    [utils.logs.queryLogs, timestamp],
   );
 
   const handleRowMouseLeave = useCallback(() => {
-    setHoveredLogId(null);
+    hoveredLogIdRef.current = null;
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;

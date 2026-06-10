@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { LogDetails } from "@/components/logs/details/log-details";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
@@ -17,10 +17,10 @@ export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog 
     requestId: selectedLog?.request_id,
   });
 
-  const [errorShown, setErrorShown] = useState(false);
+  const errorShownRef = useRef(false);
 
   useEffect(() => {
-    if (!errorShown && selectedLog && !isLoading) {
+    if (!errorShownRef.current && selectedLog && !isLoading) {
       if (error) {
         toast.error("Error Loading Log Details", {
           description: `${
@@ -28,20 +28,20 @@ export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog 
             "An unexpected error occurred while fetching log data. Please try again."
           }`,
         });
-        setErrorShown(true);
+        errorShownRef.current = true;
       } else if (!log) {
         toast.error("Log Data Unavailable", {
           description:
             "Could not retrieve log information for this identity. The log may have been deleted or is still processing.",
         });
-        setErrorShown(true);
+        errorShownRef.current = true;
       }
     }
 
     if (!selectedLog) {
-      setErrorShown(false);
+      errorShownRef.current = false;
     }
-  }, [error, log, selectedLog, errorShown, isLoading]);
+  }, [error, log, selectedLog, isLoading]);
 
   const handleClose = () => {
     onLogSelect(null);
