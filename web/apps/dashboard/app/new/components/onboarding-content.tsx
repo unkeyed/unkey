@@ -1,72 +1,65 @@
 "use client";
 import { HelpButton } from "@/components/navigation/sidebar/help-button";
-import { UserButton } from "@/components/navigation/sidebar/user-button";
-import { useState } from "react";
+import { signOut } from "@/lib/auth/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import { useWorkspaceStep } from "../hooks/use-workspace-step";
-import { type OnboardingStep, OnboardingWizard } from "./onboarding-wizard";
+import {
+  OnboardingCard,
+  OnboardingCardContent,
+  OnboardingCardDescription,
+  OnboardingCardFooter,
+  OnboardingCardHeader,
+  OnboardingCardTitle,
+} from "./onboarding-card";
 
 export function OnboardingContent() {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-
-  const handleStepChange = (newStepIndex: number) => {
-    if (newStepIndex >= 0 && newStepIndex < steps.length) {
-      setCurrentStepIndex(newStepIndex);
-    }
-  };
-
-  const workspaceStep = useWorkspaceStep();
-
-  const steps: OnboardingStep[] = [workspaceStep];
-
-  const stepInfo = {
-    title: "Create Company Workspace",
-    description: "Customize your workspace name. This is how it'll appear in your dashboard.",
-  };
+  const { body, submit, isDisabled, isLoading } = useWorkspaceStep();
+  const queryClient = useQueryClient();
 
   return (
-    <div className="h-screen flex flex-col items-center pt-6 overflow-hidden relative">
-      {/* User button in top right */}
+    <FullScreenLayout className="px-4 pt-6">
       <div className="absolute top-4 right-4">
-        <UserButton />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={async () => {
+            queryClient.clear();
+            await signOut();
+          }}
+          className="text-gray-11"
+        >
+          Sign out
+        </Button>
       </div>
 
-      {/* Unkey Logo */}
-      <div className="text-2xl font-medium text-gray-12 leading-7">Unkey</div>
-      {/* Spacer */}
-      <div className="mt-[72px]" />
-      {/* Onboarding part. This will be a step wizard*/}
-      <div className="flex flex-col w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl flex-1 min-h-0 ">
-        {/* Explanation part - Fixed height to prevent layout shifts */}
-        <div className="flex flex-col items-center h-[140px] justify-start">
-          {steps.length > 1 && (
-            <div className="bg-grayA-3 rounded-full w-fit">
-              <span className="px-3 text-xs leading-6 text-gray-12 font-medium tabular-nums">
-                Step {currentStepIndex + 1} of {steps.length}
-              </span>
-            </div>
-          )}
-          <div className="mt-5" />
-          <div className="text-gray-12 font-semibold text-lg leading-8 text-center h-8 flex items-center">
-            {stepInfo.title}
-          </div>
-          <div className="mt-2" />
-          <div className="text-gray-9 font-normal text-[13px] leading-6 text-center px-4 h-[60px] flex items-start overflow-hidden">
-            {stepInfo.description}
-          </div>
-        </div>
-        <div className="mt-10" />
-        {/* Form part */}
-        <div className="flex-1 min-h-0 flex flex-col pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          <OnboardingWizard
-            steps={steps}
-            currentStepIndex={currentStepIndex}
-            setCurrentStepIndex={handleStepChange}
-          />
-        </div>
-      </div>
+      <Logo />
+
+      <FullScreenContent className="max-w-sm py-10 sm:max-w-md lg:max-w-lg">
+        <OnboardingCard>
+          <OnboardingCardHeader>
+            <OnboardingCardTitle>Create Company Workspace</OnboardingCardTitle>
+            <OnboardingCardDescription>
+              Name your workspace and choose its URL.
+            </OnboardingCardDescription>
+          </OnboardingCardHeader>
+          <OnboardingCardContent>{body}</OnboardingCardContent>
+          <OnboardingCardFooter>
+            <Button
+              size="xlg"
+              className="w-full rounded-lg"
+              onClick={submit}
+              disabled={isDisabled}
+              loading={isLoading}
+            >
+              Create workspace
+            </Button>
+          </OnboardingCardFooter>
+        </OnboardingCard>
+      </FullScreenContent>
       <div className="absolute bottom-4 right-4">
         <HelpButton />
       </div>
-    </div>
+    </FullScreenLayout>
   );
 }

@@ -1,0 +1,43 @@
+---
+layout: ../../../layouts/layout.astro
+title: Layout — Unkey Design
+---
+import { Preview } from "../../../components/preview.tsx";
+import { BasicExample } from "./_basic.tsx";
+import { SecondaryNavExample } from "./_secondary-nav.tsx";
+import { FullWidthExample } from "./_full-width.tsx";
+import basicSource from "./_basic.tsx?highlight";
+import secondaryNavSource from "./_secondary-nav.tsx?highlight";
+import fullWidthSource from "./_full-width.tsx?highlight";
+
+# Layout
+
+Examples of how to build effective page layouts on the Unkey dashboard.
+
+## Basics
+
+
+A simple page with a header and actions.
+
+
+<Preview client:load bleed code={basicSource}>
+  <BasicExample />
+</Preview>
+
+## Secondary navigation
+
+Use a secondary navigation when pages have sections nested one level deep within them.
+
+<Preview client:load bleed code={secondaryNavSource}>
+  <SecondaryNavExample />
+</Preview>
+
+Add the rail in the section layout, then let each page render its own `PageBody`.
+
+## Full width
+
+For full width pages like logs, requests, use the full width prop to let your page span the entire width of the viewport.
+
+<Preview client:load bleed code={fullWidthSource}>
+  <FullWidthExample />
+</Preview>
