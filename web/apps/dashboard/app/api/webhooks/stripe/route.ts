@@ -4,6 +4,7 @@ import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
+import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
@@ -608,6 +609,29 @@ export const POST = async (req: Request): Promise<Response> => {
             eventId: event.id,
           });
           return new Response("OK", { status: 200 });
+        }
+
+        // A paid invoice carrying a Deploy plan-fee entitles the workspace to
+        // usage credits equal to the fee. This must run before the alert
+        // logic below, whose early returns (deleted customer, no email) must
+        // not skip the grant. Failure returns 500 so Stripe retries; the
+        // grant is idempotent per invoice, so retries cannot double-grant.
+        try {
+          const grant = await grantDeployCreditsForInvoice(stripe, invoice);
+          if (grant.granted) {
+            console.info("Granted Deploy usage credits", {
+              invoiceId: invoice.id,
+              grantId: grant.grantId,
+              amountCents: grant.amountCents,
+            });
+          }
+        } catch (grantError) {
+          console.error("Failed to grant Deploy usage credits:", {
+            error: grantError,
+            invoiceId: invoice.id,
+            eventId: event.id,
+          });
+          return new Response("Error granting Deploy credits", { status: 500 });
         }
 
         let customer: Stripe.Customer | Stripe.DeletedCustomer;
