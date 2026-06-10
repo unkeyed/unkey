@@ -371,7 +371,7 @@ export const AddEnvVarExpandable = ({
             </div>
           </div>
 
-          <div className="border-t border-gray-4 bg-white dark:bg-black px-6 py-5 flex items-center justify-between">
+          <div className="border-t border-gray-4 bg-white dark:bg-gray-2 px-6 py-5 flex items-center justify-between">
             <div className="hidden md:flex items-center gap-3">
               <input
                 ref={fileInputRef}

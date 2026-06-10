@@ -37,7 +37,7 @@ function DrawerContent(props: DrawerContentProps & { ref?: React.Ref<DrawerConte
         {...contentProps}
         ref={ref}
         className={cn(
-          "bg-gray-1 border border-gray-6 flex flex-col fixed bottom-0 left-0 right-0 max-h-[82vh] rounded-t-xl drop-shadow-2xl transform-gpu",
+          "bg-background-overlay border border-gray-6 flex flex-col fixed bottom-0 left-0 right-0 max-h-[82vh] rounded-t-xl drop-shadow-2xl transform-gpu",
           className,
         )}
       >

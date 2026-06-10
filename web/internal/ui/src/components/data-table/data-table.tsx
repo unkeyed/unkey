@@ -167,7 +167,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
   );
 
   const containerClassName = cn(
-    "overflow-auto relative pb-4 bg-white dark:bg-black",
+    "overflow-auto relative pb-4 bg-white dark:bg-gray-2",
     config.containerPadding || "px-2",
   );
 
@@ -185,7 +185,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
               <col key={col.id ?? idx} style={{ width: colWidths[idx] }} />
             ))}
           </colgroup>
-          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+          <thead className="sticky top-0 z-10 bg-white dark:bg-gray-2">
             <tr>
               {table.getHeaderGroups()[0]?.headers.map((header) => (
                 <th
@@ -236,7 +236,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
           </colgroup>
 
           {/* Header */}
-          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+          <thead className="sticky top-0 z-10 bg-white dark:bg-gray-2">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (

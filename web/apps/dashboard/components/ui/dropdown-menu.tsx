@@ -86,7 +86,7 @@ const DropdownMenuContent = React.forwardRef<
       <DropdownMenuPrimitive.Popup
         ref={ref}
         className={cn(
-          "z-50 min-w-32 overflow-hidden rounded-lg border border-gray-6 bg-white dark:bg-black p-2 text-gray-12 shadow-md outline-none transition-[opacity,scale,translate] data-starting-style:opacity-0 data-ending-style:opacity-0 data-starting-style:scale-95 data-ending-style:scale-95 data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
+          "z-50 min-w-32 overflow-hidden rounded-lg border border-gray-6 bg-background-overlay p-2 text-gray-12 shadow-md outline-none transition-[opacity,scale,translate] data-starting-style:opacity-0 data-ending-style:opacity-0 data-starting-style:scale-95 data-ending-style:scale-95 data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
           className,
         )}
         {...props}

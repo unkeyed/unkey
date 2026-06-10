@@ -292,7 +292,7 @@ export const FiltersPopover = ({
 
       <Drover.Content
         className={cn(
-          "min-w-60 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg",
+          "min-w-60 bg-background-overlay shadow-2xl border-gray-6 rounded-lg",
           searchItems ? "w-80 p-0" : "p-2",
         )}
         align="start"

@@ -17,15 +17,15 @@ const fieldBaseClasses = "rounded-lg text-[13px] leading-5 transition-colors dur
  */
 const fieldSurfaceClasses = {
   default:
-    "border border-gray-5 hover:border-gray-8 bg-white dark:bg-black text-grayA-12 focus:border-accent-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
+    "border border-gray-5 hover:border-gray-8 bg-white dark:bg-gray-2 text-grayA-12 focus:border-accent-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
   ghost:
     "border border-transparent bg-transparent text-grayA-12 focus:border-accent-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
   success:
-    "border border-success-9 hover:border-success-10 bg-white dark:bg-black text-success-11 focus:border-success-8 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden",
+    "border border-success-9 hover:border-success-10 bg-white dark:bg-gray-2 text-success-11 focus:border-success-8 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden",
   warning:
-    "border border-warning-9 hover:border-warning-10 bg-white dark:bg-black text-warning-11 focus:border-warning-8 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden",
+    "border border-warning-9 hover:border-warning-10 bg-white dark:bg-gray-2 text-warning-11 focus:border-warning-8 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden",
   error:
-    "border border-error-9 hover:border-error-10 bg-white dark:bg-black text-error-11 focus:border-error-8 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden",
+    "border border-error-9 hover:border-error-10 bg-white dark:bg-gray-2 text-error-11 focus:border-error-8 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden",
 } as const;
 
 const fieldInvalidClasses =
@@ -33,15 +33,15 @@ const fieldInvalidClasses =
 
 const fieldGroupSurfaceClasses = {
   default:
-    "border border-gray-5 hover:border-gray-8 bg-white dark:bg-black text-grayA-12 focus-within:border-accent-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
+    "border border-gray-5 hover:border-gray-8 bg-white dark:bg-gray-2 text-grayA-12 focus-within:border-accent-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
   ghost:
     "border border-transparent bg-transparent text-grayA-12 focus-within:border-accent-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
   success:
-    "border border-success-9 hover:border-success-10 bg-white dark:bg-black text-success-11 focus-within:border-success-8 focus-within:ring-3 focus-within:ring-success-4 focus-visible:outline-hidden",
+    "border border-success-9 hover:border-success-10 bg-white dark:bg-gray-2 text-success-11 focus-within:border-success-8 focus-within:ring-3 focus-within:ring-success-4 focus-visible:outline-hidden",
   warning:
-    "border border-warning-9 hover:border-warning-10 bg-white dark:bg-black text-warning-11 focus-within:border-warning-8 focus-within:ring-3 focus-within:ring-warning-4 focus-visible:outline-hidden",
+    "border border-warning-9 hover:border-warning-10 bg-white dark:bg-gray-2 text-warning-11 focus-within:border-warning-8 focus-within:ring-3 focus-within:ring-warning-4 focus-visible:outline-hidden",
   error:
-    "border border-error-9 hover:border-error-10 bg-white dark:bg-black text-error-11 focus-within:border-error-8 focus-within:ring-3 focus-within:ring-error-4 focus-visible:outline-hidden",
+    "border border-error-9 hover:border-error-10 bg-white dark:bg-gray-2 text-error-11 focus-within:border-error-8 focus-within:ring-3 focus-within:ring-error-4 focus-visible:outline-hidden",
 } as const;
 
 const fieldGroupInvalidClasses =

@@ -12,7 +12,7 @@ export const RoleWarningCallout = ({ count, type }: RoleWarningCalloutProps) => 
   const settingsText = type === "keys" ? "key settings" : "permission settings";
 
   return (
-    <div className="rounded-xl bg-grayA-3 dark:bg-black border border-grayA-3 flex items-center gap-4 px-[22px] py-6">
+    <div className="rounded-xl bg-grayA-3 dark:bg-gray-2 border border-grayA-3 flex items-center gap-4 px-[22px] py-6">
       <div className="bg-gray-4 size-8 rounded-full flex items-center justify-center shrink-0">
         <TriangleWarning className="text-warning-9" iconSize="xl-medium" />
       </div>

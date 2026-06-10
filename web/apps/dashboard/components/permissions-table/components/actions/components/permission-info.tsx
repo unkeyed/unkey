@@ -8,7 +8,7 @@ export const PermissionInfo = ({
   permissionDetails: Permission;
 }) => {
   return (
-    <div className="flex gap-5 items-center bg-white dark:bg-black border border-grayA-5 rounded-xl py-5 pl-4.5 pr-6.5">
+    <div className="flex gap-5 items-center bg-white dark:bg-gray-2 border border-grayA-5 rounded-xl py-5 pl-4.5 pr-6.5">
       <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded-sm">
         <Page2 iconSize="sm-regular" />
       </div>

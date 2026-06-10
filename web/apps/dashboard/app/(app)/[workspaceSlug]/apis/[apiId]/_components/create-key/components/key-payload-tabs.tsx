@@ -79,7 +79,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
             <Skeleton className="w-full h-[42px] rounded-xl" />
           ) : link ? (
             <>
-              <div className="w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5">
+              <div className="w-full px-4 py-2 bg-white dark:bg-gray-2 border rounded-xl border-grayA-5">
                 <div className="flex items-center justify-between w-full gap-3">
                   <Link4 iconSize="sm-regular" className="text-gray-12 shrink-0" />
                   <p className="flex-1 min-w-0 truncate font-mono text-[13px] text-grayA-12">

@@ -76,7 +76,7 @@ export function SlidePanel({
             className,
           )}
         >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--slide-panel-radius)_-_1px)] bg-background">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--slide-panel-radius)_-_1px)] bg-background-overlay">
             {children}
           </div>
         </DialogPrimitive.Popup>

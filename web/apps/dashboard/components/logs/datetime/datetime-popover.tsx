@@ -280,7 +280,7 @@ export const DatetimePopover = ({
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger nativeButton={triggerNativeButton} render={children as ReactElement} />
           <PopoverContent
-            className="flex w-full bg-gray-1 dark:bg-black shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
+            className="flex w-full bg-background-overlay shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
             align={align}
           >
             <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">

@@ -50,7 +50,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
 
   if (!hasPaymentMethod) {
     return (
-      <div className="flex w-full items-center justify-between gap-4 rounded-lg border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
+      <div className="flex w-full items-center justify-between gap-4 rounded-lg border border-grayA-4 bg-white px-5 py-4 dark:bg-gray-2">
         <div>
           <p className="font-medium text-gray-12 text-sm">No payment method</p>
           <p className="text-[13px] text-gray-10">
@@ -96,7 +96,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
   ].filter((row): row is NonNullable<typeof row> => row !== null);
 
   return (
-    <div className="flex w-full flex-col gap-4 rounded-lg border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
+    <div className="flex w-full flex-col gap-4 rounded-lg border border-grayA-4 bg-white px-5 py-4 dark:bg-gray-2">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="font-medium text-gray-12 text-sm">Upcoming invoices</p>

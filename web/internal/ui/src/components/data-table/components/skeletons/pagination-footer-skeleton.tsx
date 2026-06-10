@@ -1,6 +1,6 @@
 export const PaginationFooterSkeleton = () => {
   return (
-    <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 pointer-events-none animate-fade-out">
+    <div className="w-[740px] border bg-background-overlay border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 pointer-events-none animate-fade-out">
       <div className="flex w-full justify-between items-center p-[18px]">
         {/* Item count skeleton */}
         <div className="flex items-center gap-2">
