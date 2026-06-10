@@ -144,40 +144,9 @@ func (w *Workflow) buildDockerImageFromGit(
 
 		// tokenless selects the no-secret solver path: no GIT_AUTH_TOKEN secret is
 		// registered, so a fork-controlled Dockerfile has nothing to mount.
-		var ghToken githubclient.InstallationToken
-		tokenless := false
-		switch {
-		case w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID:
-			tokenless = true
-			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
-				"repository", params.Repository)
-		case isForkBuild:
-			// Untrusted Dockerfile: a public base clones anonymously (no token);
-			// a private base gets a read-only token scoped to that one repo.
-			public, err := w.github.RepoIsPublic(params.Repository)
-			if err != nil {
-				// Never drop to the tokenless path on an inconclusive check.
-				logger.Warn("base repo visibility check failed; using scoped read-only token",
-					"repository", params.Repository, "error", err)
-				public = false
-			}
-			if public {
-				tokenless = true
-			} else {
-				token, err := w.github.GetScopedInstallationToken(params.InstallationID, params.Repository, map[string]string{"contents": "read"})
-				if err != nil {
-					return nil, fmt.Errorf("failed to get scoped GitHub installation token: %w", err)
-				}
-				ghToken = token
-			}
-		default:
-			// Trusted build only clones: read-only, but installation-wide so
-			// private submodules and cross-repo deps still resolve.
-			token, err := w.github.GetScopedInstallationToken(params.InstallationID, "", map[string]string{"contents": "read"})
-			if err != nil {
-				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
-			}
-			ghToken = token
+		ghToken, tokenless, err := w.resolveCloneToken(params, isForkBuild)
+		if err != nil {
+			return nil, err
 		}
 
 		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
@@ -262,21 +231,12 @@ func (w *Workflow) buildDockerImageFromGit(
 		buildStatusCh := make(chan *client.SolveStatus, 100)
 		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
 
-		// Never inject decrypted env vars into an untrusted fork build: the
-		// fork-controlled Dockerfile could mount them as a BuildKit secret and
-		// exfiltrate them. Preview env vars are still injected at container
-		// runtime, where they are actually needed.
-		buildEnvVars := envVars
-		if isForkBuild {
-			buildEnvVars = nil
-		}
-
 		// Choose solver options based on whether a GitHub token is injected.
 		var solverOptions client.SolveOpt
 		if tokenless {
-			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, buildEnvVars)
+			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
 		} else {
-			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, buildEnvVars)
+			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
 		}
 		if err != nil {
 			return nil, restate.TerminalError(fmt.Errorf("failed to build solver options: %w", err))
@@ -616,6 +576,49 @@ func (w *Workflow) processBuildStatus(
 			})
 		}
 	}
+}
+
+// resolveCloneToken decides which credential BuildKit gets for cloning the
+// source, least-privilege in three tiers:
+//
+//   - unauthenticated public deploy: no token at all (tokenless).
+//   - fork build (untrusted Dockerfile): a public base clones anonymously; a
+//     private base gets a read-only token scoped to that one repo, so an
+//     exfiltrated token reads only what the PR author already can.
+//   - trusted build: a read-only token, but installation-wide, so private
+//     submodules and cross-repo deps still resolve.
+//
+// A failed visibility probe is treated as private: it never falls back to the
+// tokenless path on an inconclusive check.
+func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (githubclient.InstallationToken, bool, error) {
+	var noToken githubclient.InstallationToken
+
+	if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
+		logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
+			"repository", params.Repository)
+		return noToken, true, nil
+	}
+
+	// A fork build needs no token when the base is public; otherwise it scopes
+	// the token to that single repo. A trusted build leaves scopeRepo empty for
+	// an installation-wide token so submodules and cross-repo deps resolve.
+	scopeRepo := ""
+	if isForkBuild {
+		public, err := w.github.RepoIsPublic(params.Repository)
+		if err != nil {
+			logger.Warn("base repo visibility check failed; using scoped read-only token",
+				"repository", params.Repository, "error", err)
+		} else if public {
+			return noToken, true, nil
+		}
+		scopeRepo = params.Repository
+	}
+
+	token, err := w.github.GetScopedInstallationToken(params.InstallationID, scopeRepo, map[string]string{"contents": "read"})
+	if err != nil {
+		return noToken, false, fmt.Errorf("failed to get GitHub installation token: %w", err)
+	}
+	return token, false, nil
 }
 
 // extractUserBuildError checks whether err matches a known user-caused build

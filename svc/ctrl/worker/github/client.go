@@ -89,6 +89,7 @@ type Client struct {
 	httpClient        *http.Client
 	signer            jwt.Signer[jwt.RegisteredClaims]
 	tokenCache        cache.Cache[int64, InstallationToken]
+	scopedTokenCache  cache.Cache[string, InstallationToken]
 	collaboratorCache cache.Cache[collaboratorKey, bool]
 }
 
@@ -105,6 +106,17 @@ func NewClient(config ClientConfig) (*Client, error) {
 		Stale:    5 * time.Minute,
 		MaxSize:  10_000,
 		Resource: "github_installation_token",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	scopedTokenCache, err := cache.New(cache.Config[string, InstallationToken]{
+		Fresh:    55 * time.Minute,
+		Stale:    5 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "github_scoped_installation_token",
 		Clock:    clock.New(),
 	})
 	if err != nil {
@@ -128,6 +140,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 		httpClient:        &http.Client{Timeout: 30 * time.Second},
 		signer:            signer,
 		tokenCache:        tokenCache,
+		scopedTokenCache:  scopedTokenCache,
 		collaboratorCache: collaboratorCache,
 	}, nil
 }
@@ -233,40 +246,68 @@ type scopedTokenRequest struct {
 // already read; use the all-repos read-only form for trusted builds to strip
 // write access while still allowing private cross-repo dependency clones.
 //
-// Unlike [Client.GetInstallationToken] this is not cached: downscoped tokens
-// vary by repo and permission set.
+// Results are cached (like [Client.GetInstallationToken]) keyed by the full
+// scope (installation, repo, permission set) so distinct scopes never collide.
 func (c *Client) GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error) {
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
 		return InstallationToken{}, err
 	}
 
-	var repositories []string
-	if repo != "" {
-		repoName := repo
-		if idx := strings.LastIndex(repo, "/"); idx >= 0 {
-			repoName = repo[idx+1:]
-		}
-		repositories = []string{repoName}
-	}
+	// %v prints map keys in sorted order, so the key is stable across calls.
+	// The permission set is part of the key: a fork's single-repo read token and
+	// a trusted all-repos read token differ in scope and must never share a slot.
+	key := fmt.Sprintf("%d:%s:%v", installationID, repo, permissions)
 
-	jwtToken, err := c.generateJWT()
+	value, _, err := c.scopedTokenCache.SWR(
+		context.Background(),
+		key,
+		func(_ context.Context) (InstallationToken, error) {
+			logger.Info(
+				"Getting scoped GitHub installation token",
+				"installation_id", installationID,
+				"repo", repo,
+			)
+
+			var repositories []string
+			if repo != "" {
+				repoName := repo
+				if idx := strings.LastIndex(repo, "/"); idx >= 0 {
+					repoName = repo[idx+1:]
+				}
+				repositories = []string{repoName}
+			}
+
+			jwtToken, err := c.generateJWT()
+			if err != nil {
+				return InstallationToken{}, err
+			}
+
+			apiURL := fmt.Sprintf(
+				"https://api.github.com/app/installations/%d/access_tokens",
+				installationID,
+			)
+
+			return request[InstallationToken](
+				c.httpClient,
+				http.MethodPost,
+				apiURL,
+				githubHeaders(jwtToken),
+				scopedTokenRequest{Repositories: repositories, Permissions: permissions},
+				http.StatusCreated,
+			)
+		},
+		func(err error) cache.Op {
+			if err != nil {
+				return cache.Noop
+			}
+			return cache.WriteValue
+		},
+	)
 	if err != nil {
 		return InstallationToken{}, err
 	}
 
-	apiURL := fmt.Sprintf(
-		"https://api.github.com/app/installations/%d/access_tokens",
-		installationID,
-	)
-
-	return request[InstallationToken](
-		c.httpClient,
-		http.MethodPost,
-		apiURL,
-		githubHeaders(jwtToken),
-		scopedTokenRequest{Repositories: repositories, Permissions: permissions},
-		http.StatusCreated,
-	)
+	return value, nil
 }
 
 // GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
