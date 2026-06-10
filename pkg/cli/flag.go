@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ var (
 	ErrInvalidIntValue   = errors.New("invalid integer value")
 	ErrInvalidInt64Value = errors.New("invalid int64 value")
 	ErrInvalidFloatValue = errors.New("invalid float value")
+	ErrInvalidEnumValue  = errors.New("invalid enum value")
 )
 
 type Flag interface {
@@ -292,6 +294,44 @@ func (f *StringSliceFlag) Value() []string { return f.value }
 // HasValue returns true if the slice is not empty or came from environment
 func (f *StringSliceFlag) HasValue() bool { return len(f.value) > 0 || f.hasEnvValue }
 
+// EnumFlag represents a string flag whose value must be one of a fixed set of
+// allowed values. The allowed values are surfaced in help text and validation
+// errors, so they only need to be declared once.
+type EnumFlag struct {
+	baseFlag
+	value       string   // Current value
+	allowed     []string // Permitted values
+	hasEnvValue bool     // Track if value came from environment
+}
+
+// Parse sets the flag value, rejecting anything outside the allowed set.
+func (f *EnumFlag) Parse(value string) error {
+	if !slices.Contains(f.allowed, value) {
+		return newValidationError(f.name,
+			fmt.Errorf("%w: %q is not one of: %s", ErrInvalidEnumValue, value, strings.Join(f.allowed, ", ")))
+	}
+
+	// Run additional validation if provided
+	if f.validate != nil {
+		if err := f.validate(value); err != nil {
+			return newValidationError(f.name, err)
+		}
+	}
+
+	f.value = value
+	f.set = true
+	return nil
+}
+
+// Value returns the current value
+func (f *EnumFlag) Value() string { return f.value }
+
+// Allowed returns the permitted values, in declaration order
+func (f *EnumFlag) Allowed() []string { return f.allowed }
+
+// HasValue returns true if the flag has any value (from user, env, or default)
+func (f *EnumFlag) HasValue() bool { return f.value != "" || f.hasEnvValue }
+
 // FlagOption represents an option for configuring flags
 type FlagOption func(flag any)
 
@@ -312,6 +352,8 @@ func Required() FlagOption {
 		case *StringSliceFlag:
 			flag.required = true
 		case *DurationFlag:
+			flag.required = true
+		case *EnumFlag:
 			flag.required = true
 		}
 	}
@@ -335,6 +377,8 @@ func EnvVar(envVar string) FlagOption {
 			flag.envVar = envVar
 		case *DurationFlag:
 			flag.envVar = envVar
+		case *EnumFlag:
+			flag.envVar = envVar
 		}
 	}
 }
@@ -356,6 +400,8 @@ func Validate(fn ValidateFunc) FlagOption {
 		case *StringSliceFlag:
 			flag.validate = fn
 		case *DurationFlag:
+			flag.validate = fn
+		case *EnumFlag:
 			flag.validate = fn
 		}
 	}
@@ -407,6 +453,16 @@ func Default(value any) FlagOption {
 				flag.value = v
 			} else {
 				err = fmt.Errorf("default value for duration flag '%s' must be time.Duration, got %T", flag.name, value)
+			}
+		case *EnumFlag:
+			v, ok := value.(string)
+			switch {
+			case !ok:
+				err = fmt.Errorf("default value for enum flag '%s' must be string, got %T", flag.name, value)
+			case !slices.Contains(flag.allowed, v):
+				err = fmt.Errorf("default value %q for enum flag '%s' must be one of: %s", v, flag.name, strings.Join(flag.allowed, ", "))
+			default:
+				flag.value = v
 			}
 		}
 
@@ -650,6 +706,48 @@ func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
 			flag.value = flag.parseCommaSeparated(envValue)
 			flag.hasEnvValue = true
 			// Don't mark as explicitly set - this is from environment
+		}
+	}
+
+	return flag
+}
+
+// Enum creates a new enum flag whose value must be one of allowed. The allowed
+// values are shown in help text and validation errors, so they are declared in
+// a single place.
+func Enum(name, usage string, allowed []string, opts ...FlagOption) *EnumFlag {
+	// nolint: exhaustruct
+	flag := &EnumFlag{
+		// nolint: exhaustruct
+		baseFlag: baseFlag{
+			name:     name,
+			usage:    usage,
+			required: false, // Default to not required
+		},
+		value:   "", // Default to empty (unset)
+		allowed: allowed,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(flag)
+	}
+
+	// Check environment variable for default value if specified
+	if flag.envVar != "" {
+		if envValue := os.Getenv(flag.envVar); envValue != "" {
+			if !slices.Contains(flag.allowed, envValue) {
+				_ = Exit(fmt.Sprintf("Environment variable error: %s=%q must be one of: %s",
+					flag.envVar, envValue, strings.Join(flag.allowed, ", ")), 1)
+			}
+			if flag.validate != nil {
+				if err := flag.validate(envValue); err != nil {
+					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s=%q: %v",
+						flag.envVar, envValue, err), 1)
+				}
+			}
+			flag.value = envValue
+			flag.hasEnvValue = true
 		}
 	}
 
