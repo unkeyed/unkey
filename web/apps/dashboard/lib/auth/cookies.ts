@@ -6,7 +6,7 @@
 
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
-import { getDefaultCookieOptions } from "./cookie-security";
+import { getAuthCookieOptions, getDefaultCookieOptions } from "./cookie-security";
 import { UNKEY_LAST_ORG_COOKIE, UNKEY_SESSION_COOKIE } from "./types";
 
 export interface CookieOptions {
@@ -110,11 +110,15 @@ export async function setSessionCookie(params: {
 }): Promise<void> {
   const { token, expiresAt } = params;
 
+  // The session cookie must always be SameSite=Lax, matching how sign-in
+  // issues it. Strict would not be sent on cross-site top-level navigations
+  // back into the app (OAuth callbacks, GitHub App install returns), which
+  // makes the user appear logged out on those requests.
   await setCookie({
     name: UNKEY_SESSION_COOKIE,
     value: token,
     options: {
-      ...getDefaultCookieOptions(),
+      ...getAuthCookieOptions(),
       maxAge: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
     },
   });

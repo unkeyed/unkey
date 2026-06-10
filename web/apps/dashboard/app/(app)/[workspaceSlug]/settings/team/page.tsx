@@ -1,6 +1,6 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { WorkspaceNavbar } from "../workspace-navbar";
+import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { TeamPageClient } from "./client";
 
 export const revalidate = 0;
@@ -14,16 +14,22 @@ export default async function SettingTeamPage() {
 
   const team = workspace?.quotas?.team ?? false;
 
-  return workspace ? (
-    <>
-      <WorkspaceNavbar activePage={{ href: "team", text: "Team" }} />
-      <div className="flex flex-col w-full max-w-6xl mx-auto px-6 py-8">
-        <TeamPageClient team={team} />
-      </div>
-    </>
-  ) : (
-    <div>
-      <div>Workspace not found</div>
-    </div>
+  return (
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Team</PageHeaderTitle>
+        </PageHeaderContent>
+      </PageHeader>
+      <PageBody>
+        {workspace ? (
+          <div className="w-full flex flex-col pt-4">
+            <TeamPageClient team={team} />
+          </div>
+        ) : (
+          <div>Workspace not found</div>
+        )}
+      </PageBody>
+    </PageContainer>
   );
 }
