@@ -2,7 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { DeploymentDomainsCard } from "../../../components/deployment-domains-card";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
@@ -24,7 +24,6 @@ export default function DeploymentOverview() {
   const { refetchDomains } = useProjectData();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const params = useParams<{ projectId: string }>();
 
   const ready = deployment.status === "ready";
   const skipped = deployment.status === "skipped";
@@ -112,7 +111,11 @@ export default function DeploymentOverview() {
       {view}
       <DeploymentApproval
         isOpen={awaitingApproval}
-        onClose={() => router.push(`/${workspace.slug}/projects/${params.projectId}/deployments`)}
+        onClose={() =>
+          router.push(
+            `/${workspace.slug}/projects/${deployment.projectId}/apps/${deployment.appId}/deployments`,
+          )
+        }
         deployment={deployment}
       />
     </ProjectContentWrapper>

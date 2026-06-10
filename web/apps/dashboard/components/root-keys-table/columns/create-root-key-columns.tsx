@@ -193,8 +193,8 @@ export const createRootKeyColumns = ({
     header: "",
     meta: {
       width: {
-        min: 140,
-        max: 400,
+        min: 60,
+        max: 100,
       },
     },
     cell: ({ row }) => {
