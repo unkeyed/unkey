@@ -56,6 +56,13 @@ export const useWorkspaceStep = (): WorkspaceStep => {
     },
   });
 
+  useEffect(() => {
+    // Autofocus on pointer devices only; on touch this would pop the keyboard on load.
+    if (window.matchMedia("(pointer: fine)").matches) {
+      form.setFocus("workspaceName");
+    }
+  }, [form]);
+
   const switchOrgMutation = trpc.user.switchOrg.useMutation({
     onSuccess: async (sessionData) => {
       if (!sessionData.expiresAt) {
