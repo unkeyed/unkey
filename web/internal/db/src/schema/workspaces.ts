@@ -31,7 +31,10 @@ export const workspaces = mysqlTable("workspaces", {
 
   // stripe
   stripeCustomerId: varchar("stripe_customer_id", { length: 256 }),
-  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
+  // Unique so two workspaces can never claim the same Stripe subscription, and a
+  // race in createSubscription cannot record a duplicate. MySQL unique indexes
+  // permit multiple NULLs, so free workspaces are unaffected.
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }).unique(),
 
   /**
    * feature flags
