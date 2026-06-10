@@ -1,7 +1,7 @@
 "use client";
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { MergedPolicy } from "./merge";
 import { SentinelPolicyRow } from "./row";
 
@@ -26,7 +26,7 @@ export function SentinelPoliciesList({
   onDelete,
   onEdit,
 }: SentinelPoliciesListProps) {
-  const [dragSrcIndex, setDragSrcIndex] = useState<number | null>(null);
+  const dragSrcIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const handleToggleEnvA = useCallback((id: string) => onToggleEnv(id, "envA"), [onToggleEnv]);
@@ -35,7 +35,7 @@ export function SentinelPoliciesList({
   const handleAddToEnvB = useCallback((id: string) => onAddToEnv(id, "envB"), [onAddToEnv]);
 
   const handleDragStart = useCallback((index: number) => {
-    setDragSrcIndex(index);
+    dragSrcIndexRef.current = index;
   }, []);
 
   const handleDragOver = useCallback((index: number) => {
@@ -44,8 +44,9 @@ export function SentinelPoliciesList({
 
   const handleDrop = useCallback(
     (targetIndex: number) => {
+      const dragSrcIndex = dragSrcIndexRef.current;
       if (dragSrcIndex === null || dragSrcIndex === targetIndex) {
-        setDragSrcIndex(null);
+        dragSrcIndexRef.current = null;
         setDragOverIndex(null);
         return;
       }
@@ -66,14 +67,14 @@ export function SentinelPoliciesList({
       if (envs.length > 0) {
         onReorder(envs, orderedIds);
       }
-      setDragSrcIndex(null);
+      dragSrcIndexRef.current = null;
       setDragOverIndex(null);
     },
-    [dragSrcIndex, merged, onReorder],
+    [merged, onReorder],
   );
 
   const handleDragEnd = useCallback(() => {
-    setDragSrcIndex(null);
+    dragSrcIndexRef.current = null;
     setDragOverIndex(null);
   }, []);
 

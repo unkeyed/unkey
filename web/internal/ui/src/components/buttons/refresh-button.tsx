@@ -2,7 +2,7 @@
 import { Refresh3 } from "@unkey/icons";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useKeyboardShortcut } from "../../hooks/use-keyboard-shortcut";
 import { InfoTooltip } from "../info-tooltip";
 import { Button } from "./button";
@@ -19,7 +19,7 @@ const REFRESH_TIMEOUT_MS = 1000;
 
 const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [refreshTimeout, setRefreshTimeout] = useState<NodeJS.Timeout | null>(null);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleRefresh = () => {
     if (isLoading) {
@@ -30,18 +30,16 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
     toggleLive?.(false);
     onRefresh();
 
-    if (refreshTimeout) {
-      clearTimeout(refreshTimeout);
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
     }
 
-    const timeout = setTimeout(() => {
+    refreshTimeoutRef.current = setTimeout(() => {
       setIsLoading(false);
       if (isLiveBefore) {
         toggleLive?.(true);
       }
     }, REFRESH_TIMEOUT_MS);
-
-    setRefreshTimeout(timeout);
   };
 
   useKeyboardShortcut("option+shift+w", handleRefresh, {

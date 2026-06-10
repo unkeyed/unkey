@@ -2,7 +2,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { Github, Layers3 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
-import { useState } from "react";
+import { useRef } from "react";
 import { OnboardingLinks } from "../onboarding-links";
 
 type ConnectGithubStepProps = {
@@ -20,18 +20,18 @@ export const ConnectGithubStep = ({
   // We can't compute it client-side without a server round-trip, so we mint
   // it lazily when the user clicks Import.
   const prepare = trpc.github.prepareInstallation.useMutation();
-  const [isPreparing, setIsPreparing] = useState(false);
+  const isPreparingRef = useRef(false);
   const handleClick = async () => {
-    if (isPreparing) {
+    if (isPreparingRef.current) {
       return;
     }
-    setIsPreparing(true);
+    isPreparingRef.current = true;
     try {
       const { state } = await prepare.mutateAsync({ projectId, appId });
       onBeforeNavigate?.();
       window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
     } catch (err) {
-      setIsPreparing(false);
+      isPreparingRef.current = false;
       toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
     }
   };

@@ -63,7 +63,7 @@ export const FiltersPopover = ({
 }: PropsWithChildren<FiltersPopoverProps>) => {
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [lastFocusedIndex, setLastFocusedIndex] = useState<number | null>(null);
+  const lastFocusedIndexRef = useRef<number | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Handle local state if external state isn't provided
@@ -86,15 +86,15 @@ export const FiltersPopover = ({
     if (!isOpen) {
       setActiveFilter(null);
       setFocusedIndex(null);
-      setLastFocusedIndex(null);
+      lastFocusedIndexRef.current = null;
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (!activeFilter && lastFocusedIndex !== null && isOpen) {
-      setFocusedIndex(lastFocusedIndex);
+    if (!activeFilter && lastFocusedIndexRef.current !== null && isOpen) {
+      setFocusedIndex(lastFocusedIndexRef.current);
     }
-  }, [activeFilter, lastFocusedIndex, isOpen]);
+  }, [activeFilter, isOpen]);
 
   useKeyboardShortcut(
     "f",
@@ -118,7 +118,7 @@ export const FiltersPopover = ({
         const index = items.findIndex((i) => i.id === id);
         if (index !== -1) {
           setFocusedIndex(index);
-          setLastFocusedIndex(index);
+          lastFocusedIndexRef.current = index;
         }
       }, 0);
     },
@@ -142,7 +142,7 @@ export const FiltersPopover = ({
         e.preventDefault();
         const closingIndex = items.findIndex((i) => i.id === activeFilter);
         if (closingIndex !== -1) {
-          setLastFocusedIndex(closingIndex); // Remember index to return focus to
+          lastFocusedIndexRef.current = closingIndex; // Remember index to return focus to
         }
         setActiveFilter(null); // Deactivate child popover
         // useEffect [activeFilter] will handle setting focusedIndex based on lastFocusedIndex
@@ -157,7 +157,7 @@ export const FiltersPopover = ({
         e.preventDefault();
         const newIndex = focusedIndex === null ? 0 : (focusedIndex + 1) % items.length;
         setFocusedIndex(newIndex);
-        setLastFocusedIndex(newIndex); // Keep track for potential activation
+        lastFocusedIndexRef.current = newIndex; // Keep track for potential activation
         break;
       }
       case "ArrowUp": {
@@ -167,7 +167,7 @@ export const FiltersPopover = ({
             ? items.length - 1
             : (focusedIndex - 1 + items.length) % items.length;
         setFocusedIndex(newIndex);
-        setLastFocusedIndex(newIndex); // Keep track
+        lastFocusedIndexRef.current = newIndex; // Keep track
         break;
       }
       case "Enter":
@@ -176,7 +176,7 @@ export const FiltersPopover = ({
         if (focusedIndex !== null) {
           const selectedFilter = items[focusedIndex];
           if (selectedFilter) {
-            setLastFocusedIndex(focusedIndex); // Store index before activating
+            lastFocusedIndexRef.current = focusedIndex; // Store index before activating
             setActiveFilter(selectedFilter.id); // Activate the child popover
           }
         }

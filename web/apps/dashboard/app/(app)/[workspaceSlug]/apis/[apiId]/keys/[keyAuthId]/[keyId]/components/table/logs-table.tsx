@@ -10,7 +10,7 @@ import { useQueryTime } from "@/providers/query-time-provider";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { DataTable, PaginationFooter } from "@unkey/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 
 type Props = {
@@ -39,7 +39,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
     pollIntervalMs: 2000,
   });
 
-  const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
+  const hoveredLogIdRef = useRef<string | null>(null);
   const { queryTime: timestamp } = useQueryTime();
   const utils = trpc.useUtils();
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,8 +56,8 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
 
   const handleRowHover = useCallback(
     (log: KeyDetailsLog) => {
-      if (log.request_id !== hoveredLogId) {
-        setHoveredLogId(log.request_id);
+      if (log.request_id !== hoveredLogIdRef.current) {
+        hoveredLogIdRef.current = log.request_id;
 
         // Debounce the prefetch so rapid mouse movement across rows
         // doesn't fire N separate queryLogs API calls.
@@ -89,11 +89,11 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         }, 150);
       }
     },
-    [hoveredLogId, utils.logs.queryLogs, timestamp],
+    [utils.logs.queryLogs, timestamp],
   );
 
   const handleRowMouseLeave = useCallback(() => {
-    setHoveredLogId(null);
+    hoveredLogIdRef.current = null;
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;

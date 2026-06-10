@@ -21,7 +21,7 @@ export const EditExternalId = ({
   const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(
     keyDetails.identity_id || null,
   );
-  const [selectedExternalId, setSelectedExternalId] = useState<string | null>(null);
+  const selectedExternalIdRef = useRef<string | null>(null);
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -36,7 +36,7 @@ export const EditExternalId = ({
       ownerType: "v2",
       identity: {
         id: selectedIdentityId,
-        externalId: selectedExternalId,
+        externalId: selectedExternalIdRef.current,
       },
     });
   };
@@ -125,7 +125,7 @@ export const EditExternalId = ({
           value={selectedIdentityId}
           onChange={(identityId: string | null, externalId: string | null) => {
             setSelectedIdentityId(identityId);
-            setSelectedExternalId(externalId);
+            selectedExternalIdRef.current = externalId;
           }}
           currentIdentity={
             keyDetails.identity_id
