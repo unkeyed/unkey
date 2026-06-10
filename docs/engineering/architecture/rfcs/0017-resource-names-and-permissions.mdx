@@ -1,0 +1,237 @@
+---
+title: 0017 Resource names and permissions
+description: Stable resource names for authorization and audit logging
+date: 2026-06-05
+authors:
+  - Andreas Thomas
+---
+
+## Summary
+
+Unkey needs one stable way to name public resources. The same identifier needs
+to work in audit logs, RBAC, traces, background jobs, support tooling, and any
+future principal model. This RFC proposes Unkey Resource Names, or URNs, as a
+workspace-scoped resource identity, and resource permissions as a URN plus an
+action.
+
+The proposed `v1` resource name format is
+`unkey:v1:{workspace_id}:{resource_path}`. A deployment resource, for example,
+is named as
+`unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc`.
+When the same resource is used for authorization, the action is appended with a
+`#` separator:
+`unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc#delete_deployment`.
+
+The normative contracts live in
+[Unkey Resource Names](/architecture/resources/unkey-resource-names) and
+[Resource permissions](/architecture/authorization/resource-permissions). This
+RFC explains why those contracts have this shape.
+
+## Motivation
+
+Unkey already has public IDs for individual resources and tuple-style
+permissions for some authorization checks. Those two concepts are useful, but
+they don't solve the same problem. A public ID like `d_abc` identifies one row
+but does not say which workspace owns it or where it sits in the product
+hierarchy. A tuple permission like `api.{api_id}.read_key` expresses
+authorization intent, but it is not a reusable resource identity for audit logs,
+traces, background jobs, or support tools.
+
+The missing piece is a stable resource name that can move through every system
+without losing context. Audit logs need a subject that remains meaningful after
+export. RBAC needs scoped permissions that can target one resource or a branch
+of the resource tree. Support tools need enough information to identify the
+owning workspace without reconstructing request context. Product surfaces need
+one convention across keyspaces, deploy, billing, portal, identities, rate
+limits, and RBAC.
+
+The design intentionally treats resource identity and authorization as adjacent
+but separate concepts. A URN names a resource. A resource permission attaches an
+action to that resource. This lets audit logs and support tooling use concrete
+URNs without inheriting authorization syntax.
+
+## Proposal
+
+A concrete URN has four colon-separated fields:
+
+```plaintext
+unkey:v1:{workspace_id}:{resource_path}
+```
+
+The `unkey` prefix identifies this as an Unkey Resource Name. The `v1` field
+versions the grammar. The workspace ID is always present, even when the caller
+already has workspace context, because URNs need to be useful outside the
+request that created them. The final field is the canonical resource path inside
+the workspace.
+
+Resource paths are slash-separated, segment-aware, and drawn from a public
+catalog. Concrete URNs always use the full canonical path, such as
+`projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc`, rather
+than a shortest unique suffix like `**/deployments/d_abc`. Full paths make each
+concrete URN match a predefined contract and make audit logs self-describing.
+The cost is length, but the parser stays simple and the catalog stays explicit.
+
+Paths use stable public IDs, not names or slugs. A keyspace path is
+`keyspaces/ks_123`, not `keyspaces/production`. Names are useful to humans, but
+they can change, collide, and contain characters that complicate parsing. When
+logs need readability, they can store labels as metadata next to the URN while
+keeping the URN stable.
+
+Resource permissions append an action to the URN with `#`:
+
+```plaintext
+unkey:v1:{workspace_id}:{resource_path}#{action}
+```
+
+The separator is deliberately outside the path grammar. It gives policy storage
+and copy-paste debugging a single string form while preserving a clear boundary
+between resource identity and operation. Runtime authorization code can still
+parse that string into `{ resource, action }` before evaluation.
+
+Actions are explicit operation names such as `read_keyspace`, `create_key`, or
+`delete_deployment`. `v1` does not include action wildcards. Wildcards look
+convenient, but they hide privilege expansion: every newly shipped action would
+silently become part of an existing wildcard grant. Requiring explicit actions
+makes new privileges intentional.
+
+Stored permissions can use resource patterns. A single `*` matches exactly one
+path segment, and a trailing `/**` grants access to descendants below a path.
+The recursive form is only valid at the end of a permission resource path and
+does not include the node before it. For example,
+`unkey:v1:ws_123:projects/proj_123/**#delete_deployment` grants deployment
+deletion below `proj_123`, but it does not grant `delete_deployment` on
+`projects/proj_123` itself. Callers that need both parent and descendant access
+receive two permissions.
+
+## Users and actors
+
+Workspace users are represented by membership URNs rather than user URNs. A
+global user can belong to multiple workspaces, and the authorization decision is
+made through that user's workspace relationship. The resource that carries role
+assignment and audit context is therefore
+`unkey:v1:ws_123:memberships/mbr_123`.
+
+Audit logs can still keep the global user ID. The actor can record
+`id: "user_123"` and `urn: "unkey:v1:ws_123:memberships/mbr_123"` at the same
+time. The user ID answers who the person is. The membership URN answers which
+workspace-scoped principal was authorized.
+
+This RFC does not define a global user URN. If Unkey later adds product areas
+outside a workspace, those areas can introduce a separate global naming shape in
+a future version.
+
+## Audit logs and errors
+
+Audit logs store concrete URNs. When authorization was evaluated, they can also
+store the permission that matched. A deployment deletion can therefore record
+the concrete deployment URN as the event resource and
+`unkey:v1:ws_123:projects/proj_123/**#delete_deployment` as the permission that
+authorized it.
+
+Relationship changes can include multiple concrete resources. Adding a role to
+a key can log the key as the primary resource and the role as a target resource.
+The join table that records the relationship does not need its own public URN
+unless the product later promotes that relationship into a user-addressable
+resource.
+
+URNs do not replace Unkey's existing error codes. Error codes remain the stable
+programmatic identifiers for error classes. A URN can appear inside an error
+payload when a specific resource caused the error, for example when a deployment
+was not found, but the URN identifies the affected resource rather than the
+error category.
+
+## Tradeoffs
+
+The biggest tradeoff is verbosity. A full deployment URN is long, and a
+permission over that deployment is longer. The alternative is allowing partial
+paths such as `unkey:v1:ws_123:**/deployments/d_abc`, but that pushes hierarchy
+resolution into the parser and makes the path contract less predictable. The
+proposal chooses long concrete names because they are easier to validate,
+easier to audit, and easier to reason about in policy matching.
+
+The design also chooses one Unkey namespace instead of service-specific
+namespaces. A service-scoped shape like
+`unkey:v1:deploy:ws_123:projects/proj_123` would make service ownership visible,
+but it would couple resource identity to service boundaries. Service boundaries
+change more often than product resource models. Keeping service names out of
+URNs makes the resource catalog the stable contract.
+
+Using stable IDs instead of human-readable names makes logs less friendly at a
+glance, but it keeps them immutable. Renaming a project, app, keyspace, or
+portal must not change the identifier used in old audit logs or stored
+permissions. Human-readable labels belong in metadata where they can be updated
+or snapshotted without changing the resource identity.
+
+The `#` separator is another explicit tradeoff. Actions could be represented as
+another path segment, but that would make operations look like resources and
+would complicate the catalog. Keeping the action after `#` mirrors the mental
+model: the part before `#` is what the principal is acting on, and the part
+after `#` is what the principal wants to do.
+
+Finally, descendant grants are intentionally narrower than some wildcard
+systems. A trailing `/**` applies to descendants only, not to the parent. This
+avoids broad grants that accidentally cover both a container and everything
+inside it. It does require an extra permission when both scopes are desired.
+
+## Alternatives considered
+
+Keeping tuple permissions only would be the smallest authorization change, but
+it would leave audit logs, traces, support tooling, and background jobs without
+a shared resource identity. Tuple permissions also lack workspace context unless
+that context is carried out-of-band.
+
+Adopting AWS ARN syntax would provide a familiar model, but ARN fields do not
+map cleanly to Unkey. Partition, region, account ID, and service are not the
+right stable axes for this resource model. Unkey's primary ownership boundary is
+the workspace, and service ownership is not stable enough to belong in every
+identifier.
+
+Adopting IETF URN syntax, such as `urn:unkey:...`, would align with a formal
+standard but would also carry expectations around namespace registration and
+general URN semantics. This system only needs an internal product resource
+name. `unkey:v1` is shorter, versioned, and avoids implying standards
+compliance that the product does not need.
+
+Keeping actions as a separate stored tuple remains viable for runtime
+evaluation, but it is less convenient for policy authoring, logs, and
+copy-paste debugging. The single-string permission form is a storage and
+interface convenience, not a requirement that evaluators keep it as a string
+internally.
+
+## Migration
+
+Existing tuple permissions can map into resource permissions by resolving the
+owning workspace and the target resource path. The old permission string does
+not contain a workspace ID, so migration needs to derive the workspace from the
+owning key, role, user, or session.
+
+Legacy API permissions map through the keyspace that replaces the API. For
+example, `api.{api_id}.read_key` becomes
+`unkey:v1:{workspace_id}:keyspaces/{keyspace_id}/keys/*#read_key`, where the
+migration has resolved the legacy API to its keyspace. Creation and read
+permissions follow the same pattern: `api.*.create_api` becomes a keyspace
+creation permission, and `api.{api_id}.read_api` becomes a keyspace read
+permission.
+
+The migration can be incremental because URNs are derived from existing public
+IDs. No resource needs a second database identity to participate in the
+resource-name system.
+
+## Drawbacks and unresolved questions
+
+The proposal makes product hierarchy part of a public contract. That is useful
+for auditability and matching, but it means resource moves across parents need
+an explicit design decision. If a deployment moves to a different environment,
+the old URN and the new URN are different names. The implementation needs a
+clear answer for whether those moves are forbidden, modeled as delete-create, or
+represented through aliases in limited contexts.
+
+Every new public resource also needs a catalog entry before it can have a URN.
+That discipline is intentional, but it adds process. The first implementation
+pass still needs to decide the complete public catalog and the canonical action
+names for each resource.
+
+The remaining open question is how far URNs surface in customer-facing APIs.
+They are clearly useful in audit logs and authorization. Some API responses may
+benefit from including them directly, while others may keep existing IDs and
+derive URNs only in backend systems.
