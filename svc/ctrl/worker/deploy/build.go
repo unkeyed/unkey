@@ -631,7 +631,9 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 		// Same owner as the base means the fork lives in the same GitHub App
 		// installation (installations cover one account), so a token can be
 		// scoped to it. A different owner is in another installation we cannot
-		// mint a token for at all.
+		// mint a token for at all. Only meaningful for the PrNumber == 0
+		// fork-ref-by-SHA case: a live PR clones the base (scopeRepo ==
+		// params.Repository), so this is always false there.
 		differentOwner := repoOwner(scopeRepo) != repoOwner(params.Repository)
 
 		public, err := w.github.IsRepoPublic(scopeRepo)
