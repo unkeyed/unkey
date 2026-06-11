@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PlanChangeModal } from "./plan-change-modal";
 import { ProductCard } from "./product-card";
+import { SpendBudget } from "./spend-budget";
 import { UsageMeter } from "./usage-meter";
 
 const ADMIN_ONLY_TOOLTIP = "Admin access required to manage billing";
@@ -218,6 +219,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ))}
               </div>
             ) : null}
+            <SpendBudget isAdmin={isAdmin} usageCents={usageAmount} />
           </div>
         ) : null}
       </ProductCard>

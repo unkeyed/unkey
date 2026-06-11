@@ -51,6 +51,19 @@ export const workspaces = mysqlTable("workspaces", {
   deployPlanOverride: varchar("deploy_plan_override", { length: 64 }),
 
   /**
+   * Monthly Compute (Deploy) spend budget in USD cents, set by workspace
+   * admins in the dashboard. NULL = no budget. Email alerts fire at fixed
+   * percentages of the budget (50/75/100); deploySpendBudgetStop additionally
+   * stops workloads when month-to-date usage spend reaches it. v1 stores the
+   * preferences only: nothing alerts or stops yet.
+   */
+  deploySpendBudgetCents: bigint("deploy_spend_budget_cents", {
+    mode: "number",
+    unsigned: true,
+  }),
+  deploySpendBudgetStop: boolean("deploy_spend_budget_stop").notNull().default(false),
+
+  /**
    * feature flags
    *
    * betaFeatures may be toggled by the user for early access
