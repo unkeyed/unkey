@@ -11,6 +11,7 @@ import { LogSection } from "@/components/logs/details/log-details/components/log
 import { collection } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
+import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
@@ -282,6 +283,8 @@ const formatDeploymentInfo = (
   }
 
   const shortSha = deployment.gitCommitSha?.substring(0, 7);
+  const branchUrl = githubUrl.branch(sourceRepo, deployment.gitBranch);
+  const commitUrl = githubUrl.commit(sourceRepo, deployment.gitCommitSha);
   const truncatedMessage =
     deployment.gitCommitMessage && deployment.gitCommitMessage.length > 50
       ? `${deployment.gitCommitMessage.substring(0, 50)}...`
@@ -308,16 +311,12 @@ const formatDeploymentInfo = (
           <span className="text-gray-11">Branch:</span>
           <div className="flex items-center gap-1.5">
             <CodeBranch iconSize="sm-regular" className="text-grayA-10 shrink-0" />
-            {sourceRepo ? (
-              <DottedLink
-                href={`https://github.com/${sourceRepo}/tree/${deployment.gitBranch}`}
-                copyValue={deployment.gitBranch}
-                external
-              >
-                <span className="font-mono truncate max-w-[200px]">{deployment.gitBranch}</span>
+            {branchUrl ? (
+              <DottedLink href={branchUrl} copyValue={deployment.gitBranch} external>
+                <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
               </DottedLink>
             ) : (
-              <span className="font-mono truncate max-w-[200px]">{deployment.gitBranch}</span>
+              <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
             )}
           </div>
         </div>
@@ -328,12 +327,8 @@ const formatDeploymentInfo = (
           <span className="text-gray-11">Commit:</span>
           <div className="flex items-center gap-1.5">
             <CodeCommit iconSize="sm-regular" className="text-grayA-10 shrink-0" />
-            {sourceRepo ? (
-              <DottedLink
-                href={`https://github.com/${sourceRepo}/commit/${deployment.gitCommitSha}`}
-                copyValue={deployment.gitCommitSha}
-                external
-              >
+            {commitUrl ? (
+              <DottedLink href={commitUrl} copyValue={deployment.gitCommitSha} external>
                 <span className="font-mono">{shortSha}</span>
               </DottedLink>
             ) : (

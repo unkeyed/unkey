@@ -14,6 +14,9 @@ const schema = z.object({
   isRolledBack: z.boolean(),
   // Flattened deployment fields for UI
   commitTitle: z.string().nullable(),
+  commitSha: z.string().nullable(),
+  forkRepositoryFullName: z.string().nullable(),
+  prNumber: z.number().int().nullable(),
   branch: z.string(),
   author: z.string().nullable(),
   authorAvatar: z.string().nullable(),

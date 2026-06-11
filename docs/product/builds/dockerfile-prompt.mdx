@@ -1,13 +1,13 @@
 ---
 title: Generate a Dockerfile with AI
-description: "Use this prompt with Claude Code, Cursor, or Windsurf to generate a Dockerfile and .dockerignore tuned for Unkey Deploy's runtime."
+description: "Use this prompt with Claude Code, Cursor, or Windsurf to generate a Dockerfile and .dockerignore tuned for Unkey's runtime."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-If you're not comfortable writing a Dockerfile from scratch, hand the prompt below to a coding agent. It tells the agent to first inspect your repository and then produce a Dockerfile plus a `.dockerignore` that respect Unkey Deploy's runtime constraints (reading `PORT`, handling `SIGTERM`, build secrets via mount).
+If you're not comfortable writing a Dockerfile from scratch, hand the prompt below to a coding agent. It tells the agent to first inspect your repository and then produce a Dockerfile plus a `.dockerignore` that respect Unkey's runtime constraints (reading `PORT`, handling `SIGTERM`, build secrets via mount).
 
 ## How to use it
 
@@ -19,7 +19,7 @@ Once the files land in your repo, push to the branch connected to your Unkey pro
 
 ````
 You're helping create a Dockerfile for an application that will be deployed on
-Unkey Deploy (https://unkey.com/docs/build-and-deploy/overview). Before writing
+Unkey (https://unkey.com/docs/build-and-deploy/overview). Before writing
 anything, inspect the repository so the Dockerfile matches how the app is
 actually built and run.
 
@@ -56,7 +56,7 @@ Identify:
   figure out which internal packages it depends on.
 - Any existing Dockerfile or container config to preserve intent from.
 
-## Step 2: Respect Unkey Deploy's runtime constraints
+## Step 2: Respect Unkey's runtime constraints
 
 These are not general Docker guidance. The image will not run correctly without
 them.
