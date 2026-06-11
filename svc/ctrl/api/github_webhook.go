@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,92 +13,45 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/webhook"
+	githubverifier "github.com/unkeyed/unkey/pkg/webhook/verifiers/github"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
-const maxWebhookBodySize = 2 * 1024 * 1024 // 2 MB
-
-// GitHubWebhook handles incoming GitHub App webhook events by validating
-// signatures and dispatching to the GitHubWebhookService in Restate.
-// The HTTP handler performs no DB access — all processing happens durably
-// inside the Restate virtual object.
-type GitHubWebhook struct {
-	restate       *restateingress.Client
-	webhookSecret string
+// githubWebhook holds the dependencies of the GitHub event handlers. The
+// transport concerns (signature verification, routing, metrics, retry
+// semantics) live in pkg/webhook; this type only contains business logic.
+// The handlers perform no DB access — all processing happens durably inside
+// the Restate virtual object they dispatch to.
+type githubWebhook struct {
+	restate *restateingress.Client
 }
 
-// ServeHTTP validates the webhook signature and dispatches to event-specific
-// handlers. Currently supports push events for triggering deployments.
-// Unknown event types are acknowledged with 200 OK but not processed.
-func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logger.Info("GitHub webhook request received",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"remote_addr", r.RemoteAddr,
-	)
+// NewGitHubWebhook builds the /webhooks/github handler.
+func NewGitHubWebhook(restateClient *restateingress.Client, webhookSecret string) http.Handler {
+	s := &githubWebhook{restate: restateClient}
+	return webhook.New("github", githubverifier.New(webhookSecret)).
+		On(s.handlePush, "push").
+		On(s.handlePullRequest, "pull_request").
+		// Branch lifecycle events carry no code to deploy; the first push of a
+		// new branch arrives as its own push event (created: true), which is
+		// what triggers preview deployments.
+		On(ignoreEvent, "create", "delete", "installation").
+		// GitHub Apps receive every subscribed event type; anything without a
+		// handler is deliberately not deployment-relevant.
+		Default(ignoreEvent)
+}
 
-	if r.Method != http.MethodPost {
-		logger.Warn("GitHub webhook rejected: method not allowed", "method", r.Method)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	event := r.Header.Get("X-GitHub-Event")
-	if event == "" {
-		http.Error(w, "missing X-GitHub-Event header", http.StatusBadRequest)
-		return
-	}
-
-	signature := r.Header.Get("X-Hub-Signature-256")
-	if signature == "" {
-		logger.Warn("GitHub webhook rejected: missing signature header")
-		http.Error(w, "missing X-Hub-Signature-256 header", http.StatusUnauthorized)
-		return
-	}
-
-	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxWebhookBodySize))
-	if err != nil {
-		logger.Warn("GitHub webhook rejected: failed to read body", "error", err)
-		http.Error(w, "failed to read body", http.StatusBadRequest)
-		return
-	}
-
-	if !githubclient.VerifyWebhookSignature(body, signature, s.webhookSecret) {
-		logger.Warn("GitHub webhook rejected: invalid signature")
-		http.Error(w, "invalid signature", http.StatusUnauthorized)
-		return
-	}
-
-	logger.Info("GitHub webhook signature verified", "event", event)
-
-	deliveryID := r.Header.Get("X-GitHub-Delivery")
-
-	switch event {
-	case "push":
-		s.handlePush(r.Context(), w, body, deliveryID)
-	case "pull_request":
-		s.handlePullRequest(r.Context(), w, body, deliveryID)
-	case "create", "delete":
-		logger.Info("Branch lifecycle event ignored", "event", event)
-		w.WriteHeader(http.StatusOK)
-	case "installation":
-		logger.Info("Installation event received")
-		w.WriteHeader(http.StatusOK)
-	default:
-		logger.Info("Unhandled event type", "event", event)
-		w.WriteHeader(http.StatusOK)
-	}
+func ignoreEvent(_ context.Context, event webhook.Event) error {
+	return fmt.Errorf("%w: no deployment action for %s events", webhook.ErrIgnore, event.Type)
 }
 
 // handlePush parses the push payload, extracts commit metadata, and sends
-// a HandlePush request to the GitHubWebhookService in Restate. No DB access
-// happens here — the Restate service handles all processing durably.
-func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, body []byte, deliveryID string) {
+// a HandlePush request to the GitHubWebhookService in Restate.
+func (s *githubWebhook) handlePush(ctx context.Context, event webhook.Event) error {
 	var payload pushPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
-		logger.Error("failed to parse push payload", "error", err)
-		http.Error(w, "failed to parse push payload", http.StatusBadRequest)
-		return
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("parse push payload: %w", err)
 	}
 
 	// Deleted branches have no code to build — `after` is all zeros and there
@@ -107,18 +59,12 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 	// every first push of a new branch (e.g. `git push -u origin feature`),
 	// which is the main way preview deployments get triggered.
 	if payload.Deleted {
-		logger.Info("Ignoring branch delete push",
-			"ref", payload.Ref,
-		)
-		w.WriteHeader(http.StatusOK)
-		return
+		return fmt.Errorf("%w: branch delete push for %s", webhook.ErrIgnore, payload.Ref)
 	}
 
 	branch := extractBranchFromRef(payload.Ref)
 	if branch == "" {
-		logger.Info("Ignoring non-branch push", "ref", payload.Ref)
-		w.WriteHeader(http.StatusOK)
-		return
+		return fmt.Errorf("%w: non-branch push for %s", webhook.ErrIgnore, payload.Ref)
 	}
 
 	// Extract commit metadata from the payload
@@ -129,6 +75,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 	objectKey := fmt.Sprintf("%d:%d", payload.Installation.ID, payload.Repository.ID)
 	client := hydrav1.NewGitHubWebhookServiceIngressClient(s.restate, objectKey)
 
+	deliveryID := event.ID
 	var sendOpts []restate.IngressSendOption
 	if deliveryID != "" {
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
@@ -152,13 +99,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		SenderLogin:           payload.Sender.Login,
 	}, sendOpts...)
 	if err != nil {
-		logger.Error("failed to send HandlePush to Restate",
-			"error", err,
-			"delivery_id", deliveryID,
-			"repository", payload.Repository.FullName,
-		)
-		http.Error(w, "failed to enqueue webhook processing", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("enqueue push for %s: %w", payload.Repository.FullName, err)
 	}
 
 	logger.Info("GitHub push webhook enqueued to Restate",
@@ -167,34 +108,26 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		"branch", branch,
 		"commit_sha", payload.After,
 	)
-
-	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
 // handlePullRequest handles pull_request events from forks. Same-repo PRs are
 // skipped because the push event already handles those. Fork PRs are dispatched
 // through the same HandlePush RPC with IsForkPr=true.
-func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWriter, body []byte, deliveryID string) {
+func (s *githubWebhook) handlePullRequest(ctx context.Context, event webhook.Event) error {
 	var payload pullRequestPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
-		logger.Error("failed to parse pull_request payload", "error", err)
-		http.Error(w, "failed to parse pull_request payload", http.StatusBadRequest)
-		return
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("parse pull_request payload: %w", err)
 	}
 
 	// Only care about new commits (opened or new pushes to the PR)
 	if payload.Action != "opened" && payload.Action != "synchronize" {
-		w.WriteHeader(http.StatusOK)
-		return
+		return fmt.Errorf("%w: pull_request action %s adds no commits", webhook.ErrIgnore, payload.Action)
 	}
 
 	// Same-repo PRs are already handled by the push event — skip to avoid double-deploy
 	if payload.PullRequest.Head.Repo.ID == payload.PullRequest.Base.Repo.ID {
-		logger.Info("Ignoring same-repo pull request, push event handles this",
-			"action", payload.Action,
-		)
-		w.WriteHeader(http.StatusOK)
-		return
+		return fmt.Errorf("%w: same-repo pull request, push event handles this", webhook.ErrIgnore)
 	}
 
 	pr := payload.PullRequest
@@ -203,6 +136,7 @@ func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWr
 	objectKey := fmt.Sprintf("%d:%d", payload.Installation.ID, baseRepo.ID)
 	client := hydrav1.NewGitHubWebhookServiceIngressClient(s.restate, objectKey)
 
+	deliveryID := event.ID
 	var sendOpts []restate.IngressSendOption
 	if deliveryID != "" {
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
@@ -231,13 +165,7 @@ func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWr
 		ForkRepositoryFullName: pr.Head.Repo.FullName,
 	}, sendOpts...)
 	if err != nil {
-		logger.Error("failed to send HandlePush for fork PR to Restate",
-			"error", err,
-			"delivery_id", deliveryID,
-			"repository", baseRepo.FullName,
-		)
-		http.Error(w, "failed to enqueue webhook processing", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("enqueue fork PR for %s: %w", baseRepo.FullName, err)
 	}
 
 	logger.Info("GitHub fork PR webhook enqueued to Restate",
@@ -247,8 +175,7 @@ func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWr
 		"commit_sha", pr.Head.SHA,
 		"pr_action", payload.Action,
 	)
-
-	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
 // extractBranchFromRef extracts the branch name from a Git ref.

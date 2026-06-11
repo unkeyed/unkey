@@ -34,6 +34,7 @@ go_library(
         "//pkg/runner",
         "//pkg/uid",
         "//pkg/webhook",
+        "//pkg/webhook/verifiers/github",
         "//pkg/webhook/verifiers/stripe",
         "//svc/ctrl/services/acme",
         "//svc/ctrl/services/app",
