@@ -16,12 +16,13 @@ import (
 // used by the prometheus package.
 func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
 	srv, err := zen.New(zen.Config{
-		TLS:                nil,
-		Flags:              nil,
-		EnableH2C:          false,
-		MaxRequestBodySize: 0,
-		ReadTimeout:        -1,
-		WriteTimeout:       -1,
+		TLS:                         nil,
+		DisableRequestBodyBuffering: false,
+		Flags:                       nil,
+		EnableH2C:                   false,
+		MaxRequestBodySize:          0,
+		ReadTimeout:                 -1,
+		WriteTimeout:                -1,
 	})
 	if err != nil {
 		return nil, err

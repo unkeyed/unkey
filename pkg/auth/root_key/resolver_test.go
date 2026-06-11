@@ -24,7 +24,7 @@ func newSessionWithAuth(t *testing.T, auth string) *zen.Session {
 		req.Header.Set("Authorization", auth)
 	}
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 	return sess
 }
 

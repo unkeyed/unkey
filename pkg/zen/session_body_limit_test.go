@@ -55,7 +55,7 @@ func TestSession_BodySizeLimit(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			sess := &Session{}
-			err := sess.Init(w, req, tt.maxBodySize)
+			err := sess.Init(w, req, SessionConfig{MaxRequestBodySize: tt.maxBodySize})
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -80,7 +80,7 @@ func TestSession_BodySizeLimitWithBindBody(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	sess := &Session{}
-	err := sess.Init(w, req, 1024) // 1KB limit
+	err := sess.Init(w, req, SessionConfig{MaxRequestBodySize: 1024}) // 1KB limit
 	require.NoError(t, err)
 
 	type TestData struct {
@@ -137,7 +137,7 @@ func TestSession_MaxBytesErrorMessage(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			sess := &Session{}
-			err := sess.Init(w, req, tt.maxBodySize)
+			err := sess.Init(w, req, SessionConfig{MaxRequestBodySize: tt.maxBodySize})
 
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.wantErrMsg)
@@ -220,7 +220,7 @@ func TestSession_ClickHouseLoggingControl(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	sess := &Session{}
-	err := sess.Init(w, req, 0)
+	err := sess.Init(w, req, SessionConfig{})
 	require.NoError(t, err)
 
 	// Should default to true (logging enabled)

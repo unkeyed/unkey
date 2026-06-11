@@ -31,7 +31,7 @@ func newSession(t *testing.T, method, path string) (*zen.Session, *httptest.Resp
 
 	w := httptest.NewRecorder()
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(w, req, 0))
+	require.NoError(t, sess.Init(w, req, zen.SessionConfig{}))
 	return sess, w
 }
 

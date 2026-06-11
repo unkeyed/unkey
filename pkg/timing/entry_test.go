@@ -167,7 +167,7 @@ func TestRecord(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		recorder := httptest.NewRecorder()
 		session := &zen.Session{}
-		err := session.Init(recorder, req, 0)
+		err := session.Init(recorder, req, 0, true)
 		require.NoError(t, err)
 
 		ctx := zen.WithSession(context.Background(), session)
@@ -186,7 +186,7 @@ func TestRecord(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		recorder := httptest.NewRecorder()
 		session := &zen.Session{}
-		err := session.Init(recorder, req, 0)
+		err := session.Init(recorder, req, 0, true)
 		require.NoError(t, err)
 
 		ctx := zen.WithSession(context.Background(), session)

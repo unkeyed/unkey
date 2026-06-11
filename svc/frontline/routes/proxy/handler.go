@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -48,24 +49,19 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	req := sess.Request()
 
 	// The ClickHouse logging middleware seeds an empty tracking record
-	// before this handler runs. Populate it now that the route resolved;
-	// the retry loop and proxy callbacks fill in the per-attempt instance,
-	// timing, and status as the request progresses.
-	tracking, ok := proxy.RequestTrackingFromContext(ctx)
-	if !ok {
-		// Defensive: register.go always wires the ClickHouse logging
-		// middleware before this handler, so this branch is unreachable
-		// in production. Allocate one so the engine + proxy don't panic
-		// if someone reorders middleware.
-		//nolint:exhaustruct
-		tracking = &proxy.RequestTracking{StartTime: startTime}
-		ctx = proxy.WithRequestTracking(ctx, tracking)
+	// before this handler runs — unless ClickHouse logging is disabled, in
+	// which case no record exists and all capture work below is skipped.
+	// Populate it now that the route resolved; the retry loop and proxy
+	// callbacks fill in the per-attempt instance, timing, and status as
+	// the request progresses.
+	tracking, hasTracking := proxy.RequestTrackingFromContext(ctx)
+	if hasTracking {
+		tracking.RequestID = sess.RequestID()
+		tracking.DeploymentID = decision.DeploymentID
+		tracking.WorkspaceID = decision.WorkspaceID
+		tracking.EnvironmentID = decision.EnvironmentID
+		tracking.ProjectID = decision.ProjectID
 	}
-	tracking.RequestID = sess.RequestID()
-	tracking.DeploymentID = decision.DeploymentID
-	tracking.WorkspaceID = decision.WorkspaceID
-	tracking.EnvironmentID = decision.EnvironmentID
-	tracking.ProjectID = decision.ProjectID
 
 	// Evaluate policies before forwarding. The edge middleware has already
 	// stripped any client-supplied X-Unkey-Principal header; if KeyAuth
@@ -95,14 +91,29 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// successful attempt drains it and the tee captures from that drain.
 	// The captured body therefore always reflects what the *serving*
 	// instance actually saw.
-	if req.Body != nil {
-		var buf bytes.Buffer
-		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
-		defer func() {
-			if buf.Len() > 0 {
-				tracking.RequestBody = buf.Bytes()
-			}
-		}()
+	// http.NoBody marks bodyless requests (GETs); skip the wrap entirely
+	// for them — there is nothing to capture or protect.
+	if req.Body != nil && req.Body != http.NoBody {
+		if hasTracking {
+			var buf bytes.Buffer
+			// Size the capture buffer up front from Content-Length so a
+			// known-length body allocates once instead of growing by
+			// repeated doubling.
+			buf.Grow(zen.CaptureBufferHint(req.ContentLength))
+			req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
+			defer func() {
+				if buf.Len() > 0 {
+					tracking.RequestBody = buf.Bytes()
+				}
+			}()
+		} else {
+			// No capture, but the NopCloser wrap is still required for the
+			// dial-retry loop below: http.Transport closes the request
+			// body when RoundTrip fails, even on dial errors where no
+			// byte was read. Without this guard, the retry attempt would
+			// see a closed body and forward an empty request.
+			req.Body = io.NopCloser(req.Body)
+		}
 	}
 
 	// Try each candidate instance in turn. We only move to the next
@@ -119,8 +130,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	sawDialFailure := false
 	var forwardErr error
 	for _, instance := range decision.LocalInstances {
-		tracking.InstanceID = instance.ID
-		tracking.Address = instance.Address
+		if hasTracking {
+			tracking.InstanceID = instance.ID
+			tracking.Address = instance.Address
+		}
 
 		forwardErr = h.ProxyService.ForwardToInstance(ctx, sess, decision.UpstreamProtocol, instance)
 		if forwardErr == nil {

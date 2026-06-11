@@ -120,7 +120,7 @@ func TestWithObservability_JSONErrorIncludesMetaRequestID(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			sess := &zen.Session{}
-			require.NoError(t, sess.Init(w, req, 0))
+			require.NoError(t, sess.Init(w, req, zen.SessionConfig{}))
 
 			handler := mw(func(_ context.Context, _ *zen.Session) error {
 				return fault.New("upstream failed", fault.Code(tt.urn))
@@ -153,7 +153,7 @@ func TestWithObservability_HTMLFallbackIncludesMetaRequestID(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(w, req, 0))
+	require.NoError(t, sess.Init(w, req, zen.SessionConfig{}))
 
 	handler := mw(func(_ context.Context, _ *zen.Session) error {
 		return fault.New("boom", fault.Code(codes.Frontline.Proxy.BadGateway.URN()))
@@ -194,7 +194,7 @@ func TestWithObservability_ResponseExposesURN(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			sess := &zen.Session{}
-			require.NoError(t, sess.Init(w, req, 0))
+			require.NoError(t, sess.Init(w, req, zen.SessionConfig{}))
 
 			handler := mw(func(_ context.Context, _ *zen.Session) error {
 				return fault.New("boom", fault.Code(urn))

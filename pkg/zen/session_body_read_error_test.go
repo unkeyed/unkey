@@ -35,7 +35,7 @@ func TestSession_UnreadableBodyReturns400NotError500(t *testing.T) {
 	req.Body = &failingReadCloser{readErr: errors.New("simulated read error")}
 
 	sess := &Session{}
-	err := sess.Init(w, req, 0)
+	err := sess.Init(w, req, SessionConfig{})
 
 	// Should get an error
 	require.Error(t, err)
@@ -137,7 +137,7 @@ func TestSession_UnreadableBodyVsMaxBytesError(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			sess := &Session{}
-			err := sess.Init(w, req, tt.maxBodySize)
+			err := sess.Init(w, req, SessionConfig{MaxRequestBodySize: tt.maxBodySize})
 
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.errorSubstr)

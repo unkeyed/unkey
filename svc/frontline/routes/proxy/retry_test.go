@@ -306,9 +306,10 @@ func startFrontlineWith(t *testing.T, decision router.RouteDecision, proxySvc pr
 
 	//nolint:exhaustruct
 	zenSrv, err := zen.New(zen.Config{
-		ReadTimeout:        -1,
-		WriteTimeout:       -1,
-		MaxRequestBodySize: 0,
+		ReadTimeout:                 -1,
+		WriteTimeout:                -1,
+		MaxRequestBodySize:          0,
+		DisableRequestBodyBuffering: true, // mirrors production (run.go)
 	})
 	require.NoError(t, err)
 	// Mirror the production middleware chain. Observability is load-
@@ -318,7 +319,6 @@ func startFrontlineWith(t *testing.T, decision router.RouteDecision, proxySvc pr
 	mws := []zen.Middleware{
 		zen.WithPanicRecovery(),
 		middleware.WithReservedHeaderStrip(),
-		zen.WithLogging(),
 		middleware.WithObservability(errorpage.NewRenderer()),
 	}
 	zenSrv.RegisterRoute(mws, h)
