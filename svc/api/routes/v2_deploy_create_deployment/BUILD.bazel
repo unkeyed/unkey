@@ -32,6 +32,7 @@ go_test(
         "//gen/proto/ctrl/v1:ctrl",
         "//pkg/ptr",
         "//svc/api/internal/testutil",
+        "//svc/api/internal/testutil/seed",
         "//svc/api/openapi",
         "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",
