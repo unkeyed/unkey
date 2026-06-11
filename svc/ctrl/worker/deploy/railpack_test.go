@@ -55,20 +55,17 @@ func TestBuildGitContextURL(t *testing.T) {
 	}
 }
 
-func TestSortedShellEnvKeys(t *testing.T) {
-	keys, err := sortedShellEnvKeys(map[string]string{
+func TestValidateShellEnvKeys(t *testing.T) {
+	require.NoError(t, validateShellEnvKeys(map[string]string{
 		"ZETA":     "1",
 		"ALPHA":    "2",
 		"_PRIVATE": "3",
 		"MIX_3d":   "4",
-	})
-	require.NoError(t, err)
-	require.Equal(t, []string{"ALPHA", "MIX_3d", "ZETA", "_PRIVATE"}, keys)
+	}))
 
 	for _, invalid := range []string{"MY-KEY", "my.key", "3LEADING", "SP ACE", `IN"JECT`, "NEW\nLINE"} {
 		t.Run(invalid, func(t *testing.T) {
-			_, err := sortedShellEnvKeys(map[string]string{invalid: "v"})
-			require.Error(t, err)
+			require.Error(t, validateShellEnvKeys(map[string]string{invalid: "v"}))
 		})
 	}
 }

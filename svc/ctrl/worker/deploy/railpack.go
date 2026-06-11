@@ -1,12 +1,12 @@
 package deploy
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"text/template"
@@ -17,8 +17,8 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/tonistiigi/fsutil"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/logger"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -52,40 +52,44 @@ const (
 	// railpackPlanBytesMax caps the plan file returned from the prepare solve.
 	// Plans are small JSON documents; anything larger indicates a bug or abuse.
 	railpackPlanBytesMax = 16 << 20 // 16 MiB
-
-	// railpackWorkspacePattern names the temp directories holding the
-	// generated prepare Dockerfile and the returned plan. Shared between
-	// workspace creation and the stale-workspace sweep.
-	railpackWorkspacePattern = "railpack-build-*"
 )
+
+// railpackPrepareDockerfileTemplate renders the Dockerfile for the plan
+// generation solve.
+//
+// The syntax directive is required: the secret env mounts need Dockerfile
+// frontend >= 1.10, independent of the build machine's BuildKit version.
+//
+// Secret mounts are not part of BuildKit's RUN cache key, so the hash of the
+// secret values is embedded in the command text — it forces plan regeneration
+// when values change, since they can influence the generated plan.
+//
+//go:embed railpack_prepare.dockerfile.tmpl
+var railpackPrepareDockerfileTemplateRaw string
+
+var railpackPrepareDockerfileTemplate = template.Must(
+	template.New("railpack-prepare").Parse(railpackPrepareDockerfileTemplateRaw),
+)
+
+// railpackWorkspaceRoot is the parent directory for all Railpack build
+// workspaces. Keeping them under one root makes the startup sweep a single
+// RemoveAll instead of a glob.
+func railpackWorkspaceRoot() string {
+	return filepath.Join(os.TempDir(), "railpack-build")
+}
 
 // cleanupStaleRailpackWorkspaces removes build workspaces left behind by a
 // previous process that crashed before its deferred cleanup could run. The
 // worker's /tmp is a pod-lifetime emptyDir in Kubernetes, so crash leaks
 // survive container restarts. The files are tiny (a Dockerfile and a plan
 // JSON per workspace), but they would otherwise accumulate until the pod is
-// replaced. Any matching directory at process start is an orphan by
+// replaced. Anything under the root at process start is an orphan by
 // definition: no builds are running yet.
 func cleanupStaleRailpackWorkspaces() {
-	matches, err := filepath.Glob(filepath.Join(os.TempDir(), railpackWorkspacePattern))
-	if err != nil {
-		logger.Error("unable to scan for stale railpack build workspaces", "error", err)
-		return
-	}
-	for _, dir := range matches {
-		if err := os.RemoveAll(dir); err != nil {
-			logger.Error("unable to remove stale railpack build workspace", "dir", dir, "error", err)
-			continue
-		}
-		logger.Warn("removed stale railpack build workspace from a previous run", "dir", dir)
+	if err := os.RemoveAll(railpackWorkspaceRoot()); err != nil {
+		logger.Error("unable to remove stale railpack build workspaces", "error", err)
 	}
 }
-
-// shellEnvKeyRegex matches POSIX environment variable names. Stricter than
-// validation.IsValidEnvVarKey (which mirrors K8s Secret keys and allows dots
-// and hyphens) because Railpack secret names are referenced as shell variables
-// in the generated prepare Dockerfile and mounted as process env at build time.
-var shellEnvKeyRegex = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 // buildRailpackImageFromGit builds a container image from a GitHub repository
 // without a Dockerfile.
@@ -115,46 +119,17 @@ func (w *Workflow) buildRailpackImageFromGit(
 		"platform", w.buildPlatform.Platform,
 	)
 
-	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
-	}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
-	}
-
-	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
-		// Get a GitHub installation token so the build machine can fetch the
-		// repository. Mirrors the Dockerfile path: in unauthenticated mode
-		// (local dev, public repos) the git fetch runs without credentials.
-		var ghToken githubclient.InstallationToken
-		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
-			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
-				"repository", params.Repository)
-		} else {
-			token, err := w.github.GetInstallationToken(params.InstallationID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
-			}
-			ghToken = token
-		}
-
-		// Decrypt env vars in-memory. They are needed twice: at plan time so
-		// Railpack registers them as build secrets (and honors RAILPACK_*
-		// configuration variables), and at build time as BuildKit secrets.
-		// Decryption failures are terminal — see buildDockerImageFromGit.
-		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
-		if err != nil {
-			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
-		}
-
-		envKeys, err := sortedShellEnvKeys(envVars)
-		if err != nil {
-			return nil, restate.TerminalError(err)
-		}
+	return w.runGitBuild(ctx, "build railpack image from git", params, func(runCtx restate.RunContext, bctx gitBuildContext) (*buildResult, error) {
+		// Names are already validated by the scaffold; the template only
+		// needs them in a stable order.
+		envKeys := slices.Sorted(maps.Keys(bctx.EnvVars))
 
 		// The workspace only holds the generated prepare Dockerfile and the
 		// returned plan JSON — a few KB, cleaned up per attempt.
-		workDir, err := os.MkdirTemp("", railpackWorkspacePattern)
+		if err := os.MkdirAll(railpackWorkspaceRoot(), 0o755); err != nil {
+			return nil, fmt.Errorf("failed to create build workspace root: %w", err)
+		}
+		workDir, err := os.MkdirTemp(railpackWorkspaceRoot(), "build-*")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create build workspace: %w", err)
 		}
@@ -172,7 +147,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 			}
 		}
 
-		prepareDockerfile, err := buildRailpackPrepareDockerfile(railpackFrontendImage, railpackBuilderImage, envKeys, hashEnvVars(envVars))
+		prepareDockerfile, err := buildRailpackPrepareDockerfile(railpackFrontendImage, railpackBuilderImage, envKeys, hashEnvVars(bctx.EnvVars))
 		if err != nil {
 			return nil, restate.TerminalError(err)
 		}
@@ -180,20 +155,17 @@ func (w *Workflow) buildRailpackImageFromGit(
 			return nil, fmt.Errorf("failed to write prepare dockerfile: %w", err)
 		}
 
-		gitContextURL := buildGitContextURL(params)
-		imageName := fmt.Sprintf("%s:%s-%s", w.registryConfig.Repository, params.ProjectID, params.DeploymentID)
-
 		logger.Info("Starting railpack build execution",
-			"image_name", imageName,
+			"image_name", bctx.ImageName,
 			"platform", w.buildPlatform.Platform,
 			"project_id", params.ProjectID,
-			"git_context_url", gitContextURL,
+			"git_context_url", bctx.GitContextURL,
 			"frontend_image", railpackFrontendImage,
 		)
 
 		// One machine, two solves: plan generation, then the image build.
-		depotBuildID, err := w.withDepotBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
-			prepareOptions, optErr := w.buildRailpackPrepareSolverOptions(gitContextURL, prepareDir, planDir, ghToken.Token, envVars)
+		depotBuildID, err := w.withDepotBuildkit(runCtx, bctx.DepotProjectID, params, func(buildClient *client.Client) error {
+			prepareOptions, optErr := w.buildRailpackPrepareSolverOptions(bctx.GitContextURL, prepareDir, planDir, bctx.GithubToken, bctx.EnvVars)
 			if optErr != nil {
 				return restate.TerminalError(fmt.Errorf("failed to build prepare solver options: %w", optErr))
 			}
@@ -204,7 +176,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 				return restate.TerminalError(fmt.Errorf("railpack prepare failed: %w", planErr))
 			}
 
-			buildOptions, optErr := w.buildRailpackSolverOptions(gitContextURL, planDir, imageName, params.ProjectID, ghToken.Token, envVars)
+			buildOptions, optErr := w.buildRailpackSolverOptions(bctx.GitContextURL, planDir, bctx.ImageName, params.ProjectID, bctx.GithubToken, bctx.EnvVars)
 			if optErr != nil {
 				return restate.TerminalError(fmt.Errorf("failed to build solver options: %w", optErr))
 			}
@@ -217,65 +189,12 @@ func (w *Workflow) buildRailpackImageFromGit(
 		logger.Info("Build completed successfully")
 
 		return &buildResult{
-			ImageName:      imageName,
+			ImageName:      bctx.ImageName,
 			DepotBuildID:   depotBuildID,
-			DepotProjectID: depotProjectID,
+			DepotProjectID: bctx.DepotProjectID,
 		}, nil
-	}, restate.WithName("build railpack image from git"),
-		// Same retry bounds as the Dockerfile path: count for transient blips,
-		// wall-clock because a single attempt is long-running.
-		restate.WithMaxRetryAttempts(runMaxAttempts),
-		restate.WithMaxRetryDuration(buildImageRetryCeiling))
+	})
 }
-
-// sortedShellEnvKeys validates that every env var name is a POSIX shell
-// variable name and returns them sorted. Railpack secret names become shell
-// variables in the generated prepare Dockerfile and process env at build
-// time, so other names cannot work and must be rejected rather than dropped.
-func sortedShellEnvKeys(envVars map[string]string) ([]string, error) {
-	keys := slices.Sorted(maps.Keys(envVars))
-	for _, key := range keys {
-		if !shellEnvKeyRegex.MatchString(key) {
-			return nil, fmt.Errorf(
-				"environment variable %q is not usable with railpack builds: names must contain only letters, digits, and underscores, and must not start with a digit",
-				key,
-			)
-		}
-	}
-	return keys, nil
-}
-
-// railpackPrepareDockerfileTemplate renders the Dockerfile for the plan
-// generation solve.
-//
-// The syntax directive is required: the secret env mounts need Dockerfile
-// frontend >= 1.10, independent of the build machine's BuildKit version.
-//
-// Secret mounts are not part of BuildKit's RUN cache key, so the hash of the
-// secret values is embedded in the command text — it forces plan regeneration
-// when values change, since they can influence the generated plan.
-var railpackPrepareDockerfileTemplate = template.Must(template.New("railpack-prepare").Parse(
-	`# syntax=docker/dockerfile:1
-# Generated by the Unkey deploy worker. Runs Railpack plan generation on
-# the build machine so repository content is never processed by the
-# control plane. The builder stage is glibc-based because railpack downloads
-# a gnu-libc mise binary at plan time; the cache mount persists that download
-# and mise's metadata across builds.
-FROM {{ .FrontendImage }} AS railpack
-FROM {{ .BuilderImage }} AS prepare
-COPY --from=railpack /railpack /usr/local/bin/railpack
-RUN --mount=type=bind,target=/workspace,readonly \
-    --mount=type=cache,target=/tmp/railpack
-{{- range .EnvKeys }} \
-    --mount=type=secret,id={{ . }},env={{ . }}
-{{- end }} \
-    {{ if .SecretsHash }}RAILPACK_SECRETS_HASH={{ .SecretsHash }} {{ end -}}
-    /usr/local/bin/railpack prepare /workspace --plan-out /railpack-plan.json
-{{- range .EnvKeys }} --env {{ . }}="${{ . }}"{{ end }}
-
-FROM scratch
-COPY --from=prepare /railpack-plan.json /
-`))
 
 // buildRailpackPrepareDockerfile generates the Dockerfile for the plan
 // generation solve. It copies the railpack binary out of the frontend image
@@ -427,19 +346,14 @@ func validateRailpackPlan(planPath string) error {
 	if err != nil {
 		return fmt.Errorf("build plan was not produced: %w", err)
 	}
-	if info.Size() == 0 {
-		return fmt.Errorf("build plan is empty")
-	}
-	if info.Size() > railpackPlanBytesMax {
-		return fmt.Errorf("build plan is unexpectedly large: %d bytes", info.Size())
-	}
-
 	raw, err := os.ReadFile(planPath)
 	if err != nil {
 		return fmt.Errorf("build plan could not be read: %w", err)
 	}
-	if !json.Valid(raw) {
-		return fmt.Errorf("build plan is not valid JSON")
-	}
-	return nil
+
+	return assert.All(
+		assert.Greater(info.Size(), 0, "build plan is empty"),
+		assert.LessOrEqual(info.Size(), int64(railpackPlanBytesMax), fmt.Sprintf("build plan is unexpectedly large: %d bytes", info.Size())),
+		assert.True(json.Valid(raw), "build plan is not valid JSON"),
+	)
 }

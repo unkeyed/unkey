@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -32,7 +34,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/pkg/validation"
 )
 
 const (
@@ -121,6 +123,91 @@ type gitBuildParams struct {
 	EnvironmentID                 string
 }
 
+// gitBuildContext carries the inputs that the shared git-build scaffold
+// resolves identically for every build method: Dockerfile and Railpack
+// builders receive it and only implement what differentiates them.
+type gitBuildContext struct {
+	DepotProjectID string
+
+	// GithubToken is empty in unauthenticated mode (local dev, public repos).
+	GithubToken string
+
+	// EnvVars are the decrypted environment variables for the deployment.
+	EnvVars map[string]string
+
+	// GitContextURL is the BuildKit git context the build machine fetches.
+	GitContextURL string
+
+	// ImageName is the fully qualified registry tag to push.
+	ImageName string
+}
+
+// runGitBuild wraps the lifecycle shared by every git-based image build:
+// resolving the Depot project, fetching the GitHub installation token (or
+// skipping it in unauthenticated mode), decrypting env vars, and invoking
+// the method-specific buildFn inside a single durable Run with the standard
+// retry bounds.
+//
+// buildFn executes entirely within one Run attempt on one process. It must
+// keep all process-local state (temp files, BuildKit connections) inside its
+// own invocation, because a retry may resume on a different pod.
+func (w *Workflow) runGitBuild(
+	ctx restate.Context,
+	runName string,
+	params gitBuildParams,
+	buildFn func(runCtx restate.RunContext, bctx gitBuildContext) (*buildResult, error),
+) (*buildResult, error) {
+	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
+	}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
+	}
+
+	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
+		// Get GitHub installation token so the build machine can fetch the repo.
+		githubToken := ""
+		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
+			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
+			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
+				"repository", params.Repository)
+		} else {
+			token, err := w.github.GetInstallationToken(params.InstallationID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+			}
+			githubToken = token.Token
+		}
+
+		// Decrypt env vars in-memory so they can be injected as BuildKit secrets.
+		// Treat all decryption failures as terminal: bearer-token / keyring
+		// config errors never self-heal, and genuine vault outages are better
+		// surfaced to the user fast than burned inside a retry loop.
+		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
+		if err != nil {
+			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
+		}
+
+		if err := validateShellEnvKeys(envVars); err != nil {
+			return nil, restate.TerminalError(err)
+		}
+
+		return buildFn(runCtx, gitBuildContext{
+			DepotProjectID: depotProjectID,
+			GithubToken:    githubToken,
+			EnvVars:        envVars,
+			GitContextURL:  buildGitContextURL(params),
+			ImageName:      fmt.Sprintf("%s:%s-%s", w.registryConfig.Repository, params.ProjectID, params.DeploymentID),
+		})
+	}, restate.WithName(runName),
+		// Bound retries both by count (for transient Depot/BuildKit blips) and
+		// by wall-clock (a single build attempt is long-running, so 5 attempts
+		// × worst-case backoff could otherwise exceed any reasonable ceiling).
+		// Whichever bound fires first wins.
+		restate.WithMaxRetryAttempts(runMaxAttempts),
+		restate.WithMaxRetryDuration(buildImageRetryCeiling))
+}
+
 // buildDockerImageFromGit builds a container image from a GitHub repository using Depot.
 //
 // The method retrieves or creates a Depot project for the Unkey project,
@@ -132,52 +219,15 @@ func (w *Workflow) buildDockerImageFromGit(
 	params gitBuildParams,
 ) (*buildResult, error) {
 	platform := w.buildPlatform.Platform
-	architecture := w.buildPlatform.Architecture
 
 	logger.Info("Starting git build process",
 		"repository", params.Repository,
 		"commit_sha", params.CommitSHA,
 		"project_id", params.ProjectID,
 		"platform", platform,
-		"architecture", architecture)
+		"architecture", w.buildPlatform.Architecture)
 
-	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
-	}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
-	}
-
-	logger.Info("Creating depot build",
-		"depot_project_id", depotProjectID,
-		"project_id", params.ProjectID)
-
-	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
-		// Get GitHub installation token for BuildKit to fetch the repo
-		var ghToken githubclient.InstallationToken
-		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
-			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
-			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
-				"repository", params.Repository)
-		} else {
-			token, err := w.github.GetInstallationToken(params.InstallationID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
-			}
-			ghToken = token
-		}
-
-		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
-		// Treat all decryption failures as terminal: bearer-token / keyring
-		// config errors never self-heal, and genuine vault outages are better
-		// surfaced to the user fast than burned inside a retry loop.
-		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
-		if err != nil {
-			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
-		}
-
-		imageName := fmt.Sprintf("%s:%s-%s", w.registryConfig.Repository, params.ProjectID, params.DeploymentID)
-
+	return w.runGitBuild(ctx, "build docker image from git", params, func(runCtx restate.RunContext, bctx gitBuildContext) (*buildResult, error) {
 		// An empty dockerfile path must never reach this builder: buildImage
 		// routes those deployments to Railpack. Passing an empty "filename"
 		// to BuildKit would silently fall back to "Dockerfile", masking a
@@ -187,36 +237,43 @@ func (w *Workflow) buildDockerImageFromGit(
 			return nil, restate.TerminalError(assertErr)
 		}
 
-		gitContextURL := buildGitContextURL(params)
-
 		logger.Info("Starting build execution",
-			"image_name", imageName,
+			"image_name", bctx.ImageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
-			"architecture", architecture,
 			"project_id", params.ProjectID,
-			"git_context_url", gitContextURL,
+			"git_context_url", bctx.GitContextURL,
 		)
 
-		// Choose solver options based on authentication mode
+		// Without a token (unauthenticated mode) the git fetch needs no
+		// credentials, so skip the auth secret entirely.
 		var solverOptions client.SolveOpt
-		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
-			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
+		var err error
+		if bctx.GithubToken == "" {
+			solverOptions, err = w.buildSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.EnvVars)
 		} else {
-			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
+			solverOptions, err = w.buildGitSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.GithubToken, bctx.EnvVars)
 		}
 		if err != nil {
 			return nil, restate.TerminalError(fmt.Errorf("failed to build solver options: %w", err))
 		}
 
-		return w.solveOnDepotMachine(runCtx, depotProjectID, imageName, params, solverOptions)
-	}, restate.WithName("build docker image from git"),
-		// Bound retries both by count (for transient Depot/BuildKit blips) and
-		// by wall-clock (a single build attempt is long-running, so 5 attempts
-		// × worst-case backoff could otherwise exceed any reasonable ceiling).
-		// Whichever bound fires first wins.
-		restate.WithMaxRetryAttempts(runMaxAttempts),
-		restate.WithMaxRetryDuration(buildImageRetryCeiling))
+		return w.solveOnDepotMachine(runCtx, bctx.DepotProjectID, bctx.ImageName, params, solverOptions)
+	})
+}
+
+// validateShellEnvKeys rejects env var names that are not valid environment
+// variable names. Creation already enforces this at the API boundary
+// (envVarKeySchema in the dashboard, [validation.IsValidEnvVarKey] in Go);
+// this is the paired assertion before use, catching variables that were
+// created before the rule was tightened.
+func validateShellEnvKeys(envVars map[string]string) error {
+	for _, key := range slices.Sorted(maps.Keys(envVars)) {
+		if !validation.IsValidEnvVarKey(key) {
+			return fmt.Errorf("environment variable %q cannot be used during builds: %s", key, validation.ErrMsgInvalidEnvVarKey)
+		}
+	}
+	return nil
 }
 
 // buildGitContextURL builds the BuildKit git context URL for a deployment:

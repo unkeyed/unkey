@@ -17,6 +17,7 @@ go_library(
         "scale_down_idle_preview_deployments.go",
         "service.go",
     ],
+    embedsrcs = ["railpack_prepare.dockerfile.tmpl"],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/deploy",
     visibility = ["//visibility:public"],
     deps = [
@@ -34,6 +35,7 @@ go_library(
         "//pkg/ptr",
         "//pkg/restate/compensation",
         "//pkg/uid",
+        "//pkg/validation",
         "//svc/ctrl/worker/github",
         "@build_buf_gen_go_depot_api_connectrpc_go//depot/core/v1/corev1connect",
         "@build_buf_gen_go_depot_api_protocolbuffers_go//depot/core/v1:core",
