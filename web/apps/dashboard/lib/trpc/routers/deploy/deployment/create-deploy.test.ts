@@ -107,4 +107,12 @@ describe("resolveSourceRepo", () => {
   it("constructs full repo from owner-only sourceRepo", () => {
     expect(resolveSourceRepo("fork-owner", "ogzhanolguncu/demo_api")).toBe("fork-owner/demo_api");
   });
+
+  it("rejects names with characters that could smuggle a fragment or query into the git URL", () => {
+    // Bad char lives in the owner segment so it survives the repo-name match
+    // and is caught by the charset guard rather than the name comparison.
+    expect(resolveSourceRepo("evil#frag/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+    expect(resolveSourceRepo("evil?q=1/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+    expect(resolveSourceRepo("evil owner/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+  });
 });
