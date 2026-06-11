@@ -1,6 +1,6 @@
 "use client";
 
-import { deploymentPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Hammer2 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
@@ -17,7 +17,7 @@ export function DeploymentBuild() {
   const router = useRouter();
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;
-  const deploymentUrl = deploymentPath({
+  const deploymentUrl = routes.projects.apps.deployment({
     workspaceSlug,
     projectId,
     appId: deployment.appId,

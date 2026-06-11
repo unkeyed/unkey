@@ -1,7 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { deploymentPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { CopyButton } from "@unkey/ui";
 import { useProjectData } from "../(overview)/data-provider";
@@ -28,7 +28,12 @@ export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
 
   return (
     <DottedLink
-      href={deploymentPath({ workspaceSlug: workspace.slug, projectId, appId, deploymentId })}
+      href={routes.projects.apps.deployment({
+        workspaceSlug: workspace.slug,
+        projectId,
+        appId,
+        deploymentId,
+      })}
       copyValue={deploymentId}
     >
       <span className="font-mono">{shortenId(deploymentId)}</span>

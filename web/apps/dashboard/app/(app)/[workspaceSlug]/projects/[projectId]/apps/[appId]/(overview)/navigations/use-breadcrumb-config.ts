@@ -1,8 +1,9 @@
 "use client";
 
 import type { Navbar } from "@/components/navigation/navbar";
-import { appPath, projectPath, projectsPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
+import type { Route } from "next";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import type { ComponentPropsWithoutRef } from "react";
 
@@ -16,7 +17,7 @@ export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.
 type SubPage = {
   id: string;
   label: string;
-  href: string;
+  href: Route;
   segment: string | undefined;
   disabled?: boolean;
   disabledTooltip?: string;
@@ -38,38 +39,38 @@ export const useBreadcrumbConfig = ({
   const deploymentId = params?.deploymentId as string | undefined;
 
   // All tabs live under the app, e.g. /projects/[projectId]/apps/[appId]/deployments
-  const appBase = appPath({ workspaceSlug, projectId, appId });
+  const appScope = { workspaceSlug, projectId, appId };
 
   // Sub-pages configuration - matches the existing structure
   const subPages: SubPage[] = [
     {
       id: "deployments",
       label: "Deployments",
-      href: `${appBase}/deployments`,
+      href: routes.projects.apps.deployments(appScope),
       segment: "deployments",
     },
     {
       id: "env-vars",
       label: "Environment Variables",
-      href: `${appBase}/env-vars`,
+      href: routes.projects.apps.envVars(appScope),
       segment: "env-vars",
     },
     {
       id: "sentinel-policies",
       label: "Sentinel Policies",
-      href: `${appBase}/sentinel-policies`,
+      href: routes.projects.apps.sentinelPolicies(appScope),
       segment: "sentinel-policies",
     },
     {
       id: "settings",
       label: "Settings",
-      href: `${appBase}/settings`,
+      href: routes.projects.apps.settings(appScope),
       segment: "settings",
     },
     {
       id: "openapi-diff",
       label: "OpenAPI Diff",
-      href: `${appBase}/openapi-diff`,
+      href: routes.projects.apps.openapiDiff(appScope),
       segment: "openapi-diff",
     },
   ];
@@ -85,7 +86,7 @@ export const useBreadcrumbConfig = ({
     {
       id: "projects",
       children: "Projects",
-      href: projectsPath({ workspaceSlug }),
+      href: routes.projects.list({ workspaceSlug }),
       shouldRender: true,
       active: false,
       isLast: false,
@@ -95,7 +96,7 @@ export const useBreadcrumbConfig = ({
     {
       id: "project",
       children: projectName || projectId,
-      href: projectPath({ workspaceSlug, projectId }),
+      href: routes.projects.detail({ workspaceSlug, projectId }),
       shouldRender: true,
       active: false,
       isLast: false,
@@ -107,7 +108,7 @@ export const useBreadcrumbConfig = ({
     {
       id: "subpage",
       children: isOnDeploymentDetail ? "Deployments" : activeSubPage.label,
-      href: isOnDeploymentDetail ? `${appBase}/deployments` : activeSubPage.href,
+      href: isOnDeploymentDetail ? routes.projects.apps.deployments(appScope) : activeSubPage.href,
       shouldRender: true,
       active: !isOnDeploymentDetail, // Active if not on detail page
       isLast: !isOnDeploymentDetail, // Last if not on detail page
@@ -118,7 +119,9 @@ export const useBreadcrumbConfig = ({
     {
       id: "deployment-detail",
       children: shortenId(deploymentId || ""),
-      href: `${appBase}/deployments/${deploymentId}`,
+      href: deploymentId
+        ? routes.projects.apps.deployment({ ...appScope, deploymentId })
+        : routes.projects.apps.deployments(appScope),
       shouldRender: Boolean(deploymentId),
       active: Boolean(deploymentId),
       isLast: Boolean(deploymentId),

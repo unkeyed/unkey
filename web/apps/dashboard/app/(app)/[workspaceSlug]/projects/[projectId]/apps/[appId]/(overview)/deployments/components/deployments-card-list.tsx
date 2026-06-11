@@ -1,7 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { deploymentPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectData } from "../../data-provider";
@@ -59,7 +59,7 @@ export function DeploymentsCardList() {
             environment={environment}
             isCurrent={isCurrent}
             isRolledBack={isCurrent && (project?.isRolledBack ?? false)}
-            href={deploymentPath({
+            href={routes.projects.apps.deployment({
               workspaceSlug: workspace.slug,
               projectId,
               appId: deployment.appId,

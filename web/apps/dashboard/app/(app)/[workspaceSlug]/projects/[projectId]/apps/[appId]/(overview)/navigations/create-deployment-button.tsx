@@ -4,8 +4,8 @@ import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/li
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
-import { deploymentPath } from "@/lib/navigation/routes/projects";
 import { githubUrl } from "@/lib/github-url";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -186,7 +186,7 @@ export const CreateDeploymentButton = ({
       setIsOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       router.push(
-        deploymentPath({
+        routes.projects.apps.deployment({
           workspaceSlug: params.workspaceSlug,
           projectId,
           appId,

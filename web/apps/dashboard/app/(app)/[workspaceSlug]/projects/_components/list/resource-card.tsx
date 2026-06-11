@@ -1,5 +1,6 @@
 import { CodeBranch, Cube } from "@unkey/icons";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
@@ -17,7 +18,7 @@ type ResourceCardProps = {
   authorAvatar: string | null;
   actions?: ReactNode;
   /** Card link target. Projects link to their home; apps link to deployments. */
-  href: string;
+  href: Route;
   /** Icon shown in the card's avatar slot. Defaults to Cube. */
   icon?: ReactNode;
 };

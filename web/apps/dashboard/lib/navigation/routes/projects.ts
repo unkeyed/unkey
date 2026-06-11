@@ -1,103 +1,120 @@
 /**
- * Route builders for the /projects area (projects, apps, deployments).
- * Every builder takes the minimal scope object it needs and returns a string.
+ * Route builders for the /projects area, exposed as one nested object so call
+ * sites read like the url hierarchy: `routes.projects.apps.settings(scope)`.
+ * Every navigable result goes through buildRoute, which checks the bracket
+ * pattern against Next's generated route table (typedRoutes) and types the
+ * params from the generated ParamMap.
  */
-import type { WorkspaceScope } from "./shared";
+import type { Route } from "next";
+import { type WorkspaceScope, buildRoute } from "./shared";
 
 type ProjectScope = WorkspaceScope & { projectId: string };
 type AppScope = ProjectScope & { appId: string };
 
-export function projectsPath({
-  workspaceSlug,
-  new: isNew,
-}: WorkspaceScope & { new?: boolean }): string {
-  const base = `/${workspaceSlug}/projects`;
-  return isNew ? `${base}?new=true` : base;
+export const projectRoutes = {
+  list({ workspaceSlug, new: isNew }: WorkspaceScope & { new?: boolean }): Route {
+    return buildRoute("/[workspaceSlug]/projects", { workspaceSlug }, { new: isNew || undefined });
+  },
+
+  detail(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]", projectParams(scope));
+  },
+
+  settings(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/settings", projectParams(scope));
+  },
+
+  logs({
+    appId,
+    deploymentId,
+    ...scope
+  }: ProjectScope & { appId?: string; deploymentId?: string }): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/logs", projectParams(scope), {
+      appId,
+      deploymentId: deploymentId ? containsFilter(deploymentId) : undefined,
+    });
+  },
+
+  requests({
+    since,
+    appId,
+    deploymentId,
+    ...scope
+  }: ProjectScope & { since?: string; appId?: string; deploymentId?: string }): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/requests", projectParams(scope), {
+      since,
+      appId,
+      deploymentId: deploymentId ? containsFilter(deploymentId) : undefined,
+    });
+  },
+
+  apps: {
+    new({ step, appId, ...scope }: ProjectScope & { step?: string; appId?: string }): Route {
+      return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/new", projectParams(scope), {
+        step,
+        appId,
+      });
+    },
+
+    settings(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings",
+        appParams(scope),
+      );
+    },
+
+    envVars(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/env-vars",
+        appParams(scope),
+      );
+    },
+
+    sentinelPolicies(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/sentinel-policies",
+        appParams(scope),
+      );
+    },
+
+    deployments(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/deployments",
+        appParams(scope),
+      );
+    },
+
+    deployment({
+      deploymentId,
+      build,
+      ...scope
+    }: AppScope & { deploymentId: string; build?: boolean }): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/deployments/[deploymentId]",
+        { ...appParams(scope), deploymentId },
+        { build: build || undefined },
+      );
+    },
+
+    openapiDiff({ from, to, ...scope }: AppScope & { from?: string; to?: string }): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/openapi-diff",
+        appParams(scope),
+        { from, to },
+      );
+    },
+  },
+};
+
+function projectParams({ workspaceSlug, projectId }: ProjectScope) {
+  return { workspaceSlug, projectId };
 }
 
-export function projectPath({ workspaceSlug, projectId }: ProjectScope): string {
-  return `${projectsPath({ workspaceSlug })}/${projectId}`;
+function appParams({ appId, ...scope }: AppScope) {
+  return { ...projectParams(scope), appId };
 }
 
-export function projectSettingsPath(scope: ProjectScope): string {
-  return `${projectPath(scope)}/settings`;
-}
-
-export function projectLogsPath({ appId,deploymentId, ...scope }: ProjectScope & { appId?: string,deploymentId?: string, }): string {
-    const params: string[] = [];
-  if (appId) {
-    params.push(`appId=${appId}`);
-  }
-  if (deploymentId) {
-    // `contains:` is the log-table filter syntax for a deployment id.
-    params.push(`deploymentId=contains:${deploymentId}`);
-  }
-  const base = `${projectPath(scope)}/logs`;
-  return params.length ? `${base}?${params.join("&")}` : base;
-}
-
-export function projectRequestsPath({
-  since,
-  appId,
-  deploymentId,
-  ...scope
-}: ProjectScope & { since?: string; appId?: string; deploymentId?: string }): string {
-  const params: string[] = [];
-  if (since) {
-    params.push(`since=${since}`);
-  }
-  if (appId) {
-    params.push(`appId=${appId}`);
-  }
-  if (deploymentId) {
-    // `contains:` is the requests-table filter syntax for a deployment id.
-    params.push(`deploymentId=contains:${deploymentId}`);
-  }
-  const base = `${projectPath(scope)}/requests`;
-  return params.length ? `${base}?${params.join("&")}` : base;
-}
-
-export function newAppPath({
-  step,
-  appId,
-  ...scope
-}: ProjectScope & { step?: string; appId?: string }): string {
-  const params: string[] = [];
-  if (step) {
-    params.push(`step=${step}`);
-  }
-  if (appId) {
-    params.push(`appId=${appId}`);
-  }
-  const base = `${projectPath(scope)}/apps/new`;
-  return params.length ? `${base}?${params.join("&")}` : base;
-}
-
-export function appPath({ workspaceSlug, projectId, appId }: AppScope): string {
-  return `${projectPath({ workspaceSlug, projectId })}/apps/${appId}`;
-}
-
-export function appSettingsPath(scope: AppScope): string {
-  return `${appPath(scope)}/settings`;
-}
-
-export function appDeploymentsPath(scope: AppScope): string {
-  return `${appPath(scope)}/deployments`;
-}
-
-export function deploymentPath({
-  deploymentId,
-  build,
-  ...scope
-}: AppScope & { deploymentId: string; build?: boolean }): string {
-  const base = `${appDeploymentsPath(scope)}/${deploymentId}`;
-  return build ? `${base}?build=true` : base;
-}
-
-export function openapiDiffPath({
-  from,
-  to,
-  ...scope
-}: AppScope & { from: string; to: string }): string {
-  return `${appPath(scope)}/openapi-diff?from=${from}&to=${to}`;
+/** `contains:` is the logs/requests table filter syntax for a deployment id. */
+function containsFilter(deploymentId: string): `contains:${string}` {
+  return `contains:${deploymentId}`;
 }

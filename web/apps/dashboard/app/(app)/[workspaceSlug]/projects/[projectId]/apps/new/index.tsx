@@ -1,7 +1,7 @@
 "use client";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { projectPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { StepWizard } from "@unkey/ui";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -40,7 +40,7 @@ export const AppSetupWizard = () => {
 
   const handleSkipGithubSetup = () => {
     bypass();
-    router.replace(projectPath({ workspaceSlug: workspace.slug, projectId }));
+    router.replace(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { projectsPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { useParams } from "next/navigation";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
@@ -49,7 +49,7 @@ function resolveWorkspaceHref(slug: string, params: RouteParams): string {
     return `/${slug}/apis`;
   }
   if (params.projectId) {
-    return projectsPath({ workspaceSlug: slug });
+    return routes.projects.list({ workspaceSlug: slug });
   }
   if (params.namespaceId) {
     return `/${slug}/ratelimits`;

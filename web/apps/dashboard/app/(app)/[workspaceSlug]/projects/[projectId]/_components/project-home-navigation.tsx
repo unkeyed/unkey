@@ -2,7 +2,7 @@
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { newAppPath, projectPath, projectsPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { Cube, Plus } from "@unkey/icons";
 import Link from "next/link";
 
@@ -18,7 +18,7 @@ export const ProjectHomeNavigation = ({ projectId }: ProjectHomeNavigationProps)
     <Navbar>
       <Navbar.Breadcrumbs icon={<Cube iconSize="md-medium" className="text-gray-12" />}>
         <Navbar.Breadcrumbs.Link
-          href={projectsPath({ workspaceSlug })}
+          href={routes.projects.list({ workspaceSlug })}
           noop={false}
           active={false}
           isLast={false}
@@ -26,7 +26,7 @@ export const ProjectHomeNavigation = ({ projectId }: ProjectHomeNavigationProps)
           Projects
         </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
-          href={projectPath({ workspaceSlug, projectId })}
+          href={routes.projects.detail({ workspaceSlug, projectId })}
           noop
           active
           isLast
@@ -35,7 +35,7 @@ export const ProjectHomeNavigation = ({ projectId }: ProjectHomeNavigationProps)
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
-        <Link href={newAppPath({ workspaceSlug, projectId })}>
+        <Link href={routes.projects.apps.new({ workspaceSlug, projectId })}>
           <NavbarActionButton title="Create new app" className="cursor-pointer">
             <Plus />
             Create app

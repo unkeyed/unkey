@@ -1,6 +1,6 @@
 "use client";
 
-import { appSettingsPath, deploymentPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -145,7 +145,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   useEffect(() => {
     if (network?.completed) {
       router.push(
-        deploymentPath({
+        routes.projects.apps.deployment({
           workspaceSlug,
           projectId,
           appId: deployment.appId,
@@ -248,7 +248,11 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
       {isFailed && (
         <FailedDeploymentBanner
           steps={[queued, starting, building, deploying, network, finalizing]}
-          settingsUrl={appSettingsPath({ workspaceSlug, projectId, appId: deployment.appId })}
+          settingsUrl={routes.projects.apps.settings({
+            workspaceSlug,
+            projectId,
+            appId: deployment.appId,
+          })}
           onRedeploy={() => setRedeployOpen(true)}
           redeployOpen={redeployOpen}
           onRedeployClose={() => setRedeployOpen(false)}

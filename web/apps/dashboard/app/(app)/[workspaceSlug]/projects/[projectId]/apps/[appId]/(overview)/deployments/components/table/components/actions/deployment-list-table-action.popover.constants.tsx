@@ -3,7 +3,7 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
-import { deploymentPath, projectLogsPath, projectRequestsPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
@@ -100,7 +100,7 @@ export const DeploymentListTableActions = ({
         icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            projectRequestsPath({
+            routes.projects.requests({
               workspaceSlug: workspace.slug,
               projectId: selectedDeployment.projectId,
               since: "6h",
@@ -115,11 +115,11 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            projectLogsPath({
+            routes.projects.logs({
               workspaceSlug: workspace.slug,
               projectId: selectedDeployment.projectId,
               appId: selectedDeployment.appId,
-              deploymentId: selectedDeployment.id
+              deploymentId: selectedDeployment.id,
             }),
           );
         },
@@ -130,7 +130,7 @@ export const DeploymentListTableActions = ({
         icon: <Hammer2 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            deploymentPath({
+            routes.projects.apps.deployment({
               workspaceSlug: workspace.slug,
               projectId: selectedDeployment.projectId,
               appId: selectedDeployment.appId,

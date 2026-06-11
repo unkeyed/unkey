@@ -1,6 +1,6 @@
 "use client";
 
-import { projectsPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -11,7 +11,7 @@ export default function AppHomePage() {
 
   useEffect(() => {
     if (workspace) {
-      router.push(projectsPath({ workspaceSlug: workspace.slug }));
+      router.push(routes.projects.list({ workspaceSlug: workspace.slug }));
     }
   }, [workspace, router]);
 

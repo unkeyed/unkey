@@ -6,7 +6,7 @@ import {
   dismissSettingsBanner,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/environment-settings";
-import { deploymentPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { Hammer2, XMark } from "@unkey/icons";
@@ -36,7 +36,7 @@ export function PendingRedeployBanner() {
       }
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       router.push(
-        deploymentPath({
+        routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,
           projectId: currentDeployment.projectId,
           appId: currentDeployment.appId,

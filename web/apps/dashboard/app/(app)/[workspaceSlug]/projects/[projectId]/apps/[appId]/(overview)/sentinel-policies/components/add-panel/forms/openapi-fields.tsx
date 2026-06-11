@@ -1,6 +1,6 @@
 "use client";
 
-import { projectSettingsPath } from "@/lib/navigation/routes/projects";
+import { routes } from "@/lib/navigation/routes";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Strong } from "./summary-helpers";
@@ -23,7 +23,7 @@ export function OpenApiFields() {
         <span>
           {"Using auto-scraped spec. "}
           <Link
-            href={projectSettingsPath({ workspaceSlug, projectId })}
+            href={routes.projects.settings({ workspaceSlug, projectId })}
             className="text-accent-12 decoration-dotted underline underline-offset-3 font-medium"
           >
             Configure scrape path
