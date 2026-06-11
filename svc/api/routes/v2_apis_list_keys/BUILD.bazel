@@ -27,6 +27,7 @@ go_test(
     name = "v2_apis_list_keys_test",
     size = "medium",
     srcs = [
+        "200_portal_session_test.go",
         "200_test.go",
         "400_test.go",
         "401_test.go",
@@ -40,6 +41,8 @@ go_test(
         "//pkg/hash",
         "//pkg/ptr",
         "//pkg/uid",
+        "//pkg/zen",
+        "//svc/api/internal/middleware",
         "//svc/api/internal/testutil",
         "//svc/api/internal/testutil/seed",
         "//svc/api/openapi",
