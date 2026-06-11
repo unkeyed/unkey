@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "github",
+    srcs = ["github.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/webhook/verifiers/github",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/webhook"],
+)
+
+go_test(
+    name = "github_test",
+    srcs = ["github_test.go"],
+    embed = [":github"],
+    deps = ["@com_github_stretchr_testify//require"],
+)
