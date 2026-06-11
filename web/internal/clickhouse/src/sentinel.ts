@@ -89,6 +89,9 @@ export const sentinelLogsRequestSchema = z.object({
     .nullable()
     .default(null),
   cursor: z.number().int().nullable().optional(),
+  // 1-based page for offset pagination. Defaults to 1 (offset 0) so cursor-only
+  // callers (e.g. the deployment logs view) keep their existing behavior.
+  page: z.number().int().min(1).default(1),
 });
 
 export type SentinelLogsRequest = z.infer<typeof sentinelLogsRequestSchema>;
@@ -177,6 +180,10 @@ export function getSentinelLogs(ch: Querier) {
       schema: z.object({ total_count: z.number().int() }),
     });
 
+    // Offset pagination. `page` is 1-based; cursor-only callers leave it at 1
+    // (offset 0). The cursor clause still composes for time-window callers.
+    const offset = (args.page - 1) * args.limit;
+
     const logsQuery = ch.query({
       query: `
         SELECT request_id, time, deployment_id, region, method, path, host,
@@ -186,17 +193,19 @@ export function getSentinelLogs(ch: Querier) {
         FROM ${TABLE}
         WHERE ${filterConditions}
           AND ({cursor: Nullable(UInt64)} IS NULL OR time < {cursor: Nullable(UInt64)})
-        ORDER BY time DESC
-        LIMIT {limit: Int}`,
-      params: sentinelLogsRequestSchema.extend(
-        Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
-      ),
+        ORDER BY time DESC, request_id DESC
+        LIMIT {limit: Int}
+        OFFSET {offset: Int}`,
+      params: sentinelLogsRequestSchema.extend({
+        offset: z.number().int(),
+        ...Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
+      }),
       schema: sentinelLogsResponseSchema,
     });
 
     return {
       totalQuery: totalQuery({ ...args, ...pathValues } as never),
-      logsQuery: logsQuery({ ...args, ...pathValues } as never),
+      logsQuery: logsQuery({ ...args, ...pathValues, offset } as never),
     };
   };
 }

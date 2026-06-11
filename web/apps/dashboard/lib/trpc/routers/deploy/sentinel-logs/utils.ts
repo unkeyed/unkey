@@ -31,5 +31,6 @@ export function transformSentinelLogsFilters(params: Omit<SentinelLogsRequest, "
     methods: params.methods ?? [],
     paths: params.paths ?? [],
     cursor: params.cursor ?? null,
+    page: params.page,
   };
 }
