@@ -359,10 +359,12 @@ if has_github_credentials:
     )
 
 # ─── Frontline (TLS termination proxy for *.unkey.local) ───────────────────
+# Rust implementation (svc/frontline-rs). The Go build was:
+#   cd .. && bazel run //build/frontline:load && docker tag unkey/frontline:dev "${EXPECTED_REF:-unkey/frontline:dev}"
 custom_build(
     ref='unkey/frontline:dev',
-    command='cd .. && bazel run //build/frontline:load && docker tag unkey/frontline:dev "${EXPECTED_REF:-unkey/frontline:dev}"',
-    deps=SERVICE_DEPS,
+    command='cd .. && docker build -t "${EXPECTED_REF:-unkey/frontline:dev}" -f svc/frontline-rs/Dockerfile .',
+    deps=['../svc/frontline-rs/src', '../svc/frontline-rs/Cargo.toml', '../svc/frontline-rs/Dockerfile', '../Cargo.toml', '../Cargo.lock'],
 )
 k8s_yaml('k8s/manifests/frontline.yaml')
 k8s_resource(

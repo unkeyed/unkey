@@ -52,3 +52,4 @@ bazel-unkey
 bazel-*
 
 .claude/worktrees/
+/target/

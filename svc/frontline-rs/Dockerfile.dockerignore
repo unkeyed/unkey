@@ -1,0 +1,7 @@
+# BuildKit per-Dockerfile ignore: the build context is the repository root,
+# but the image only needs the Cargo workspace and this crate.
+*
+!Cargo.toml
+!Cargo.lock
+!svc/frontline-rs
+svc/frontline-rs/target
