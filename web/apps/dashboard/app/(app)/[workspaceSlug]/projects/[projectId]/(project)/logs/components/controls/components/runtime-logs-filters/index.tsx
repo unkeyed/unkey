@@ -5,6 +5,7 @@ import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbo
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useParams } from "next/navigation";
 import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
 import { RuntimeLogsEnvironmentFilter } from "./runtime-logs-environment-filter";
 import { RuntimeLogsInstanceFilter } from "./runtime-logs-instance-filter";
@@ -59,6 +60,12 @@ const FILTER_ITEMS: FilterItemConfig[] = [
 
 export function RuntimeLogsFilters() {
   const { filters } = useRuntimeLogsFilters();
+  // On a deployment route the deployment is pinned by the path, so its filter
+  // would be a no-op — drop it from the list.
+  const params = useParams<{ deploymentId?: string }>();
+  const items = params?.deploymentId
+    ? FILTER_ITEMS.filter((item) => item.id !== "deploymentId")
+    : FILTER_ITEMS;
 
   const filterCount = filters.filter(
     (f) =>
@@ -71,7 +78,7 @@ export function RuntimeLogsFilters() {
   ).length;
 
   return (
-    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>
+    <FiltersPopover items={items} activeFilters={filters}>
       <div className="group">
         <Button
           variant="ghost"

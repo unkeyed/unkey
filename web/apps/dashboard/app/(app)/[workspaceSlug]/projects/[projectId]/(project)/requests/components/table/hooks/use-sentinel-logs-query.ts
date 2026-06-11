@@ -4,7 +4,7 @@ import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[pr
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { trpc } from "@/lib/trpc/client";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
-import { useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type UseSentinelLogsQueryParams = {
@@ -22,6 +22,7 @@ export function useSentinelLogsQuery({
 }: UseSentinelLogsQueryParams = {}) {
   const { projectId } = useProjectData();
   const { filters } = useSentinelLogsFilters();
+  const params = useParams<{ deploymentId?: string }>();
   const searchParams = useSearchParams();
   // Optional ?appId= narrows the project-wide view to a single app.
   const appId = searchParams.get("appId");
@@ -60,7 +61,10 @@ export function useSentinelLogsQuery({
     return {
       projectId,
       appId: appId ?? null,
-      deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
+      // On a deployment route the id is pinned by the path; elsewhere it comes
+      // from the deployment filter.
+      deploymentId:
+        params.deploymentId ?? (deploymentIdFilter ? String(deploymentIdFilter.value) : null),
       environmentId: environmentIdFilters,
       limit,
       startTime: startTimeFilter ? Number(startTimeFilter.value) : null,
@@ -70,7 +74,7 @@ export function useSentinelLogsQuery({
       methods: methodFilters.length > 0 ? methodFilters : null,
       paths: pathFilters.length > 0 ? pathFilters : null,
     };
-  }, [filters, limit, projectId, appId]);
+  }, [filters, limit, projectId, appId, params.deploymentId]);
 
   const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } =
     trpc.deploy.sentinelLogs.query.useInfiniteQuery(queryInput, {

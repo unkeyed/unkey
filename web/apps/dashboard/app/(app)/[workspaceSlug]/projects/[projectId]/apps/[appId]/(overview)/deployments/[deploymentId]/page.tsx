@@ -2,10 +2,10 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
+import { PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { DeploymentDomainsCard } from "../../../components/deployment-domains-card";
-import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
 import { useProjectData } from "../../data-provider";
 import { DeploymentApproval } from "./(deployment-progress)/deployment-approval";
 import { DeploymentBuild } from "./(deployment-progress)/deployment-build";
@@ -16,6 +16,7 @@ import { DeploymentSkipped } from "./(deployment-progress)/deployment-skipped";
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
 import { deriveStatusFromSteps } from "./deployment-utils";
 import { useDeployment } from "./layout-provider";
+import { useDeploymentNavVariant } from "./use-deployment-nav-variant";
 
 export default function DeploymentOverview() {
   const searchParams = useSearchParams();
@@ -24,6 +25,7 @@ export default function DeploymentOverview() {
   const { refetchDomains } = useProjectData();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const [navVariant] = useDeploymentNavVariant();
 
   const ready = deployment.status === "ready";
   const skipped = deployment.status === "skipped";
@@ -106,18 +108,27 @@ export default function DeploymentOverview() {
     ));
 
   return (
-    <ProjectContentWrapper centered>
-      <DeploymentInfo statusOverride={derivedStatus} />
-      {view}
-      <DeploymentApproval
-        isOpen={awaitingApproval}
-        onClose={() =>
-          router.push(
-            `/${workspace.slug}/projects/${deployment.projectId}/apps/${deployment.appId}/deployments`,
-          )
-        }
-        deployment={deployment}
-      />
-    </ProjectContentWrapper>
+    <PageContainer>
+      {navVariant === "sidebar" && (
+        <PageHeader>
+          <PageHeaderContent>
+            <PageHeaderTitle>Deployment</PageHeaderTitle>
+          </PageHeaderContent>
+        </PageHeader>
+      )}
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 py-6">
+        <DeploymentInfo statusOverride={derivedStatus} />
+        {view}
+        <DeploymentApproval
+          isOpen={awaitingApproval}
+          onClose={() =>
+            router.push(
+              `/${workspace.slug}/projects/${deployment.projectId}/apps/${deployment.appId}/deployments`,
+            )
+          }
+          deployment={deployment}
+        />
+      </div>
+    </PageContainer>
   );
 }

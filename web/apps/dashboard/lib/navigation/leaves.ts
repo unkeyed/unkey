@@ -167,23 +167,25 @@ export function buildAppLinks(
       icon: Gear,
       isActive: page === "settings",
     },
-    // Project-level views scoped to this app; separated since they navigate
-    // out of the app section.
-    {
-      key: "logs",
-      label: "Logs",
-      href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
-      icon: Layers3,
-      isActive: false,
-      separatorAbove: true,
-    },
-    {
-      key: "requests",
-      label: "Requests",
-      href: `/${slug}/projects/${projectId}/requests?since=6h&appId=${appId}`,
-      icon: ArrowOppositeDirectionY,
-      isActive: false,
-    },
+    // Logs and Requests are hidden here for now: per-deployment logs and
+    // requests live on the deployment detail's Logs/Requests tabs, and the
+    // project-wide views have their own pages.
+    // {
+    //   key: "logs",
+    //   label: "Logs",
+    //   href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
+    //   icon: Layers3,
+    //   isActive: false,
+    //   separatorAbove: true,
+    // },
+    // {
+    //   key: "requests",
+    //   label: "Requests",
+    //   href: `/${slug}/projects/${projectId}/requests?since=6h&appId=${appId}`,
+    //   icon: ArrowOppositeDirectionY,
+    //   isActive: false,
+    //   separatorAbove: true,
+    // },
     // Will be polished and added back in the future iterations
     // {
     //   key: "openapi-diff",

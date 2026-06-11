@@ -3,6 +3,7 @@ import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbo
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useParams } from "next/navigation";
 import { SentinelDeploymentFilter } from "./components/sentinel-logs-deployment-filter";
 import { SentinelEnvironmentFilter } from "./components/sentinel-logs-environment-filter";
 import { SentinelMethodsFilter } from "./components/sentinel-logs-methods-filter";
@@ -49,8 +50,14 @@ const FILTER_ITEMS: FilterItemConfig[] = [
 
 export const SentinelLogsFilters = () => {
   const { filters } = useSentinelLogsFilters();
+  // On a deployment route the deployment is pinned by the path, so its filter
+  // would be a no-op — drop it from the list.
+  const params = useParams<{ deploymentId?: string }>();
+  const items = params?.deploymentId
+    ? FILTER_ITEMS.filter((item) => item.id !== "deploymentId")
+    : FILTER_ITEMS;
   return (
-    <FiltersPopover items={FILTER_ITEMS} activeFilters={filters}>
+    <FiltersPopover items={items} activeFilters={filters}>
       <div className="group">
         <Button
           variant="ghost"

@@ -5,8 +5,12 @@ function PageHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-7xl items-start justify-between gap-3 px-6 pt-6",
-        "group-data-[width=full]/page:max-w-none group-data-[width=full]/page:border-b group-data-[width=full]/page:border-grayA-4 group-data-[width=full]/page:pb-4 group-data-[width=full]/page:pt-4",
+        // Center the title against the actions when there's no description (a
+        // single line), but top-align once a description (<p>) is present.
+        "mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-6 pt-6 has-[p]:items-start",
+        // More breathing room above the fold on large desktops (not laptops).
+        "2xl:pt-8",
+        "group-data-[width=full]/page:max-w-none group-data-[width=full]/page:border-b group-data-[width=full]/page:border-grayA-4 group-data-[width=full]/page:pb-4 group-data-[width=full]/page:pt-4 group-data-[width=full]/page:2xl:pt-4",
         className,
       )}
       {...props}
