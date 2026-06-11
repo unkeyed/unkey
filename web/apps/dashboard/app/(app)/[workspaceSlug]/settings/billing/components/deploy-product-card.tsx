@@ -239,16 +239,16 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         }))}
         currentId={currentPlan}
         // Warn when the period's metered spend already exceeds the credits the
-        // selected plan includes: the downgrade is allowed, but the difference
-        // becomes overage instead of being covered.
+        // selected plan includes. Downgrades keep the current period's credits,
+        // so the overage only starts biting at the next renewal.
         warningFor={(option) =>
           option.amount !== null && usageAmount !== null && usageAmount > option.amount
             ? `Your usage this period (${formatDollars(usageAmount)}) already exceeds the ${formatDollars(
                 option.amount,
-              )} of credits ${option.name} includes; the difference is billed as overage.`
+              )} of monthly credits ${option.name} includes. This period keeps your current credits; from next period, usage at this level is billed as overage.`
             : null
         }
-        changeNote="Takes effect immediately; the fee difference is prorated on your next invoice."
+        changeNote="Takes effect immediately. Upgrades are charged now and add the difference as usage credits; downgrades keep this period's credits, with the new fee starting next period."
         submittingId={
           subscribe.isLoading
             ? subscribe.variables?.plan
