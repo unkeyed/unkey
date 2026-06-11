@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type InsertIdentity, db, schema } from "@/lib/db";
 import { ratelimitItemSchema } from "@/lib/schemas/ratelimit";
+import { isDuplicateKeyError } from "@/lib/utils/db-errors";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -124,11 +125,7 @@ export const createIdentity = workspaceProcedure
       // The unique index covers (workspaceId, externalId, deleted=false), so a
       // duplicate-key error means an *active* identity with this externalId
       // already exists. Soft-deleted rows do not trigger this.
-      if (
-        err instanceof Error &&
-        "code" in err &&
-        (err as { code: string }).code === "ER_DUP_ENTRY"
-      ) {
+      if (isDuplicateKeyError(err)) {
         console.info({
           message: "Attempted to create duplicate identity",
           workspaceId: ctx.workspace.id,

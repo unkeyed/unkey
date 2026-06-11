@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
+import { isDuplicateKeyError } from "@/lib/utils/db-errors";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
@@ -46,9 +47,6 @@ export const deleteIdentity = workspaceProcedure
 
     await db
       .transaction(async (tx) => {
-        const isDuplicateKeyError = (e: unknown) =>
-          e instanceof Error && "code" in e && (e as { code: string }).code === "ER_DUP_ENTRY";
-
         const softDelete = () =>
           tx
             .update(schema.identities)
