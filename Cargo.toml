@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = ["svc/frontline-rs"]
+
+[workspace.package]
+edition = "2021"
+license = "AGPL-3.0"
+repository = "https://github.com/unkeyed/unkey"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
