@@ -4,6 +4,7 @@ import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_comp
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { appDeploymentsPath, newAppPath } from "@/lib/navigation/routes/projects";
+import { githubUrl } from "@/lib/github-url";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Dots, Github, Plus, Terminal } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -72,6 +73,12 @@ export const AppsList = () => {
                 name={app.name}
                 domain={app.domain}
                 commitTitle={app.commitTitle}
+                sourceUrl={githubUrl.deployment({
+                  repoFullName: app.repositoryFullName,
+                  forkRepoFullName: app.forkRepositoryFullName,
+                  prNumber: app.prNumber,
+                  sha: app.commitSha,
+                })}
                 commitTimestamp={app.commitTimestamp}
                 branch={app.branch}
                 author={app.author}

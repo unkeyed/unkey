@@ -78,22 +78,6 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
   ];
 }
 
-export function buildSettingsLinks(slug: string, segments: string[]): ResolvedNavLink[] {
-  const page = segments[1];
-  const base = `/${slug}/settings`;
-  return [
-    { key: "general", label: "General", href: `${base}/general`, isActive: page === "general" },
-    { key: "team", label: "Team", href: `${base}/team`, isActive: page === "team" },
-    {
-      key: "root-keys",
-      label: "Root Keys",
-      href: `${base}/root-keys`,
-      isActive: page === "root-keys",
-    },
-    { key: "billing", label: "Billing", href: `${base}/billing`, isActive: page === "billing" },
-  ];
-}
-
 export function buildAuthorizationLinks(slug: string, segments: string[]): ResolvedNavLink[] {
   const page = segments[1];
   const base = `/${slug}/authorization`;

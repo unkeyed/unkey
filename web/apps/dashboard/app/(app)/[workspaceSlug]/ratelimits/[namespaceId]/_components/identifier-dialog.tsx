@@ -66,6 +66,12 @@ export const IdentifierDialog = ({
   const onSubmitForm = async (values: FormValues) => {
     try {
       if (overrideDetails?.overrideId) {
+        // The overview/logs table sources overrideDetails from ClickHouse data,
+        // not this collection, so the collection may never have been loaded in
+        // that context, leaving update() unable to find the key. preload()
+        // populates it from override.list (no-op once loaded, e.g. on the
+        // overrides page where a live query already drives it).
+        await collection.ratelimitOverrides.preload();
         collection.ratelimitOverrides.update(overrideDetails.overrideId, (draft) => {
           draft.limit = values.limit;
           draft.duration = values.duration;

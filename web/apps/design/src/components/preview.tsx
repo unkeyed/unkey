@@ -9,11 +9,17 @@ interface Props {
    * children.
    */
   code?: string;
+  /**
+   * Let the preview fill the frame instead of centering a component in
+   * padding. Use for full-page layout examples that own their own width and
+   * spacing.
+   */
+  bleed?: boolean;
 }
 
 const EXPAND_THRESHOLD = 8;
 
-export function Preview({ children, code = "" }: Props) {
+export function Preview({ children, code = "", bleed = false }: Props) {
   const [expanded, setExpanded] = useState(false);
   const codePanelRef = useRef<HTMLDivElement>(null);
   const needsExpand = (code.match(/class="line"/g)?.length ?? 0) > EXPAND_THRESHOLD;
@@ -33,8 +39,16 @@ export function Preview({ children, code = "" }: Props) {
 
   return (
     <div className="not-prose isolate my-6">
-      <div className="relative z-10 flex min-h-72 items-center justify-center overflow-hidden rounded-xl border bg-background p-10 shadow-xs">
-        <div className="flex w-full flex-wrap items-center justify-center gap-4">{children}</div>
+      <div
+        className={`relative z-10 flex min-h-72 overflow-hidden rounded-xl border bg-background shadow-xs ${
+          bleed ? "flex-col" : "items-center justify-center p-10"
+        }`}
+      >
+        {bleed ? (
+          children
+        ) : (
+          <div className="flex w-full flex-wrap items-center justify-center gap-4">{children}</div>
+        )}
       </div>
       <div
         ref={codePanelRef}
