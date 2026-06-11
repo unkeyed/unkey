@@ -193,7 +193,7 @@ export function getSentinelLogs(ch: Querier) {
         FROM ${TABLE}
         WHERE ${filterConditions}
           AND ({cursor: Nullable(UInt64)} IS NULL OR time < {cursor: Nullable(UInt64)})
-        ORDER BY time DESC
+        ORDER BY time DESC, request_id DESC
         LIMIT {limit: Int}
         OFFSET {offset: Int}`,
       params: sentinelLogsRequestSchema.extend({
