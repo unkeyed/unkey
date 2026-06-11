@@ -149,19 +149,12 @@ func (w *Workflow) buildDockerImageFromGit(
 			return nil, err
 		}
 
-		// No build-time env secrets for fork builds: an untrusted Dockerfile could
-		// mount id=env and exfiltrate them. Runtime env is unaffected: krane
-		// injects it into the container separately (ensureDeploymentSecret in
-		// svc/krane/internal/deployment/secrets.go).
-		var envVars map[string]string
-		if !isForkBuild {
-			// Treat all decryption failures as terminal: bearer-token / keyring
-			// config errors never self-heal, and genuine vault outages are better
-			// surfaced to the user fast than burned inside a retry loop.
-			envVars, err = w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
-			if err != nil {
-				return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
-			}
+		// Treat all decryption failures as terminal: bearer-token / keyring
+		// config errors never self-heal, and genuine vault outages are better
+		// surfaced to the user fast than burned inside a retry loop.
+		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
+		if err != nil {
+			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
 		}
 
 		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
