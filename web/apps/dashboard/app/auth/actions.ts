@@ -25,6 +25,7 @@ import {
 import { requireEmailMatch } from "@/lib/auth/utils";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
+import type { Route } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -322,7 +323,7 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-  redirect(redirectTo);
+  redirect(redirectTo as Route);
 }
 
 // OAuth
@@ -350,7 +351,7 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-  redirect(redirectTo);
+  redirect(redirectTo as Route);
 }
 
 // Organization Selection
