@@ -1,13 +1,13 @@
 ---
-title: Deploy Billing Push
-description: How month-to-date Deploy usage flows from ClickHouse to Stripe billing meters every hour.
+title: Deploy Billing
+description: "How Deploy usage flows from ClickHouse to Stripe: the hourly month-to-date push and the month-end invoice close."
 ---
 
 ## Why this exists
 
 Customers running Deploy workloads are billed for CPU, memory, disk, and egress. The raw usage lives in ClickHouse as per-pod counter checkpoints written by [heimdall](/infra/metering/heimdall), but Stripe is the system that turns usage into an invoice. The Deploy billing push is the hourly job that bridges the two: it computes each workspace's running month-to-date total and reports it to Stripe so the monthly invoice reflects actual consumption.
 
-The push reports the absolute period-to-date total every tick rather than per-tick deltas. That single decision removes the failure modes a delta pipeline normally has: there are no deltas to deduplicate and no exactly-once delivery requirement, because a re-send of the same or a newer total is harmless. What it does not remove is coverage of the period boundary: the last value Stripe receives before the invoice finalizes is the one it bills, so the hourly push alone leaves the final partial hour of the month unbilled. A separate close step pushes the final total for the just-closed period before the invoice finalizes; that is where end-of-month coverage is handled, not here.
+The push reports the absolute period-to-date total every tick rather than per-tick deltas. That single decision removes the failure modes a delta pipeline normally has: there are no deltas to deduplicate and no exactly-once delivery requirement, because a re-send of the same or a newer total is harmless. What it does not remove is coverage of the period boundary: the last value Stripe receives before the invoice finalizes is the one it bills, so the hourly push alone leaves the final partial hour of the month unbilled. A separate close step pushes the final total for the just-closed period before the invoice finalizes; that is where end-of-month coverage is handled. See [Month-end close](#month-end-close).
 
 ## How it works
 
@@ -68,6 +68,46 @@ The events carry no idempotency identifier on purpose. `last` aggregation alread
 ### Fan-out
 
 Pushing workspaces one at a time is slow once tenant counts grow, and pushing all of them at once risks Stripe's rate limits. The handler fans out with `restate.RunAsync` in batches of `pushConcurrency` (16), awaiting each batch before starting the next. Each push runs as its own journaled Restate step, so a crash retries only the incomplete batch.
+
+## Month-end close
+
+The hourly push leaves the final partial hour of the month unbilled: whatever total Stripe last received before the renewal invoice finalizes is the one it bills. The close covers that boundary, and it runs in ctrl-api, not the worker.
+
+When Stripe creates a Deploy workspace's renewal invoice at the period roll it emits `invoice.created`. ctrl-api handles it at `POST /webhooks/stripe`: it claims the draft (setting `auto_advance` off so Stripe stops racing to finalize) and dispatches `CronService.RunDeployBillingClose` for the closed period over the Restate ingress. The per-customer invoice storm at the roll collapses onto one durable invocation via the idempotency key; anything that is not a Deploy renewal invoice is ignored and keeps Stripe's own finalization.
+
+`RunDeployBillingClose` pushes every billable workspace's final full-period usage, stamped one second before period end so the `last`-formula meters bill the whole month, then finalizes the Deploy workspaces' draft renewal invoices through `svc/ctrl/internal/invoicecloser`. A workspace whose final push fails is deliberately **left in draft** rather than finalized: finalizing would freeze an under-billed `last` value onto the invoice with no way to correct it. A 00:30 UTC backup cron calls the same handler with a **distinct** idempotency key (it carries the run timestamp), so it is a genuine fresh retry, not an attachment to the webhook's invocation: it re-pushes the absolute totals and finalizes any drafts left open. It runs at 00:30 rather than later so it lands before Stripe's ~1h auto-finalization of any invoice the webhook never claimed. A full ctrl outage degrades to Stripe's own one-hour auto-finalization.
+
+### ctrl-api configuration
+
+The webhook verifies signatures and the close finalizes invoices through the Stripe API, so ctrl-api needs both a webhook secret and an API key in its TOML config:
+
+```toml
+[stripe]
+webhook_secret = "${STRIPE_WEBHOOK_SECRET}"
+secret_key = "${STRIPE_SECRET_KEY}"
+```
+
+An empty `webhook_secret` leaves `/webhooks/stripe` unregistered. Both come from the `stripe-credentials` secret (`dev/.env.stripe` in local dev).
+
+### Testing the close locally
+
+1. Configure ctrl-api's Stripe as above, and forward Stripe events to ctrl-api (separate from any dashboard forwarding) so the webhook fires:
+
+   ```bash
+   stripe listen --forward-to https://ctrl-api.unkey.local/webhooks/stripe
+   ```
+
+   Paste the printed `whsec_...` into `dev/.env.stripe` as `STRIPE_WEBHOOK_SECRET`.
+
+2. Put a workspace on a Deploy plan under a Stripe test clock (the dashboard checkout creates the clocked customer) with Deploy usage in ClickHouse for the period.
+
+3. Advance the clock past the period end so Stripe finalizes the cycle and emits `invoice.created`:
+
+   ```bash
+   mise run unkey -- dev stripe clock advance --customer cus_...
+   ```
+
+4. The webhook claims the draft and dispatches the close. Confirm in the Stripe test dashboard that the renewal invoice carries the final period total and is finalized rather than left as a draft.
 
 ## Code layout
 

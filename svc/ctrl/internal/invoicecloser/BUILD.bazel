@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "invoicecloser",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "noop.go",
+        "stripe.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser",
+    visibility = ["//svc/ctrl:__subpackages__"],
+    deps = [
+        "//pkg/fault",
+        "@com_github_stripe_stripe_go_v86//:stripe-go",
+    ],
+)
