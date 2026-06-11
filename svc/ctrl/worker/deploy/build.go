@@ -644,6 +644,9 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 		}
 	}
 
+	// Permission names and access levels are defined by GitHub:
+	// https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps
+	// "contents":"read" grants clone/read access only, no write of any kind.
 	token, err := w.github.GetScopedInstallationToken(params.InstallationID, scopeRepo, map[string]string{"contents": "read"})
 	if err != nil {
 		return noToken, false, fmt.Errorf("failed to get GitHub installation token: %w", err)

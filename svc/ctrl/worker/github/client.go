@@ -269,6 +269,8 @@ type scopedTokenRequest struct {
 	// omitted, the token spans all of the installation's repositories.
 	Repositories []string `json:"repositories,omitempty"`
 	// Permissions maps permission name to access level, e.g. {"contents":"read"}.
+	// Valid names and levels:
+	// https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps
 	Permissions map[string]string `json:"permissions"`
 }
 
@@ -287,6 +289,13 @@ type scopedTokenRequest struct {
 // scope (installation, repo, permission set) so distinct scopes never collide.
 func (c *Client) GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error) {
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
+		return InstallationToken{}, err
+	}
+
+	// An empty permission set is NOT a no-op: GitHub reads it as "grant the App's
+	// full installation permissions", which would silently hand back a
+	// write-capable token. Reject it so the downscope is always explicit.
+	if err := assert.False(len(permissions) == 0, "permissions must be provided to scope the token"); err != nil {
 		return InstallationToken{}, err
 	}
 
