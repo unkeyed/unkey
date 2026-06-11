@@ -7,7 +7,7 @@ export function useDeploymentSentinelLogsQuery() {
   const { data, isLoading, error } = trpc.deploy.sentinelLogs.query.useInfiniteQuery(
     {
       projectId: deployment.projectId,
-      deploymentId: deployment.id,
+      deploymentId: [deployment.id],
       environmentId: [deployment.environmentId],
       limit: 50,
       since: "6h",
