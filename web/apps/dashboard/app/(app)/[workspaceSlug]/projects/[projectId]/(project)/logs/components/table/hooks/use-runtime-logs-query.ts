@@ -21,7 +21,7 @@ const getLogKey = (log: RuntimeLog): string =>
   `${log.time}-${log.region}-${log.instance_id}-${log.message}`;
 
 export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQueryParams) {
-  const params = useParams<{ projectId: string }>();
+  const params = useParams<{ projectId: string; deploymentId?: string }>();
   const searchParams = useSearchParams();
   // Optional ?appId= narrows the project-wide view to a single app.
   const appId = searchParams.get("appId");
@@ -55,7 +55,10 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
     return {
       projectId: params.projectId,
       appId: appId ?? null,
-      deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
+      // On a deployment route the id is pinned by the path; elsewhere it comes
+      // from the deployment filter.
+      deploymentId:
+        params.deploymentId ?? (deploymentIdFilter ? String(deploymentIdFilter.value) : null),
       limit,
       startTime: startTimeFilter ? Number(startTimeFilter.value) : null,
       endTime: endTimeFilter ? Number(endTimeFilter.value) : null,
