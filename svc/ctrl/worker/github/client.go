@@ -285,10 +285,11 @@ type scopedTokenRequest struct {
 //
 // If repo (an "owner/repo" full name) is non-empty the token is restricted to
 // that single repository; if empty the token spans all of the installation's
-// repositories. Use the single-repo form for untrusted (fork PR) builds so an
-// exfiltrated token grants only read access to the one repo the PR author can
-// already read; use the all-repos read-only form for trusted builds to strip
-// write access while still allowing private cross-repo dependency clones.
+// repositories. Callers scope to a single repo so an exfiltrated token grants
+// only read access to the one repo BuildKit clones. The empty-repo (all-repos)
+// form exists for callers that need cross-repo reads, but the build path does
+// not use it: a single-repo read token cannot clone private cross-repo deps or
+// submodules, an accepted tradeoff for keeping the build credential minimal.
 //
 // Results are cached (like [Client.GetInstallationToken]) keyed by the full
 // scope (installation, repo, permission set) so distinct scopes never collide.
