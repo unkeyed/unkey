@@ -187,6 +187,9 @@ type HeartbeatConfig struct {
 	// billing push. When set, a heartbeat is sent after a successful push.
 	// Optional - if empty, no heartbeat is sent.
 	DeployBillingPushURL string `toml:"deploy_billing_push_url"`
+	// DeployBillingCloseURL is the Checkly heartbeat URL for the month-end
+	// Deploy billing close. Optional.
+	DeployBillingCloseURL string `toml:"deploy_billing_close_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.

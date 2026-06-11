@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
 )
 
 // Config holds the handler's dependencies.
@@ -30,14 +31,22 @@ type Config struct {
 	// Heartbeat is pinged on successful completion. Must not be nil; use
 	// healthcheck.NewNoop() if monitoring is not configured.
 	Heartbeat healthcheck.Heartbeat
+	// Closer lists and finalizes draft invoices for the month-end close.
+	// Must not be nil; use invoicecloser.NewNoop() to disable finalization.
+	Closer invoicecloser.Closer
+	// CloseHeartbeat is pinged when a month-end close completes. Must not be
+	// nil; use healthcheck.NewNoop() if monitoring is not configured.
+	CloseHeartbeat healthcheck.Heartbeat
 }
 
-// Handler executes RunDeployBillingPush.
+// Handler executes RunDeployBillingPush and RunDeployBillingClose.
 type Handler struct {
-	usage     UsageReader
-	pusher    billingmeter.Pusher
-	db        db.Database
-	heartbeat healthcheck.Heartbeat
+	usage          UsageReader
+	pusher         billingmeter.Pusher
+	db             db.Database
+	heartbeat      healthcheck.Heartbeat
+	closer         invoicecloser.Closer
+	closeHeartbeat healthcheck.Heartbeat
 }
 
 // New constructs a Handler.
@@ -46,14 +55,18 @@ func New(cfg Config) (*Handler, error) {
 		assert.NotNil(cfg.Pusher, "Pusher must not be nil; use billingmeter.NewNoop()"),
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Closer, "Closer must not be nil; use invoicecloser.NewNoop()"),
+		assert.NotNil(cfg.CloseHeartbeat, "CloseHeartbeat must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
 	return &Handler{
-		usage:     cfg.UsageReader,
-		pusher:    cfg.Pusher,
-		db:        cfg.DB,
-		heartbeat: cfg.Heartbeat,
+		usage:          cfg.UsageReader,
+		pusher:         cfg.Pusher,
+		db:             cfg.DB,
+		heartbeat:      cfg.Heartbeat,
+		closer:         cfg.Closer,
+		closeHeartbeat: cfg.CloseHeartbeat,
 	}, nil
 }
 
@@ -85,21 +98,60 @@ func (h *Handler) Handle(
 	}
 	nowUnix := nowTime.Unix()
 
+	workspacesWithUsage, workspacesPushed, metersPushed, workspacesFailed, err := h.pushUsage(
+		ctx, period, p, nowUnix*1000, nowUnix,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("deploy billing push complete",
+		"billing_period", period,
+		"workspaces_with_usage", workspacesWithUsage,
+		"workspaces_pushed", workspacesPushed,
+		"workspaces_failed", workspacesFailed,
+		"meters_pushed", metersPushed,
+	)
+
+	// Per-workspace failures complete the run (the next tick re-pushes the
+	// same absolute totals) but withhold the heartbeat, so monitoring fires
+	// instead of going blind while pushes are silently failing.
+	if workspacesFailed > 0 {
+		return &hydrav1.RunDeployBillingPushResponse{
+			WorkspacesPushed: int32(workspacesPushed),
+			MetersPushed:     int32(metersPushed),
+		}, nil
+	}
+	return h.done(ctx, workspacesPushed, metersPushed)
+}
+
+// pushUsage computes billable usage for [p.Start(), endMillis) and pushes
+// each billable workspace's absolute total, stamping the meter events with
+// eventTimestamp. Shared by the hourly push (end = timestamp = now) and the
+// month-end close (end = period end, timestamp just inside the closed
+// period, so the "last"-formula meters bill the final total).
+func (h *Handler) pushUsage(
+	ctx restate.ObjectContext,
+	period string,
+	p billingperiod.Period,
+	endMillis int64,
+	eventTimestamp int64,
+) (workspacesWithUsage, workspacesPushed, metersPushed, workspacesFailed int, err error) {
 	rows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceMeterUsage, error) {
 		return h.usage.GetInstanceMeterUsage(rc, clickhouse.GetInstanceMeterUsageRequest{
 			WorkspaceID: "", // all workspaces; we filter to billable ones below
 			Start:       p.Start().UnixMilli(),
-			End:         nowUnix * 1000,
+			End:         endMillis,
 		})
-	}, restate.WithName("get month-to-date usage"))
+	}, restate.WithName("get period usage"))
 	if err != nil {
-		return nil, fmt.Errorf("get month-to-date usage: %w", err)
+		return 0, 0, 0, 0, fmt.Errorf("get period usage: %w", err)
 	}
 
 	valuesByWorkspace := aggregateUsage(rows)
 	if len(valuesByWorkspace) == 0 {
 		logger.Info("no deploy usage this period", "billing_period", period)
-		return h.done(ctx, 0, 0)
+		return 0, 0, 0, 0, nil
 	}
 
 	// Sort so the downstream journaled steps (db fetch, per-workspace push)
@@ -114,7 +166,7 @@ func (h *Handler) Handle(
 		return db.Query.ListWorkspacesForDeployBillingByIDs(rc, h.db.RO(), workspaceIDs)
 	}, restate.WithName("fetch workspace billing identities"))
 	if err != nil {
-		return nil, fmt.Errorf("fetch workspace billing identities: %w", err)
+		return 0, 0, 0, 0, fmt.Errorf("fetch workspace billing identities: %w", err)
 	}
 
 	billingByID := make(map[string]db.ListWorkspacesForDeployBillingByIDsRow, len(billing))
@@ -147,23 +199,17 @@ func (h *Handler) Handle(
 				WorkspaceID:      id,
 				StripeCustomerID: b.StripeCustomerID.String,
 				Values:           values,
-				Timestamp:        nowUnix,
+				Timestamp:        eventTimestamp,
 			},
 		})
 	}
 
-	workspacesPushed, metersPushed, err := h.pushAll(ctx, tasks)
+	workspacesPushed, metersPushed, workspacesFailed, err = h.pushAll(ctx, tasks)
 	if err != nil {
-		return nil, err
+		return 0, 0, 0, 0, err
 	}
 
-	logger.Info("deploy billing push complete",
-		"billing_period", period,
-		"workspaces_with_usage", len(valuesByWorkspace),
-		"workspaces_pushed", workspacesPushed,
-		"meters_pushed", metersPushed,
-	)
-	return h.done(ctx, workspacesPushed, metersPushed)
+	return len(valuesByWorkspace), workspacesPushed, metersPushed, workspacesFailed, nil
 }
 
 // done pings the heartbeat and returns the response. Pulled out so the

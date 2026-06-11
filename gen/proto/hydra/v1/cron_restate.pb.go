@@ -61,6 +61,15 @@ type CronServiceClient interface {
 	// "YYYY-MM"; the pushed quantity is the absolute month-to-date total, so
 	// retries and overlapping ticks are harmless. Hourly schedule.
 	RunDeployBillingPush(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse]
+	// RunDeployBillingClose performs the month-end close for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
+	// workspace's final full-period usage, timestamped just inside the closed
+	// period so the "last"-formula meters bill the final total, then finalizes
+	// every Deploy workspace's draft renewal invoice for that period.
+	// Idempotent: pushes converge by construction and an already-finalized
+	// invoice counts as done, so the Stripe invoice.created webhook (via
+	// ctrl-api) and the 01:05 UTC backup cron can both invoke it safely.
+	RunDeployBillingClose(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse]
 }
 
 type cronServiceClient struct {
@@ -125,6 +134,14 @@ func (c *cronServiceClient) RunDeployBillingPush(opts ...sdk_go.ClientOption) sd
 	return sdk_go.WithRequestType[*RunDeployBillingPushRequest](sdk_go.Object[*RunDeployBillingPushResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeployBillingPush", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeployBillingClose(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeployBillingCloseRequest](sdk_go.Object[*RunDeployBillingCloseResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeployBillingClose", cOpts...))
+}
+
 // CronServiceIngressClient is the ingress client API for hydra.v1.CronService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -158,6 +175,15 @@ type CronServiceIngressClient interface {
 	// "YYYY-MM"; the pushed quantity is the absolute month-to-date total, so
 	// retries and overlapping ticks are harmless. Hourly schedule.
 	RunDeployBillingPush() ingress.Requester[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse]
+	// RunDeployBillingClose performs the month-end close for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
+	// workspace's final full-period usage, timestamped just inside the closed
+	// period so the "last"-formula meters bill the final total, then finalizes
+	// every Deploy workspace's draft renewal invoice for that period.
+	// Idempotent: pushes converge by construction and an already-finalized
+	// invoice counts as done, so the Stripe invoice.created webhook (via
+	// ctrl-api) and the 01:05 UTC backup cron can both invoke it safely.
+	RunDeployBillingClose() ingress.Requester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse]
 }
 
 type cronServiceIngressClient struct {
@@ -202,6 +228,11 @@ func (c *cronServiceIngressClient) RunRatelimitGlobalCountersCleanup() ingress.R
 func (c *cronServiceIngressClient) RunDeployBillingPush() ingress.Requester[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse](c.client, c.serviceName, "RunDeployBillingPush", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeployBillingClose() ingress.Requester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse](c.client, c.serviceName, "RunDeployBillingClose", &c.key, &codec)
 }
 
 // CronServiceServer is the server API for hydra.v1.CronService service.
@@ -254,6 +285,15 @@ type CronServiceServer interface {
 	// "YYYY-MM"; the pushed quantity is the absolute month-to-date total, so
 	// retries and overlapping ticks are harmless. Hourly schedule.
 	RunDeployBillingPush(ctx sdk_go.ObjectContext, req *RunDeployBillingPushRequest) (*RunDeployBillingPushResponse, error)
+	// RunDeployBillingClose performs the month-end close for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
+	// workspace's final full-period usage, timestamped just inside the closed
+	// period so the "last"-formula meters bill the final total, then finalizes
+	// every Deploy workspace's draft renewal invoice for that period.
+	// Idempotent: pushes converge by construction and an already-finalized
+	// invoice counts as done, so the Stripe invoice.created webhook (via
+	// ctrl-api) and the 01:05 UTC backup cron can both invoke it safely.
+	RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error)
 }
 
 // UnimplementedCronServiceServer should be embedded to have
@@ -281,6 +321,9 @@ func (UnimplementedCronServiceServer) RunRatelimitGlobalCountersCleanup(ctx sdk_
 func (UnimplementedCronServiceServer) RunDeployBillingPush(ctx sdk_go.ObjectContext, req *RunDeployBillingPushRequest) (*RunDeployBillingPushResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingPush not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingClose not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
 // UnsafeCronServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -306,5 +349,6 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunAuditLogExport", sdk_go.NewObjectHandler(srv.RunAuditLogExport))
 	router = router.Handler("RunRatelimitGlobalCountersCleanup", sdk_go.NewObjectHandler(srv.RunRatelimitGlobalCountersCleanup))
 	router = router.Handler("RunDeployBillingPush", sdk_go.NewObjectHandler(srv.RunDeployBillingPush))
+	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
 	return router
 }

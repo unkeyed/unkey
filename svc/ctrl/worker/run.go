@@ -456,11 +456,12 @@ func Run(ctx context.Context, cfg Config) error {
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:        cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
-			KeyRefill:         cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
-			KeyLastUsedSync:   cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
-			AuditLogExport:    cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
-			DeployBillingPush: cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
+			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
+			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
+			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
+			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
+			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
+			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 		},
 	})
 	if err != nil {

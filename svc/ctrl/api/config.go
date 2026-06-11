@@ -46,6 +46,20 @@ type GitHubConfig struct {
 	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
+// StripeConfig holds the Stripe integration for the month-end Deploy billing
+// close: the invoice.created webhook claims renewal invoices of Deploy
+// workspaces (auto_advance off) and dispatches the closing flow to the
+// worker via Restate. Both fields empty disables the webhook entirely.
+type StripeConfig struct {
+	// WebhookSecret verifies Stripe webhook signatures. Empty disables the
+	// /webhooks/stripe route.
+	WebhookSecret string `toml:"webhook_secret"`
+
+	// SecretKey authenticates the auto_advance claim on draft invoices.
+	// Required when WebhookSecret is set.
+	SecretKey string `toml:"secret_key"`
+}
+
 // DomainConnectConfig holds Domain Connect protocol configuration for
 // one-click DNS setup via supported providers.
 type DomainConnectConfig struct {
@@ -121,6 +135,10 @@ type Config struct {
 
 	// GitHub configures GitHub App webhook integration. See [GitHubConfig].
 	GitHub GitHubConfig `toml:"github"`
+
+	// Stripe configures the Stripe webhook for the month-end Deploy billing
+	// close. See [StripeConfig].
+	Stripe StripeConfig `toml:"stripe"`
 
 	// DomainConnect configures the Domain Connect protocol for one-click DNS setup.
 	// See [DomainConnectConfig].

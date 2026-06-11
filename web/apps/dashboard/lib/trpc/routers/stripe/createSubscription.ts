@@ -129,9 +129,12 @@ export const createSubscription = workspaceProcedure
                 price: product.default_price.toString(),
               },
             ],
-            billing_cycle_anchor_config: {
-              day_of_month: 1,
-            },
+            // Anchor at midnight UTC on the 1st, not just the 1st: the month-end
+            // closing flow and the "last"-formula meters require billing periods
+            // to be exact calendar months. Without the time fields the anchor
+            // keeps the creation time-of-day, and the renewal invoice's usage
+            // window would swallow the next month's early meter events.
+            billing_cycle_anchor_config: { day_of_month: 1, hour: 0, minute: 0, second: 0 },
             // clover+ defaults new subscriptions to "flexible" billing mode,
             // which itemizes prorations differently and would change the
             // Deploy credit-grant net-fee math. Stay on classic.
