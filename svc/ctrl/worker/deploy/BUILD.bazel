@@ -12,6 +12,7 @@ go_library(
         "notify_instances_ready_handler.go",
         "promote_handler.go",
         "queue_gate.go",
+        "railpack.go",
         "rollback_handler.go",
         "scale_down_idle_preview_deployments.go",
         "service.go",
@@ -48,6 +49,7 @@ go_library(
         "@com_github_moby_buildkit//session/secrets/secretsprovider",
         "@com_github_opencontainers_go_digest//:go-digest",
         "@com_github_restatedev_sdk_go//:sdk-go",
+        "@com_github_tonistiigi_fsutil//:fsutil",
         "@org_golang_google_protobuf//encoding/protojson",
     ],
 )
@@ -55,7 +57,11 @@ go_library(
 go_test(
     name = "deploy_test",
     size = "large",
-    srcs = ["scale_down_idle_preview_deployments_test.go"],
+    srcs = [
+        "railpack_test.go",
+        "scale_down_idle_preview_deployments_test.go",
+    ],
+    embed = [":deploy"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",

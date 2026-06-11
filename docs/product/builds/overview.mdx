@@ -1,6 +1,6 @@
 ---
 title: Builds
-description: "Learn how Unkey builds container images from your Dockerfile. Understand build caching, build arguments, and the container image pipeline."
+description: "Learn how Unkey turns your source code into a container image. Push your repo and Unkey detects your language, installs dependencies, and builds automatically."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -11,85 +11,47 @@ A build turns your source code into a container image that Unkey can deploy. Eve
 
 ## How builds work
 
-Unkey builds your application using your Dockerfile on remote build infrastructure. You don't need to set up Docker locally or manage build servers.
+Unkey builds your application on remote build infrastructure. You don't need to write a Dockerfile, set up Docker locally, or manage build servers.
 
 The build process:
 
-1. Unkey fetches your source code (from GitHub or a CLI upload).
-2. A remote builder runs `docker build` using your Dockerfile.
+1. The build machine fetches your source code directly from GitHub.
+2. Unkey detects your language, package manager, and framework, then installs dependencies and builds the image.
 3. The resulting image is stored in Unkey's container registry.
 4. The image is deployed to your configured [regions](/build-and-deploy/regions).
 
-Build output streams to the **Deployments** tab in your project dashboard, so you can follow progress and diagnose failures in real time.
+Build output streams to the **Deployments** tab in your project dashboard, so you can follow progress and diagnose failures in real time. The detection output appears at the top of the build logs, so you can see exactly which language and tool versions were chosen.
 
-## Dockerfile required
+## Supported languages
 
-Unkey requires a Dockerfile in your repository. There's no auto-detection or buildpack support.
-
-If your Dockerfile isn't in the repository root or has a non-standard name, configure the path in your [app settings](/platform/apps/settings#dockerfile).
+Builds support Node.js, Python, Go, PHP, Java, Rust, Ruby, Elixir, Deno, .NET, Gleam, C++, static sites, and shell scripts. Detection understands each ecosystem's standard files, for example `package.json` with npm, pnpm, bun, or yarn for Node.js, `go.mod` for Go, or `pyproject.toml` and `requirements.txt` for Python.
 
 ## Build configuration
 
-Configure build settings in the **Settings** tab of your project dashboard:
+Most projects build with zero configuration. When you need to adjust where and how the build runs, configure it in the **Settings** tab of your project dashboard:
 
-| Setting            | Description                                                       | Default        |
-| ------------------ | ----------------------------------------------------------------- | -------------- |
-| **Root directory** | The build context directory, where `COPY` and `ADD` are relative to | `.` (repo root) |
-| **Dockerfile**     | Path to the Dockerfile within the root directory                   | `Dockerfile`   |
+| Setting            | Description                                              | Default         |
+| ------------------ | -------------------------------------------------------- | --------------- |
+| **Root directory** | The directory your application is built from             | `.` (repo root) |
+| **Dockerfile**     | Optional path to a [Dockerfile](/builds/dockerfile) for full control over the image | Automatic       |
 
-See [App settings](/platform/apps/settings#build-settings) for the full reference.
+In a monorepo, point the [root directory](/platform/apps/settings#root-directory) at the service you're deploying so detection picks up the right project. See [App settings](/platform/apps/settings#build-settings) for the full reference.
 
-## Build-time environment variables
+## Pinning tool versions
 
-Some builds need access to environment variables during the build step, for example to install private packages or generate code. All [variables](/platform/variables/overview) configured for the environment are available as Docker build secrets.
+Versions are resolved from your repository's standard files: lockfiles, `engines` in `package.json`, version files like `.nvmrc` or `.python-version`, and language manifests like `go.mod`. To control which version your build uses, pin it in those files rather than relying on defaults.
 
-Unkey mounts all your variables as a `.env` file at `/run/secrets/.env` inside the build container. To use them, add a `--mount=type=secret` flag to the `RUN` step that needs them. Unkey exposes a build argument called `UNKEY_SECRETS_ID` that you reference as the mount's `id` (see [Variable changes and the build cache](#variable-changes-and-the-build-cache)).
+## Variables and build secrets
 
-Here's a complete example for a Node.js app that needs environment variables during the build step:
+All [variables](/platform/variables/overview) configured for the environment are available during the build automatically. Each variable is exposed to the build steps that need it, and the build cache is invalidated when a value changes. There is nothing to declare or mount.
 
-```dockerfile Dockerfile
-FROM node:lts-alpine AS builder
-ARG UNKEY_SECRETS_ID
+Secret values are never written into image layers or history, so they cannot be extracted from the image after the build.
 
-WORKDIR /app
-COPY . .
-RUN npm install
+One constraint: variable names must be valid environment variable names (letters, digits, and underscores, not starting with a digit). A variable like `my.key` fails the build with a clear error because variables are exposed to your build as process environment variables.
 
-# Mount the secrets file and load variables into the shell
-RUN --mount=type=secret,id=${UNKEY_SECRETS_ID},target=/run/secrets/.env \
-    set -a && . /run/secrets/.env && set +a && \
-    pnpm build
+## Runtime expectations
 
-FROM node:lts-alpine
-WORKDIR /app
-COPY --from=builder /app .
-CMD ["node", "dist/index.js"]
-```
-
-Declare `ARG UNKEY_SECRETS_ID` inside every stage that mounts the secret. ARG values aren't inherited across stages, so each `FROM ... AS <stage>` that consumes variables needs its own declaration.
-
-The secrets file uses standard `.env` syntax, one variable per line:
-
-```bash /run/secrets/.env
-DATABASE_URL=postgres://prod-db.acme.com/api
-NPM_TOKEN=npm_abc123
-FEATURE_FLAG=true
-```
-
-The `set -a && . /run/secrets/.env && set +a` pattern loads every variable from the file into the shell environment for that `RUN` step. The secret file is not persisted in the final image.
-
-How you consume the file depends on your toolchain:
-
-- **Tools that expect environment variables** (npm, pip, go): use the `set -a` pattern above to load them into the shell.
-- **Frameworks that read `.env` files directly** (Node.js with dotenv, Ruby with dotenv): reference `/run/secrets/.env` in your build script instead of sourcing it.
-
-### Why secret mounts instead of ARG or ENV?
-
-Docker's `ARG` and `ENV` instructions are stored in the image layer history. Anyone with access to the image can extract them with `docker history` or `docker inspect`. Secret mounts avoid this problem: the file is available only during the `RUN` step and is never written to a layer.
-
-### Variable changes and the build cache
-
-`UNKEY_SECRETS_ID` is a hash of your project's variables. When you write `id=${UNKEY_SECRETS_ID}` on the mount line, BuildKit's cache key for that `RUN` includes the id, so any variable change produces a new id and a fresh execution of that step and everything after it in the same stage. Steps before the secret mount (base image pulls, dependency installs) keep caching normally.
+Built images run under a simple contract: your application must listen on the `PORT` environment variable and should handle `SIGTERM` for graceful shutdown. The start command is inferred from your project, for example `npm start` or the compiled binary. If the inferred command is wrong, override it with the [command setting](/platform/apps/settings#command).
 
 ## Build infrastructure
 
@@ -101,7 +63,11 @@ Each build runs on a dedicated 16-CPU, 32 GB machine isolated to your project. N
 
 ## Build caching
 
-Unkey caches Docker layers between builds. Subsequent builds reuse cached layers when possible, which significantly reduces build times for projects with stable base images and dependencies.
+Unkey caches build layers between builds. Subsequent builds reuse cached layers when possible, which significantly reduces build times for projects with stable dependencies.
+
+## Need more control?
+
+Automatic builds cover the common paths. If your build needs system packages, custom build steps, or an exotic toolchain, add a [Dockerfile](/builds/dockerfile) and Unkey builds with it instead. The [AI Dockerfile prompt](/builds/dockerfile-prompt) gets you a solid starting point in minutes.
 
 ## Prebuilt images
 
@@ -117,9 +83,10 @@ See the [CLI reference](/cli/overview) for all available flags.
 
 When a build fails, check the build logs in the **Deployments** tab. Common issues:
 
-- **Missing Dockerfile**: Verify the Dockerfile path in your [app settings](/platform/apps/settings#dockerfile).
-- **Dependency installation failures**: Check that your base image includes the tools your Dockerfile needs.
-- **Context too large**: If your build context includes large files (node_modules, data files), add a `.dockerignore` to exclude them.
+- **"Could not create a build plan"**: Unkey didn't recognize the project layout. Check that the [root directory](/platform/apps/settings#root-directory) points at your application, or add a [Dockerfile](/builds/dockerfile) to take full control.
+- **Wrong language detected**: a stray manifest file (for example a leftover `composer.json`) can win detection over the ecosystem you expect. Remove it from the root directory, or add a Dockerfile.
+- **Wrong tool versions**: pin versions in your ecosystem's standard files as described above.
+- **Wrong start command**: override it with the [command setting](/platform/apps/settings#command).
 
 ## Next steps
 
@@ -132,10 +99,10 @@ When a build fails, check the build logs in the **Deployments** tab. Common issu
     What happens after the build completes
   </Card>
   <Card
-    title="App settings"
-    icon="gear"
-    href="/platform/apps/settings"
+    title="Dockerfile builds"
+    icon="file-code"
+    href="/builds/dockerfile"
   >
-    Configure Dockerfile path, root directory, and watch paths
+    Take full control over the image when you need it
   </Card>
 </CardGroup>

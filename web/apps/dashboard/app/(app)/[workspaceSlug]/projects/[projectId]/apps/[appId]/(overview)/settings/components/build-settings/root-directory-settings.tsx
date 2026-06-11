@@ -82,7 +82,7 @@ export const RootDirectory = () => {
     <FormSettingCard
       icon={<FolderLink className="text-gray-12" iconSize="xl-medium" />}
       title="Root directory"
-      description="Build context directory. All COPY/ADD commands are relative to this path. (e.g., services/api)"
+      description="The directory your app lives in. Unkey builds from here. Set it when your app is in a subdirectory (e.g., services/api)."
       displayValue={defaultValue || "."}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
@@ -93,7 +93,8 @@ export const RootDirectory = () => {
           label="Root directory"
           requirement="required"
           description={
-            warningMessage ?? "Build context directory for Docker. Changes apply on next deploy."
+            warningMessage ??
+            "Unkey detects and builds your app from this directory. For Dockerfile builds it is the build context. Changes apply on next deploy."
           }
           placeholder="."
           error={errors.dockerContext?.message}

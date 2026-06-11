@@ -69,7 +69,7 @@ export const AppSetupWizard = () => {
                 <>
                   Choose a repository and a branch containing your app.
                   <br />
-                  We'll automatically detect Dockerfiles.
+                  We'll detect how to build it automatically.
                 </>
               }
             />

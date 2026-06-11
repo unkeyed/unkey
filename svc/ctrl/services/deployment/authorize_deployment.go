@@ -101,7 +101,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 				Repository:     repoConn.RepositoryFullName,
 				CommitSha:      commitSHA,
 				ContextPath:    buildSetting.DockerContext,
-				DockerfilePath: buildSetting.Dockerfile,
+				DockerfilePath: buildSetting.Dockerfile.String,
 				Branch:         branch,
 				PrNumber:       prNumber,
 			},
