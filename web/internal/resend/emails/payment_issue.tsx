@@ -16,8 +16,7 @@ export type Props = {
 };
 
 export function PaymentIssue({ username, date, workspaceSlug }: Props) {
-
-  const workspaceURL = `https://app.unkey.com/${workspaceSlug}/settings/billing`
+  const workspaceURL = `https://app.unkey.com/${workspaceSlug}/settings/billing`;
   return (
     <Layout>
       <Heading className="font-sans text-3xl text-semibold text-center">
@@ -30,10 +29,7 @@ export function PaymentIssue({ username, date, workspaceSlug }: Props) {
       </Text>
 
       <Section className="text-center py-3">
-        <Button
-          href={workspaceURL}
-          className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3"
-        >
+        <Button href={workspaceURL} className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3">
           Update payment information
         </Button>
       </Section>
