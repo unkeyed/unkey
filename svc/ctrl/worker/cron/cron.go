@@ -19,7 +19,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
@@ -57,12 +59,13 @@ var _ hydrav1.CronServiceServer = (*Service)(nil)
 // not configured. This keeps each handler's heartbeat call unconditional
 // (no nil checks scattered through the codebase).
 type Heartbeats struct {
-	QuotaCheck        healthcheck.Heartbeat
-	KeyRefill         healthcheck.Heartbeat
-	KeyLastUsedSync   healthcheck.Heartbeat
-	AuditLogExport    healthcheck.Heartbeat
-	AuditLogCleanup   healthcheck.Heartbeat
-	DeployBillingPush healthcheck.Heartbeat
+	QuotaCheck         healthcheck.Heartbeat
+	KeyRefill          healthcheck.Heartbeat
+	KeyLastUsedSync    healthcheck.Heartbeat
+	AuditLogExport     healthcheck.Heartbeat
+	AuditLogCleanup    healthcheck.Heartbeat
+	DeployBillingPush  healthcheck.Heartbeat
+	DeployBillingClose healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -90,6 +93,16 @@ type Config struct {
 	// disables the push.
 	StripeSecretKey string
 
+	// BillingPusher overrides the Deploy billing meter sink. Optional: when nil
+	// it is derived from StripeSecretKey (Stripe when set, no-op otherwise).
+	// Integration tests inject a fake to assert what would be pushed without a
+	// real Stripe call.
+	BillingPusher billingmeter.Pusher
+	// BillingCloser overrides the Deploy invoice closer used by the month-end
+	// close. Optional: when nil it is derived from StripeSecretKey. Integration
+	// tests inject a fake to record finalize calls.
+	BillingCloser invoicecloser.Closer
+
 	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
@@ -107,6 +120,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.AuditLogExport, "Heartbeats.AuditLogExport must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.AuditLogCleanup, "Heartbeats.AuditLogCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -163,14 +177,32 @@ func New(cfg Config) (*Service, error) {
 	// (sink) are both configured; otherwise it runs as a no-op so the cron
 	// binding and schedule stay uniform across environments.
 	var billingPusher billingmeter.Pusher = billingmeter.NewNoop()
+	var billingCloser invoicecloser.Closer = invoicecloser.NewNoop()
 	if cfg.StripeSecretKey != "" {
 		billingPusher = billingmeter.NewStripe(cfg.StripeSecretKey)
+		billingCloser = invoicecloser.NewStripe(cfg.StripeSecretKey)
+	} else {
+		// Deliberately loud: in an environment that is supposed to bill, a
+		// missing Stripe key means usage is silently never pushed and
+		// invoices never close. Error level so it pages via log alerting
+		// instead of hiding in Info noise.
+		logger.Error("deploy billing pusher and invoice closer are DISABLED: no stripe secret key configured")
+	}
+	// Explicit overrides win over the Stripe-key derivation, so integration
+	// tests can drive the push and close against fakes.
+	if cfg.BillingPusher != nil {
+		billingPusher = cfg.BillingPusher
+	}
+	if cfg.BillingCloser != nil {
+		billingCloser = cfg.BillingCloser
 	}
 	deployBillingH, err := deploybilling.New(deploybilling.Config{
-		UsageReader: cfg.BillingUsageReader,
-		Pusher:      billingPusher,
-		DB:          cfg.DB,
-		Heartbeat:   cfg.Heartbeats.DeployBillingPush,
+		UsageReader:    cfg.BillingUsageReader,
+		Pusher:         billingPusher,
+		DB:             cfg.DB,
+		Heartbeat:      cfg.Heartbeats.DeployBillingPush,
+		Closer:         billingCloser,
+		CloseHeartbeat: cfg.Heartbeats.DeployBillingClose,
 	})
 	if err != nil {
 		return nil, err
@@ -250,4 +282,11 @@ func (s *Service) RunScaleDownIdlePreviewDeployments(
 	req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest,
 ) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	return s.idlePreview.Handle(ctx, req)
+}
+
+func (s *Service) RunDeployBillingClose(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeployBillingCloseRequest,
+) (*hydrav1.RunDeployBillingCloseResponse, error) {
+	return s.deployBilling.HandleClose(ctx, req)
 }

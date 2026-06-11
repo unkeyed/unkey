@@ -101,10 +101,12 @@ export const subscribeDeploy = workspaceProcedure
         sub = await stripe.subscriptions.create({
           customer: ctx.workspace.stripeCustomerId,
           items,
-          billing_cycle_anchor_config: { day_of_month: 1 },
-          // Pin classic billing mode (clover defaults new subscriptions to
-          // "flexible", which itemizes prorations differently); see the same
-          // pin in createSubscription.
+          // Midnight-UTC anchor so billing periods are exact calendar months;
+          // see the matching comment in createSubscription.
+          billing_cycle_anchor_config: { day_of_month: 1, hour: 0, minute: 0, second: 0 },
+          // Pin classic billing mode (Stripe API 2025-09-30 "clover" and later
+          // default new subscriptions to "flexible", which itemizes prorations
+          // differently); see the same pin in createSubscription.
           billing_mode: { type: "classic" },
           proration_behavior: "always_invoice",
           payment_behavior: "error_if_incomplete",

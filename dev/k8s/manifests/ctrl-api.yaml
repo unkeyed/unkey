@@ -36,6 +36,14 @@ data:
     app_id = ${UNKEY_GITHUB_APP_ID}
     private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
 
+    # Stripe webhook for the month-end Deploy billing close. Both come from the
+    # optional stripe-credentials secret (dev/.env.stripe); empty leaves
+    # /webhooks/stripe unregistered. The webhook_secret is whatever
+    # `stripe listen` prints (whsec_...); the secret_key is a test-mode sk_test_.
+    [stripe]
+    webhook_secret = "${STRIPE_WEBHOOK_SECRET}"
+    secret_key = "${STRIPE_SECRET_KEY}"
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -99,6 +107,14 @@ spec:
                   name: domain-connect-credentials
                   key: UNKEY_DOMAIN_CONNECT_PRIVATE_KEY
                   optional: true
+          envFrom:
+            # Every key from the optional stripe-credentials secret
+            # (dev/.env.stripe): the webhook secret, the API key, and the Deploy
+            # price lookup_keys CancelDeploy uses. One block instead of a
+            # secretKeyRef per key, so new stripe keys need no manifest change.
+            - secretRef:
+                name: stripe-credentials
+                optional: true
           volumeMounts:
             - name: config
               mountPath: /etc/unkey
