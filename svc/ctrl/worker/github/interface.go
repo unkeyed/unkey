@@ -13,11 +13,11 @@ type GitHubClient interface {
 	// exfiltrated token grants only minimal, single-repo access.
 	GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error)
 
-	// RepoIsPublic reports whether repo ("owner/repo") is publicly accessible via
+	// IsRepoPublic reports whether repo ("owner/repo") is publicly accessible via
 	// an unauthenticated request. A public repo can be cloned without any token.
 	// Returns an error (never a silent false) when the probe is inconclusive,
 	// e.g. rate limited.
-	RepoIsPublic(repo string) (bool, error)
+	IsRepoPublic(repo string) (bool, error)
 
 	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
 	// repository using the given installation's credentials.

@@ -33,9 +33,9 @@ func (n *Noop) GetScopedInstallationToken(_ int64, _ string, _ map[string]string
 	return InstallationToken{}, errNotConfigured
 }
 
-// RepoIsPublic reports whether repo is publicly accessible using an
+// IsRepoPublic reports whether repo is publicly accessible using an
 // unauthenticated request. Works even when GitHub App credentials are absent.
-func (n *Noop) RepoIsPublic(repo string) (bool, error) {
+func (n *Noop) IsRepoPublic(repo string) (bool, error) {
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	return probeRepoVisibility(httpClient, "https://api.github.com", repo)
 }

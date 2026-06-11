@@ -227,7 +227,7 @@ type stubGitHub struct {
 	scopedTo []string
 }
 
-func (s *stubGitHub) RepoIsPublic(repo string) (bool, error) {
+func (s *stubGitHub) IsRepoPublic(repo string) (bool, error) {
 	s.probed = append(s.probed, repo)
 	if s.probeErr != nil {
 		return false, s.probeErr

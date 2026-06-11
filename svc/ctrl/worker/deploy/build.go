@@ -627,7 +627,7 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 		// scoped to it. A different owner is out of reach entirely.
 		externalFork := repoOwner(scopeRepo) != repoOwner(params.Repository)
 
-		public, err := w.github.RepoIsPublic(scopeRepo)
+		public, err := w.github.IsRepoPublic(scopeRepo)
 		switch {
 		case err != nil && externalFork:
 			// No safe fallback exists: a scoped token cannot cover an external

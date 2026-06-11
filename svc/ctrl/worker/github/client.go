@@ -230,7 +230,7 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 	return value, nil
 }
 
-// RepoIsPublic reports whether repo ("owner/repo") is publicly accessible, using
+// IsRepoPublic reports whether repo ("owner/repo") is publicly accessible, using
 // an unauthenticated GitHub API request. A public repo (HTTP 200) can be cloned
 // by BuildKit anonymously, so a fork build needs no token at all; a private repo
 // (404) requires one. This tests the exact property we care about (anonymous
@@ -240,7 +240,7 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 // an error instead of false, so an exhausted unauthenticated quota (60 req/hr
 // per IP) is never mistaken for "private". Results are cached to keep probe
 // volume well under that quota.
-func (c *Client) RepoIsPublic(repo string) (bool, error) {
+func (c *Client) IsRepoPublic(repo string) (bool, error) {
 	value, _, err := c.visibilityCache.SWR(
 		context.Background(),
 		repo,
