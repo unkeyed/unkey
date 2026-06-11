@@ -51,6 +51,22 @@ export const workspaces = mysqlTable("workspaces", {
   deployPlanOverride: varchar("deploy_plan_override", { length: 64 }),
 
   /**
+   * Monthly Compute (Deploy) spend caps in USD cents, set by workspace admins
+   * in the dashboard. Soft cap = notify when month-to-date usage spend crosses
+   * it; hard cap = stop workloads. NULL = not set, independently per cap. v1
+   * stores the preferences only: nothing enforces them, sends notifications,
+   * or clamps workloads yet.
+   */
+  deploySpendCapSoftCents: bigint("deploy_spend_cap_soft_cents", {
+    mode: "number",
+    unsigned: true,
+  }),
+  deploySpendCapHardCents: bigint("deploy_spend_cap_hard_cents", {
+    mode: "number",
+    unsigned: true,
+  }),
+
+  /**
    * feature flags
    *
    * betaFeatures may be toggled by the user for early access

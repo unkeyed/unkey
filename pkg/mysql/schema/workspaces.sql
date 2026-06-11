@@ -10,6 +10,8 @@ CREATE TABLE `workspaces` (
 	`stripe_subscription_id` varchar(256),
 	`deploy_plan` varchar(64),
 	`deploy_plan_override` varchar(64),
+	`deploy_spend_cap_soft_cents` bigint unsigned,
+	`deploy_spend_cap_hard_cents` bigint unsigned,
 	`beta_features` json NOT NULL,
 	`subscriptions` json,
 	`enabled` boolean NOT NULL DEFAULT true,

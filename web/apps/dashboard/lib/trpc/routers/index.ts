@@ -35,6 +35,7 @@ import { queryRolesPermissions } from "./authorization/roles/permissions/query-p
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
+import { getDeploySpendCaps, setDeploySpendCaps } from "./billing/deploy-spend-cap";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryUsage } from "./billing/query-usage";
 import { createApp } from "./deploy/app/create";
@@ -406,6 +407,8 @@ export const router = t.router({
   billing: t.router({
     queryUsage,
     queryDeployUsage,
+    getDeploySpendCaps,
+    setDeploySpendCaps,
   }),
   audit: t.router({
     logs: fetchAuditLog,
