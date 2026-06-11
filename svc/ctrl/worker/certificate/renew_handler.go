@@ -32,7 +32,10 @@ func (s *Service) RenewExpiringCertificates(
 
 	// Find all challenges that need processing (waiting or expiring soon)
 	challenges, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.ListExecutableChallengesRow, error) {
-		return db.Query.ListExecutableChallenges(stepCtx, s.db.RO(), challengeTypes)
+		return db.Query.ListExecutableChallenges(stepCtx, s.db.RO(), db.ListExecutableChallengesParams{
+			Now:               time.Now().UnixMilli(),
+			VerificationTypes: challengeTypes,
+		})
 	}, restate.WithName("list expiring certificates"))
 	if err != nil {
 		return nil, err

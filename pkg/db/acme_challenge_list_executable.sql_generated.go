@@ -13,10 +13,15 @@ import (
 const listExecutableChallenges = `-- name: ListExecutableChallenges :many
 SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 JOIN custom_domains d ON dc.domain_id = d.id
-WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
+WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= ? + (30 * 24 * 60 * 60 * 1000)))
 AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 ORDER BY d.created_at ASC
 `
+
+type ListExecutableChallengesParams struct {
+	Now               int64                         `db:"now"`
+	VerificationTypes []AcmeChallengesChallengeType `db:"verification_types"`
+}
 
 type ListExecutableChallengesRow struct {
 	WorkspaceID   string                      `db:"workspace_id"`
@@ -28,17 +33,18 @@ type ListExecutableChallengesRow struct {
 //
 //	SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
 //	JOIN custom_domains d ON dc.domain_id = d.id
-//	WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
+//	WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= ? + (30 * 24 * 60 * 60 * 1000)))
 //	AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 //	ORDER BY d.created_at ASC
-func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error) {
+func (q *Queries) ListExecutableChallenges(ctx context.Context, db DBTX, arg ListExecutableChallengesParams) ([]ListExecutableChallengesRow, error) {
 	query := listExecutableChallenges
 	var queryParams []interface{}
-	if len(verificationTypes) > 0 {
-		for _, v := range verificationTypes {
+	queryParams = append(queryParams, arg.Now)
+	if len(arg.VerificationTypes) > 0 {
+		for _, v := range arg.VerificationTypes {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:verification_types*/?", strings.Repeat(",?", len(verificationTypes))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:verification_types*/?", strings.Repeat(",?", len(arg.VerificationTypes))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:verification_types*/?", "NULL", 1)
 	}
