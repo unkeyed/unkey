@@ -70,8 +70,9 @@ func TestBuildGitContextURL(t *testing.T) {
 }
 
 // TestBuildGitSolverOptions_EnvSecretGating proves env vars only become a
-// BuildKit secret when present. Fork builds do receive their (preview-scoped)
-// env vars; this gates only the empty case.
+// BuildKit secret when present. Fork builds pass nil env (buildDockerImageFromGit
+// skips decryption for them), so this nil case is also the fork path: an
+// untrusted Dockerfile gets no mountable env secret.
 func TestBuildGitSolverOptions_EnvSecretGating(t *testing.T) {
 	w := &Workflow{
 		registryConfig: RegistryConfig{

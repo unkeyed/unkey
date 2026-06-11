@@ -196,15 +196,9 @@ async function resolveFork(
 async function resolveDeployRef(parsed: DeployRef, repoConn: RepoConn): Promise<GitCommit> {
   return match(parsed)
     .with({ kind: "pr" }, async (ref) => {
-      // Fetch the PR through the connected repo's installation auth.
-      // GitHub will only return a PR that actually exists on
-      // repoConn.repositoryFullName, so a successful fetch is itself
-      // proof that the PR base matches the connected repo. We then
-      // verify that the URL's parsed source repo matches the PR head
-      // GitHub reports, which catches typo-squat URLs like
-      // `https://github.com/evil/myapp/pull/123` aimed at a connected
-      // `unkey/myapp`. Splitting on `/` and comparing the repo name —
-      // the previous behavior — would let those through.
+      // Fetch the PR through the connected repo's installation auth. GitHub
+      // only returns a PR that exists on repoConn.repositoryFullName, so a
+      // successful fetch already proves the PR lives on the connected repo.
       let pr: Awaited<ReturnType<typeof getPullRequest>>;
       try {
         pr = await getPullRequest(
@@ -221,13 +215,15 @@ async function resolveDeployRef(parsed: DeployRef, repoConn: RepoConn): Promise<
         });
       }
 
-      const headRepo = pr.head.repo?.full_name;
-      // GitHub owner/repo paths are case-insensitive, so don't reject a
-      // user-supplied URL just because of casing drift.
-      if (!headRepo || headRepo.toLowerCase() !== ref.sourceRepo.toLowerCase()) {
+      // A PR URL path is always the BASE repo (github.com/<base>/pull/<n>),
+      // never the fork. Validate it matches the connected repo to catch a URL
+      // pasted for a different repo (e.g. evil/myapp/pull/123 against a
+      // connected unkey/myapp). The fork, if any, comes from the PR head below.
+      // Case-insensitive: GitHub owner/repo paths are.
+      if (ref.sourceRepo.toLowerCase() !== repoConn.repositoryFullName.toLowerCase()) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Pull request URL points to "${ref.sourceRepo}", but PR #${ref.prNumber} on "${repoConn.repositoryFullName}" is from "${headRepo ?? "unknown"}"`,
+          message: `Pull request URL is for "${ref.sourceRepo}", but this app is connected to "${repoConn.repositoryFullName}"`,
         });
       }
 
