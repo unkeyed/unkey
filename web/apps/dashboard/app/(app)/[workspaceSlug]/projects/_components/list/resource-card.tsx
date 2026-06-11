@@ -9,6 +9,8 @@ type ResourceCardProps = {
   name: string;
   domain: string | null;
   commitTitle: string | null;
+  /** GitHub PR or commit link. Null for non-git deployments. */
+  sourceUrl?: string | null;
   commitTimestamp?: number | null;
   branch: string;
   author: string | null;
@@ -24,6 +26,7 @@ export const ResourceCard = ({
   name,
   domain,
   commitTitle,
+  sourceUrl,
   commitTimestamp,
   branch,
   author,
@@ -91,12 +94,20 @@ export const ResourceCard = ({
       <div className="flex flex-col gap-2">
         {commitTitle ? (
           <InfoTooltip content={commitTitle} asChild position={{ align: "start", side: "top" }}>
-            <Link
-              href="#"
-              className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
-            >
-              {commitTitle}
-            </Link>
+            {sourceUrl ? (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
+              >
+                {commitTitle}
+              </a>
+            ) : (
+              <span className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+                {commitTitle}
+              </span>
+            )}
           </InfoTooltip>
         ) : (
           <div className="h-5">

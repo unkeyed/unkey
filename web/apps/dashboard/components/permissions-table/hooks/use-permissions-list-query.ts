@@ -60,6 +60,7 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     filterFieldNames: permissionsListFilterFieldNames,
     filterFieldConfig: permissionsFilterFieldConfig,
     useListQuery: (params) =>
+      // biome-ignore lint/correctness/useHookAtTopLevel: hook factory invoked unconditionally inside the paginated-list hook
       trpc.authorization.permissions.query.useQuery(params, PAGINATED_LIST_QUERY_OPTIONS),
     prefetch: (params) =>
       utils.authorization.permissions.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),

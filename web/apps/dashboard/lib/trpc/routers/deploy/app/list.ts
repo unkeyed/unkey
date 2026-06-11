@@ -93,10 +93,13 @@ export const listApps = workspaceProcedure
             .select({
               id: deployments.id,
               gitCommitMessage: deployments.gitCommitMessage,
+              gitCommitSha: deployments.gitCommitSha,
               gitBranch: deployments.gitBranch,
               gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
               gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
               gitCommitTimestamp: deployments.gitCommitTimestamp,
+              prNumber: deployments.prNumber,
+              forkRepositoryFullName: deployments.forkRepositoryFullName,
             })
             .from(deployments)
             .where(
@@ -121,6 +124,7 @@ export const listApps = workspaceProcedure
       // Image-based deployments carry no git metadata, so gate on the
       // deployment itself, not on commit fields.
       const hasDeployment = currentDeployment != null;
+      const repositoryFullName = repoByApp.get(app.id)?.repositoryFullName ?? null;
 
       return {
         id: app.id,
@@ -130,9 +134,12 @@ export const listApps = workspaceProcedure
         defaultBranch: app.defaultBranch,
         currentDeploymentId: app.currentDeploymentId ?? null,
         isRolledBack: Boolean(app.isRolledBack),
-        repositoryFullName: repoByApp.get(app.id)?.repositoryFullName ?? null,
+        repositoryFullName,
         latestDeploymentId: latestDeploymentByApp.get(app.id)?.id ?? null,
         commitTitle: currentDeployment?.gitCommitMessage ?? null,
+        commitSha: currentDeployment?.gitCommitSha ?? null,
+        forkRepositoryFullName: currentDeployment?.forkRepositoryFullName ?? null,
+        prNumber: currentDeployment?.prNumber ?? null,
         branch: currentDeployment?.gitBranch ?? app.defaultBranch,
         author: currentDeployment?.gitCommitAuthorHandle ?? null,
         authorAvatar: currentDeployment?.gitCommitAuthorAvatarUrl ?? null,

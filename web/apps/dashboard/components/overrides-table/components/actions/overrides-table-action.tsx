@@ -1,12 +1,12 @@
 "use client";
 
+import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/delete-dialog";
+import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
+import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { Loading, toast } from "@unkey/ui";
 import { Suspense } from "react";
-import { DeleteDialog } from "../../_components/delete-dialog";
-import { IdentifierDialog } from "../../_components/identifier-dialog";
-import type { OverrideDetails } from "../../types";
 
 export const OverridesTableAction = ({
   identifier,

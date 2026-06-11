@@ -2,13 +2,18 @@ import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actio
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { StackPerspective2 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import type { OnboardingStep } from "../components/onboarding-wizard";
+
+type WorkspaceStep = {
+  body: ReactNode;
+  submit: () => void;
+  isDisabled: boolean;
+  isLoading: boolean;
+};
 
 const workspaceSchema = z.object({
   workspaceName: z
@@ -29,7 +34,7 @@ const workspaceSchema = z.object({
 
 type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
-export const useWorkspaceStep = (): OnboardingStep => {
+export const useWorkspaceStep = (): WorkspaceStep => {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -50,6 +55,13 @@ export const useWorkspaceStep = (): OnboardingStep => {
       slug: "",
     },
   });
+
+  useEffect(() => {
+    // Autofocus on pointer devices only; on touch this would pop the keyboard on load.
+    if (window.matchMedia("(pointer: fine)").matches) {
+      form.setFocus("workspaceName");
+    }
+  }, [form]);
 
   const switchOrgMutation = trpc.user.switchOrg.useMutation({
     onSuccess: async (sessionData) => {
@@ -126,7 +138,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
     },
   });
 
-  const onSubmit = async (data: WorkspaceFormData) => {
+  const submitWorkspace = async (data: WorkspaceFormData) => {
     if (workspaceCreated) {
       // Workspace already created, just proceed
       return;
@@ -141,7 +153,8 @@ export const useWorkspaceStep = (): OnboardingStep => {
   const workspaceName = form.watch("workspaceName");
   const slug = form.watch("slug");
 
-  const validFieldCount = (["workspaceName", "slug"] as const).filter((fieldName) => {
+  const requiredFields = ["workspaceName", "slug"] as const;
+  const validFieldCount = requiredFields.filter((fieldName) => {
     const hasError = Boolean(form.formState.errors[fieldName]);
     const value = fieldName === "workspaceName" ? workspaceName : slug;
     const hasValue = Boolean(value);
@@ -149,13 +162,12 @@ export const useWorkspaceStep = (): OnboardingStep => {
   }).length;
 
   const isLoading = createWorkspace.isLoading || workspaceCreated;
+  const isDisabled = isLoading || validFieldCount !== requiredFields.length;
   return {
-    name: "Workspace",
-    icon: <StackPerspective2 iconSize="sm-regular" className="text-gray-11" />,
     body: (
-      <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)}>
+      <form ref={formRef} onSubmit={form.handleSubmit(submitWorkspace)}>
         <div className="flex flex-col">
-          <div className="flex flex-col gap-4 p-1">
+          <div className="flex flex-col gap-4">
             <FormInput
               {...form.register("workspaceName", {
                 onChange: (evt) => {
@@ -208,14 +220,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
         </div>
       </form>
     ),
-    kind: "required" as const,
-    validFieldCount,
-    requiredFieldCount: 2,
-    buttonText: "Create workspace",
-    description: workspaceCreated
-      ? "Redirecting to dashboard..."
-      : "Set up your workspace to get started",
-    onStepNext: () => {
+    submit: () => {
       if (workspaceCreated && createdSlug) {
         router.push(`/${createdSlug}/apis`);
         return;
@@ -224,9 +229,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
         formRef.current?.requestSubmit();
       }
     },
-    onStepBack: () => {
-      console.info("Going back from workspace step");
-    },
+    isDisabled,
     isLoading,
   };
 };

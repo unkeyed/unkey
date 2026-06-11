@@ -109,7 +109,7 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/logs?appId=${selectedDeployment.appId}`,
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/logs?deploymentId=is:${selectedDeployment.id}`,
           );
         },
       },
