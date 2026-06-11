@@ -24,7 +24,6 @@ export const getDeploymentBuildSteps = workspaceProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
-    // Validate deployment exists and belongs to workspace
     const deployment = await db.query.deployments.findFirst({
       where: (table, { and, eq }) =>
         and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
@@ -36,49 +35,35 @@ export const getDeploymentBuildSteps = workspaceProcedure
       });
     }
 
-    // Fetch steps from ClickHouse
-    const stepsResult = await clickhouse.buildSteps.getSteps({
+    // One CH round trip instead of two. The combined query LEFT JOINs the
+    // logs table to the steps table and returns logs as parallel arrays
+    // per step; logLimit=1 keeps the CH-side scan tiny when the caller
+    // doesn't want logs (we discard the arrays below).
+    const result = await clickhouse.buildSteps.getStepsWithLogs({
       workspaceId: deployment.workspaceId,
       projectId: deployment.projectId,
       deploymentId: input.deploymentId,
+      logLimit: input.includeStepLogs ? 20 : 1,
     });
-
-    if (stepsResult.err) {
+    if (result.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to fetch build steps",
       });
     }
 
-    const steps = stepsResult.val;
-
-    // Optionally fetch logs for steps that have them
-    if (input.includeStepLogs && steps.length > 0) {
-      const stepIdsWithLogs = steps.filter((s) => s.has_logs).map((s) => s.step_id);
-
-      if (stepIdsWithLogs.length > 0) {
-        const logsResult = await clickhouse.buildSteps.getLogs({
-          workspaceId: deployment.workspaceId,
-          projectId: deployment.projectId,
-          deploymentId: input.deploymentId,
-          stepIds: stepIdsWithLogs,
-          limit: 20,
-        });
-
-        if (!logsResult.err) {
-          // Nest logs under each step
-          return {
-            steps: steps.map((step) => ({
-              ...step,
-              logs: logsResult.val
-                .filter((log) => log.step_id === step.step_id)
-                .map((log) => ({ time: log.time, message: log.message })),
-            })),
-          };
-        }
-      }
-    }
-
-    // Return steps without logs
-    return { steps };
+    return {
+      steps: result.val.map((row) => ({
+        step_id: row.step_id,
+        started_at: row.started_at,
+        completed_at: row.completed_at,
+        name: row.name,
+        cached: row.cached,
+        error: row.error,
+        has_logs: row.has_logs,
+        logs: input.includeStepLogs
+          ? row.log_times.map((time, i) => ({ time, message: row.log_messages[i] ?? "" }))
+          : undefined,
+      })),
+    };
   });
