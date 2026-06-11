@@ -47,7 +47,8 @@ function FormSelect({
 }: FormSelectProps) {
   const descriptionAsTooltip = descriptionPosition === "label";
   const selectVariant = error ? "error" : undefined;
-  const selectId = id || React.useId();
+  const generatedId = React.useId();
+  const selectId = id || generatedId;
   const descriptionId = `${selectId}-helper`;
   const errorId = `${selectId}-error`;
 

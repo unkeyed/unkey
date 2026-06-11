@@ -50,6 +50,9 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
         branch: SERVER_PLACEHOLDER,
         commitTimestamp: Date.now(),
         commitTitle: SERVER_PLACEHOLDER,
+        commitSha: null,
+        forkRepositoryFullName: null,
+        prNumber: null,
         domain: SERVER_PLACEHOLDER,
       });
       await tx.isPersisted.promise;
