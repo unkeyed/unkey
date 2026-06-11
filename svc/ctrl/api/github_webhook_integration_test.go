@@ -14,6 +14,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 const testRepoFullName = "acme/repo"
@@ -84,8 +85,8 @@ func TestGitHubWebhook_Push_IgnoresDeletedBranch(t *testing.T) {
 	})
 
 	payload := newTestPushPayload(testRepoFullName, false)
-	payload.Deleted = true
-	payload.After = "0000000000000000000000000000000000000000"
+	payload["deleted"] = true
+	payload["after"] = "0000000000000000000000000000000000000000"
 
 	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, payload), harness.Secret)
 	require.NoError(t, err)
@@ -108,7 +109,7 @@ func TestGitHubWebhook_Push_ProcessesCreatedBranch(t *testing.T) {
 	// GitHub sets `created: true` on the first push of a new branch, which is
 	// the main way preview deployments get triggered.
 	payload := newTestPushPayload(testRepoFullName, false)
-	payload.Created = true
+	payload["created"] = true
 
 	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, payload), harness.Secret)
 	require.NoError(t, err)
@@ -147,33 +148,39 @@ func sendWebhook(url string, body []byte, secret string) (*http.Response, error)
 	}
 
 	req.Header.Set("X-GitHub-Event", "push")
+	// Unique per request: the handler forwards this as the Restate idempotency
+	// key, so a constant would make every push after the first dedupe to the
+	// first invocation and the handler would never run again.
+	req.Header.Set("X-GitHub-Delivery", uid.New("delivery"))
 	req.Header.Set("X-Hub-Signature-256", sign(body, secret))
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	return client.Do(req)
 }
 
-func newTestPushPayload(repoFullName string, fork bool) pushPayload {
-	prCommit := pushCommit{
-		ID:        "c0",
-		Message:   "feat: original PR work",
-		Timestamp: "2024-01-01T00:00:00Z",
-		Author:    pushCommitAuthor{Name: "pr-creator", Username: "pr-creator"},
+// newTestPushPayload builds the push webhook body as a raw JSON map so this
+// test stays decoupled from the handler's (now package-private) payload types.
+func newTestPushPayload(repoFullName string, fork bool) map[string]any {
+	commit := func(id, msg, ts, name string) map[string]any {
+		return map[string]any{
+			"id":        id,
+			"message":   msg,
+			"timestamp": ts,
+			"author":    map[string]any{"name": name, "username": name},
+		}
 	}
-	mergeCommit := pushCommit{
-		ID:        "c1",
-		Message:   "Merge pull request #1 from pr-creator/feat\n\nfeat: original PR work",
-		Timestamp: "2024-01-01T00:01:00Z",
-		Author:    pushCommitAuthor{Name: "merger", Username: "merger"},
-	}
-	return pushPayload{
-		Ref:          "refs/heads/main",
-		After:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		Installation: pushInstallation{ID: 101},
-		Repository:   pushRepository{ID: 202, FullName: repoFullName, Fork: fork},
-		Commits:      []pushCommit{prCommit, mergeCommit},
-		HeadCommit:   &mergeCommit,
-		Sender:       pushSender{Login: "merger", AvatarURL: "https://avatar"},
+	merge := commit("c1", "Merge pull request #1 from pr-creator/feat\n\nfeat: original PR work", "2024-01-01T00:01:00Z", "merger")
+	return map[string]any{
+		"ref":          "refs/heads/main",
+		"after":        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		"installation": map[string]any{"id": 101},
+		"repository":   map[string]any{"id": 202, "full_name": repoFullName, "fork": fork},
+		"commits": []map[string]any{
+			commit("c0", "feat: original PR work", "2024-01-01T00:00:00Z", "pr-creator"),
+			merge,
+		},
+		"head_commit": merge,
+		"sender":      map[string]any{"login": "merger", "avatar_url": "https://avatar"},
 	}
 }
 
