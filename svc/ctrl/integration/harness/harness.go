@@ -232,11 +232,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 		BillingUsageReader: nil,
 		StripeSecretKey:    "",
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:        healthcheck.NewNoop(),
-			KeyRefill:         healthcheck.NewNoop(),
-			KeyLastUsedSync:   healthcheck.NewNoop(),
-			AuditLogExport:    healthcheck.NewNoop(),
-			DeployBillingPush: healthcheck.NewNoop(),
+			QuotaCheck:         healthcheck.NewNoop(),
+			KeyRefill:          healthcheck.NewNoop(),
+			KeyLastUsedSync:    healthcheck.NewNoop(),
+			AuditLogExport:     healthcheck.NewNoop(),
+			DeployBillingPush:  healthcheck.NewNoop(),
+			DeployBillingClose: healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)

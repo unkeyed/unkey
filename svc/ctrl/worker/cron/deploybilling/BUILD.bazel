@@ -4,6 +4,7 @@ go_library(
     name = "deploybilling",
     srcs = [
         "billing.go",
+        "close.go",
         "doc.go",
         "handler.go",
         "push.go",
@@ -20,6 +21,7 @@ go_library(
         "//pkg/logger",
         "//pkg/restate/restateutil",
         "//svc/ctrl/internal/billingmeter",
+        "//svc/ctrl/internal/invoicecloser",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )

@@ -38,3 +38,16 @@ jobs:
     schedule: "0 * * * *"
     urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunDeployBillingPush/send"
     idempotencyKey: "deploy-billing-push-$(date -u +%Y-%m-%dT%H)"
+
+  # Month-end Deploy billing close, backup path. The Stripe invoice.created
+  # webhook (ctrl-api) normally dispatches the close right at the period
+  # roll; this runs shortly after as the fallback, keyed by the CLOSED
+  # period (now minus a day lands in the previous month; busybox date has
+  # no "last month", hence the epoch arithmetic). The idempotency key
+  # matches the webhook's, so when the webhook already ran this attaches to
+  # that invocation instead of starting a second close; even a fresh run
+  # only touches drafts and re-pushes the same absolute totals.
+  deploy-billing-close:
+    schedule: "5 1 1 * *"
+    urlPath: "hydra.v1.CronService/$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)/RunDeployBillingClose/send"
+    idempotencyKey: "deploy-billing-close-$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)"
