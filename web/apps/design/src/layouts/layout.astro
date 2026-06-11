@@ -57,11 +57,40 @@ const { title = "Unkey Design" } = Astro.props;
     </div>
 
     <script>
-      // Decorate every Astro-MDX fenced code block with a shared Copy button.
-      // Preview islands run the same `attachCopyButton` from their own effect.
+      // Wrap every Astro-MDX fenced code block in a .code-card with a top bar.
+      // A bold filename label sitting directly before a block becomes the bar's
+      // label; the Copy button lives in the bar so it never drifts when the code
+      // scrolls. Styling lives in global.css — we only set class names here.
+      // Preview islands run their own `attachCopyButton`.
       import { attachCopyButton } from "../lib/copy-button.ts";
       for (const pre of document.querySelectorAll<HTMLPreElement>("pre.astro-code")) {
-        attachCopyButton(pre, pre.textContent ?? "");
+        if (pre.closest(".code-card")) continue;
+
+        const prev = pre.previousElementSibling;
+        const label = prev?.textContent?.trim() ?? "";
+        const titled =
+          prev?.tagName === "P" &&
+          !!prev.querySelector("strong, code") &&
+          !/\s/.test(label) &&
+          /[./]/.test(label);
+
+        const card = document.createElement("div");
+        card.className = "code-card";
+        pre.parentNode?.insertBefore(card, titled && prev ? prev : pre);
+
+        const bar = document.createElement("div");
+        bar.className = "code-card__bar";
+        if (titled && prev) {
+          const name = document.createElement("span");
+          name.className = "code-card__name";
+          name.textContent = label;
+          bar.appendChild(name);
+          prev.remove();
+        }
+        card.appendChild(bar);
+        card.appendChild(pre);
+
+        attachCopyButton(bar, pre.textContent ?? "", { inline: true });
       }
     </script>
   </body>

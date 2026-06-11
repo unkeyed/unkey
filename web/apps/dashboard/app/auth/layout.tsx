@@ -1,6 +1,6 @@
 import { getAuth } from "@/lib/auth/get-auth";
 import { Page2 } from "@unkey/icons";
-import { Logo } from "@unkey/ui";
+import { FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type React from "react";
@@ -19,8 +19,8 @@ export default async function AuthenticatedLayout({
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-black">
-      <nav className="container flex items-center justify-between h-16">
+    <FullScreenLayout className="overflow-x-hidden bg-black">
+      <nav className="container flex items-center justify-between h-16 w-full shrink-0">
         <Link href="/">
           <Logo className="md:min-w-sm text-white" />
         </Link>
@@ -33,7 +33,7 @@ export default async function AuthenticatedLayout({
           Documentation
         </Link>
       </nav>
-      <div className="flex min-h-screen pt-16 -mt-16">
+      <FullScreenContent className="py-8">
         <div className="container relative flex flex-col items-center justify-center gap-8 lg:w-2/5">
           <div className="w-full max-w-sm">{children}</div>
           <div className="flex items-center justify-center ">
@@ -60,7 +60,7 @@ export default async function AuthenticatedLayout({
             </p>
           </div>
         </div>
-      </div>
-    </div>
+      </FullScreenContent>
+    </FullScreenLayout>
   );
 }
