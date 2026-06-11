@@ -7,24 +7,17 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 )
 
-// UsageReader returns billable Deploy usage for a time window, one row per
-// resource. Implemented by *clickhouse.Client; faked in tests. Kept narrow on
-// purpose so the handler depends only on the one query it needs.
+// UsageReader is the one ClickHouse query the handler needs.
 type UsageReader interface {
 	GetInstanceMeterUsage(ctx context.Context, req clickhouse.GetInstanceMeterUsageRequest) ([]clickhouse.InstanceMeterUsage, error)
 }
 
 const (
-	// secondsPerHour converts the query's GiB-hour integrals to the
-	// GiB-second unit the memory and disk meters bill in.
-	secondsPerHour = 3600.0
-	// bytesPerGiB converts egress bytes to binary GiB; the egress meter is
-	// deploy.egress_public_gib (GiB, 2^30), not decimal GB.
-	bytesPerGiB = 1024 * 1024 * 1024
+	secondsPerHour = 3600.0             // GiB-hours to GiB-seconds
+	bytesPerGiB    = 1024 * 1024 * 1024 // binary GiB for egress meter
 )
 
-// usageAccumulator sums per-resource meter rows for one workspace, in the
-// query's natural units (converted to meter units in aggregateUsage).
+// usageAccumulator sums meter rows per workspace before unit conversion.
 type usageAccumulator struct {
 	cpuSeconds     float64
 	memoryGiBHours float64
@@ -32,10 +25,7 @@ type usageAccumulator struct {
 	egressBytes    int64
 }
 
-// aggregateUsage sums the per-resource meter rows into per-workspace meter
-// values, converting each meter from the query's natural unit into the unit
-// its meter expects. Values stay full-precision (the meter events carry decimal
-// strings), so there is no rounding here.
+// aggregateUsage converts query units to Stripe meter units. No rounding here.
 func aggregateUsage(rows []clickhouse.InstanceMeterUsage) map[string]billingmeter.MeterValues {
 	sums := make(map[string]*usageAccumulator)
 	for _, r := range rows {

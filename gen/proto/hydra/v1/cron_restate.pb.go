@@ -71,6 +71,19 @@ type CronServiceClient interface {
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse]
+	// RunDeployBillingClose performs the month-end fleet sweep for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
+	// workspace's final full-period usage, timestamped just inside the closed
+	// period so the "last"-formula meters bill the final total, then finalizes
+	// every Deploy workspace's draft renewal invoice for that period. The
+	// 00:30 UTC backup cron invokes this; the invoice.created webhook fans out
+	// to CloseDeployBillingWorkspace per invoice instead.
+	RunDeployBillingClose(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse]
+	// CloseDeployBillingWorkspace closes one workspace's Deploy renewal invoice.
+	// Key = workspace id. Dispatched by the invoice.created webhook after it
+	// claims the draft; pushes final usage for this workspace only and
+	// finalizes the invoice id from the request.
+	CloseDeployBillingWorkspace(opts ...sdk_go.ClientOption) sdk_go.Client[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse]
 }
 
 type cronServiceClient struct {
@@ -151,6 +164,22 @@ func (c *cronServiceClient) RunScaleDownIdlePreviewDeployments(opts ...sdk_go.Cl
 	return sdk_go.WithRequestType[*RunScaleDownIdlePreviewDeploymentsRequest](sdk_go.Object[*RunScaleDownIdlePreviewDeploymentsResponse](c.ctx, "hydra.v1.CronService", c.key, "RunScaleDownIdlePreviewDeployments", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeployBillingClose(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeployBillingCloseRequest](sdk_go.Object[*RunDeployBillingCloseResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeployBillingClose", cOpts...))
+}
+
+func (c *cronServiceClient) CloseDeployBillingWorkspace(opts ...sdk_go.ClientOption) sdk_go.Client[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*CloseDeployBillingWorkspaceRequest](sdk_go.Object[*CloseDeployBillingWorkspaceResponse](c.ctx, "hydra.v1.CronService", c.key, "CloseDeployBillingWorkspace", cOpts...))
+}
+
 // CronServiceIngressClient is the ingress client API for hydra.v1.CronService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -194,6 +223,19 @@ type CronServiceIngressClient interface {
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments() ingress.Requester[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse]
+	// RunDeployBillingClose performs the month-end fleet sweep for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
+	// workspace's final full-period usage, timestamped just inside the closed
+	// period so the "last"-formula meters bill the final total, then finalizes
+	// every Deploy workspace's draft renewal invoice for that period. The
+	// 00:30 UTC backup cron invokes this; the invoice.created webhook fans out
+	// to CloseDeployBillingWorkspace per invoice instead.
+	RunDeployBillingClose() ingress.Requester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse]
+	// CloseDeployBillingWorkspace closes one workspace's Deploy renewal invoice.
+	// Key = workspace id. Dispatched by the invoice.created webhook after it
+	// claims the draft; pushes final usage for this workspace only and
+	// finalizes the invoice id from the request.
+	CloseDeployBillingWorkspace() ingress.Requester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse]
 }
 
 type cronServiceIngressClient struct {
@@ -248,6 +290,16 @@ func (c *cronServiceIngressClient) RunDeployBillingPush() ingress.Requester[*Run
 func (c *cronServiceIngressClient) RunScaleDownIdlePreviewDeployments() ingress.Requester[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunScaleDownIdlePreviewDeploymentsRequest, *RunScaleDownIdlePreviewDeploymentsResponse](c.client, c.serviceName, "RunScaleDownIdlePreviewDeployments", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeployBillingClose() ingress.Requester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse](c.client, c.serviceName, "RunDeployBillingClose", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) CloseDeployBillingWorkspace() ingress.Requester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*CloseDeployBillingWorkspaceRequest, *CloseDeployBillingWorkspaceResponse](c.client, c.serviceName, "CloseDeployBillingWorkspace", &c.key, &codec)
 }
 
 // CronServiceServer is the server API for hydra.v1.CronService service.
@@ -310,6 +362,19 @@ type CronServiceServer interface {
 	// idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
 	// scan is singleton-keyed without sharing a queue with other cron handlers.
 	RunScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *RunScaleDownIdlePreviewDeploymentsRequest) (*RunScaleDownIdlePreviewDeploymentsResponse, error)
+	// RunDeployBillingClose performs the month-end fleet sweep for Deploy billing.
+	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
+	// workspace's final full-period usage, timestamped just inside the closed
+	// period so the "last"-formula meters bill the final total, then finalizes
+	// every Deploy workspace's draft renewal invoice for that period. The
+	// 00:30 UTC backup cron invokes this; the invoice.created webhook fans out
+	// to CloseDeployBillingWorkspace per invoice instead.
+	RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error)
+	// CloseDeployBillingWorkspace closes one workspace's Deploy renewal invoice.
+	// Key = workspace id. Dispatched by the invoice.created webhook after it
+	// claims the draft; pushes final usage for this workspace only and
+	// finalizes the invoice id from the request.
+	CloseDeployBillingWorkspace(ctx sdk_go.ObjectContext, req *CloseDeployBillingWorkspaceRequest) (*CloseDeployBillingWorkspaceResponse, error)
 }
 
 // UnimplementedCronServiceServer should be embedded to have
@@ -343,6 +408,12 @@ func (UnimplementedCronServiceServer) RunDeployBillingPush(ctx sdk_go.ObjectCont
 func (UnimplementedCronServiceServer) RunScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *RunScaleDownIdlePreviewDeploymentsRequest) (*RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunScaleDownIdlePreviewDeployments not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingClose not implemented"), 501)
+}
+func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.ObjectContext, req *CloseDeployBillingWorkspaceRequest) (*CloseDeployBillingWorkspaceResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method CloseDeployBillingWorkspace not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
 // UnsafeCronServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -370,5 +441,7 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunAuditLogOutboxCleanup", sdk_go.NewObjectHandler(srv.RunAuditLogOutboxCleanup))
 	router = router.Handler("RunDeployBillingPush", sdk_go.NewObjectHandler(srv.RunDeployBillingPush))
 	router = router.Handler("RunScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.RunScaleDownIdlePreviewDeployments))
+	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
+	router = router.Handler("CloseDeployBillingWorkspace", sdk_go.NewObjectHandler(srv.CloseDeployBillingWorkspace))
 	return router
 }
