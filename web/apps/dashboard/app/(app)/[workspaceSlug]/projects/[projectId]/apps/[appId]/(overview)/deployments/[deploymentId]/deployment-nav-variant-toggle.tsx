@@ -8,13 +8,9 @@ const OPTIONS: { value: DeploymentNavVariant; label: string }[] = [
   { value: "sidebar", label: "Sidebar" },
 ];
 
-/** Dev-only floating toggle for trying both deployment nav layouts. */
+/** Temporary floating toggle for trying both deployment nav layouts. */
 export function DeploymentNavVariantToggle() {
   const [variant, setVariant] = useDeploymentNavVariant();
-
-  if (process.env.NODE_ENV === "production") {
-    return null;
-  }
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-center gap-1 rounded-full border border-grayA-4 bg-white p-1 shadow-md dark:bg-black">
