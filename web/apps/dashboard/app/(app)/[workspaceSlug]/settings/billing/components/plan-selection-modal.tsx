@@ -197,7 +197,7 @@ export const PlanSelectionModal = ({
             <label
               key={product.id}
               className={cn(
-                "border rounded-lg px-4 py-1 cursor-pointer transition-all hover:border-gray-6 bg-white dark:bg-black block",
+                "border rounded-lg px-4 py-1 cursor-pointer transition-all hover:border-gray-6 bg-white dark:bg-gray-2 block",
                 selectedProductId === product.id
                   ? "border-info-7 bg-info-2 ring-1 ring-info-7"
                   : currentProductId === product.id

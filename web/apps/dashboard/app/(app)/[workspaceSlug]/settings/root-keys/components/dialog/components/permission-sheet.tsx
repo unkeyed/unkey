@@ -84,7 +84,7 @@ export const PermissionSheet = ({
         <SheetOverlay className="bg-black/30 backdrop-blur-xs" />
         <SheetContent
           disableClose={false}
-          className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black overflow-hidden"
+          className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-background-overlay overflow-hidden"
           side="right"
           overlay="transparent"
         >
@@ -149,7 +149,7 @@ export const PermissionSheet = ({
             </div>
           </ScrollArea>
           {hasNextPage && (
-            <div className="shrink-0 bg-gray-1 dark:bg-black border-t border-gray-4 w-full py-4">
+            <div className="shrink-0 bg-background-overlay border-t border-gray-4 w-full py-4">
               <div className="flex flex-row justify-center items-center">
                 <Button
                   className="mx-auto rounded-lg"

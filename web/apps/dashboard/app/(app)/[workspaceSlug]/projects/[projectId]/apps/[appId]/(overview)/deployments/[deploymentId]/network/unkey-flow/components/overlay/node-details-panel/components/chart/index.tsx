@@ -125,7 +125,7 @@ export function LogsTimeseriesBarChart({
               return (
                 <div
                   role="tooltip"
-                  className="grid items-start gap-1.5 rounded-xl border border-gray-4/50 bg-gray-1/80 backdrop-blur-md px-3 py-2.5 text-xs shadow-2xl select-none w-max max-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150"
+                  className="grid items-start gap-1.5 rounded-xl border border-gray-4/50 bg-background-overlay/80 backdrop-blur-md px-3 py-2.5 text-xs shadow-2xl select-none w-max max-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150"
                 >
                   <div className="font-medium text-[11px] text-accent-11">{labelText}</div>
                   <div className="grid gap-1">

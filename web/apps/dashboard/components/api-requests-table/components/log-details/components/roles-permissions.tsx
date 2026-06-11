@@ -15,7 +15,7 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
       <div className="flex flex-col gap-1 mt-4 px-4">
         <div className="border bg-gray-2 border-gray-4 rounded-[10px]">
           <div className="text-gray-11 text-[12px] leading-6 px-3.5 py-1.5 font-sans">Roles</div>
-          <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-4 py-2">
+          <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-gray-2 px-4 py-2">
             <span className="text-xs text-gray-11">No roles assigned</span>
           </div>
         </div>
@@ -29,7 +29,7 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
         <div className="text-gray-11 text-xs leading-6 px-4 py-1.5 font-sans">
           Roles ({roles.length})
         </div>
-        <div className="flex flex-col border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2 gap-2">
+        <div className="flex flex-col border-gray-4 border-t rounded-[10px] bg-white dark:bg-gray-2 px-3.5 py-2 gap-2">
           {roles.map((role) => (
             <div
               key={role.name}
@@ -73,7 +73,7 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
           <div className="text-gray-11 text-[12px] leading-6 px-3.5 py-1.5 font-sans">
             Permissions
           </div>
-          <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-4 py-2">
+          <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-gray-2 px-4 py-2">
             <span className="text-xs text-gray-11">No permissions assigned</span>
           </div>
         </div>
@@ -103,7 +103,7 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
             />
           )}
         </div>
-        <div className="flex flex-col border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2 gap-2">
+        <div className="flex flex-col border-gray-4 border-t rounded-[10px] bg-white dark:bg-gray-2 px-3.5 py-2 gap-2">
           {permissions.map((permission) => (
             <div
               key={permission.name}

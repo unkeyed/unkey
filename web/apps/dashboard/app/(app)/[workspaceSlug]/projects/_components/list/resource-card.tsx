@@ -42,7 +42,7 @@ export const ResourceCard = ({
   }, []);
 
   return (
-    <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <div className="relative p-5 flex flex-col dark:bg-gray-2 border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       {/* Invisible base clickable layer - covers entire card */}
       <Link
         href={href}

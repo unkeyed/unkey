@@ -12,7 +12,7 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
       <div className="flex flex-row justify-end items-center">
         <div
           className={
-            "flex flex-row justify-between min-w-[395px] pl-2 pr-2 py-2 bg-gray-2 dark:bg-black border rounded-lg border-grayA-5"
+            "flex flex-row justify-between min-w-[395px] pl-2 pr-2 py-2 bg-gray-2 dark:bg-gray-2 border rounded-lg border-grayA-5"
           }
         >
           <div className="text-sm leading-5 text-gray-11">{workspaceId}</div>

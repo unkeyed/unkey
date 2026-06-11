@@ -170,7 +170,7 @@ const NavigableDialogNav = <TStepName extends string>({
   return (
     <div
       className={cn(
-        "border-r border-grayA-4 bg-white dark:bg-black p-6 flex flex-col items-start justify-start gap-3",
+        "border-r border-grayA-4 bg-background-overlay p-6 flex flex-col items-start justify-start gap-3",
         "shrink-0",
         navWidthClass,
         className,

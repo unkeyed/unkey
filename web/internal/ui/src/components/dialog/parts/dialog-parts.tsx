@@ -19,7 +19,7 @@ export const DefaultDialogHeader = ({ title, subTitle, className }: DefaultDialo
   return (
     <ShadcnDialogHeader
       className={cn(
-        "border-b border-gray-4 dark:border-gray-900 bg-white dark:bg-black",
+        "border-b border-gray-4 dark:border-gray-900 bg-background-overlay",
         className,
       )}
     >
@@ -61,7 +61,7 @@ export const DefaultDialogFooter = ({ children, className }: DefaultDialogFooter
   return (
     <ShadcnDialogFooter
       className={cn(
-        "p-6 border-t border-gray-4 dark:border-gray-900 bg-white dark:bg-black text-gray-9",
+        "p-6 border-t border-gray-4 dark:border-gray-900 bg-background-overlay text-gray-9",
         className,
       )}
     >

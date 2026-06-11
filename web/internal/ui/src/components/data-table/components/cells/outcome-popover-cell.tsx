@@ -112,7 +112,7 @@ export function OutcomePopoverCell({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="min-w-64 bg-gray-1 dark:bg-black shadow-2xl p-0 border border-gray-6 rounded-lg overflow-hidden"
+          className="min-w-64 bg-background-overlay shadow-2xl p-0 border border-gray-6 rounded-lg overflow-hidden"
           align="start"
           sideOffset={5}
         >

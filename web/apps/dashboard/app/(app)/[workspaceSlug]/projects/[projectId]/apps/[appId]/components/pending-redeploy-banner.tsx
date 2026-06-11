@@ -66,7 +66,7 @@ export function PendingRedeployBanner() {
         show ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+24px)] opacity-0",
       )}
     >
-      <div className="relative flex items-start gap-4 rounded-xl border border-gray-4 bg-gray-1 p-4 shadow-lg w-100">
+      <div className="relative flex items-start gap-4 rounded-xl border border-gray-4 bg-background-overlay p-4 shadow-lg w-100">
         <button
           type="button"
           onClick={() => dismissSettingsBanner()}

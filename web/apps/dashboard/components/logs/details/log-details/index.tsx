@@ -114,7 +114,7 @@ export const LogDetails = ({ distanceToTop, log, onClose, children }: LogDetails
   return (
     <ResizablePanel
       onClose={onClose}
-      className="bg-gray-1 font-mono drop-shadow-2xl z-20 absolute right-0 overflow-y-auto"
+      className="bg-background-overlay font-mono drop-shadow-2xl z-20 absolute right-0 overflow-y-auto"
       style={{
         ...panelStyle,
         width: `${DEFAULT_DRAGGABLE_WIDTH}px`,

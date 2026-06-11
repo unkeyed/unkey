@@ -373,7 +373,7 @@ This file only provides color variable definitions.
 
   .dark {
     /* Gray Dark */
-    --gray-1: 0, 0%, 7%;
+    --gray-1: 0, 0%, 5%;
     --gray-2: 0, 0%, 10%;
     --gray-3: 0, 0%, 13%;
     --gray-4: 0, 0%, 16%;
@@ -411,7 +411,7 @@ This file only provides color variable definitions.
     --base-9: 0, 0%, 0%, 0.65;
     --base-10: 0, 0%, 0%, 0.8;
     --base-11: 0, 0%, 0%, 0.9;
-    --base-12: 0, 0%, 0%, 1;
+    --base-12: 0, 0%, 6%, 1;
 
     /* Teal */
     --success-1: 173, 24%, 7%;

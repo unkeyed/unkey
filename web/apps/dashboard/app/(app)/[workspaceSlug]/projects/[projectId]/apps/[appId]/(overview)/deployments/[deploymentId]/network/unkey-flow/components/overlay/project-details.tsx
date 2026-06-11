@@ -12,7 +12,7 @@ export const ProjectDetails = () => {
   return (
     <>
       <div className="absolute top-4 left-4 pointer-events-auto">
-        <div className="p-1.5 dark:bg-black bg-white rounded-lg border border-grayA-4 flex items-center justify-between gap-2 h-8 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] w-full">
+        <div className="p-1.5 bg-background-overlay rounded-lg border border-grayA-4 flex items-center justify-between gap-2 h-8 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] w-full">
           <div className="flex gap-2 items-center">
             <StatusIndicator withSignal />
             <div className="text-accent-12 font-medium text-xs">
@@ -40,7 +40,7 @@ export const ProjectDetails = () => {
       </div>
       <div
         className={cn(
-          "absolute top-14 left-4 rounded-xl bg-gray-1 border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] overflow-y-auto pb-4 pointer-events-auto min-w-[360px]",
+          "absolute top-14 left-4 rounded-xl bg-background-overlay border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] overflow-y-auto pb-4 pointer-events-auto min-w-[360px]",
           "transition-all duration-300 ease-out",
           isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
         )}

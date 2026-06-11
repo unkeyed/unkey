@@ -166,7 +166,7 @@ export const RatelimitSetup = ({
           </span>
         </div>
         <Button
-          className="rounded-lg bg-white dark:bg-black text-gray-12 font-medium"
+          className="rounded-lg bg-white dark:bg-gray-2 text-gray-12 font-medium"
           variant="outline"
           onClick={handleAddRatelimit}
           type="button"

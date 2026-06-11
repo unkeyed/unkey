@@ -16,7 +16,7 @@ export const ProtectionSwitch = forwardRef<HTMLDivElement, FeatureCardProps>(
     return (
       <div
         ref={ref}
-        className="flex flex-row py-5 pl-5 pr-[26px] gap-14 justify-between border rounded-xl border-grayA-5 bg-white dark:bg-black items-center"
+        className="flex flex-row py-5 pl-5 pr-[26px] gap-14 justify-between border rounded-xl border-grayA-5 bg-white dark:bg-gray-2 items-center"
         {...rest}
       >
         <div className="flex flex-col gap-4">

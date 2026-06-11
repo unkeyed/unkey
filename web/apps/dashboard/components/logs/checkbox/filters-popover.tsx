@@ -210,7 +210,7 @@ export const FiltersPopover = ({
       </Drover.Trigger>
 
       <Drover.Content
-        className="min-w-60 bg-gray-1 dark:bg-black shadow-2xl p-2 border-gray-6 rounded-lg"
+        className="min-w-60 bg-background-overlay shadow-2xl p-2 border-gray-6 rounded-lg"
         align="start"
         onKeyDown={handleKeyDown}
       >

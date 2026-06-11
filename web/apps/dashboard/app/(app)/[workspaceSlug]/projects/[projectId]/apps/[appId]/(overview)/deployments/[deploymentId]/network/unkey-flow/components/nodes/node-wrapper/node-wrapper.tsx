@@ -43,7 +43,7 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
           // white/black background.
           isUnhealthy
             ? "border border-errorA-4 bg-errorA-1 dark:bg-errorA-1"
-            : "border border-grayA-4 bg-white dark:bg-black",
+            : "border border-grayA-4 bg-white dark:bg-gray-2",
         )}
       >
         {children}

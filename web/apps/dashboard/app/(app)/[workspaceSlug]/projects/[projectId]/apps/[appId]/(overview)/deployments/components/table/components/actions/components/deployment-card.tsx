@@ -9,7 +9,7 @@ type DeploymentCardProps = {
 };
 
 export const DeploymentCard = ({ deployment, isCurrent }: DeploymentCardProps) => (
-  <div className="bg-white dark:bg-black border border-grayA-4 rounded-[14px] p-4 relative">
+  <div className="bg-white dark:bg-gray-2 border border-grayA-4 rounded-[14px] p-4 relative">
     <div className="flex items-center justify-between">
       <div>
         <div className="flex items-center gap-2">

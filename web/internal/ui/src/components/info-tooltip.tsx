@@ -6,7 +6,7 @@ import { cn } from "../lib/utils";
 const baseVariant =
   "px-3 py-2 text-xs font-medium shadow-md rounded-lg focus:border focus:border-accent-12 focus:ring-2 focus:ring-grayA-4 focus-visible:outline-hidden focus:ring-offset-0";
 const variants = {
-  primary: ["border border-grayA-4 bg-white dark:bg-black"],
+  primary: ["border border-grayA-4 bg-background-overlay"],
   inverted: ["bg-black dark:bg-white text-gray-1 border border-grayA-4"],
   secondary: ["border dark:border-gray-12 text-gray-12 text-sm"],
   muted: ["border border-grayA-4 text-gray-12 text-sm"],

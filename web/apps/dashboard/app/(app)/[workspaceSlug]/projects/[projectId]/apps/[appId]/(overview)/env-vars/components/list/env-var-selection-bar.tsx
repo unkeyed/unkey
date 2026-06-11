@@ -32,7 +32,7 @@ export function EnvVarSelectionBar({
       <div className="fixed bottom-5 flex justify-center z-10 pointer-events-none left-(--sidebar-width,16rem) right-0">
         <div
           className={cn(
-            "w-185 border bg-gray-1 dark:bg-black border-gray-6 min-h-15 flex items-center justify-center rounded-[10px] drop-shadow-lg shadow-sm pointer-events-auto",
+            "w-185 border bg-background-overlay border-gray-6 min-h-15 flex items-center justify-center rounded-[10px] drop-shadow-lg shadow-sm pointer-events-auto",
             "animate-fade-slide-in",
           )}
         >
