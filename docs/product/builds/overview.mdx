@@ -83,7 +83,7 @@ See the [CLI reference](/cli/overview) for all available flags.
 
 When a build fails, check the build logs in the **Deployments** tab. Common issues:
 
-- **"Could not create a build plan"**: Unkey didn't recognize the project layout. Check that the [root directory](/platform/apps/settings#root-directory) points at your application, or add a [Dockerfile](/builds/dockerfile) to take full control.
+- **"Unkey could not determine how to build this app"**: detection didn't recognize the project layout. Check that the [root directory](/platform/apps/settings#root-directory) points at your application, or add a [Dockerfile](/builds/dockerfile) to take full control.
 - **Wrong language detected**: a stray manifest file (for example a leftover `composer.json`) can win detection over the ecosystem you expect. Remove it from the root directory, or add a Dockerfile.
 - **Wrong tool versions**: pin versions in your ecosystem's standard files as described above.
 - **Wrong start command**: override it with the [command setting](/platform/apps/settings#command).
