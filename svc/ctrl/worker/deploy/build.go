@@ -150,6 +150,10 @@ func (w *Workflow) buildDockerImageFromGit(
 		}
 
 		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
+		// These are scoped to the deployment's environment (params.EnvironmentID):
+		// a fork build deploys to a preview environment, so an untrusted Dockerfile
+		// that reads the mounted secret only ever sees preview-scoped values, never
+		// production. That is why injecting them into fork builds is safe.
 		// Treat all decryption failures as terminal: bearer-token / keyring
 		// config errors never self-heal, and genuine vault outages are better
 		// surfaced to the user fast than burned inside a retry loop.
@@ -624,23 +628,35 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 	if isForkBuild {
 		// Same owner as the base means the fork lives in the same GitHub App
 		// installation (installations cover one account), so a token can be
-		// scoped to it. A different owner is out of reach entirely.
-		externalFork := repoOwner(scopeRepo) != repoOwner(params.Repository)
+		// scoped to it. A different owner is in another installation we cannot
+		// mint a token for at all.
+		differentOwner := repoOwner(scopeRepo) != repoOwner(params.Repository)
 
 		public, err := w.github.IsRepoPublic(scopeRepo)
-		switch {
-		case err != nil && externalFork:
-			// No safe fallback exists: a scoped token cannot cover an external
-			// repo. Plain (retryable) error since rate limits self-heal.
-			return noToken, false, fmt.Errorf("could not determine visibility of fork repository %s: %w", scopeRepo, err)
-		case err != nil:
+
+		// Public fork clones anonymously: no token to mint or expose.
+		if err == nil && public {
+			return noToken, true, nil
+		}
+
+		// Different-owner fork lives in another installation; no token we mint
+		// reaches it, so fail now rather than hand out a useless one.
+		if differentOwner {
+			if err != nil {
+				// Visibility unknown (e.g. rate limit). Retryable, quota self-heals.
+				return noToken, false, fmt.Errorf("could not determine visibility of fork repository %s: %w", scopeRepo, err)
+			}
+			// Confirmed private: terminal, retrying never helps.
+			return noToken, false, restate.TerminalError(fmt.Errorf(
+				"cannot access private fork repository %s: it is outside this GitHub App installation", scopeRepo,
+			))
+		}
+
+		// Same-owner fork, private or visibility-unknown: fall through to mint a
+		// scoped read-only token below.
+		if err != nil {
 			logger.Warn("repo visibility check failed; using scoped read-only token",
 				"repository", scopeRepo, "error", err)
-		case public:
-			return noToken, true, nil
-		case externalFork:
-			return noToken, false, restate.TerminalError(fmt.Errorf(
-				"cannot access private fork repository %s: it is outside this GitHub App installation", scopeRepo))
 		}
 	}
 

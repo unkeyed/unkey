@@ -136,8 +136,13 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 
 	// The probe is unauthenticated (60 req/hr per IP), so cache hard: repo
-	// visibility almost never flips, and a flip only delays the optimal token
-	// choice by one cache window, never grants access.
+	// visibility almost never flips, and either flip direction fails safe for at
+	// most one cache window:
+	//   - public -> private (stale "public"): the tokenless clone path 404s and
+	//     the build fails closed. No access is granted, just a retry needed.
+	//   - private -> public (stale "private"): a scoped read-only token is minted
+	//     needlessly, but it only reads a now-public repo. Harmless.
+	// A flip never escalates access; worst case it delays the optimal choice.
 	visibilityCache, err := cache.New(cache.Config[string, bool]{
 		Fresh:    10 * time.Minute,
 		Stale:    1 * time.Minute,

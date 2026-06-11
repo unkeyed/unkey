@@ -114,7 +114,7 @@ func TestResolveCloneToken(t *testing.T) {
 		ForkRepository: "acme/app-fork",
 		PrNumber:       0,
 	}
-	externalForkRef := gitBuildParams{
+	differentOwnerForkRef := gitBuildParams{
 		InstallationID: 1,
 		Repository:     base,
 		ForkRepository: "contributor/app",
@@ -178,7 +178,7 @@ func TestResolveCloneToken(t *testing.T) {
 		gh := &stubGitHub{public: map[string]bool{"contributor/app": true}}
 		w := &Workflow{github: gh}
 
-		_, tokenless, err := w.resolveCloneToken(externalForkRef, true)
+		_, tokenless, err := w.resolveCloneToken(differentOwnerForkRef, true)
 		require.NoError(t, err)
 		require.True(t, tokenless)
 		require.Equal(t, []string{"contributor/app"}, gh.probed)
@@ -194,22 +194,22 @@ func TestResolveCloneToken(t *testing.T) {
 		require.Equal(t, []string{"acme/app-fork"}, gh.scopedTo)
 	})
 
-	t.Run("private external fork ref fails fast with a terminal error", func(t *testing.T) {
+	t.Run("private different-owner fork ref fails fast with a terminal error", func(t *testing.T) {
 		gh := &stubGitHub{}
 		w := &Workflow{github: gh}
 
-		_, _, err := w.resolveCloneToken(externalForkRef, true)
+		_, _, err := w.resolveCloneToken(differentOwnerForkRef, true)
 		require.Error(t, err)
 		require.True(t, restate.IsTerminalError(err))
 		require.Contains(t, err.Error(), "contributor/app")
 		require.Empty(t, gh.scopedTo)
 	})
 
-	t.Run("external fork probe failure is a retryable error", func(t *testing.T) {
+	t.Run("different-owner fork probe failure is a retryable error", func(t *testing.T) {
 		gh := &stubGitHub{probeErr: fmt.Errorf("rate limited")}
 		w := &Workflow{github: gh}
 
-		_, _, err := w.resolveCloneToken(externalForkRef, true)
+		_, _, err := w.resolveCloneToken(differentOwnerForkRef, true)
 		require.Error(t, err)
 		require.False(t, restate.IsTerminalError(err))
 		require.Empty(t, gh.scopedTo)
