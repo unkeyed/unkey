@@ -80,10 +80,6 @@ export const PermissionContentList = ({
     0,
   );
 
-  if (totalPermissions === 0) {
-    return null;
-  }
-
   const handleCategoryToggleExpanded = useCallback((category: string, open: boolean) => {
     setExpandedCategories((prev) => {
       const newSet = new Set(prev);
@@ -95,6 +91,10 @@ export const PermissionContentList = ({
       return newSet;
     });
   }, []);
+
+  if (totalPermissions === 0) {
+    return null;
+  }
 
   const header = getScopeHeader(scope);
 

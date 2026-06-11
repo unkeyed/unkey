@@ -57,6 +57,7 @@ export function useRolesListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     filterFieldNames: rolesListFilterFieldNames,
     filterFieldConfig: rolesFilterFieldConfig,
     useListQuery: (params) =>
+      // biome-ignore lint/correctness/useHookAtTopLevel: hook factory invoked unconditionally inside the paginated-list hook
       trpc.authorization.roles.query.useQuery(params, PAGINATED_LIST_QUERY_OPTIONS),
     prefetch: (params) =>
       utils.authorization.roles.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
