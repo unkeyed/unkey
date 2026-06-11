@@ -91,7 +91,7 @@ export const queryRuntimeLogs = workspaceProcedure
       k8sPodNames,
       workspaceId: ctx.workspace.id,
       projectId: project.id,
-      deploymentId: input.deploymentId ?? [],
+      deploymentId: input.deploymentId,
       appId,
     });
 

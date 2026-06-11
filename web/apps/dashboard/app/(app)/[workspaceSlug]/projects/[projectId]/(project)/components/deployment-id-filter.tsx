@@ -70,32 +70,38 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
     });
   }, [rows, allChecked]);
 
-  // Only an exact id match in the loaded collection is admitted, so a partial
-  // or unknown value is never accepted as a filter.
-  const resolveQueryId = useCallback((): string | null => {
+  // Only an exact id in the loaded collection is accepted; typing one is how
+  // deployments outside the latest window are reached.
+  const queryExactId = useMemo(() => {
     const q = query.trim();
     return byId.has(q) ? q : null;
   }, [query, byId]);
 
   const selectFromQuery = useCallback(() => {
-    const id = resolveQueryId();
-    if (id !== null) {
-      setCheckedIds((prev) => new Set(prev).add(id));
+    if (queryExactId !== null) {
+      setCheckedIds((prev) => new Set(prev).add(queryExactId));
       setQuery("");
     }
-  }, [resolveQueryId]);
+  }, [queryExactId]);
+
+  const nextIds = useMemo(() => {
+    const next = new Set(checkedIds);
+    if (queryExactId !== null) {
+      next.add(queryExactId);
+    }
+    return next;
+  }, [checkedIds, queryExactId]);
+
+  const hasChanges = nextIds.size !== activeIds.length || activeIds.some((id) => !nextIds.has(id));
+
+  const noMatch = query.trim() !== "" && queryExactId === null;
 
   const handleApply = useCallback(() => {
     const otherFilters = filters.filter((f) => f.field !== "deploymentId");
-    const next = new Set(checkedIds);
-    const id = resolveQueryId();
-    if (id !== null) {
-      next.add(id);
-    }
-    updateFilters([...otherFilters, ...Array.from(next).map(createDeploymentFilter)]);
-    setCheckedIds(next);
+    updateFilters([...otherFilters, ...Array.from(nextIds).map(createDeploymentFilter)]);
+    setCheckedIds(nextIds);
     setQuery("");
-  }, [filters, checkedIds, resolveQueryId, createDeploymentFilter, updateFilters]);
+  }, [filters, nextIds, createDeploymentFilter, updateFilters]);
 
   return (
     <div className="flex flex-col p-2">
@@ -164,8 +170,13 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
         />
       </div>
 
+      {noMatch && (
+        <span className="text-error-11 text-xs px-2 pt-1">No match in the deployments</span>
+      )}
+
       <Button
         variant="primary"
+        disabled={!hasChanges}
         className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
         onClick={handleApply}
       >
