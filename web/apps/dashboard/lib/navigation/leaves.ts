@@ -169,20 +169,23 @@ export function buildAppLinks(
     },
     // Project-level views scoped to this app; separated since they navigate
     // out of the app section.
-    {
-      key: "logs",
-      label: "Logs",
-      href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
-      icon: Layers3,
-      isActive: false,
-      separatorAbove: true,
-    },
+    // Logs is hidden here for now: deployment-specific logs live on the
+    // deployment detail's Logs tab, and project-wide logs have their own page.
+    // {
+    //   key: "logs",
+    //   label: "Logs",
+    //   href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
+    //   icon: Layers3,
+    //   isActive: false,
+    //   separatorAbove: true,
+    // },
     {
       key: "requests",
       label: "Requests",
       href: `/${slug}/projects/${projectId}/requests?since=6h&appId=${appId}`,
       icon: ArrowOppositeDirectionY,
       isActive: false,
+      separatorAbove: true,
     },
     // Will be polished and added back in the future iterations
     // {

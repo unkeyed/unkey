@@ -35,7 +35,6 @@ export function DeploymentDetailNav() {
   const tabs = [
     { value: "deployment", label: "Deployment", href: base },
     { value: "logs", label: "Logs", href: `${base}/logs` },
-    { value: "resources", label: "Resources", href: `${base}/resources` },
   ];
 
   return (
