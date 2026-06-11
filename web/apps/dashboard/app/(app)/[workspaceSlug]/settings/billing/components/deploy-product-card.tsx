@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";
 import { ProductCard } from "./product-card";
+import { SpendBudget } from "./spend-budget";
 import { UsageMeter } from "./usage-meter";
 
 type DeployProductCardProps = {
@@ -223,6 +224,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ))}
               </div>
             ) : null}
+            <SpendBudget isAdmin={isAdmin} usageCents={usageAmount} />
           </div>
         ) : null}
       </ProductCard>
