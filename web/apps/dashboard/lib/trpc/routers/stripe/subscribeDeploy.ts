@@ -71,6 +71,31 @@ export const subscribeDeploy = workspaceProcedure
         });
       }
 
+      // Attach edge cases, decided in ENG-2876: Deploy items only attach to a
+      // subscription that will actually keep billing them. Anything else gets
+      // a precondition error here instead of a raw Stripe error (or worse, a
+      // silent attach to a subscription that ends at the period roll).
+      if (sub.status !== "active" && sub.status !== "trialing") {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `Your subscription is ${sub.status.replace(/_/g, " ")}. Settle any outstanding invoices before subscribing to Compute.`,
+        });
+      }
+      if (sub.cancel_at_period_end) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "Your subscription is set to cancel at the end of this period. Resubscribe to your API plan first, or wait until it ends to start Compute fresh.",
+        });
+      }
+      if (sub.currency !== "usd") {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "Compute prices are in USD and cannot be added to a non-USD subscription. Contact support@unkey.com.",
+        });
+      }
+
       try {
         await stripe.subscriptions.update(sub.id, {
           items,
