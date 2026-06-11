@@ -324,37 +324,44 @@ export const POST = async (req: Request): Promise<Response> => {
           });
           return new Response("OK", { status: 200 });
         }
-        await db
-          .update(schema.workspaces)
-          .set({
-            stripeSubscriptionId: null,
-            tier: "Free",
-          })
-          .where(eq(schema.workspaces.id, ws.id));
+        // All downgrade writes must be atomic: the workspace is located by
+        // stripeSubscriptionId, and the workspace update nulls that key. If a later
+        // write failed mid-sequence, the 500 would make Stripe retry, but the retry
+        // could no longer find the workspace and would no-op with a 200 — leaving the
+        // downgrade permanently half-applied (e.g. tier=Free but paid quotas intact).
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.workspaces)
+            .set({
+              stripeSubscriptionId: null,
+              tier: "Free",
+            })
+            .where(eq(schema.workspaces.id, ws.id));
 
-        await db
-          .insert(schema.quotas)
-          .values({
+          await tx
+            .insert(schema.quotas)
+            .values({
+              workspaceId: ws.id,
+              ...freeTierQuotas,
+            })
+            .onDuplicateKeyUpdate({
+              set: freeTierQuotas,
+            });
+
+          await insertAuditLogs(tx, {
             workspaceId: ws.id,
-            ...freeTierQuotas,
-          })
-          .onDuplicateKeyUpdate({
-            set: freeTierQuotas,
+            actor: {
+              type: "system",
+              id: "stripe",
+            },
+            event: "workspace.update",
+            description: "Cancelled subscription.",
+            resources: [],
+            context: {
+              location: "",
+              userAgent: undefined,
+            },
           });
-
-        await insertAuditLogs(db, {
-          workspaceId: ws.id,
-          actor: {
-            type: "system",
-            id: "stripe",
-          },
-          event: "workspace.update",
-          description: "Cancelled subscription.",
-          resources: [],
-          context: {
-            location: "",
-            userAgent: undefined,
-          },
         });
 
         // Free tier doesn't include team access — deactivate all members except the
