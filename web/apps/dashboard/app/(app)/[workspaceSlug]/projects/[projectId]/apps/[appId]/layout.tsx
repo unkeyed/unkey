@@ -2,7 +2,12 @@
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { type PropsWithChildren, useState } from "react";
 import { ProjectDataProvider } from "./(overview)/data-provider";
-import { DeploymentDetailNav } from "./(overview)/deployments/[deploymentId]/deployment-detail-nav";
+import {
+  DeploymentDetailNav,
+  DeploymentDetailSidebar,
+} from "./(overview)/deployments/[deploymentId]/deployment-detail-nav";
+import { DeploymentNavVariantToggle } from "./(overview)/deployments/[deploymentId]/deployment-nav-variant-toggle";
+import { useDeploymentNavVariant } from "./(overview)/deployments/[deploymentId]/use-deployment-nav-variant";
 import { ProjectLayoutContext } from "./(overview)/layout-provider";
 import { ProjectNavigation } from "./(overview)/navigations/project-navigation";
 import { PendingRedeployBanner } from "./components/pending-redeploy-banner";
@@ -32,6 +37,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
   const segments = useSelectedLayoutSegments();
   const isDeploymentsSection = segments.includes("deployments");
   const isDeploymentDetail = isDeploymentsSection && typeof params?.deploymentId === "string";
+  const [navVariant] = useDeploymentNavVariant();
 
   return (
     <ProjectLayoutContext.Provider
@@ -41,15 +47,24 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
     >
       <div className="h-full flex flex-col overflow-hidden">
         {!isDeploymentsSection && <ProjectNavigation onMount={setTableDistanceToTop} />}
+        {/* The app shell scrolls its whole content column, which would drag the
+            nav off-screen. Bound this region to the viewport (minus the 52px
+            TopNav) so the content scrolls internally and the nav stays fixed. */}
         {isDeploymentDetail ? (
-          // The app shell scrolls its whole content column, which would drag
-          // the nav off-screen. Bound this region to the viewport (minus the
-          // 52px TopNav) so the deployment content scrolls internally and the
-          // breadcrumb + tabs stay fixed.
-          <div className="flex h-[calc(100dvh-52px)] flex-col">
-            <DeploymentDetailNav />
-            <div className="min-h-0 flex-1 overflow-auto">{children}</div>
-          </div>
+          navVariant === "sidebar" ? (
+            // SecondaryNav rail handles wayfinding, so no breadcrumb here.
+            // No flex-1 on the row: it would override the explicit height and
+            // grow with content, scrolling the whole region (rail included).
+            <div className="flex h-[calc(100dvh-52px)]">
+              <DeploymentDetailSidebar />
+              <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+            </div>
+          ) : (
+            <div className="flex h-[calc(100dvh-52px)] flex-col">
+              <DeploymentDetailNav />
+              <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+            </div>
+          )
         ) : (
           <div className="flex flex-1 min-h-0">
             <div className="flex-1 overflow-auto">{children}</div>
@@ -57,6 +72,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
         )}
         <PendingRedeployBanner />
       </div>
+      {isDeploymentsSection && <DeploymentNavVariantToggle />}
     </ProjectLayoutContext.Provider>
   );
 };

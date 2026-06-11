@@ -3,7 +3,15 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { shortenId } from "@/lib/shorten-id";
 import { ChevronRight } from "@unkey/icons";
-import { Tabs, TabsList, TabsTrigger } from "@unkey/ui";
+import {
+  SecondaryNav,
+  SecondaryNavGroup,
+  SecondaryNavItem,
+  SecondaryNavTitle,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@unkey/ui";
 import Link from "next/link";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 
@@ -14,12 +22,11 @@ function useParam(name: string): string {
 }
 
 /**
- * Breadcrumb + tab strip for a single deployment. The tabs are routes, not
- * in-page state: each trigger is a `Link`, so URLs stay shareable and
- * back/forward work. The active tab is the path segment after the
- * deployment id, derived so the bar works wherever it's mounted.
+ * Tab definitions for a deployment. Tabs are routes, not in-page state: each
+ * href is a route and the active tab is the path segment after the deployment
+ * id, derived so it works wherever the nav is mounted.
  */
-export function DeploymentDetailNav() {
+function useDeploymentTabs() {
   const workspace = useWorkspaceNavigation();
   const projectId = useParam("projectId");
   const appId = useParam("appId");
@@ -38,20 +45,35 @@ export function DeploymentDetailNav() {
     { value: "requests", label: "Requests", href: `${base}/requests` },
   ];
 
+  return { tabs, activeTab, deploymentsHref, deploymentId };
+}
+
+/** `Deployments › <id>` row, shared by both nav variants. */
+export function DeploymentBreadcrumb() {
+  const { deploymentsHref, deploymentId } = useDeploymentTabs();
+  return (
+    <div className="flex items-center gap-1 px-4 pt-3">
+      <Link
+        href={deploymentsHref}
+        className="rounded px-1 py-0.5 text-xs font-medium text-gray-11 hover:bg-grayA-3 hover:text-accent-12"
+      >
+        Deployments
+      </Link>
+      <ChevronRight className="size-2.5 text-gray-9" />
+      <span className="px-1 py-0.5 font-mono text-xs font-medium text-accent-12">
+        {shortenId(deploymentId)}
+      </span>
+    </div>
+  );
+}
+
+/** Breadcrumb + horizontal underline tabs. */
+export function DeploymentDetailNav() {
+  const { tabs, activeTab } = useDeploymentTabs();
+
   return (
     <div className="shrink-0">
-      <div className="flex items-center gap-1 px-4 pt-3">
-        <Link
-          href={deploymentsHref}
-          className="rounded px-1 py-0.5 text-xs font-medium text-gray-11 hover:bg-grayA-3 hover:text-accent-12"
-        >
-          Deployments
-        </Link>
-        <ChevronRight className="size-2.5 text-gray-9" />
-        <span className="px-1 py-0.5 font-mono text-xs font-medium text-accent-12">
-          {shortenId(deploymentId)}
-        </span>
-      </div>
+      <DeploymentBreadcrumb />
       <div className="border-b border-grayA-4 px-4">
         <Tabs value={activeTab}>
           <TabsList className="-ml-2 h-auto justify-start gap-1 rounded-none bg-transparent p-0">
@@ -69,5 +91,23 @@ export function DeploymentDetailNav() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+/** Vertical SecondaryNav rail variant of the deployment tabs. */
+export function DeploymentDetailSidebar() {
+  const { tabs, activeTab } = useDeploymentTabs();
+
+  return (
+    <SecondaryNav aria-label="Deployment details">
+      <SecondaryNavTitle>Deployment details</SecondaryNavTitle>
+      <SecondaryNavGroup>
+        {tabs.map((tab) => (
+          <SecondaryNavItem key={tab.value} asChild active={activeTab === tab.value}>
+            <Link href={tab.href}>{tab.label}</Link>
+          </SecondaryNavItem>
+        ))}
+      </SecondaryNavGroup>
+    </SecondaryNav>
   );
 }
