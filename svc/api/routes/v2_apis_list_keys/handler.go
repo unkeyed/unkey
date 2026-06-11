@@ -9,6 +9,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -152,6 +153,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("The requested API does not support key encryption."),
 			)
+		}
+	}
+
+	// Portal sessions are scoped to a single external identity. Override any
+	// user-supplied externalId filter so that the session can only list its own keys.
+	if principal.Type == authprincipal.TypePortalSession {
+		src, ok := principal.Source.(authprincipal.PortalSessionSource)
+		if ok {
+			req.ExternalId = &src.ExternalID
 		}
 	}
 
