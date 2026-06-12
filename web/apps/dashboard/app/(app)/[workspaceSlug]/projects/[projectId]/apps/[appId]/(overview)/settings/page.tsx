@@ -6,7 +6,6 @@ import {
   PageContainer,
   PageHeader,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
   SettingsDangerZone,
 } from "@unkey/ui";
@@ -24,9 +23,6 @@ export default function SettingsPage() {
         <PageHeader>
           <PageHeaderContent>
             <PageHeaderTitle>Settings</PageHeaderTitle>
-            <PageHeaderDescription>
-              Review the defaults. Edit anything you'd like to adjust.
-            </PageHeaderDescription>
           </PageHeaderContent>
         </PageHeader>
         <PageBody className="flex flex-col gap-6 pt-6 pb-14">
