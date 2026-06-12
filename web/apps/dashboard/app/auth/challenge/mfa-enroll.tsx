@@ -60,10 +60,12 @@ export function MfaEnroll() {
       const message = applyVerificationResult(result, redirectParam);
       if (message) {
         setError(message);
+        setIsLoading(false);
       }
+      // On success the browser is navigating away; keep the loading state up
+      // so the button doesn't pop back to idle mid-transition.
     } catch (_error) {
       setError("Something went wrong. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };

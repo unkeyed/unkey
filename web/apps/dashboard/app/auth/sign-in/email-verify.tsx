@@ -22,7 +22,7 @@ export const EmailVerify: React.FC = () => {
   }, []);
 
   const verifyEmail = async (otp: string) => {
-    if (typeof otp !== "string") {
+    if (typeof otp !== "string" || isLoading) {
       return null;
     }
     setIsLoading(true);
@@ -54,7 +54,8 @@ export const EmailVerify: React.FC = () => {
           data-1p-ignore
           value={otp}
           onChange={setOtp}
-          onComplete={() => verifyEmail(otp)}
+          onComplete={(value) => verifyEmail(value)}
+          disabled={isLoading}
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">

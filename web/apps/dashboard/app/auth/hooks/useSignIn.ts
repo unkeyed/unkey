@@ -118,7 +118,12 @@ export function useSignIn() {
     }
   };
 
-  const handleVerification = async (code: string, invitationToken?: string): Promise<void> => {
+  /**
+   * Verifies the emailed code and navigates to the next step on success.
+   * Returns true when a navigation was started so callers can keep their
+   * loading UI up until the browser actually leaves the page.
+   */
+  const handleVerification = async (code: string, invitationToken?: string): Promise<boolean> => {
     try {
       const result = await verifyAuthCode({
         email: context.email,
@@ -173,7 +178,7 @@ export function useSignIn() {
       // If we have a redirect URL, navigate to it
       if (redirectUrl) {
         window.location.href = redirectUrl;
-        return;
+        return true;
       }
 
       // Handle error case - only set error message if we have an error response
@@ -182,6 +187,7 @@ export function useSignIn() {
       } else {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       }
+      return false;
     } catch (error) {
       setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       throw error;
