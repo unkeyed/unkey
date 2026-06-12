@@ -65,18 +65,23 @@ export function resolveSourceRepo(
   sourceRepo: string,
   baseRepoFullName: string,
 ): string | undefined {
+  // GitHub owner/repo names are case-insensitive, so compare case-folded while
+  // preserving the caller's casing in the returned value.
   const baseRepoName = baseRepoFullName.split("/")[1];
   let candidate: string;
   if (sourceRepo.includes("/")) {
     const sourceRepoName = sourceRepo.split("/")[1];
-    if (sourceRepoName !== baseRepoName) {
+    if (sourceRepoName.toLowerCase() !== baseRepoName.toLowerCase()) {
       return undefined;
     }
     candidate = sourceRepo;
   } else {
     candidate = `${sourceRepo}/${baseRepoName}`;
   }
-  if (!REPO_FULL_NAME.test(candidate) || candidate === baseRepoFullName) {
+  if (
+    !REPO_FULL_NAME.test(candidate) ||
+    candidate.toLowerCase() === baseRepoFullName.toLowerCase()
+  ) {
     return undefined;
   }
   return candidate;
@@ -95,7 +100,7 @@ export function validateSourceRepo(sourceRepo: string, repoConn: RepoConn): stri
   // and reinterpreted as a fully trusted build of the base branch.
   const baseName = repoConn.repositoryFullName.split("/")[1];
   const candidate = sourceRepo.includes("/") ? sourceRepo : `${sourceRepo}/${baseName}`;
-  if (candidate === repoConn.repositoryFullName) {
+  if (candidate.toLowerCase() === repoConn.repositoryFullName.toLowerCase()) {
     return "";
   }
 

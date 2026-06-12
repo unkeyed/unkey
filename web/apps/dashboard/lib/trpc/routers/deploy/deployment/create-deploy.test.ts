@@ -117,6 +117,19 @@ describe("resolveSourceRepo", () => {
     expect(resolveSourceRepo("evil?q=1/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
     expect(resolveSourceRepo("evil owner/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
   });
+
+  it("treats a casing-drifted spelling of the base repo as the base, not a fork", () => {
+    // GitHub owner/repo are case-insensitive: Acme/app must not slip through as
+    // a fork of acme/app and get run at the untrusted fork tier.
+    expect(resolveSourceRepo("Ogzhanolguncu/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+    expect(resolveSourceRepo("Ogzhanolguncu", "ogzhanolguncu/demo_api")).toBeUndefined();
+  });
+
+  it("accepts a legitimate fork whose repo-name casing drifts", () => {
+    expect(resolveSourceRepo("fork-owner/Demo_API", "ogzhanolguncu/demo_api")).toBe(
+      "fork-owner/Demo_API",
+    );
+  });
 });
 
 describe("validateSourceRepo", () => {
@@ -128,6 +141,11 @@ describe("validateSourceRepo", () => {
   it("returns empty string when the ref points at the base repo", () => {
     expect(validateSourceRepo("ogzhanolguncu", repoConn)).toBe("");
     expect(validateSourceRepo("ogzhanolguncu/demo_api", repoConn)).toBe("");
+  });
+
+  it("returns empty string for a casing-drifted spelling of the base repo", () => {
+    expect(validateSourceRepo("Ogzhanolguncu", repoConn)).toBe("");
+    expect(validateSourceRepo("Ogzhanolguncu/demo_api", repoConn)).toBe("");
   });
 
   it("throws for a slashed ref that is not a fork of the base", () => {
