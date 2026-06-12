@@ -24,6 +24,16 @@ export const identify = dedupe(async (): Promise<Entities> => {
 // when the Vercel FLAGS setup is absent. Local flag evaluation must not prevent
 // the dashboard from booting.
 export function adapter<T>(): Adapter<T, Entities> {
+  // Local escape hatch: set FLAGS_LOCAL_ALL_ON=true to resolve every flag to
+  // "on" without configuring Vercel Flags locally. All flags today are
+  // booleans, so "on" is `true`. Never set this in production.
+  if (process.env.FLAGS_LOCAL_ALL_ON === "true") {
+    return {
+      config: { reportValue: false },
+      decide: () => true as T,
+    };
+  }
+
   try {
     return vercelAdapter();
   } catch {
