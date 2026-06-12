@@ -1,10 +1,4 @@
-import {
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderContent,
-  PageHeaderTitle,
-} from "@unkey/ui";
+import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { LogsClient } from "./components/logs-client";
 
 export default function Page() {

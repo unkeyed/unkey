@@ -32,7 +32,7 @@ export default function RolesPage() {
         <PageHeaderActions>
           <Button variant="primary" size="sm" className="px-3" onClick={() => setIsOpen(true)}>
             <Plus />
-            Create new role
+            New role
           </Button>
         </PageHeaderActions>
       </PageHeader>

@@ -1,11 +1,5 @@
 import { getAuth } from "@/lib/auth";
-import {
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderContent,
-  PageHeaderTitle,
-} from "@unkey/ui";
+import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { getWorkspace } from "./actions";
 import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";
@@ -18,7 +12,7 @@ export default async function AuditPage() {
     <PageContainer width="full">
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Audit</PageHeaderTitle>
+          <PageHeaderTitle>Audit Log</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <PageBody>

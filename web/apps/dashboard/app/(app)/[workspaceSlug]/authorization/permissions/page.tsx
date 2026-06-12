@@ -32,7 +32,7 @@ export default function PermissionsPage() {
         <PageHeaderActions>
           <Button variant="primary" size="sm" className="px-3" onClick={() => setIsOpen(true)}>
             <Plus />
-            Create new permission
+            New permission
           </Button>
         </PageHeaderActions>
       </PageHeader>
