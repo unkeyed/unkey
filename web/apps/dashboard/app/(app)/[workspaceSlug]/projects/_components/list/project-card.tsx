@@ -1,4 +1,5 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Github, Terminal } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
@@ -55,7 +56,10 @@ function AppTooltipRow({ app }: { app: ProjectCardApp }) {
 
 export function ProjectCard({ name, projectId, appCount, apps, actions }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
-  const projectPath = `/${workspace.slug}/projects/${projectId}`;
+  const projectPath = routes.projects.detail({
+                workspaceSlug: workspace.slug,
+                projectId ,
+              })
 
   return (
     <div className="relative p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-6 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
