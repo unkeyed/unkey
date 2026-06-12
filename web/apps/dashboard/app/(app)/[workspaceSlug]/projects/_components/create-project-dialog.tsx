@@ -65,6 +65,9 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
         commitTimestamp: Date.now(),
         commitTitle: SERVER_PLACEHOLDER,
         domain: SERVER_PLACEHOLDER,
+        commitSha: null,
+        forkRepositoryFullName: null,
+        prNumber: null,
       });
       await tx.isPersisted.promise;
       const { projectId } = tx.metadata as { projectId: string };

@@ -18,7 +18,8 @@
         "noUnusedImports": "error",
         "noChildrenProp": "off",
         "useJsxKeyInIterable": "error",
-        "noUnsafeOptionalChaining": "error"
+        "noUnsafeOptionalChaining": "error",
+        "useHookAtTopLevel": "error"
       },
       "security": {
         "noDangerouslySetInnerHtml": "error"

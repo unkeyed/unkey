@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -79,6 +80,37 @@ var knownBuildErrors = []knownBuildError{
 	{substr: "linting failed", message: "Dockerfile linting failed. Please check the Dockerfile for issues."},
 }
 
+// repoFullNameRegex matches a GitHub "owner/repo" full name. Mirrors the
+// dashboard's REPO_FULL_NAME guard (resolve-deploy-ref.ts) so untrusted inputs
+// can't smuggle a URL fragment or path traversal into the git context URL.
+var repoFullNameRegex = regexp.MustCompile(`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`)
+
+// commitSHARegex matches a hex git object name (7-40 chars). Anything outside
+// this set (':', '#', '/', '..') could alter what BuildKit checks out once
+// interpolated into the git context URL's ref/subdir fragment.
+var commitSHARegex = regexp.MustCompile(`^[0-9a-fA-F]{7,40}$`)
+
+// validateGitBuildParams rejects untrusted git inputs before they reach the
+// BuildKit context URL. The dashboard validates these in TS, but the public v2
+// API accepts commitSha as a free string and fillFromGitHub can skip the
+// GitHub round-trip, so a malicious SHA or repo name would otherwise reach
+// buildGitContextURL unchecked. Validating here covers the dashboard, webhook,
+// rebuild-from-DB, and API paths at once.
+func validateGitBuildParams(params gitBuildParams) error {
+	if !repoFullNameRegex.MatchString(params.Repository) {
+		return fmt.Errorf("invalid repository %q: must be in owner/repo form", params.Repository)
+	}
+	if params.ForkRepository != "" && !repoFullNameRegex.MatchString(params.ForkRepository) {
+		return fmt.Errorf("invalid fork repository %q: must be in owner/repo form", params.ForkRepository)
+	}
+	// SHA is unused when a PR ref drives the build (refs/pull/<n>/head), so only
+	// validate a non-empty SHA.
+	if params.CommitSHA != "" && !commitSHARegex.MatchString(params.CommitSHA) {
+		return fmt.Errorf("invalid commit SHA %q: must be a hex git object name", params.CommitSHA)
+	}
+	return nil
+}
+
 // buildResult contains the output of a Docker image build, including the image
 // name and identifiers needed to trace builds in Depot.
 type buildResult struct {
@@ -115,6 +147,10 @@ func (w *Workflow) buildDockerImageFromGit(
 	ctx restate.Context,
 	params gitBuildParams,
 ) (*buildResult, error) {
+	if err := validateGitBuildParams(params); err != nil {
+		return nil, restate.TerminalError(fmt.Errorf("invalid git build params: %w", err))
+	}
+
 	platform := w.buildPlatform.Platform
 	architecture := w.buildPlatform.Architecture
 
@@ -137,21 +173,19 @@ func (w *Workflow) buildDockerImageFromGit(
 		"project_id", params.ProjectID)
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
-		// Get GitHub installation token for BuildKit to fetch the repo
-		var ghToken githubclient.InstallationToken
-		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
-			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
-			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
-				"repository", params.Repository)
-		} else {
-			token, err := w.github.GetInstallationToken(params.InstallationID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
-			}
-			ghToken = token
+		// A fork build runs a Dockerfile we do not trust. PrNumber > 0 is a live
+		// fork PR (clones the base via refs/pull/<n>/head); ForkRepository != ""
+		// is a dashboard deploy of a fork ref by SHA (clones the fork directly).
+		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
+
+		// tokenless means no GIT_AUTH_TOKEN secret is registered, so a
+		// fork-controlled Dockerfile cannot mount a GitHub credential. Env vars
+		// are still injected as the env secret on both paths.
+		ghToken, tokenless, err := w.resolveCloneToken(params, isForkBuild)
+		if err != nil {
+			return nil, err
 		}
 
-		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
 		// Treat all decryption failures as terminal: bearer-token / keyring
 		// config errors never self-heal, and genuine vault outages are better
 		// surfaced to the user fast than burned inside a retry loop.
@@ -217,24 +251,10 @@ func (w *Workflow) buildDockerImageFromGit(
 			contextPath = ""
 		}
 
-		// Build git context URL with commit SHA or PR ref.
-		// Format: https://github.com/owner/repo.git#<ref>:<subdir>
-		// For fork PRs, use refs/pull/<number>/head so BuildKit can fetch
-		// the fork's commits from the base repo.
-		ref := params.CommitSHA
-		if params.PrNumber > 0 {
-			ref = fmt.Sprintf("refs/pull/%d/head", params.PrNumber)
-		}
-		buildRepo := params.Repository
-		if params.ForkRepository != "" {
-			buildRepo = params.ForkRepository
-		}
-		gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
-		if contextPath != "" {
-			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
-		}
+		gitContextURL := buildGitContextURL(params.Repository, params.ForkRepository, params.CommitSHA, params.PrNumber, contextPath)
 
-		logger.Info("Starting build execution",
+		logger.Info(
+			"Starting build execution",
 			"image_name", imageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
@@ -247,9 +267,9 @@ func (w *Workflow) buildDockerImageFromGit(
 		buildStatusCh := make(chan *client.SolveStatus, 100)
 		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
 
-		// Choose solver options based on authentication mode
+		// Choose solver options based on whether a GitHub token is injected.
 		var solverOptions client.SolveOpt
-		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
+		if tokenless {
 			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
 		} else {
 			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
@@ -281,6 +301,44 @@ func (w *Workflow) buildDockerImageFromGit(
 		// Whichever bound fires first wins.
 		restate.WithMaxRetryAttempts(runMaxAttempts),
 		restate.WithMaxRetryDuration(buildImageRetryCeiling))
+}
+
+// buildGitContextURL builds the BuildKit git context URL for a build.
+// Format: https://github.com/owner/repo.git#<ref>[:<subdir>]
+//
+// For a fork PR (prNumber > 0) it fetches refs/pull/<n>/head from the BASE repo:
+// GitHub exposes that ref only on the base, never on the fork, so buildRepo must
+// stay as the base repo. Only a concrete fork commit SHA (e.g. a dashboard
+// deploy of a fork ref, where prNumber is 0) is fetched directly from
+// forkRepository.
+func buildGitContextURL(repository, forkRepository, commitSHA string, prNumber int64, contextPath string) string {
+	ref := commitSHA
+	if prNumber > 0 {
+		ref = fmt.Sprintf("refs/pull/%d/head", prNumber)
+	}
+	buildRepo := cloneRepoFor(repository, forkRepository, prNumber)
+
+	if contextPath != "" {
+		return fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
+	}
+	return fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
+}
+
+// cloneRepoFor returns the repository BuildKit actually clones. A live fork PR
+// (prNumber > 0) clones the BASE repo via refs/pull/<n>/head; a fork ref
+// deployed by concrete SHA (prNumber == 0) clones the fork itself. Token
+// scoping and visibility probing must target this repo, not blindly the base.
+func cloneRepoFor(repository, forkRepository string, prNumber int64) string {
+	if prNumber == 0 && forkRepository != "" {
+		return forkRepository
+	}
+	return repository
+}
+
+// repoOwner returns the owner segment of an "owner/repo" full name.
+func repoOwner(fullName string) string {
+	owner, _, _ := strings.Cut(fullName, "/")
+	return owner
 }
 
 // buildEnvFileSecret serializes env vars into a .env-formatted byte slice
@@ -569,6 +627,86 @@ func (w *Workflow) processBuildStatus(
 			})
 		}
 	}
+}
+
+// resolveCloneToken decides which credential BuildKit gets for cloning the
+// source, least-privilege in three tiers:
+//
+//   - unauthenticated public deploy: no token at all (tokenless).
+//   - fork build (untrusted Dockerfile): a public clone target needs no token;
+//     a private one gets a read-only token scoped to that single repo, so an
+//     exfiltrated token reads only what the PR author already can.
+//   - trusted build: a read-only token, also scoped to the single repo being
+//     cloned. A Dockerfile pulling private cross-repo deps or submodules will
+//     see a clone 404; widen the scope only if that surfaces in practice.
+//
+// Probing and scoping both target the repo BuildKit actually clones: the base
+// for a live fork PR (refs/pull/<n>/head only exists there), the fork itself
+// for a fork ref deployed by SHA. A private fork outside the base's
+// installation is unreachable by any token this installation can mint, so it
+// fails fast with a terminal error instead of a confusing git failure
+// mid-build. An inconclusive visibility probe never falls back to the
+// tokenless path.
+func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (githubclient.InstallationToken, bool, error) {
+	var noToken githubclient.InstallationToken
+
+	if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
+		logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
+			"repository", params.Repository)
+		return noToken, true, nil
+	}
+
+	scopeRepo := cloneRepoFor(params.Repository, params.ForkRepository, params.PrNumber)
+	if isForkBuild {
+		// Same owner as the base means the fork lives in the same GitHub App
+		// installation (installations cover one account), so a token can be
+		// scoped to it. A different owner is in another installation we cannot
+		// mint a token for at all. Only meaningful for the PrNumber == 0
+		// fork-ref-by-SHA case: a live PR clones the base (scopeRepo ==
+		// params.Repository), so this is always false there.
+		//
+		// EqualFold because GitHub owners are case-insensitive: ForkRepository
+		// arrives verbatim from dashboard user typing while params.Repository
+		// carries GitHub's canonical casing, so a casing drift (Acme vs acme)
+		// must not be misread as a different owner.
+		differentOwner := !strings.EqualFold(repoOwner(scopeRepo), repoOwner(params.Repository))
+
+		public, err := w.github.IsRepoPublic(scopeRepo)
+
+		// Public fork clones anonymously: no token to mint or expose.
+		if err == nil && public {
+			return noToken, true, nil
+		}
+
+		// Different-owner fork lives in another installation; no token we mint
+		// reaches it, so fail now rather than hand out a useless one.
+		if differentOwner {
+			if err != nil {
+				// Visibility unknown (e.g. rate limit). Retryable, quota self-heals.
+				return noToken, false, fmt.Errorf("could not determine visibility of fork repository %s: %w", scopeRepo, err)
+			}
+			// Confirmed private: terminal, retrying never helps.
+			return noToken, false, restate.TerminalError(fmt.Errorf(
+				"cannot access private fork repository %s: it is outside this GitHub App installation", scopeRepo,
+			))
+		}
+
+		// Same-owner fork, private or visibility-unknown: fall through to mint a
+		// scoped read-only token below.
+		if err != nil {
+			logger.Warn("repo visibility check failed; using scoped read-only token",
+				"repository", scopeRepo, "error", err)
+		}
+	}
+
+	// Permission names and access levels are defined by GitHub:
+	// https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps
+	// "contents":"read" grants clone/read access only, no write of any kind.
+	token, err := w.github.GetScopedInstallationToken(params.InstallationID, scopeRepo, map[string]string{"contents": "read"})
+	if err != nil {
+		return noToken, false, fmt.Errorf("failed to get GitHub installation token: %w", err)
+	}
+	return token, false, nil
 }
 
 // extractUserBuildError checks whether err matches a known user-caused build
