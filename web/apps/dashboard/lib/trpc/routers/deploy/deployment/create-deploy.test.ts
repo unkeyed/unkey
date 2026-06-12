@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseDeployRef, resolveSourceRepo } from "./resolve-deploy-ref";
+import { parseDeployRef, resolveSourceRepo, validateSourceRepo } from "./resolve-deploy-ref";
+
+const repoConn = { installationId: 1, repositoryFullName: "ogzhanolguncu/demo_api" };
 
 describe("parseDeployRef", () => {
   it("parses a PR URL with sourceRepo", () => {
@@ -114,5 +116,28 @@ describe("resolveSourceRepo", () => {
     expect(resolveSourceRepo("evil#frag/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
     expect(resolveSourceRepo("evil?q=1/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
     expect(resolveSourceRepo("evil owner/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+  });
+});
+
+describe("validateSourceRepo", () => {
+  it("returns the resolved fork for a valid fork ref", () => {
+    expect(validateSourceRepo("fork-owner", repoConn)).toBe("fork-owner/demo_api");
+    expect(validateSourceRepo("fork-owner/demo_api", repoConn)).toBe("fork-owner/demo_api");
+  });
+
+  it("returns empty string when the ref points at the base repo", () => {
+    expect(validateSourceRepo("ogzhanolguncu", repoConn)).toBe("");
+    expect(validateSourceRepo("ogzhanolguncu/demo_api", repoConn)).toBe("");
+  });
+
+  it("throws for a slashed ref that is not a fork of the base", () => {
+    expect(() => validateSourceRepo("ogzhanolguncu/http-echo", repoConn)).toThrow();
+  });
+
+  it("throws for a malformed owner-only ref instead of silently dropping it", () => {
+    // Regression: an owner-only ref that fails the charset guard must not be
+    // dropped and reinterpreted as a trusted build of the base branch.
+    expect(() => validateSourceRepo("evil owner", repoConn)).toThrow();
+    expect(() => validateSourceRepo("evil#frag", repoConn)).toThrow();
   });
 });

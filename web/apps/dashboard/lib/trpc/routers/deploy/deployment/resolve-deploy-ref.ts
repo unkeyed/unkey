@@ -1,4 +1,7 @@
 import type { getPullRequest } from "@/lib/github";
+import { TRPCError } from "@trpc/server";
+
+export type RepoConn = { installationId: number; repositoryFullName: string };
 
 export type DeployRef =
   | { kind: "pr"; prNumber: number; sourceRepo: string }
@@ -77,4 +80,27 @@ export function resolveSourceRepo(
     return undefined;
   }
   return candidate;
+}
+
+export function validateSourceRepo(sourceRepo: string, repoConn: RepoConn): string {
+  const fork = resolveSourceRepo(sourceRepo, repoConn.repositoryFullName);
+  if (fork) {
+    return fork;
+  }
+
+  // resolveSourceRepo returns undefined both when the ref points at the base
+  // repo itself (a legitimate non-fork deploy) and when it is malformed or not
+  // a fork of this repo. Only the former may proceed silently: rejecting the
+  // latter stops a bad owner-only ref (e.g. "evil owner") from being dropped
+  // and reinterpreted as a fully trusted build of the base branch.
+  const baseName = repoConn.repositoryFullName.split("/")[1];
+  const candidate = sourceRepo.includes("/") ? sourceRepo : `${sourceRepo}/${baseName}`;
+  if (candidate === repoConn.repositoryFullName) {
+    return "";
+  }
+
+  throw new TRPCError({
+    code: "BAD_REQUEST",
+    message: `Repository "${sourceRepo}" is not a fork of "${repoConn.repositoryFullName}"`,
+  });
 }

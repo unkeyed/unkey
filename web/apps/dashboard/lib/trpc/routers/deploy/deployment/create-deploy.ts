@@ -12,9 +12,10 @@ import { match } from "@unkey/match";
 import { z } from "zod";
 import {
   type DeployRef,
+  type RepoConn,
   detectForkRepo,
   parseDeployRef,
-  resolveSourceRepo,
+  validateSourceRepo,
 } from "./resolve-deploy-ref";
 
 const baseInput = z.object({
@@ -22,8 +23,6 @@ const baseInput = z.object({
   appId: z.string().min(1, "App ID is required"),
   environmentSlug: z.string().min(1, "Environment slug is required"),
 });
-
-type RepoConn = { installationId: number; repositoryFullName: string };
 
 type GitCommit = {
   commitSha?: string;
@@ -150,17 +149,6 @@ export const createDeploy = workspaceProcedure
       });
     }
   });
-
-function validateSourceRepo(sourceRepo: string, repoConn: RepoConn): string {
-  const fork = resolveSourceRepo(sourceRepo, repoConn.repositoryFullName);
-  if (!fork && sourceRepo.includes("/") && sourceRepo !== repoConn.repositoryFullName) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Repository "${sourceRepo}" is not a fork of "${repoConn.repositoryFullName}"`,
-    });
-  }
-  return fork ?? "";
-}
 
 async function resolveFork(
   parsed: Extract<DeployRef, { kind: "sha" } | { kind: "branch" }>,
