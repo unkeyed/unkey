@@ -2,10 +2,10 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
+import { PageBody } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { DeploymentDomainsCard } from "../../../components/deployment-domains-card";
-import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
 import { useProjectData } from "../../data-provider";
 import { DeploymentApproval } from "./(deployment-progress)/deployment-approval";
 import { DeploymentBuild } from "./(deployment-progress)/deployment-build";
@@ -106,7 +106,7 @@ export default function DeploymentOverview() {
     ));
 
   return (
-    <ProjectContentWrapper centered>
+    <PageBody className="flex flex-col gap-5 pt-6 pb-20">
       <DeploymentInfo statusOverride={derivedStatus} />
       {view}
       <DeploymentApproval
@@ -118,6 +118,6 @@ export default function DeploymentOverview() {
         }
         deployment={deployment}
       />
-    </ProjectContentWrapper>
+    </PageBody>
   );
 }
