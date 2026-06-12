@@ -102,7 +102,8 @@ message GitSource {
   // Subdirectory within the repository to use as the Docker build context.
   string context_path = 4;
 
-  // Path to the Dockerfile, relative to context_path.
+  // Path to the Dockerfile, relative to context_path. Empty means no
+  // Dockerfile is configured and the image is built with Railpack instead.
   string dockerfile_path = 5;
 
   // Branch name used to resolve commit_sha when it is empty. The deploy worker

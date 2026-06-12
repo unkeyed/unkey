@@ -11,60 +11,59 @@ import (
 
 func TestBuildGitContextURL(t *testing.T) {
 	tests := []struct {
-		name           string
-		repository     string
-		forkRepository string
-		commitSHA      string
-		prNumber       int64
-		contextPath    string
-		want           string
+		name   string
+		params gitBuildParams
+		want   string
 	}{
 		{
-			name:       "branch push uses commit sha on base repo",
-			repository: "acme/app",
-			commitSHA:  "deadbeef",
-			want:       "https://github.com/acme/app.git#deadbeef",
+			name: "branch push uses commit sha on base repo",
+			//nolint:exhaustruct
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef"},
+			want:   "https://github.com/acme/app.git#deadbeef",
 		},
 		{
-			name:           "fork PR fetches refs/pull from BASE repo, not the fork",
-			repository:     "acme/app",
-			forkRepository: "attacker/app",
-			commitSHA:      "deadbeef",
-			prNumber:       42,
+			name: "fork PR fetches refs/pull from BASE repo, not the fork",
+			//nolint:exhaustruct
+			params: gitBuildParams{Repository: "acme/app", ForkRepository: "attacker/app", CommitSHA: "deadbeef", PrNumber: 42},
 			// GitHub serves refs/pull/<n>/head only on the base repo. Using the
 			// fork here (the old bug) produced an unresolvable URL.
 			want: "https://github.com/acme/app.git#refs/pull/42/head",
 		},
 		{
-			name:           "fork ref deployed by concrete SHA fetches from the fork",
-			repository:     "acme/app",
-			forkRepository: "contributor/app",
-			commitSHA:      "cafebabe",
-			prNumber:       0,
-			want:           "https://github.com/contributor/app.git#cafebabe",
+			name: "fork ref deployed by concrete SHA fetches from the fork",
+			//nolint:exhaustruct
+			params: gitBuildParams{Repository: "acme/app", ForkRepository: "contributor/app", CommitSHA: "cafebabe"},
+			want:   "https://github.com/contributor/app.git#cafebabe",
 		},
 		{
-			name:        "context subdir is appended",
-			repository:  "acme/app",
-			commitSHA:   "deadbeef",
-			contextPath: "services/api",
-			want:        "https://github.com/acme/app.git#deadbeef:services/api",
+			name: "context subdir is appended",
+			//nolint:exhaustruct
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api"},
+			want:   "https://github.com/acme/app.git#deadbeef:services/api",
 		},
 		{
-			name:           "fork PR with subdir still targets base repo",
-			repository:     "acme/app",
-			forkRepository: "attacker/app",
-			commitSHA:      "deadbeef",
-			prNumber:       7,
-			contextPath:    "svc",
-			want:           "https://github.com/acme/app.git#refs/pull/7/head:svc",
+			name: "fork PR with subdir still targets base repo",
+			//nolint:exhaustruct
+			params: gitBuildParams{Repository: "acme/app", ForkRepository: "attacker/app", CommitSHA: "deadbeef", PrNumber: 7, ContextPath: "svc"},
+			want:   "https://github.com/acme/app.git#refs/pull/7/head:svc",
+		},
+		{
+			name: "dot context means root",
+			//nolint:exhaustruct
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "."},
+			want:   "https://github.com/acme/app.git#deadbeef",
+		},
+		{
+			name: "leading slash stripped",
+			//nolint:exhaustruct
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "/services/api"},
+			want:   "https://github.com/acme/app.git#deadbeef:services/api",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildGitContextURL(tt.repository, tt.forkRepository, tt.commitSHA, tt.prNumber, tt.contextPath)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.want, buildGitContextURL(tt.params))
 		})
 	}
 }

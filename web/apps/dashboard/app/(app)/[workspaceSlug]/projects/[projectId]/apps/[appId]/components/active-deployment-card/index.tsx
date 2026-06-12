@@ -347,7 +347,7 @@ function explainExit(
     }))
     .with("ContainerCannotRun", () => ({
       label: "Couldn't start your app",
-      body: "We were unable to start your app at all. Usually means the start command, entrypoint, or image is broken. Check your build settings and Dockerfile.",
+      body: "We were unable to start your app at all. Usually means the start command, entrypoint, or image is broken. Check the command and build settings of your app.",
     }))
     .with("Completed", () => ({
       label: "Exited cleanly",

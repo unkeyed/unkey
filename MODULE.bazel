@@ -73,6 +73,7 @@ use_repo(
     "com_github_sqlc_dev_plugin_sdk_go",
     "com_github_sqlc_dev_sqlc",
     "com_github_stretchr_testify",
+    "com_github_tonistiigi_fsutil",
     "com_github_vishvananda_netlink",
     "io_k8s_api",
     "io_k8s_apimachinery",

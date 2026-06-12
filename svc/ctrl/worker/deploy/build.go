@@ -7,8 +7,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -28,10 +30,12 @@ import (
 	"github.com/opencontainers/go-digest"
 	restate "github.com/restatedev/sdk-go"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/validation"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
@@ -43,6 +47,12 @@ const (
 	// defaultCacheKeepDays is the maximum age in days for cached build layers.
 	// Layers older than this are evicted regardless of cache size.
 	defaultCacheKeepDays = 7
+
+	// gitAuthTokenSecretID is the BuildKit session secret holding the GitHub
+	// installation token for git context fetches. The host suffix scopes the
+	// token to github.com; BuildKit's git source looks up the host-suffixed
+	// name first. Shared by the Dockerfile and Railpack build paths.
+	gitAuthTokenSecretID = "GIT_AUTH_TOKEN.github.com"
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
@@ -56,6 +66,14 @@ type knownBuildError struct {
 // knownBuildErrors lists BuildKit error patterns caused by user mistakes
 // (bad Dockerfile, missing files, invalid config) paired with friendly messages.
 var knownBuildErrors = []knownBuildError{
+	// Railpack (Dockerfile-less) builds. Listed first because the
+	// "railpack prepare failed" wrapper is more specific than the generic
+	// patterns below (e.g. "no such file or directory") that could otherwise
+	// shadow it.
+	// The message is deliberately tech-neutral: Railpack is an implementation
+	// detail we don't surface to customers. "check the root directory" also
+	// makes the dashboard's failed-deployment banner show its settings link.
+	{substr: "railpack prepare failed", message: "Unkey could not determine how to build this app. Please check the root directory in settings, or review the build logs for details."},
 	// Settings-fixable: dockerfile path / docker context
 	{substr: "the dockerfile cannot be empty", message: "The Dockerfile appears to be empty. Please verify the file path in settings."},
 	{substr: "failed to read dockerfile", message: "Dockerfile could not be read. Please check that the file path is correct in settings."},
@@ -76,6 +94,7 @@ var knownBuildErrors = []knownBuildError{
 	{substr: "must be of the form: name=value", message: "A build argument is malformed. Please use the format name=value."},
 	{substr: "contains value with non-printable ascii characters", message: "A build argument contains non-printable characters. Please remove them."},
 	{substr: "docker exporter does not currently support", message: "The requested export format is not supported. Please check your export configuration."},
+	// Generic fallbacks
 	{substr: "failed to solve: process", message: "A build command failed. Please check the build logs for details."},
 	{substr: "linting failed", message: "Dockerfile linting failed. Please check the Dockerfile for issues."},
 }
@@ -137,6 +156,100 @@ type gitBuildParams struct {
 	EnvironmentID                 string
 }
 
+// gitBuildContext carries the inputs that the shared git-build scaffold
+// resolves identically for every build method: Dockerfile and Railpack
+// builders receive it and only implement what differentiates them.
+type gitBuildContext struct {
+	DepotProjectID string
+
+	// GithubToken is empty when the clone needs no credential: unauthenticated
+	// mode (local dev) or a fork build of a public repo. See resolveCloneToken.
+	GithubToken string
+
+	// EnvVars are the decrypted environment variables for the deployment.
+	EnvVars map[string]string
+
+	// GitContextURL is the BuildKit git context the build machine fetches.
+	GitContextURL string
+
+	// ImageName is the fully qualified registry tag to push.
+	ImageName string
+}
+
+// runGitBuild wraps the lifecycle shared by every git-based image build:
+// validating the untrusted git params, resolving the Depot project and the
+// least-privilege clone credential, decrypting env vars, and invoking the
+// method-specific buildFn inside a single durable Run with the standard
+// retry bounds.
+//
+// buildFn executes entirely within one Run attempt on one process. It must
+// keep all process-local state (temp files, BuildKit connections) inside its
+// own invocation, because a retry may resume on a different pod.
+func (w *Workflow) runGitBuild(
+	ctx restate.Context,
+	runName string,
+	params gitBuildParams,
+	buildFn func(runCtx restate.RunContext, bctx gitBuildContext) (*buildResult, error),
+) (*buildResult, error) {
+	if err := validateGitBuildParams(params); err != nil {
+		return nil, restate.TerminalError(fmt.Errorf("invalid git build params: %w", err))
+	}
+
+	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
+	}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
+	}
+
+	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
+		// A fork build runs build instructions we do not trust. PrNumber > 0
+		// is a live fork PR (clones the base via refs/pull/<n>/head);
+		// ForkRepository != "" is a dashboard deploy of a fork ref by SHA
+		// (clones the fork directly).
+		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
+
+		// tokenless means no GIT_AUTH_TOKEN secret is registered, so
+		// fork-controlled build instructions cannot mount a GitHub credential.
+		// Env vars are still injected as the env secret on both paths.
+		ghToken, tokenless, err := w.resolveCloneToken(params, isForkBuild)
+		if err != nil {
+			return nil, err
+		}
+		githubToken := ""
+		if !tokenless {
+			githubToken = ghToken.Token
+		}
+
+		// Decrypt env vars in-memory so they can be injected as BuildKit secrets.
+		// Treat all decryption failures as terminal: bearer-token / keyring
+		// config errors never self-heal, and genuine vault outages are better
+		// surfaced to the user fast than burned inside a retry loop.
+		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
+		if err != nil {
+			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
+		}
+
+		if err := validateShellEnvKeys(envVars); err != nil {
+			return nil, restate.TerminalError(err)
+		}
+
+		return buildFn(runCtx, gitBuildContext{
+			DepotProjectID: depotProjectID,
+			GithubToken:    githubToken,
+			EnvVars:        envVars,
+			GitContextURL:  buildGitContextURL(params),
+			ImageName:      fmt.Sprintf("%s:%s-%s", w.registryConfig.Repository, params.ProjectID, params.DeploymentID),
+		})
+	}, restate.WithName(runName),
+		// Bound retries both by count (for transient Depot/BuildKit blips) and
+		// by wall-clock (a single build attempt is long-running, so 5 attempts
+		// × worst-case backoff could otherwise exceed any reasonable ceiling).
+		// Whichever bound fires first wins.
+		restate.WithMaxRetryAttempts(runMaxAttempts),
+		restate.WithMaxRetryDuration(buildImageRetryCeiling))
+}
+
 // buildDockerImageFromGit builds a container image from a GitHub repository using Depot.
 //
 // The method retrieves or creates a Depot project for the Unkey project,
@@ -147,181 +260,246 @@ func (w *Workflow) buildDockerImageFromGit(
 	ctx restate.Context,
 	params gitBuildParams,
 ) (*buildResult, error) {
-	if err := validateGitBuildParams(params); err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid git build params: %w", err))
-	}
-
 	platform := w.buildPlatform.Platform
-	architecture := w.buildPlatform.Architecture
 
 	logger.Info("Starting git build process",
 		"repository", params.Repository,
 		"commit_sha", params.CommitSHA,
 		"project_id", params.ProjectID,
 		"platform", platform,
-		"architecture", architecture)
+		"architecture", w.buildPlatform.Architecture)
 
-	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
-	}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
-	}
-
-	logger.Info("Creating depot build",
-		"depot_project_id", depotProjectID,
-		"project_id", params.ProjectID)
-
-	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
-		// A fork build runs a Dockerfile we do not trust. PrNumber > 0 is a live
-		// fork PR (clones the base via refs/pull/<n>/head); ForkRepository != ""
-		// is a dashboard deploy of a fork ref by SHA (clones the fork directly).
-		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
-
-		// tokenless means no GIT_AUTH_TOKEN secret is registered, so a
-		// fork-controlled Dockerfile cannot mount a GitHub credential. Env vars
-		// are still injected as the env secret on both paths.
-		ghToken, tokenless, err := w.resolveCloneToken(params, isForkBuild)
-		if err != nil {
-			return nil, err
-		}
-
-		// Treat all decryption failures as terminal: bearer-token / keyring
-		// config errors never self-heal, and genuine vault outages are better
-		// surfaced to the user fast than burned inside a retry loop.
-		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
-		if err != nil {
-			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
-		}
-
-		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
-			Options:   nil,
-			ProjectId: depotProjectID,
-		}, w.registryConfig.Password)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create build: %w", err)
-		}
-		defer func() { depotBuild.Finish(err) }()
-
-		logger.Info("Depot build created",
-			"build_id", depotBuild.ID,
-			"depot_project_id", depotProjectID,
-			"project_id", params.ProjectID)
-
-		logger.Info("Acquiring build machine",
-			"build_id", depotBuild.ID,
-			"architecture", architecture,
-			"project_id", params.ProjectID)
-
-		buildkit, err := machine.Acquire(runCtx, depotBuild.ID, depotBuild.Token, architecture)
-		if err != nil {
-			return nil, fmt.Errorf("failed to acquire machine: %w", err)
-		}
-		defer func() {
-			if releaseErr := buildkit.Release(); releaseErr != nil {
-				logger.Error("unable to release buildkit", "error", releaseErr)
-			}
-		}()
-
-		logger.Info("Build machine acquired, connecting to buildkit",
-			"build_id", depotBuild.ID,
-			"project_id", params.ProjectID)
-
-		buildClient, err := buildkit.Connect(runCtx)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create build client: %w", err)
-		}
-		defer func() {
-			if closeErr := buildClient.Close(); closeErr != nil {
-				logger.Error("unable to close client", "error", closeErr)
-			}
-		}()
-
-		imageName := fmt.Sprintf("%s:%s-%s", w.registryConfig.Repository, params.ProjectID, params.DeploymentID)
-
+	return w.runGitBuild(ctx, "build docker image from git", params, func(runCtx restate.RunContext, bctx gitBuildContext) (*buildResult, error) {
+		// An empty dockerfile path must never reach this builder: buildImage
+		// routes those deployments to Railpack. Passing an empty "filename"
+		// to BuildKit would silently fall back to "Dockerfile", masking a
+		// routing bug, so assert instead.
 		dockerfilePath := params.DockerfilePath
-		if dockerfilePath == "" {
-			dockerfilePath = "Dockerfile"
+		if assertErr := assert.NotEmpty(dockerfilePath, "dockerfile path must be set for dockerfile builds"); assertErr != nil {
+			return nil, restate.TerminalError(assertErr)
 		}
 
-		// Normalize context path: trim whitespace and leading slashes, treat "." as root
-		contextPath := strings.TrimSpace(params.ContextPath)
-		contextPath = strings.TrimPrefix(contextPath, "/")
-		if contextPath == "." {
-			contextPath = ""
-		}
-
-		gitContextURL := buildGitContextURL(params.Repository, params.ForkRepository, params.CommitSHA, params.PrNumber, contextPath)
-
-		logger.Info(
-			"Starting build execution",
-			"image_name", imageName,
+		logger.Info("Starting build execution",
+			"image_name", bctx.ImageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
-			"architecture", architecture,
-			"build_id", depotBuild.ID,
 			"project_id", params.ProjectID,
-			"git_context_url", gitContextURL,
+			"git_context_url", bctx.GitContextURL,
 		)
 
-		buildStatusCh := make(chan *client.SolveStatus, 100)
-		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
-
-		// Choose solver options based on whether a GitHub token is injected.
+		// Without a token (unauthenticated mode, or a fork build of a public
+		// repo) the git fetch needs no credentials, so skip the auth secret
+		// entirely.
 		var solverOptions client.SolveOpt
-		if tokenless {
-			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
+		var err error
+		if bctx.GithubToken == "" {
+			solverOptions, err = w.buildSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.EnvVars)
 		} else {
-			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
+			solverOptions, err = w.buildGitSolverOptions(platform, bctx.GitContextURL, dockerfilePath, bctx.ImageName, bctx.GithubToken, bctx.EnvVars)
 		}
 		if err != nil {
 			return nil, restate.TerminalError(fmt.Errorf("failed to build solver options: %w", err))
 		}
 
-		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
-		if err != nil {
-			// Context cancellations and timeouts are transient — let Restate retry.
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return nil, fmt.Errorf("build interrupted: %w", err)
-			}
-			return nil, restate.TerminalError(fmt.Errorf("build failed: %w", err))
-		}
-
-		logger.Info("Build completed successfully")
-
-		return &buildResult{
-			ImageName:      imageName,
-			DepotBuildID:   depotBuild.ID,
-			DepotProjectID: depotProjectID,
-		}, nil
-	}, restate.WithName("build docker image from git"),
-		// Bound retries both by count (for transient Depot/BuildKit blips) and
-		// by wall-clock (a single build attempt is long-running, so 5 attempts
-		// × worst-case backoff could otherwise exceed any reasonable ceiling).
-		// Whichever bound fires first wins.
-		restate.WithMaxRetryAttempts(runMaxAttempts),
-		restate.WithMaxRetryDuration(buildImageRetryCeiling))
+		return w.solveOnDepotMachine(runCtx, bctx.DepotProjectID, bctx.ImageName, params, solverOptions)
+	})
 }
 
-// buildGitContextURL builds the BuildKit git context URL for a build.
-// Format: https://github.com/owner/repo.git#<ref>[:<subdir>]
-//
-// For a fork PR (prNumber > 0) it fetches refs/pull/<n>/head from the BASE repo:
-// GitHub exposes that ref only on the base, never on the fork, so buildRepo must
-// stay as the base repo. Only a concrete fork commit SHA (e.g. a dashboard
-// deploy of a fork ref, where prNumber is 0) is fetched directly from
-// forkRepository.
-func buildGitContextURL(repository, forkRepository, commitSHA string, prNumber int64, contextPath string) string {
-	ref := commitSHA
-	if prNumber > 0 {
-		ref = fmt.Sprintf("refs/pull/%d/head", prNumber)
+// validateShellEnvKeys rejects env var names that are not valid environment
+// variable names. Creation already enforces this at the API boundary
+// (envVarKeySchema in the dashboard, [validation.IsValidEnvVarKey] in Go);
+// this is the paired assertion before use, catching variables that were
+// created before the rule was tightened.
+func validateShellEnvKeys(envVars map[string]string) error {
+	for _, key := range slices.Sorted(maps.Keys(envVars)) {
+		if !validation.IsValidEnvVarKey(key) {
+			return fmt.Errorf("environment variable %q cannot be used during builds: %s", key, validation.ErrMsgInvalidEnvVarKey)
+		}
 	}
-	buildRepo := cloneRepoFor(repository, forkRepository, prNumber)
+	return nil
+}
+
+// buildGitContextURL builds the BuildKit git context URL for a deployment:
+// https://github.com/owner/repo.git#<ref>[:<subdir>]. BuildKit fetches the
+// repository directly on the build machine, so no repository content ever
+// passes through the worker. Shared by the Dockerfile and Railpack paths so
+// both fetch identical sources.
+//
+// For a fork PR (PrNumber > 0) the ref is refs/pull/<n>/head fetched from the
+// BASE repo: GitHub exposes that ref only on the base, never on the fork.
+// Only a concrete fork commit SHA (a dashboard deploy of a fork ref, where
+// PrNumber is 0) is fetched directly from ForkRepository. The context path is
+// normalized: leading slashes are stripped and "." means the repository root.
+func buildGitContextURL(params gitBuildParams) string {
+	contextPath := strings.TrimSpace(params.ContextPath)
+	contextPath = strings.TrimPrefix(contextPath, "/")
+	if contextPath == "." {
+		contextPath = ""
+	}
+
+	ref := params.CommitSHA
+	if params.PrNumber > 0 {
+		ref = fmt.Sprintf("refs/pull/%d/head", params.PrNumber)
+	}
+	buildRepo := cloneRepoFor(params.Repository, params.ForkRepository, params.PrNumber)
 
 	if contextPath != "" {
 		return fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
 	}
 	return fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
+}
+
+// withDepotBuildkit creates a Depot build, acquires a remote BuildKit
+// machine, connects, and invokes fn with the connected client. The Depot
+// build is finalized and the machine released regardless of fn's outcome.
+// Returns the Depot build ID alongside fn's error.
+func (w *Workflow) withDepotBuildkit(
+	runCtx context.Context,
+	depotProjectID string,
+	params gitBuildParams,
+	fn func(buildClient *client.Client) error,
+) (_ string, err error) {
+	depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
+		Options:   nil,
+		ProjectId: depotProjectID,
+	}, w.registryConfig.Password)
+	if err != nil {
+		return "", fmt.Errorf("failed to create build: %w", err)
+	}
+	defer func() { depotBuild.Finish(err) }()
+
+	logger.Info("Depot build created",
+		"build_id", depotBuild.ID,
+		"depot_project_id", depotProjectID,
+		"project_id", params.ProjectID)
+
+	logger.Info("Acquiring build machine",
+		"build_id", depotBuild.ID,
+		"architecture", w.buildPlatform.Architecture,
+		"project_id", params.ProjectID)
+
+	buildkit, err := machine.Acquire(runCtx, depotBuild.ID, depotBuild.Token, w.buildPlatform.Architecture)
+	if err != nil {
+		return "", fmt.Errorf("failed to acquire machine: %w", err)
+	}
+	defer func() {
+		if releaseErr := buildkit.Release(); releaseErr != nil {
+			logger.Error("unable to release buildkit", "error", releaseErr)
+		}
+	}()
+
+	logger.Info("Build machine acquired, connecting to buildkit",
+		"build_id", depotBuild.ID,
+		"project_id", params.ProjectID)
+
+	buildClient, err := buildkit.Connect(runCtx)
+	if err != nil {
+		return "", fmt.Errorf("unable to create build client: %w", err)
+	}
+	defer func() {
+		if closeErr := buildClient.Close(); closeErr != nil {
+			logger.Error("unable to close client", "error", closeErr)
+		}
+	}()
+
+	err = fn(buildClient)
+	return depotBuild.ID, err
+}
+
+// solveWithStatus executes one solve on the given client, streaming build
+// status to ClickHouse so steps and logs show up in the dashboard.
+//
+// Returns a terminal error for build failures that cannot be retried; context
+// cancellations, timeouts, and transient registry errors are returned as
+// retryable errors.
+func (w *Workflow) solveWithStatus(
+	runCtx context.Context,
+	buildClient *client.Client,
+	params gitBuildParams,
+	solverOptions client.SolveOpt,
+) error {
+	buildStatusCh := make(chan *client.SolveStatus, 100)
+	go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
+
+	_, err := buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
+	if err != nil {
+		// Context cancellations and timeouts are transient — let Restate retry.
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("build interrupted: %w", err)
+		}
+		if isTransientSolveError(err) {
+			return fmt.Errorf("build hit a transient registry error: %w", err)
+		}
+		return restate.TerminalError(fmt.Errorf("build failed: %w", err))
+	}
+	return nil
+}
+
+// transientSolveErrorSubstrings are status phrases registries return on
+// server-side failures, e.g. a 502 from ghcr.io while the build machine pulls
+// an image layer. Matched conservatively: user build failures surface as
+// process exit errors and never contain these phrases.
+var transientSolveErrorSubstrings = []string{
+	"500 Internal Server Error",
+	"502 Bad Gateway",
+	"503 Service Unavailable",
+	"504 Gateway Timeout",
+}
+
+// isTransientSolveError reports whether a solve failure looks like a
+// transient registry blip worth retrying — the build itself never ran, so a
+// retry is safe and likely to succeed.
+func isTransientSolveError(err error) bool {
+	msg := err.Error()
+	for _, substr := range transientSolveErrorSubstrings {
+		if strings.Contains(msg, substr) {
+			return true
+		}
+	}
+	return false
+}
+
+// solveOnDepotMachine runs a single solve on a freshly acquired Depot
+// machine. Used by the Dockerfile build path; the Railpack path composes
+// [Workflow.withDepotBuildkit] and [Workflow.solveWithStatus] directly since
+// it performs two solves on one machine.
+func (w *Workflow) solveOnDepotMachine(
+	runCtx context.Context,
+	depotProjectID string,
+	imageName string,
+	params gitBuildParams,
+	solverOptions client.SolveOpt,
+) (*buildResult, error) {
+	depotBuildID, err := w.withDepotBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
+		return w.solveWithStatus(runCtx, buildClient, params, solverOptions)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("Build completed successfully")
+
+	return &buildResult{
+		ImageName:      imageName,
+		DepotBuildID:   depotBuildID,
+		DepotProjectID: depotProjectID,
+	}, nil
+}
+
+// registryAuthProvider returns a session attachable that authenticates image
+// pushes to the configured container registry.
+func (w *Workflow) registryAuthProvider() session.Attachable {
+	//nolint: exhaustruct
+	return authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
+		ConfigFile: &configfile.ConfigFile{
+			AuthConfigs: map[string]types.AuthConfig{
+				w.registryConfig.Repository: {
+					Username: w.registryConfig.Username,
+					Password: w.registryConfig.Password,
+				},
+			},
+		},
+	})
 }
 
 // cloneRepoFor returns the repository BuildKit actually clones. A live fork PR
@@ -395,17 +573,7 @@ func (w *Workflow) buildSolverOptions(
 	envVars map[string]string,
 ) (client.SolveOpt, error) {
 	sessionAttachables := []session.Attachable{
-		//nolint: exhaustruct
-		authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
-			ConfigFile: &configfile.ConfigFile{
-				AuthConfigs: map[string]types.AuthConfig{
-					w.registryConfig.Repository: {
-						Username: w.registryConfig.Username,
-						Password: w.registryConfig.Password,
-					},
-				},
-			},
-		}),
+		w.registryAuthProvider(),
 	}
 
 	envFile, err := buildEnvFileSecret(envVars)
@@ -459,7 +627,7 @@ func (w *Workflow) buildGitSolverOptions(
 	envVars map[string]string,
 ) (client.SolveOpt, error) {
 	secrets := map[string][]byte{
-		"GIT_AUTH_TOKEN.github.com": []byte(githubToken),
+		gitAuthTokenSecretID: []byte(githubToken),
 	}
 	envFile, err := buildEnvFileSecret(envVars)
 	if err != nil {
@@ -488,17 +656,7 @@ func (w *Workflow) buildGitSolverOptions(
 		FrontendAttrs: frontendAttrs,
 
 		Session: []session.Attachable{
-			//nolint: exhaustruct
-			authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
-				ConfigFile: &configfile.ConfigFile{
-					AuthConfigs: map[string]types.AuthConfig{
-						w.registryConfig.Repository: {
-							Username: w.registryConfig.Username,
-							Password: w.registryConfig.Password,
-						},
-					},
-				},
-			}),
+			w.registryAuthProvider(),
 			secretsprovider.FromMap(secrets),
 		},
 		//nolint: exhaustruct
