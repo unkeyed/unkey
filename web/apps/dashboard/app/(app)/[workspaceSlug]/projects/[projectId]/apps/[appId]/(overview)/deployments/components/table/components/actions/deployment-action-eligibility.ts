@@ -35,6 +35,18 @@ export function isCancellableDeploymentStatus(status: DeploymentStatus): boolean
   return CANCELLABLE_STATUSES.includes(status);
 }
 
+// Redeploy: available for ready, idle, failed, or superseded deployments.
+// Shares the same export rationale as isCancellableDeploymentStatus above.
+export function isRedeployableDeploymentStatus(status: DeploymentStatus): boolean {
+  return (
+    status === "ready" ||
+    status === "stopped" ||
+    status === "failed" ||
+    status === "superseded" ||
+    status === "cancelled"
+  );
+}
+
 export function getDeploymentActionEligibility(
   ctx: DeploymentActionContext,
 ): DeploymentActionEligibility {
@@ -48,13 +60,7 @@ export function getDeploymentActionEligibility(
   const canRollback = isProduction && isActionable && hasCurrent && !isCurrent;
   // Promote: same as rollback, but also allowed on the current deployment when rolled back.
   const canPromote = isProduction && isActionable && hasCurrent && (!isCurrent || ctx.isRolledBack);
-  // Redeploy: available for ready, idle, failed, or superseded deployments
-  const canRedeploy =
-    isActionable ||
-    status === "stopped" ||
-    status === "failed" ||
-    status === "superseded" ||
-    status === "cancelled";
+  const canRedeploy = isRedeployableDeploymentStatus(status);
   // Cancel: available for any in-flight deployment.
   const canCancel = isCancellableDeploymentStatus(status);
 
