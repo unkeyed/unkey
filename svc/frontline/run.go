@@ -492,6 +492,7 @@ func buildEngine(
 		RBAC:         rbac.New(),
 		Region:       region,
 		UsageLimiter: usageLimiter,
+		Source:       schema.SourceGateway,
 		KeyCache:     keyCache,
 	})
 	if err != nil {

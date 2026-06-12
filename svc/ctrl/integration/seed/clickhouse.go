@@ -33,6 +33,7 @@ func (s *ClickHouseSeeder) InsertVerifications(ctx context.Context, workspaceID 
 		verifications := make([]schema.KeyVerification, batchCount)
 		for j := range batchCount {
 			verifications[j] = schema.KeyVerification{
+				Source:       schema.SourceAPI,
 				RequestID:    uid.New(uid.RequestPrefix),
 				Time:         timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
 				WorkspaceID:  workspaceID,
@@ -209,6 +210,7 @@ func (s *ClickHouseSeeder) insertVerificationsForKeyChunk(
 			baseTime := now - int64(len(keyIDs)-i-keyIdx)*int64(eventsPerKey)
 			for j := range eventsPerKey {
 				v := schema.KeyVerification{
+					Source:       schema.SourceAPI,
 					RequestID:    fmt.Sprintf("perf-%d-%d", i+keyIdx, j),
 					Time:         baseTime + int64(j),
 					WorkspaceID:  workspaceID,

@@ -76,6 +76,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		RBAC:         nil,
 		Region:       "test",
 		UsageLimiter: nil,
+		Source:       schema.SourceAPI,
 		KeyCache:     nil,
 	})
 	if err != nil {
@@ -489,6 +490,7 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 			ExternalID:   externalID,
 			Latency:      latency,
 			SpentCredits: credit,
+			Source:       schema.SourceAPI,
 		})
 
 		// Log progress periodically
