@@ -148,7 +148,18 @@ func (h *Handler) pushUsage(
 		return 0, 0, 0, 0, fmt.Errorf("get period usage: %w", err)
 	}
 
+	keyRows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.ActiveKeysUsage, error) {
+		return h.usage.GetActiveKeysUsage(rc, clickhouse.GetActiveKeysUsageRequest{
+			WorkspaceID: "", // all workspaces; we filter to billable ones below
+			Month:       p.Start().UnixMilli(),
+		})
+	}, restate.WithName("get active keys"))
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get active keys: %w", err)
+	}
+
 	valuesByWorkspace := aggregateUsage(rows)
+	mergeActiveKeys(valuesByWorkspace, keyRows)
 	if len(valuesByWorkspace) == 0 {
 		logger.Info("no deploy usage this period", "billing_period", period)
 		return 0, 0, 0, 0, nil

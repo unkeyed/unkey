@@ -120,6 +120,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         { label: "Memory", value: `${formatQuantity(usage.memoryGiBHours)} GiB-hrs` },
         { label: "Egress", value: `${formatQuantity(usage.egressGiB)} GiB` },
         { label: "Disk", value: `${formatQuantity(usage.diskGiBHours)} GiB-hrs` },
+        { label: "Active keys", value: formatQuantity(usage.activeKeys) },
       ]
     : null;
 
@@ -208,7 +209,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
               fillClassName="bg-orange-9"
             />
             {meterStats ? (
-              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-5">
                 {meterStats.map((stat) => (
                   <div key={stat.label} className="bg-white px-3 py-2 dark:bg-black">
                     <p className="text-[11px] text-gray-10 uppercase tracking-wide">{stat.label}</p>

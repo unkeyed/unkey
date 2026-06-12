@@ -21,6 +21,7 @@ const (
 	eventMemory = "memory_gib_seconds"
 	eventEgress = "egress_public_gib"
 	eventDisk   = "disk_gib_seconds"
+	eventKeys   = "active_keys"
 )
 
 // payloadKeyCustomer and payloadKeyValue are the meter's
@@ -117,6 +118,7 @@ func meterEventsFor(req PushRequest) []meterEvent {
 		{eventMemory, req.Values.MemoryGiBSeconds},
 		{eventEgress, req.Values.EgressGiB},
 		{eventDisk, req.Values.DiskGiBSeconds},
+		{eventKeys, req.Values.ActiveKeys},
 	}
 
 	var out []meterEvent
