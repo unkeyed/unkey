@@ -67,11 +67,6 @@ export type IsOnlyUrlValue = {
   operator: "is";
 };
 
-export type KeyDetailsFilterUrlValue = Pick<
-  FilterValue<KeyDetailsFilterField, KeyDetailsFilterOperator>,
-  "value" | "operator"
->;
-
 export type KeyDetailsFilterValue = FilterValue<KeyDetailsFilterField, KeyDetailsFilterOperator>;
 
 export type AllOperatorsUrlValue = {
