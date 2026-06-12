@@ -74,10 +74,21 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // API routes are fetched programmatically, so redirecting them to the
+  // sign-in page hands an HTML document to a JSON client (tRPC throws
+  // `Unexpected token '<'` when a query fires after the session ended).
+  // Every route under /api enforces its own auth and returns a JSON 401
+  // (tRPC via requireUser, the rest explicitly), so let them through and
+  // fail with a proper JSON error instead.
+  const isApiPath = url.pathname.startsWith("/api/");
+
   try {
     const { session, headers } = await authMiddleware(req);
 
     if (!session) {
+      if (isApiPath) {
+        return NextResponse.next();
+      }
       const signInUrl = new URL(SIGN_IN_URL, url);
       const currentPath = url.pathname + url.search;
       if (currentPath && currentPath !== "/") {
@@ -112,6 +123,9 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     return response;
   } catch (error) {
     console.error("Middleware error:", error);
+    if (isApiPath) {
+      return NextResponse.next();
+    }
     const signInUrl = new URL(SIGN_IN_URL, url);
     const currentPath = url.pathname + url.search;
     if (currentPath && currentPath !== "/") {

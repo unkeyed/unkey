@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
   if (!authResult.success) {
     if (
       (authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED ||
-        authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED) &&
+        authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED ||
+        "challengeType" in authResult) &&
       authResult.cookies &&
       authResult.cookies?.length > 0 // make typescript happy
     ) {
@@ -47,6 +48,12 @@ export async function GET(request: NextRequest) {
       // Add verify=email to searchParams to render the email verification component
       if (authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED) {
         url.searchParams.set("verify", "email");
+      }
+
+      // Render the matching MFA/Radar challenge component; the data needed to
+      // complete the challenge travels in the HttpOnly cookies set below.
+      if ("challengeType" in authResult) {
+        url.searchParams.set("challenge", authResult.challengeType);
       }
 
       const response = NextResponse.redirect(url);

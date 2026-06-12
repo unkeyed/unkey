@@ -6,6 +6,7 @@ import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { cn } from "@/lib/utils";
 import { Loading, toast } from "@unkey/ui";
 import { OTPInput, type SlotProps } from "input-otp";
+import { applyVerificationResult } from "../challenge/handle-result";
 import { useSignUp } from "../hooks/useSignUp";
 
 export const EmailVerify: React.FC = () => {
@@ -25,11 +26,18 @@ export const EmailVerify: React.FC = () => {
       return null;
     }
     setIsLoading(true);
-    await handleEmailVerification(otp).catch((err) => {
+    try {
+      const result = await handleEmailVerification(otp);
+      const message = applyVerificationResult(result);
+      if (message) {
+        setIsLoading(false);
+        toast.error(message);
+      }
+    } catch (err) {
       setIsLoading(false);
-      const errorCode = err.message as AuthErrorCode;
+      const errorCode = (err as Error).message as AuthErrorCode;
       toast.error(errorMessages[errorCode] || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
-    });
+    }
   };
 
   return (

@@ -2,23 +2,17 @@ import { getCookie } from "@/lib/auth/cookies-actions";
 import {
   AuthErrorCode,
   type AuthErrorResponse,
-  type EmailAuthResult,
   type Organization,
   PENDING_SESSION_COOKIE,
+  type PendingAuthChallengeResponse,
   type PendingOrgSelectionResponse,
-  type PendingTurnstileResponse,
   SIGN_IN_URL,
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
 import { useSearchParams } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
-import {
-  resendAuthCode,
-  signInViaEmail,
-  verifyAuthCode,
-  verifyTurnstileAndRetry,
-} from "../actions";
+import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
 import { SignInContext } from "../context/signin-context";
 import { consumeRedirectUrl, isSafeRedirectPath } from "../sign-in/redirect-utils";
 
@@ -35,13 +29,10 @@ function isPendingOrgSelection(result: VerificationResult): result is PendingOrg
   );
 }
 
-function isPendingTurnstileChallenge(result: EmailAuthResult): result is PendingTurnstileResponse {
-  return (
-    !result.success &&
-    result.code === AuthErrorCode.RADAR_CHALLENGE_REQUIRED &&
-    "email" in result &&
-    "challengeParams" in result
-  );
+function isPendingAuthChallenge(
+  result: VerificationResult,
+): result is PendingAuthChallengeResponse {
+  return !result.success && "challengeType" in result;
 }
 
 export function useSignIn() {
@@ -101,11 +92,6 @@ export function useSignIn() {
       setError(null);
       const result = await signInViaEmail(email);
 
-      // Return result for Turnstile challenge handling
-      if (isPendingTurnstileChallenge(result)) {
-        return result;
-      }
-
       // Check if the operation was successful
       if (result.success) {
         setIsVerifying(true);
@@ -153,6 +139,16 @@ export function useSignIn() {
         // the org selection automatically, so we should get a success response
         if (invitationToken && result.success) {
           return result.redirectTo;
+        }
+
+        // MFA or Radar interrupted the sign-in; the challenge cookies are set,
+        // so route to the matching challenge UI.
+        if (isPendingAuthChallenge(result)) {
+          const redirectSuffix =
+            redirectParam && redirectParam !== "/apis"
+              ? `&redirect=${encodeURIComponent(redirectParam)}`
+              : "";
+          return `${SIGN_IN_URL}?challenge=${result.challengeType}${redirectSuffix}`;
         }
 
         // Only show org selector if we don't have an invitation token
@@ -203,48 +199,11 @@ export function useSignIn() {
     }
   };
 
-  const handleTurnstileVerification = async (
-    turnstileToken: string,
-    challengeData: PendingTurnstileResponse,
-    userData?: { firstName: string; lastName: string },
-  ): Promise<void> => {
-    try {
-      setError(null);
-      const result = await verifyTurnstileAndRetry({
-        turnstileToken,
-        email: challengeData.email,
-        challengeParams: challengeData.challengeParams,
-        userData,
-      });
-
-      if (result.success) {
-        setIsVerifying(true);
-        return;
-      }
-
-      if (isAuthErrorResponse(result)) {
-        if (result.code === AuthErrorCode.ACCOUNT_NOT_FOUND) {
-          setAccountNotFound(true);
-          setEmail(challengeData.email);
-        } else {
-          setError(result.message);
-        }
-      } else {
-        setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
-      }
-    } catch (error) {
-      setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
-      throw error;
-    }
-  };
-
   return {
     ...context,
     handleSignInViaEmail,
     handleVerification,
     handleResendCode,
-    handleTurnstileVerification,
-    isPendingTurnstileChallenge,
     orgs,
     loading,
     hasPendingAuth,

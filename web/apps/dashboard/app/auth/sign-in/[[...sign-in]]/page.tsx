@@ -15,6 +15,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { completeOrgSelection } from "../../actions";
 import { ErrorBanner, WarnBanner } from "../../banners";
+import { MfaChallenge } from "../../challenge/mfa-challenge";
+import { MfaEnroll } from "../../challenge/mfa-enroll";
+import { RadarEmailChallenge } from "../../challenge/radar-email-challenge";
+import { RadarSmsChallenge } from "../../challenge/radar-sms-challenge";
 import { SignInProvider } from "../../context/signin-context";
 import { useSignIn } from "../../hooks";
 import { EmailCode } from "../email-code";
@@ -38,6 +42,7 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const verifyParam = searchParams?.get("verify");
+  const challengeParam = searchParams?.get("challenge");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const redirectParam = searchParams?.get("redirect");
@@ -227,7 +232,23 @@ function SignInContent() {
       )}
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
-      {isVerifying ? (
+      {challengeParam === "mfa" ? (
+        <FadeIn>
+          <MfaChallenge />
+        </FadeIn>
+      ) : challengeParam === "mfa-enroll" ? (
+        <FadeIn>
+          <MfaEnroll />
+        </FadeIn>
+      ) : challengeParam === "radar-email" ? (
+        <FadeIn>
+          <RadarEmailChallenge />
+        </FadeIn>
+      ) : challengeParam === "radar-sms" ? (
+        <FadeIn>
+          <RadarSmsChallenge />
+        </FadeIn>
+      ) : isVerifying ? (
         <FadeIn>
           <EmailCode invitationToken={invitationToken || undefined} />
         </FadeIn>

@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
  */
 export const useWorkspaceNavigation = () => {
   // Get workspace data and loading state from the workspace provider context
-  const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
+  const { workspace, isLoading: isWorkspaceLoading, error } = useWorkspace();
 
   // Handle loading state by throwing a promise that never resolves
   // This triggers React Suspense boundaries to show loading UI
@@ -23,9 +23,17 @@ export const useWorkspaceNavigation = () => {
     throw new Promise(() => {});
   }
 
-  // If no workspace exists, redirect user to workspace creation page
-  // This typically happens for new users or when workspace access is revoked
   if (!workspace) {
+    // A failed lookup is not the same as "this user has no workspace":
+    // redirecting an existing user to /new on a transient error would invite
+    // them to create a duplicate workspace. Surface the failure to the error
+    // boundary instead.
+    if (error) {
+      throw error;
+    }
+
+    // The workspace definitively does not exist (NOT_FOUND), so the user
+    // still needs to complete onboarding.
     redirect("/new");
   }
 

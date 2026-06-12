@@ -5,13 +5,21 @@ import type { NextRequest } from "next/server";
 import { getAuthCookieOptions } from "./cookie-security";
 import { getCookie, getCookieOptionsAsString, setSessionCookie } from "./cookies";
 import { auth } from "./server";
-import { LOCAL_ORG_ID, LOCAL_ORG_ROLE, LOCAL_USER_ID, UNKEY_SESSION_COOKIE } from "./types";
+import {
+  LOCAL_ORG_ID,
+  LOCAL_ORG_ROLE,
+  LOCAL_USER_ID,
+  UNKEY_SESSION_COOKIE,
+  type User,
+} from "./types";
 
 type SessionResult = {
   session: {
     userId: string;
     orgId: string | null;
     role: string | null;
+    // Profile embedded in the sealed session cookie, when available
+    user?: User | null;
     impersonator?: {
       email: string;
       reason?: string | null;
@@ -96,6 +104,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
             userId: sessionValidationResult.userId,
             orgId: sessionValidationResult.orgId ?? null,
             role: sessionValidationResult.role ?? null,
+            user: sessionValidationResult.user ?? null,
             impersonator: sessionValidationResult.impersonator,
           },
           headers,
@@ -149,6 +158,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
                 userId: refreshedSession.session?.userId,
                 orgId: refreshedSession.session?.orgId ?? null,
                 role: refreshedSession.session?.role ?? null,
+                user: refreshedSession.session?.user ?? null,
                 impersonator: refreshedSession.impersonator,
               },
               headers,

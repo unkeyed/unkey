@@ -8,7 +8,6 @@ import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
-import { clearWorkspaceCache } from "../workspace/getCurrent";
 
 export const createSubscription = workspaceProcedure
   .use(requireWorkspaceAdmin)
@@ -196,7 +195,4 @@ export const createSubscription = workspaceProcedure
 
     // Invalidate workspace cache after subscription creation
     await invalidateWorkspaceCache(ctx.tenant.id);
-
-    // Also clear the tRPC workspace cache to ensure fresh data on next request
-    clearWorkspaceCache(ctx.tenant.id);
   });

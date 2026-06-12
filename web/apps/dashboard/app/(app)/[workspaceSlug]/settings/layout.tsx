@@ -11,6 +11,7 @@ const ITEMS = [
   { segment: "team", label: "Team" },
   { segment: "root-keys", label: "Root Keys" },
   { segment: "billing", label: "Billing" },
+  { segment: "security", label: "Security" },
 ] as const;
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
