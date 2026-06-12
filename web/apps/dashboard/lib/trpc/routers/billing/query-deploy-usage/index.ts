@@ -8,6 +8,7 @@ export const queryDeployUsageResponse = z.object({
   memoryGiBHours: z.number(),
   diskGiBHours: z.number(),
   egressGiB: z.number(),
+  activeKeys: z.number(),
 });
 
 export type DeployUsageResponse = z.infer<typeof queryDeployUsageResponse>;
@@ -25,11 +26,18 @@ export const queryDeployUsage = workspaceProcedure
     const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
 
     try {
-      return await clickhouse.billing.deployMeterUsage({
-        workspaceId: ctx.workspace.id,
-        start: monthStart,
-        end: now.getTime(),
-      });
+      const [meters, keys] = await Promise.all([
+        clickhouse.billing.deployMeterUsage({
+          workspaceId: ctx.workspace.id,
+          start: monthStart,
+          end: now.getTime(),
+        }),
+        clickhouse.billing.activeKeysUsage({
+          workspaceId: ctx.workspace.id,
+          month: monthStart,
+        }),
+      ]);
+      return { ...meters, activeKeys: keys.activeKeys };
     } catch (err) {
       console.error("Failed to query deploy usage", err);
       throw new TRPCError({

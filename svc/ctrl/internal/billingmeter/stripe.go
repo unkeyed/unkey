@@ -21,6 +21,7 @@ const (
 	eventMemory = "memory_gib_seconds"
 	eventEgress = "egress_public_gib"
 	eventDisk   = "disk_gib_seconds"
+	eventKeys   = "active_keys"
 )
 
 // payloadKeyCustomer and payloadKeyValue are the meter's
@@ -88,6 +89,7 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 		{eventMemory, req.Values.MemoryGiBSeconds},
 		{eventEgress, req.Values.EgressGiB},
 		{eventDisk, req.Values.DiskGiBSeconds},
+		{eventKeys, req.Values.ActiveKeys},
 	}
 
 	pushed := 0

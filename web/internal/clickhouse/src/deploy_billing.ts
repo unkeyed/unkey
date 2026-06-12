@@ -83,3 +83,41 @@ export function getDeployMeterUsage(ch: Querier) {
     );
   };
 }
+
+export const activeKeysUsage = z.object({
+  activeKeys: z.number(),
+});
+
+export type ActiveKeysUsage = z.infer<typeof activeKeysUsage>;
+
+/**
+ * Distinct keys verified through the Deploy gateway (source = 'gateway') in
+ * the billing month, regardless of outcome: a RATE_LIMITED or DISABLED
+ * verification is still work done for that key. Mirrors GetActiveKeysUsage in
+ * pkg/clickhouse, the authoritative billing query. Display-only.
+ */
+export function getActiveKeysUsage(ch: Querier) {
+  return async (args: {
+    workspaceId: string;
+    /** Any instant inside the billing month, unix millis. */
+    month: number;
+  }): Promise<ActiveKeysUsage> => {
+    const query = ch.query({
+      query: `
+        SELECT toInt64(uniqExact(key_id)) AS activeKeys
+        FROM default.key_verifications_per_month_v3
+        WHERE time = toDate(toStartOfMonth(fromUnixTimestamp64Milli({month: Int64})))
+          AND source = 'gateway'
+          AND workspace_id = {workspaceId: String}
+      `,
+      params: z.object({ workspaceId: z.string(), month: z.number().int() }),
+      schema: activeKeysUsage,
+    });
+
+    const result = await query({ workspaceId: args.workspaceId, month: args.month });
+    if (result.err) {
+      throw new Error(`Failed to fetch active keys usage: ${result.err.message}`);
+    }
+    return result.val.at(0) ?? { activeKeys: 0 };
+  };
+}
