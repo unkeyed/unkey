@@ -106,9 +106,19 @@ func doRequest(client *http.Client, method string, url string, headers map[strin
 // statusCheck executes an HTTP request and returns true if the response status matches expectedStatus.
 // Returns (false, nil) for non-matching statuses, (false, error) for transport errors.
 func statusCheck(client *http.Client, method string, url string, headers map[string]string, expectedStatus int) (bool, error) {
+	status, err := requestStatus(client, method, url, headers)
+	if err != nil {
+		return false, err
+	}
+	return status == expectedStatus, nil
+}
+
+// requestStatus executes an HTTP request and returns the response status code,
+// discarding the body. Returns an error only for transport failures.
+func requestStatus(client *http.Client, method string, url string, headers map[string]string) (int, error) {
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return false, fault.Wrap(err, fault.Internal("failed to create request"))
+		return 0, fault.Wrap(err, fault.Internal("failed to create request"))
 	}
 
 	for k, v := range headers {
@@ -117,14 +127,36 @@ func statusCheck(client *http.Client, method string, url string, headers map[str
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, fault.Wrap(err, fault.Internal(fmt.Sprintf("%s %s failed", method, url)))
+		return 0, fault.Wrap(err, fault.Internal(fmt.Sprintf("%s %s failed", method, url)))
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 	}()
 
-	return resp.StatusCode == expectedStatus, nil
+	return resp.StatusCode, nil
+}
+
+// probeRepoVisibility checks whether repo ("owner/repo") is visible to an
+// unauthenticated client, which is the same property that decides whether git
+// can clone it anonymously. Only 200 and 404 are conclusive answers; anything
+// else (rate limiting, server errors) returns an error so callers never
+// mistake an inconclusive probe for "private".
+func probeRepoVisibility(client *http.Client, baseURL, repo string) (bool, error) {
+	apiURL := fmt.Sprintf("%s/repos/%s", baseURL, repo)
+	status, err := requestStatus(client, http.MethodGet, apiURL, githubHeaders(""))
+	if err != nil {
+		return false, err
+	}
+
+	switch status {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	default:
+		return false, fault.New(fmt.Sprintf("repository visibility probe for %s returned status %d", repo, status))
+	}
 }
 
 // githubHeaders returns common GitHub API headers with the given bearer token.

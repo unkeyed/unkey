@@ -17,7 +17,6 @@ go_library(
         "//pkg/db",
         "//pkg/uid",
         "//svc/ctrl/internal/auth",
-        "//svc/ctrl/services/app",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//ingress",
     ],

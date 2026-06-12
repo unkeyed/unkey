@@ -1,38 +1,22 @@
 "use client";
 
+import { DeploymentIdFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/deployment-id-filter";
 import { useSentinelLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-sentinel-logs-filters";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import type { LogsFilterValue } from "@/lib/schemas/logs.filter.schema";
 
 export const SentinelDeploymentFilter = () => {
   const { filters, updateFilters } = useSentinelLogsFilters();
-  const { deployments } = useProjectData();
-
-  const options = deployments.map((deployment, i) => ({
-    id: i,
-    slug: deployment.id,
-    deploymentId: deployment.id,
-    gitBranch: deployment.gitBranch,
-    checked: false,
-  }));
 
   return (
-    <FilterCheckbox
-      options={options}
-      filterField="deploymentId"
-      checkPath="slug"
-      selectionMode="multiple"
-      renderOptionContent={(checkbox) => (
-        <div className="text-accent-12 text-xs">
-          <span className="font-medium">{checkbox.gitBranch}</span>
-          <span className="text-accent-9 ml-1 font-mono">{checkbox.slug.slice(0, 8)}</span>
-        </div>
-      )}
-      createFilterValue={(option) => ({
-        value: option.deploymentId,
-      })}
+    <DeploymentIdFilter
       filters={filters}
       updateFilters={updateFilters}
+      createDeploymentFilter={(value): LogsFilterValue => ({
+        id: crypto.randomUUID(),
+        field: "deploymentId",
+        operator: "is",
+        value,
+      })}
     />
   );
 };
