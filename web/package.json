@@ -23,7 +23,7 @@
     "@vitest/ui": "3.2.4",
     "turbo": "2.4.3",
     "typescript": "5.7.3",
-    "vitest": "3.2.4"
+    "vitest": "3.2.6"
   },
   "engines": {
     "node": ">=22"
