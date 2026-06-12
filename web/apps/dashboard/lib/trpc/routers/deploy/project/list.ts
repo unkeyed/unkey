@@ -31,7 +31,7 @@ export const listProjects = workspaceProcedure
 
     const projectIds = projectRows.map((p) => p.id);
 
-    const [appRows, latestDeploymentRows, routeRows, repoRows] = await Promise.all([
+    const [appRows, latestDeploymentRows, routeRows, repoRows, appListRows] = await Promise.all([
       // Each "*-by-project" query below relies on the reducer below picking
       // the first row per projectId. Every ORDER BY therefore ends in a unique
       // tiebreaker (id) so ties on updatedAt/createdAt don't produce a
@@ -91,6 +91,7 @@ export const listProjects = workspaceProcedure
       db
         .select({
           appId: githubRepoConnections.appId,
+          projectId: githubRepoConnections.projectId,
           repositoryFullName: githubRepoConnections.repositoryFullName,
         })
         .from(githubRepoConnections)
@@ -100,6 +101,15 @@ export const listProjects = workspaceProcedure
             inArray(githubRepoConnections.projectId, projectIds),
           ),
         ),
+      db
+        .select({
+          projectId: apps.projectId,
+          id: apps.id,
+          name: apps.name,
+        })
+        .from(apps)
+        .where(and(eq(apps.workspaceId, workspaceId), inArray(apps.projectId, projectIds)))
+        .orderBy(apps.projectId, desc(apps.updatedAt), desc(apps.id)),
     ]);
 
     const primaryAppByProject = new Map<
@@ -143,6 +153,19 @@ export const listProjects = workspaceProcedure
       repoByApp.set(row.appId, row.repositoryFullName);
     }
 
+    const appsByProject = new Map<string, Project["apps"]>();
+    for (const row of appListRows) {
+      const repository = repoByApp.get(row.id) ?? null;
+      const list = appsByProject.get(row.projectId) ?? [];
+      list.push({
+        id: row.id,
+        name: row.name,
+        source: repository ? "github" : "code",
+        repository,
+      });
+      appsByProject.set(row.projectId, list);
+    }
+
     const currentDeploymentIds = Array.from(
       new Set(
         Array.from(primaryAppByProject.values())
@@ -181,12 +204,15 @@ export const listProjects = workspaceProcedure
         ? currentDeploymentById.get(primaryApp.currentDeploymentId)
         : undefined;
       const hasDeployment = currentDeployment?.gitCommitTimestamp != null;
+      const projectApps = appsByProject.get(project.id) ?? [];
       const repositoryFullName = primaryApp ? (repoByApp.get(primaryApp.appId) ?? null) : null;
 
       return {
         id: project.id,
         name: project.name,
         slug: project.slug,
+        appCount: projectApps.length,
+        apps: projectApps,
         repositoryFullName,
         currentDeploymentId: primaryApp?.currentDeploymentId ?? null,
         isRolledBack: primaryApp?.isRolledBack ?? false,
