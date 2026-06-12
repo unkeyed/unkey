@@ -4,6 +4,14 @@ import (
 	"encoding/json"
 )
 
+// Source values for [KeyVerification.Source]: where a verification originated.
+// Billing rollups exclude SourceGateway (Deploy traffic is metered
+// separately); analytics keep both.
+const (
+	SourceAPI     = "api"
+	SourceGateway = "gateway"
+)
+
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
 // fields like spent_credits and latency compared to v1.
@@ -16,6 +24,7 @@ type KeyVerification struct {
 	ExternalID   string   `ch:"external_id" json:"external_id"`
 	KeyID        string   `ch:"key_id" json:"key_id"`
 	Region       string   `ch:"region" json:"region"`
+	Source       string   `ch:"source" json:"source"`
 	Outcome      string   `ch:"outcome" json:"outcome"`
 	Tags         []string `ch:"tags" json:"tags"`
 	SpentCredits int64    `ch:"spent_credits" json:"spent_credits"`
