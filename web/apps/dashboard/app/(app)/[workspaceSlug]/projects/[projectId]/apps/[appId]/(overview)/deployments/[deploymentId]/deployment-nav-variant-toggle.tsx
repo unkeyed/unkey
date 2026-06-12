@@ -6,6 +6,7 @@ import { type DeploymentNavVariant, useDeploymentNavVariant } from "./use-deploy
 const OPTIONS: { value: DeploymentNavVariant; label: string }[] = [
   { value: "breadcrumb", label: "Tabs" },
   { value: "sidebar", label: "Sidebar" },
+  { value: "crumb", label: "Crumb" },
 ];
 
 /** Temporary floating toggle for trying both deployment nav layouts. */

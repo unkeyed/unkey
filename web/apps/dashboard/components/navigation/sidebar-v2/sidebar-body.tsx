@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeploymentNavVariant } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/use-deployment-nav-variant";
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -7,15 +8,18 @@ import {
   buildApiLinks,
   buildAppLinks,
   buildAuthorizationLinks,
+  buildDeploymentLinks,
   buildNamespaceLinks,
   buildProjectLinks,
   buildWorkspaceSections,
 } from "@/lib/navigation/leaves";
-import { useSelectedLayoutSegments } from "next/navigation";
+import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
 export function SidebarBody() {
   const context = useSectionContext();
+  const [navVariant] = useDeploymentNavVariant();
+  const { deploymentId } = useParams<{ deploymentId?: string }>();
   // useSelectedLayoutSegments includes route groups like "(project)"; strip
   // them so the index-based page lookups in leaves.ts stay stable.
   const segments = useSelectedLayoutSegments()
@@ -35,6 +39,15 @@ export function SidebarBody() {
       case "authorization":
         return buildAuthorizationLinks(slug, segments);
       case "project":
+        if (navVariant === "crumb" && context.appId && deploymentId) {
+          return buildDeploymentLinks(
+            slug,
+            context.projectId,
+            context.appId,
+            deploymentId,
+            segments,
+          );
+        }
         return context.appId
           ? buildAppLinks(slug, context.projectId, context.appId, segments)
           : buildProjectLinks(slug, context.projectId, segments);

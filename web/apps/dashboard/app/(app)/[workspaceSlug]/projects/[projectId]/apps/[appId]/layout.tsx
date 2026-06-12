@@ -51,7 +51,13 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
             nav off-screen. Bound this region to the viewport (minus the 52px
             TopNav) so the content scrolls internally and the nav stays fixed. */}
         {isDeploymentDetail ? (
-          navVariant === "sidebar" ? (
+          navVariant === "crumb" ? (
+            // Trail lives in the top bar and the deploy-specific rail replaces
+            // the global app sidebar, so the content area is chrome-free.
+            <div className="flex h-[calc(100dvh-52px)] flex-col">
+              <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+            </div>
+          ) : navVariant === "sidebar" ? (
             // SecondaryNav rail handles wayfinding, so no breadcrumb here.
             // No flex-1 on the row: it would override the explicit height and
             // grow with content, scrolling the whole region (rail included).

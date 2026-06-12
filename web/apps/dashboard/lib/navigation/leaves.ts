@@ -197,6 +197,30 @@ export function buildAppLinks(
   ];
 }
 
+// Deploy-specific rail for the "crumb" nav variant: while viewing a deployment
+// the global app sidebar is replaced by the deployment's own tabs.
+export function buildDeploymentLinks(
+  slug: string,
+  projectId: string,
+  appId: string,
+  deploymentId: string,
+  segments: string[],
+): ResolvedNavLink[] {
+  const page = segments[6];
+  const base = `/${slug}/projects/${projectId}/apps/${appId}/deployments/${deploymentId}`;
+  return [
+    { key: "deployment", label: "Deployment", href: base, icon: SquareBulletList, isActive: !page },
+    { key: "logs", label: "Logs", href: `${base}/logs`, icon: Layers3, isActive: page === "logs" },
+    {
+      key: "requests",
+      label: "Requests",
+      href: `${base}/requests`,
+      icon: ArrowOppositeDirectionY,
+      isActive: page === "requests",
+    },
+  ];
+}
+
 export function buildApiLinks(
   slug: string,
   apiId: string,

@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-export type DeploymentNavVariant = "breadcrumb" | "sidebar";
+export type DeploymentNavVariant = "breadcrumb" | "sidebar" | "crumb";
 
 const STORAGE_KEY = "deployment-nav-variant";
 const CHANGE_EVENT = "deployment-nav-variant-change";
 
 function isVariant(value: string | null): value is DeploymentNavVariant {
-  return value === "breadcrumb" || value === "sidebar";
+  return value === "breadcrumb" || value === "sidebar" || value === "crumb";
 }
 
 /**

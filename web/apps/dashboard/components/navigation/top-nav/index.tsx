@@ -1,17 +1,20 @@
 "use client";
 
+import { useDeploymentNavVariant } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/use-deployment-nav-variant";
 import { Logomark } from "@/components/logomark";
 import { useSidebar } from "@/components/ui/sidebar";
 import { type BreadcrumbDescriptor, useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Menu } from "@unkey/icons";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Fragment } from "react";
 import { HelpButton } from "../sidebar/help-button";
 import { UserButton } from "../sidebar/user-button";
 import { ApiCrumb } from "./api-crumb";
 import { AppCrumb } from "./app-crumb";
 import { CrumbSeparator } from "./crumb";
+import { DeploymentCrumb } from "./deployment-crumb";
 import { TopNavFeedbackButton } from "./feedback-button";
 import { IdentityCrumb } from "./identity-crumb";
 import { NamespaceCrumb } from "./namespace-crumb";
@@ -24,6 +27,16 @@ export function TopNav() {
   const workspace = useWorkspaceNavigation();
   const crumbs = useBreadcrumbs();
   const { setOpenMobile } = useSidebar();
+  const [navVariant] = useDeploymentNavVariant();
+  const params = useParams<{ projectId?: string; appId?: string; deploymentId?: string }>();
+  // In the "crumb" variant the deployment becomes a fourth top-bar crumb.
+  const deploymentCrumb =
+    navVariant === "crumb" && params.projectId && params.appId && params.deploymentId
+      ? {
+          deploymentId: params.deploymentId,
+          href: `/${workspace.slug}/projects/${params.projectId}/apps/${params.appId}/deployments/${params.deploymentId}`,
+        }
+      : null;
 
   return (
     <header
@@ -41,6 +54,15 @@ export function TopNav() {
             <CrumbForDescriptor descriptor={descriptor} />
           </Fragment>
         ))}
+        {deploymentCrumb && (
+          <>
+            <CrumbSeparator />
+            <DeploymentCrumb
+              href={deploymentCrumb.href}
+              deploymentId={deploymentCrumb.deploymentId}
+            />
+          </>
+        )}
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <TopNavFeedbackButton className="hidden md:inline-flex" />
