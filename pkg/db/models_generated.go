@@ -1615,6 +1615,8 @@ type Workspace struct {
 	Tier                 sql.NullString  `db:"tier"`
 	StripeCustomerID     sql.NullString  `db:"stripe_customer_id"`
 	StripeSubscriptionID sql.NullString  `db:"stripe_subscription_id"`
+	DeployPlan           sql.NullString  `db:"deploy_plan"`
+	DeployPlanOverride   sql.NullString  `db:"deploy_plan_override"`
 	BetaFeatures         json.RawMessage `db:"beta_features"`
 	Subscriptions        []byte          `db:"subscriptions"`
 	Enabled              bool            `db:"enabled"`

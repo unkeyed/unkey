@@ -1,5 +1,6 @@
 "use client";
 import { PageLoading } from "@/components/dashboard/page-loading";
+import { useFlag } from "@/lib/flags/provider";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -7,9 +8,11 @@ import { Button, Empty, Input, SettingCard } from "@unkey/ui";
 import Link from "next/link";
 import { BillingContainer } from "./billing-container";
 import { Client } from "./client";
+import { DeployBillingClient } from "./deploy-billing-client";
 
 export default function BillingPage() {
   const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
+  const deployBillingEnabled = useFlag("deployBilling");
 
   // Derive isLegacy from workspace data
   const isLegacy = workspace?.subscriptions && Object.keys(workspace.subscriptions).length > 0;
@@ -115,6 +118,7 @@ export default function BillingPage() {
     );
   }
 
-  // For non-legacy workspaces, use the Client component with live data
-  return <Client />;
+  // For non-legacy workspaces, use the Client component with live data. When the
+  // deployBilling flag is on, use the separate two-product (API + Compute) page.
+  return deployBillingEnabled ? <DeployBillingClient /> : <Client />;
 }
