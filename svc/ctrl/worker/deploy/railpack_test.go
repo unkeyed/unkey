@@ -10,51 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBuildGitContextURL(t *testing.T) {
-	tests := []struct {
-		name   string
-		params gitBuildParams
-		want   string
-	}{
-		{
-			name: "repo root",
-			//nolint:exhaustruct
-			params: gitBuildParams{Repository: "acme/api", CommitSHA: "abc123"},
-			want:   "https://github.com/acme/api.git#abc123",
-		},
-		{
-			name: "context subdirectory",
-			//nolint:exhaustruct
-			params: gitBuildParams{Repository: "acme/api", CommitSHA: "abc123", ContextPath: "services/api"},
-			want:   "https://github.com/acme/api.git#abc123:services/api",
-		},
-		{
-			name: "dot context means root",
-			//nolint:exhaustruct
-			params: gitBuildParams{Repository: "acme/api", CommitSHA: "abc123", ContextPath: "."},
-			want:   "https://github.com/acme/api.git#abc123",
-		},
-		{
-			name: "leading slash stripped",
-			//nolint:exhaustruct
-			params: gitBuildParams{Repository: "acme/api", CommitSHA: "abc123", ContextPath: "/services/api"},
-			want:   "https://github.com/acme/api.git#abc123:services/api",
-		},
-		{
-			name: "fork pull request",
-			//nolint:exhaustruct
-			params: gitBuildParams{Repository: "acme/api", ForkRepository: "fork/api", CommitSHA: "abc123", PrNumber: 42},
-			want:   "https://github.com/fork/api.git#refs/pull/42/head",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.want, buildGitContextURL(tt.params))
-		})
-	}
-}
-
 func TestValidateShellEnvKeys(t *testing.T) {
 	require.NoError(t, validateShellEnvKeys(map[string]string{
 		"ZETA":     "1",

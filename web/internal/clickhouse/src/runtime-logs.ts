@@ -16,7 +16,7 @@ const MAX_EXECUTION_TIME_SECONDS = 20;
 export const runtimeLogsRequestSchema = z.object({
   workspaceId: z.string(),
   projectId: z.string(),
-  deploymentId: z.string().nullable(),
+  deploymentId: z.array(z.string()),
   environmentId: z.array(z.string()),
   appId: z.string().nullable(),
   limit: z.int().min(1).max(MAX_PAGE_SIZE),
@@ -83,8 +83,8 @@ export function getRuntimeLogs(ch: Querier) {
     if (args.environmentId.length > 0) {
       wheres.push("environment_id IN {environmentId: Array(String)}");
     }
-    if (args.deploymentId !== null) {
-      wheres.push("deployment_id = {deploymentId: String}");
+    if (args.deploymentId.length > 0) {
+      wheres.push("deployment_id IN {deploymentId: Array(String)}");
     }
     if (args.severity !== null && args.severity.length > 0) {
       wheres.push("severity IN {severity: Array(String)}");
