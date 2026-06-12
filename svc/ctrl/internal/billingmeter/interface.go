@@ -23,8 +23,9 @@ type PushRequest struct {
 }
 
 // MeterValues is the month-to-date usage for one workspace, in the exact units
-// each meter expects. These are sent as decimal strings, so they are kept as
-// floats and never rounded.
+// each meter expects. Values are sent to Stripe as decimal strings: the
+// continuous meters are kept as floats and never rounded, and ActiveKeys is a
+// count, so it stays integral and formats exactly.
 type MeterValues struct {
 	// CPUSeconds is CPU time used, in CPU-seconds.
 	CPUSeconds float64
@@ -34,9 +35,13 @@ type MeterValues struct {
 	EgressGiB float64
 	// DiskGiBSeconds is allocated disk integrated over time, in GiB-seconds.
 	DiskGiBSeconds float64
+	// ActiveKeys is the number of distinct keys verified through the Deploy
+	// gateway this period (month-to-date, like every other meter).
+	ActiveKeys int64
 }
 
 // Positive reports whether any meter has usage worth pushing.
 func (v MeterValues) Positive() bool {
-	return v.CPUSeconds > 0 || v.MemoryGiBSeconds > 0 || v.EgressGiB > 0 || v.DiskGiBSeconds > 0
+	return v.CPUSeconds > 0 || v.MemoryGiBSeconds > 0 || v.EgressGiB > 0 || v.DiskGiBSeconds > 0 ||
+		v.ActiveKeys > 0
 }
