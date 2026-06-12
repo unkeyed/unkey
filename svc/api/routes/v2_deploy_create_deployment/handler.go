@@ -98,8 +98,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		TriggeredBy: principal.Subject.ID,
 	}
 
-	// Add optional keyspace ID for authentication
+	// Add optional keyspace ID for authentication. Verify the keyspace belongs
+	// to the caller's workspace before attaching it; otherwise a root key for
+	// one workspace could bind another workspace's keyspace into its
+	// deployment's key-auth allowlist (cross-tenant isolation violation).
 	if req.KeyspaceId != nil {
+		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), *req.KeyspaceId)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return fault.New("keyspace not found",
+					fault.Code(codes.Data.KeyAuth.NotFound.URN()),
+					fault.Internal("keyspace not found"),
+					fault.Public("The specified keyspace was not found."),
+				)
+			}
+			return fault.Wrap(err, fault.Internal("failed to find keyspace"))
+		}
+
+		if keySpace.WorkspaceID != principal.WorkspaceID {
+			return fault.New("keyspace not found",
+				fault.Code(codes.Data.KeyAuth.NotFound.URN()),
+				fault.Internal("keyspace belongs to different workspace, masking as 404"),
+				fault.Public("The specified keyspace was not found."),
+			)
+		}
+
 		ctrlReq.KeyspaceId = req.KeyspaceId
 	}
 
