@@ -35,9 +35,13 @@ type MeterValues struct {
 	EgressGiB float64
 	// DiskGiBSeconds is allocated disk integrated over time, in GiB-seconds.
 	DiskGiBSeconds float64
+	// ActiveKeys is the number of distinct keys verified through the Deploy
+	// gateway this period (month-to-date, like every other meter).
+	ActiveKeys float64
 }
 
 // Positive reports whether any meter has usage worth pushing.
 func (v MeterValues) Positive() bool {
-	return v.CPUSeconds > 0 || v.MemoryGiBSeconds > 0 || v.EgressGiB > 0 || v.DiskGiBSeconds > 0
+	return v.CPUSeconds > 0 || v.MemoryGiBSeconds > 0 || v.EgressGiB > 0 || v.DiskGiBSeconds > 0 ||
+		v.ActiveKeys > 0
 }

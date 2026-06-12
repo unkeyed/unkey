@@ -104,6 +104,7 @@ const stripeSchema = z.object({
   STRIPE_PRICE_DEPLOY_METER_MEMORY: z.string().optional(),
   STRIPE_PRICE_DEPLOY_METER_EGRESS: z.string().optional(),
   STRIPE_PRICE_DEPLOY_METER_DISK: z.string().optional(),
+  STRIPE_PRICE_DEPLOY_METER_ACTIVE_KEYS: z.string().optional(),
   // Dev/test only: create Stripe customers under a test clock so the billing
   // lifecycle can be time-traveled (advance the clock, invoices finalize for
   // real, PDFs exist). Requires a test-mode key; see

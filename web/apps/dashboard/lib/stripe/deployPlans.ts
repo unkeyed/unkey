@@ -36,6 +36,7 @@ export function deployBillingConfig(): DeployBillingConfig | null {
     e.STRIPE_PRICE_DEPLOY_METER_MEMORY,
     e.STRIPE_PRICE_DEPLOY_METER_EGRESS,
     e.STRIPE_PRICE_DEPLOY_METER_DISK,
+    e.STRIPE_PRICE_DEPLOY_METER_ACTIVE_KEYS,
   ];
 
   // All-or-nothing: a partially configured set would attach an incomplete

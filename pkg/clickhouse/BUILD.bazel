@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "clickhouse",
     srcs = [
+        "active_keys.go",
         "audit_logs.go",
         "billable_ratelimits.go",
         "billable_usage.go",
@@ -39,6 +40,7 @@ go_test(
     name = "clickhouse_test",
     size = "large",
     srcs = [
+        "active_keys_test.go",
         "billable_source_test.go",
         "billable_usage_test.go",
         "errors_test.go",
