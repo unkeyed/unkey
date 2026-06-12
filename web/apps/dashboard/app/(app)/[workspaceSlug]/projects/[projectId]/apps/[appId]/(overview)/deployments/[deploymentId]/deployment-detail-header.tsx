@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { shortenId } from "@/lib/shorten-id";
 import {
   ArrowDottedRotateAnticlockwise,
@@ -34,8 +35,14 @@ const CancelDialog = dynamic(
 );
 
 export function DeploymentDetailHeader() {
-  const workspace = useWorkspaceNavigation();
   const { deployment } = useDeployment();
+  // Keyed by id so dialog and cancelled state reset when navigation swaps
+  // the deployment under this layout (e.g. Redeploy pushes to the new one).
+  return <DeploymentDetailHeaderContent key={deployment.id} deployment={deployment} />;
+}
+
+function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment }) {
+  const workspace = useWorkspaceNavigation();
 
   const [isRedeployOpen, setIsRedeployOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
@@ -53,7 +60,9 @@ export function DeploymentDetailHeader() {
   return (
     <PageHeader>
       <PageHeaderContent>
-        <PageHeaderTitle className="truncate">{title}</PageHeaderTitle>
+        <PageHeaderTitle className="truncate" title={title}>
+          {title}
+        </PageHeaderTitle>
         {subtitle && (
           <PageHeaderDescription className="font-mono">{subtitle}</PageHeaderDescription>
         )}
