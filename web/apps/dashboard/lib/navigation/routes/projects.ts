@@ -31,7 +31,7 @@ export const projectRoutes = {
   }: ProjectScope & { appId?: string; deploymentId?: string }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/logs", projectParams(scope), {
       appId,
-      deploymentId: deploymentId ? containsFilter(deploymentId) : undefined,
+      deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
     });
   },
 
@@ -44,7 +44,7 @@ export const projectRoutes = {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/requests", projectParams(scope), {
       since,
       appId,
-      deploymentId: deploymentId ? containsFilter(deploymentId) : undefined,
+      deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
     });
   },
 
@@ -114,7 +114,11 @@ function appParams({ appId, ...scope }: AppScope) {
   return { ...projectParams(scope), appId };
 }
 
-/** `contains:` is the logs/requests table filter syntax for a deployment id. */
-function containsFilter(deploymentId: string): `contains:${string}` {
-  return `contains:${deploymentId}`;
+/**
+ * `is:` is the logs/requests table filter syntax for a deployment id. Both
+ * backends match the id exactly, and the deployment filter UI emits `is`,
+ * so links use the same operator to keep filter chips consistent.
+ */
+function isFilter(deploymentId: string): `is:${string}` {
+  return `is:${deploymentId}`;
 }

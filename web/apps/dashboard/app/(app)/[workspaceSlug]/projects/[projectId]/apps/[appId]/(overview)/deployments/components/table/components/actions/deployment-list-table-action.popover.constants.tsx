@@ -118,7 +118,6 @@ export const DeploymentListTableActions = ({
             routes.projects.logs({
               workspaceSlug: workspace.slug,
               projectId: selectedDeployment.projectId,
-              appId: selectedDeployment.appId,
               deploymentId: selectedDeployment.id,
             }),
           );

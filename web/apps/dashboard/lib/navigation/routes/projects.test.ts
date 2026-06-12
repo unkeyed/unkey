@@ -51,10 +51,10 @@ describe("routes.projects.requests", () => {
     );
   });
 
-  it("prefixes a deployment id filter with contains:", () => {
+  it("prefixes a deployment id filter with is:", () => {
     expect(
       routes.projects.requests({ workspaceSlug: ws, projectId, since: "6h", deploymentId }),
-    ).toBe("/acme/projects/proj_123/requests?since=6h&deploymentId=contains:d_789");
+    ).toBe("/acme/projects/proj_123/requests?since=6h&deploymentId=is:d_789");
   });
 });
 
