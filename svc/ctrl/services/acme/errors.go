@@ -188,6 +188,35 @@ func AsRateLimitError(err error) (*RateLimitError, bool) {
 	return nil, false
 }
 
+// PermanentError marks an ACME failure that should not be retried (e.g. bad
+// credentials). It carries the original parsed type/message so callers can
+// surface a useful reason to the user.
+type PermanentError struct {
+	Type    ACMEErrorType
+	Message string
+}
+
+func (e *PermanentError) Error() string {
+	return fmt.Sprintf("[%s] %s", e.Type, e.Message)
+}
+
+// NewPermanentError creates a PermanentError from a parsed ACME error.
+func NewPermanentError(parsed *ParsedACMEError) *PermanentError {
+	return &PermanentError{
+		Type:    parsed.Type,
+		Message: parsed.Message,
+	}
+}
+
+// AsPermanentError checks if err is a PermanentError and returns it.
+func AsPermanentError(err error) (*PermanentError, bool) {
+	var pe *PermanentError
+	if errors.As(err, &pe) {
+		return pe, true
+	}
+	return nil, false
+}
+
 // ShouldRetry returns true if the error is transient and the operation should be retried.
 func ShouldRetry(err error) bool {
 	parsed := ParseACMEError(err)

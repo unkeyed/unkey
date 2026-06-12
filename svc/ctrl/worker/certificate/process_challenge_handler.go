@@ -45,14 +45,21 @@ type EncryptedCertificate struct {
 // obtainment, persistence, and verification marking.
 //
 // The method uses the saga pattern for error handling. If any step fails after claiming
-// the challenge, a deferred compensation function marks the challenge as failed in the
-// database. This prevents the challenge from being stuck in "pending" state indefinitely.
+// the challenge, a deferred compensation function classifies the failure:
+//   - Permanent (bad ACME credentials, rate limits exhausted): marked as "failed"
+//     so the user knows to intervene. Won't be retried by the cron.
+//   - Transient (DNS still propagating, HTTP-01 endpoint not yet reachable): reset
+//     to "waiting" so the daily renewal cron retries it automatically.
+//
+// The error message is recorded on custom_domains.verification_error in both cases
+// so the dashboard surfaces what went wrong.
 //
 // Rate limit handling is special: when Let's Encrypt returns a rate limit error with a
 // retry-after time, the workflow performs a Restate durable sleep until that time plus
-// a 1-minute buffer (capped at 2 hours), then retries. This uses at most 3 rate limit
-// retries before failing. For transient errors, Restate's standard retry with exponential
-// backoff applies (30s initial, 2x factor, 5m max, 5 attempts).
+// a 1-minute buffer (a single sleep is capped at 2 hours), then retries. The loop has
+// no overall cap — Let's Encrypt told us when the window opens, so we keep going until
+// it does. For transient errors, Restate's standard retry with exponential backoff
+// applies (30s initial, 2x factor, 5m max, 5 attempts).
 //
 // Returns a response with Status "success" and the certificate ID on success, or Status
 // "failed" with empty certificate ID on failure. System errors return (nil, error).
@@ -67,7 +74,15 @@ func (s *Service) ProcessChallenge(
 
 	// Step 1: Resolve domain
 	dom, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.CustomDomain, error) {
-		return db.Query.FindCustomDomainByDomain(stepCtx, s.db.RO(), req.GetDomain())
+		dom, dbErr := db.Query.FindCustomDomainByDomain(stepCtx, s.db.RO(), req.GetDomain())
+		if dbErr != nil {
+			// Domain was deleted between scheduling and execution; stop retrying.
+			if db.IsNotFound(dbErr) {
+				return db.CustomDomain{}, restate.TerminalError(fmt.Errorf("custom domain not found: %s", req.GetDomain()), 404)
+			}
+			return db.CustomDomain{}, dbErr
+		}
+		return dom, nil
 	}, restate.WithName("resolve domain"))
 	if err != nil {
 		return nil, err
@@ -85,10 +100,30 @@ func (s *Service) ProcessChallenge(
 		return nil, err
 	}
 
-	// Compensation: if anything fails after claiming, mark challenge as failed
+	// Compensation: classify the failure so we either give up (bad credentials,
+	// rate limits exhausted) or reset the challenge to "waiting" for the daily
+	// renewal cron to retry (transient errors like DNS propagation, HTTP-01 not
+	// yet reachable). In both cases the message lands on custom_domains.verification_error
+	// so the dashboard surfaces what went wrong.
+	var (
+		lastErrMsg string
+		permanent  bool
+	)
 	defer func() {
-		if err != nil || (resp != nil && resp.GetStatus() == "failed") {
-			s.markChallengeFailed(ctx, dom.ID)
+		if err == nil && (resp == nil || resp.GetStatus() != "failed") {
+			return
+		}
+		msg := lastErrMsg
+		if msg == "" && err != nil {
+			msg = err.Error()
+		}
+		if msg == "" {
+			msg = "certificate issuance failed"
+		}
+		if permanent {
+			s.markChallengeFailed(ctx, dom.ID, msg)
+		} else {
+			s.markChallengeForRetry(ctx, dom.ID, msg)
 		}
 	}()
 
@@ -97,12 +132,14 @@ func (s *Service) ProcessChallenge(
 	// cannot be serialized through Restate (has internal pointers)
 	//
 	// Retry policy:
-	// - Transient errors: exponential backoff (30s → 60s → 2m → 4m → 5m), max 5 attempts
-	// - Rate limits: sleep until retry-after time, then retry (max 3 rate limit retries)
-	// - Bad credentials: fail immediately (terminal error)
+	// - Transient errors: exponential backoff (30s → 60s → 2m → 4m → 5m), max 5 attempts.
+	//   After exhaustion the challenge is reset to waiting (see compensation above) so
+	//   the daily renewal cron picks it up.
+	// - Rate limits: sleep until retry-after, then retry. Let's Encrypt tells us when
+	//   the window opens, so we keep going as long as we keep getting rate limited.
+	// - Bad credentials: fail immediately (terminal PermanentError → mark failed).
 	var cert EncryptedCertificate
-	maxRateLimitRetries := 3
-	for rateLimitRetry := 0; rateLimitRetry <= maxRateLimitRetries; rateLimitRetry++ {
+	for {
 		var obtainErr error
 		cert, obtainErr = restate.Run(ctx, func(stepCtx restate.RunContext) (EncryptedCertificate, error) {
 			return s.obtainCertificate(stepCtx, req.GetWorkspaceId(), dom, req.GetDomain())
@@ -118,44 +155,44 @@ func (s *Service) ProcessChallenge(
 			break // Success!
 		}
 
-		// Check if it's a rate limit error
-		if rle, ok := acme.AsRateLimitError(obtainErr); ok {
-			if rateLimitRetry >= maxRateLimitRetries {
-				logger.Error("max rate limit retries exceeded",
-					"domain", req.GetDomain(),
-					"retries", rateLimitRetry,
-				)
-				return &hydrav1.ProcessChallengeResponse{
-					CertificateId: "",
-					Status:        "failed",
-				}, nil
-			}
+		// Permanent failure (bad credentials, etc.) - mark failed, do not retry
+		if pe, ok := acme.AsPermanentError(obtainErr); ok {
+			lastErrMsg = pe.Error()
+			permanent = true
+			return &hydrav1.ProcessChallengeResponse{
+				CertificateId: "",
+				Status:        "failed",
+			}, nil
+		}
 
-			// Calculate sleep duration until retry-after (with 1 min buffer)
+		// Rate limit: Let's Encrypt told us exactly when to retry. Sleep durably
+		// (Restate persists the timer) and try again — no artificial cap, since
+		// giving up before the window opens would just defer the same retry to
+		// the cron without changing the outcome.
+		if rle, ok := acme.AsRateLimitError(obtainErr); ok {
 			sleepDuration := time.Until(rle.RetryAfter) + time.Minute
 			if sleepDuration < time.Minute {
 				sleepDuration = time.Minute // minimum 1 minute
 			}
 			if sleepDuration > 2*time.Hour {
-				sleepDuration = 2 * time.Hour // cap at 2 hours
+				sleepDuration = 2 * time.Hour // cap a single sleep at 2 hours
 			}
 
 			logger.Info("rate limited, sleeping until retry-after",
 				"domain", req.GetDomain(),
 				"retry_after", rle.RetryAfter,
 				"sleep_duration", sleepDuration,
-				"rate_limit_retry", rateLimitRetry+1,
 			)
 
-			// Durable sleep - Restate will wake us up
 			if err := restate.Sleep(ctx, sleepDuration); err != nil {
 				return nil, err
 			}
 
-			continue // Retry after sleep
+			continue
 		}
 
-		// Not a rate limit error - fail
+		// Not a rate limit error - fail (will be retried by daily renewal cron)
+		lastErrMsg = obtainErr.Error()
 		return &hydrav1.ProcessChallengeResponse{
 			CertificateId: "",
 			Status:        "failed",
@@ -182,6 +219,16 @@ func (s *Service) ProcessChallenge(
 	if err != nil {
 		return nil, err
 	}
+
+	// Step 7: Clear any verification error left over from previous failed attempts.
+	// Best-effort: a failure here doesn't invalidate the certificate.
+	_, _ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		return restate.Void{}, db.Query.UpdateCustomDomainVerificationError(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationErrorParams{
+			ID:                dom.ID,
+			VerificationError: sql.NullString{Valid: false},
+			UpdatedAt:         sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("clear verification error"))
 
 	logger.Info("certificate challenge completed successfully",
 		"domain", req.GetDomain(),
@@ -276,11 +323,10 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 			return EncryptedCertificate{}, acme.NewRateLimitError(parsed)
 		}
 
-		// Other non-retryable errors (bad credentials): terminal error, no retry
+		// Other non-retryable errors (bad credentials): terminal error, no retry.
+		// Wrap in PermanentError so the orchestrator can mark the challenge as failed.
 		if !parsed.IsRetryable {
-			return EncryptedCertificate{}, restate.TerminalError(
-				fmt.Errorf("[%s] %s", parsed.Type, parsed.Message),
-			)
+			return EncryptedCertificate{}, restate.TerminalError(acme.NewPermanentError(parsed))
 		}
 
 		// Retryable error - Restate will retry with backoff
@@ -344,15 +390,65 @@ func (s *Service) persistCertificate(ctx context.Context, dom db.CustomDomain, d
 	return certID, nil
 }
 
-// markChallengeFailed marks a challenge as failed during cleanup.
-func (s *Service) markChallengeFailed(ctx restate.ObjectContext, domainID string) {
+// maxVerificationErrorLength bounds error messages to the verification_error column width.
+const maxVerificationErrorLength = 512
+
+func truncateErrorMsg(msg string) string {
+	if len(msg) > maxVerificationErrorLength {
+		return msg[:maxVerificationErrorLength]
+	}
+	return msg
+}
+
+// markChallengeForRetry resets the challenge to waiting so the daily renewal cron
+// retries it, and records the error message on the custom_domain for UI display.
+// Used for transient ACME failures (DNS still propagating, HTTP-01 endpoint not yet
+// reachable) where the issue may resolve without user intervention.
+func (s *Service) markChallengeForRetry(ctx restate.ObjectContext, domainID, errorMsg string) {
+	now := time.Now().UnixMilli()
+	errorMsg = truncateErrorMsg(errorMsg)
+
+	_, _ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		if updateErr := db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
+			DomainID:  domainID,
+			Status:    db.AcmeChallengesStatusWaiting,
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: now},
+		}); updateErr != nil {
+			logger.Error("failed to reset challenge for retry", "error", updateErr, "domain_id", domainID)
+		}
+		if updateErr := db.Query.UpdateCustomDomainVerificationError(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationErrorParams{
+			ID:                domainID,
+			VerificationError: sql.NullString{Valid: true, String: errorMsg},
+			UpdatedAt:         sql.NullInt64{Valid: true, Int64: now},
+		}); updateErr != nil {
+			logger.Error("failed to record verification error", "error", updateErr, "domain_id", domainID)
+		}
+		return restate.Void{}, nil
+	}, restate.WithName("mark for retry"))
+}
+
+// markChallengeFailed permanently marks the challenge as failed and records the
+// error. Used for errors that won't fix themselves: bad ACME credentials, or
+// rate limits that explicitly told us to back off. The user must intervene
+// (fix the issue and click Retry, or remove the domain).
+func (s *Service) markChallengeFailed(ctx restate.ObjectContext, domainID, errorMsg string) {
+	now := time.Now().UnixMilli()
+	errorMsg = truncateErrorMsg(errorMsg)
+
 	_, _ = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		if updateErr := db.Query.UpdateAcmeChallengeStatus(stepCtx, s.db.RW(), db.UpdateAcmeChallengeStatusParams{
 			DomainID:  domainID,
 			Status:    db.AcmeChallengesStatusFailed,
-			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: now},
 		}); updateErr != nil {
-			logger.Error("failed to update challenge status", "error", updateErr, "domain_id", domainID)
+			logger.Error("failed to mark challenge failed", "error", updateErr, "domain_id", domainID)
+		}
+		if updateErr := db.Query.UpdateCustomDomainVerificationError(stepCtx, s.db.RW(), db.UpdateCustomDomainVerificationErrorParams{
+			ID:                domainID,
+			VerificationError: sql.NullString{Valid: true, String: errorMsg},
+			UpdatedAt:         sql.NullInt64{Valid: true, Int64: now},
+		}); updateErr != nil {
+			logger.Error("failed to record verification error", "error", updateErr, "domain_id", domainID)
 		}
 		return restate.Void{}, nil
 	}, restate.WithName("mark failed"))
