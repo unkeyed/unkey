@@ -17,6 +17,7 @@ export const openapiSpecs = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
+    uniqueIndex("idx_openapi_specs_on_deployment_id").on(table.deploymentId),
     uniqueIndex("workspace_deployment_idx").on(table.workspaceId, table.deploymentId),
     uniqueIndex("workspace_portal_config_idx").on(table.workspaceId, table.portalConfigId),
   ],
