@@ -8,7 +8,7 @@ function SecondaryNav({ className, ...props }: React.ComponentProps<"nav">) {
     <nav
       className={cn(
         "flex shrink-0 gap-1 overflow-x-auto border-b border-grayA-4 px-3 py-2",
-        "md:w-60 md:flex-col md:gap-3 md:overflow-x-visible md:overflow-y-auto md:border-r md:border-b-0 md:px-3 md:py-4",
+        "md:w-56 md:flex-col md:gap-3 md:overflow-x-visible md:overflow-y-auto md:border-r md:border-b-0 md:px-3 md:py-4",
         className,
       )}
       {...props}
