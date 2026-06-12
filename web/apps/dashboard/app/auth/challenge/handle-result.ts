@@ -21,9 +21,11 @@ export function applyVerificationResult(
   }
 
   if ("organizations" in result && Array.isArray(result.organizations)) {
+    // /auth/continue auto-selects the last used organization server-side and
+    // falls back to the manual selector on the sign-in page.
     const orgsParam = encodeURIComponent(JSON.stringify(result.organizations));
     const redirectSuffix = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : "";
-    window.location.href = `${SIGN_IN_URL}?orgs=${orgsParam}${redirectSuffix}`;
+    window.location.href = `/auth/continue?orgs=${orgsParam}${redirectSuffix}`;
     return null;
   }
 

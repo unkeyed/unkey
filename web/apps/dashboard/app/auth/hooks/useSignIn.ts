@@ -151,14 +151,16 @@ export function useSignIn() {
           return `${SIGN_IN_URL}?challenge=${result.challengeType}${redirectSuffix}`;
         }
 
-        // Only show org selector if we don't have an invitation token
+        // Only handle org selection if we don't have an invitation token.
+        // /auth/continue auto-selects the last used organization server-side
+        // and falls back to the manual selector.
         if (!invitationToken && isPendingOrgSelection(result)) {
           const orgsParam = encodeURIComponent(JSON.stringify(result.organizations));
           const redirectSuffix =
             redirectParam && redirectParam !== "/apis"
               ? `&redirect=${encodeURIComponent(redirectParam)}`
               : "";
-          return `${SIGN_IN_URL}?orgs=${orgsParam}${redirectSuffix}`;
+          return `/auth/continue?orgs=${orgsParam}${redirectSuffix}`;
         }
 
         if (result.success) {

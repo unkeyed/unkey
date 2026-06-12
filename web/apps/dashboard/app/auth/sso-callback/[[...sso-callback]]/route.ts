@@ -14,7 +14,15 @@ export async function GET(request: NextRequest) {
       authResult.cookies &&
       authResult.cookies?.length > 0 // make typescript happy
     ) {
-      const url = new URL(SIGN_IN_URL, request.url);
+      // Org selection goes through /auth/continue, which auto-selects the
+      // last used organization server-side before falling back to the
+      // manual selector.
+      const url = new URL(
+        authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED
+          ? "/auth/continue"
+          : SIGN_IN_URL,
+        request.url,
+      );
 
       // Preserve the redirect URL from OAuth state for deep link support
       const state = request.nextUrl.searchParams.get("state");

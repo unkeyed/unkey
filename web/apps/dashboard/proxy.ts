@@ -30,6 +30,7 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/auth/sign-up",
     "/auth/sso-callback",
     "/auth/oauth-sign-in",
+    "/auth/continue",
     "/auth/join",
     "/join",
     "/join/success",

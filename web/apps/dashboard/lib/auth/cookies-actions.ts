@@ -10,7 +10,6 @@
 // actually need.
 
 import {
-  deleteCookie as deleteCookieInternal,
   getCookie as getCookieInternal,
   setLastUsedOrgCookie as setLastUsedOrgCookieInternal,
   setSessionCookie as setSessionCookieInternal,
@@ -29,10 +28,6 @@ export async function getCookie(name: string): Promise<string | null> {
     throw new Error(`Cookie ${name} is not readable from the client`);
   }
   return getCookieInternal(name);
-}
-
-export async function deleteLastUsedOrgCookie(): Promise<void> {
-  await deleteCookieInternal(UNKEY_LAST_ORG_COOKIE);
 }
 
 export async function setSessionCookie(params: {
