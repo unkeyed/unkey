@@ -298,12 +298,13 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		DB:           db.ToMySQL(database),
-		KeyCache:     caches.VerificationKeyByHash,
-		RateLimiter:  rlSvc,
-		RBAC:         rbac.New(),
-		Region:       cfg.Region,
-		UsageLimiter: ulSvc,
+		DB:              db.ToMySQL(database),
+		KeyCache:        caches.VerificationKeyByHash,
+		RateLimiter:     rlSvc,
+		RBAC:            rbac.New(),
+		Region:          cfg.Region,
+		UsageLimiter:    ulSvc,
+		TelemetrySource: schema.SourceAPI,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)

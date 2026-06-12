@@ -39,6 +39,7 @@ go_test(
     name = "clickhouse_test",
     size = "large",
     srcs = [
+        "billable_source_test.go",
         "billable_usage_test.go",
         "errors_test.go",
         "instance_events_test.go",

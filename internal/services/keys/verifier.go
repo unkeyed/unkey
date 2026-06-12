@@ -44,6 +44,7 @@ type KeyVerifier struct {
 
 	session *zen.Session // The current request session
 	region  string       // Geographic region identifier
+	source  string       // Where the verification originated (schema.SourceAPI / SourceGateway)
 
 	// Tracking
 	startTime    time.Time // Time when verification started
@@ -136,6 +137,7 @@ func (k *KeyVerifier) TelemetrySnapshot() schema.KeyVerification {
 		IdentityID:   k.Key.IdentityID.String,
 		Tags:         k.tags,
 		Region:       k.region,
+		Source:       k.source,
 		ExternalID:   k.Key.ExternalID.String,
 		SpentCredits: k.spentCredits,
 		Latency:      float64(time.Since(k.startTime).Milliseconds()),

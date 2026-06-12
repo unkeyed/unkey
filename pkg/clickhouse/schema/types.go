@@ -7,6 +7,14 @@ import (
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
 // fields like spent_credits and latency compared to v1.
+// Source values for [KeyVerification.Source] and [Ratelimit.Source]: where a
+// verification or ratelimit decision originated. Billing rollups exclude
+// SourceGateway (Deploy traffic is metered separately); analytics keep both.
+const (
+	SourceAPI     = "api"
+	SourceGateway = "gateway"
+)
+
 type KeyVerification struct {
 	RequestID    string   `ch:"request_id" json:"request_id"`
 	Time         int64    `ch:"time" json:"time"`
@@ -16,6 +24,7 @@ type KeyVerification struct {
 	ExternalID   string   `ch:"external_id" json:"external_id"`
 	KeyID        string   `ch:"key_id" json:"key_id"`
 	Region       string   `ch:"region" json:"region"`
+	Source       string   `ch:"source" json:"source"`
 	Outcome      string   `ch:"outcome" json:"outcome"`
 	Tags         []string `ch:"tags" json:"tags"`
 	SpentCredits int64    `ch:"spent_credits" json:"spent_credits"`
@@ -41,6 +50,10 @@ type Ratelimit struct {
 	// limit on this decision. Recorded for both passed and rejected
 	// requests so dashboards can break spend down by outcome.
 	Tokens uint64 `ch:"tokens" json:"tokens"`
+
+	// Source is where the decision originated (SourceAPI or SourceGateway).
+	// Billing rollups exclude SourceGateway.
+	Source string `ch:"source" json:"source"`
 }
 
 // ApiRequest represents the v2 API request raw table structure.

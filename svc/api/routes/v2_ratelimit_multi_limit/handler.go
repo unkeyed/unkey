@@ -216,6 +216,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Remaining:   uint64(result.Remaining),
 				ResetAt:     result.Reset.UnixMilli(),
 				Tokens:      uint64(meta.cost),
+				Source:      schema.SourceAPI,
 			})
 		}
 	}

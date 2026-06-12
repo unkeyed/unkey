@@ -481,12 +481,13 @@ func buildEngine(
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:           pkgdb.ToMySQL(database),
-		RateLimiter:  rlSvc,
-		RBAC:         rbac.New(),
-		Region:       region,
-		UsageLimiter: usageLimiter,
-		KeyCache:     keyCache,
+		DB:              pkgdb.ToMySQL(database),
+		RateLimiter:     rlSvc,
+		RBAC:            rbac.New(),
+		Region:          region,
+		UsageLimiter:    usageLimiter,
+		TelemetrySource: schema.SourceGateway,
+		KeyCache:        keyCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)
