@@ -12,6 +12,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -43,12 +44,13 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:           db.ToMySQL(database),
-		RateLimiter:  nil,
-		RBAC:         nil,
-		Region:       "local",
-		UsageLimiter: nil,
-		KeyCache:     nil,
+		DB:              db.ToMySQL(database),
+		RateLimiter:     nil,
+		RBAC:            nil,
+		Region:          "local",
+		UsageLimiter:    nil,
+		TelemetrySource: schema.SourceAPI,
+		KeyCache:        nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)

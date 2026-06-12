@@ -3,6 +3,7 @@ CREATE TABLE ratelimits_per_hour_v2 (
   workspace_id String,
   namespace_id String,
   identifier String,
+  source LowCardinality (String),
   passed SimpleAggregateFunction(sum, Int64),
   total SimpleAggregateFunction(sum, Int64),
   total_tokens SimpleAggregateFunction(sum, Int64),
@@ -13,7 +14,7 @@ CREATE TABLE ratelimits_per_hour_v2 (
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = AggregatingMergeTree ()
 ORDER BY
-  (workspace_id, namespace_id, time, identifier)
+  (workspace_id, namespace_id, time, identifier, source)
 TTL time + INTERVAL 30 DAY DELETE;
 
 CREATE MATERIALIZED VIEW ratelimits_per_hour_mv_v2 TO ratelimits_per_hour_v2 AS
@@ -21,6 +22,7 @@ SELECT
   workspace_id,
   namespace_id,
   identifier,
+  source,
   sum(total) as total,
   sum(passed) as passed,
   sum(total_tokens) as total_tokens,
@@ -35,4 +37,5 @@ GROUP BY
   workspace_id,
   namespace_id,
   time,
-  identifier;
+  identifier,
+  source;

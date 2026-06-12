@@ -104,12 +104,13 @@ func newTestHarness(t *testing.T) *testHarness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:           db.ToMySQL(database),
-		RateLimiter:  rateLimiter,
-		RBAC:         rbac.New(),
-		Region:       "test",
-		UsageLimiter: usageLimiter,
-		KeyCache:     keyCache,
+		DB:              db.ToMySQL(database),
+		RateLimiter:     rateLimiter,
+		RBAC:            rbac.New(),
+		Region:          "test",
+		UsageLimiter:    usageLimiter,
+		TelemetrySource: schema.SourceGateway,
+		KeyCache:        keyCache,
 	})
 	require.NoError(t, err)
 

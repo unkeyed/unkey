@@ -69,12 +69,13 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 
 	// Create key service for proper key generation
 	keyService, err := keys.New(keys.Config{
-		DB:           db.ToMySQL(database),
-		RateLimiter:  nil,
-		RBAC:         nil,
-		Region:       "test",
-		UsageLimiter: nil,
-		KeyCache:     nil,
+		DB:              db.ToMySQL(database),
+		RateLimiter:     nil,
+		RBAC:            nil,
+		Region:          "test",
+		UsageLimiter:    nil,
+		TelemetrySource: schema.SourceAPI,
+		KeyCache:        nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -487,6 +488,7 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 			ExternalID:   externalID,
 			Latency:      latency,
 			SpentCredits: credit,
+			Source:       schema.SourceAPI,
 		})
 
 		// Log progress periodically

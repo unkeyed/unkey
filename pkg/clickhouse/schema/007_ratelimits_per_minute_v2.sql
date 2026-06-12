@@ -3,6 +3,7 @@ CREATE TABLE ratelimits_per_minute_v2 (
   workspace_id String,
   namespace_id String,
   identifier String,
+  source LowCardinality (String),
   passed SimpleAggregateFunction(sum, Int64),
   total SimpleAggregateFunction(sum, Int64),
   total_tokens SimpleAggregateFunction(sum, Int64),
@@ -13,7 +14,7 @@ CREATE TABLE ratelimits_per_minute_v2 (
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = AggregatingMergeTree ()
 ORDER BY
-  (workspace_id, namespace_id, time, identifier)
+  (workspace_id, namespace_id, time, identifier, source)
 TTL time + INTERVAL 7 DAY DELETE;
 
 -- The `passed` alias shadows the source column, so the token expressions
@@ -24,6 +25,7 @@ SELECT
   r.workspace_id AS workspace_id,
   r.namespace_id AS namespace_id,
   r.identifier AS identifier,
+  r.source AS source,
   count(*) as total,
   countIf (r.passed > 0) as passed,
   sum(r.tokens) as total_tokens,
@@ -38,4 +40,5 @@ GROUP BY
   r.workspace_id,
   r.namespace_id,
   time,
-  r.identifier;
+  r.identifier,
+  r.source;

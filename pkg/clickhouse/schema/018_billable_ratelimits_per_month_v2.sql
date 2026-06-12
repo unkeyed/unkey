@@ -15,6 +15,8 @@ SELECT
   toMonth (time) AS month
 FROM
   ratelimits_per_month_v2
+WHERE
+  source != 'gateway'
 GROUP BY
   workspace_id,
   year,

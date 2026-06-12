@@ -21,6 +21,9 @@ CREATE TABLE ratelimits_raw_v2 (
   -- tokens charged against the limit on this decision (>=1; 0 for events
   -- recorded before token tracking shipped)
   tokens UInt64,
+  -- Where the decision originated: 'api' (public API) or 'gateway' (Unkey
+  -- Deploy's ratelimit policy). Billing rollups exclude 'gateway'.
+  source LowCardinality (String) DEFAULT 'api',
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree ()
