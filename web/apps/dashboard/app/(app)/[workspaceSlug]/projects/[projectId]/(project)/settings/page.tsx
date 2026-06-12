@@ -21,7 +21,7 @@ export default function ProjectSettingsPage() {
           <PageHeaderDescription>Manage your project name.</PageHeaderDescription>
         </PageHeaderContent>
       </PageHeader>
-      <PageBody className="flex flex-col gap-6 pt-6 pb-14">
+      <PageBody>
         <UpdateProjectSettings />
         <SettingsDangerZone>
           <DeleteProject />

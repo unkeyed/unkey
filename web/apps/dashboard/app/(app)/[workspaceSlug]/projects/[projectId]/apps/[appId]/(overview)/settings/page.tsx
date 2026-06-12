@@ -25,7 +25,7 @@ export default function SettingsPage() {
             <PageHeaderTitle>Settings</PageHeaderTitle>
           </PageHeaderContent>
         </PageHeader>
-        <PageBody className="flex flex-col gap-6 pt-6 pb-14">
+        <PageBody>
           <DeploymentSettings onBeforeNavigate={bypass} />
           <SettingsDangerZone>
             <DisconnectGitHub />

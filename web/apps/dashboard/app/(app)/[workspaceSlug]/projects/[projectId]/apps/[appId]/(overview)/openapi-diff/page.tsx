@@ -99,7 +99,7 @@ export default function DiffPage() {
           <PageHeaderDescription>View API changes between deployments</PageHeaderDescription>
         </PageHeaderContent>
       </PageHeader>
-      <PageBody className="flex flex-col gap-5 pt-6 pb-20">
+      <PageBody>
         <Card className="flex flex-col overflow-hidden w-full">
           {/* Deployment Selectors */}
           <div className="px-4 pt-6 pb-4">

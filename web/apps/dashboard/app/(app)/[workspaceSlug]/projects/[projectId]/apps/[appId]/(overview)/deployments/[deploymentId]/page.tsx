@@ -106,7 +106,7 @@ export default function DeploymentOverview() {
     ));
 
   return (
-    <PageBody className="flex flex-col gap-5 pt-6 pb-20">
+    <PageBody>
       <DeploymentInfo statusOverride={derivedStatus} />
       {view}
       <DeploymentApproval

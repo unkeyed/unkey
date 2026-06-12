@@ -34,7 +34,7 @@ export default function ProjectPage() {
           </Button>
         </PageHeaderActions>
       </PageHeader>
-      <PageBody className="flex flex-col gap-4 pt-6 pb-20">
+      <PageBody>
         <AppsList />
       </PageBody>
     </PageContainer>
