@@ -293,10 +293,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
-		mux.Handle("POST /webhooks/github", &GitHubWebhook{
-			restate:       restateClient,
-			webhookSecret: cfg.GitHub.WebhookSecret,
-		})
+		mux.Handle("POST /webhooks/github", NewGitHubWebhook(restateClient, cfg.GitHub.WebhookSecret))
 		logger.Info("GitHub webhook handler registered")
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
