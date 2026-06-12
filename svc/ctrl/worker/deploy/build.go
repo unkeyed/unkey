@@ -664,7 +664,12 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 		// mint a token for at all. Only meaningful for the PrNumber == 0
 		// fork-ref-by-SHA case: a live PR clones the base (scopeRepo ==
 		// params.Repository), so this is always false there.
-		differentOwner := repoOwner(scopeRepo) != repoOwner(params.Repository)
+		//
+		// EqualFold because GitHub owners are case-insensitive: ForkRepository
+		// arrives verbatim from dashboard user typing while params.Repository
+		// carries GitHub's canonical casing, so a casing drift (Acme vs acme)
+		// must not be misread as a different owner.
+		differentOwner := !strings.EqualFold(repoOwner(scopeRepo), repoOwner(params.Repository))
 
 		public, err := w.github.IsRepoPublic(scopeRepo)
 

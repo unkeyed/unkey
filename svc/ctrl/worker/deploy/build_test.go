@@ -269,6 +269,25 @@ func TestResolveCloneToken(t *testing.T) {
 		require.Equal(t, []string{"acme/app-fork"}, gh.scopedTo)
 	})
 
+	t.Run("casing-drifted own repo is same-owner, not a different installation", func(t *testing.T) {
+		gh := &stubGitHub{}
+		w := &Workflow{github: gh}
+
+		// ForkRepository arrives from dashboard, while the
+		// connected repo carries GitHub's canonical casing (acme). Must not be
+		// classified as a different-owner fork and fail terminally.
+		casingDrift := gitBuildParams{
+			InstallationID: 1,
+			Repository:     base,
+			ForkRepository: "Acme/app-fork",
+			PrNumber:       0,
+		}
+		_, tokenless, err := w.resolveCloneToken(casingDrift, true)
+		require.NoError(t, err)
+		require.False(t, tokenless)
+		require.Equal(t, []string{"Acme/app-fork"}, gh.scopedTo)
+	})
+
 	t.Run("private different-owner fork ref fails fast with a terminal error", func(t *testing.T) {
 		gh := &stubGitHub{}
 		w := &Workflow{github: gh}
