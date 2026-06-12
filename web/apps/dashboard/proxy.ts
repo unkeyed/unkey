@@ -48,6 +48,25 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/integrations/domain-connect/callback",
   ];
 
+  // Signed-in users get bounced away from the sign-in/sign-up pages. This
+  // used to live in the auth layout, but setting the session cookie in a
+  // server action re-renders that layout mid-flow, so its redirect raced
+  // ahead of the action's own navigation (e.g. the invite flow's
+  // /join/success) and flashed the dashboard. Only document GETs are
+  // bounced here; server-action POSTs pass through untouched.
+  const isAuthEntryPath =
+    url.pathname.startsWith("/auth/sign-in") || url.pathname.startsWith("/auth/sign-up");
+  if (isAuthEntryPath && req.method === "GET" && isEnabled()) {
+    try {
+      const { session } = await authMiddleware(req);
+      if (session) {
+        return NextResponse.redirect(new URL("/apis", url));
+      }
+    } catch (_error) {
+      // Fall through to render the auth page
+    }
+  }
+
   // Check if the current path is in the public paths list
   const isPublicPath = (path: string) => {
     return publicPaths.some((pubPath) => {

@@ -60,7 +60,10 @@ function SignInContent() {
   }, [redirectParam]);
   const hasAttemptedSignIn = useRef(false);
   const hasAttemptedAutoOrgSelection = useRef(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Only the org-selection continuation (returning from OAuth with an `orgs`
+  // param) needs to defer rendering while cookies are checked. Everyone else
+  // gets the sign-in form immediately instead of a loading flash.
+  const [isLoading, setIsLoading] = useState(() => Boolean(searchParams?.get("orgs")));
   const [isAutoSelecting, setIsAutoSelecting] = useState(false);
 
   // Set clientReady to true after hydration
