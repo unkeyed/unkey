@@ -103,8 +103,8 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 
 	tokenCache, err := cache.New(cache.Config[int64, InstallationToken]{
-		Fresh:    55 * time.Minute,
-		Stale:    5 * time.Minute,
+		Fresh:    50 * time.Minute,
+		Stale:    55 * time.Minute,
 		MaxSize:  10_000,
 		Resource: "github_installation_token",
 		Clock:    clock.New(),
@@ -114,8 +114,8 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 
 	scopedTokenCache, err := cache.New(cache.Config[string, InstallationToken]{
-		Fresh:    55 * time.Minute,
-		Stale:    5 * time.Minute,
+		Fresh:    50 * time.Minute,
+		Stale:    55 * time.Minute,
 		MaxSize:  10_000,
 		Resource: "github_scoped_installation_token",
 		Clock:    clock.New(),
@@ -126,7 +126,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 
 	collaboratorCache, err := cache.New(cache.Config[collaboratorKey, bool]{
 		Fresh:    5 * time.Minute,
-		Stale:    1 * time.Minute,
+		Stale:    30 * time.Minute,
 		MaxSize:  10_000,
 		Resource: "github_collaborator",
 		Clock:    clock.New(),
@@ -136,8 +136,10 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 
 	// The probe is unauthenticated (60 req/hr per IP), so cache hard: repo
-	// visibility almost never flips, and either flip direction fails safe for at
-	// most one cache window:
+	// visibility almost never flips. Fresh 10m keeps a steadily-rebuilt repo to
+	// ~6 probes/hr, well under the quota, and the 1h Stale window lets SWR serve
+	// the cached answer while a background probe refreshes it. Either flip
+	// direction fails safe for at most one cache window:
 	//   - public -> private (stale "public"): the tokenless clone path 404s and
 	//     the build fails closed. No access is granted, just a retry needed.
 	//   - private -> public (stale "private"): a scoped read-only token is minted
@@ -145,7 +147,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 	// A flip never escalates access; worst case it delays the optimal choice.
 	visibilityCache, err := cache.New(cache.Config[string, bool]{
 		Fresh:    10 * time.Minute,
-		Stale:    1 * time.Minute,
+		Stale:    1 * time.Hour,
 		MaxSize:  10_000,
 		Resource: "github_repo_visibility",
 		Clock:    clock.New(),
