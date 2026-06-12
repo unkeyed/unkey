@@ -20,7 +20,10 @@ import {
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
-import { isCancellableDeploymentStatus } from "../components/table/components/actions/deployment-action-eligibility";
+import {
+  isCancellableDeploymentStatus,
+  isRedeployableDeploymentStatus,
+} from "../components/table/components/actions/deployment-action-eligibility";
 import { useDeployment } from "./layout-provider";
 
 const RedeployDialog = dynamic(
@@ -48,6 +51,7 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancelled, setCancelled] = useState(false);
   const canCancel = isCancellableDeploymentStatus(deployment.status) && !cancelled;
+  const canRedeploy = isRedeployableDeploymentStatus(deployment.status);
 
   const title = deployment.gitCommitMessage || shortenId(deployment.id);
   const subtitle = [deployment.gitBranch, deployment.gitCommitSha?.slice(0, 7)]
@@ -86,16 +90,20 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
             Cancel deployment
           </Button>
         )}
-        <Button variant="outline" onClick={() => setIsRedeployOpen(true)}>
-          <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
-          Redeploy
-        </Button>
+        {canRedeploy && (
+          <Button variant="outline" onClick={() => setIsRedeployOpen(true)}>
+            <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
+            Redeploy
+          </Button>
+        )}
       </PageHeaderActions>
-      <RedeployDialog
-        isOpen={isRedeployOpen}
-        onClose={() => setIsRedeployOpen(false)}
-        selectedDeployment={deployment}
-      />
+      {canRedeploy && (
+        <RedeployDialog
+          isOpen={isRedeployOpen}
+          onClose={() => setIsRedeployOpen(false)}
+          selectedDeployment={deployment}
+        />
+      )}
       {canCancel && (
         <CancelDialog
           isOpen={isCancelOpen}
