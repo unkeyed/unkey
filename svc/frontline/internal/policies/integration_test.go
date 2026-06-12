@@ -109,6 +109,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		RBAC:         rbac.New(),
 		Region:       "test",
 		UsageLimiter: usageLimiter,
+		Source:       schema.SourceGateway,
 		KeyCache:     keyCache,
 	})
 	require.NoError(t, err)

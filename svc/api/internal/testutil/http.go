@@ -261,6 +261,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		RBAC:         rbac.New(),
 		Region:       "test",
 		UsageLimiter: ulSvc,
+		Source:       schema.SourceAPI,
 	})
 	require.NoError(t, err)
 	portalService := portal.New(portal.Config{

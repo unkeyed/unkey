@@ -12,6 +12,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -48,6 +49,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		RBAC:         nil,
 		Region:       "local",
 		UsageLimiter: nil,
+		Source:       schema.SourceAPI,
 		KeyCache:     nil,
 	})
 	if err != nil {
