@@ -15,9 +15,16 @@ import { useDeployment } from "../layout-provider";
 type DeploymentInfoProps = {
   title?: string;
   statusOverride?: DeploymentStatus;
+  // When the page already carries a prominent title (header nav variant), drop
+  // the redundant section header; its Cancel action moves up to the top nav.
+  hideHeader?: boolean;
 };
 
-export function DeploymentInfo({ title = "Deployment", statusOverride }: DeploymentInfoProps) {
+export function DeploymentInfo({
+  title = "Deployment",
+  statusOverride,
+  hideHeader = false,
+}: DeploymentInfoProps) {
   const { deployment } = useDeployment();
   const { project, environments } = useProjectData();
   const deploymentStatus = statusOverride ?? deployment.status;
@@ -33,23 +40,25 @@ export function DeploymentInfo({ title = "Deployment", statusOverride }: Deploym
 
   return (
     <Section>
-      <SectionHeader
-        icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
-        title={title}
-        rightAction={
-          canCancel ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCancelOpen(true)}
-              className="h-7 px-2 text-gray-11 hover:text-gray-12"
-            >
-              <Ban iconSize="sm-regular" />
-              Cancel deployment
-            </Button>
-          ) : undefined
-        }
-      />
+      {!hideHeader && (
+        <SectionHeader
+          icon={<Cloud iconSize="md-regular" className="text-gray-9" />}
+          title={title}
+          rightAction={
+            canCancel ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCancelOpen(true)}
+                className="h-7 px-2 text-gray-11 hover:text-gray-12"
+              >
+                <Ban iconSize="sm-regular" />
+                Cancel deployment
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
       <ActiveDeploymentCard
         deploymentId={deployment.id}
         deployment={deployment}
@@ -58,7 +67,7 @@ export function DeploymentInfo({ title = "Deployment", statusOverride }: Deploym
         environmentSlug={environment?.slug}
         statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
       />
-      {canCancel && (
+      {!hideHeader && canCancel && (
         <CancelDialog
           isOpen={cancelOpen}
           onClose={() => setCancelOpen(false)}

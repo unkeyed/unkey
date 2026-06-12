@@ -3,6 +3,7 @@ import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { type PropsWithChildren, useState } from "react";
 import { ProjectDataProvider } from "./(overview)/data-provider";
 import {
+  DeploymentDetailHeaderNav,
   DeploymentDetailNav,
   DeploymentDetailSidebar,
 } from "./(overview)/deployments/[deploymentId]/deployment-detail-nav";
@@ -51,7 +52,14 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
             nav off-screen. Bound this region to the viewport (minus the 52px
             TopNav) so the content scrolls internally and the nav stays fixed. */}
         {isDeploymentDetail ? (
-          navVariant === "crumb" ? (
+          navVariant === "header" ? (
+            // PlanetScale model: big title + actions, no breadcrumb. The
+            // persistent app rail is the way back.
+            <div className="flex h-[calc(100dvh-52px)] flex-col">
+              <DeploymentDetailHeaderNav />
+              <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+            </div>
+          ) : navVariant === "crumb" ? (
             // Trail lives in the top bar and the deploy-specific rail replaces
             // the global app sidebar, so the content area is chrome-free.
             <div className="flex h-[calc(100dvh-52px)] flex-col">

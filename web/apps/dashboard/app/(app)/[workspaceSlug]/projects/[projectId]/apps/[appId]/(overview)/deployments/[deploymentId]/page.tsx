@@ -117,7 +117,7 @@ export default function DeploymentOverview() {
         </PageHeader>
       )}
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 py-6">
-        <DeploymentInfo statusOverride={derivedStatus} />
+        <DeploymentInfo statusOverride={derivedStatus} hideHeader={navVariant === "header"} />
         {view}
         <DeploymentApproval
           isOpen={awaitingApproval}

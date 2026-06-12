@@ -7,6 +7,7 @@ const OPTIONS: { value: DeploymentNavVariant; label: string }[] = [
   { value: "breadcrumb", label: "Tabs" },
   { value: "sidebar", label: "Sidebar" },
   { value: "crumb", label: "Crumb" },
+  { value: "header", label: "Header" },
 ];
 
 /** Temporary floating toggle for trying both deployment nav layouts. */
