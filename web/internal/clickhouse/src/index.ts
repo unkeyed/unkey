@@ -20,7 +20,7 @@ import {
   getTwoHourlyActiveKeysTimeseries,
   getWeeklyActiveKeysTimeseries,
 } from "./keys/active_keys";
-import { getKeysOverviewLogs } from "./keys/keys";
+import { getKeysOverviewLogs, getKeyspaceHasVerifications } from "./keys/keys";
 import { getLatestVerifications } from "./latest_verifications";
 import {
   getDailyLogsTimeseries,
@@ -298,6 +298,7 @@ export class ClickHouse {
       logs: getLogs(this.querier),
       keys: {
         logs: getKeysOverviewLogs(this.querier),
+        hasVerifications: getKeyspaceHasVerifications(this.querier),
       },
       key: {
         logs: getKeyDetailsLogs(this.querier),

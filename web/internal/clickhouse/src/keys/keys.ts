@@ -422,3 +422,43 @@ FROM (
     };
   };
 }
+
+const keyspaceHasVerificationsParams = z.object({
+  workspaceId: z.string(),
+  keyspaceId: z.string(),
+});
+
+type KeyspaceHasVerificationsParams = z.infer<typeof keyspaceHasVerificationsParams>;
+
+// Probes both the long-retention monthly rollup and the raw table so the answer
+// holds for keyspaces verified long ago (raw rows since TTL'd) and ones verified
+// moments ago (not yet rolled up). LIMIT 1 per branch keeps it an existence check.
+export function getKeyspaceHasVerifications(ch: Querier) {
+  return async (args: KeyspaceHasVerificationsParams) => {
+    const query = ch.query({
+      query: `
+SELECT 1 AS has_data
+FROM default.key_verifications_per_month_v3
+WHERE workspace_id = {workspaceId: String}
+    AND key_space_id = {keyspaceId: String}
+LIMIT 1
+UNION ALL
+SELECT 1 AS has_data
+FROM default.key_verifications_raw_v2
+WHERE workspace_id = {workspaceId: String}
+    AND key_space_id = {keyspaceId: String}
+LIMIT 1
+`,
+      params: keyspaceHasVerificationsParams,
+      schema: z.object({
+        has_data: z.int(),
+      }),
+    });
+
+    const result = await query(args);
+    if (result.err) {
+      return { err: result.err, val: undefined };
+    }
+    return { err: undefined, val: { hasData: (result.val ?? []).length > 0 } };
+  };
+}

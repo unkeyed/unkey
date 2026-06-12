@@ -1,6 +1,7 @@
 import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
+import { keyspaceHasVerifications } from "./api/keys/has-verifications";
 import { keysLlmSearch } from "./api/keys/llm-search";
 import { apiKeysLlmSearch } from "./api/keys/llm-search-api-keys";
 import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
@@ -277,6 +278,7 @@ export const router = t.router({
       timeseries: keyVerificationsTimeseries,
       activeKeysTimeseries: activeKeysTimeseries,
       query: queryKeysOverviewLogs,
+      hasData: keyspaceHasVerifications,
       llmSearch: keysLlmSearch,
       list: queryKeysList,
       listLlmSearch: apiKeysLlmSearch,

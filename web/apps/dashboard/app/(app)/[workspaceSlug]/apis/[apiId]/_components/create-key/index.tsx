@@ -16,7 +16,7 @@ import {
   NavigableDialogRoot,
   toast,
 } from "@unkey/ui";
-import { Suspense, useEffect, useState } from "react";
+import { type ReactNode, Suspense, useEffect, useState } from "react";
 import { FormProvider, type Resolver } from "react-hook-form";
 import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog";
 import { SectionLabel } from "./components/section-label";
@@ -34,6 +34,7 @@ export const CreateKeyDialog = ({
   apiId,
   copyIdValue,
   keyspaceDefaults,
+  trigger: renderTrigger,
 }: {
   keyspaceId: string | null;
   apiId: string;
@@ -42,6 +43,7 @@ export const CreateKeyDialog = ({
     prefix?: string;
     bytes?: number;
   } | null;
+  trigger?: (open: () => void) => ReactNode;
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -144,13 +146,17 @@ export const CreateKeyDialog = ({
 
   return (
     <>
-      <Navbar.Actions>
-        <NavbarActionButton title="Create new key" onClick={() => setIsSettingsOpen(true)}>
-          <Plus />
-          Create new key
-        </NavbarActionButton>
-        <CopyableIDButton value={copyIdValue ?? apiId} />
-      </Navbar.Actions>
+      {renderTrigger ? (
+        renderTrigger(() => setIsSettingsOpen(true))
+      ) : (
+        <Navbar.Actions>
+          <NavbarActionButton title="Create new key" onClick={() => setIsSettingsOpen(true)}>
+            <Plus />
+            Create new key
+          </NavbarActionButton>
+          <CopyableIDButton value={copyIdValue ?? apiId} />
+        </Navbar.Actions>
+      )}
 
       <FormProvider {...methods}>
         <form id="new-key-form" onSubmit={handleSubmit(onSubmit)}>
