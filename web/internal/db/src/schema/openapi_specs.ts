@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
@@ -17,6 +17,7 @@ export const openapiSpecs = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
+    index("idx_openapi_specs_on_deployment_id").on(table.deploymentId),
     uniqueIndex("workspace_deployment_idx").on(table.workspaceId, table.deploymentId),
     uniqueIndex("workspace_portal_config_idx").on(table.workspaceId, table.portalConfigId),
   ],

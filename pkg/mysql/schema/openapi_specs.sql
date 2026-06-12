@@ -13,3 +13,4 @@ CREATE TABLE `openapi_specs` (
 	CONSTRAINT `workspace_portal_config_idx` UNIQUE(`workspace_id`,`portal_config_id`)
 );
 
+CREATE INDEX `idx_openapi_specs_on_deployment_id` ON `openapi_specs` (`deployment_id`);
