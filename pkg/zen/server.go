@@ -57,6 +57,19 @@ type Config struct {
 	// This helps prevent DoS attacks from excessively large request bodies.
 	MaxRequestBodySize int64
 
+	// DisableRequestBodyBuffering leaves the request body as a stream instead
+	// of reading it fully into memory during session init.
+	//
+	// Buffering exists so handlers can call Session.BindBody and middleware
+	// can log request bodies; API-style services want it. Proxy-style
+	// services (frontline) must not pay it: buffering a multi-megabyte
+	// upload before the first upstream byte costs memory, latency, and GC,
+	// and the proxy captures the body via TeeReader while streaming anyway.
+	//
+	// When true, Session.BindBody will see an empty body and must not be
+	// used.
+	DisableRequestBodyBuffering bool
+
 	// ReadTimeout is the maximum duration for reading the entire request, including the body.
 	// If 0, defaults to 10 seconds.
 	ReadTimeout time.Duration
@@ -153,6 +166,7 @@ func New(config Config) (*Server, error) {
 					internalError:          "",
 					w:                      nil,
 					r:                      nil,
+					recorder:               statusRecorder{ResponseWriter: nil, statusCode: 0, written: false},
 					requestBody:            []byte{},
 					responseStatus:         0,
 					responseBody:           []byte{},
@@ -290,6 +304,17 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 		pattern = method + " " + path
 	}
 
+	// Build the middleware chain once at registration time, not per
+	// request: wrapping allocates one closure per middleware, and doing
+	// that on every request costs len(middlewares) allocations on the hot
+	// path for an identical result.
+	//
+	// If middlewares are [A, B, C], A is outermost and runs first.
+	chained := route.Handle
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		chained = middlewares[i](chained)
+	}
+
 	s.mux.HandleFunc(
 		pattern,
 		func(w http.ResponseWriter, r *http.Request) {
@@ -303,20 +328,24 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				s.returnSession(sess)
 			}()
 
-			handleFn := route.Handle
+			handleFn := chained
 
-			err := sess.Init(w, r, s.config.MaxRequestBodySize)
+			err := sess.Init(w, r, SessionConfig{
+				MaxRequestBodySize:          s.config.MaxRequestBodySize,
+				DisableRequestBodyBuffering: s.config.DisableRequestBodyBuffering,
+			})
 			if err != nil {
 				logger.Error("failed to init session", "error", err)
-				handleFn = func(_ context.Context, _ *Session) error {
+				// Cold path: rebuild the chain around a handler that
+				// returns the init error so error-rendering middleware
+				// still runs.
+				errHandle := func(_ context.Context, _ *Session) error {
 					return err // Return the session init error
 				}
-			}
-
-			// Reverses the middlewares to run in the desired order.
-			// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
-			for i := len(middlewares) - 1; i >= 0; i-- {
-				handleFn = middlewares[i](handleFn)
+				for i := len(middlewares) - 1; i >= 0; i-- {
+					errHandle = middlewares[i](errHandle)
+				}
+				handleFn = errHandle
 			}
 
 			err = handleFn(WithSession(r.Context(), sess), sess)

@@ -36,7 +36,7 @@ func TestWithReservedHeaderStrip(t *testing.T) {
 			w := httptest.NewRecorder()
 			//nolint:exhaustruct
 			sess := &zen.Session{}
-			require.NoError(t, sess.Init(w, req, 0))
+			require.NoError(t, sess.Init(w, req, zen.SessionConfig{}))
 
 			var seen http.Header
 			next := func(_ context.Context, s *zen.Session) error {

@@ -48,7 +48,7 @@ func TestResolver_ResolveJWT(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.NoError(t, err)
@@ -98,7 +98,7 @@ func TestResolver_ResolveJWTWithRotatedSecret(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.NoError(t, err)
@@ -140,7 +140,7 @@ func TestResolver_RejectsJWTWithUnexpectedIssuer(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.Error(t, err)
@@ -160,7 +160,7 @@ func TestResolver_IgnoresNonJWTBearer(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "Bearer unkey_root_key")
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.NoError(t, err)
@@ -199,7 +199,7 @@ func TestResolver_RejectsJWTWithWrongAudience(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.Error(t, err)
@@ -238,7 +238,7 @@ func TestResolver_RejectsExpiredJWT(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.Error(t, err)
@@ -272,7 +272,7 @@ func TestResolver_RejectsJWTWithoutTemporalClaims(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.Error(t, err)

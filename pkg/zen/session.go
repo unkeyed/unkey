@@ -35,6 +35,10 @@ type Session struct {
 	w http.ResponseWriter // Wrapped with statusRecorder to capture status code
 	r *http.Request
 
+	// recorder is the statusRecorder backing w. Embedded by value so the
+	// pooled session does not allocate a fresh recorder per request.
+	recorder statusRecorder
+
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
@@ -50,29 +54,44 @@ type Session struct {
 	principal *principal.Principal
 }
 
-func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
+// SessionConfig tunes how a Session reads the request on Init. The zero value
+// buffers the request body with no size limit, which is what most handlers
+// want (BindBody and body logging require buffering).
+type SessionConfig struct {
+	// MaxRequestBodySize caps the request body via http.MaxBytesReader.
+	// 0 means no limit.
+	MaxRequestBodySize int64
+	// DisableRequestBodyBuffering streams the body instead of reading it fully
+	// into memory. Proxy-style servers set this to forward bodies
+	// incrementally; BindBody and body logging are then unavailable.
+	DisableRequestBodyBuffering bool
+}
+
+// Init prepares the session for a new request.
+func (s *Session) Init(w http.ResponseWriter, r *http.Request, cfg SessionConfig) error {
 	s.requestID = uid.New(uid.RequestPrefix)
 
-	// Wrap ResponseWriter with status recorder
-	s.w = &statusRecorder{
+	// Wrap ResponseWriter with the session's own status recorder
+	s.recorder = statusRecorder{
 		ResponseWriter: w,
 		statusCode:     0, // Default to 0, this should always be overwritten by the metrics middleware
 		written:        false,
 	}
+	s.w = &s.recorder
 
 	s.r = r
 	s.logRequestToClickHouse = true // Default to logging requests to ClickHouse
 
 	// Apply body size limit if configured
 	// Note: MaxBytesReader needs the original unwrapped ResponseWriter, so we pass w directly
-	if maxBodySize > 0 {
-		s.r.Body = http.MaxBytesReader(w, s.r.Body, maxBodySize)
+	if cfg.MaxRequestBodySize > 0 {
+		s.r.Body = http.MaxBytesReader(w, s.r.Body, cfg.MaxRequestBodySize)
 	}
 
 	// For gRPC/streaming requests, skip body buffering — the body is a stream
 	// that must be forwarded incrementally. Buffering would deadlock because the
 	// client waits for a response before sending more frames.
-	if IsStreamingContentType(r.Header.Get("Content-Type")) {
+	if cfg.DisableRequestBodyBuffering || IsStreamingContentType(r.Header.Get("Content-Type")) {
 		s.requestBody = nil
 	} else {
 		// Read and cache the request body so metrics middleware can access it even on early errors.
@@ -559,6 +578,17 @@ func (lw *LimitedWriter) Write(p []byte) (int, error) {
 	return total, err
 }
 
+// CaptureBufferHint returns an initial capacity for a body-capture buffer
+// given a known Content-Length, clamped to [0, MaxBodyCapture]. Pass the
+// result to bytes.Buffer.Grow before teeing a body: a known-length capture
+// then allocates its backing array once instead of growing by repeated
+// doubling (which copies ~2x the body for large uploads). Returns 0 for
+// unknown (-1) or zero lengths, where Grow is a harmless no-op and the
+// buffer falls back to on-demand growth.
+func CaptureBufferHint(contentLength int64) int {
+	return int(max(0, min(contentLength, MaxBodyCapture)))
+}
+
 // IsStreamingContentType returns true for content types that use streaming
 // and must not have their body buffered (gRPC, Connect streaming).
 func IsStreamingContentType(ct string) bool {
@@ -574,6 +604,7 @@ func (s *Session) reset() {
 
 	s.w = nil
 	s.r = nil
+	s.recorder = statusRecorder{ResponseWriter: nil, statusCode: 0, written: false}
 
 	s.requestBody = nil
 	s.responseStatus = 0

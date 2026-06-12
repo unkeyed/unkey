@@ -8,10 +8,16 @@ import (
 	redirect "github.com/unkeyed/unkey/svc/frontline/routes/redirect"
 )
 
-// Register registers all frontline routes for the HTTPS server
+// Register registers all frontline routes for the HTTPS server.
+//
+// There is deliberately no per-request access logging middleware here.
+// Successful requests are recorded in ClickHouse (every request, with
+// bodies) and in Prometheus; errors are logged exactly once by
+// WithObservability. A stdout log line per successful proxied request
+// would duplicate ClickHouse at significant hot-path cost (body redaction,
+// attribute building).
 func Register(srv *zen.Server, svc *Services) {
 	withSanitizeHeaders := middleware.WithReservedHeaderStrip()
-	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withObservability := middleware.WithObservability(svc.ErrorPageRenderer)
 	withClickHouseLogging := middleware.WithClickHouseLogging(svc.FrontlineRequests, svc.Clock, svc.FrontlineID, svc.Region, svc.Platform)
@@ -22,7 +28,6 @@ func Register(srv *zen.Server, svc *Services) {
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withSanitizeHeaders,
-		withLogging,
 		withClickHouseLogging,
 		withObservability,
 		withTimeout,
@@ -52,7 +57,6 @@ func RegisterHTTPServer(srv *zen.Server, svc *Services) {
 		[]zen.Middleware{
 			zen.WithPanicRecovery(),
 			middleware.WithReservedHeaderStrip(),
-			zen.WithLogging(zen.SkipPaths("/_unkey/internal/")),
 			middleware.WithObservability(svc.ErrorPageRenderer),
 		},
 		&acme.Handler{

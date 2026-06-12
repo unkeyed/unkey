@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -19,16 +18,13 @@ import (
 func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
 		req.Header.Set(HeaderFrontlineID, s.instanceID)
-		req.Header.Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
+		req.Header.Set(HeaderRegion, s.regionHeader)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
-		frontlineRoutingTime := s.clock.Now().Sub(startTime)
 		timing.Write(sess.ResponseWriter(), timing.Entry{
-			Name:     "frontline_routing",
-			Duration: frontlineRoutingTime,
-			Attributes: map[string]string{
-				"scope": "frontline",
-			},
+			Name:       "frontline_routing",
+			Duration:   s.clock.Now().Sub(startTime),
+			Attributes: frontlineScopeAttrs,
 		})
 
 		// Preserve original Host so the upstream sees what the client asked for.
@@ -48,16 +44,13 @@ func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) f
 func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
 		req.Header.Set(HeaderFrontlineID, s.instanceID)
-		req.Header.Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
+		req.Header.Set(HeaderRegion, s.regionHeader)
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
-		frontlineRoutingTime := s.clock.Now().Sub(startTime)
 		timing.Write(sess.ResponseWriter(), timing.Entry{
-			Name:     "frontline_routing",
-			Duration: frontlineRoutingTime,
-			Attributes: map[string]string{
-				"scope": "frontline",
-			},
+			Name:       "frontline_routing",
+			Duration:   s.clock.Now().Sub(startTime),
+			Attributes: frontlineScopeAttrs,
 		})
 
 		// Preserve original Host so we know where to actually route the request

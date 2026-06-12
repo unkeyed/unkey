@@ -144,7 +144,7 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 	handlerCalled := false
 	sess := &zen.Session{}
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, zen.SessionConfig{}))
 
 	err = WithAuthentication(AuthenticationConfig{
 		Auth:       &fakeAuth{principal: testMiddlewarePrincipal("ws_123")},

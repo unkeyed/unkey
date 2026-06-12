@@ -65,12 +65,12 @@ func (s *service) selectDestination(
 	}
 
 	var localRunning []db.FindInstancesByDeploymentIDRow
-	regionsWithInstance := make(map[string]bool)
+	regionsWithInstance := make(map[string]bool, 1)
 	for _, inst := range instances {
 		if inst.Status != db.InstancesStatusRunning {
 			continue
 		}
-		key := fmt.Sprintf("%s.%s", inst.RegionName, inst.RegionPlatform)
+		key := inst.RegionName + "." + inst.RegionPlatform
 		regionsWithInstance[key] = true
 		if key == s.regionPlatform {
 			localRunning = append(localRunning, inst)
