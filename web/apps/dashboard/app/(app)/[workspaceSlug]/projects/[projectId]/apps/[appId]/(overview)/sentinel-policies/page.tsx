@@ -54,7 +54,7 @@ export default function SentinelPoliciesPage() {
         <PageHeaderActions>
           <Button size="md" onClick={panels.openAdd} variant="primary">
             <Plus iconSize="sm-regular" />
-            Add Policy
+            Add policy
           </Button>
         </PageHeaderActions>
       </PageHeader>

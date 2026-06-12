@@ -27,7 +27,7 @@ export default function Deployments() {
             renderTrigger={({ onClick }) => (
               <Button size="md" variant="primary" onClick={onClick}>
                 <Plus iconSize="sm-regular" />
-                Create Deployment
+                Create deployment
               </Button>
             )}
           />

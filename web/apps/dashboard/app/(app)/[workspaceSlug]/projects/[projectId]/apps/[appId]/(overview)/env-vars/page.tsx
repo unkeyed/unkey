@@ -34,7 +34,7 @@ export default function EnvVarsPage() {
             variant={isAddOpen ? "outline" : "primary"}
           >
             <Plus iconSize="sm-regular" />
-            Add Environment Variable
+            Add environment variable
           </Button>
         </PageHeaderActions>
       </PageHeader>
