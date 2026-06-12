@@ -89,7 +89,9 @@ type Client struct {
 	httpClient        *http.Client
 	signer            jwt.Signer[jwt.RegisteredClaims]
 	tokenCache        cache.Cache[int64, InstallationToken]
+	scopedTokenCache  cache.Cache[string, InstallationToken]
 	collaboratorCache cache.Cache[collaboratorKey, bool]
+	visibilityCache   cache.Cache[string, bool]
 }
 
 // NewClient creates a [Client] with the given configuration. Returns an error if
@@ -101,8 +103,8 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 
 	tokenCache, err := cache.New(cache.Config[int64, InstallationToken]{
-		Fresh:    55 * time.Minute,
-		Stale:    5 * time.Minute,
+		Fresh:    50 * time.Minute,
+		Stale:    55 * time.Minute,
 		MaxSize:  10_000,
 		Resource: "github_installation_token",
 		Clock:    clock.New(),
@@ -111,11 +113,43 @@ func NewClient(config ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
+	scopedTokenCache, err := cache.New(cache.Config[string, InstallationToken]{
+		Fresh:    50 * time.Minute,
+		Stale:    55 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "github_scoped_installation_token",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	collaboratorCache, err := cache.New(cache.Config[collaboratorKey, bool]{
 		Fresh:    5 * time.Minute,
-		Stale:    1 * time.Minute,
+		Stale:    30 * time.Minute,
 		MaxSize:  10_000,
 		Resource: "github_collaborator",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// The probe is unauthenticated (60 req/hr per IP), so cache hard: repo
+	// visibility almost never flips. Fresh 10m keeps a steadily-rebuilt repo to
+	// ~6 probes/hr, well under the quota, and the 1h Stale window lets SWR serve
+	// the cached answer while a background probe refreshes it. Either flip
+	// direction fails safe for at most one cache window:
+	//   - public -> private (stale "public"): the tokenless clone path 404s and
+	//     the build fails closed. No access is granted, just a retry needed.
+	//   - private -> public (stale "private"): a scoped read-only token is minted
+	//     needlessly, but it only reads a now-public repo. Harmless.
+	// A flip never escalates access; worst case it delays the optimal choice.
+	visibilityCache, err := cache.New(cache.Config[string, bool]{
+		Fresh:    10 * time.Minute,
+		Stale:    1 * time.Hour,
+		MaxSize:  10_000,
+		Resource: "github_repo_visibility",
 		Clock:    clock.New(),
 	})
 	if err != nil {
@@ -128,7 +162,9 @@ func NewClient(config ClientConfig) (*Client, error) {
 		httpClient:        &http.Client{Timeout: 30 * time.Second},
 		signer:            signer,
 		tokenCache:        tokenCache,
+		scopedTokenCache:  scopedTokenCache,
 		collaboratorCache: collaboratorCache,
+		visibilityCache:   visibilityCache,
 	}, nil
 }
 
@@ -201,6 +237,133 @@ func (c *Client) GetInstallationToken(installationID int64) (InstallationToken, 
 	return value, nil
 }
 
+// IsRepoPublic reports whether repo ("owner/repo") is publicly accessible, using
+// an unauthenticated GitHub API request. A public repo (HTTP 200) can be cloned
+// by BuildKit anonymously, so a fork build needs no token at all; a private repo
+// (404) requires one. This tests the exact property we care about (anonymous
+// cloneability) rather than trusting a cached visibility flag.
+//
+// Only 200 and 404 are treated as answers. Rate limits and server errors return
+// an error instead of false, so an exhausted unauthenticated quota (60 req/hr
+// per IP) is never mistaken for "private". Results are cached to keep probe
+// volume well under that quota.
+func (c *Client) IsRepoPublic(repo string) (bool, error) {
+	value, _, err := c.visibilityCache.SWR(
+		context.Background(),
+		repo,
+		func(_ context.Context) (bool, error) {
+			return probeRepoVisibility(c.httpClient, c.baseURL, repo)
+		},
+		func(err error) cache.Op {
+			if err != nil {
+				return cache.Noop
+			}
+			return cache.WriteValue
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+
+	return value, nil
+}
+
+// scopedTokenRequest is the body for POST /app/installations/{id}/access_tokens
+// when minting a downscoped token. An empty body grants the App's full
+// installation-wide permissions; setting these fields restricts the token.
+type scopedTokenRequest struct {
+	// Repositories lists repo names (not owner/repo) the token may access. When
+	// omitted, the token spans all of the installation's repositories.
+	Repositories []string `json:"repositories,omitempty"`
+	// Permissions maps permission name to access level, e.g. {"contents":"read"}.
+	// Valid names and levels:
+	// https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps
+	Permissions map[string]string `json:"permissions"`
+}
+
+// GetScopedInstallationToken mints an installation token downscoped to the given
+// permissions, e.g. {"contents":"read"}. permissions must be a subset of what
+// the App was granted at install.
+//
+// If repo (an "owner/repo" full name) is non-empty the token is restricted to
+// that single repository; if empty the token spans all of the installation's
+// repositories. Callers scope to a single repo so an exfiltrated token grants
+// only read access to the one repo BuildKit clones. The empty-repo (all-repos)
+// form exists for callers that need cross-repo reads, but the build path does
+// not use it: a single-repo read token cannot clone private cross-repo deps or
+// submodules, an accepted tradeoff for keeping the build credential minimal.
+//
+// Results are cached (like [Client.GetInstallationToken]) keyed by the full
+// scope (installation, repo, permission set) so distinct scopes never collide.
+func (c *Client) GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error) {
+	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
+		return InstallationToken{}, err
+	}
+
+	// An empty permission set is NOT a no-op: GitHub reads it as "grant the App's
+	// full installation permissions", which would silently hand back a
+	// write-capable token. Reject it so the downscope is always explicit.
+	if err := assert.False(len(permissions) == 0, "permissions must be provided to scope the token"); err != nil {
+		return InstallationToken{}, err
+	}
+
+	// %v prints map keys in sorted order, so the key is stable across calls.
+	// The permission set is part of the key: a fork's single-repo read token and
+	// a trusted all-repos read token differ in scope and must never share a slot.
+	key := fmt.Sprintf("%d:%s:%v", installationID, repo, permissions)
+
+	value, _, err := c.scopedTokenCache.SWR(
+		context.Background(),
+		key,
+		func(_ context.Context) (InstallationToken, error) {
+			logger.Info(
+				"Getting scoped GitHub installation token",
+				"installation_id", installationID,
+				"repo", repo,
+			)
+
+			var repositories []string
+			if repo != "" {
+				repoName := repo
+				if idx := strings.LastIndex(repo, "/"); idx >= 0 {
+					repoName = repo[idx+1:]
+				}
+				repositories = []string{repoName}
+			}
+
+			jwtToken, err := c.generateJWT()
+			if err != nil {
+				return InstallationToken{}, err
+			}
+
+			apiURL := fmt.Sprintf(
+				"https://api.github.com/app/installations/%d/access_tokens",
+				installationID,
+			)
+
+			return request[InstallationToken](
+				c.httpClient,
+				http.MethodPost,
+				apiURL,
+				githubHeaders(jwtToken),
+				scopedTokenRequest{Repositories: repositories, Permissions: permissions},
+				http.StatusCreated,
+			)
+		},
+		func(err error) cache.Op {
+			if err != nil {
+				return cache.Noop
+			}
+			return cache.WriteValue
+		},
+	)
+	if err != nil {
+		return InstallationToken{}, err
+	}
+
+	return value, nil
+}
+
 // GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
 // repository. It uses an installation token to authenticate the request.
 func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error) {
@@ -213,7 +376,8 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 
 	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
-		logger.Error("failed to fetch branch head commit",
+		logger.Error(
+			"failed to fetch branch head commit",
 			"installation_id", installationID,
 			"repo", repo,
 			"branch", branch,
