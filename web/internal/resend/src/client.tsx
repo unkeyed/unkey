@@ -41,8 +41,15 @@ export class Resend {
     email: string;
     name: string;
     date: Date;
+    workspaceSlug: string;
   }): Promise<void> {
-    const html = await render(<PaymentIssue username={req.name} date={req.date.toDateString()} />);
+    const html = await render(
+      <PaymentIssue
+        username={req.name}
+        date={req.date.toDateString()}
+        workspaceSlug={req.workspaceSlug}
+      />,
+    );
     try {
       const result = await this.client.emails.send({
         to: req.email,
