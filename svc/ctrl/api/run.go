@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
+	stripesdk "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -299,6 +300,18 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("GitHub webhook handler registered")
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
+	}
+
+	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
+		mux.Handle("POST /webhooks/stripe", NewStripeWebhook(
+			restateClient,
+			stripesdk.NewClient(cfg.Stripe.SecretKey),
+			database,
+			cfg.Stripe.WebhookSecret,
+		))
+		logger.Info("Stripe webhook handler registered")
+	} else {
+		logger.Info("Stripe webhook handler not registered, no webhook secret configured")
 	}
 
 	// Configure server

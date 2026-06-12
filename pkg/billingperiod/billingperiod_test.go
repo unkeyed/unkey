@@ -28,3 +28,13 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestPeriodEnd(t *testing.T) {
+	p, err := Parse("2026-06")
+	require.NoError(t, err)
+	require.Equal(t, time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC), p.End())
+
+	dec, err := Parse("2026-12")
+	require.NoError(t, err)
+	require.Equal(t, time.Date(2027, time.January, 1, 0, 0, 0, 0, time.UTC), dec.End())
+}

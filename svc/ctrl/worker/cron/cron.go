@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
@@ -53,11 +54,12 @@ var _ hydrav1.CronServiceServer = (*Service)(nil)
 // not configured. This keeps each handler's heartbeat call unconditional
 // (no nil checks scattered through the codebase).
 type Heartbeats struct {
-	QuotaCheck        healthcheck.Heartbeat
-	KeyRefill         healthcheck.Heartbeat
-	KeyLastUsedSync   healthcheck.Heartbeat
-	AuditLogExport    healthcheck.Heartbeat
-	DeployBillingPush healthcheck.Heartbeat
+	QuotaCheck         healthcheck.Heartbeat
+	KeyRefill          healthcheck.Heartbeat
+	KeyLastUsedSync    healthcheck.Heartbeat
+	AuditLogExport     healthcheck.Heartbeat
+	DeployBillingPush  healthcheck.Heartbeat
+	DeployBillingClose healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -101,6 +103,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.KeyLastUsedSync, "Heartbeats.KeyLastUsedSync must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.AuditLogExport, "Heartbeats.AuditLogExport must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -150,14 +153,18 @@ func New(cfg Config) (*Service, error) {
 	// (sink) are both configured; otherwise it runs as a no-op so the cron
 	// binding and schedule stay uniform across environments.
 	var billingPusher billingmeter.Pusher = billingmeter.NewNoop()
+	var billingCloser invoicecloser.Closer = invoicecloser.NewNoop()
 	if cfg.StripeSecretKey != "" {
 		billingPusher = billingmeter.NewStripe(cfg.StripeSecretKey)
+		billingCloser = invoicecloser.NewStripe(cfg.StripeSecretKey)
 	}
 	deployBillingH, err := deploybilling.New(deploybilling.Config{
-		UsageReader: cfg.BillingUsageReader,
-		Pusher:      billingPusher,
-		DB:          cfg.DB,
-		Heartbeat:   cfg.Heartbeats.DeployBillingPush,
+		UsageReader:    cfg.BillingUsageReader,
+		Pusher:         billingPusher,
+		DB:             cfg.DB,
+		Heartbeat:      cfg.Heartbeats.DeployBillingPush,
+		Closer:         billingCloser,
+		CloseHeartbeat: cfg.Heartbeats.DeployBillingClose,
 	})
 	if err != nil {
 		return nil, err
@@ -214,4 +221,11 @@ func (s *Service) RunDeployBillingPush(
 	req *hydrav1.RunDeployBillingPushRequest,
 ) (*hydrav1.RunDeployBillingPushResponse, error) {
 	return s.deployBilling.Handle(ctx, req)
+}
+
+func (s *Service) RunDeployBillingClose(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeployBillingCloseRequest,
+) (*hydrav1.RunDeployBillingCloseResponse, error) {
+	return s.deployBilling.HandleClose(ctx, req)
 }

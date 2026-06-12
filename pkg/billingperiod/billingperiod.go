@@ -45,3 +45,10 @@ func Parse(key string) (Period, error) {
 func (p Period) Start() time.Time {
 	return time.Date(p.Year, p.Month, 1, 0, 0, 0, 0, time.UTC)
 }
+
+// End is midnight UTC on the first day of the following month: the exclusive
+// upper bound of the period, and the instant the renewal invoice is created
+// for subscriptions anchored at midnight on the 1st.
+func (p Period) End() time.Time {
+	return p.Start().AddDate(0, 1, 0)
+}
