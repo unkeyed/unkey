@@ -1,7 +1,8 @@
 "use client";
 
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { TriangleWarning2 } from "@unkey/icons";
@@ -16,7 +17,7 @@ import { useAppId, useProjectData } from "../../data-provider";
 export function DeleteApp() {
   const { projectId } = useProjectData();
   const appId = useAppId();
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -53,7 +54,7 @@ export function DeleteApp() {
   const onSubmit = (_values: FormValues) => {
     collection.apps.delete(appId);
     setIsDialogOpen(false);
-    router.push(`/${workspace?.slug}/projects/${projectId}`);
+    router.push(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
   };
 
   return (

@@ -2,6 +2,7 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { ArrowOppositeDirectionY, Clone, Gear, Layers3 } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
@@ -39,7 +40,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
       label: "View requests",
       icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
       onClick: () => {
-        router.push(`/${workspace.slug}/projects/${projectId}/requests`);
+        router.push(routes.projects.requests({ workspaceSlug: workspace.slug, projectId }));
       },
     },
     {
@@ -47,7 +48,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
       label: "View logs",
       icon: <Layers3 iconSize="md-medium" />,
       onClick: () => {
-        router.push(`/${workspace.slug}/projects/${projectId}/logs`);
+        router.push(routes.projects.logs({ workspaceSlug: workspace.slug, projectId }));
       },
     },
     {
@@ -55,7 +56,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
       label: "Project settings",
       icon: <Gear iconSize="md-medium" />,
       onClick: () => {
-        router.push(`/${workspace.slug}/projects/${projectId}/settings`);
+        router.push(routes.projects.settings({ workspaceSlug: workspace.slug, projectId }));
       },
     },
   ];

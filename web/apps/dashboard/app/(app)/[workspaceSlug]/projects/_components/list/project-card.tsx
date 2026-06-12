@@ -1,4 +1,5 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Github, Terminal } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
@@ -55,7 +56,10 @@ function AppTooltipRow({ app }: { app: ProjectCardApp }) {
 
 export function ProjectCard({ name, projectId, appCount, apps, actions }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
-  const projectPath = `/${workspace.slug}/projects/${projectId}`;
+  const projectPath = routes.projects.detail({
+    workspaceSlug: workspace.slug,
+    projectId,
+  });
 
   return (
     <div className="relative p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-6 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
@@ -81,7 +85,7 @@ export function ProjectCard({ name, projectId, appCount, apps, actions }: Projec
         <span className="text-xs text-gray-11">No apps yet</span>
       ) : (
         <div className="relative z-10 w-fit">
-          <AppIconStack apps={apps} appCount={appCount} projectPath={projectPath} />
+          <AppIconStack apps={apps} appCount={appCount} projectId={projectId} />
         </div>
       )}
     </div>
@@ -91,11 +95,11 @@ export function ProjectCard({ name, projectId, appCount, apps, actions }: Projec
 function AppIconStack({
   apps,
   appCount,
-  projectPath,
-}: { apps: ProjectCardApp[]; appCount: number; projectPath: string }) {
+  projectId,
+}: { apps: ProjectCardApp[]; appCount: number; projectId: string }) {
+  const workspace = useWorkspaceNavigation();
   const visible = apps.slice(0, MAX_VISIBLE_APPS);
   const overflow = appCount - visible.length;
-  const appHref = (appId: string) => `${projectPath}/apps/${appId}/deployments`;
 
   return (
     <div className="flex items-center">
@@ -108,7 +112,11 @@ function AppIconStack({
           position={{ side: "top" }}
         >
           <Link
-            href={appHref(app.id)}
+            href={routes.projects.apps.deployments({
+              workspaceSlug: workspace.slug,
+              projectId,
+              appId: app.id,
+            })}
             aria-label={`View ${app.name}`}
             className={`${BLOB_BASE} first:ml-0 text-gray-12`}
           >
@@ -120,7 +128,10 @@ function AppIconStack({
         <HoverCard openDelay={0} closeDelay={100}>
           <HoverCardTrigger asChild>
             <Link
-              href={projectPath}
+              href={routes.projects.detail({
+                workspaceSlug: workspace.slug,
+                projectId,
+              })}
               aria-label={`View all ${appCount} apps`}
               className={`${BLOB_BASE} text-[10px] font-medium text-gray-11`}
             >
@@ -132,7 +143,11 @@ function AppIconStack({
               {apps.map((app) => (
                 <Link
                   key={app.id}
-                  href={appHref(app.id)}
+                  href={routes.projects.apps.deployments({
+                    workspaceSlug: workspace.slug,
+                    projectId,
+                    appId: app.id,
+                  })}
                   className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-gray-12 hover:bg-grayA-3 transition-colors"
                 >
                   <AppSourceIcon source={app.source} className="size-3.5 shrink-0 text-gray-11" />

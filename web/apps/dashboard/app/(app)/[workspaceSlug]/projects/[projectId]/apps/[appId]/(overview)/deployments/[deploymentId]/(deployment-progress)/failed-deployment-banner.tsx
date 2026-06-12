@@ -1,5 +1,6 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { Button } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 
@@ -37,7 +38,7 @@ export function FailedDeploymentBanner({
   deployment,
 }: {
   steps: StepEntry[];
-  settingsUrl: string;
+  settingsUrl: Route;
   onRedeploy: () => void;
   redeployOpen: boolean;
   onRedeployClose: () => void;
