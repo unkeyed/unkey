@@ -69,6 +69,82 @@ func TestBuildGitContextURL(t *testing.T) {
 	}
 }
 
+// TestValidateGitBuildParams pins the boundary guard that stops untrusted
+// repo/SHA inputs from smuggling a URL fragment or path traversal into the git
+// context URL. The public v2 API accepts commitSha as a free string, so this
+// is the last line of defense before buildGitContextURL.
+func TestValidateGitBuildParams(t *testing.T) {
+	tests := []struct {
+		name    string
+		params  gitBuildParams
+		wantErr bool
+	}{
+		{
+			name:   "valid base build",
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeefdeadbeef"},
+		},
+		{
+			name:   "valid fork build by sha",
+			params: gitBuildParams{Repository: "acme/app", ForkRepository: "contributor/app", CommitSHA: "cafebabe"},
+		},
+		{
+			name:   "valid PR build with empty sha",
+			params: gitBuildParams{Repository: "acme/app", PrNumber: 42},
+		},
+		{
+			name:    "empty repository",
+			params:  gitBuildParams{CommitSHA: "deadbeef"},
+			wantErr: true,
+		},
+		{
+			name:    "repository missing owner",
+			params:  gitBuildParams{Repository: "app", CommitSHA: "deadbeef"},
+			wantErr: true,
+		},
+		{
+			name:    "repository with path traversal",
+			params:  gitBuildParams{Repository: "acme/app/../evil", CommitSHA: "deadbeef"},
+			wantErr: true,
+		},
+		{
+			name:    "fork repository with url fragment",
+			params:  gitBuildParams{Repository: "acme/app", ForkRepository: "contributor/app#evil", CommitSHA: "deadbeef"},
+			wantErr: true,
+		},
+		{
+			name:    "commit sha with subdir traversal",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef:../subdir"},
+			wantErr: true,
+		},
+		{
+			name:    "commit sha with fragment",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef#evil"},
+			wantErr: true,
+		},
+		{
+			name:    "commit sha too short",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "dead"},
+			wantErr: true,
+		},
+		{
+			name:    "commit sha non-hex",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "zzzzzzz"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateGitBuildParams(tt.params)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 // TestBuildGitSolverOptions_EnvSecretGating proves env vars only become a
 // BuildKit secret when present.
 func TestBuildGitSolverOptions_EnvSecretGating(t *testing.T) {
