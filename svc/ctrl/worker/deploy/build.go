@@ -142,8 +142,9 @@ func (w *Workflow) buildDockerImageFromGit(
 		// is a dashboard deploy of a fork ref by SHA (clones the fork directly).
 		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
 
-		// tokenless selects the no-secret solver path: no GIT_AUTH_TOKEN secret is
-		// registered, so a fork-controlled Dockerfile has nothing to mount.
+		// tokenless means no GIT_AUTH_TOKEN secret is registered, so a
+		// fork-controlled Dockerfile cannot mount a GitHub credential. Env vars
+		// are still injected as the env secret on both paths.
 		ghToken, tokenless, err := w.resolveCloneToken(params, isForkBuild)
 		if err != nil {
 			return nil, err
