@@ -2,11 +2,13 @@ package billingmeter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
+	restate "github.com/restatedev/sdk-go"
 	stripe "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -21,6 +23,7 @@ const (
 	eventMemory = "memory_gib_seconds"
 	eventEgress = "egress_public_gib"
 	eventDisk   = "disk_gib_seconds"
+	eventKeys   = "active_keys"
 )
 
 // payloadKeyCustomer and payloadKeyValue are the meter's
@@ -88,6 +91,7 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 		{eventMemory, req.Values.MemoryGiBSeconds},
 		{eventEgress, req.Values.EgressGiB},
 		{eventDisk, req.Values.DiskGiBSeconds},
+		{eventKeys, req.Values.ActiveKeys},
 	}
 
 	pushed := 0
@@ -104,11 +108,30 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 			},
 		})
 		if err != nil {
-			return pushed, fault.Wrap(err, fault.Internal("failed to push stripe meter event"))
+			return pushed, wrapMeterEventErr(err)
 		}
 		pushed++
 	}
 	return pushed, nil
+}
+
+// wrapMeterEventErr separates permanent Stripe rejections from transient
+// failures. A validation 4xx (unknown customer, malformed value, timestamp
+// outside the meter's ingestion window) fails identically on every attempt,
+// so it is marked terminal: the callers run pushes inside Restate invocations
+// whose retry loops would otherwise hammer the same rejection until the retry
+// window expires — and in the month-end close, forever, since every backup
+// close would re-hit it. Rate limits (429), request timeouts (408), and
+// 5xx/network errors stay retryable.
+func wrapMeterEventErr(err error) error {
+	wrapped := fault.Wrap(err, fault.Internal("failed to push stripe meter event"))
+	var sErr *stripe.Error
+	if errors.As(err, &sErr) &&
+		sErr.HTTPStatusCode >= 400 && sErr.HTTPStatusCode < 500 &&
+		sErr.HTTPStatusCode != 408 && sErr.HTTPStatusCode != 429 {
+		return restate.TerminalError(wrapped)
+	}
+	return wrapped
 }
 
 // Stripe enforces two separate limits on a meter event payload value, and a

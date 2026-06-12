@@ -63,6 +63,7 @@ func (h *Handler) pushAll(ctx restate.ObjectContext, tasks []pushTask) (workspac
 					"stripe_customer_id", task.req.StripeCustomerID,
 					"cpu_seconds", task.req.Values.CPUSeconds,
 					"memory_gib_seconds", task.req.Values.MemoryGiBSeconds,
+					"active_keys", task.req.Values.ActiveKeys,
 					"egress_gib", task.req.Values.EgressGiB,
 					"disk_gib_seconds", task.req.Values.DiskGiBSeconds,
 					"meters_pushed", n,

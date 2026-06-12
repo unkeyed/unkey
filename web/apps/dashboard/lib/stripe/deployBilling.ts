@@ -44,6 +44,7 @@ export function deployBillingConfigured(): boolean {
     e.STRIPE_LOOKUP_DEPLOY_METER_MEMORY,
     e.STRIPE_LOOKUP_DEPLOY_METER_EGRESS,
     e.STRIPE_LOOKUP_DEPLOY_METER_DISK,
+    e.STRIPE_LOOKUP_DEPLOY_METER_ACTIVE_KEYS,
   ].every(Boolean);
 }
 
@@ -72,6 +73,7 @@ export async function deployBillingConfig(): Promise<DeployBillingConfig | null>
     e.STRIPE_LOOKUP_DEPLOY_METER_MEMORY,
     e.STRIPE_LOOKUP_DEPLOY_METER_EGRESS,
     e.STRIPE_LOOKUP_DEPLOY_METER_DISK,
+    e.STRIPE_LOOKUP_DEPLOY_METER_ACTIVE_KEYS,
   ];
 
   // All-or-nothing: a partially configured set would attach an incomplete

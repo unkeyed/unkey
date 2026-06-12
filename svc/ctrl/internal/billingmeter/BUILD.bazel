@@ -13,6 +13,7 @@ go_library(
     deps = [
         "//pkg/fault",
         "//pkg/logger",
+        "@com_github_restatedev_sdk_go//:sdk-go",
         "@com_github_stripe_stripe_go_v86//:stripe-go",
     ],
 )
