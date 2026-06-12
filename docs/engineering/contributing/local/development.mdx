@@ -16,6 +16,16 @@ Unkey installs most tools and dependencies automatically. The only required prei
 
 All other tools are managed via [mise](https://mise.en.dev/), which you'll install in the next step.
 
+## Configure Depot
+
+Unkey uses Depot as the build runner for local development.
+
+To get your Depot token, sign in to <a href="https://depot.dev" target="_blank">Depot</a>,
+then create a token. Name it something like `<your-name>-local`.
+
+During bootstrap, paste that token when prompted or manually add it to
+`./dev/.env.depot`.
+
 ## Bootstrap
 
 Clone the repository and install mise and other tools.
@@ -33,33 +43,25 @@ Clone the repository and install mise and other tools.
     ./dev/install-mise
     ```
   </Step>
-  <Step title="Install tooling">
-    After mise is installed, install the pinned toolchain. This includes languages and package managers.
+  <Step title="Bootstrap local configuration">
+    Run the bootstrap task to install the pinned toolchain, create local environment files, write your Depot credentials, and configure the GitHub app.
+    Use the token from [Configure Depot](#configure-depot) when prompted.
+
     ```bash
-    mise install
+    mise run bootstrap
     ```
-    If this is the first time using mise in this repository, you will be asked whether you trust the config.
+
+    If GitHub rate limits `mise install`, provide a `GH_TOKEN` when you rerun the task:
+    ```bash
+    GH_TOKEN=$(gh auth token) mise run bootstrap
+    ```
   </Step>
 </Steps>
 
-`mise install` installs the pinned toolchain, including pnpm. Repository tasks
-can declare their own dependencies, so setup steps run automatically when a task
-needs them. See the [mise tooling guide](/contributing/tooling/mise) for task
-conventions.
 
 If you only want to develop on the dashboard, run `mise run dashboard`.
 Otherwise continue for a full dev setup.
 
-
-## Configure Depot
-
-Unkey uses Depot as the build runner for local development.
-
-```bash
-cp ./dev/.env.depot.example ./dev/.env.depot
-# Edit ./dev/.env.depot with your Depot credentials
-```
-To get your depot token, sign in to [depot.dev](https://depot.dev), then navigate to organization \> settings, and then `Add API token`. Name it something like `<your-name>-local`.
 
 ## Run dev mode
 
@@ -74,7 +76,6 @@ You get:
 - Tilt UI at `http://localhost:10350`
 - Various services port-forwarded
 - Dashboard at `http://localhost:3000`
-
 ## Local HTTPS with Frontline (optional)
 
 Set up local TLS for `*.unkey.local`:

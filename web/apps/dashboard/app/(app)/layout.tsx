@@ -4,6 +4,7 @@ import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
 import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import type { Route } from "next";
 
 import { LoadingState } from "@/components/loading-state";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -83,7 +84,7 @@ export default function Layout({ children }: LayoutProps) {
         currentPath && currentPath !== "/"
           ? `/auth/sign-in?redirect=${encodeURIComponent(currentPath)}`
           : "/auth/sign-in";
-      router.push(signInUrl);
+      router.push(signInUrl as Route);
       return;
     }
 

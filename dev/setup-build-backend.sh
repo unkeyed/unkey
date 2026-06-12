@@ -59,13 +59,6 @@ prompt_if_empty() {
   fi
 }
 
-validate_depot_token() {
-  if [[ ! "$DEPOT_TOKEN" =~ ^depot_org_ ]]; then
-    echo "Error: Invalid Depot token format. Token must start with 'depot_org_'"
-    exit 1
-  fi
-}
-
 login_depot_registry() {
   if echo "$DEPOT_TOKEN" | docker login registry.depot.dev -u x-token --password-stdin >/dev/null 2>&1; then
     echo "✓ Logged into depot registry"
@@ -86,7 +79,6 @@ setup_depot() {
   S3_ACCESS_KEY_SECRET="${S3_ACCESS_KEY_SECRET:-${UNKEY_BUILD_S3_ACCESS_KEY_SECRET:-}}"
 
   prompt_if_empty "DEPOT_TOKEN" "Enter your Depot token:" true
-  validate_depot_token
   login_depot_registry
 
   echo ""

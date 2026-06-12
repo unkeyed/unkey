@@ -3,6 +3,7 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
@@ -99,7 +100,12 @@ export const DeploymentListTableActions = ({
         icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/requests?since=6h&deploymentId=contains:${selectedDeployment.id}`,
+            routes.projects.requests({
+              workspaceSlug: workspace.slug,
+              projectId: selectedDeployment.projectId,
+              since: "6h",
+              deploymentId: selectedDeployment.id,
+            }),
           );
         },
       },
@@ -109,7 +115,11 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/logs?deploymentId=is:${selectedDeployment.id}`,
+            routes.projects.logs({
+              workspaceSlug: workspace.slug,
+              projectId: selectedDeployment.projectId,
+              deploymentId: selectedDeployment.id,
+            }),
           );
         },
       },
@@ -119,7 +129,13 @@ export const DeploymentListTableActions = ({
         icon: <Hammer2 iconSize="md-regular" />,
         onClick: () => {
           router.push(
-            `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/deployments/${selectedDeployment.id}?build=true`,
+            routes.projects.apps.deployment({
+              workspaceSlug: workspace.slug,
+              projectId: selectedDeployment.projectId,
+              appId: selectedDeployment.appId,
+              deploymentId: selectedDeployment.id,
+              build: true,
+            }),
           );
         },
       },

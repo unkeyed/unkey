@@ -1,6 +1,7 @@
 "use client";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { ArrowDottedRotateAnticlockwise, Cube, SquareBulletList } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
@@ -32,12 +33,13 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
   const { projectId, project, isProjectLoading, getDeploymentById } = useProjectData();
   const appId = useAppId();
 
-  const basePath = `/${workspace.slug}/projects`;
+  const workspaceSlug = workspace.slug;
+  const basePath = routes.projects.list({ workspaceSlug });
   const breadcrumbs = useBreadcrumbConfig({
     projectId,
     projectName: project?.name,
     appId,
-    basePath,
+    workspaceSlug,
   });
 
   const params = useParams();
@@ -123,7 +125,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
       {
         id: "subpage",
         children: <div className="h-6 w-20 bg-grayA-3 rounded-sm animate-pulse transition-all" />,
-        href: "#",
+        href: "#" as const,
         noop: true,
         active: true,
         isLast: true,
