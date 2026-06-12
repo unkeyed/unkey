@@ -1,0 +1,59 @@
+---
+title: "June 12, 2026"
+description: "Project home now lists apps, project settings page, deployment trigger badges, error categories, and the redesigned navigation is live for everyone."
+noindex: true
+---
+
+## New features
+
+### Project home lists apps
+
+The project dashboard now opens to a list of apps in the project, with cards enriched by the connected GitHub repo, latest deployment, and live regions. Logs and requests moved to the project-level sidebar, and onboarding now ends at the deployment level so new projects walk you straight into their first app. See [Projects](/platform/projects/overview).
+
+### Project settings page
+
+Projects now have a dedicated **Settings** tab to update project metadata and delete the project, alongside the existing per-app build, runtime, and environment configuration. See [Project settings](/platform/projects/settings).
+
+### Deployment trigger attribution
+
+Each deployment now records what triggered it — a GitHub push, a manual redeploy, a rebuild, or the API — and surfaces a trigger badge on the deployment row, the active deployment card, and the approval view, so you can tell at a glance how a deployment got there.
+
+### Error categories
+
+The error reference is now organized into categories — capacity, client, config, platform, routing, and upstream — making it easier to find the right page for a given failure mode. See [Error codes](/errors/overview).
+
+### Rate limit overrides table
+
+The ratelimit overrides page now uses the same data‑table layout as the rest of the dashboard, with pagination, search, and consistent row actions. See [Overrides](/platform/ratelimiting/overrides).
+
+## Updates
+
+### Redesigned navigation is live for everyone
+
+The navigation beta flag has been dropped — the redesigned sidebar, breadcrumbs, and project navigation are now the default for every workspace.
+
+### Filter logs by multiple deployments
+
+The deployment filter on logs and requests now accepts multiple deployment IDs at once and supports free-text input, so you can scope a query to an exact set of deployments instead of one at a time.
+
+### Unified API authentication
+
+Root keys and dashboard JWTs are now resolved through a single authentication layer in the API, with stricter audience and expiry checks and a minimum JWT secret length. Existing root keys and integrations continue to work unchanged.
+
+### Reworked workspace onboarding
+
+The first‑run workspace onboarding now scrolls instead of clipping on short viewports, autofocuses the workspace name field on pointer devices, and exposes a sign‑out link if you landed in the wrong account.
+
+### Upgraded empty state for projects
+
+Workspaces with no projects now see a full-bleed empty state that explains what Unkey is and links straight into creating your first project.
+
+## Bug fixes
+
+- Fixed a keyspace cross‑contamination bug where a deployment request could resolve against the wrong keyspace.
+- The API overview charts no longer oscillate between scrollbar states when the viewport is resized.
+- The "Create project" CTA on the empty state now opens the create dialog instead of 404ing.
+- Removed a duplicate user button and a duplicate "Copy workspace" action from the redesigned navbar.
+- Fixed a z‑index regression that let overlays render behind page content.
+- Ratelimit `ratelimit.enabled` is now registered correctly so the setting takes effect.
+- Breadcrumb popover spacing and sizing have been tightened.
