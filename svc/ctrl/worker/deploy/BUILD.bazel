@@ -67,6 +67,8 @@ go_test(
         "//pkg/uid",
         "//svc/ctrl/integration/harness",
         "//svc/ctrl/integration/seed",
+        "//svc/ctrl/worker/github",
+        "@com_github_restatedev_sdk_go//:sdk-go",
         "@com_github_stretchr_testify//require",
     ],
 )
