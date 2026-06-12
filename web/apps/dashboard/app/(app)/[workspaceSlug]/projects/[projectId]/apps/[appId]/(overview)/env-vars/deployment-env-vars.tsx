@@ -14,7 +14,6 @@ import {
 type EnvVarsBodyProps = {
   isAddOpen: boolean;
   onCloseAdd: () => void;
-  /** Viewport offset for the slide-in panel; 0 lets it start from the top of the page. */
   panelTopOffset: number;
 };
 
@@ -56,7 +55,6 @@ export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBo
   );
 }
 
-/** Inline variant with its own compact header, used by the app-creation flow. */
 export function DeploymentEnvVars() {
   const { appId } = useProjectData();
   const [isAddOpen, setIsAddOpen] = useState(false);

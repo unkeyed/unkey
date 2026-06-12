@@ -42,15 +42,11 @@ export function DeploymentDetailHeader() {
   const [cancelled, setCancelled] = useState(false);
   const canCancel = isCancellableDeploymentStatus(deployment.status) && !cancelled;
 
-  // The commit message is what humans recognise; the id is an internal handle
-  // and still shows in the deployment card below.
   const title = deployment.gitCommitMessage || shortenId(deployment.id);
   const subtitle = [deployment.gitBranch, deployment.gitCommitSha?.slice(0, 7)]
     .filter(Boolean)
     .join(" · ");
 
-  // Logs and requests live at the project level; these links pre-filter that
-  // view to this deployment so all other filters stay available there.
   const projectBase = `/${workspace.slug}/projects/${deployment.projectId}`;
   const deploymentFilter = `deploymentId=is:${deployment.id}`;
 
