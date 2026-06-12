@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 )
 
 // how long a deployment must be idle for before we scale it down to 0
@@ -22,15 +23,11 @@ var idleTime = 6 * time.Hour
 // checking request counts in ClickHouse.
 func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, req *hydrav1.ScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.ScaleDownIdlePreviewDeploymentsResponse, error) {
 
-	// Journal the cutoff so replays reuse the same value. Pulling time.Now()
-	// outside a Run would re-evaluate on every replay and drift the query
-	// inputs of later Runs that have not yet been journaled.
-	cutoff, err := restate.Run(ctx, func(runCtx restate.RunContext) (int64, error) {
-		return time.Now().Add(-idleTime).UnixMilli(), nil
-	}, restate.WithName("compute idle cutoff"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	now, err := restateutil.Now(ctx)
 	if err != nil {
 		return nil, err
 	}
+	cutoff := now.Add(-idleTime).UnixMilli()
 
 	cursor := uint64(0)
 	for {
