@@ -14,6 +14,16 @@ import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
  * its subscription. Metered items are shared across plans, so they are left
  * untouched. Writes workspaces.deploy_plan optimistically for instant UI;
  * the subscription.updated webhook reconciles it to the same value.
+ *
+ * Upgrades charge the prorated fee difference immediately (always_invoice).
+ * Paying that invoice triggers the credit-grant webhook, which tops up the
+ * period's usage credits by the same net amount, so an upgrade buys more
+ * credits for the rest of the month, not just a bigger fee.
+ *
+ * Downgrades keep the period as bought: no proration at all, so there is no
+ * refund of the fee difference AND no clawback of the usage credits that fee
+ * already granted. The customer rides out the period at the level they paid
+ * for; the lower fee (and its smaller credits) starts at the next renewal.
  */
 export const changeDeployPlan = workspaceProcedure
   .use(requireWorkspaceAdmin)
@@ -58,9 +68,13 @@ export const changeDeployPlan = workspaceProcedure
 
     const newPriceId = config.planFeePriceIds[input.plan];
     try {
+      // DEPLOY_PLANS is ordered lowest to highest, so plan order doubles as
+      // the upgrade/downgrade direction.
+      const isDowngrade = DEPLOY_PLANS.indexOf(input.plan) < DEPLOY_PLANS.indexOf(planFeeItem.plan);
+
       await stripe.subscriptionItems.update(planFeeItem.id, {
         price: newPriceId,
-        proration_behavior: "create_prorations",
+        proration_behavior: isDowngrade ? "none" : "always_invoice",
         payment_behavior: "error_if_incomplete",
       });
     } catch (err) {
