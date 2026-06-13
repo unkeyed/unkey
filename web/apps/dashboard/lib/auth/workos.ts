@@ -151,6 +151,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           isValid: true,
           shouldRefresh: false,
           impersonator: authResult.impersonator,
+          accessToken: authResult.accessToken,
           userId: authResult.user.id,
           orgId: authResult.organizationId ?? null,
           role: authResult.role ?? null,
@@ -192,6 +193,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         session: {
           userId: refreshResult.session.user.id,
           orgId: refreshResult.session.organizationId ?? null,
+          accessToken: refreshResult.session.accessToken,
           role: refreshResult.role ?? null,
         },
         impersonator: refreshResult.session.impersonator,
@@ -338,6 +340,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       session: {
         userId: refreshResult.session.user.id,
         orgId: newOrgId,
+        accessToken: refreshResult.session.accessToken,
       },
     };
   }

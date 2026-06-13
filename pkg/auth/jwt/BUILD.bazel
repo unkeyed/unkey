@@ -3,13 +3,16 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "jwt",
     srcs = [
+        "claims.go",
         "doc.go",
+        "jwks.go",
         "resolver.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/auth/jwt",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/auth/principal",
+        "//pkg/clock",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/jwt",
@@ -23,8 +26,10 @@ go_test(
     embed = [":jwt"],
     deps = [
         "//pkg/auth/principal",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
         "//pkg/jwt",
-        "//pkg/rbac",
         "//pkg/zen",
         "@com_github_stretchr_testify//require",
     ],

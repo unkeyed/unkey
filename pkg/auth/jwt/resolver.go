@@ -7,39 +7,54 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-const (
-	// Issuer is the expected JWT issuer for API bearer JWTs.
-	Issuer = "app.unkey.com"
+// ErrWorkspaceNotFound is returned by [WorkspaceLookup] implementations when
+// the organization has no usable workspace: missing, soft-deleted, or
+// disabled. The token itself is valid, so the resolver reports this as a
+// forbidden (403) condition rather than an invalid credential (401): the
+// caller authenticated, but the organization has no workspace to act in.
+// Reporting it as a credential failure would make the dashboard treat a valid
+// session as expired and log the user out. Every other lookup error is treated
+// as an infrastructure failure, not a credential problem.
+var ErrWorkspaceNotFound = errors.New("workspace not found")
 
-	// Audience is the expected JWT audience for API bearer JWTs.
-	Audience = "api.unkey.com"
-)
+// WorkspaceLookup resolves a JWT organization claim to a workspace ID.
+type WorkspaceLookup interface {
+	FindWorkspaceIDByOrgID(ctx context.Context, orgID string) (string, error)
+}
 
-// Claims is the JWT payload accepted by the API auth resolver.
-type Claims struct {
-	tokenjwt.RegisteredClaims
+// WorkspaceLookupFunc adapts a function to the [WorkspaceLookup] interface.
+type WorkspaceLookupFunc func(ctx context.Context, orgID string) (string, error)
 
-	// WorkspaceID scopes all API work performed with this token.
-	WorkspaceID string `json:"wid"`
+// FindWorkspaceIDByOrgID implements [WorkspaceLookup] by calling the function.
+func (f WorkspaceLookupFunc) FindWorkspaceIDByOrgID(ctx context.Context, orgID string) (string, error) {
+	return f(ctx, orgID)
+}
 
-	// Name is optional display text for audit logs. Subject is used when empty.
-	Name string `json:"name"`
-
-	// Permissions is the flat RBAC permission set granted to the token.
-	Permissions []string `json:"perms"`
+// claimsVerifier verifies a bearer token's signature and registered claims
+// into Claims. Implementations classify their own failures with fault codes,
+// credential rejections as Auth.Authentication.Malformed and key availability
+// problems as App.Internal.ServiceUnavailable, so [Resolver.Resolve] passes
+// their errors through unchanged.
+type claimsVerifier interface {
+	verify(ctx context.Context, token string) (Claims, error)
 }
 
 // Resolver authenticates bearer JWTs into auth principals.
 type Resolver struct {
-	verifiers []tokenjwt.Verifier[Claims]
+	verifier        claimsVerifier
+	workspaceLookup WorkspaceLookup
 }
 
 // NewResolver creates a resolver that verifies HS256 JWTs with any configured secret.
@@ -47,29 +62,66 @@ type Resolver struct {
 // Secrets are tried in order. Callers should put the active signing secret first
 // and keep recently retired secrets later in the list until every token signed
 // with those secrets has expired.
-func NewResolver(secrets ...[]byte) (*Resolver, error) {
+func NewResolver(workspaceLookup WorkspaceLookup, issuer string, audience string, secrets ...[]byte) (*Resolver, error) {
 	if len(secrets) == 0 {
 		return nil, errors.New("at least one JWT secret is required")
+	}
+	if workspaceLookup == nil {
+		return nil, errors.New("workspace lookup is required")
+	}
+	if strings.TrimSpace(issuer) == "" {
+		return nil, errors.New("JWT issuer is required")
 	}
 
 	verifiers := make([]tokenjwt.Verifier[Claims], 0, len(secrets))
 	for i, secret := range secrets {
-		verifier, err := tokenjwt.NewHS256Verifier[Claims](
-			secret,
-			tokenjwt.WithIssuer(Issuer),
-			tokenjwt.WithAudience(Audience),
-		)
+		verifier, err := tokenjwt.NewHS256Verifier[Claims](secret, verifierOptions(issuer, audience)...)
 		if err != nil {
 			return nil, fmt.Errorf("create verifier for jwt secret %d: %w", i, err)
 		}
 		verifiers = append(verifiers, verifier)
 	}
 
-	return &Resolver{verifiers: verifiers}, nil
+	return &Resolver{
+		verifier:        &secretsVerifier{verifiers: verifiers},
+		workspaceLookup: workspaceLookup,
+	}, nil
+}
+
+// NewResolverWithJWKSURL creates a resolver that verifies RS256 JWTs signed by
+// keys from the configured JWKS endpoint.
+//
+// The key set is fetched lazily on first use and refetched when a token's
+// signing key may be missing from the cached set, so signing-key rotations are
+// picked up without a restart. A temporarily unreachable JWKS endpoint does
+// not prevent construction; affected requests fail until the endpoint recovers.
+func NewResolverWithJWKSURL(workspaceLookup WorkspaceLookup, issuer string, audience string, jwksURL string) (*Resolver, error) {
+	if workspaceLookup == nil {
+		return nil, errors.New("workspace lookup is required")
+	}
+	if strings.TrimSpace(issuer) == "" {
+		return nil, errors.New("JWT issuer is required")
+	}
+	if strings.TrimSpace(jwksURL) == "" {
+		return nil, errors.New("JWKS URL must not be empty")
+	}
+
+	return &Resolver{
+		verifier: &jwksVerifier{
+			jwksURL:     jwksURL,
+			issuer:      issuer,
+			audience:    audience,
+			clock:       clock.New(),
+			current:     atomic.Pointer[keySet]{},
+			fetchMu:     sync.Mutex{},
+			lastAttempt: time.Time{},
+		},
+		workspaceLookup: workspaceLookup,
+	}, nil
 }
 
 // Resolve claims JWT-shaped bearer tokens and leaves other credentials to later resolvers.
-func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*principal.Principal, error) {
+func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
 	token, err := zen.Bearer(sess)
 	if err != nil {
 		return nil, nil
@@ -79,18 +131,38 @@ func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*principal.Pri
 	}
 	segments := strings.Split(token, ".")
 
-	claims, err := r.verify(token)
+	claims, err := r.verifier.verify(ctx, token)
 	if err != nil {
-		return nil, fault.Wrap(err,
+		return nil, err
+	}
+	orgID := claims.organizationID()
+	subjectID := claims.subjectID()
+	if subjectID == "" || orgID == "" || claims.ExpiresAt == 0 || claims.IssuedAt == 0 {
+		return nil, fault.New("invalid JWT claims",
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
-			fault.Internal("failed to verify JWT"),
+			fault.Internal("JWT subject, organization id, exp, and iat are required"),
 			fault.Public("Invalid bearer token."),
 		)
 	}
-	if claims.Subject == "" || claims.WorkspaceID == "" || claims.ExpiresAt == 0 || claims.NotBefore == 0 || claims.IssuedAt == 0 {
-		return nil, fault.New("invalid JWT claims",
+	workspaceID, err := r.workspaceLookup.FindWorkspaceIDByOrgID(ctx, orgID)
+	if err != nil {
+		if errors.Is(err, ErrWorkspaceNotFound) {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal("JWT organization has no usable workspace"),
+				fault.Public("Your organization does not have an active workspace."),
+			)
+		}
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to resolve JWT organization to workspace"),
+			fault.Public("Unable to verify the bearer token right now."),
+		)
+	}
+	if workspaceID == "" {
+		return nil, fault.New("invalid JWT organization",
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
-			fault.Internal("JWT subject, workspace id, exp, nbf, and iat are required"),
+			fault.Internal("JWT organization resolved to empty workspace id"),
 			fault.Public("Invalid bearer token."),
 		)
 	}
@@ -111,16 +183,11 @@ func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*principal.Pri
 		)
 	}
 
-	name := claims.Name
-	if name == "" {
-		name = claims.Subject
-	}
-
 	return &principal.Principal{
 		Version: principal.Version,
 		Subject: principal.Subject{
-			ID:   claims.Subject,
-			Name: name,
+			ID:   subjectID,
+			Name: claims.subjectName(),
 			Type: principal.SubjectTypeUser,
 		},
 		Type: principal.TypeJWT,
@@ -129,11 +196,39 @@ func (r *Resolver) Resolve(_ context.Context, sess *zen.Session) (*principal.Pri
 			Payload:   payload,
 			Signature: segments[2],
 		},
-		WorkspaceID: claims.WorkspaceID,
-		Permissions: claims.Permissions,
+		WorkspaceID: workspaceID,
+		Permissions: claims.permissions(),
 	}, nil
 }
 
+// secretsVerifier verifies HS256 tokens against an ordered secret list so the
+// dashboard can rotate its signing secret without invalidating live tokens.
+type secretsVerifier struct {
+	verifiers []tokenjwt.Verifier[Claims]
+}
+
+var _ claimsVerifier = (*secretsVerifier)(nil)
+
+func (s *secretsVerifier) verify(_ context.Context, token string) (Claims, error) {
+	var lastErr error
+	for _, verifier := range s.verifiers {
+		claims, err := verifier.Verify(token)
+		if err == nil {
+			return claims, nil
+		}
+		lastErr = err
+	}
+
+	var zero Claims
+	return zero, fault.Wrap(lastErr,
+		fault.Code(codes.Auth.Authentication.Malformed.URN()),
+		fault.Internal("failed to verify JWT"),
+		fault.Public("Invalid bearer token."),
+	)
+}
+
+// decodeSegment base64url-decodes one JWT segment into a generic map for the
+// principal source, never returning a nil map.
 func decodeSegment(segment string) (map[string]any, error) {
 	raw, err := base64.RawURLEncoding.DecodeString(segment)
 	if err != nil {
@@ -149,19 +244,12 @@ func decodeSegment(segment string) (map[string]any, error) {
 	return decoded, nil
 }
 
-func (r *Resolver) verify(token string) (Claims, error) {
-	var lastErr error
-	for _, verifier := range r.verifiers {
-		claims, err := verifier.Verify(token)
-		if err == nil {
-			return claims, nil
-		}
-		lastErr = err
+// verifierOptions binds verification to the configured issuer and, when set,
+// the audience.
+func verifierOptions(issuer string, audience string) []tokenjwt.VerifyOption {
+	options := []tokenjwt.VerifyOption{tokenjwt.WithIssuer(issuer)}
+	if strings.TrimSpace(audience) != "" {
+		options = append(options, tokenjwt.WithAudience(audience))
 	}
-
-	var zero Claims
-	if lastErr == nil {
-		return zero, errors.New("no JWT verifiers configured")
-	}
-	return zero, lastErr
+	return options
 }

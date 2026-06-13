@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -69,23 +70,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 3. Permission check
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
-	))
-	if err != nil {
-		return err
-	}
-
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -109,17 +93,96 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	keySpaceFound := true
 	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not set up for keys",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
+		if !db.IsNotFound(err) {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
 			)
 		}
 
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		// The 412 "not set up to handle keys" answer is deferred until after
+		// the permission check below: answering before it would tell a caller
+		// without any permission on this API that the API exists.
+		keySpaceFound = false
+	}
+
+	// 3. Permission check. The URN leg is the canonical permission; the two
+	// tuple legs accept legacy API-scoped and global root-key grants until
+	// those are migrated to URNs. Tuple grants are keyed by API ID, URN grants
+	// by keyspace ID, so the URN leg only exists when the keyspace does.
+	createKeyQuery := []rbac.PermissionQuery{
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   req.ApiId,
+			Action:       rbac.CreateKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateKey,
+		}),
+	}
+	if keySpaceFound {
+		createKeyQuery = append(createKeyQuery,
+			rbac.U(urn.Build().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.CreateKey),
+		)
+	}
+
+	err = principal.Authorize(rbac.Or(createKeyQuery...))
+	if err != nil {
+		// A rejected principal only receives the 403 when it holds a read
+		// permission covering this API, meaning it may know the API exists.
+		// Everyone else gets the identical 404 a missing API produces, so
+		// 403-vs-404 cannot be used to enumerate API IDs.
+		readQuery := []rbac.PermissionQuery{
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   req.ApiId,
+				Action:       rbac.ReadAPI,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.ReadAPI,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   req.ApiId,
+				Action:       rbac.ReadKey,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.ReadKey,
+			}),
+		}
+		if keySpaceFound {
+			readQuery = append(readQuery,
+				rbac.U(urn.Build().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.ReadKey),
+			)
+		}
+
+		if readErr := principal.Authorize(rbac.Or(readQuery...)); readErr != nil {
+			// Deliberately not fault.Wrap(err): the error middleware joins
+			// every public message in the chain into the response detail, and
+			// the rbac rejection's public message names the keyspace ID,
+			// which would leak the existence this 404 is masking.
+			return fault.New("api exists but principal may not read it",
+				fault.Code(codes.Data.Api.NotFound.URN()),
+				fault.Internal("masking insufficient permissions as not found"),
+				fault.Public("The specified API was not found."),
+			)
+		}
+
+		return err
+	}
+
+	if !keySpaceFound {
+		return fault.New("api not set up for keys",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
 		)
 	}
 
@@ -176,6 +239,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.EncryptKey,
 			}),
+			rbac.U(urn.Build().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.EncryptKey),
 		))
 		if err != nil {
 			return err

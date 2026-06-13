@@ -1284,6 +1284,12 @@ type Querier interface {
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
+	//FindWorkspaceByOrgID
+	//
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  WHERE org_id = ?
+	//  AND deleted_at_m IS NULL
+	FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error)
 	// FlipSentinelDeployStatusIfProgressing flips deploy_status from progressing
 	// to the target status, guarding against concurrent writers (e.g. the Deploy
 	// worker marking failed on timeout) by only updating rows whose current

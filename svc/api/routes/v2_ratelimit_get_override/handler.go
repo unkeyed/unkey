@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -70,22 +71,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   ns.ID,
-			Action:       rbac.ReadOverride,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   "*",
-			Action:       rbac.ReadOverride,
-		}),
-	))
-	if err != nil {
-		return err
-	}
-
 	override, overrideFound, err := matchOverride(req.Identifier, ns)
 	if err != nil {
 		return fault.Wrap(err,
@@ -94,9 +79,51 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// A missing override and an override the principal may not read produce
+	// the same 404, so the response never distinguishes "does not exist" from
+	// "exists but is forbidden". Answering them differently would let a caller
+	// without read_override permission enumerate which identifiers have
+	// overrides by telling 404s apart from 403s. Because of that, the
+	// not-found branch needs no permission check at all, and the found branch
+	// masks authorization failures as the identical 404.
 	if !overrideFound {
 		return fault.New("override not found",
 			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+			fault.Internal("no override matched the identifier"),
+			fault.Public("This override does not exist."),
+		)
+	}
+
+	// The URN leg is the canonical permission; the two tuple legs accept legacy
+	// namespace-scoped and global root-key grants until those are migrated to URNs.
+	err = principal.Authorize(
+		rbac.Or(
+			rbac.U(
+				urn.Build().
+					Workspace(principal.WorkspaceID).
+					RatelimitNamespace(ns.ID).
+					Override(override.ID),
+				rbac.ReadOverride,
+			),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   ns.ID,
+				Action:       rbac.ReadOverride,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Ratelimit,
+				ResourceID:   "*",
+				Action:       rbac.ReadOverride,
+			}),
+		))
+	if err != nil {
+		// Deliberately not fault.Wrap(err): the error middleware joins every
+		// public message in the chain into the response detail, and the rbac
+		// rejection's public message names the override ID, which would leak
+		// the existence this 404 is masking.
+		return fault.New("override exists but principal may not read it",
+			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+			fault.Internal("masking insufficient permissions as not found"),
 			fault.Public("This override does not exist."),
 		)
 	}
@@ -129,7 +156,6 @@ func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string
 		}
 		return namespace.ParseNamespaceRow(row), nil
 	}, caches.DefaultFindFirstOp)
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct

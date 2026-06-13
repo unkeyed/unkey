@@ -1,11 +1,12 @@
 // Package rbac implements a flexible Role-Based Access Control system for
 // managing permissions and authorization checks.
 //
-// The package provides a way to define fine-grained permissions using a
-// resource type, resource ID, and action tuple model, and to evaluate whether
-// a set of permissions satisfies specific access requirements. This approach
-// allows for both simple and complex authorization rules through boolean
-// operations like AND and OR.
+// The package provides helpers to define fine-grained permission requirements
+// and evaluate whether a set of granted permissions satisfies them. New code
+// should prefer resource permissions built from [UnkeyPermission] and
+// [github.com/unkeyed/unkey/pkg/urn.V1].
+// The older [Tuple] format remains supported for existing root-key permissions
+// while handlers migrate to canonical Unkey resource names.
 //
 // The package supports two ways to construct permission queries:
 // 1. Programmatic construction using helper functions
@@ -17,6 +18,7 @@
 //   - ResourceID: Specific instance identifier within a resource type
 //   - ActionType: Operations that can be performed on resources (e.g., "read", "write")
 //   - Tuple: Combination of ResourceType, ResourceID, and ActionType that defines a permission
+//   - UnkeyPermission: Combination of a canonical Unkey resource name and action
 //   - PermissionQuery: Logical expressions for permission evaluation using AND/OR operations
 //
 // # Programmatic Query Construction
@@ -35,11 +37,7 @@
 //
 //	// Create a permission query using helper functions
 //	query := rbac.And(
-//	    rbac.T(rbac.Tuple{
-//	        ResourceType: rbac.Api,
-//	        ResourceID:   "api1",
-//	        Action:       rbac.ReadAPI,
-//	    }),
+//	    rbac.U(urn.Build().Workspace("ws_123").RatelimitNamespace("ns_123").Override("ov_123"), "read_override"),
 //	    rbac.T(rbac.Tuple{
 //	        ResourceType: rbac.Api,
 //	        ResourceID:   "api1",

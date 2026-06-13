@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "urn",
+    srcs = [
+        "doc.go",
+        "resources.go",
+        "urn.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/urn",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "urn_test",
+    size = "small",
+    srcs = ["urn_test.go"],
+    embed = [":urn"],
+    deps = [
+        "//pkg/fuzz",
+        "@com_github_stretchr_testify//require",
+    ],
+)

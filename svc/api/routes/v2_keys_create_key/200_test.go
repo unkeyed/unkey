@@ -69,6 +69,47 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.True(t, key.Enabled)
 }
 
+// TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:create`
+// permissions authorize basic key creation without legacy API tuple grants.
+func TestCreateKeyWithURNPermission(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+
+	h.Register(route)
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+	})
+	rootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#create_key", h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		ApiId: api.ID,
+	})
+	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+	require.NotNil(t, res.Body)
+	require.NotEmpty(t, res.Body.Data.KeyId)
+
+	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), res.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Equal(t, api.KeyAuthID.String, key.KeyAuthID)
+}
+
 func TestCreateKeyWithOptionalFields(t *testing.T) {
 	t.Parallel()
 
@@ -190,6 +231,52 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, keyEncryption.KeyID, res.Body.Data.KeyId)
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
+}
+
+// TestCreateRecoverableKeyWithURNPermissions guarantees WorkOS-translated
+// `keys:create` and `keys:encrypt` permissions authorize recoverable key
+// creation without legacy API tuple grants.
+func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+
+	h.Register(route)
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   h.Resources().UserWorkspace.ID,
+		EncryptedKeys: true,
+	})
+	rootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#create_key", h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#encrypt_key", h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		ApiId:       api.ID,
+		Recoverable: ptr.P(true),
+	})
+	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+	require.NotNil(t, res.Body)
+	require.NotEmpty(t, res.Body.Data.KeyId)
+
+	keyEncryption, err := db.Query.FindKeyEncryptionByKeyID(ctx, h.DB.RO(), res.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Equal(t, res.Body.Data.KeyId, keyEncryption.KeyID)
+	require.Equal(t, h.Resources().UserWorkspace.ID, keyEncryption.WorkspaceID)
 }
 
 // TestCreateKeyConcurrentWithSameExternalId tests that concurrent key creation

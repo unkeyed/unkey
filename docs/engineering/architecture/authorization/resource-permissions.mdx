@@ -1,0 +1,265 @@
+---
+title: "Resource permissions"
+description: "Authorization permissions built from Unkey Resource Names"
+---
+
+Resource permissions attach an action to a Unkey Resource Name. They are the
+canonical authorization primitive for root keys, users, service tokens, and any
+other principal that needs scoped access to Unkey resources.
+
+The resource portion follows the [Unkey Resource Names](/architecture/resources/unkey-resource-names)
+contract, including resource-name patterns and their matching semantics. The
+permission layer adds only the action suffix.
+
+Resource parsing and pattern matching, the rules deciding whether a stored
+resource pattern covers a requested concrete URN, live in
+[`pkg/urn`](https://github.com/unkeyed/unkey/tree/main/pkg/urn). Action
+validation and permission evaluation live in
+[`pkg/rbac`](https://github.com/unkeyed/unkey/tree/main/pkg/rbac), which
+delegates resource comparison to `pkg/urn` instead of defining its own.
+
+## Format
+
+A permission has a URN, a `#` separator, and an action.
+
+```plaintext
+unkey:v1:{workspace_id}:{resource_path}#{action}
+```
+
+For example:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/ks_123#read_keyspace
+unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#delete_key
+unkey:v1:ws_123:projects/proj_123/apps/app_456#update_app
+```
+
+The action is not part of the URN. Code that evaluates permissions must parse
+the resource and action separately.
+
+## Actions
+
+Actions are explicit operation names. They use lowercase words separated by
+underscores.
+
+```plaintext
+read_keyspace
+create_key
+delete_deployment
+add_role
+remove_permission
+```
+
+Most permissions name one explicit action. The only action wildcard is `*`,
+which is reserved for the `admin:*` migration escape hatch and is valid only on
+the global resource pattern `**`. There is no shorter global form: `*` matches
+exactly one path segment everywhere it appears, so only `**` covers every
+resource in a workspace.
+
+```plaintext
+unkey:v1:ws_123:**#*
+```
+
+Do not add action wildcards to normal product permissions.
+
+## Patterns
+
+Stored permissions can contain resource patterns. Requested resources in audit
+logs and authorization checks must always use concrete URNs.
+
+`v1` supports two resource-pattern operators.
+
+| Operator | Meaning |
+| --- | --- |
+| `*` | Matches exactly one complete path segment. |
+| `/**` | Matches descendants below the preceding path. |
+
+The `/**` operator is valid only at the end of a resource path. It matches the
+path before `/**` and all descendants below that path.
+
+## Matching rules
+
+Permission evaluation compares a requested `{resource, action}` tuple with the
+permissions assigned to the principal.
+
+A permission matches when all rules are true:
+
+1. The version matches.
+2. The workspace ID matches.
+3. The resource path matches exactly or by a valid resource pattern.
+4. The action matches exactly.
+
+The matcher is segment-aware. It must split resource paths on `/` before
+matching wildcards. Rules 2 and 3, workspace and resource matching, are
+implemented by `pkg/urn`; `pkg/rbac` parses the action suffix and adds rule 4.
+
+For example, this permission:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/*/keys/*#read_key
+```
+
+matches this request:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#read_key
+```
+
+It does not match these requests:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/ks_123#read_key
+unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#delete_key
+unkey:v1:ws_123:keyspaces/ks_123/keys/key_456#update_key
+```
+
+## Descendant grants
+
+Use trailing `/**` when a permission must apply to any public descendant of a
+resource.
+
+This permission grants `delete_deployment` for deployments below one project:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/**#delete_deployment
+```
+
+It matches:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc#delete_deployment
+```
+
+It also matches the project itself:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123#delete_deployment
+```
+
+It also does not grant unrelated actions on descendants:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/apps/app_456#delete_app
+```
+
+The action still has to match exactly.
+
+## Common permissions
+
+These examples show how broad and narrow permissions use the same grammar.
+
+<AccordionGroup>
+  <Accordion title="Delete one deployment">
+
+    ```plaintext
+    unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc#delete_deployment
+    ```
+
+  </Accordion>
+  <Accordion title="Delete deployments in one environment">
+
+    ```plaintext
+    unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/*#delete_deployment
+    ```
+
+  </Accordion>
+  <Accordion title="Delete deployments in one project">
+
+    ```plaintext
+    unkey:v1:ws_123:projects/proj_123/**#delete_deployment
+    ```
+
+  </Accordion>
+  <Accordion title="Read all keys in one keyspace">
+
+    ```plaintext
+    unkey:v1:ws_123:keyspaces/ks_123/keys/*#read_key
+    ```
+
+  </Accordion>
+  <Accordion title="Manage one role">
+
+    ```plaintext
+    unkey:v1:ws_123:rbac/roles/role_123#update_role
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Audit logs
+
+Audit logs store concrete resources and actions. They can also store the
+permission that authorized the action when authorization was evaluated.
+
+```json
+{
+  "actor": {
+    "type": "key",
+    "id": "key_root_123",
+    "urn": "unkey:v1:ws_123:keyspaces/ks_123/keys/key_root_123"
+  },
+  "resource": {
+    "urn": "unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc",
+    "type": "deployment"
+  },
+  "action": "delete_deployment",
+  "authorization": {
+    "permission": "unkey:v1:ws_123:projects/proj_123/**#delete_deployment",
+    "matched": true
+  }
+}
+```
+
+Relationship changes can include multiple concrete resources. For example,
+adding a role to a key can log the key as the primary resource and the role as a
+target resource.
+
+```json
+{
+  "resource": {
+    "urn": "unkey:v1:ws_123:keyspaces/ks_123/keys/key_456",
+    "type": "key"
+  },
+  "targets": [
+    {
+      "urn": "unkey:v1:ws_123:rbac/roles/role_123",
+      "type": "role"
+    }
+  ],
+  "action": "add_role"
+}
+```
+
+## Migration from tuple permissions
+
+Existing tuple permissions map to resource permissions by expanding the old
+resource type, resource ID, and action into a URN path. Legacy API permissions
+map through the keyspace that replaces the API.
+
+| Existing permission | Resource permission |
+| --- | --- |
+| `api.*.create_api` | `unkey:v1:{workspace_id}:keyspaces/*#create_keyspace` |
+| `api.{api_id}.read_api` | `unkey:v1:{workspace_id}:keyspaces/{keyspace_id}#read_keyspace` |
+| `api.{api_id}.create_key` | `unkey:v1:{workspace_id}:keyspaces/{keyspace_id}/keys/*#create_key` |
+| `api.{api_id}.read_key` | `unkey:v1:{workspace_id}:keyspaces/{keyspace_id}/keys/*#read_key` |
+| `api.{api_id}.verify_key` | `unkey:v1:{workspace_id}:keyspaces/{keyspace_id}/keys/*#verify_key` |
+| `identity.*.read_identity` | `unkey:v1:{workspace_id}:identities/*#read_identity` |
+| `ratelimit.*.delete_override` | `unkey:v1:{workspace_id}:ratelimits/namespaces/*/overrides/*#delete_override` |
+| `rbac.*.create_role` | `unkey:v1:{workspace_id}:rbac/roles/*#create_role` |
+
+Migration code must preserve the authorized workspace. The old permission string
+does not contain a workspace ID, so the workspace has to come from the owning
+key, role, user, or session.
+
+## Invalid examples
+
+These permissions are invalid.
+
+| Value | Reason |
+| --- | --- |
+| `unkey:v1:ws_123:keyspaces/ks_123` | Missing the action suffix. |
+| `unkey:v1:ws_123:keyspaces/ks_123.read_keyspace` | Uses the old tuple separator. |
+| `unkey:v1:ws_123:keyspaces/ks_123#*` | Uses an action wildcard. |
+| `unkey:v1:ws_123:**/deployments/*#delete_deployment` | Uses recursive wildcard outside the trailing position. |
+| `unkey:v1:ws_123:projects/proj_123/**/deployments/*#delete_deployment` | Uses recursive wildcard in the middle of the path. |
+| `unkey:v1:ws_123:keyspaces/*/keys#read_key` | Does not match a catalog path shape. |
