@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "email",
+    srcs = [
+        "email.go",
+        "noop.go",
+        "resend.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/email",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/fault",
+        "//pkg/logger",
+    ],
+)
+
+go_test(
+    name = "email_test",
+    srcs = ["resend_test.go"],
+    embed = [":email"],
+    deps = ["@com_github_stretchr_testify//require"],
+)
