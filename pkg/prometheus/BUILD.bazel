@@ -5,12 +5,16 @@ go_library(
     srcs = [
         "doc.go",
         "server.go",
+        "system.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/prometheus",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/logger",
         "//pkg/zen",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promhttp",
+        "@com_github_shirou_gopsutil_v4//cpu",
+        "@com_github_shirou_gopsutil_v4//mem",
     ],
 )
