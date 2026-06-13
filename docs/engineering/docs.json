@@ -25,7 +25,8 @@
                   "contributing/tooling/bazel",
                   "contributing/tooling/builds",
                   "contributing/tooling/releases",
-                  "contributing/tooling/feature-flags"
+                  "contributing/tooling/feature-flags",
+                  "contributing/tooling/emails"
                 ]
               }
             ]
