@@ -16,6 +16,8 @@ go_library(
         "custom_domain.pb.go",
         "custom_domain_restate.pb.go",
         "deploy.pb.go",
+        "deploy_billing_push.pb.go",
+        "deploy_billing_push_restate.pb.go",
         "deploy_restate.pb.go",
         "deployment.pb.go",
         "deployment_restate.pb.go",
