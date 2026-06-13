@@ -9,11 +9,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
 )
 
+// TestGetOverrideSuccessfully guarantees the handler authorizes the concrete
+// override resource while still accepting a wildcarded principal permission.
 func TestGetOverrideSuccessfully(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -53,7 +57,13 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.read_override", namespaceID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.UnkeyPermission{
+		Resource: urn.Build().
+			Workspace(h.Resources().UserWorkspace.ID).
+			RatelimitNamespace(namespaceID).
+			Override("*"),
+		Action: rbac.ReadOverride,
+	}.String())
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

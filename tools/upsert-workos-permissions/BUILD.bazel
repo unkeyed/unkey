@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "upsert-workos-permissions_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/tools/upsert-workos-permissions",
+    visibility = ["//visibility:private"],
+    deps = ["//pkg/auth/workos"],
+)
+
+go_binary(
+    name = "upsert-workos-permissions",
+    embed = [":upsert-workos-permissions_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "upsert-workos-permissions_test",
+    srcs = ["main_test.go"],
+    embed = [":upsert-workos-permissions_lib"],
+    deps = [
+        "//pkg/auth/workos",
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -2,113 +2,60 @@ package jwt
 
 import (
 	"context"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
-	"math/big"
-	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// Audience is the default JWT audience for dashboard-minted API bearer JWTs.
-const Audience = "api.unkey.com"
+// ErrWorkspaceNotFound is returned by [WorkspaceLookup] implementations when
+// the organization has no usable workspace: missing, soft-deleted, or
+// disabled. The token itself is valid, so the resolver reports this as a
+// forbidden (403) condition rather than an invalid credential (401): the
+// caller authenticated, but the organization has no workspace to act in.
+// Reporting it as a credential failure would make the dashboard treat a valid
+// session as expired and log the user out. Every other lookup error is treated
+// as an infrastructure failure, not a credential problem.
+var ErrWorkspaceNotFound = errors.New("workspace not found")
 
-// Claims is the JWT payload accepted by the API auth resolver.
-type Claims struct {
-	tokenjwt.RegisteredClaims
-
-	// Org scopes locally minted dashboard fallback tokens.
-	Org OrganizationClaims `json:"org"`
-
-	// WorkOSOrgID is the built-in organization claim in WorkOS access tokens.
-	WorkOSOrgID string `json:"org_id"`
-
-	// User supports providers that put user identity in a nested object.
-	User UserClaims `json:"user"`
-
-	// Name is optional display text for audit logs. Subject is used when empty.
-	Name string `json:"name"`
-
-	// Permissions is the RBAC permission set in locally minted dashboard fallback tokens.
-	Permissions []string `json:"perms"`
-
-	// WorkOSPermissions is the built-in permission claim in WorkOS access tokens.
-	WorkOSPermissions []string `json:"permissions"`
-}
-
-// OrganizationClaims contains the organization identifier from a JWT.
-type OrganizationClaims struct {
-	ID string `json:"id"`
-}
-
-// UserClaims contains the user identifier from a JWT.
-type UserClaims struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-}
-
-func (c Claims) organizationID() string {
-	if c.Org.ID != "" {
-		return c.Org.ID
-	}
-	return c.WorkOSOrgID
-}
-
-func (c Claims) subjectID() string {
-	if c.Subject != "" {
-		return c.Subject
-	}
-	return c.User.ID
-}
-
-func (c Claims) subjectName() string {
-	if c.Name != "" {
-		return c.Name
-	}
-	if c.User.Email != "" {
-		return c.User.Email
-	}
-	return c.subjectID()
-}
-
-func (c Claims) permissions() []string {
-	if len(c.Permissions) > 0 {
-		return c.Permissions
-	}
-	return c.WorkOSPermissions
-}
-
-// WorkspaceLookup resolves JWT organization IDs to workspace IDs.
+// WorkspaceLookup resolves a JWT organization claim to a workspace ID.
 type WorkspaceLookup interface {
 	FindWorkspaceIDByOrgID(ctx context.Context, orgID string) (string, error)
 }
 
-// WorkspaceLookupFunc adapts a function into a WorkspaceLookup.
+// WorkspaceLookupFunc adapts a function to the [WorkspaceLookup] interface.
 type WorkspaceLookupFunc func(ctx context.Context, orgID string) (string, error)
 
-// FindWorkspaceIDByOrgID resolves an organization ID to a workspace ID.
+// FindWorkspaceIDByOrgID implements [WorkspaceLookup] by calling the function.
 func (f WorkspaceLookupFunc) FindWorkspaceIDByOrgID(ctx context.Context, orgID string) (string, error) {
 	return f(ctx, orgID)
 }
 
-// Resolver authenticates bearer JWTs into auth principals.
-type Resolver struct {
-	verifiers       []tokenjwt.Verifier[Claims]
-	workspaceLookup WorkspaceLookup
+// claimsVerifier verifies a bearer token's signature and registered claims
+// into Claims. Implementations classify their own failures with fault codes,
+// credential rejections as Auth.Authentication.Malformed and key availability
+// problems as App.Internal.ServiceUnavailable, so [Resolver.Resolve] passes
+// their errors through unchanged.
+type claimsVerifier interface {
+	verify(ctx context.Context, token string) (Claims, error)
 }
 
-const jwksFetchTimeout = 10 * time.Second
+// Resolver authenticates bearer JWTs into auth principals.
+type Resolver struct {
+	verifier        claimsVerifier
+	workspaceLookup WorkspaceLookup
+}
 
 // NewResolver creates a resolver that verifies HS256 JWTs with any configured secret.
 //
@@ -119,7 +66,6 @@ func NewResolver(workspaceLookup WorkspaceLookup, issuer string, audience string
 	if len(secrets) == 0 {
 		return nil, errors.New("at least one JWT secret is required")
 	}
-
 	if workspaceLookup == nil {
 		return nil, errors.New("workspace lookup is required")
 	}
@@ -137,32 +83,39 @@ func NewResolver(workspaceLookup WorkspaceLookup, issuer string, audience string
 	}
 
 	return &Resolver{
-		verifiers:       verifiers,
+		verifier:        &secretsVerifier{verifiers: verifiers},
 		workspaceLookup: workspaceLookup,
 	}, nil
 }
 
 // NewResolverWithJWKSURL creates a resolver that verifies RS256 JWTs signed by
 // keys from the configured JWKS endpoint.
-func NewResolverWithJWKSURL(ctx context.Context, workspaceLookup WorkspaceLookup, issuer string, audience string, jwksURL string) (*Resolver, error) {
-	if strings.TrimSpace(issuer) == "" {
-		return nil, errors.New("JWT issuer is required")
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, jwksFetchTimeout)
-	defer cancel()
-
-	jwksVerifiers, err := fetchJWKSVerifiers(ctx, issuer, audience, jwksURL)
-	if err != nil {
-		return nil, err
-	}
-
+//
+// The key set is fetched lazily on first use and refetched when a token's
+// signing key may be missing from the cached set, so signing-key rotations are
+// picked up without a restart. A temporarily unreachable JWKS endpoint does
+// not prevent construction; affected requests fail until the endpoint recovers.
+func NewResolverWithJWKSURL(workspaceLookup WorkspaceLookup, issuer string, audience string, jwksURL string) (*Resolver, error) {
 	if workspaceLookup == nil {
 		return nil, errors.New("workspace lookup is required")
 	}
+	if strings.TrimSpace(issuer) == "" {
+		return nil, errors.New("JWT issuer is required")
+	}
+	if strings.TrimSpace(jwksURL) == "" {
+		return nil, errors.New("JWKS URL must not be empty")
+	}
 
 	return &Resolver{
-		verifiers:       jwksVerifiers,
+		verifier: &jwksVerifier{
+			jwksURL:     jwksURL,
+			issuer:      issuer,
+			audience:    audience,
+			clock:       clock.New(),
+			current:     atomic.Pointer[keySet]{},
+			fetchMu:     sync.Mutex{},
+			lastAttempt: time.Time{},
+		},
 		workspaceLookup: workspaceLookup,
 	}, nil
 }
@@ -178,13 +131,9 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	}
 	segments := strings.Split(token, ".")
 
-	claims, err := r.verify(token)
+	claims, err := r.verifier.verify(ctx, token)
 	if err != nil {
-		return nil, fault.Wrap(err,
-			fault.Code(codes.Auth.Authentication.Malformed.URN()),
-			fault.Internal("failed to verify JWT"),
-			fault.Public("Invalid bearer token."),
-		)
+		return nil, err
 	}
 	orgID := claims.organizationID()
 	subjectID := claims.subjectID()
@@ -197,10 +146,17 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	}
 	workspaceID, err := r.workspaceLookup.FindWorkspaceIDByOrgID(ctx, orgID)
 	if err != nil {
+		if errors.Is(err, ErrWorkspaceNotFound) {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal("JWT organization has no usable workspace"),
+				fault.Public("Your organization does not have an active workspace."),
+			)
+		}
 		return nil, fault.Wrap(err,
-			fault.Code(codes.Auth.Authentication.Malformed.URN()),
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("failed to resolve JWT organization to workspace"),
-			fault.Public("Invalid bearer token."),
+			fault.Public("Unable to verify the bearer token right now."),
 		)
 	}
 	if workspaceID == "" {
@@ -245,6 +201,34 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	}, nil
 }
 
+// secretsVerifier verifies HS256 tokens against an ordered secret list so the
+// dashboard can rotate its signing secret without invalidating live tokens.
+type secretsVerifier struct {
+	verifiers []tokenjwt.Verifier[Claims]
+}
+
+var _ claimsVerifier = (*secretsVerifier)(nil)
+
+func (s *secretsVerifier) verify(_ context.Context, token string) (Claims, error) {
+	var lastErr error
+	for _, verifier := range s.verifiers {
+		claims, err := verifier.Verify(token)
+		if err == nil {
+			return claims, nil
+		}
+		lastErr = err
+	}
+
+	var zero Claims
+	return zero, fault.Wrap(lastErr,
+		fault.Code(codes.Auth.Authentication.Malformed.URN()),
+		fault.Internal("failed to verify JWT"),
+		fault.Public("Invalid bearer token."),
+	)
+}
+
+// decodeSegment base64url-decodes one JWT segment into a generic map for the
+// principal source, never returning a nil map.
 func decodeSegment(segment string) (map[string]any, error) {
 	raw, err := base64.RawURLEncoding.DecodeString(segment)
 	if err != nil {
@@ -260,129 +244,8 @@ func decodeSegment(segment string) (map[string]any, error) {
 	return decoded, nil
 }
 
-func (r *Resolver) verify(token string) (Claims, error) {
-	var lastErr error
-	for _, verifier := range r.verifiers {
-		claims, err := verifier.Verify(token)
-		if err == nil {
-			return claims, nil
-		}
-		lastErr = err
-	}
-
-	var zero Claims
-	if lastErr == nil {
-		return zero, errors.New("no JWT verifiers configured")
-	}
-	return zero, lastErr
-}
-
-type jwksResponse struct {
-	Keys []jwkKey `json:"keys"`
-}
-
-type jwkKey struct {
-	Algorithm string `json:"alg"`
-	KeyType   string `json:"kty"`
-	Use       string `json:"use"`
-	Modulus   string `json:"n"`
-	Exponent  string `json:"e"`
-	KeyID     string `json:"kid"`
-}
-
-func fetchJWKSVerifiers(ctx context.Context, issuer string, audience string, jwksURL string) ([]tokenjwt.Verifier[Claims], error) {
-	if strings.TrimSpace(jwksURL) == "" {
-		return nil, errors.New("JWKS URL must not be empty")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwksURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create JWKS request: %w", err)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("fetch JWKS: %w", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("fetch JWKS: unexpected status %d", resp.StatusCode)
-	}
-
-	var jwks jwksResponse
-	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
-		return nil, fmt.Errorf("decode JWKS: %w", err)
-	}
-	if len(jwks.Keys) == 0 {
-		return nil, errors.New("JWKS contains no keys")
-	}
-
-	verifiers := make([]tokenjwt.Verifier[Claims], 0, len(jwks.Keys))
-	for _, key := range jwks.Keys {
-		verifier, err := verifierFromJWK(key, issuer, audience)
-		if err != nil {
-			return nil, err
-		}
-		if verifier == nil {
-			continue
-		}
-		verifiers = append(verifiers, verifier)
-	}
-	if len(verifiers) == 0 {
-		return nil, errors.New("JWKS contains no usable RS256 signing keys")
-	}
-
-	return verifiers, nil
-}
-
-func verifierFromJWK(key jwkKey, issuer string, audience string) (tokenjwt.Verifier[Claims], error) {
-	if key.KeyType != "RSA" {
-		return nil, nil
-	}
-	if key.Use != "" && key.Use != "sig" {
-		return nil, nil
-	}
-	if key.Algorithm != "" && key.Algorithm != "RS256" {
-		return nil, nil
-	}
-
-	modulus, err := base64.RawURLEncoding.DecodeString(key.Modulus)
-	if err != nil {
-		return nil, fmt.Errorf("decode JWKS key %q modulus: %w", key.KeyID, err)
-	}
-	exponentBytes, err := base64.RawURLEncoding.DecodeString(key.Exponent)
-	if err != nil {
-		return nil, fmt.Errorf("decode JWKS key %q exponent: %w", key.KeyID, err)
-	}
-	exponent := new(big.Int).SetBytes(exponentBytes)
-	if !exponent.IsInt64() || exponent.Sign() <= 0 {
-		return nil, fmt.Errorf("JWKS key %q has invalid exponent", key.KeyID)
-	}
-
-	publicKey := &rsa.PublicKey{
-		N: new(big.Int).SetBytes(modulus),
-		E: int(exponent.Int64()),
-	}
-	if publicKey.N.Sign() <= 0 {
-		return nil, fmt.Errorf("JWKS key %q has invalid modulus", key.KeyID)
-	}
-
-	der, err := x509.MarshalPKIXPublicKey(publicKey)
-	if err != nil {
-		return nil, fmt.Errorf("encode JWKS key %q public key: %w", key.KeyID, err)
-	}
-	publicKeyPEM := string(pem.EncodeToMemory(&pem.Block{
-		Type:    "PUBLIC KEY",
-		Headers: nil,
-		Bytes:   der,
-	}))
-
-	return tokenjwt.NewRS256Verifier[Claims](publicKeyPEM, verifierOptions(issuer, audience)...)
-}
-
+// verifierOptions binds verification to the configured issuer and, when set,
+// the audience.
 func verifierOptions(issuer string, audience string) []tokenjwt.VerifyOption {
 	options := []tokenjwt.VerifyOption{tokenjwt.WithIssuer(issuer)}
 	if strings.TrimSpace(audience) != "" {

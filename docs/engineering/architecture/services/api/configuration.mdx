@@ -75,20 +75,32 @@ token = "${UNKEY_VAULT_TOKEN}"
   Maximum request size in bytes.
 </ResponseField>
 
-<ResponseField name="auth" type="object[]">
+<ResponseField name="auth" type="object[]" required>
   Ordered authentication resolver configuration. Each entry registers one auth
-  mechanism.
+  mechanism. At least one entry is required: a config without auth entries
+  would reject every request, including valid root keys, so startup fails
+  instead.
   <Expandable title="Fields">
     <ResponseField name="auth.type" type="string" required>
       Auth mechanism. Supported values are `jwt`, `portal_session`, and
       `root_key`.
     </ResponseField>
-    <ResponseField name="auth.issuer" type="string">
-      Expected JWT `iss` claim for `type = "jwt"`.
+    <ResponseField name="auth.issuer" type="string" required>
+      Expected JWT `iss` claim for `type = "jwt"`. When this is the WorkOS
+      issuer (`https://api.workos.com`), the API translates WorkOS permission
+      slugs into canonical Unkey permissions; any other issuer is verified
+      generically and its permission claims pass through unchanged.
     </ResponseField>
     <ResponseField name="auth.audience" type="string">
-      Optional expected JWT `aud` claim for `type = "jwt"`. Omit this field
-      for providers that do not emit an audience claim.
+      Optional expected JWT `aud` claim for `type = "jwt"`. Verification
+      requires the configured value to appear in the token's `aud` list. The
+      Unkey WorkOS environment uses a JWT template that sets `aud` to
+      `["app.unkey.com", "api.unkey.com"]`, so set
+      `audience = "api.unkey.com"` on the WorkOS entry. Omit this field only
+      for providers that do not emit an audience claim. Setting it rejects
+      tokens without a matching `aud`, so when introducing the claim, add it
+      to the provider's token template first, wait for tokens minted without
+      it to expire, then set this field.
     </ResponseField>
     <ResponseField name="auth.enabled" type="bool" default="true">
       Optional explicit enable flag. `false` is invalid; remove the auth entry
@@ -101,9 +113,12 @@ token = "${UNKEY_VAULT_TOKEN}"
       Configure either `secrets` or `jwks_url`, never both.
     </ResponseField>
     <ResponseField name="auth.jwks_url" type="string">
-      JWKS endpoint for `type = "jwt"`. The API fetches the JSON Web Key
-      Set at startup and verifies incoming JWTs against usable RSA signing keys
-      from the response. Configure either `jwks_url` or `secrets`, never both.
+      JWKS endpoint for `type = "jwt"`. The API fetches the JSON Web Key Set
+      on first use and verifies incoming JWTs against usable RSA signing keys
+      from the response. When a token fails verification against every cached
+      key, the key set is refetched (rate limited to once per minute), so
+      signing-key rotations are picked up without a restart. Configure either
+      `jwks_url` or `secrets`, never both.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -260,7 +275,9 @@ The dashboard proxy forwards the WorkOS access token when a WorkOS session is
 available. The API verifies that token through a `type = "jwt"` auth entry
 configured with the WorkOS issuer and JWKS URL. WorkOS access tokens include the
 organization as `org_id`, and the API reads Unkey RBAC permissions from the
-token's `permissions` claim.
+token's `permissions` claim. The WorkOS JWT template also sets `aud` to
+`["app.unkey.com", "api.unkey.com"]`, and the auth entry pins
+`audience = "api.unkey.com"`.
 
 Local development still uses a dashboard-minted fallback JWT when no WorkOS
 access token exists. For that path, the dashboard needs a signing secret and the
@@ -289,6 +306,7 @@ redis_url = "${UNKEY_REDIS_URL}"
 [[auth]]
 type = "jwt"
 issuer = "https://api.workos.com"
+audience = "api.unkey.com"
 jwks_url = "${UNKEY_JWT_JWKS_URL}"
 
 [[auth]]

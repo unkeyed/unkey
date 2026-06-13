@@ -7,7 +7,9 @@ description: "Testing API endpoints with the test harness"
 
 HTTP handler tests exercise API endpoints from request to response. A single request might authenticate a user, check permissions, validate input, query a database, update a cache, and write an audit log. Testing handlers end to end catches bugs that unit tests miss.
 
-Every handler should have tests for success, validation errors, authentication errors, and authorization errors.
+Every handler must have tests for success, validation errors, authentication errors, and authorization errors.
+
+Each handler test must make the API guarantee visible. The reader must know which contract the endpoint promises, which client-visible response is expected, and which side effects are required or forbidden.
 
 ## Anatomy of a handler test
 
@@ -59,13 +61,19 @@ Test minimal requests, full requests, and any important variations. Verify side 
 
 Test boundary conditions, missing required fields, and invalid formats. These tests document the API contract.
 
+Use test names and docstrings to identify the contract. For example, document whether invalid input must return `400`, whether the error code is stable for SDKs, and whether the handler must avoid writing partial state.
+
 ## Testing authentication
 
 Reject missing headers, malformed tokens, and revoked credentials.
 
+Authentication tests protect security guarantees. Document the guarantee when a case covers token confusion, revoked credentials, replay behavior, or information disclosure.
+
 ## Testing authorization
 
 Verify that permissions are enforced and cross-workspace access is rejected.
+
+Authorization tests must state the resource boundary they protect. If a response intentionally hides existence with `404`, document that behavior in the test so future changes do not weaken it by accident.
 
 ## Helper functions
 

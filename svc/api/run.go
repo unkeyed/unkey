@@ -17,7 +17,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/caches"
+	cachesvc "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
@@ -29,8 +29,10 @@ import (
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
+	authworkos "github.com/unkeyed/unkey/pkg/auth/workos"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -289,7 +291,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create auditlogs service: %w", err)
 	}
 
-	caches, err := caches.New(caches.Config{
+	caches, err := cachesvc.New(cachesvc.Config{
 		Clock:  clk,
 		NodeID: cfg.InstanceID,
 	})
@@ -312,12 +314,26 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:           database,
 		SessionCache: caches.PortalSession,
 	})
-	jwtWorkspaceLookup := authjwt.WorkspaceLookupFunc(func(ctx context.Context, orgID string) (string, error) {
-		workspace, lookupErr := db.WithRetryContext(ctx, func() (db.Workspace, error) {
-			return db.Query.FindWorkspaceByOrgID(ctx, database.RO(), orgID)
-		})
-		if lookupErr != nil {
-			return "", lookupErr
+
+	// JWT resolvers hit this lookup on every authenticated request, so the
+	// org-to-workspace mapping is served through the shared SWR cache like the
+	// other hot auth lookups. The SQL query filters soft-deleted workspaces;
+	// disabled workspaces are rejected here so their JWT principals lock out
+	// within the cache's fresh window.
+	workspaceByOrgID := authjwt.WorkspaceLookupFunc(func(ctx context.Context, orgID string) (string, error) {
+		workspace, hit, err := caches.WorkspaceByOrgID.SWR(ctx, orgID, func(ctx context.Context) (db.Workspace, error) {
+			return db.WithRetryContext(ctx, func() (db.Workspace, error) {
+				return db.Query.FindWorkspaceByOrgID(ctx, database.RO(), orgID)
+			})
+		}, cachesvc.DefaultFindFirstOp)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return "", authjwt.ErrWorkspaceNotFound
+			}
+			return "", err
+		}
+		if hit == cache.Null || !workspace.Enabled {
+			return "", authjwt.ErrWorkspaceNotFound
 		}
 		return workspace.ID, nil
 	})
@@ -327,29 +343,28 @@ func Run(ctx context.Context, cfg Config) error {
 		switch authConfig := authConfig.(type) {
 		case JWTAuthConfig:
 			jwtSecrets := make([][]byte, 0, len(authConfig.Secrets))
-			for j, secret := range authConfig.Secrets {
-				if secret == "" {
-					return fmt.Errorf("auth[%d].secrets[%d] must not be empty", i, j)
-				}
+			for _, secret := range authConfig.Secrets {
 				jwtSecrets = append(jwtSecrets, []byte(secret))
 			}
+			var jwtResolver auth.Resolver
+			var jwtErr error
+			// Config.Validate guarantees exactly one of secrets or jwks_url.
 			if len(jwtSecrets) > 0 {
-				jwtResolver, jwtErr := authjwt.NewResolver(jwtWorkspaceLookup, authConfig.Issuer, authConfig.Audience, jwtSecrets...)
-				if jwtErr != nil {
-					return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
-				}
-				authResolvers = append(authResolvers, jwtResolver)
-				continue
+				jwtResolver, jwtErr = authjwt.NewResolver(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, jwtSecrets...)
+			} else {
+				jwtResolver, jwtErr = authjwt.NewResolverWithJWKSURL(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL)
 			}
-			if authConfig.JWKSURL != "" {
-				jwtResolver, jwtErr := authjwt.NewResolverWithJWKSURL(ctx, jwtWorkspaceLookup, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL)
-				if jwtErr != nil {
-					return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
-				}
-				authResolvers = append(authResolvers, jwtResolver)
-				continue
+			if jwtErr != nil {
+				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
 			}
-			return fmt.Errorf("auth[%d] jwt requires exactly one of secrets or jwks_url", i)
+			// A WorkOS entry carries provider permission slugs that must be
+			// translated into canonical Unkey permissions after verification.
+			// This is selected by the explicit provider field, not by the
+			// issuer, so custom auth domains translate the same way.
+			if authConfig.Provider == jwtProviderWorkOS {
+				jwtResolver = authworkos.NewPermissionTranslatingResolver(jwtResolver)
+			}
+			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:
 			authResolvers = append(authResolvers, portalsession.NewResolver(portalSvc))
 		case RootKeyAuthConfig:

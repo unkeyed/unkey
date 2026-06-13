@@ -34,6 +34,12 @@ const (
 	authTypeRootKey       = "root_key"
 )
 
+// jwtProviderWorkOS selects WorkOS permission-slug translation for a jwt auth
+// entry. It is an explicit opt-in, decoupled from the issuer value, so WorkOS
+// custom auth domains and environment-scoped issuers select translation the
+// same way the default issuer does.
+const jwtProviderWorkOS = "workos"
+
 // AuthConfig is a discriminated union for one authentication resolver.
 // Implementations are selected from TOML auth entries by their type field.
 type AuthConfig interface {
@@ -59,13 +65,25 @@ type JWTAuthConfig struct {
 	Secrets []string `toml:"secrets"`
 
 	// JWKSURL configures RS256 verification. The API fetches the JSON Web Key
-	// Set from this URL during startup and verifies incoming tokens against the
-	// returned RSA signing keys.
+	// Set from this URL on first use, verifies incoming tokens against the
+	// returned RSA signing keys, and refetches the set when a token fails
+	// verification against every cached key so key rotations are picked up
+	// without a restart.
 	JWKSURL string `toml:"jwks_url"`
+
+	// Provider names the permission dialect carried by this entry's tokens.
+	// Empty means tokens already carry canonical Unkey permissions. "workos"
+	// means tokens carry WorkOS slugs that the resolver translates into Unkey
+	// permissions after verification. This is an explicit opt-in rather than
+	// an inference from the issuer, so any issuer (including custom auth
+	// domains) can be configured without changing how translation is selected.
+	Provider string `toml:"provider"`
 }
 
+// authConfig marks JWTAuthConfig as a member of the [AuthConfig] union.
 func (JWTAuthConfig) authConfig() {}
 
+// authConfigType returns the TOML type discriminator for this entry.
 func (JWTAuthConfig) authConfigType() string {
 	return authTypeJWT
 }
@@ -73,8 +91,10 @@ func (JWTAuthConfig) authConfigType() string {
 // PortalSessionAuthConfig configures portal browser-session authentication.
 type PortalSessionAuthConfig struct{}
 
+// authConfig marks PortalSessionAuthConfig as a member of the [AuthConfig] union.
 func (PortalSessionAuthConfig) authConfig() {}
 
+// authConfigType returns the TOML type discriminator for this entry.
 func (PortalSessionAuthConfig) authConfigType() string {
 	return authTypePortalSession
 }
@@ -86,12 +106,15 @@ type RootKeyAuthConfig struct {
 	Enabled *bool `toml:"enabled"`
 }
 
+// authConfig marks RootKeyAuthConfig as a member of the [AuthConfig] union.
 func (RootKeyAuthConfig) authConfig() {}
 
+// authConfigType returns the TOML type discriminator for this entry.
 func (RootKeyAuthConfig) authConfigType() string {
 	return authTypeRootKey
 }
 
+// enabled treats an absent flag as true; false is rejected by Validate.
 func (r RootKeyAuthConfig) enabled() bool {
 	return r.Enabled == nil || *r.Enabled
 }
@@ -137,8 +160,10 @@ func (a *AuthConfigs) UnmarshalTOML(v any) error {
 	return nil
 }
 
+// decodeJWTAuthConfig parses one type="jwt" auth table, rejecting unknown
+// fields and wrong field types at load time.
 func decodeJWTAuthConfig(i int, raw map[string]any) (JWTAuthConfig, error) {
-	if err := rejectUnknownAuthFields(i, raw, "type", "issuer", "audience", "secrets", "jwks_url"); err != nil {
+	if err := rejectUnknownAuthFields(i, raw, "type", "issuer", "audience", "secrets", "jwks_url", "provider"); err != nil {
 		return JWTAuthConfig{}, err
 	}
 
@@ -147,6 +172,7 @@ func decodeJWTAuthConfig(i int, raw map[string]any) (JWTAuthConfig, error) {
 		Audience: "",
 		Secrets:  nil,
 		JWKSURL:  "",
+		Provider: "",
 	}
 	if rawIssuer, ok := raw["issuer"]; ok {
 		issuer, ok := rawIssuer.(string)
@@ -176,9 +202,17 @@ func decodeJWTAuthConfig(i int, raw map[string]any) (JWTAuthConfig, error) {
 		}
 		auth.JWKSURL = jwksURL
 	}
+	if rawProvider, ok := raw["provider"]; ok {
+		provider, ok := rawProvider.(string)
+		if !ok {
+			return JWTAuthConfig{}, fmt.Errorf("auth[%d].provider must be a string", i)
+		}
+		auth.Provider = provider
+	}
 	return auth, nil
 }
 
+// decodeRootKeyAuthConfig parses one type="root_key" auth table.
 func decodeRootKeyAuthConfig(i int, raw map[string]any) (RootKeyAuthConfig, error) {
 	if err := rejectUnknownAuthFields(i, raw, "type", "enabled"); err != nil {
 		return RootKeyAuthConfig{}, err
@@ -195,6 +229,8 @@ func decodeRootKeyAuthConfig(i int, raw map[string]any) (RootKeyAuthConfig, erro
 	return auth, nil
 }
 
+// rejectUnknownAuthFields fails loading when an auth table contains fields the
+// declared type does not support, so typos cannot silently weaken auth.
 func rejectUnknownAuthFields(i int, raw map[string]any, allowed ...string) error {
 	allowedFields := make(map[string]struct{}, len(allowed))
 	for _, field := range allowed {
@@ -208,6 +244,8 @@ func rejectUnknownAuthFields(i int, raw map[string]any, allowed ...string) error
 	return nil
 }
 
+// decodeStringSlice accepts the two TOML decoder representations of a string
+// array.
 func decodeStringSlice(v any) ([]string, error) {
 	switch values := v.(type) {
 	case []string:
@@ -352,16 +390,26 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided to enable HTTPS")
 	}
 
+	// An API server with no auth entries would reject every request, including
+	// valid root keys, without any startup signal. Old configs predating the
+	// [[auth]] array (for example ones still carrying the removed jwt_secrets
+	// key, which the TOML decoder silently ignores) must fail loudly here
+	// instead of booting into a silent full-auth outage.
+	if len(c.Auth) == 0 {
+		return fmt.Errorf("at least one [[auth]] entry is required")
+	}
+
 	for i, auth := range c.Auth {
 		switch auth := auth.(type) {
 		case JWTAuthConfig:
-			if strings.TrimSpace(auth.Issuer) == "" {
-				return fmt.Errorf("auth[%d] jwt requires issuer", i)
-			}
+			issuer := strings.TrimSpace(auth.Issuer)
 			hasSecrets := len(auth.Secrets) > 0
 			hasJWKSURL := auth.JWKSURL != ""
 			if hasSecrets == hasJWKSURL {
 				return fmt.Errorf("auth[%d] jwt requires exactly one of secrets or jwks_url", i)
+			}
+			if issuer == "" {
+				return fmt.Errorf("auth[%d] jwt requires issuer", i)
 			}
 			// HS256 requires at least 256 bits of entropy in the shared secret.
 			// Shorter secrets weaken signature security regardless of token lifetime.
@@ -378,6 +426,9 @@ func (c *Config) Validate() error {
 				if parsed.Scheme != "https" && parsed.Scheme != "http" {
 					return fmt.Errorf("auth[%d].jwks_url must use http or https", i)
 				}
+			}
+			if auth.Provider != "" && auth.Provider != jwtProviderWorkOS {
+				return fmt.Errorf("auth[%d].provider must be %q when set", i, jwtProviderWorkOS)
 			}
 		case PortalSessionAuthConfig:
 		case RootKeyAuthConfig:

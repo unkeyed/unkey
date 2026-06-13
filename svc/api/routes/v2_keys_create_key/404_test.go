@@ -1,11 +1,15 @@
 package handler_test
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -113,4 +117,93 @@ func TestCreateKeyNotFound(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "The specified API was not found")
 	})
 
+}
+
+// TestCreateKeyResponsesDoNotLeakExistence guarantees a caller without a read
+// permission covering the API receives the same 404 whether the API exists,
+// exists without a keyspace (the 412 answer for authorized callers), or does
+// not exist, so the response cannot be used to enumerate API IDs.
+func TestCreateKeyResponsesDoNotLeakExistence(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            keySpaceID,
+		WorkspaceID:   workspaceID,
+		CreatedAtM:    time.Now().UnixMilli(),
+		DefaultPrefix: sql.NullString{Valid: false, String: ""},
+		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
+	})
+	require.NoError(t, err)
+
+	existingApiID := uid.New(uid.APIPrefix)
+	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
+		ID:          existingApiID,
+		Name:        "existing-api",
+		WorkspaceID: workspaceID,
+		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
+	apiWithoutKeySpaceID := uid.New(uid.APIPrefix)
+	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
+		ID:          apiWithoutKeySpaceID,
+		Name:        "api-without-keyspace",
+		WorkspaceID: workspaceID,
+		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
+		KeyAuthID:   sql.NullString{Valid: false, String: ""},
+		CreatedAtM:  time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
+	missingApiID := uid.New(uid.APIPrefix)
+
+	for _, tc := range []struct {
+		name        string
+		permissions []string
+	}{
+		{name: "no permissions", permissions: nil},
+		{name: "create permission for a different api", permissions: []string{fmt.Sprintf("api.%s.create_key", uid.New(uid.APIPrefix))}},
+		{name: "unrelated permission", permissions: []string{"workspace.read"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(workspaceID, tc.permissions...)
+			headers := http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			}
+
+			probe := func(apiID string) testutil.TestResponse[openapi.NotFoundErrorResponse] {
+				return testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{ApiId: apiID})
+			}
+
+			existing := probe(existingApiID)
+			withoutKeySpace := probe(apiWithoutKeySpaceID)
+			missing := probe(missingApiID)
+
+			require.Equal(t, http.StatusNotFound, existing.Status, "got: %s", existing.RawBody)
+			require.Equal(t, http.StatusNotFound, withoutKeySpace.Status, "got: %s", withoutKeySpace.RawBody)
+			require.Equal(t, http.StatusNotFound, missing.Status, "got: %s", missing.RawBody)
+
+			for _, res := range []testutil.TestResponse[openapi.NotFoundErrorResponse]{existing, withoutKeySpace} {
+				require.Equal(t, missing.Body.Error.Type, res.Body.Error.Type)
+				require.Equal(t, missing.Body.Error.Detail, res.Body.Error.Detail)
+				require.Equal(t, missing.Body.Error.Status, res.Body.Error.Status)
+				require.Equal(t, missing.Body.Error.Title, res.Body.Error.Title)
+			}
+		})
+	}
 }

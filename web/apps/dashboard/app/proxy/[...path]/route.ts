@@ -132,7 +132,7 @@ async function mintProxyJWT(params: {
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuer("app.unkey.com")
-    .setAudience(["api.unkey.com"])
+    .setAudience(["app.unkey.com", "api.unkey.com"])
     .setSubject(params.subject)
     .setIssuedAt(now)
     .setNotBefore(now)

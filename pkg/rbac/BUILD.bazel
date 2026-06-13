@@ -10,12 +10,14 @@ go_library(
         "permissions.go",
         "query.go",
         "rbac.go",
+        "urn.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/rbac",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/codes",
         "//pkg/fault",
+        "//pkg/urn",
     ],
 )
 
@@ -28,7 +30,12 @@ go_test(
         "lexer_test.go",
         "parse_test.go",
         "rbac_test.go",
+        "urn_test.go",
     ],
     embed = [":rbac"],
-    deps = ["@com_github_stretchr_testify//require"],
+    deps = [
+        "//pkg/fuzz",
+        "//pkg/urn",
+        "@com_github_stretchr_testify//require",
+    ],
 )
