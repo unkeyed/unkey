@@ -49,27 +49,66 @@ func (h *Handler) HandleClose(
 		)
 	}
 
+	// Ingestion lateness buffer: the webhook dispatches the close seconds
+	// after the roll, but rows from the period's last minutes are still in
+	// flight to ClickHouse (client batching, async-insert flush, retries).
+	// Reading the final total before they land under-bills permanently: the
+	// invoice is finalized and the backup cron cannot amend it. The sleep is
+	// durable and period-relative, so the 00:30 backup cron and re-runs of
+	// old periods pass straight through.
+	if ingestSafe := p.End().Add(usageIngestLateness); nowTime.Before(ingestSafe) {
+		if err := restate.Sleep(ctx, ingestSafe.Sub(nowTime)); err != nil {
+			return nil, fmt.Errorf("wait for usage ingestion: %w", err)
+		}
+	}
+
 	// Final push: the full period's usage, stamped one second before the
 	// period ends so the meters' aggregation window for the closing invoice
 	// picks it up as the last (and therefore billed) value.
 	closeTimestamp := p.End().Add(-time.Second).Unix()
-	_, workspacesPushed, metersPushed, failedWorkspaceIDs, err := h.pushUsage(ctx, period, p, p.End().UnixMilli(), closeTimestamp)
+	tasks, _, err := h.resolvePushTasks(ctx, period, p, p.End().UnixMilli(), closeTimestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	// A workspace whose final push failed is left unfinalized: finalizing now
-	// would freeze an under-billed total onto the invoice. Its draft stays open
-	// for the backup cron to re-push and close; the withheld heartbeat alerts.
-	failedPush := make(map[string]struct{}, len(failedWorkspaceIDs))
-	for _, id := range failedWorkspaceIDs {
-		failedPush[id] = struct{}{}
+	// Unlike the hourly tick, the close AWAITS each push: the closing invoice
+	// must see the final total before we finalize it. The pushes run as
+	// independent invocations (each with its own bounded retry), so awaiting
+	// them concurrently isolates failures without blocking siblings.
+	type pushFuture = restate.ResponseFuture[*hydrav1.PushWorkspaceUsageResponse]
+	pushFutures := make([]pushFuture, len(tasks))
+	for i, task := range tasks {
+		pushFutures[i] = hydrav1.NewDeployBillingPushServiceClient(ctx, task.workspaceID).
+			PushWorkspaceUsage().RequestFuture(task.pushRequest())
 	}
-	if len(failedPush) > 0 {
-		logger.Error("final usage push failed for some workspaces; leaving their invoices in draft for the backup cron to retry",
-			"billing_period", period,
-			"workspaces_failed", len(failedPush),
-		)
+	workspacesPushed, pushesFailed := 0, 0
+	// Track workspaces whose push failed: finalizing them now would bill the
+	// stale hourly value and drop the period's final usage. Their drafts stay
+	// open for the backup cron to re-push and close.
+	pushFailedWorkspaces := make(map[string]bool)
+	for i, fut := range pushFutures {
+		if _, perr := fut.Response(); perr != nil {
+			pushesFailed++
+			pushFailedWorkspaces[tasks[i].workspaceID] = true
+			logger.Error("final usage push failed; leaving this workspace's invoice open for the backup close",
+				"billing_period", period,
+				"workspace_id", tasks[i].workspaceID,
+				"error", perr,
+			)
+			continue
+		}
+		workspacesPushed++
+	}
+
+	// Meter aggregation delay: a successful push only means Stripe accepted
+	// the meter events; folding them into the draft invoice's metered lines
+	// is asynchronous on Stripe's side. Finalizing immediately can freeze the
+	// previous hourly total onto the invoice. The sleep is durable, and zero
+	// in test wiring (no Stripe key) where there is nothing to aggregate.
+	if h.finalizeDelay > 0 && workspacesPushed > 0 {
+		if err := restate.Sleep(ctx, h.finalizeDelay); err != nil {
+			return nil, fmt.Errorf("wait for meter aggregation: %w", err)
+		}
 	}
 
 	// Finalize only active Deploy workspaces' subscription_cycle drafts whose
@@ -83,9 +122,25 @@ func (h *Handler) HandleClose(
 	// Stable order so the journaled per-workspace steps replay identically.
 	sort.Slice(workspaces, func(i, j int) bool { return workspaces[i].ID < workspaces[j].ID })
 
-	finalized, skipped, deferred := 0, 0, 0
-	for start := 0; start < len(workspaces); start += pushConcurrency {
-		end := min(start+pushConcurrency, len(workspaces))
+	// Drop workspaces whose final push failed: finalizing them now would bill
+	// the stale value. Their drafts stay open for the backup close. Filtering
+	// before the batched fan-out keeps the journaled step order stable.
+	deferred := 0
+	if len(pushFailedWorkspaces) > 0 {
+		kept := make([]db.ListDeployBillableWorkspacesRow, 0, len(workspaces))
+		for _, ws := range workspaces {
+			if pushFailedWorkspaces[ws.ID] {
+				deferred++
+				continue
+			}
+			kept = append(kept, ws)
+		}
+		workspaces = kept
+	}
+
+	finalized, skipped := 0, 0
+	for start := 0; start < len(workspaces); start += finalizeConcurrency {
+		end := min(start+finalizeConcurrency, len(workspaces))
 		batch := workspaces[start:end]
 
 		// One journaled step per workspace: list and finalize its closed-period
@@ -94,7 +149,7 @@ func (h *Handler) HandleClose(
 		futures := make([]restate.RunAsyncFuture[closeResult], len(batch))
 		for i, ws := range batch {
 			futures[i] = restate.RunAsync(ctx, func(rc restate.RunContext) (closeResult, error) {
-				return h.closeWorkspace(rc, p, ws, failedPush)
+				return h.closeWorkspace(rc, p, ws)
 			}, restate.WithName("close "+ws.ID))
 		}
 
@@ -105,7 +160,6 @@ func (h *Handler) HandleClose(
 			}
 			finalized += result.Finalized
 			skipped += result.Skipped
-			deferred += result.Deferred
 			for _, invoiceID := range result.FinalizedInvoiceIDs {
 				logger.Info("finalized deploy invoice",
 					"billing_period", period,
@@ -119,7 +173,7 @@ func (h *Handler) HandleClose(
 	// Withhold the heartbeat when any workspace's push failed (and so was left
 	// unfinalized) so month-end monitoring fires; the run itself still
 	// completes and the backup cron's fresh retry sweeps the open drafts.
-	if len(failedPush) == 0 {
+	if pushesFailed == 0 {
 		if _, err := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, h.closeHeartbeat.Ping(rc)
 		}, restate.WithName("send heartbeat")); err != nil {
@@ -130,11 +184,22 @@ func (h *Handler) HandleClose(
 	logger.Info("deploy billing close complete",
 		"billing_period", period,
 		"workspaces_pushed", workspacesPushed,
-		"meters_pushed", metersPushed,
+		"workspaces_push_failed", pushesFailed,
 		"invoices_finalized", finalized,
 		"invoices_skipped", skipped,
-		"workspaces_deferred", deferred,
+		"invoices_deferred", deferred,
 	)
+
+	// Some final pushes failed, so we finalized the healthy workspaces and left
+	// the rest open for the backup close. Surface the run as failed (terminal,
+	// so this keyed invocation does not retry in place and replay the journaled
+	// push failure) on top of the withheld heartbeat above, so the failure is
+	// visible and the fresh-key backup cron picks up the deferred invoices.
+	if pushesFailed > 0 {
+		return nil, restate.TerminalError(
+			fmt.Errorf("deploy billing close for %s deferred %d workspace(s) after %d failed push(es)", period, deferred, pushesFailed),
+		)
+	}
 
 	return &hydrav1.RunDeployBillingCloseResponse{
 		WorkspacesPushed:  int32(workspacesPushed),
@@ -143,31 +208,40 @@ func (h *Handler) HandleClose(
 	}, nil
 }
 
+// finalizeConcurrency bounds how many workspaces we finalize invoices for at
+// once, so the close does not hammer the provider's rate limits.
+const finalizeConcurrency = 16
+
+// usageIngestLateness is how long after the period ends the close waits
+// before taking the final ClickHouse read. Bounds the age of rows the close
+// can still pick up; anything arriving later than this after month end is
+// accepted as lost to the closed invoice.
+const usageIngestLateness = 15 * time.Minute
+
+// DefaultFinalizeDelay is the production wait between the final meter push
+// and invoice finalization, giving Stripe time to aggregate the events into
+// the draft's metered lines. Stripe documents aggregation as asynchronous
+// without a hard bound; its own auto-finalize waits about an hour after
+// invoice creation, so twenty minutes on top of an explicit final push is
+// conservative without dragging the close far past the roll.
+const DefaultFinalizeDelay = 20 * time.Minute
+
 // closeResult is the journaled outcome of closing one workspace's invoices.
 type closeResult struct {
-	Finalized int
-	Skipped   int
-	// Deferred is set when the workspace's final push failed and its drafts
-	// were intentionally left open for the backup cron to retry.
-	Deferred            int
+	Finalized           int
+	Skipped             int
 	FinalizedInvoiceIDs []string
 }
 
 // closeWorkspace finalizes the workspace's subscription_cycle drafts whose
-// period has ended; proration and next-period drafts are skipped. A workspace
-// whose push failed is left untouched for the backup cron.
+// period has ended; proration and next-period drafts are skipped. Failed-push
+// workspaces are filtered out by the caller, so they never reach here.
 func (h *Handler) closeWorkspace(
 	rc restate.RunContext,
 	p billingperiod.Period,
 	ws db.ListDeployBillableWorkspacesRow,
-	failedPush map[string]struct{},
 ) (closeResult, error) {
-	result := closeResult{Finalized: 0, Skipped: 0, Deferred: 0, FinalizedInvoiceIDs: nil}
-
-	if _, failed := failedPush[ws.ID]; failed {
-		result.Deferred++
-		return result, nil
-	}
+	result := closeResult{Finalized: 0, Skipped: 0, FinalizedInvoiceIDs: nil}
 
 	if !ws.StripeCustomerID.Valid || ws.StripeCustomerID.String == "" {
 		return result, nil

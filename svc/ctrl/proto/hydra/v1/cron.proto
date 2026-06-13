@@ -59,12 +59,13 @@ service CronService {
   rpc RunAuditLogOutboxCleanup(RunAuditLogOutboxCleanupRequest) returns (RunAuditLogOutboxCleanupResponse) {}
 
   // RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
-  // egress, disk) from ClickHouse and pushes each billable workspace's
-  // running total to Stripe as a meter event. The meters aggregate with
-  // formula "last", so the newest event in the period is the billed value
-  // and earlier ones are superseded. Key = billing period "YYYY-MM"; the
-  // pushed quantity is the absolute month-to-date total, so retries and
-  // overlapping ticks are harmless. Hourly schedule.
+  // egress, disk, active keys) from ClickHouse and fans out one
+  // DeployBillingPushService.PushWorkspaceUsage invocation per billable
+  // workspace, fire-and-forget. The meters aggregate with formula "last", so
+  // each push sets (not increments) the period quantity and the latest hourly
+  // value supersedes the prior one. Key = billing period "YYYY-MM"; the pushed
+  // quantity is the absolute month-to-date total, so retries and overlapping
+  // ticks are harmless. Hourly schedule.
   rpc RunDeployBillingPush(RunDeployBillingPushRequest) returns (RunDeployBillingPushResponse) {}
 
   // RunScaleDownIdlePreviewDeployments scans preview deployments and schedules
@@ -73,10 +74,10 @@ service CronService {
   rpc RunScaleDownIdlePreviewDeployments(RunScaleDownIdlePreviewDeploymentsRequest) returns (RunScaleDownIdlePreviewDeploymentsResponse) {}
 
   // RunDeployBillingClose performs the month-end close for Deploy billing.
-  // Key = the CLOSED billing period "YYYY-MM". Pushes each billable
-  // workspace's final full-period usage, timestamped just inside the closed
-  // period so the "last"-formula meters bill the final total, then finalizes
-  // every Deploy workspace's draft renewal invoice for that period.
+  // Key = the CLOSED billing period "YYYY-MM". Fans out a final per-workspace
+  // push (full-period usage, timestamped just inside the closed period so the
+  // "last"-formula meters bill the final total) and awaits them, then
+  // finalizes every Deploy workspace's draft renewal invoice for that period.
   // Idempotent: pushes converge by construction and an already-finalized
   // invoice counts as done, so the Stripe invoice.created webhook (via
   // ctrl-api) and the 00:30 UTC backup cron can both invoke it safely.
