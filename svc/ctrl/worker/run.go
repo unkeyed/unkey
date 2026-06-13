@@ -521,6 +521,11 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, cronKeyLastUsedRetry))
 	logger.Info("KeyLastUsedPartitionService enabled")
 
+	// DeployBillingPushService is the per-workspace push VO fanned out from the
+	// deploy billing orchestrator. Standalone, not cron-triggered.
+	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()))
+	logger.Info("DeployBillingPushService enabled")
+
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
 	if err != nil {

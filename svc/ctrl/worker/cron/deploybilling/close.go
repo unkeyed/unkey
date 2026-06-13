@@ -57,20 +57,38 @@ func (h *Handler) HandleClose(
 	// period ends so the meters' aggregation window for the closing invoice
 	// picks it up as the last (and therefore billed) value.
 	closeTimestamp := p.End().Add(-time.Second).Unix()
-	_, workspacesPushed, metersPushed, pushesFailed, err := h.pushUsage(ctx, period, p, p.End().UnixMilli(), closeTimestamp)
+	tasks, _, err := h.resolvePushTasks(ctx, period, p, p.End().UnixMilli(), closeTimestamp)
 	if err != nil {
 		return nil, err
 	}
-	if pushesFailed > 0 {
-		// The close proceeds anyway: leaving the invoice in draft would park
-		// it until next month's backup cron (auto_advance is off by then),
-		// which is worse than finalizing with the last hourly value. Accuracy
-		// degrades by at most one hour for the affected workspaces; the error
-		// log plus the withheld heartbeat below make sure someone looks.
-		logger.Error("final usage push failed for some workspaces; their invoices finalize with hourly accuracy",
-			"billing_period", period,
-			"workspaces_failed", pushesFailed,
-		)
+
+	// Unlike the hourly tick, the close AWAITS each push: the closing invoice
+	// must see the final total before we finalize it. The pushes run as
+	// independent invocations (each with its own bounded retry), so awaiting
+	// them concurrently isolates failures without blocking siblings.
+	type pushFuture = restate.ResponseFuture[*hydrav1.PushWorkspaceUsageResponse]
+	pushFutures := make([]pushFuture, len(tasks))
+	for i, task := range tasks {
+		pushFutures[i] = hydrav1.NewDeployBillingPushServiceClient(ctx, task.workspaceID).
+			PushWorkspaceUsage().RequestFuture(task.pushRequest())
+	}
+	workspacesPushed, pushesFailed := 0, 0
+	for i, fut := range pushFutures {
+		if _, perr := fut.Response(); perr != nil {
+			// Tolerate the failure and finalize anyway: parking the invoice in
+			// draft would strand it until next month's backup cron (auto_advance
+			// is off by then), which is worse than finalizing with the last
+			// hourly value (at most an hour stale). The error log plus the
+			// withheld heartbeat below make sure someone looks.
+			pushesFailed++
+			logger.Error("final usage push failed; invoice will finalize with the last hourly value",
+				"billing_period", period,
+				"workspace_id", tasks[i].workspaceID,
+				"error", perr,
+			)
+			continue
+		}
+		workspacesPushed++
 	}
 
 	// Finalize the draft renewal invoices. Scope: only workspaces with an
@@ -87,8 +105,8 @@ func (h *Handler) HandleClose(
 	sort.Slice(workspaces, func(i, j int) bool { return workspaces[i].ID < workspaces[j].ID })
 
 	finalized, skipped := 0, 0
-	for start := 0; start < len(workspaces); start += pushConcurrency {
-		end := min(start+pushConcurrency, len(workspaces))
+	for start := 0; start < len(workspaces); start += finalizeConcurrency {
+		end := min(start+finalizeConcurrency, len(workspaces))
 		batch := workspaces[start:end]
 
 		// One journaled step per workspace: list drafts and finalize the
@@ -133,7 +151,6 @@ func (h *Handler) HandleClose(
 	logger.Info("deploy billing close complete",
 		"billing_period", period,
 		"workspaces_pushed", workspacesPushed,
-		"meters_pushed", metersPushed,
 		"invoices_finalized", finalized,
 		"invoices_skipped", skipped,
 	)
@@ -144,6 +161,10 @@ func (h *Handler) HandleClose(
 		InvoicesSkipped:   int32(skipped),
 	}, nil
 }
+
+// finalizeConcurrency bounds how many workspaces we finalize invoices for at
+// once, so the close does not hammer the provider's rate limits.
+const finalizeConcurrency = 16
 
 // closeResult is the journaled outcome of closing one workspace's invoices.
 type closeResult struct {
