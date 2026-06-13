@@ -55,17 +55,19 @@ type CronServiceClient interface {
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
-	// egress, disk) from ClickHouse and pushes each billable workspace's
-	// running total to Stripe as a usage record with action=set, so the
-	// latest hourly value overwrites the prior one. Key = billing period
-	// "YYYY-MM"; the pushed quantity is the absolute month-to-date total, so
-	// retries and overlapping ticks are harmless. Hourly schedule.
+	// egress, disk, active keys) from ClickHouse and fans out one
+	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
+	// workspace, fire-and-forget. Each push sets (not increments) the period
+	// quantity, so the latest hourly value overwrites the prior one. Key =
+	// billing period "YYYY-MM"; the pushed quantity is the absolute
+	// month-to-date total, so retries and overlapping ticks are harmless.
+	// Hourly schedule.
 	RunDeployBillingPush(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse]
 	// RunDeployBillingClose performs the month-end close for Deploy billing.
-	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
-	// workspace's final full-period usage, timestamped just inside the closed
-	// period so the "last"-formula meters bill the final total, then finalizes
-	// every Deploy workspace's draft renewal invoice for that period.
+	// Key = the CLOSED billing period "YYYY-MM". Fans out a final per-workspace
+	// push (full-period usage, timestamped just inside the closed period so the
+	// "last"-formula meters bill the final total) and awaits them, then
+	// finalizes every Deploy workspace's draft renewal invoice for that period.
 	// Idempotent: pushes converge by construction and an already-finalized
 	// invoice counts as done, so the Stripe invoice.created webhook (via
 	// ctrl-api) and the 01:05 UTC backup cron can both invoke it safely.
@@ -169,17 +171,19 @@ type CronServiceIngressClient interface {
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup() ingress.Requester[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
-	// egress, disk) from ClickHouse and pushes each billable workspace's
-	// running total to Stripe as a usage record with action=set, so the
-	// latest hourly value overwrites the prior one. Key = billing period
-	// "YYYY-MM"; the pushed quantity is the absolute month-to-date total, so
-	// retries and overlapping ticks are harmless. Hourly schedule.
+	// egress, disk, active keys) from ClickHouse and fans out one
+	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
+	// workspace, fire-and-forget. Each push sets (not increments) the period
+	// quantity, so the latest hourly value overwrites the prior one. Key =
+	// billing period "YYYY-MM"; the pushed quantity is the absolute
+	// month-to-date total, so retries and overlapping ticks are harmless.
+	// Hourly schedule.
 	RunDeployBillingPush() ingress.Requester[*RunDeployBillingPushRequest, *RunDeployBillingPushResponse]
 	// RunDeployBillingClose performs the month-end close for Deploy billing.
-	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
-	// workspace's final full-period usage, timestamped just inside the closed
-	// period so the "last"-formula meters bill the final total, then finalizes
-	// every Deploy workspace's draft renewal invoice for that period.
+	// Key = the CLOSED billing period "YYYY-MM". Fans out a final per-workspace
+	// push (full-period usage, timestamped just inside the closed period so the
+	// "last"-formula meters bill the final total) and awaits them, then
+	// finalizes every Deploy workspace's draft renewal invoice for that period.
 	// Idempotent: pushes converge by construction and an already-finalized
 	// invoice counts as done, so the Stripe invoice.created webhook (via
 	// ctrl-api) and the 01:05 UTC backup cron can both invoke it safely.
@@ -279,17 +283,19 @@ type CronServiceServer interface {
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(ctx sdk_go.ObjectContext, req *RunRatelimitGlobalCountersCleanupRequest) (*RunRatelimitGlobalCountersCleanupResponse, error)
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
-	// egress, disk) from ClickHouse and pushes each billable workspace's
-	// running total to Stripe as a usage record with action=set, so the
-	// latest hourly value overwrites the prior one. Key = billing period
-	// "YYYY-MM"; the pushed quantity is the absolute month-to-date total, so
-	// retries and overlapping ticks are harmless. Hourly schedule.
+	// egress, disk, active keys) from ClickHouse and fans out one
+	// DeployBillingPushService.PushWorkspaceUsage invocation per billable
+	// workspace, fire-and-forget. Each push sets (not increments) the period
+	// quantity, so the latest hourly value overwrites the prior one. Key =
+	// billing period "YYYY-MM"; the pushed quantity is the absolute
+	// month-to-date total, so retries and overlapping ticks are harmless.
+	// Hourly schedule.
 	RunDeployBillingPush(ctx sdk_go.ObjectContext, req *RunDeployBillingPushRequest) (*RunDeployBillingPushResponse, error)
 	// RunDeployBillingClose performs the month-end close for Deploy billing.
-	// Key = the CLOSED billing period "YYYY-MM". Pushes each billable
-	// workspace's final full-period usage, timestamped just inside the closed
-	// period so the "last"-formula meters bill the final total, then finalizes
-	// every Deploy workspace's draft renewal invoice for that period.
+	// Key = the CLOSED billing period "YYYY-MM". Fans out a final per-workspace
+	// push (full-period usage, timestamped just inside the closed period so the
+	// "last"-formula meters bill the final total) and awaits them, then
+	// finalizes every Deploy workspace's draft renewal invoice for that period.
 	// Idempotent: pushes converge by construction and an already-finalized
 	// invoice counts as done, so the Stripe invoice.created webhook (via
 	// ctrl-api) and the 01:05 UTC backup cron can both invoke it safely.

@@ -8,6 +8,7 @@ go_library(
         "doc.go",
         "handler.go",
         "push.go",
+        "pushworkspace.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling",
     visibility = ["//visibility:public"],

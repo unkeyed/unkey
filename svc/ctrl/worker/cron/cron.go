@@ -39,15 +39,23 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
-	auditLogExport   *auditlogexport.Handler
-	deployBilling    *deploybilling.Handler
-	keyLastUsedSync  *keylastusedsync.Handler
-	keyRefill        *keyrefill.Handler
-	quotaCheck       *quotacheck.Handler
-	ratelimitCleanup *ratelimitcleanup.Handler
+	auditLogExport    *auditlogexport.Handler
+	deployBilling     *deploybilling.Handler
+	deployBillingPush *deploybilling.PushHandler
+	keyLastUsedSync   *keylastusedsync.Handler
+	keyRefill         *keyrefill.Handler
+	quotaCheck        *quotacheck.Handler
+	ratelimitCleanup  *ratelimitcleanup.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
+
+// DeployBillingPushServer returns the DeployBillingPushService implementation,
+// fanned out to by the deploy billing orchestrator. Bound as its own restate
+// service alongside the CronService.
+func (s *Service) DeployBillingPushServer() hydrav1.DeployBillingPushServiceServer {
+	return s.deployBillingPush
+}
 
 // Heartbeats groups the per-task healthcheck pingers. Every field must
 // be non-nil — use healthcheck.NewNoop() for tasks where monitoring is
@@ -160,7 +168,6 @@ func New(cfg Config) (*Service, error) {
 	}
 	deployBillingH, err := deploybilling.New(deploybilling.Config{
 		UsageReader:    cfg.BillingUsageReader,
-		Pusher:         billingPusher,
 		DB:             cfg.DB,
 		Heartbeat:      cfg.Heartbeats.DeployBillingPush,
 		Closer:         billingCloser,
@@ -170,10 +177,16 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	deployBillingPushH, err := deploybilling.NewPushHandler(billingPusher)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
+		deployBillingPush:              deployBillingPushH,
 		keyLastUsedSync:                keyLastUsedSyncH,
 		keyRefill:                      keyRefillH,
 		quotaCheck:                     quotaCheckH,

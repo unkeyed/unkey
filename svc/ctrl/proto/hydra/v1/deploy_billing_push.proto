@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// DeployBillingPushService pushes one workspace's month-to-date Deploy usage
+// to the billing provider. The CronService orchestrators (hourly push and
+// month-end close) fan out to it, one invocation per workspace.
+//
+// Keyed by workspace id, so concurrent pushes for the same customer serialize
+// (no racing writes to one customer's meters) while different workspaces run
+// independently. Each push is its own invocation: it retries on its own
+// schedule and, when it cannot succeed, fails as its own visible invocation
+// rather than being recorded as a flag inside a batch. One broken workspace
+// (deleted customer, frozen test clock) never blocks another's push.
+service DeployBillingPushService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // PushWorkspaceUsage sends the workspace's month-to-date meter values to the
+  // provider. The values are absolute totals and the meters aggregate with
+  // formula "last", so retries and overlapping ticks converge on the latest
+  // total. Returns an error on failure so the invocation surfaces it.
+  rpc PushWorkspaceUsage(PushWorkspaceUsageRequest) returns (PushWorkspaceUsageResponse) {}
+}
+
+message PushWorkspaceUsageRequest {
+  // StripeCustomerID is the customer the meter events are attributed to.
+  string stripe_customer_id = 1;
+
+  // Month-to-date meter values in the units each meter expects. Sent as
+  // decimal strings by the pusher, so they are doubles here and never rounded.
+  double cpu_seconds = 2;
+  double memory_gib_seconds = 3;
+  double egress_gib = 4;
+  double disk_gib_seconds = 5;
+  double active_keys = 6;
+
+  // EventTimestamp is the unix-seconds timestamp stamped on the meter events.
+  // The hourly push uses now; the month-end close stamps just inside the
+  // closed period so the "last"-formula meters bill the final total.
+  int64 event_timestamp = 7;
+}
+
+message PushWorkspaceUsageResponse {
+  // MetersPushed is the number of meter events sent (one per non-zero meter).
+  int32 meters_pushed = 1;
+}
