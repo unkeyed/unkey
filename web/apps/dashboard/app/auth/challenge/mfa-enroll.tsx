@@ -86,46 +86,51 @@ export function MfaEnroll() {
         </div>
       )}
 
-      {enrollment ? (
-        <>
-          <div className="flex justify-center mt-8">
-            <img
-              src={enrollment.qrCode}
-              alt="QR code for authenticator app"
-              className="w-44 h-44 rounded-lg bg-white p-2"
-            />
-          </div>
-          <p className="mt-4 text-xs text-white/40 break-all">
-            Can't scan it? Enter this secret manually:{" "}
-            <span className="text-white/70 font-mono">{enrollment.secret}</span>
-          </p>
-
-          <form
-            className="flex flex-col gap-12 mt-8"
-            onSubmit={(e) => {
-              e.preventDefault();
-              verifyCode(otp);
-            }}
-          >
-            <CodeInput value={otp} onChange={setOtp} onComplete={verifyCode} disabled={isLoading} />
-
-            <button
-              type="submit"
-              className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
-              disabled={isLoading}
-            >
-              {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Continue
-            </button>
-          </form>
-        </>
-      ) : (
-        !error && (
-          <div className="flex justify-center mt-10">
+      {/* The QR box keeps a fixed footprint whether or not the code has
+          loaded, so the form below doesn't jump when the QR arrives. */}
+      <div className="flex justify-center mt-8">
+        {enrollment ? (
+          <img
+            src={enrollment.qrCode}
+            alt="QR code for authenticator app"
+            className="size-44 rounded-lg bg-white p-2"
+          />
+        ) : (
+          <div className="flex size-44 items-center justify-center rounded-lg border border-white/10 bg-white/5">
             <Loading type="spinner" className="text-gray-6" />
           </div>
-        )
-      )}
+        )}
+      </div>
+
+      {/* Reserve height for the (wrapping) secret so it doesn't shift the form */}
+      <p className="mt-4 min-h-10 text-xs text-white/40 break-all">
+        Can't scan it? Enter this secret manually:{" "}
+        <span className="text-white/70 font-mono">{enrollment?.secret ?? "Generating…"}</span>
+      </p>
+
+      <form
+        className="flex flex-col gap-12 mt-8"
+        onSubmit={(e) => {
+          e.preventDefault();
+          verifyCode(otp);
+        }}
+      >
+        <CodeInput
+          value={otp}
+          onChange={setOtp}
+          onComplete={verifyCode}
+          disabled={isLoading || !enrollment}
+        />
+
+        <button
+          type="submit"
+          className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          disabled={isLoading || !enrollment || otp.length !== 6}
+        >
+          {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
+          Continue
+        </button>
+      </form>
     </div>
   );
 }

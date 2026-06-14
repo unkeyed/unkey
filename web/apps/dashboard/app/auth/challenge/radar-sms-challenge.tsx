@@ -103,7 +103,7 @@ export function RadarSmsChallenge() {
           <button
             type="submit"
             className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
-            disabled={isLoading}
+            disabled={isLoading || otp.length !== 6}
           >
             {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
             Continue

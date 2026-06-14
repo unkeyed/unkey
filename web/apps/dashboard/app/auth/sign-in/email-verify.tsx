@@ -70,7 +70,7 @@ export const EmailVerify: React.FC = () => {
         <button
           type="submit"
           className="flex items-center justify-center cursor-pointer disabled:cursor-not-allowed h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
-          disabled={isLoading}
+          disabled={isLoading || otp.length !== 6}
           onClick={() => verifyEmail(otp)}
         >
           {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
