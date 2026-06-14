@@ -1,12 +1,6 @@
 "use server";
 
-import {
-  deleteCookie,
-  getCookie,
-  setCookies,
-  setLastUsedOrgCookie,
-  setSessionCookie,
-} from "@/lib/auth/cookies";
+import { getCookie, setCookies, setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AUTH_CHALLENGE_COOKIE,
@@ -19,6 +13,7 @@ import {
   type NavigationResponse,
   type OAuthResult,
   PENDING_SESSION_COOKIE,
+  type PendingAuthChallengeResponse,
   RADAR_ATTEMPT_COOKIE,
   type SignInViaOAuthOptions,
   UNKEY_LAST_ORG_COOKIE,
@@ -133,6 +128,14 @@ export async function verifyAuthCode(params: {
           if (invitedOrg) {
             // Automatically complete the organization selection
             const orgSelectionResult = await completeOrgSelection(invitation.organizationId);
+
+            // The invited org may enforce MFA. Hand the challenge back to the
+            // client so the user can enroll/verify — completeOrgSelection has
+            // already persisted the challenge cookies. Without this an invited
+            // user joining an MFA-required org could never finish signing in.
+            if (!orgSelectionResult.success && "challengeType" in orgSelectionResult) {
+              return orgSelectionResult;
+            }
 
             if (orgSelectionResult.success) {
               // Try to get organization name for better UX in success page
@@ -302,54 +305,16 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
   return result;
 }
 
-export async function signIntoWorkspace(orgId: string): Promise<VerificationResult> {
-  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE)?.value;
-
-  if (!pendingToken) {
-    return {
-      success: false,
-      code: AuthErrorCode.UNKNOWN_ERROR,
-      message: "No pending authentication found",
-    };
-  }
-
-  // `redirect()` works by throwing a NEXT_REDIRECT error that the framework
-  // catches at the boundary. Keep it OUTSIDE the try/catch — otherwise our
-  // catch swallows the redirect, leaves the user on the previous page with
-  // their session cookie set, and surfaces the framework's internal
-  // "NEXT_REDIRECT;..." digest as an error message.
-  let redirectTo: string | null = null;
-  try {
-    const result = await auth.completeOrgSelection({
-      orgId,
-      pendingAuthToken: pendingToken,
-    });
-
-    if (result.success) {
-      await setCookies(result.cookies);
-      await deleteCookie(PENDING_SESSION_COOKIE);
-      redirectTo = result.redirectTo;
-    } else {
-      return result;
-    }
-  } catch (error) {
-    return {
-      success: false,
-      code: AuthErrorCode.UNKNOWN_ERROR,
-      message: error instanceof Error ? error.message : "Unknown error occurred",
-    };
-  }
-  redirect(redirectTo);
-}
-
 // OAuth
 export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<string> {
   return await auth.signInViaOAuth(options);
 }
 
 export async function completeOAuthSignIn(request: Request): Promise<OAuthResult> {
-  // See note in signIntoWorkspace — keep redirect() outside the try/catch so
-  // the NEXT_REDIRECT error is not swallowed.
+  // `redirect()` works by throwing a NEXT_REDIRECT error that the framework
+  // catches at the boundary. Keep it OUTSIDE the try/catch — otherwise the
+  // catch swallows the redirect and surfaces the framework's internal
+  // "NEXT_REDIRECT;..." digest as an error message.
   let redirectTo: string | null = null;
   try {
     const result = await auth.completeOAuthSignIn(request);
@@ -375,7 +340,7 @@ export type OrgSelectionSuccess = NavigationResponse & { workspaceSlug?: string 
 
 export async function completeOrgSelection(
   orgId: string,
-): Promise<OrgSelectionSuccess | AuthErrorResponse> {
+): Promise<OrgSelectionSuccess | PendingAuthChallengeResponse | AuthErrorResponse> {
   const tempSession = (await cookies()).get(PENDING_SESSION_COOKIE);
   if (!tempSession) {
     return {
@@ -420,8 +385,18 @@ export async function completeOrgSelection(
 
     return { ...result, workspaceSlug };
   }
-  // Don't clear pending session on error - let user try again or close modal
 
+  // The selected organization may require MFA before it will issue a session
+  // (e.g. "Require non-SSO members to be enrolled in MFA"). WorkOS surfaces
+  // that as an mfa_challenge / mfa_enrollment during org selection. Persist
+  // the challenge cookies — the fresh pending token and challenge state — so
+  // the challenge/enrollment UI can finish the sign-in. Without this the new
+  // pending token is dropped and the user can never sign in to that org.
+  if ("challengeType" in result) {
+    await setCookies(result.cookies);
+  }
+
+  // Don't clear pending session on error - let user try again or close modal
   return result;
 }
 

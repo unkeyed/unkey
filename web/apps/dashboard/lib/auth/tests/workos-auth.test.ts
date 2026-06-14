@@ -442,6 +442,65 @@ describe("WorkOSAuthProvider", () => {
     });
   });
 
+  describe("completeOrgSelection with org-level MFA", () => {
+    it("requires MFA enrollment when the selected org enforces it and the user has no factor", async () => {
+      workos.userManagement.authenticateWithOrganizationSelection.mockRejectedValue(
+        authException({
+          code: "mfa_enrollment",
+          pending_authentication_token: "pending_token_2",
+          user: { id: "user_123", email: "test@example.com" },
+        }),
+      );
+
+      const result = await provider.completeOrgSelection({
+        orgId: "org_1",
+        pendingAuthToken: "pending_token_1",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe(AuthErrorCode.MFA_ENROLLMENT_REQUIRED);
+        expect("challengeType" in result && result.challengeType).toBe("mfa-enroll");
+        const cookies = "cookies" in result ? (result.cookies ?? []) : [];
+        const challengeCookie = cookies.find((cookie) => cookie.name === AUTH_CHALLENGE_COOKIE);
+        expect(JSON.parse(challengeCookie?.value ?? "{}")).toEqual({
+          type: "mfa-enroll",
+          userId: "user_123",
+          email: "test@example.com",
+        });
+        expect(cookies).toContainEqual(
+          expect.objectContaining({ name: PENDING_SESSION_COOKIE, value: "pending_token_2" }),
+        );
+      }
+    });
+
+    it("creates a TOTP challenge when the selected org requires MFA and the user is enrolled", async () => {
+      workos.userManagement.authenticateWithOrganizationSelection.mockRejectedValue(
+        authException({
+          code: "mfa_challenge",
+          pending_authentication_token: "pending_token_2",
+          user: { id: "user_123", email: "test@example.com" },
+          authentication_factors: [{ id: "auth_factor_1", type: "totp" }],
+        }),
+      );
+      workos.multiFactorAuth.challengeFactor.mockResolvedValue({ id: "auth_challenge_1" });
+
+      const result = await provider.completeOrgSelection({
+        orgId: "org_1",
+        pendingAuthToken: "pending_token_1",
+      });
+
+      expect(workos.multiFactorAuth.challengeFactor).toHaveBeenCalledWith({
+        authenticationFactorId: "auth_factor_1",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe(AuthErrorCode.MFA_CHALLENGE_REQUIRED);
+        expect("challengeType" in result && result.challengeType).toBe("mfa");
+      }
+    });
+  });
+
   describe("validateSession", () => {
     it("requests a refresh only for an expired access token", async () => {
       workos.userManagement.loadSealedSession.mockReturnValue({
