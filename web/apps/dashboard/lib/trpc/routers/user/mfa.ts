@@ -43,15 +43,28 @@ export const startMfaEnrollment = protectedProcedure.mutation(async ({ ctx }) =>
 export const verifyMfaEnrollment = protectedProcedure
   .input(
     z.object({
+      factorId: z.string().min(1),
       challengeId: z.string().min(1),
       code: z.string().length(6),
     }),
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ ctx, input }) => {
     try {
-      const valid = await authProvider.verifyMfaEnrollment(input);
+      // Only allow verifying a challenge for a factor that belongs to the caller
+      const factors = await authProvider.listMfaFactors(ctx.user.id);
+      if (!factors.some((factor) => factor.id === input.factorId)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Factor not found" });
+      }
+
+      const valid = await authProvider.verifyMfaEnrollment({
+        challengeId: input.challengeId,
+        code: input.code,
+      });
       return { valid };
     } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
       console.error("Error verifying MFA enrollment:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

@@ -1,3 +1,4 @@
+import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { SIGN_IN_URL, type VerificationResult } from "@/lib/auth/types";
 
 /**
@@ -9,13 +10,15 @@ export function applyVerificationResult(
   result: VerificationResult,
   redirectParam?: string | null,
 ): string | null {
+  const safeRedirect = redirectParam && isSafeRedirectPath(redirectParam) ? redirectParam : null;
+
   if (result.success) {
-    window.location.href = redirectParam || result.redirectTo;
+    window.location.href = safeRedirect || result.redirectTo;
     return null;
   }
 
   if ("challengeType" in result) {
-    const redirectSuffix = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : "";
+    const redirectSuffix = safeRedirect ? `&redirect=${encodeURIComponent(safeRedirect)}` : "";
     window.location.href = `${SIGN_IN_URL}?challenge=${result.challengeType}${redirectSuffix}`;
     return null;
   }
@@ -24,7 +27,7 @@ export function applyVerificationResult(
     // /auth/continue auto-selects the last used organization server-side and
     // falls back to the manual selector on the sign-in page.
     const orgsParam = encodeURIComponent(JSON.stringify(result.organizations));
-    const redirectSuffix = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : "";
+    const redirectSuffix = safeRedirect ? `&redirect=${encodeURIComponent(safeRedirect)}` : "";
     window.location.href = `/auth/continue?orgs=${orgsParam}${redirectSuffix}`;
     return null;
   }
