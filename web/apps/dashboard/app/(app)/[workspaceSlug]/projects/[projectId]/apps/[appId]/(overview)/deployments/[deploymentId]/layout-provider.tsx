@@ -3,7 +3,7 @@
 import { LoadingState } from "@/components/loading-state";
 import { type Deployment, deploymentSchema } from "@/lib/collections/deploy/deployments";
 import { trpc } from "@/lib/trpc/client";
-import { useParams } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { createContext, useContext } from "react";
 import { useProjectData } from "../../data-provider";
 
@@ -43,7 +43,7 @@ export const DeploymentLayoutProvider = ({
     if (isDeploymentsLoading || isFetchingById) {
       return <LoadingState message="Loading deployment..." />;
     }
-    throw new Error(`Deployment not found: ${deploymentId}`);
+    notFound();
   }
   return (
     <DeploymentLayoutContext.Provider value={{ deployment: resolved }}>

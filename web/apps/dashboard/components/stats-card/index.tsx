@@ -1,6 +1,7 @@
 "use client";
 import { ProgressBar } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -25,7 +26,7 @@ export const StatsCard = ({
 }: StatsCardProps) => {
   return (
     <Link
-      href={linkPath}
+      href={linkPath as Route}
       prefetch
       className="flex flex-col border border-gray-4 rounded-xl bg-grayA-1 overflow-hidden cursor-pointer"
     >

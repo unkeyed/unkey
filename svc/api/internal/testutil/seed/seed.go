@@ -251,7 +251,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		WorkspaceID:   req.WorkspaceID,
 		AppID:         req.AppID,
 		EnvironmentID: req.ID,
-		Dockerfile:    "Dockerfile",
+		Dockerfile:    sql.NullString{Valid: true, String: "Dockerfile"},
 		DockerContext: ".",
 		WatchPaths:    nil,
 		AutoDeploy:    true,

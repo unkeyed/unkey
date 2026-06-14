@@ -7,6 +7,7 @@ import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
+import type { Route } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
@@ -56,7 +57,7 @@ export function DeploymentRow({
         />
       ) : (
         <Link
-          href={href}
+          href={href as Route}
           className="absolute inset-0 z-10"
           aria-label={`Deployment ${shortenId(deployment.id)} ${deployment.status}`}
         />

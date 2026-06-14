@@ -1,6 +1,7 @@
 import { CustomDomainService } from "@/gen/proto/ctrl/v1/custom_domain_pb";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
+import { routes } from "@/lib/navigation/routes";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { TRPCError } from "@trpc/server";
@@ -82,7 +83,11 @@ export const addCustomDomain = workspaceProcedure
         throw new TRPCError({
           code: "CONFLICT",
           message: existing
-            ? `/${ctx.workspace.slug}/projects/${existing.projectId}/apps/${existing.appId}/settings`
+            ? routes.projects.apps.settings({
+                workspaceSlug: ctx.workspace.slug,
+                projectId: existing.projectId,
+                appId: existing.appId,
+              })
             : "Domain already registered",
         });
       }

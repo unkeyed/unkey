@@ -1,7 +1,10 @@
 import type Stripe from "stripe";
 
 interface PreviousAttributes {
-  // Billing period dates (change during automated renewals)
+  // Billing period dates (change during automated renewals). Since
+  // Stripe API 2025-03-31 (basil) these arrive per-item under
+  // items.data[].current_period_*; the top-level fields cover replayed
+  // events from before the endpoint version bump.
   current_period_end?: number;
   current_period_start?: number;
 
@@ -113,11 +116,15 @@ export function isAutomatedBillingRenewal(
     const previousItem = itemsChange.data[0];
     const currentItem = sub.items.data[0];
 
-    // Check if price, plan, or quantity actually changed by comparing current vs previous
+    // previous_attributes carries only the fields that changed, so a key
+    // that is absent means "unchanged" — only compare keys that are present.
+    // Basil+ webhook endpoints report renewals as items.data[] diffs carrying
+    // just current_period_*; treating their missing price as a change would
+    // misclassify every renewal as a manual update.
     if (
-      previousItem.price?.id !== currentItem.price?.id ||
-      previousItem.plan?.id !== currentItem.plan?.id ||
-      previousItem.quantity !== currentItem.quantity
+      ("price" in previousItem && previousItem.price?.id !== currentItem.price?.id) ||
+      ("plan" in previousItem && previousItem.plan?.id !== currentItem.plan?.id) ||
+      ("quantity" in previousItem && previousItem.quantity !== currentItem.quantity)
     ) {
       return false;
     }

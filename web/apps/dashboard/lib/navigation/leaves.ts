@@ -13,6 +13,7 @@ import {
   ShieldKey,
   SquareBulletList,
 } from "@unkey/icons";
+import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
 export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
@@ -21,7 +22,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     {
       key: "projects",
       label: "Projects",
-      href: `/${slug}/projects`,
+      href: routes.projects.list({ workspaceSlug: slug }),
       icon: Cube,
       isActive: top === "projects",
     },
@@ -79,13 +80,17 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
 
 export function buildAuthorizationLinks(slug: string, segments: string[]): ResolvedNavLink[] {
   const page = segments[1];
-  const base = `/${slug}/authorization`;
   return [
-    { key: "roles", label: "Roles", href: `${base}/roles`, isActive: page === "roles" },
+    {
+      key: "roles",
+      label: "Roles",
+      href: `/${slug}/authorization/roles`,
+      isActive: page === "roles",
+    },
     {
       key: "permissions",
       label: "Permissions",
-      href: `${base}/permissions`,
+      href: `/${slug}/authorization/permissions`,
       isActive: page === "permissions",
     },
   ];
@@ -97,33 +102,33 @@ export function buildProjectLinks(
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[2];
-  const base = `/${slug}/projects/${projectId}`;
+  const scope = { workspaceSlug: slug, projectId };
   return [
     {
       key: "overview",
       label: "Overview",
-      href: base,
+      href: routes.projects.detail(scope),
       icon: Cube,
       isActive: !page,
     },
     {
       key: "logs",
       label: "Logs",
-      href: `${base}/logs`,
+      href: routes.projects.logs(scope),
       icon: Layers3,
       isActive: page === "logs",
     },
     {
       key: "requests",
       label: "Requests",
-      href: `${base}/requests`,
+      href: routes.projects.requests(scope),
       icon: ArrowOppositeDirectionY,
       isActive: page === "requests",
     },
     {
       key: "settings",
       label: "Settings",
-      href: `${base}/settings`,
+      href: routes.projects.settings(scope),
       icon: Gear,
       isActive: page === "settings",
     },
@@ -137,33 +142,33 @@ export function buildAppLinks(
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[4];
-  const base = `/${slug}/projects/${projectId}/apps/${appId}`;
+  const scope = { workspaceSlug: slug, projectId, appId };
   return [
     {
       key: "deployments",
       label: "Deployments",
-      href: `${base}/deployments`,
+      href: routes.projects.apps.deployments(scope),
       icon: SquareBulletList,
       isActive: page === "deployments",
     },
     {
       key: "env-vars",
       label: "Environment Variables",
-      href: `${base}/env-vars`,
+      href: routes.projects.apps.envVars(scope),
       icon: BracketsSquareDots,
       isActive: page === "env-vars",
     },
     {
       key: "sentinel-policies",
       label: "Sentinel Policies",
-      href: `${base}/sentinel-policies`,
+      href: routes.projects.apps.sentinelPolicies(scope),
       icon: ShieldKey,
       isActive: page === "sentinel-policies",
     },
     {
       key: "settings",
       label: "Settings",
-      href: `${base}/settings`,
+      href: routes.projects.apps.settings(scope),
       icon: Gear,
       isActive: page === "settings",
     },
@@ -172,7 +177,7 @@ export function buildAppLinks(
     {
       key: "logs",
       label: "Logs",
-      href: `/${slug}/projects/${projectId}/logs?appId=${appId}`,
+      href: routes.projects.logs(scope),
       icon: Layers3,
       isActive: false,
       separatorAbove: true,
@@ -180,7 +185,7 @@ export function buildAppLinks(
     {
       key: "requests",
       label: "Requests",
-      href: `/${slug}/projects/${projectId}/requests?since=6h&appId=${appId}`,
+      href: routes.projects.requests({ ...scope, since: "6h" }),
       icon: ArrowOppositeDirectionY,
       isActive: false,
     },
@@ -188,7 +193,7 @@ export function buildAppLinks(
     // {
     //   key: "openapi-diff",
     //   label: "OpenAPI Diff",
-    //   href: `${base}/openapi-diff`,
+    //   href: routes.projects.apps.openapiDiff(...),
     //   icon: Nodes,
     //   isActive: page === "openapi-diff",
     // },
@@ -202,19 +207,18 @@ export function buildApiLinks(
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[2];
-  const base = `/${slug}/apis/${apiId}`;
   return [
     {
       key: "requests",
       label: "Requests",
-      href: base,
+      href: `/${slug}/apis/${apiId}`,
       icon: ArrowOppositeDirectionY,
       isActive: !page,
     },
     {
       key: "keys",
       label: "Keys",
-      href: keyAuthId ? `${base}/keys/${keyAuthId}` : base,
+      href: keyAuthId ? `/${slug}/apis/${apiId}/keys/${keyAuthId}` : `/${slug}/apis/${apiId}`,
       icon: Key,
       isActive: page === "keys",
       disabled: !keyAuthId,
@@ -222,7 +226,7 @@ export function buildApiLinks(
     {
       key: "settings",
       label: "Settings",
-      href: `${base}/settings`,
+      href: `/${slug}/apis/${apiId}/settings`,
       icon: Gear,
       isActive: page === "settings",
     },
@@ -235,33 +239,32 @@ export function buildNamespaceLinks(
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[2];
-  const base = `/${slug}/ratelimits/${namespaceId}`;
   return [
     {
       key: "requests",
       label: "Requests",
-      href: base,
+      href: `/${slug}/ratelimits/${namespaceId}`,
       icon: ArrowOppositeDirectionY,
       isActive: !page,
     },
     {
       key: "logs",
       label: "Logs",
-      href: `${base}/logs`,
+      href: `/${slug}/ratelimits/${namespaceId}/logs`,
       icon: Layers3,
       isActive: page === "logs",
     },
     {
       key: "settings",
       label: "Settings",
-      href: `${base}/settings`,
+      href: `/${slug}/ratelimits/${namespaceId}/settings`,
       icon: Gear,
       isActive: page === "settings",
     },
     {
       key: "overrides",
       label: "Overrides",
-      href: `${base}/overrides`,
+      href: `/${slug}/ratelimits/${namespaceId}/overrides`,
       icon: ArrowDottedRotateAnticlockwise,
       isActive: page === "overrides",
     },

@@ -102,7 +102,8 @@ export type EnvironmentSettings = z.infer<typeof schema>;
 /** Default values for environment settings fields (excluding regions, which are runtime-dependent). */
 export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   autoDeploy: true,
-  dockerfile: "Dockerfile",
+  // Empty means "no Dockerfile configured" — the app is built with Railpack.
+  dockerfile: "",
   dockerContext: ".",
   port: 8080,
   cpuMillicores: 250,
@@ -128,7 +129,7 @@ function flattenSettingsResponse(
   return {
     environmentId,
     autoDeploy: build?.autoDeploy ?? d.autoDeploy,
-    dockerfile: build?.dockerfile || d.dockerfile,
+    dockerfile: build?.dockerfile ?? d.dockerfile,
     dockerContext: build?.dockerContext || d.dockerContext,
     watchPaths: build?.watchPaths ?? [],
     port: runtime?.port ?? d.port,

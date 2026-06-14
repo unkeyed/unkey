@@ -11,6 +11,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/cmd/dev/seed",
     visibility = ["//visibility:public"],
     deps = [
+        "//cmd/dev/seed/checkpoints",
         "//internal/services/keys",
         "//pkg/array",
         "//pkg/batch",

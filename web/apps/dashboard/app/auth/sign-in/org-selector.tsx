@@ -14,6 +14,7 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
+import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { useCallback, useContext, useMemo, useState } from "react";
@@ -60,7 +61,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
     setIsOpen(false);
     // Clear pending auth state and redirect
     await clearPendingAuth();
-    router.push("/auth/sign-in");
+    router.push("/auth/sign-in" as Route);
   }, [router]);
 
   const submit = useCallback(
@@ -94,7 +95,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
 
           // If session expired, redirect to sign-in to clear stale state
           if (result.code === AuthErrorCode.PENDING_SESSION_EXPIRED) {
-            router.push("/auth/sign-in");
+            router.push("/auth/sign-in" as Route);
           }
 
           return false;

@@ -110,6 +110,10 @@ export const createSubscription = workspaceProcedure
         billing_cycle_anchor_config: {
           day_of_month: 1,
         },
+        // Stripe API 2025-09-30 (clover) and later default new
+        // subscriptions to the "flexible" billing mode, which itemizes
+        // prorations differently. Stay on classic.
+        billing_mode: { type: "classic" },
         proration_behavior: "always_invoice",
         payment_behavior: "error_if_incomplete",
       });

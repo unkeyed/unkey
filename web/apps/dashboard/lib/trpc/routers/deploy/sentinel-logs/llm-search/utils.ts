@@ -263,12 +263,12 @@ Result: [
   }
 ]
 
-Query: "show requests from staging deployment"
+Query: "requests for deployment d_9f83hf2k"
 Result: [
   {
     field: "deploymentId",
     filters: [
-      { operator: "contains", value: "staging" }
+      { operator: "is", value: "d_9f83hf2k" }
     ]
   }
 ]
@@ -383,7 +383,8 @@ ${operatorsByField}
 - status must be between 200-599
 - methods must be exactly one of: GET, POST, PUT, DELETE, PATCH (case-sensitive)
 - paths uses "contains" operator for substring matching
-- deploymentId and environmentId use "contains" for flexible matching
+- deploymentId matches a full, exact deployment id only (operator "is"); emit it only when the user gives an explicit id, never inferred from keywords
+- environmentId uses "contains" for flexible matching
 - since and startTime/endTime are mutually exclusive - prefer since for relative time
 - For multiple time ranges mentioned, use the longest duration
 
@@ -414,11 +415,11 @@ Special handling rules:
    - "delete", "remove", "removing" → DELETE
    - "patch", "modify", "modifying" → PATCH
 
-4. Environment/deployment terms:
+4. Environment terms:
    - "prod", "production", "live" → environmentId contains "production" or "prod"
    - "staging", "stage", "stg" → environmentId contains "staging" or "stg"
    - "dev", "development" → environmentId contains "dev"
-   - "preview", "pr" → deploymentId contains "preview" or "pr"
+   - Deployment ids are opaque (e.g. d_9f83hf2k); never map keywords to deploymentId — only filter by it when the user provides a full id
 
 Error Handling Rules:
 1. Invalid status codes: Map to nearest valid code or range

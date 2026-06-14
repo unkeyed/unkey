@@ -23,6 +23,7 @@ import {
 } from "@/lib/auth/types";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
+import type { Route } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -332,7 +333,7 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-  redirect(redirectTo);
+  redirect(redirectTo as Route);
 }
 
 // Organization Selection
