@@ -1,0 +1,64 @@
+---
+title: "June 12, 2026"
+description: "Build and deploy apps with no Dockerfile, redesigned project cards and empty state, reworked workspace onboarding, and a cleaner Unkey naming pass."
+noindex: true
+---
+
+## New features
+
+### Automatic builds, no Dockerfile required
+
+Unkey now builds your application without a Dockerfile. Push a GitHub repository and the build machine detects your language, package manager, and framework, installs dependencies, and produces a container image. Node.js, Python, Go, PHP, Java, Rust, Ruby, Elixir, Deno, .NET, Gleam, C++, static sites, and shell scripts are all supported out of the box.
+
+Most projects need zero configuration. Tool versions come from your repository's standard files, for example lockfiles, `engines` in `package.json`, `.nvmrc`, `.python-version`, or `go.mod`. In a monorepo, point the [root directory](/platform/apps/settings#root-directory) at the service you want to deploy.
+
+[Environment variables](/platform/variables/overview) are available during the build automatically, with no `--mount=type=secret` plumbing. The build cache is invalidated when a value changes, and values are never written into image layers.
+
+If you need full control over the image, point your app at a [Dockerfile](/builds/dockerfile) and Unkey builds with it instead. The setting is per app and per environment, so existing apps with a configured Dockerfile are unaffected. See [Builds](/builds/overview).
+
+### Project cards show the apps inside
+
+The projects list now uses a redesigned card that summarizes the apps inside each project: an avatar-style stack of app-source icons (GitHub or terminal) with a hover card listing every app and its repo. New projects get a "No apps yet" empty state. See [Projects](/platform/projects/overview).
+
+### Upgraded empty state for new workspaces
+
+A workspace with no projects now sees a full-bleed empty state that explains what Unkey deploys do, alongside a create-project CTA. The search-no-match result keeps its existing inline empty.
+
+### Composable page header and secondary nav
+
+Settings pages now use new page composition primitives — `PageHeader`, `PageShell`, and `SecondaryNav` — that render behind the new navigation flag. Migrated pages include **General**, **Team**, **Root keys**, and **Billing**, with a `full` width variant available for dense data pages.
+
+## Updates
+
+### Unkey, not "Unkey Deploy"
+
+Deploy is not a separate product. Living docs, the beta snippet, the CLI progress header, and the Dockerfile AI prompt no longer call it "Unkey Deploy" — Unkey is deploy and deploy is Unkey. Dated changelog entries are left as historical records.
+
+### Reworked workspace onboarding
+
+The onboarding and auth pages now scroll on short viewports instead of clipping content, the single-step wizard is a composable card with a skeleton loading state, and the workspace name field autofocuses on pointer devices. The create-project dialog also opens directly from the projects empty state CTA, which previously linked to a missing route.
+
+### Build error message matches the docs
+
+The troubleshooting entry for plan-generation failures now uses the same wording the worker surfaces ("Unkey could not determine how to build this app"), so search and recognition line up with what you actually see in the build log.
+
+### Environment variable name validation
+
+Variable names are now validated as POSIX shell identifiers (letters, digits, and underscores, not starting with a digit) at variable creation, with a clear error. The same rule is asserted at build time so older variables that don't fit the rule fail the build with a readable message instead of an opaque error.
+
+### Registry retries during builds
+
+Transient registry 5xx errors during build solves are now retried instead of failing the deployment terminally, for both automatic and Dockerfile builds.
+
+### Missing deployments and projects return 404
+
+The dashboard now renders a 404 boundary when a deployment or project doesn't exist, instead of throwing a runtime error and rendering a 500.
+
+## Bug fixes
+
+- Editing a root key's permissions now bumps the key's "last updated" timestamp, so the dashboard no longer shows a stale value after permission changes.
+- Fork pull request approvals redirect to the correct deployment path.
+- The duplicate copy-workspace button in the sidebar is gone, along with the duplicate user buttons that appeared in some layouts.
+- Filter and breadcrumb popovers render at a consistent height and size, and the projects page no longer has a z-index issue that hid menus behind cards.
+- Cross-keyspace contamination on shared resources is fixed.
+- Worker permissions for forked pull requests are now scoped to the specific repository and guard against external forks.
