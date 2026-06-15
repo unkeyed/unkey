@@ -103,7 +103,7 @@ export function MfaEnroll() {
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
-        <p className="text-xs text-white/40">Can't scan it? Enter this code manually:</p>
+        <p className="text-sm text-white/40">Can't scan it? Enter this code manually:</p>
         {/* The code sits on its own line so it never wraps mid-string, with
             one-click copy. Fixed single-line height keeps the form from
             shifting when the code resolves. */}

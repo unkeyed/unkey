@@ -155,7 +155,7 @@ function EnrollDialog() {
               className="w-44 h-44 rounded-lg bg-white p-2"
             />
             <div className="flex w-full flex-col items-center gap-2">
-              <p className="text-gray-9 text-xs text-center">
+              <p className="text-gray-9 text-sm text-center">
                 Can't scan it? Enter this code manually:
               </p>
               {/* Keep the code on its own line so it never line-wraps, and
