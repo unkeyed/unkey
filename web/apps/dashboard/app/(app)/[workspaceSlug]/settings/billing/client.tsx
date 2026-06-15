@@ -54,7 +54,7 @@ export const Client: React.FC = () => {
     return (
       <BillingContainer>
         <div className="animate-pulse">
-          <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
+          <div className="flex w-full flex-col items-center gap-6">
             <div className="w-full h-[150px] bg-grayA-3 rounded-lg" />
             <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
             <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
@@ -96,7 +96,7 @@ export const Client: React.FC = () => {
 
   return (
     <BillingContainer>
-      <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
+      <div className="flex w-full flex-col items-center gap-6">
         {subscription ? (
           <SubscriptionStatus
             workspaceSlug={workspace.slug}
