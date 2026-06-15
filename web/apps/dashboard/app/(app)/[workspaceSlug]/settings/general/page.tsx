@@ -16,7 +16,7 @@ export default function SettingsPage() {
         </PageHeaderContent>
       </PageHeader>
       <PageBody>
-        <div className="w-full flex flex-col pt-4">
+        <div className="w-full flex flex-col">
           <UpdateWorkspaceName />
           {/* <UpdateWorkspaceImage /> */}
           <CopyWorkspaceId workspaceId={workspace.id} />
