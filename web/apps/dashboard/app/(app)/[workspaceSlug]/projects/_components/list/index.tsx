@@ -7,14 +7,16 @@ import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./project-card";
 import { ProjectCardSkeleton } from "./project-card-skeleton";
 
-const MAX_SKELETON_COUNT = 8;
+// One row at the 3-column desktop width so loading doesn't tower over the
+// real list before it resolves.
+const MAX_SKELETON_COUNT = 3;
 
 export const ProjectsList = () => {
   const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
 
   if (projects.isLoading) {
     return (
-      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,1fr))]">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
           <ProjectCardSkeleton key={i} />
@@ -37,7 +39,7 @@ export const ProjectsList = () => {
     );
   }
   return (
-    <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,1fr))]">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
       {projects.data.map((project) => (
         <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
           <ProjectCard

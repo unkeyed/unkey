@@ -11,7 +11,9 @@ import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { AppActions } from "./app-actions";
 
-const MAX_SKELETON_COUNT = 4;
+// One row at the 3-column desktop width so loading doesn't tower over the
+// real list before it resolves.
+const MAX_SKELETON_COUNT = 3;
 
 export const AppsList = () => {
   const params = useParams();
@@ -29,7 +31,7 @@ export const AppsList = () => {
   return (
     <>
       {apps.isLoading ? (
-        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
             <ResourceCardSkeleton key={i} />
@@ -52,7 +54,7 @@ export const AppsList = () => {
           </Empty>
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {apps.data.map((app) => (
             <ResourceCard
               key={app.id}
