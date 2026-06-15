@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ProjectDataProvider } from "../../[appId]/(overview)/data-provider";
@@ -30,7 +31,12 @@ const DeploymentLiveStepContent = ({ projectId, appId }: { projectId: string; ap
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
 
-  const deploymentUrl = `/${workspace.slug}/projects/${projectId}/apps/${appId}/deployments/${deployment.id}`;
+  const deploymentUrl = routes.projects.apps.deployment({
+    workspaceSlug: workspace.slug,
+    projectId,
+    appId,
+    deploymentId: deployment.id,
+  });
 
   useEffect(() => {
     router.replace(deploymentUrl);

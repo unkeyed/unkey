@@ -8,6 +8,7 @@ const securityHeaders = [
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  typedRoutes: true,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   productionBrowserSourceMaps: true,
   // we're open-source anyways

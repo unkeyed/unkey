@@ -6,6 +6,7 @@ import {
   createProjectRequestSchema,
 } from "@/lib/collections/deploy/projects";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
+import { routes } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
@@ -13,6 +14,7 @@ import { Button, FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type React from "react";
+import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 
 const DynamicDialogContainer = dynamic(
@@ -31,6 +33,7 @@ type Props = {
 
 export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Props) => {
   const router = useRouter();
+  const [isNavigating, startNavigation] = useTransition();
   const {
     register,
     handleSubmit,
@@ -52,6 +55,8 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
       const tx = collection.projects.insert({
         name: values.name,
         slug: values.slug,
+        appCount: 0,
+        apps: [],
         repositoryFullName: null,
         currentDeploymentId: null,
         isRolledBack: false,
@@ -69,8 +74,11 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
       });
       await tx.isPersisted.promise;
       const { projectId } = tx.metadata as { projectId: string };
-      router.push(`/${workspaceSlug}/projects/${projectId}/apps/new`);
-      onOpenChange(false);
+      // Keep the dialog (and its loading button) up until the new route has
+      // rendered; closing immediately leaves the user staring at the old page.
+      startNavigation(() => {
+        router.push(routes.projects.apps.new({ workspaceSlug, projectId }));
+      });
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
         setError("slug", {
@@ -83,10 +91,19 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
     }
   }
 
+  const isBusy = isSubmitting || isNavigating;
+
   return (
     <DynamicDialogContainer
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={(open) => {
+        // Block escape/overlay/X while the project is being created or we're
+        // navigating to it; closing would orphan the redirect.
+        if (!open && isBusy) {
+          return;
+        }
+        onOpenChange(open);
+      }}
       title="Create New Project"
       footer={
         <div className="w-full flex flex-col gap-2 items-center justify-center">
@@ -95,8 +112,8 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
             form="create-project-form"
             variant="primary"
             size="xlg"
-            disabled={isSubmitting || !isValid}
-            loading={isSubmitting}
+            disabled={isBusy || !isValid}
+            loading={isBusy}
             className="w-full rounded-lg"
           >
             Create Project

@@ -1,7 +1,8 @@
 "use client";
 
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { useWorkspace } from "@/providers/workspace-provider";
+import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
@@ -14,7 +15,7 @@ import { z } from "zod";
 
 export function DeleteProject() {
   const { projectId, project } = useProjectData();
-  const { workspace } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -44,7 +45,7 @@ export function DeleteProject() {
   const onSubmit = (_values: FormValues) => {
     collection.projects.delete(projectId);
     setIsDialogOpen(false);
-    router.push(`/${workspace?.slug}/projects`);
+    router.push(routes.projects.list({ workspaceSlug: workspace.slug }));
   };
 
   // Without a loaded project, projectName is "" and an empty confirmation

@@ -1,19 +1,16 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { githubUrl } from "@/lib/github-url";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
-import { ResourceCard } from "./resource-card";
-import { ResourceCardSkeleton } from "./resource-card-skeleton";
+import { ProjectCard } from "./project-card";
+import { ProjectCardSkeleton } from "./project-card-skeleton";
 
 const MAX_SKELETON_COUNT = 8;
 
 export const ProjectsList = () => {
-  const workspace = useWorkspaceNavigation();
   const { filters } = useProjectsFilters();
   const projectName = filters.find((f) => f.field === "query")?.value ?? "";
 
@@ -31,7 +28,7 @@ export const ProjectsList = () => {
         <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
           {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-            <ResourceCardSkeleton key={i} />
+            <ProjectCardSkeleton key={i} />
           ))}
         </div>
       </div>
@@ -56,21 +53,11 @@ export const ProjectsList = () => {
       <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
-            <ResourceCard
-              href={`/${workspace.slug}/projects/${project.id}`}
+            <ProjectCard
+              projectId={project.id}
               name={project.name}
-              domain={project.domain}
-              commitTitle={project.commitTitle}
-              sourceUrl={githubUrl.deployment({
-                repoFullName: project.repositoryFullName,
-                forkRepoFullName: project.forkRepositoryFullName,
-                prNumber: project.prNumber,
-                sha: project.commitSha,
-              })}
-              commitTimestamp={project.commitTimestamp}
-              branch={project.branch}
-              author={project.author}
-              authorAvatar={project.authorAvatar}
+              appCount={project.appCount}
+              apps={project.apps}
               actions={
                 <ProjectActions projectId={project.id}>
                   <Button

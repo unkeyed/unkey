@@ -1,6 +1,7 @@
 "use client";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { StepWizard } from "@unkey/ui";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -39,7 +40,7 @@ export const AppSetupWizard = () => {
 
   const handleSkipGithubSetup = () => {
     bypass();
-    router.replace(`/${workspace.slug}/projects/${projectId}`);
+    router.replace(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
   };
 
   return (
@@ -69,7 +70,7 @@ export const AppSetupWizard = () => {
                 <>
                   Choose a repository and a branch containing your app.
                   <br />
-                  We'll automatically detect Dockerfiles.
+                  We'll detect how to build it automatically.
                 </>
               }
             />

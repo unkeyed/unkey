@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
 import { Empty, Loading } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -182,7 +183,7 @@ function SignInContent() {
       if (!pendingSession) {
         setError(errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED]);
         // Clear the orgs query parameter to reset to sign-in form
-        router.push("/auth/sign-in");
+        router.push("/auth/sign-in" as Route);
       }
     };
 
@@ -217,7 +218,7 @@ function SignInContent() {
         <WarnBanner>
           <div className="flex items-center justify-between w-full gap-2">
             <p className="text-xs">Account not found, did you mean to sign up?</p>
-            <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}`}>
+            <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}` as Route}>
               <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50 text-[#FFD55D] duration-200 p-1 rounded-lg">
                 <ArrowRight iconSize="md-regular" />
               </div>
@@ -241,7 +242,7 @@ function SignInContent() {
             <h1 className="text-4xl text-white">Sign In</h1>
             <p className="mt-4 text-sm text-md text-white/50">
               New to Unkey?{" "}
-              <Link href="/auth/sign-up" className="ml-2 text-white hover:underline">
+              <Link href={"/auth/sign-up" as Route} className="ml-2 text-white hover:underline">
                 Create new account
               </Link>
             </p>
