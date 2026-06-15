@@ -1,6 +1,6 @@
 "use client";
 
-import { Loading } from "@unkey/ui";
+import { CopyButton, Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { beginAuthMfaEnrollment, completeAuthMfaChallenge } from "../actions";
@@ -102,11 +102,24 @@ export function MfaEnroll() {
         )}
       </div>
 
-      {/* Reserve height for the (wrapping) secret so it doesn't shift the form */}
-      <p className="mt-4 min-h-10 text-xs text-white/40 break-all">
-        Can't scan it? Enter this secret manually:{" "}
-        <span className="text-white/70 font-mono">{enrollment?.secret ?? "Generating…"}</span>
-      </p>
+      <div className="mt-4 flex flex-col gap-2">
+        <p className="text-xs text-white/40">Can't scan it? Enter this code manually:</p>
+        {/* The code sits on its own line so it never wraps mid-string, with
+            one-click copy. Fixed single-line height keeps the form from
+            shifting when the code resolves. */}
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+          <code className="font-mono text-sm text-white/80 whitespace-nowrap overflow-x-auto">
+            {enrollment?.secret ?? "Generating…"}
+          </code>
+          <CopyButton
+            value={enrollment?.secret ?? ""}
+            variant="ghost"
+            disabled={!enrollment}
+            toastMessage="Copied setup code"
+            className="shrink-0 text-white/60 hover:text-white"
+          />
+        </div>
+      </div>
 
       <form
         className="flex flex-col gap-12 mt-8"

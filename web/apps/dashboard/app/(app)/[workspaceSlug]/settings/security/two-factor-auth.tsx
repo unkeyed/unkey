@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Button, DialogContainer, FormInput, SettingCard, toast } from "@unkey/ui";
+import { Button, CopyButton, DialogContainer, FormInput, SettingCard, toast } from "@unkey/ui";
 import { useState } from "react";
 
 export function TwoFactorAuth() {
@@ -154,10 +154,24 @@ function EnrollDialog() {
               alt="QR code for authenticator app"
               className="w-44 h-44 rounded-lg bg-white p-2"
             />
-            <p className="text-gray-9 text-xs break-all text-center">
-              Can't scan it? Enter this secret manually:{" "}
-              <span className="font-mono text-accent-12">{enrollment.secret}</span>
-            </p>
+            <div className="flex w-full flex-col items-center gap-2">
+              <p className="text-gray-9 text-xs text-center">
+                Can't scan it? Enter this code manually:
+              </p>
+              {/* Keep the code on its own line so it never line-wraps, and
+                  offer one-click copy. */}
+              <div className="flex w-full items-center justify-between gap-2 rounded-lg border border-grayA-5 bg-gray-2 dark:bg-black px-3 py-2">
+                <code className="font-mono text-sm text-accent-12 whitespace-nowrap overflow-x-auto">
+                  {enrollment.secret}
+                </code>
+                <CopyButton
+                  value={enrollment.secret}
+                  variant="ghost"
+                  toastMessage="Copied setup code"
+                  className="shrink-0"
+                />
+              </div>
+            </div>
             <FormInput
               label="Verification code"
               placeholder="123456"
