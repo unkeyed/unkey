@@ -150,7 +150,7 @@ func createPortalSession(
 	t.Helper()
 	ctx := context.Background()
 
-	sessionID := uid.New("ps")
+	sessionID := uid.New(uid.PortalSessionPrefix)
 
 	permsJSON, err := json.Marshal(permissions)
 	require.NoError(t, err)
@@ -158,7 +158,7 @@ func createPortalSession(
 	err = db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
 		ID:             sessionID,
 		WorkspaceID:    workspaceID,
-		PortalConfigID: uid.New("portal_config"),
+		PortalConfigID: uid.New(uid.PortalConfigPrefix),
 		ExternalID:     externalID,
 		Permissions:    permsJSON,
 		Preview:        false,
