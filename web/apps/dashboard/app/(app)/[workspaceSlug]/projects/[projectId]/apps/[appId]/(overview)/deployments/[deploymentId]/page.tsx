@@ -58,20 +58,12 @@ export default function DeploymentOverview() {
     ))
     .with("superseded", () => (
       <div key="superseded" className="animate-fade-slide-in">
-        <DeploymentCancelled
-          deployment={deployment}
-          stepsData={steps.data}
-          reason="superseded"
-        />
+        <DeploymentCancelled deployment={deployment} stepsData={steps.data} reason="superseded" />
       </div>
     ))
     .with("cancelled", () => (
       <div key="cancelled" className="animate-fade-slide-in">
-        <DeploymentCancelled
-          deployment={deployment}
-          stepsData={steps.data}
-          reason="cancelled"
-        />
+        <DeploymentCancelled deployment={deployment} stepsData={steps.data} reason="cancelled" />
       </div>
     ))
     .with("ready", () => (
