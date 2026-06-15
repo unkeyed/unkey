@@ -1,11 +1,11 @@
 ---
 title: What is Unkey?
-description: "Unkey is a globally distributed API platform that ships a Dockerfile to production with built-in key issuance, rate limiting, and analytics."
+description: "Unkey is a globally distributed API platform that ships your repo to production with built-in key issuance, rate limiting, and analytics."
 ---
 
 **Ship APIs, not infrastructure.**
 
-Push a Dockerfile, get a production API. Unkey builds the image, runs it across your chosen regions, and routes every request through Sentinel for API key authentication, rate limiting, and IP rules before it hits your code. Domains, rollbacks, and analytics are handled. You write the application; we run it.
+Push your repo, get a production API. Unkey builds the image, runs it across your chosen regions, and routes every request through Sentinel for API key authentication, rate limiting, and IP rules before it hits your code. Domains, rollbacks, and analytics are handled. You write the application; we run it.
 
 <CardGroup cols={2}>
   <Card title="Deploy" icon="rocket" href="/build-and-deploy/overview">
@@ -40,7 +40,7 @@ Shipping an API used to mean stitching together a runtime, a CDN, a key store, a
 ## What can you build?
 
 <AccordionGroup>
-  <Accordion title="Ship a production API from a Dockerfile" icon="rocket">
+  <Accordion title="Ship a production API from your repo" icon="rocket">
     Connect a GitHub repository or run `unkey deploy`. Unkey builds your image, runs it across your chosen regions, and assigns domains automatically. Every push to your default branch goes to production; every other branch gets a preview environment.
 
     ```bash

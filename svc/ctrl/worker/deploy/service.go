@@ -106,6 +106,10 @@ type Config struct {
 
 // New creates a new deployment workflow instance.
 func New(cfg Config) *Workflow {
+	// Reclaim build workspaces orphaned by a previous crash. Runs before any
+	// handler is bound, so no live workspace can match.
+	cleanupStaleRailpackWorkspaces()
+
 	return &Workflow{
 		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
 		db:                               cfg.DB,

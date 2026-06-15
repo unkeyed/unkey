@@ -11,7 +11,8 @@ import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { useRepoTree } from "./use-repo-tree";
 
 const dockerfileSchema = z.object({
-  dockerfile: z.string().min(1, "Dockerfile path is required"),
+  // Empty means "no Dockerfile configured": the app builds with Railpack.
+  dockerfile: z.string(),
 });
 
 export const Dockerfile = () => {
@@ -34,13 +35,32 @@ export const Dockerfile = () => {
 
   const currentDockerfile = useWatch({ control, name: "dockerfile", defaultValue });
 
-  const validation = validateDockerfilePath(currentDockerfile, dockerContext);
+  // An empty path is valid: it means the app builds with Railpack instead.
+  const validation = currentDockerfile
+    ? validateDockerfilePath(currentDockerfile, dockerContext)
+    : "valid";
   const caseMatch =
     validation === "invalid" ? findDockerfileCaseMatch(currentDockerfile, dockerContext) : null;
   const detectedDockerfiles = getDockerfilesForContext(dockerContext);
 
   const options = useMemo(
-    () => detectedDockerfiles.map((path) => ({ label: path, value: path })),
+    () => [
+      // The empty value is a first-class choice: it means "no Dockerfile
+      // configured" and the app is built with Railpack instead. searchValue
+      // keeps the option matchable since cmdk can't match an empty string.
+      {
+        label: <span className="text-gray-11">Automatic (no Dockerfile)</span>,
+        selectedLabel: "Automatic (no Dockerfile)",
+        value: "",
+        searchValue: "automatic (no dockerfile)",
+      },
+      ...detectedDockerfiles.map((path) => ({
+        label: path,
+        selectedLabel: path,
+        value: path,
+        searchValue: path,
+      })),
+    ],
     [detectedDockerfiles],
   );
 
@@ -89,19 +109,19 @@ export const Dockerfile = () => {
     <FormSettingCard
       icon={<FileSettings className="text-gray-12" iconSize="xl-medium" />}
       title="Dockerfile"
-      description="Dockerfile location used for docker build. (e.g., services/api/Dockerfile)"
-      displayValue={defaultValue}
+      description="Dockerfile location used for docker build. Leave empty and Unkey builds your app automatically without a Dockerfile."
+      displayValue={defaultValue || "Automatic (no Dockerfile)"}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
       <SettingField>
         <FormCombobox
-          requirement="required"
+          requirement="optional"
           label="Dockerfile"
           description={
             warningMessage ??
-            "Dockerfile location used for docker build. Changes apply on next deploy."
+            "Dockerfile location used for docker build. Leave empty to build automatically without a Dockerfile. Changes apply on next deploy."
           }
           options={options}
           wrapperClassName="max-w-[calc(var(--setting-w)-1rem)]"

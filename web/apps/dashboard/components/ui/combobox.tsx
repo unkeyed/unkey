@@ -152,7 +152,9 @@ export function Combobox({
     >
       <div className={cn(comboboxWrapperVariants({ variant }), wrapperClassName)}>
         {leftIcon && (
-          <div className="absolute left-3 flex items-center pointer-events-none">{leftIcon}</div>
+          <div className="absolute left-3 z-10 flex items-center pointer-events-none">
+            {leftIcon}
+          </div>
         )}
         <PopoverTrigger asChild className="w-full">
           <Button

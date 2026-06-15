@@ -8,12 +8,25 @@ const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
+  // Apps inside the project, newest first, for the card's app stack.
+  appCount: z.number().int(),
+  apps: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      source: z.enum(["github", "code"]),
+      repository: z.string().nullable(),
+    }),
+  ),
   repositoryFullName: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
   currentDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
   // Flattened deployment fields for UI
   commitTitle: z.string().nullable(),
+  commitSha: z.string().nullable(),
+  forkRepositoryFullName: z.string().nullable(),
+  prNumber: z.number().int().nullable(),
   branch: z.string(),
   author: z.string().nullable(),
   authorAvatar: z.string().nullable(),

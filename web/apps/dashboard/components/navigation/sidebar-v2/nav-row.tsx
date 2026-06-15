@@ -3,6 +3,7 @@
 import { getButtonStyles } from "@/components/navigation/sidebar/app-sidebar/components/nav-items/utils";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import type { ResolvedNavLink } from "@/lib/navigation/types";
+import type { Route } from "next";
 import Link from "next/link";
 
 export function NavRow({ link }: { link: ResolvedNavLink }) {
@@ -41,7 +42,7 @@ export function NavRow({ link }: { link: ResolvedNavLink }) {
         isActive={link.isActive}
         className={getButtonStyles(link.isActive)}
       >
-        <Link href={link.href} {...linkProps}>
+        <Link href={link.href as Route} {...linkProps}>
           {contents}
         </Link>
       </SidebarMenuButton>

@@ -10,7 +10,6 @@ import {
   LiveIndicator,
   NodeDetailsPanel,
   OriginNode,
-  ProjectDetails,
   RegionNode,
   SKELETON_TREE,
   SkeletonNode,
@@ -23,14 +22,10 @@ import {
 } from "./unkey-flow";
 
 interface DeploymentNetworkViewProps {
-  showProjectDetails?: boolean;
   showNodeDetails?: boolean;
 }
 
-export function DeploymentNetworkView({
-  showProjectDetails = false,
-  showNodeDetails = false,
-}: DeploymentNetworkViewProps) {
+export function DeploymentNetworkView({ showNodeDetails = false }: DeploymentNetworkViewProps) {
   const { deployment } = useDeployment();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
@@ -58,7 +53,6 @@ export function DeploymentNetworkView({
             />
           )}
 
-          {showProjectDetails && <ProjectDetails />}
           <LiveIndicator />
           {process.env.NODE_ENV === "development" && (
             <InternalDevTreeGenerator

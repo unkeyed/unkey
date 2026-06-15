@@ -16,7 +16,6 @@ type Props = {
   keys: number;
   api: {
     id: string;
-    workspaceId: string;
     name: string;
     deleteProtection: boolean | null;
   };

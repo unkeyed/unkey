@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { getBaseUrl } from "@/lib/utils";
 import { Code, Empty } from "@unkey/ui";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import type Stripe from "stripe";
 
@@ -75,5 +76,5 @@ export default async function StripeRedirect() {
     );
   }
 
-  return redirect(session.url);
+  return redirect(session.url as Route);
 }

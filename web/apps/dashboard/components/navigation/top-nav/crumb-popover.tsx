@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Check } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ComponentType, type ReactNode, useState } from "react";
@@ -55,7 +56,7 @@ export function CrumbPopover({
   const selectItem = (item: CrumbPopoverItem) => {
     setOpen(false);
     if (item.href) {
-      router.push(item.href);
+      router.push(item.href as Route);
     } else if (item.onClick) {
       item.onClick();
     }
@@ -76,7 +77,10 @@ export function CrumbPopover({
             return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
           }}
         >
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput
+            placeholder={searchPlaceholder}
+            className="text-[13px] placeholder:text-[13px] placeholder:text-accent-8"
+          />
           <CommandList>
             <CommandEmpty className="py-6">{emptyText}</CommandEmpty>
             <CommandGroup>
@@ -87,14 +91,14 @@ export function CrumbPopover({
                     key={item.id}
                     value={item.label}
                     onSelect={() => selectItem(item)}
-                    className="gap-2"
+                    className="flex items-center gap-2 py-1 mt-0"
                   >
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge ? <span className="shrink-0">{item.badge}</span> : null}
                     <Check
                       iconSize="sm-regular"
                       className={cn(
-                        "size-3.5 shrink-0 text-accent-12",
+                        "shrink-0 text-accent-12",
                         isCurrent ? "opacity-100" : "opacity-0",
                       )}
                     />
@@ -109,7 +113,7 @@ export function CrumbPopover({
                 onSelect={() => {
                   setOpen(false);
                   if (footer.href) {
-                    router.push(footer.href);
+                    router.push(footer.href as Route);
                   } else if (footer.onClick) {
                     footer.onClick();
                   }
@@ -141,7 +145,10 @@ function FooterRow({
   if (footer.href) {
     return (
       <CommandItem asChild value={`__footer__${footer.label}`} onSelect={onSelect}>
-        <Link href={footer.href} className="gap-2">
+        <Link
+          href={footer.href as Route}
+          className="flex items-center gap-2 py-1 mt-0 overflow-hidden"
+        >
           {body}
         </Link>
       </CommandItem>
@@ -149,7 +156,11 @@ function FooterRow({
   }
 
   return (
-    <CommandItem value={`__footer__${footer.label}`} onSelect={onSelect} className="gap-2">
+    <CommandItem
+      value={`__footer__${footer.label}`}
+      onSelect={onSelect}
+      className="flex items-center gap-2 py-1 mt-0"
+    >
       {body}
     </CommandItem>
   );

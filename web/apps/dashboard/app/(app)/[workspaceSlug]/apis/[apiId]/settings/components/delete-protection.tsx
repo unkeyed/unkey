@@ -13,7 +13,6 @@ import { StatusBadge } from "./status-badge";
 type Props = {
   api: {
     id: string;
-    workspaceId: string;
     name: string;
     deleteProtection: boolean | null;
   };

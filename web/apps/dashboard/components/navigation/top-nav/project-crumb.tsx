@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Cube, Plus } from "@unkey/icons";
 import { Crumb } from "./crumb";
@@ -22,7 +23,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
   const items: CrumbPopoverItem[] = projects.map((p) => ({
     id: p.id,
     label: p.name,
-    href: `/${workspace.slug}/projects/${p.id}`,
+    href: routes.projects.detail({ workspaceSlug: workspace.slug, projectId: p.id }),
   }));
 
   return (
@@ -30,7 +31,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
       icon={<Cube className="size-3.5 text-accent-11" iconSize="sm-regular" />}
       label={current?.name ?? projectId}
       loading={loading}
-      href={`/${workspace.slug}/projects/${projectId}`}
+      href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId })}
       items={items}
       currentId={projectId}
       searchPlaceholder="Find project..."
@@ -38,7 +39,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
       footer={{
         icon: Plus,
         label: "New project",
-        href: `/${workspace.slug}/projects?new=true`,
+        href: routes.projects.list({ workspaceSlug: workspace.slug, new: true }),
       }}
     />
   );

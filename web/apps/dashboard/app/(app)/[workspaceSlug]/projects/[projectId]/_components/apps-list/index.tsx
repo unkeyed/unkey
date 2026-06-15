@@ -3,6 +3,8 @@ import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/l
 import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { githubUrl } from "@/lib/github-url";
+import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Dots, Github, Plus, Terminal } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -17,7 +19,8 @@ export const AppsList = () => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
-  const openCreateApp = () => router.push(`/${workspace.slug}/projects/${projectId}/apps/new`);
+  const openCreateApp = () =>
+    router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
 
   const apps = useLiveQuery(
     (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
@@ -56,7 +59,11 @@ export const AppsList = () => {
             {apps.data.map((app) => (
               <ResourceCard
                 key={app.id}
-                href={`/${workspace.slug}/projects/${projectId}/apps/${app.id}/deployments`}
+                href={routes.projects.apps.deployments({
+                  workspaceSlug: workspace.slug,
+                  projectId,
+                  appId: app.id,
+                })}
                 icon={
                   app.repositoryFullName ? (
                     <Github iconSize="xl-medium" className="shrink-0 size-5" />
@@ -67,6 +74,12 @@ export const AppsList = () => {
                 name={app.name}
                 domain={app.domain}
                 commitTitle={app.commitTitle}
+                sourceUrl={githubUrl.deployment({
+                  repoFullName: app.repositoryFullName,
+                  forkRepoFullName: app.forkRepositoryFullName,
+                  prNumber: app.prNumber,
+                  sha: app.commitSha,
+                })}
                 commitTimestamp={app.commitTimestamp}
                 branch={app.branch}
                 author={app.author}

@@ -1,5 +1,6 @@
 import { CodeBranch, Cube } from "@unkey/icons";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
@@ -9,13 +10,15 @@ type ResourceCardProps = {
   name: string;
   domain: string | null;
   commitTitle: string | null;
+  /** GitHub PR or commit link. Null for non-git deployments. */
+  sourceUrl?: string | null;
   commitTimestamp?: number | null;
   branch: string;
   author: string | null;
   authorAvatar: string | null;
   actions?: ReactNode;
   /** Card link target. Projects link to their home; apps link to deployments. */
-  href: string;
+  href: Route;
   /** Icon shown in the card's avatar slot. Defaults to Cube. */
   icon?: ReactNode;
 };
@@ -24,6 +27,7 @@ export const ResourceCard = ({
   name,
   domain,
   commitTitle,
+  sourceUrl,
   commitTimestamp,
   branch,
   author,
@@ -91,12 +95,20 @@ export const ResourceCard = ({
       <div className="flex flex-col gap-2">
         {commitTitle ? (
           <InfoTooltip content={commitTitle} asChild position={{ align: "start", side: "top" }}>
-            <Link
-              href="#"
-              className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
-            >
-              {commitTitle}
-            </Link>
+            {sourceUrl ? (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
+              >
+                {commitTitle}
+              </a>
+            ) : (
+              <span className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+                {commitTitle}
+              </span>
+            )}
           </InfoTooltip>
         ) : (
           <div className="h-5">

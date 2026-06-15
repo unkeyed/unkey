@@ -1031,7 +1031,7 @@ type AppBuildSetting struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	AppID         string          `db:"app_id"`
 	EnvironmentID string          `db:"environment_id"`
-	Dockerfile    string          `db:"dockerfile"`
+	Dockerfile    sql.NullString  `db:"dockerfile"`
 	DockerContext string          `db:"docker_context"`
 	WatchPaths    json.RawMessage `db:"watch_paths"`
 	AutoDeploy    bool            `db:"auto_deploy"`

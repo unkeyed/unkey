@@ -3,6 +3,7 @@
 import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import type { Route } from "next";
 import Link from "next/link";
 import React from "react";
 
@@ -61,7 +62,7 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
         ) : (
           <Link
             ref={ref}
-            href={href}
+            href={href as Route}
             className={cn(
               "text-sm transition-colors",
               active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",

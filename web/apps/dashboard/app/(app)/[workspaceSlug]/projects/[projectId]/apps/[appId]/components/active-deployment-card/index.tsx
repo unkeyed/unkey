@@ -3,6 +3,7 @@
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/env-status-badge";
 import { collection } from "@/lib/collections";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { githubUrl } from "@/lib/github-url";
 import type { LastExit } from "@/lib/types/deploy";
 import {
   formatCpuParts,
@@ -107,13 +108,7 @@ export function ActiveDeploymentCard({
           </div>
           <div className="flex items-center gap-3 min-w-0">
             {deployment.gitCommitMessage && (
-              <GitHubLink
-                href={
-                  deployment.gitCommitSha && sourceRepo
-                    ? `https://github.com/${sourceRepo}/commit/${deployment.gitCommitSha}`
-                    : undefined
-                }
-              >
+              <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                 <div className="flex items-center gap-1.5 min-w-0">
                   <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
                   <span className="text-xs text-accent-12 truncate">
@@ -170,13 +165,7 @@ export function ActiveDeploymentCard({
                 </InfoTooltip>
               )}
               {deployment.gitBranch && (
-                <GitHubLink
-                  href={
-                    sourceRepo
-                      ? `https://github.com/${sourceRepo}/tree/${deployment.gitBranch}`
-                      : undefined
-                  }
-                >
+                <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
                   <span className="flex items-center gap-1">
                     <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
                     <span className="font-mono text-xs text-accent-12 truncate max-w-32">
@@ -188,13 +177,7 @@ export function ActiveDeploymentCard({
               {deployment.gitCommitSha && (
                 <>
                   {deployment.gitBranch && <span className="text-gray-9 text-xs">·</span>}
-                  <GitHubLink
-                    href={
-                      sourceRepo
-                        ? `https://github.com/${sourceRepo}/commit/${deployment.gitCommitSha}`
-                        : undefined
-                    }
-                  >
+                  <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                     <span className="flex items-center gap-1">
                       {!deployment.gitBranch && (
                         <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
@@ -364,7 +347,7 @@ function explainExit(
     }))
     .with("ContainerCannotRun", () => ({
       label: "Couldn't start your app",
-      body: "We were unable to start your app at all. Usually means the start command, entrypoint, or image is broken. Check your build settings and Dockerfile.",
+      body: "We were unable to start your app at all. Usually means the start command, entrypoint, or image is broken. Check the command and build settings of your app.",
     }))
     .with("Completed", () => ({
       label: "Exited cleanly",

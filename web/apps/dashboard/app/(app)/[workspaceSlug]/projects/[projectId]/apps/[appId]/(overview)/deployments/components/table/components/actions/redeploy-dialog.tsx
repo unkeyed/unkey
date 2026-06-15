@@ -3,6 +3,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -25,7 +26,12 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       onClose();
       router.push(
-        `/${workspace.slug}/projects/${selectedDeployment.projectId}/apps/${selectedDeployment.appId}/deployments/${data.deploymentId}`,
+        routes.projects.apps.deployment({
+          workspaceSlug: workspace.slug,
+          projectId: selectedDeployment.projectId,
+          appId: selectedDeployment.appId,
+          deploymentId: data.deploymentId,
+        }),
       );
     },
     onError: (error) => {
