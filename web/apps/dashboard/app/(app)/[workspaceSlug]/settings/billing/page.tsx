@@ -63,7 +63,7 @@ export default function BillingPage() {
 
     return (
       <BillingContainer>
-        <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
+        <div className="flex w-full flex-col items-center gap-6">
           <div className="w-full">
             <SettingCard
               title="Verifications"
