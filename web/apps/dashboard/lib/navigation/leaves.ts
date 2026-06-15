@@ -127,7 +127,7 @@ export function buildProjectLinks(
     },
     {
       key: "settings",
-      label: "Settings",
+      label: "Project Settings",
       href: routes.projects.settings(scope),
       icon: Gear,
       isActive: page === "settings",
@@ -167,7 +167,7 @@ export function buildAppLinks(
     },
     {
       key: "settings",
-      label: "Settings",
+      label: "App Settings",
       href: routes.projects.apps.settings(scope),
       icon: Gear,
       isActive: page === "settings",
