@@ -15,7 +15,6 @@ import {
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
@@ -57,9 +56,6 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
   const canRedeploy = isRedeployableDeploymentStatus(derivedStatus);
 
   const title = deployment.gitCommitMessage || shortenId(deployment.id);
-  const subtitle = [deployment.gitBranch, deployment.gitCommitSha?.slice(0, 7)]
-    .filter(Boolean)
-    .join(" · ");
 
   const deploymentScope = {
     workspaceSlug: workspace.slug,
@@ -73,9 +69,6 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
         <PageHeaderTitle className="truncate" title={title}>
           {title}
         </PageHeaderTitle>
-        {subtitle && (
-          <PageHeaderDescription className="font-mono">{subtitle}</PageHeaderDescription>
-        )}
       </PageHeaderContent>
       <PageHeaderActions>
         <Button variant="outline" asChild>
@@ -90,6 +83,9 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
             Requests
           </Link>
         </Button>
+        {(canCancel || canRedeploy) && (
+          <div aria-hidden className="w-px bg-border h-4 shrink-0 mx-1" />
+        )}
         {canCancel && (
           <Button variant="outline" onClick={() => setIsCancelOpen(true)}>
             <Ban iconSize="sm-medium" />

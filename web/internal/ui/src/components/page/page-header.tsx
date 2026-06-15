@@ -5,8 +5,8 @@ function PageHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-6xl flex-col gap-3 px-6 pt-6 2xl:pt-8 md:flex-row md:items-center md:justify-between",
-        "md:has-[[data-slot=page-header-description]]:items-start",
+        "mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-6 pt-6 2xl:pt-8",
+        "has-[[data-slot=page-header-description]]:items-start",
         "group-data-[width=full]/page:max-w-none group-data-[width=full]/page:border-b group-data-[width=full]/page:border-grayA-4 group-data-[width=full]/page:pb-4 group-data-[width=full]/page:pt-4",
         className,
       )}
