@@ -78,19 +78,19 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
       <PageHeaderActions>
         <Button variant="outline" asChild>
           <Link href={routes.projects.logs(deploymentScope)}>
-            <Layers3 iconSize="sm-regular" />
+            <Layers3 iconSize="sm-medium" />
             Logs
           </Link>
         </Button>
         <Button variant="outline" asChild>
           <Link href={routes.projects.requests(deploymentScope)}>
-            <ArrowOppositeDirectionY iconSize="sm-regular" />
+            <ArrowOppositeDirectionY iconSize="sm-medium" />
             Requests
           </Link>
         </Button>
         {canCancel && (
           <Button variant="outline" onClick={() => setIsCancelOpen(true)}>
-            <Ban iconSize="sm-regular" />
+            <Ban iconSize="sm-medium" />
             Cancel deployment
           </Button>
         )}
