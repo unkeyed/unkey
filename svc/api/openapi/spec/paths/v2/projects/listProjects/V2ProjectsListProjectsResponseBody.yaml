@@ -9,7 +9,7 @@ properties:
     type: array
     maxItems: 100
     items:
-      "$ref": "./V2ProjectsListProjectsResponseData.yaml"
+      "$ref": "../../../../common/Project.yaml"
     description: Array of projects in the workspace, ordered by project id.
   pagination:
     "$ref": "../../../../common/Pagination.yaml"

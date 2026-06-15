@@ -1,0 +1,110 @@
+post:
+  tags:
+    - projects
+  summary: Get project
+  description: |
+    Retrieve a single project in your workspace by its slug.
+
+    Use this to fetch project details after creation, verify a project exists before performing operations, or resolve a project's id and metadata from its caller-defined slug.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `project.*.read_project` (to read any project)
+    - `project.<project_id>.read_project` (to read a specific project)
+  operationId: projects.getProject
+  x-speakeasy-name-override: getProject
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ProjectsGetProjectRequestBody.yaml"
+        examples:
+          basic:
+            summary: Retrieve a project by slug
+            description: Fetch a single project using its workspace-unique slug
+            value:
+              slug: payments-service
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully retrieved the project.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ProjectsGetProjectResponseBody.yaml"
+          examples:
+            project:
+              summary: Project details
+              description: Successfully retrieved a project
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: proj_1234abcd
+                  name: Payments Service
+                  slug: payments-service
+                  createdAt: 1704067200000
+                  updatedAt: 1704153600000
+                  deleteProtection: true
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `project.*.read_project`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'project.*.read_project' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - The requested project does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            projectNotFound:
+              summary: Project not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested project does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
