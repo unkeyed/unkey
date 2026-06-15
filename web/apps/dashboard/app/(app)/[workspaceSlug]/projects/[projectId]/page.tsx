@@ -24,7 +24,7 @@ export default function ProjectPage() {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Overview</PageHeaderTitle>
+          <PageHeaderTitle>Apps</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
           <Button size="md" variant="primary" asChild>

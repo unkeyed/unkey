@@ -105,8 +105,8 @@ export function buildProjectLinks(
   const scope = { workspaceSlug: slug, projectId };
   return [
     {
-      key: "overview",
-      label: "Overview",
+      key: "apps",
+      label: "Apps",
       href: routes.projects.detail(scope),
       icon: Cube,
       isActive: !page,
