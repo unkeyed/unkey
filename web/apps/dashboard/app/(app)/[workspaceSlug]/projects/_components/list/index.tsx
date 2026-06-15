@@ -1,9 +1,8 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { collection } from "@/lib/collections";
-import { ilike, useLiveQuery } from "@tanstack/react-db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { Dots } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { useProjectsFilters } from "../hooks/use-projects-filters";
 import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./project-card";
 import { ProjectCardSkeleton } from "./project-card-skeleton";
@@ -11,16 +10,7 @@ import { ProjectCardSkeleton } from "./project-card-skeleton";
 const MAX_SKELETON_COUNT = 8;
 
 export const ProjectsList = () => {
-  const { filters } = useProjectsFilters();
-  const projectName = filters.find((f) => f.field === "query")?.value ?? "";
-
-  const projects = useLiveQuery(
-    (q) =>
-      q
-        .from({ project: collection.projects })
-        .where(({ project }) => ilike(project.name, `%${projectName}%`)),
-    [projectName],
-  );
+  const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
 
   if (projects.isLoading) {
     return (
@@ -42,7 +32,7 @@ export const ProjectsList = () => {
           <Empty.Icon className="w-auto" />
           <Empty.Title>No Projects Found</Empty.Title>
           <Empty.Description className="text-left">
-            {`No projects found matching "${projectName}". Try a different search term.`}
+            This workspace has no projects yet.
           </Empty.Description>
         </Empty>
       </div>

@@ -13,7 +13,6 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
-import { ProjectsListControls } from "./_components/controls";
 import { CreateProjectButton } from "./_components/create-project-button";
 import { ProjectsList } from "./_components/list";
 import { EmptyProjects } from "./_components/list/empty-projects";
@@ -39,7 +38,6 @@ export default function ProjectsPage() {
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <ProjectsListControls />
         <ProjectsList />
         <NewNavigationBanner />
       </PageBody>
