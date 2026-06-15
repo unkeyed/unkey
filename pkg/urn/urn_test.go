@@ -8,14 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fuzz"
 )
 
-// TestResourceV1 guarantees the v1 formatter emits the canonical resource-name
-// prefix shared by docs, RBAC, and audit logs.
-func TestResourceV1(t *testing.T) {
-	t.Parallel()
-
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123", ResourceV1("ws_123", "projects/proj_123"))
-}
-
 // TestParseV1 guarantees concrete v1 resource names round-trip
 // through parsing.
 func TestParseV1(t *testing.T) {
@@ -46,6 +38,14 @@ func TestParseV1_AllowsResourcePatterns(t *testing.T) {
 			want: V1{
 				WorkspaceID: "ws_123",
 				Resource:    "ratelimits/namespaces/*/overrides/*",
+			},
+		},
+		{
+			name:  "nested segment wildcards",
+			value: "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/apps/*/environments/*/deployments/*",
 			},
 		},
 		{
@@ -114,6 +114,10 @@ func TestParseV1_RejectsAmbiguousPatterns(t *testing.T) {
 	for _, value := range []string{
 		"unkey:v1:ws_123:ratelimits/**/overrides/*",
 		"unkey:v1:ws_123:ratelimits/namespaces/ns_*",
+		"unkey:v1:ws_123:projects/*/apps/app_123",
+		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
+		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123",
+		"unkey:v1:ws_123:ratelimits/namespaces/*/overrides/override_123",
 		"unkey:v1:ws_123:/ratelimits/*",
 		"unkey:v1:ws_123:ratelimits//namespaces/*",
 		"unkey:v1:ws_123:ratelimits/*/",
@@ -128,32 +132,30 @@ func TestParseV1_RejectsAmbiguousPatterns(t *testing.T) {
 func TestResourceCatalogHelpers(t *testing.T) {
 	t.Parallel()
 
-	workspace := Build().Workspace("ws_123")
+	workspace := New().Workspace("ws_123")
 	require.Equal(t, "unkey:v1:ws_123:settings", workspace.Settings().String())
 	require.Equal(t, "unkey:v1:ws_123:memberships/mbr_123", workspace.Membership("mbr_123").String())
 	require.Equal(t, "unkey:v1:ws_123:invitations/inv_123", workspace.Invitation("inv_123").String())
-	require.Equal(t, "unkey:v1:ws_123:billing", workspace.Billing().String())
 	require.Equal(t, "unkey:v1:ws_123:billing/invoices/inv_123", workspace.Billing().Invoice("inv_123").String())
 	require.Equal(t, "unkey:v1:ws_123:billing/quotas", workspace.Billing().Quotas().String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123", workspace.Keyspace("ks_123").String())
 	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/keys/key_123", workspace.Keyspace("ks_123").Key("key_123").String())
+	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/**", workspace.Keyspace("ks_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:identities/id_123", workspace.Identity("id_123").String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123", workspace.RatelimitNamespace("ns_123").String())
 	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123", workspace.RatelimitNamespace("ns_123").Override("ov_123").String())
+	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/**", workspace.RatelimitNamespace("ns_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:rbac/roles/role_123", workspace.Role("role_123").String())
 	require.Equal(t, "unkey:v1:ws_123:rbac/permissions/perm_123", workspace.Permission("perm_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123", workspace.Project("proj_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123", workspace.Project("proj_123").App("app_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/**", workspace.Project("proj_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/**", workspace.Project("proj_123").App("app_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123", workspace.Project("proj_123").App("app_123").Environment("env_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("dep_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/**", workspace.Project("proj_123").App("app_123").Environment("env_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/instances/inst_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("dep_123").Instance("inst_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/**", workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("dep_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Domain("dom_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/var_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Variable("var_123").String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123", workspace.Portal("portal_123").String())
 	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/session_tokens/token_123", workspace.Portal("portal_123").SessionToken("token_123").String())
 	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/sessions/session_123", workspace.Portal("portal_123").Session("session_123").String())
 	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/branding", workspace.Portal("portal_123").Branding().String())
+	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/**", workspace.Portal("portal_123").Any().String())
 }
 
 // TestV1Covers_OnlySupportedWildcardsExpandScope guarantees "*" matches one

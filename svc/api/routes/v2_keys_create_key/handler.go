@@ -126,7 +126,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	if keySpaceFound {
 		createKeyQuery = append(createKeyQuery,
-			rbac.U(urn.Build().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.CreateKey),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.CreateKey),
 		)
 	}
 
@@ -160,7 +160,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if keySpaceFound {
 			readQuery = append(readQuery,
-				rbac.U(urn.Build().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.ReadKey),
+				rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.ReadKey),
 			)
 		}
 
@@ -239,7 +239,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.EncryptKey,
 			}),
-			rbac.U(urn.Build().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.EncryptKey),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), rbac.EncryptKey),
 		))
 		if err != nil {
 			return err

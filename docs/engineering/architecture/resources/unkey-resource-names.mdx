@@ -57,20 +57,87 @@ URNs must follow these rules.
 - `:` is reserved for top-level URN fields and must not appear in a resource
   path.
 - `#` is reserved for permissions and must not appear in a URN.
-- `*` and `**` are not valid in concrete URNs.
 - A resource path must not start or end with `/`.
 
-Concrete URNs identify one resource. Resource-name patterns, where `*` matches
-one path segment and a trailing `/**` matches descendants, are part of the URN
-grammar: `pkg/urn` parses patterns and decides whether a pattern covers a
-concrete URN. The permission system adds the action suffix and decides what a
-covered resource authorizes; it does not define its own path matching.
+Concrete URNs identify one resource. Resource-name patterns identify a set of
+resources and are part of the `v1` URN grammar. Callers that need one exact
+resource, such as audit logs and authorization requests, must use concrete
+URNs. Stored authorization grants can use patterns.
+
+## Resource-name patterns
+
+Resource-name patterns use the same four-field URN format as concrete resource
+names. The difference is in the resource path.
+
+| Operator | Meaning |
+| --- | --- |
+| `*` | Matches exactly one complete path segment. |
+| `/**` | Matches the base path and every descendant below it. |
+
+The `*` operator must be the whole path segment. A pattern such as `key_*` is
+invalid because it would make prefix matching ambiguous.
+
+The `/**` operator must be the final path segment. A pattern such as
+`projects/**/deployments/*` is invalid because descendant matching has to stop
+at the end of the path.
+
+After a path uses `*` for an ID selector, descendant ID selectors must also use
+`*`. The path can still name child collections, but it can't narrow back to a
+specific child. This keeps wildcard paths canonical and avoids permissions that
+pretend to select a child without selecting the parent that owns it.
+
+Valid:
+
+```plaintext
+unkey:v1:ws_123:projects/*/apps/*
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*
+unkey:v1:ws_123:projects/proj_123/apps/*/environments/*
+```
+
+Invalid:
+
+```plaintext
+unkey:v1:ws_123:projects/*/apps/app_123
+unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123
+unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123
+```
+
+For example, this pattern:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/*/keys/*
+```
+
+matches this concrete URN:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/ks_123/keys/key_456
+```
+
+This descendant pattern:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/**
+```
+
+matches the project itself and every public descendant below that project.
+Patterns never cross workspace boundaries, including the global workspace
+pattern:
+
+```plaintext
+unkey:v1:ws_123:**
+```
+
+`pkg/urn` parses concrete names and patterns. It also decides whether one URN
+covers another. The permission system adds the action suffix and decides what a
+covered resource authorizes. It doesn't define its own path matching.
 
 ## Resource catalog
 
-The public catalog defines every resource path that can appear in a `v1` URN.
-Implementation code must reject concrete URNs that don't match one of these
-path shapes.
+The public catalog defines every concrete resource path that can appear in a
+`v1` URN. Implementation code must reject concrete URNs that don't match one of
+these path shapes. Pattern grants must still be built from these path shapes,
+with `*` replacing complete ID segments or trailing `/**` covering descendants.
 
 ### Workspace
 
@@ -238,15 +305,16 @@ mint public URNs for these resources unless the catalog is updated first.
 
 ## Invalid examples
 
-These strings are invalid concrete URNs.
+These strings are invalid URNs or invalid concrete URNs.
 
 | Value | Reason |
 | --- | --- |
 | `urn:unkey:v1:ws_123:keyspaces/ks_123` | Uses the wrong prefix. |
 | `unkey:v1:ws_123` | Missing the resource path. |
 | `unkey:v1:ws_123:keyspaces/ks_123#read_keyspace` | Contains a permission action. |
-| `unkey:v1:ws_123:keyspaces/*` | Uses a wildcard in a concrete URN. |
-| `unkey:v1:ws_123:projects/proj_123/**` | Uses a recursive wildcard in a concrete URN. |
+| `unkey:v1:ws_123:keyspaces/ks_*` | Uses `*` inside a path segment. |
+| `unkey:v1:ws_123:projects/**/deployments/*` | Uses `**` before the end of the path. |
+| `unkey:v1:ws_123:projects/*/apps/app_123` | Selects a specific child under a wildcard parent. |
 | `unkey:v1:ws_123:keyspace/ks_123` | Uses an unknown path shape. |
 
 ## Related pages

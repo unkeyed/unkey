@@ -9,9 +9,6 @@ import (
 const (
 	prefix  = "unkey"
 	version = "v1"
-
-	// ResourceV1Format is the canonical v1 resource-name format.
-	ResourceV1Format = "unkey:v1:%s:%s"
 )
 
 // ErrInvalidResourceName is returned when a resource name cannot be parsed.
@@ -24,8 +21,8 @@ type V1 struct {
 }
 
 // String returns the canonical v1 resource-name string.
-func (r V1) String() string {
-	return ResourceV1(r.WorkspaceID, r.Resource)
+func (v V1) String() string {
+	return fmt.Sprintf("%s:%s:%s:%s", prefix, version, v.WorkspaceID, v.Resource)
 }
 
 // Covers reports whether the receiver, treated as a resource-name pattern,
@@ -49,11 +46,11 @@ func (r V1) String() string {
 //	unkey:v1:ws_1:keyspaces/*               ("*" does not cross into keys/k_1)
 //	unkey:v1:ws_1:*                         ("*" is one segment, not a global wildcard)
 //	unkey:v1:ws_2:**                        (different workspace)
-func (r V1) Covers(target V1) bool {
-	if r.WorkspaceID != target.WorkspaceID {
+func (v V1) Covers(target V1) bool {
+	if v.WorkspaceID != target.WorkspaceID {
 		return false
 	}
-	patternSegments := strings.Split(r.Resource, "/")
+	patternSegments := strings.Split(v.Resource, "/")
 	targetSegments := strings.Split(target.Resource, "/")
 
 	if len(patternSegments) > 0 && patternSegments[len(patternSegments)-1] == "**" {
@@ -75,11 +72,6 @@ func segmentsMatch(pattern []string, target []string) bool {
 		}
 	}
 	return true
-}
-
-// ResourceV1 constructs a canonical v1 resource name.
-func ResourceV1(workspaceID string, resource string) string {
-	return fmt.Sprintf(ResourceV1Format, workspaceID, resource)
 }
 
 // ParseV1 parses a v1 resource name of the form
@@ -104,6 +96,7 @@ func ResourceV1(workspaceID string, resource string) string {
 //	unkey:v1:ws_123:keyspaces/ks_1#read_key    "#" belongs to permissions, not URNs
 //	unkey:v1:ws_123:keyspaces/ks_*             "*" must be a whole segment
 //	unkey:v1:ws_123:ratelimits/**/overrides    "**" must be the last segment
+//	unkey:v1:ws_123:projects/*/apps/app_123    specific selector nested under "*"
 func ParseV1(value string) (V1, error) {
 	parts := strings.SplitN(value, ":", 4)
 	if len(parts) != 4 {
@@ -143,7 +136,7 @@ func validateWorkspaceID(value string) error {
 	return nil
 }
 
-// validateResourcePath enforces four invariants on every "/"-separated path
+// validateResourcePath enforces five invariants on every "/"-separated path
 // segment:
 //
 //  1. No segment is empty. This subsumes rejecting an empty path and paths
@@ -154,8 +147,13 @@ func validateWorkspaceID(value string) error {
 //     can only ever expand to exactly one segment.
 //  4. "**" appears only as the final segment, so a descendant scope cannot
 //     have a suffix constraint the matcher would have to guess about.
+//  5. Once an id selector is "*", later id selectors must also be "*". A
+//     path may continue through concrete collection labels, such as
+//     "projects/*/apps/*", but it cannot narrow again to a specific child like
+//     "projects/*/apps/app_123".
 func validateResourcePath(path string) error {
 	segments := strings.Split(path, "/")
+	seenWildcardSelector := false
 	for i, segment := range segments {
 		isLastSegment := i == len(segments)-1
 
@@ -165,13 +163,17 @@ func validateResourcePath(path string) error {
 		case strings.ContainsAny(segment, ":#"):
 			return errors.New(`must not contain ":" or "#"`)
 		case segment == "*":
-			// Single-segment wildcard, valid anywhere in the path.
+			seenWildcardSelector = true
 		case segment == "**":
 			if !isLastSegment {
 				return errors.New(`"**" must be the last segment`)
 			}
 		case strings.Contains(segment, "*"):
 			return errors.New(`"*" must be a whole segment`)
+		case seenWildcardSelector:
+			if isLastSegment || segments[i+1] != "*" {
+				return errors.New(`specific selectors must not appear below "*"`)
+			}
 		}
 	}
 	return nil

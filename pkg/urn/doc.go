@@ -15,9 +15,9 @@
 // paths themselves. The permission action and authorization semantics live
 // outside this package.
 //
-// [Build] exposes typed resource builders. For example:
+// [New] exposes typed resource builders. For example:
 //
-//	urn.Build().Workspace("ws_123").Project("proj_123").App("app_123").Any()
+//	urn.New().Workspace("ws_123").Project("proj_123").App("app_123").Any()
 //
 // See:
 //   - docs/engineering/architecture/resources/unkey-resource-names.mdx

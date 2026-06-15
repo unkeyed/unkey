@@ -16,3 +16,15 @@ export const helloWorld = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+export const rootKeyUrnPermissions = flag<boolean, Entities>({
+  key: "root-key-urn-permissions",
+  description: "Enable the URN root key permission composer",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Legacy permissions" },
+    { value: true, label: "URN permissions" },
+  ],
+  identify,
+  adapter: adapter(),
+});

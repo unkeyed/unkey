@@ -58,7 +58,7 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.UnkeyPermission{
-		Resource: urn.Build().
+		Resource: urn.New().
 			Workspace(h.Resources().UserWorkspace.ID).
 			RatelimitNamespace(namespaceID).
 			Override("*"),

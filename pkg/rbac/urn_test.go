@@ -50,7 +50,7 @@ func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {
 
 	typedResult, err := New().EvaluatePermissions(
 		U(
-			urn.Build().
+			urn.New().
 				Workspace("ws_123").
 				RatelimitNamespace("ns_123").
 				Override("ov_123"),
@@ -255,7 +255,7 @@ func TestUrnPermissionEvaluation_MatchesThroughRBACEvaluator(t *testing.T) {
 	t.Parallel()
 
 	query := U(
-		urn.Build().
+		urn.New().
 			Workspace("ws_123").
 			RatelimitNamespace("ns_123").
 			Override("ov_123"),

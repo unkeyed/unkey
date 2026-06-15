@@ -99,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.Build().
+				urn.New().
 					Workspace(principal.WorkspaceID).
 					RatelimitNamespace(ns.ID).
 					Override(override.ID),

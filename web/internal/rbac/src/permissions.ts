@@ -98,7 +98,65 @@ export type Resources = {
   [resourceId in `project.${z.infer<typeof projectId>}`]: z.infer<typeof projectActions>;
 };
 
-export type UnkeyPermission = Flatten<Resources> | "*";
+export type UnkeyResourcePermission = `unkey:v1:${string}:${string}#${string}`;
+export type UnkeyPermission = Flatten<Resources> | UnkeyResourcePermission | "*";
+
+const urnPermission = z.string().refine((value) => {
+  const [resource, action, ...rest] = value.split("#");
+  if (rest.length > 0 || !resource || !action) {
+    return false;
+  }
+
+  const [prefix, version, workspaceId, path, ...pathRest] = resource.split(":");
+  if (
+    prefix !== "unkey" ||
+    version !== "v1" ||
+    !workspaceId ||
+    !path ||
+    pathRest.length > 0 ||
+    workspaceId.includes("/")
+  ) {
+    return false;
+  }
+
+  if (path.startsWith("/") || path.endsWith("/") || path.includes("//")) {
+    return false;
+  }
+
+  const segments = path.split("/");
+  let seenWildcardSelector = false;
+  for (const [index, segment] of segments.entries()) {
+    const isLastSegment = index === segments.length - 1;
+    if (segment === "") {
+      return false;
+    }
+    if (segment.includes("*") && segment !== "*" && segment !== "**") {
+      return false;
+    }
+    if (segment === "*") {
+      seenWildcardSelector = true;
+      continue;
+    }
+    if (segment === "**" && !isLastSegment) {
+      return false;
+    }
+    if (segment !== "**" && seenWildcardSelector) {
+      const next = segments[index + 1];
+      if (isLastSegment || next !== "*") {
+        return false;
+      }
+    }
+  }
+
+  if (action === "*") {
+    return path === "**";
+  }
+  if (action.startsWith("_") || action.endsWith("_")) {
+    return false;
+  }
+  return !/[#:/*]/.test(action);
+});
+
 /**
  * Validation for roles used for our root keys
  */
@@ -108,6 +166,9 @@ export const unkeyPermissionValidation = z.custom<UnkeyPermission>().refine((s) 
     /**
      * This is a legacy role granting access to everything
      */
+    return true;
+  }
+  if (urnPermission.safeParse(s).success) {
     return true;
   }
   const split = s.split(".");

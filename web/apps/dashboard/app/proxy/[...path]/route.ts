@@ -26,10 +26,10 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
   const orgId = auth.orgId;
   const userId = auth.userId;
 
-  let bearerToken = auth.accessToken;
+  let bearerToken: string | null | undefined = auth.accessToken;
   if (!bearerToken) {
     const user = await authProvider.getUser(userId);
-    const actorName = user?.fullName || user?.email || userId;
+    const actorName = user?.fullName ?? user?.email ?? userId;
     bearerToken = await mintProxyJWT({
       orgId,
       permissions: auth.permissions ?? [],
