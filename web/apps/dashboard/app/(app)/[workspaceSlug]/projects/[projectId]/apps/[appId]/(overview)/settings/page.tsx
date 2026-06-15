@@ -22,7 +22,7 @@ export default function SettingsPage() {
       <PageContainer>
         <PageHeader>
           <PageHeaderContent>
-            <PageHeaderTitle>Settings</PageHeaderTitle>
+            <PageHeaderTitle>App Settings</PageHeaderTitle>
           </PageHeaderContent>
         </PageHeader>
         <PageBody>

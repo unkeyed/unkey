@@ -5,7 +5,6 @@ import {
   PageContainer,
   PageHeader,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
   SettingsDangerZone,
 } from "@unkey/ui";
@@ -17,8 +16,7 @@ export default function ProjectSettingsPage() {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>Settings</PageHeaderTitle>
-          <PageHeaderDescription>Manage your project name.</PageHeaderDescription>
+          <PageHeaderTitle>Project Settings</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <PageBody>

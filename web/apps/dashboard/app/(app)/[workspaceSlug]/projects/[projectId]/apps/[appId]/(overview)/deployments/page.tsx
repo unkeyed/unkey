@@ -7,7 +7,6 @@ import {
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
-  PageHeaderDescription,
   PageHeaderTitle,
 } from "@unkey/ui";
 import { CreateDeploymentButton } from "../navigations/create-deployment-button";
@@ -20,7 +19,6 @@ export default function Deployments() {
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Deployments</PageHeaderTitle>
-          <PageHeaderDescription>View and manage deployments for this app.</PageHeaderDescription>
         </PageHeaderContent>
         <PageHeaderActions>
           <CreateDeploymentButton
