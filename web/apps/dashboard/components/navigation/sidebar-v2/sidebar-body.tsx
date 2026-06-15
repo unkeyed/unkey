@@ -9,7 +9,6 @@ import {
   buildAuthorizationLinks,
   buildNamespaceLinks,
   buildProjectLinks,
-  buildSettingsLinks,
   buildWorkspaceSections,
 } from "@/lib/navigation/leaves";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -29,9 +28,10 @@ export function SidebarBody() {
     switch (context.type) {
       case "workspace":
       case "identity":
-        return buildWorkspaceSections(slug, segments);
+      // Settings keeps the top-level workspace nav in the global sidebar; the
+      // settings sub-pages live in the SecondaryNav rail (see settings/layout).
       case "settings":
-        return buildSettingsLinks(slug, segments);
+        return buildWorkspaceSections(slug, segments);
       case "authorization":
         return buildAuthorizationLinks(slug, segments);
       case "project":

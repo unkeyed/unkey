@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronExpandY } from "@unkey/icons";
+import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CrumbPopover, type CrumbPopoverFooter, type CrumbPopoverItem } from "./crumb-popover";
@@ -31,7 +32,7 @@ export function Crumb({
   return (
     <div className="flex min-w-0 items-center gap-0.5">
       <Link
-        href={href}
+        href={href as Route}
         aria-label={label}
         className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
       >

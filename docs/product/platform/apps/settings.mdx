@@ -23,15 +23,15 @@ Connect a GitHub repository to trigger automatic deployments on push events. Pus
 
 ### Root directory
 
-The build context directory where `COPY` and `ADD` commands in your Dockerfile are relative to. Defaults to the repository root (`.`).
+The directory your application is built from. It is the directory Unkey [analyzes and builds](/builds/overview); for [Dockerfile builds](/builds/dockerfile) it is the build context that `COPY` and `ADD` commands are relative to. Defaults to the repository root (`.`).
 
-Set this when your Dockerfile lives in a subdirectory, for example `services/api`.
+Set this when your application lives in a subdirectory, for example `services/api`.
 
 ### Dockerfile
 
-The path to the Dockerfile used for building your application. Unkey auto-detects Dockerfiles in your build context. If your Dockerfile has a non-standard name or location, select it from the dropdown or enter a custom path.
+By default this is set to **Automatic (no Dockerfile)**: Unkey detects your language and [builds the image for you](/builds/overview). Configure a path only when you want [full control over the image with a Dockerfile](/builds/dockerfile).
 
-Defaults to `Dockerfile` in the root directory.
+Unkey auto-detects Dockerfiles in your build context and offers them in the dropdown. If your Dockerfile has a non-standard name or location, enter a custom path relative to the root directory.
 
 ### Watch paths
 
@@ -79,8 +79,8 @@ The autoscaling range for each region, set as a minimum and maximum number of in
 
 Set the minimum and maximum to the same value to pin instance count and disable autoscaling. Set them to different values to let Unkey scale instances based on load:
 
-- **Minimum replicas** — the fewest instances to keep running per region, even under zero load. Increase this for redundancy or to avoid cold-start latency on the first request.
-- **Maximum replicas** — the ceiling Unkey scales up to under peak load.
+- **Minimum replicas**: the fewest instances to keep running per region, even under zero load. Increase this for redundancy or to avoid cold-start latency on the first request.
+- **Maximum replicas**: the ceiling Unkey scales up to under peak load.
 
 Production and preview environments can use different ranges. For example, you might run production with a range of `2 – 4` for redundancy and headroom while keeping preview at `1 – 1` to reduce cost.
 

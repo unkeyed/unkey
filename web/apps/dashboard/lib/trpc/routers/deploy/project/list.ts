@@ -31,13 +31,14 @@ export const listProjects = workspaceProcedure
 
     const projectIds = projectRows.map((p) => p.id);
 
-    const [appRows, latestDeploymentRows, routeRows, repoRows] = await Promise.all([
+    const [appRows, latestDeploymentRows, routeRows, repoRows, appListRows] = await Promise.all([
       // Each "*-by-project" query below relies on the reducer below picking
       // the first row per projectId. Every ORDER BY therefore ends in a unique
       // tiebreaker (id) so ties on updatedAt/createdAt don't produce a
       // nondeterministic winner across requests.
       db
         .select({
+          id: apps.id,
           projectId: apps.projectId,
           currentDeploymentId: apps.currentDeploymentId,
           isRolledBack: apps.isRolledBack,
@@ -89,22 +90,38 @@ export const listProjects = workspaceProcedure
         ),
       db
         .select({
+          appId: githubRepoConnections.appId,
           projectId: githubRepoConnections.projectId,
           repositoryFullName: githubRepoConnections.repositoryFullName,
         })
         .from(githubRepoConnections)
-        .where(eq(githubRepoConnections.workspaceId, workspaceId)),
+        .where(
+          and(
+            eq(githubRepoConnections.workspaceId, workspaceId),
+            inArray(githubRepoConnections.projectId, projectIds),
+          ),
+        ),
+      db
+        .select({
+          projectId: apps.projectId,
+          id: apps.id,
+          name: apps.name,
+        })
+        .from(apps)
+        .where(and(eq(apps.workspaceId, workspaceId), inArray(apps.projectId, projectIds)))
+        .orderBy(apps.projectId, desc(apps.updatedAt), desc(apps.id)),
     ]);
 
     const primaryAppByProject = new Map<
       string,
-      { currentDeploymentId: string; isRolledBack: boolean }
+      { appId: string; currentDeploymentId: string; isRolledBack: boolean }
     >();
     for (const row of appRows) {
       if (!row.currentDeploymentId || primaryAppByProject.has(row.projectId)) {
         continue;
       }
       primaryAppByProject.set(row.projectId, {
+        appId: row.id,
         currentDeploymentId: row.currentDeploymentId,
         isRolledBack: Boolean(row.isRolledBack),
       });
@@ -126,12 +143,27 @@ export const listProjects = workspaceProcedure
       domainByProject.set(row.projectId, row.fullyQualifiedDomainName);
     }
 
-    const repoByProject = new Map<string, string>();
+    // Keyed by appId so the repo matches the app supplying the commit/PR below;
+    // a multi-app project would otherwise pair a commit with the wrong repo.
+    const repoByApp = new Map<string, string>();
     for (const row of repoRows) {
-      if (repoByProject.has(row.projectId)) {
+      if (repoByApp.has(row.appId)) {
         continue;
       }
-      repoByProject.set(row.projectId, row.repositoryFullName);
+      repoByApp.set(row.appId, row.repositoryFullName);
+    }
+
+    const appsByProject = new Map<string, Project["apps"]>();
+    for (const row of appListRows) {
+      const repository = repoByApp.get(row.id) ?? null;
+      const list = appsByProject.get(row.projectId) ?? [];
+      list.push({
+        id: row.id,
+        name: row.name,
+        source: repository ? "github" : "code",
+        repository,
+      });
+      appsByProject.set(row.projectId, list);
     }
 
     const currentDeploymentIds = Array.from(
@@ -147,10 +179,13 @@ export const listProjects = workspaceProcedure
           .select({
             id: deployments.id,
             gitCommitMessage: deployments.gitCommitMessage,
+            gitCommitSha: deployments.gitCommitSha,
             gitBranch: deployments.gitBranch,
             gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
             gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
             gitCommitTimestamp: deployments.gitCommitTimestamp,
+            prNumber: deployments.prNumber,
+            forkRepositoryFullName: deployments.forkRepositoryFullName,
           })
           .from(deployments)
           .where(
@@ -169,15 +204,22 @@ export const listProjects = workspaceProcedure
         ? currentDeploymentById.get(primaryApp.currentDeploymentId)
         : undefined;
       const hasDeployment = currentDeployment?.gitCommitTimestamp != null;
+      const projectApps = appsByProject.get(project.id) ?? [];
+      const repositoryFullName = primaryApp ? (repoByApp.get(primaryApp.appId) ?? null) : null;
 
       return {
         id: project.id,
         name: project.name,
         slug: project.slug,
-        repositoryFullName: repoByProject.get(project.id) ?? null,
+        appCount: projectApps.length,
+        apps: projectApps,
+        repositoryFullName,
         currentDeploymentId: primaryApp?.currentDeploymentId ?? null,
         isRolledBack: primaryApp?.isRolledBack ?? false,
         commitTitle: currentDeployment?.gitCommitMessage ?? null,
+        commitSha: currentDeployment?.gitCommitSha ?? null,
+        forkRepositoryFullName: currentDeployment?.forkRepositoryFullName ?? null,
+        prNumber: currentDeployment?.prNumber ?? null,
         branch: currentDeployment?.gitBranch ?? "main",
         author: currentDeployment?.gitCommitAuthorHandle ?? null,
         authorAvatar: currentDeployment?.gitCommitAuthorAvatarUrl ?? null,

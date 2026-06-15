@@ -2,6 +2,7 @@
 
 import { env } from "@/lib/env";
 import type { NextRequest } from "next/server";
+import { getAuthCookieOptions } from "./cookie-security";
 import { getCookie, getCookieOptionsAsString, setSessionCookie } from "./cookies";
 import { auth } from "./server";
 import { UNKEY_SESSION_COOKIE } from "./types";
@@ -48,7 +49,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
       } catch (_error) {
         headers.append(
           "Set-Cookie",
-          `${UNKEY_SESSION_COOKIE}=${localSessionToken}; Path=/; SameSite=Strict; Max-Age=${
+          `${UNKEY_SESSION_COOKIE}=${localSessionToken}; Path=/; SameSite=Lax; Max-Age=${
             60 * 60 * 24 * 365 * 10
           }`,
         );
@@ -124,6 +125,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
               `${UNKEY_SESSION_COOKIE}=${
                 refreshedSession.newToken
               }; ${await getCookieOptionsAsString({
+                ...getAuthCookieOptions(),
                 expiresAt: refreshedSession.expiresAt,
               })}`,
             );
@@ -142,6 +144,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
                 `${UNKEY_SESSION_COOKIE}=${
                   refreshedSession.newToken
                 }; ${await getCookieOptionsAsString({
+                  ...getAuthCookieOptions(),
                   expiresAt: refreshedSession.expiresAt,
                 })}`,
               );

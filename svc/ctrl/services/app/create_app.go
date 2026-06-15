@@ -85,7 +85,7 @@ func (s *Service) CreateApp(
 				WorkspaceID:   workspaceID,
 				AppID:         appID,
 				EnvironmentID: envID,
-				Dockerfile:    "",
+				Dockerfile:    sql.NullString{Valid: false, String: ""},
 				DockerContext: "",
 				WatchPaths:    nil,
 				AutoDeploy:    true,

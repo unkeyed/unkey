@@ -3,6 +3,7 @@
 import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { LoadingState } from "@/components/loading-state";
 import { Empty } from "@unkey/ui";
+import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
@@ -17,7 +18,7 @@ export default function Page() {
 
   useEffect(() => {
     if (to && isSafeRedirectPath(to)) {
-      router.replace(to);
+      router.replace(to as Route);
     }
   }, [router, to]);
 

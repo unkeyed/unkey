@@ -1,29 +1,27 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { WorkspaceNavbar } from "../workspace-navbar";
+import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { CopyWorkspaceId } from "./copy-workspace-id";
 import { UpdateWorkspaceName } from "./update-workspace-name";
-
-/**
- * TODO: WorkOS doesn't have workspace images
- */
 
 export default function SettingsPage() {
   const workspace = useWorkspaceNavigation();
 
   return (
-    <div>
-      <WorkspaceNavbar activePage={{ href: "general", text: "General" }} />
-      <div className="py-3 w-full flex items-center justify-center">
-        <div className="w-[900px] flex flex-col justify-center items-center gap-5 mx-6 mt-4">
-          <div className="w-full flex flex-col">
-            <UpdateWorkspaceName />
-            {/* <UpdateWorkspaceImage /> */}
-            {workspace && <CopyWorkspaceId workspaceId={workspace.id} />}
-          </div>
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>General</PageHeaderTitle>
+        </PageHeaderContent>
+      </PageHeader>
+      <PageBody>
+        <div className="w-full flex flex-col">
+          <UpdateWorkspaceName />
+          {/* <UpdateWorkspaceImage /> */}
+          <CopyWorkspaceId workspaceId={workspace.id} />
         </div>
-      </div>
-    </div>
+      </PageBody>
+    </PageContainer>
   );
 }

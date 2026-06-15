@@ -4,6 +4,7 @@ import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
 import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import type { Route } from "next";
 
 import { LoadingState } from "@/components/loading-state";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -83,7 +84,7 @@ export default function Layout({ children }: LayoutProps) {
         currentPath && currentPath !== "/"
           ? `/auth/sign-in?redirect=${encodeURIComponent(currentPath)}`
           : "/auth/sign-in";
-      router.push(signInUrl);
+      router.push(signInUrl as Route);
       return;
     }
 
@@ -117,7 +118,11 @@ export default function Layout({ children }: LayoutProps) {
         <MobileNavDrawer />
         <div className="flex flex-1 overflow-hidden">
           {!isAppOnboarding && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
-          <div className="flex-1 overflow-auto">
+          {/* Reserve the scrollbar gutter so content doesn't shift horizontally
+              when the scrollbar appears/disappears (e.g. a dialog locking scroll
+              or content height changing). Without this the centered layout
+              "shakes" and buttons move out from under the cursor (ENG-2884). */}
+          <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
             <div
               className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
               id="layout-wrapper"

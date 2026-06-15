@@ -3,9 +3,9 @@
 import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import type { Route } from "next";
 import Link from "next/link";
 import React from "react";
-import { UserButton } from "./sidebar/user-button";
 
 type BaseProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
 
@@ -39,7 +39,6 @@ interface GlobalNavbarComponent
   extends React.ForwardRefExoticComponent<BaseProps & React.RefAttributes<HTMLElement>> {
   Actions: React.ForwardRefExoticComponent<BaseProps & React.RefAttributes<HTMLDivElement>>;
   Breadcrumbs: BreadcrumbsComponent;
-  User: React.ForwardRefExoticComponent<BaseProps & React.RefAttributes<HTMLDivElement>>;
 }
 
 const NavbarActions = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
@@ -50,15 +49,6 @@ const NavbarActions = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
   ),
 );
 NavbarActions.displayName = "GlobalNavbar.Actions";
-
-const NavbarUser = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("hidden md:flex items-center ml-3", className)} {...props}>
-      <UserButton />
-    </div>
-  ),
-);
-NavbarUser.displayName = "GlobalNavbar.User";
 
 const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
   ({ children, href, className, active, isLast, noop, ...props }, ref) => {
@@ -72,7 +62,7 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
         ) : (
           <Link
             ref={ref}
-            href={href}
+            href={href as Route}
             className={cn(
               "text-sm transition-colors",
               active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",
@@ -161,9 +151,6 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
     const actions = childrenArray.find(
       (child) => React.isValidElement(child) && child.type === NavbarActions,
     );
-    const user = childrenArray.find(
-      (child) => React.isValidElement(child) && child.type === NavbarUser,
-    );
 
     return (
       <nav
@@ -177,7 +164,6 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
         {breadcrumbs}
         <div className="flex-1" />
         {actions}
-        {user || <NavbarUser />}
       </nav>
     );
   },
@@ -185,5 +171,4 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
 Navbar.displayName = "GlobalNavbar";
 
 Navbar.Actions = NavbarActions;
-Navbar.User = NavbarUser;
 Navbar.Breadcrumbs = Breadcrumbs;

@@ -343,11 +343,7 @@ export const AddEnvVarExpandable = ({
                   control={control}
                   name="secret"
                   render={({ field }) => (
-                    <Switch
-                      className="data-[state=checked]:bg-success-9 data-[state=checked]:ring-2 data-[state=checked]:ring-successA-5 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-3 data-[state=unchecked]:bg-gray-5"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                   )}
                 />
                 <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>

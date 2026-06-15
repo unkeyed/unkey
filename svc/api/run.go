@@ -99,6 +99,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewGoCollector())
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
 	buildinfo.RegisterBuildInfoMetrics("api")
 
@@ -106,10 +107,13 @@ func Run(ctx context.Context, cfg Config) error {
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:        "api",
-			InstanceID:         cfg.InstanceID,
-			CloudRegion:        cfg.Region,
-			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			Application:     "api",
+			InstanceID:      cfg.InstanceID,
+			CloudRegion:     cfg.Region,
+			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			// The API runs against Grafana Cloud and cannot be scraped, so it
+			// pushes metrics over OTLP. All other services are pulled via
+			// /metrics and leave this nil.
 			PrometheusGatherer: reg,
 		})
 		if err != nil {

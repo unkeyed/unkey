@@ -3,7 +3,7 @@ CREATE TABLE `app_build_settings` (
 	`workspace_id` varchar(256) NOT NULL,
 	`app_id` varchar(64) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
-	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
+	`dockerfile` varchar(500),
 	`docker_context` varchar(500) NOT NULL DEFAULT '.',
 	`watch_paths` json NOT NULL DEFAULT ('[]'),
 	`auto_deploy` boolean NOT NULL DEFAULT true,

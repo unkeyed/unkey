@@ -8,12 +8,11 @@ import {
   SettingCard,
   SettingCardGroup,
   SettingsDangerZone,
-  SettingsShell,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
-import { WorkspaceNavbar } from "../workspace-navbar";
+import { BillingContainer } from "./billing-container";
 import { CancelAlert } from "./components/cancel-alert";
 import { CancelPlan } from "./components/cancel-plan";
 import { CurrentPlanCard } from "./components/current-plan-card";
@@ -53,35 +52,29 @@ export const Client: React.FC = () => {
   // Handle loading states - don't render until we have billing info
   if (billingLoading || !billingInfo) {
     return (
-      <div className="animate-pulse">
-        <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-        <SettingsShell>
-          <div className="flex flex-col gap-2 items-center">
-            <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
-            <span className="leading-4 text-gray-11 text-[13px]">
-              Manage your subscription, usage, and payment methods.
-            </span>
+      <BillingContainer>
+        <div className="animate-pulse">
+          <div className="flex w-full flex-col items-center gap-6">
+            <div className="w-full h-[150px] bg-grayA-3 rounded-lg" />
+            <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
+            <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
           </div>
-          <div className="w-full h-[150px] bg-grayA-3 rounded-lg mt-1" />
-          <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
-          <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
-        </SettingsShell>
-      </div>
+        </div>
+      </BillingContainer>
     );
   }
 
   // Handle error states
   if (billingError) {
     return (
-      <div>
-        <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
+      <BillingContainer>
         <Empty>
           <Empty.Title>Failed to load billing information</Empty.Title>
           <Empty.Description>
             There was an error loading your billing information. Please try again later.
           </Empty.Description>
         </Empty>
-      </div>
+      </BillingContainer>
     );
   }
 
@@ -102,21 +95,14 @@ export const Client: React.FC = () => {
     : undefined;
 
   return (
-    <div>
-      <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-      <SettingsShell>
+    <BillingContainer>
+      <div className="flex w-full flex-col items-center gap-6">
         {subscription ? (
           <SubscriptionStatus
             workspaceSlug={workspace.slug}
             status={subscription.status as Stripe.Subscription.Status}
           />
         ) : null}
-        <div className="flex flex-col gap-2 items-center">
-          <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
-          <span className="leading-4 text-gray-11 text-[13px]">
-            Manage your subscription, usage, and payment methods.
-          </span>
-        </div>
 
         {isFreeTier ? <FreeTierAlert /> : null}
 
@@ -205,7 +191,7 @@ export const Client: React.FC = () => {
             <CancelPlan disabled={!isAdmin} disabledReason={ADMIN_ONLY_TOOLTIP} />
           </SettingsDangerZone>
         ) : null}
-      </SettingsShell>
-    </div>
+      </div>
+    </BillingContainer>
   );
 };

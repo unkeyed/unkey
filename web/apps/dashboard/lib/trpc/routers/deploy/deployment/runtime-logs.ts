@@ -45,7 +45,7 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
     const { logsQuery } = await clickhouse.runtimeLogs.logs({
       workspaceId: deployment.workspaceId,
       projectId: deployment.projectId,
-      deploymentId: deployment.id,
+      deploymentId: [deployment.id],
       environmentId: [deployment.environmentId],
       appId: deployment.appId,
       limit: input.limit,
