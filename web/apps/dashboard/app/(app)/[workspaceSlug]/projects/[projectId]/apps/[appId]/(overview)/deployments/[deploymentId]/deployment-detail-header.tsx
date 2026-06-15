@@ -26,6 +26,7 @@ import {
   isRedeployableDeploymentStatus,
 } from "../components/table/components/actions/deployment-action-eligibility";
 import { useDeployment } from "./layout-provider";
+import { useDeploymentStatus } from "./use-deployment-status";
 
 const RedeployDialog = dynamic(
   () =>
@@ -48,11 +49,12 @@ export function DeploymentDetailHeader() {
 function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment }) {
   const workspace = useWorkspaceNavigation();
 
+  const { derivedStatus } = useDeploymentStatus(deployment);
   const [isRedeployOpen, setIsRedeployOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancelled, setCancelled] = useState(false);
-  const canCancel = isCancellableDeploymentStatus(deployment.status) && !cancelled;
-  const canRedeploy = isRedeployableDeploymentStatus(deployment.status);
+  const canCancel = isCancellableDeploymentStatus(derivedStatus) && !cancelled;
+  const canRedeploy = isRedeployableDeploymentStatus(derivedStatus);
 
   const title = deployment.gitCommitMessage || shortenId(deployment.id);
   const subtitle = [deployment.gitBranch, deployment.gitCommitSha?.slice(0, 7)]
