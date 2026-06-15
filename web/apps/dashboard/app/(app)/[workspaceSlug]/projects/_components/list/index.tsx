@@ -14,7 +14,7 @@ export const ProjectsList = () => {
 
   if (projects.isLoading) {
     return (
-      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,1fr))]">
         {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
           <ProjectCardSkeleton key={i} />
@@ -37,7 +37,7 @@ export const ProjectsList = () => {
     );
   }
   return (
-    <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,370px))]">
+    <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(325px,1fr))]">
       {projects.data.map((project) => (
         <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
           <ProjectCard
