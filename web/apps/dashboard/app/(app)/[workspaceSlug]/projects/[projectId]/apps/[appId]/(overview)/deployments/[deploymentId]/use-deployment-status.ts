@@ -1,3 +1,4 @@
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
@@ -5,7 +6,13 @@ import { deriveStatusFromSteps } from "./deployment-utils";
 
 // Steps stop changing once the deployment authorizes (awaiting_approval) or
 // reaches a terminal state, so polling pauses there.
-const STABLE_STATUSES = ["ready", "skipped", "superseded", "cancelled", "awaiting_approval"];
+const STABLE_STATUSES: DeploymentStatus[] = [
+  "ready",
+  "skipped",
+  "superseded",
+  "cancelled",
+  "awaiting_approval",
+];
 
 /**
  * Owns the deployment's step polling and the status derived from it. The
