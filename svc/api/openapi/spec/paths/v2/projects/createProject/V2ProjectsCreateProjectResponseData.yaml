@@ -1,0 +1,14 @@
+type: object
+required:
+  - slug
+properties:
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9-]+$"
+    description: |
+      The workspace-scoped slug of the newly created project.
+      Use this value to reference the project in subsequent get, update, and delete operations.
+    example: payments-service
+additionalProperties: false

@@ -36,6 +36,9 @@ type dataKeySpace struct {
 type dataProject struct {
 	// NotFound indicates the requested project was not found.
 	NotFound Code
+
+	// Duplicate indicates the requested project already exists.
+	Duplicate Code
 }
 
 // dataPermission defines errors related to permission operations.
@@ -152,7 +155,8 @@ var Data = UnkeyDataErrors{
 	},
 
 	Project: dataProject{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "project_not_found"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "project_not_found"},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "project_already_exists"},
 	},
 
 	Permission: dataPermission{

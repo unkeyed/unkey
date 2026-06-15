@@ -61,6 +61,8 @@ import (
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
 
+	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
+
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -591,6 +593,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		publicMiddlewares,
 		&v2PortalExchangeSession.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/projects.createProject
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2ProjectsCreateProject.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 		},
