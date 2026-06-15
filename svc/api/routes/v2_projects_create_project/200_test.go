@@ -39,7 +39,7 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, req.Slug, res.Body.Data.Slug)
 
-		project, err := db.Query.FindProjectByWorkspaceSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceSlugParams{
+		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			Slug:        req.Slug,
 		})
