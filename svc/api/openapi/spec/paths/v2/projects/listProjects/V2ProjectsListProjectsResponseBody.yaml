@@ -1,0 +1,68 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    type: array
+    maxItems: 100
+    items:
+      "$ref": "./V2ProjectsListProjectsResponseData.yaml"
+    description: Array of projects in the workspace, ordered by project id.
+  pagination:
+    "$ref": "../../../../common/Pagination.yaml"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
+additionalProperties: false
+examples:
+  projectList:
+    summary: Project list
+    description: Typical response listing projects in a workspace
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        - id: proj_1234abcd
+          name: Payments Service
+          slug: payments-service
+          createdAt: 1704067200000
+          updatedAt: 1704153600000
+          deleteProtection: true
+        - id: proj_5678efgh
+          name: Billing Service
+          slug: billing-service
+          createdAt: 1704240000000
+          deleteProtection: false
+      pagination:
+        cursor: proj_5678efgh
+        hasMore: false
+  paginatedResponse:
+    summary: Paginated project listing with more results
+    description: Response showing pagination when there are more projects than the requested limit
+    value:
+      meta:
+        requestId: req_5678efgh
+      data:
+        - id: proj_1111aaaa
+          name: Payments Service
+          slug: payments-service
+          createdAt: 1704067200000
+        - id: proj_2222bbbb
+          name: Billing Service
+          slug: billing-service
+          createdAt: 1704153600000
+      pagination:
+        cursor: proj_2222bbbb
+        hasMore: true
+  emptyResponse:
+    summary: Empty project list
+    description: Response when the workspace has no projects
+    value:
+      meta:
+        requestId: req_9876zyxw
+      data: []
+      pagination:
+        cursor: null
+        hasMore: false

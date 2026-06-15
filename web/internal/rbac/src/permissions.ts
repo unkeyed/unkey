@@ -71,6 +71,7 @@ export const identityActions = z.enum([
 ]);
 export const projectActions = z.enum([
   "create_project",
+  "read_project",
   "create_deployment",
   "read_deployment",
   "generate_upload_url",

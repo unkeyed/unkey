@@ -180,6 +180,9 @@ const (
 
 	// CreateProject permits creating new projects
 	CreateProject ActionType = "create_project"
+
+	// ReadProject permits reading and listing projects
+	ReadProject ActionType = "read_project"
 )
 
 // Tuple represents a specific permission as a combination of resource type,
