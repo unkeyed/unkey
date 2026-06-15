@@ -21,7 +21,7 @@ export default function ProjectPage() {
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
 
   return (
-    <PageContainer>
+    <PageContainer className="flex-1">
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Apps</PageHeaderTitle>
@@ -35,7 +35,7 @@ export default function ProjectPage() {
           </Button>
         </PageHeaderActions>
       </PageHeader>
-      <PageBody>
+      <PageBody className="flex-1">
         <AppsList />
       </PageBody>
     </PageContainer>
