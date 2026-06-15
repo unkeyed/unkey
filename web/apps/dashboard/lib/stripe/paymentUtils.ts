@@ -2,6 +2,35 @@ import type Stripe from "stripe";
 import type { PreviousAttributes } from "./subscriptionUtils";
 
 /**
+ * The subscription an invoice belongs to:
+ * invoice.parent.subscription_details.subscription.
+ */
+function invoiceSubscriptionId(invoice: Stripe.Invoice): string | undefined {
+  if (invoice.parent?.type !== "subscription_details") {
+    return undefined;
+  }
+  const subscription = invoice.parent.subscription_details?.subscription;
+  if (!subscription) {
+    return undefined;
+  }
+  return typeof subscription === "string" ? subscription : subscription.id;
+}
+
+/**
+ * The payment intent behind an invoice: the first payment-intent entry in the
+ * payments list.
+ */
+function invoicePaymentIntentId(invoice: Stripe.Invoice): string | undefined {
+  for (const { payment } of invoice.payments?.data ?? []) {
+    if (payment.type === "payment_intent" && payment.payment_intent) {
+      const intent = payment.payment_intent;
+      return typeof intent === "string" ? intent : intent.id;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Interface for payment context extracted from Stripe events
  */
 interface PaymentContext {
@@ -250,18 +279,18 @@ export class PaymentRecoveryDetector {
   private async isSubscriptionChangePayment(invoice: Stripe.Invoice): Promise<boolean> {
     try {
       // Check for subscription-related indicators
-      if (!invoice.subscription) {
+      const subscriptionId = invoiceSubscriptionId(invoice);
+      if (!subscriptionId) {
         return false;
       }
-
-      const subscriptionId =
-        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription.id;
 
       // Check if this is a proration invoice, used in mid cycle upgrades
       if (invoice.lines?.data) {
         const hasProrationLines = invoice.lines.data.some(
           (line) =>
-            line.proration === true || line.description?.toLowerCase().includes("proration"),
+            (line.parent?.type === "subscription_item_details" &&
+              line.parent.subscription_item_details?.proration) ||
+            line.description?.toLowerCase().includes("proration"),
         );
 
         if (hasProrationLines) {
@@ -277,14 +306,21 @@ export class PaymentRecoveryDetector {
 
           // Check if the invoice was created at the start of the billing period
           // Subscription changes typically create invoices immediately, while
-          // regular billing invoices are created at period boundaries
-          const currentPeriodStart = subscription.current_period_start;
-          const invoiceCreated = invoice.created;
-          const timeSincePeriodStart = invoiceCreated - currentPeriodStart;
+          // regular billing invoices are created at period boundaries.
+          // Basil moved the period to the items; earliest item start is the
+          // subscription's period start for our single-period subscriptions.
+          // An unknown start (no item reported a period) skips this shortcut
+          // and falls through to the attempt-count heuristics below.
+          const periodStarts = subscription.items.data
+            .map((item) => item.current_period_start)
+            .filter((start): start is number => typeof start === "number");
+          const currentPeriodStart = periodStarts.length ? Math.min(...periodStarts) : undefined;
+          const timeSincePeriodStart =
+            currentPeriodStart === undefined ? null : invoice.created - currentPeriodStart;
 
           // If invoice was created within 1 hour of period start, it's likely regular billing
           const oneHourInSeconds = 60 * 60;
-          if (timeSincePeriodStart <= oneHourInSeconds) {
+          if (timeSincePeriodStart !== null && timeSincePeriodStart <= oneHourInSeconds) {
             console.info("Invoice created at period start, treating as regular billing", {
               invoiceId: invoice.id,
               subscriptionId,
@@ -360,12 +396,8 @@ export class PaymentRecoveryDetector {
       }
 
       // If there's a payment intent, check its charges
-      if (invoice.payment_intent) {
-        const paymentIntentId =
-          typeof invoice.payment_intent === "string"
-            ? invoice.payment_intent
-            : invoice.payment_intent.id;
-
+      const paymentIntentId = invoicePaymentIntentId(invoice);
+      if (paymentIntentId) {
         let charges: Stripe.ApiList<Stripe.Charge>;
         try {
           // Retrieve charges for this payment intent
@@ -446,8 +478,7 @@ export class PaymentRecoveryDetector {
         customerName = customer.name || "";
       }
 
-      const subscriptionId =
-        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      const subscriptionId = invoiceSubscriptionId(invoice);
 
       // Extract failure reason for payment_failed events (from event data only)
       let failureReason: string | undefined;

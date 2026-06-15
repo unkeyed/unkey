@@ -85,7 +85,7 @@ export const POST = async (req: Request): Promise<Response> => {
   }
 
   const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2023-10-16",
+    apiVersion: "2026-05-27.dahlia",
     typescript: true,
   });
 

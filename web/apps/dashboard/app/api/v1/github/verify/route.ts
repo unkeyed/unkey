@@ -21,6 +21,9 @@ export async function POST(request: Request) {
   const signature = request.headers.get("github-public-key-signature");
   const keyId = request.headers.get("github-public-key-identifier");
   const rawBody = await request.text();
+  if(rawBody.length === 0){
+    return NextResponse.json({ Error: "Invalid webhook request" }, { status: 400 });
+  }
   const data = JSON.parse(rawBody);
 
   if (!signature || !keyId || !data) {

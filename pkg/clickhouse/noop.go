@@ -29,6 +29,11 @@ func (n *noop) GetBillableUsageAboveThreshold(ctx context.Context, year, month i
 	return make(map[string]int64), nil
 }
 
+// GetInstanceMeterUsage implements the Querier interface but always returns an empty slice.
+func (n *noop) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error) {
+	return nil, nil
+}
+
 // GetDeploymentRequestCount implements the Querier interface but always returns 0.
 func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error) {
 	return 0, nil

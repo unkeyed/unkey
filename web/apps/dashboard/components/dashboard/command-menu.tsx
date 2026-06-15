@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/command";
 import { Chats } from "@unkey/icons";
 import { BookOpen, type IconProps } from "@unkey/icons";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { useFeedback } from "./feedback-component";
@@ -78,7 +79,7 @@ const GenericLinkCommand: React.FC<{
   return (
     <CommandItem
       onSelect={() => {
-        router.push(props.href);
+        router.push(props.href as Route);
         props.close();
       }}
     >

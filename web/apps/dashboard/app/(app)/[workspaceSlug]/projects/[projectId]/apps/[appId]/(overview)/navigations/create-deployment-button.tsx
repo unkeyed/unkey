@@ -5,6 +5,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { githubUrl } from "@/lib/github-url";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -148,7 +149,7 @@ export const CreateDeploymentButton = ({
   const branches = repoDetails.data?.branches ?? [];
 
   const defaultEnvironmentSlug =
-    environments.find((e) => e.slug === "production")?.slug ?? environments[0]?.slug ?? "";
+    environments.find((e) => e.slug === "preview")?.slug ?? environments[0]?.slug ?? "";
 
   const formSchema = createFormSchema(repo, isCliApp);
 
@@ -185,7 +186,12 @@ export const CreateDeploymentButton = ({
       setIsOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       router.push(
-        `/${params.workspaceSlug}/projects/${projectId}/apps/${appId}/deployments/${data.deploymentId}`,
+        routes.projects.apps.deployment({
+          workspaceSlug: params.workspaceSlug,
+          projectId,
+          appId,
+          deploymentId: data.deploymentId,
+        }),
       );
     },
     onError(err) {

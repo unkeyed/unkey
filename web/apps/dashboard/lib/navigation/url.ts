@@ -23,8 +23,14 @@ export function toQueryString(query: QueryParams): string {
   return pairs.join("&");
 }
 
-/** Append a query string to an existing base path or url. */
-export function withQuery(base: string, query: QueryParams): string {
+/**
+ * Append a query string to an existing base path or url. The base's
+ * template-literal type survives so typed route builders stay typed.
+ */
+export function withQuery<Base extends string>(
+  base: Base,
+  query: QueryParams,
+): Base | `${Base}?${string}` {
   const qs = toQueryString(query);
   return qs ? `${base}?${qs}` : base;
 }

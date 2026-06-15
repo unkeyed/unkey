@@ -24,7 +24,6 @@ export const RotateKey = ({ keyDetails, isOpen, onClose }: RotateKeyProps) => {
       onClose={onClose}
       onRotated={() => {
         trpcUtils.api.keys.list.invalidate();
-        trpcUtils.api.overview.keyCount.invalidate();
       }}
     />
   );

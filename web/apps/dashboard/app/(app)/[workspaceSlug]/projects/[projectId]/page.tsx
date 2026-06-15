@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Plus } from "@unkey/icons";
 import {
   Button,
@@ -27,7 +28,7 @@ export default function ProjectPage() {
         </PageHeaderContent>
         <PageHeaderActions>
           <Button size="md" variant="primary" asChild>
-            <Link href={`/${workspace.slug}/projects/${projectId}/apps/new`}>
+            <Link href={routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId })}>
               <Plus iconSize="sm-regular" />
               Create app
             </Link>

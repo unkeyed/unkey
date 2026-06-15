@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "checkpoints",
+    srcs = [
+        "bytes.go",
+        "checkpoints.go",
+        "generator.go",
+        "target.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/dev/seed/checkpoints",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/cli",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/db",
+        "//pkg/logger",
+        "//pkg/prompt",
+        "//pkg/uid",
+        "@org_golang_x_term//:term",
+    ],
+)
+
+go_test(
+    name = "checkpoints_test",
+    srcs = ["checkpoints_test.go"],
+    embed = [":checkpoints"],
+    deps = [
+        "//pkg/clickhouse/schema",
+        "@com_github_stretchr_testify//require",
+    ],
+)

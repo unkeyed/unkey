@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import {
   ArrowDottedRotateAnticlockwise,
@@ -58,8 +59,11 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
     .filter(Boolean)
     .join(" · ");
 
-  const projectBase = `/${workspace.slug}/projects/${deployment.projectId}`;
-  const deploymentFilter = `deploymentId=is:${deployment.id}`;
+  const deploymentScope = {
+    workspaceSlug: workspace.slug,
+    projectId: deployment.projectId,
+    deploymentId: deployment.id,
+  };
 
   return (
     <PageHeader>
@@ -73,13 +77,13 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
       </PageHeaderContent>
       <PageHeaderActions>
         <Button variant="outline" asChild>
-          <Link href={`${projectBase}/logs?${deploymentFilter}`}>
+          <Link href={routes.projects.logs(deploymentScope)}>
             <Layers3 iconSize="sm-regular" />
             Logs
           </Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href={`${projectBase}/requests?${deploymentFilter}`}>
+          <Link href={routes.projects.requests(deploymentScope)}>
             <ArrowOppositeDirectionY iconSize="sm-regular" />
             Requests
           </Link>

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Check } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ComponentType, type ReactNode, useState } from "react";
@@ -55,7 +56,7 @@ export function CrumbPopover({
   const selectItem = (item: CrumbPopoverItem) => {
     setOpen(false);
     if (item.href) {
-      router.push(item.href);
+      router.push(item.href as Route);
     } else if (item.onClick) {
       item.onClick();
     }
@@ -112,7 +113,7 @@ export function CrumbPopover({
                 onSelect={() => {
                   setOpen(false);
                   if (footer.href) {
-                    router.push(footer.href);
+                    router.push(footer.href as Route);
                   } else if (footer.onClick) {
                     footer.onClick();
                   }
@@ -144,7 +145,10 @@ function FooterRow({
   if (footer.href) {
     return (
       <CommandItem asChild value={`__footer__${footer.label}`} onSelect={onSelect}>
-        <Link href={footer.href} className="flex items-center gap-2 py-1 mt-0 overflow-hidden">
+        <Link
+          href={footer.href as Route}
+          className="flex items-center gap-2 py-1 mt-0 overflow-hidden"
+        >
           {body}
         </Link>
       </CommandItem>

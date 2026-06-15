@@ -1,6 +1,7 @@
 "use client";
 
 import { CopyButton } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 
 const DEFAULT_LINK_CLASS =
@@ -28,7 +29,7 @@ export function DottedLink({
           {children}
         </a>
       ) : (
-        <Link href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        <Link href={href as Route} target="_blank" rel="noopener noreferrer" className={className}>
           {children}
         </Link>
       )}

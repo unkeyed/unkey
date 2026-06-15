@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 
 export const getWorkspace = async (orgId: string) => {
@@ -25,7 +26,7 @@ export const getWorkspace = async (orgId: string) => {
     });
 
     if (!workspace) {
-      return redirect("/auth/sign-in");
+      return redirect("/auth/sign-in" as Route);
     }
 
     const rootKeys = await db.query.keys.findMany({

@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 import { PageBody } from "@unkey/ui";
@@ -113,7 +114,11 @@ export default function DeploymentOverview() {
         isOpen={awaitingApproval}
         onClose={() =>
           router.push(
-            `/${workspace.slug}/projects/${deployment.projectId}/apps/${deployment.appId}/deployments`,
+            routes.projects.apps.deployments({
+              workspaceSlug: workspace.slug,
+              projectId: deployment.projectId,
+              appId: deployment.appId,
+            }),
           )
         }
         deployment={deployment}
