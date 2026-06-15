@@ -12,10 +12,12 @@ go_library(
         "notify_instances_ready_handler.go",
         "promote_handler.go",
         "queue_gate.go",
+        "railpack.go",
         "rollback_handler.go",
         "scale_down_idle_preview_deployments.go",
         "service.go",
     ],
+    embedsrcs = ["railpack_prepare.dockerfile.tmpl"],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/deploy",
     visibility = ["//visibility:public"],
     deps = [
@@ -33,6 +35,7 @@ go_library(
         "//pkg/ptr",
         "//pkg/restate/compensation",
         "//pkg/uid",
+        "//pkg/validation",
         "//svc/ctrl/worker/github",
         "@build_buf_gen_go_depot_api_connectrpc_go//depot/core/v1/corev1connect",
         "@build_buf_gen_go_depot_api_protocolbuffers_go//depot/core/v1:core",
@@ -48,6 +51,7 @@ go_library(
         "@com_github_moby_buildkit//session/secrets/secretsprovider",
         "@com_github_opencontainers_go_digest//:go-digest",
         "@com_github_restatedev_sdk_go//:sdk-go",
+        "@com_github_tonistiigi_fsutil//:fsutil",
         "@org_golang_google_protobuf//encoding/protojson",
     ],
 )
@@ -55,13 +59,20 @@ go_library(
 go_test(
     name = "deploy_test",
     size = "large",
-    srcs = ["scale_down_idle_preview_deployments_test.go"],
+    srcs = [
+        "build_test.go",
+        "railpack_test.go",
+        "scale_down_idle_preview_deployments_test.go",
+    ],
+    embed = [":deploy"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
         "//pkg/uid",
         "//svc/ctrl/integration/harness",
         "//svc/ctrl/integration/seed",
+        "//svc/ctrl/worker/github",
+        "@com_github_restatedev_sdk_go//:sdk-go",
         "@com_github_stretchr_testify//require",
     ],
 )

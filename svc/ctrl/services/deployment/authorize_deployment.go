@@ -91,6 +91,15 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		prNumber = deployment.PrNumber.Int64
 	}
 
+	// Forward the fork so the worker classifies this as a fork build and clones
+	// the right repo. Today approval is only reached for live PRs (PrNumber > 0),
+	// which already forces the fork path, but carrying ForkRepository keeps a
+	// fork-ref-by-SHA deployment correct if it ever lands on the approval path.
+	forkRepository := ""
+	if deployment.ForkRepositoryFullName.Valid {
+		forkRepository = deployment.ForkRepositoryFullName.String
+	}
+
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
 		KeyAuthId:    nil,
@@ -101,9 +110,10 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 				Repository:     repoConn.RepositoryFullName,
 				CommitSha:      commitSHA,
 				ContextPath:    buildSetting.DockerContext,
-				DockerfilePath: buildSetting.Dockerfile,
+				DockerfilePath: buildSetting.Dockerfile.String,
 				Branch:         branch,
 				PrNumber:       prNumber,
+				ForkRepository: forkRepository,
 			},
 		},
 	}

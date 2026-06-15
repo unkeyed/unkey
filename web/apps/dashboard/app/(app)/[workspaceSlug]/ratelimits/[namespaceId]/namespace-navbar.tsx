@@ -1,5 +1,4 @@
 "use client";
-import { QuickNavPopover } from "@/components/navbar-popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
@@ -20,7 +19,6 @@ const IdentifierDialog = dynamic(
 
 type NamespaceNavbarProps = {
   namespaceId: string;
-  includeOverrides?: boolean;
   activePage: {
     href: string;
     text: string;
@@ -77,20 +75,10 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
             className="group"
             noop
           >
-            <QuickNavPopover>
-              <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-                {namespace?.name}
-                <ChevronExpandY className="size-4" />
-              </div>
-            </QuickNavPopover>
+            {namespace?.name}
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={activePage.href} noop active>
-            <QuickNavPopover>
-              <div className="hover:bg-gray-3 rounded-lg flex items-center gap-1 p-1">
-                {activePage.text}
-                <ChevronExpandY className="size-4" />
-              </div>
-            </QuickNavPopover>
+            {activePage.text}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>

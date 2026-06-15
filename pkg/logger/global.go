@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"golang.org/x/term"
 )
 
 // Package-level state for the global logger, sampler, and base attributes.
@@ -24,18 +26,30 @@ var (
 
 func init() {
 	mu = sync.Mutex{}
-	// Minimum level from UNKEY_LOG_LEVEL (debug | info | warn | error),
-	// defaulting to info. slog.Default()'s handler silently ignores
-	// Debug regardless of env, so we wrap the stdlib TextHandler with
-	// HandlerOptions{Level: ...} and route slog.Default() through it too
-	// — that way plain `slog.Debug(...)` calls anywhere in the codebase
-	// honor the same level as `logger.Debug(...)`.
-	innerHandler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{ //nolint:exhaustruct // ReplaceAttr default
-		Level:     levelFromEnv(),
-		AddSource: true,
-	})
+	innerHandler = newDefaultHandler(os.Stderr)
 	rebuild()
 	sampler = AlwaysSample{}
+}
+
+// newDefaultHandler picks the process's log format: a colored, human-oriented
+// handler when out is an interactive terminal (local development), and the
+// stdlib logfmt TextHandler otherwise (production, CI, redirected output).
+// Setting NO_COLOR (https://no-color.org) forces logfmt even on a TTY.
+//
+// Minimum level comes from UNKEY_LOG_LEVEL (debug | info | warn | error),
+// defaulting to info. slog.Default()'s handler silently ignores Debug
+// regardless of env, so we configure the level on our handler and route
+// slog.Default() through it too; that way plain `slog.Debug(...)` calls
+// anywhere in the codebase honor the same level as `logger.Debug(...)`.
+func newDefaultHandler(out *os.File) slog.Handler {
+	level := levelFromEnv()
+	if term.IsTerminal(int(out.Fd())) && os.Getenv("NO_COLOR") == "" {
+		return newPrettyHandler(out, level)
+	}
+	return slog.NewTextHandler(out, &slog.HandlerOptions{ //nolint:exhaustruct // ReplaceAttr default
+		Level:     level,
+		AddSource: true,
+	})
 }
 
 // rebuild reinstalls the global logger and slog.Default() from the current

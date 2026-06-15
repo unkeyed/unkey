@@ -47,7 +47,10 @@ export function useSentinelLogsQuery({
         value: String(f.value),
       }));
 
-    const deploymentIdFilter = filters.find((f) => f.field === "deploymentId");
+    const deploymentIdFilters = filters
+      .filter((f) => f.field === "deploymentId")
+      .map((f) => String(f.value))
+      .filter(Boolean);
     const environmentIdFilters = filters
       .filter((f) => f.field === "environmentId")
       .map((f) => String(f.value));
@@ -60,7 +63,7 @@ export function useSentinelLogsQuery({
     return {
       projectId,
       appId: appId ?? null,
-      deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
+      deploymentId: deploymentIdFilters,
       environmentId: environmentIdFilters,
       limit,
       startTime: startTimeFilter ? Number(startTimeFilter.value) : null,

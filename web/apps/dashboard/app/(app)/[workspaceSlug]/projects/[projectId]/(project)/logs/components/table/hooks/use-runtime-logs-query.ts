@@ -44,7 +44,10 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
     const environmentIdFilters = filters
       .filter((f) => f.field === "environmentId")
       .map((f) => ({ operator: "is" as const, value: String(f.value) }));
-    const deploymentIdFilter = filters.find((f) => f.field === "deploymentId");
+    const deploymentIdFilters = filters
+      .filter((f) => f.field === "deploymentId")
+      .map((f) => String(f.value))
+      .filter(Boolean);
     const regionFilters = filters
       .filter((f) => f.field === "region")
       .map((f) => ({ operator: "is" as const, value: String(f.value) }));
@@ -55,7 +58,7 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
     return {
       projectId: params.projectId,
       appId: appId ?? null,
-      deploymentId: deploymentIdFilter ? String(deploymentIdFilter.value) : null,
+      deploymentId: deploymentIdFilters,
       limit,
       startTime: startTimeFilter ? Number(startTimeFilter.value) : null,
       endTime: endTimeFilter ? Number(endTimeFilter.value) : null,

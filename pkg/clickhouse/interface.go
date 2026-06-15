@@ -32,6 +32,12 @@ type Querier interface {
 	// Returns a map from workspace ID to total usage count (only for workspaces >= minUsage).
 	GetBillableUsageAboveThreshold(ctx context.Context, year, month int, minUsage int64) (map[string]int64, error)
 
+	// GetInstanceMeterUsage computes billable deploy usage (CPU, memory, egress, disk)
+	// from Heimdall checkpoint data over a time window, one row per resource. An empty
+	// WorkspaceID aggregates across all workspaces. See instance_meter.go for the
+	// counter-delta vs time-integration rules and the sample-gap handling.
+	GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeterUsageRequest) ([]InstanceMeterUsage, error)
+
 	// GetDeploymentRequestCount returns the number of sentinel requests routed to a
 	// deployment within a recent time window, used to detect idle deployments for scale-down.
 	// Returns 0 (not an error) when the deployment has received no traffic.

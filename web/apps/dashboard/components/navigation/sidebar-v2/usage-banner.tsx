@@ -11,6 +11,7 @@ import {
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
+import type { Route } from "next";
 import Link from "next/link";
 
 export function UsageBanner() {
@@ -46,7 +47,7 @@ export function UsageBanner() {
 
   const percentage = (current / max) * 100;
   const shouldUpgrade = percentage > 90;
-  const href = `/${workspace.slug}/settings/billing`;
+  const href = `/${workspace.slug}/settings/billing` as Route;
 
   return (
     <SidebarMenu>

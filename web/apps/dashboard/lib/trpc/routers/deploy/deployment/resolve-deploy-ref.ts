@@ -1,4 +1,7 @@
 import type { getPullRequest } from "@/lib/github";
+import { TRPCError } from "@trpc/server";
+
+export type RepoConn = { installationId: number; repositoryFullName: string };
 
 export type DeployRef =
   | { kind: "pr"; prNumber: number; sourceRepo: string }
@@ -50,17 +53,59 @@ export function detectForkRepo(pr: Awaited<ReturnType<typeof getPullRequest>>): 
   return undefined;
 }
 
+// A GitHub owner/repo full name: only the characters GitHub actually allows in
+// account and repository names. The build worker interpolates this fork name
+// straight into a git context URL ("https://github.com/<fork>.git#<ref>"), so a
+// name containing "#", "?", or whitespace could smuggle a fragment or query into
+// that URL and alter which ref BuildKit checks out. Constraining the charset
+// here keeps a user-typed source repo from reaching the worker as a malformed URL.
+const REPO_FULL_NAME = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+
 export function resolveSourceRepo(
   sourceRepo: string,
   baseRepoFullName: string,
 ): string | undefined {
+  // GitHub owner/repo names are case-insensitive, so compare case-folded while
+  // preserving the caller's casing in the returned value.
   const baseRepoName = baseRepoFullName.split("/")[1];
+  let candidate: string;
   if (sourceRepo.includes("/")) {
     const sourceRepoName = sourceRepo.split("/")[1];
-    if (sourceRepoName !== baseRepoName) {
+    if (sourceRepoName.toLowerCase() !== baseRepoName.toLowerCase()) {
       return undefined;
     }
-    return sourceRepo !== baseRepoFullName ? sourceRepo : undefined;
+    candidate = sourceRepo;
+  } else {
+    candidate = `${sourceRepo}/${baseRepoName}`;
   }
-  return `${sourceRepo}/${baseRepoName}`;
+  if (
+    !REPO_FULL_NAME.test(candidate) ||
+    candidate.toLowerCase() === baseRepoFullName.toLowerCase()
+  ) {
+    return undefined;
+  }
+  return candidate;
+}
+
+export function validateSourceRepo(sourceRepo: string, repoConn: RepoConn): string {
+  const fork = resolveSourceRepo(sourceRepo, repoConn.repositoryFullName);
+  if (fork) {
+    return fork;
+  }
+
+  // resolveSourceRepo returns undefined both when the ref points at the base
+  // repo itself (a legitimate non-fork deploy) and when it is malformed or not
+  // a fork of this repo. Only the former may proceed silently: rejecting the
+  // latter stops a bad owner-only ref (e.g. "evil owner") from being dropped
+  // and reinterpreted as a fully trusted build of the base branch.
+  const baseName = repoConn.repositoryFullName.split("/")[1];
+  const candidate = sourceRepo.includes("/") ? sourceRepo : `${sourceRepo}/${baseName}`;
+  if (candidate.toLowerCase() === repoConn.repositoryFullName.toLowerCase()) {
+    return "";
+  }
+
+  throw new TRPCError({
+    code: "BAD_REQUEST",
+    message: `Repository "${sourceRepo}" is not a fork of "${repoConn.repositoryFullName}"`,
+  });
 }

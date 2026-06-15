@@ -382,13 +382,15 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			)
 		}
 
-		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
-			InstallationID:                source.Git.GetInstallationId(),
-			Repository:                    source.Git.GetRepository(),
-			ForkRepository:                forkRepo,
-			CommitSHA:                     commitSHA,
-			ContextPath:                   source.Git.GetContextPath(),
-			DockerfilePath:                source.Git.GetDockerfilePath(),
+		params := gitBuildParams{
+			InstallationID: source.Git.GetInstallationId(),
+			Repository:     source.Git.GetRepository(),
+			ForkRepository: forkRepo,
+			CommitSHA:      commitSHA,
+			ContextPath:    source.Git.GetContextPath(),
+			// Normalized here because the value routes the build method below:
+			// a whitespace-only setting must mean "no Dockerfile configured".
+			DockerfilePath:                strings.TrimSpace(source.Git.GetDockerfilePath()),
 			ProjectID:                     deployment.ProjectID,
 			AppID:                         deployment.AppID,
 			DeploymentID:                  deployment.ID,
@@ -396,7 +398,23 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			PrNumber:                      source.Git.GetPrNumber(),
 			EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
 			EnvironmentID:                 deployment.EnvironmentID,
-		})
+		}
+
+		// The configured Dockerfile path decides the build method: when the
+		// app's build settings name a Dockerfile it is used, otherwise the
+		// app is built with Railpack (no Dockerfile required).
+		var build *buildResult
+		var err error
+		if params.DockerfilePath == "" {
+			logger.Info("no dockerfile configured, building with railpack",
+				"deployment_id", deployment.ID,
+				"repository", params.Repository,
+				"commit_sha", params.CommitSHA,
+			)
+			build, err = w.buildRailpackImageFromGit(ctx, params)
+		} else {
+			build, err = w.buildDockerImageFromGit(ctx, params)
+		}
 		if err != nil {
 			// fault.Public set inside buildDockerImageFromGit is lost because
 			// restate.Run serialises terminal errors, stripping the fault wrapper.
