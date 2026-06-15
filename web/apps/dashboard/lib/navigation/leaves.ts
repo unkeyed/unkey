@@ -105,8 +105,8 @@ export function buildProjectLinks(
   const scope = { workspaceSlug: slug, projectId };
   return [
     {
-      key: "overview",
-      label: "Overview",
+      key: "apps",
+      label: "Apps",
       href: routes.projects.detail(scope),
       icon: Cube,
       isActive: !page,
@@ -127,7 +127,7 @@ export function buildProjectLinks(
     },
     {
       key: "settings",
-      label: "Settings",
+      label: "Project Settings",
       href: routes.projects.settings(scope),
       icon: Gear,
       isActive: page === "settings",
@@ -167,7 +167,7 @@ export function buildAppLinks(
     },
     {
       key: "settings",
-      label: "Settings",
+      label: "App Settings",
       href: routes.projects.apps.settings(scope),
       icon: Gear,
       isActive: page === "settings",
