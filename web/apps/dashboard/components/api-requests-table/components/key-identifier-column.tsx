@@ -4,6 +4,7 @@ import {
   getErrorSeverity,
 } from "@/components/api-requests-table/utils/calculate-blocked-percentage";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
@@ -57,21 +58,28 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
   const [isNavigating, setIsNavigating] = useState(false);
 
   const keyAuthId = log.key_details?.key_auth_id;
-  const canNavigate = Boolean(keyAuthId);
+  const keyHref = keyAuthId
+    ? routes.apis.keys.detail({
+        workspaceSlug: workspace.slug,
+        apiId,
+        keyAuthId,
+        keyId: log.key_id,
+      })
+    : undefined;
 
   const handleLinkClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      if (!canNavigate) {
+      if (!keyHref) {
         return;
       }
       setIsNavigating(true);
 
       onNavigate?.();
 
-      router.push(`/${workspace.slug}/apis/${apiId}/keys/${keyAuthId}/${log.key_id}`);
+      router.push(keyHref);
     },
-    [apiId, log.key_id, keyAuthId, canNavigate, onNavigate, router, workspace.slug],
+    [keyHref, onNavigate, router],
   );
 
   return (
@@ -91,11 +99,11 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
           </div>
         )}
       </InfoTooltip>
-      {canNavigate ? (
+      {keyHref ? (
         <Link
           title={`View details for ${log.key_id}`}
           className="font-mono group-hover:underline decoration-dotted"
-          href={`/${workspace.slug}/apis/${apiId}/keys/${keyAuthId}/${log.key_id}`}
+          href={keyHref}
           onClick={handleLinkClick}
         >
           <div className="font-mono font-medium truncate flex items-center">

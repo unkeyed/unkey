@@ -46,7 +46,7 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
 
 function resolveWorkspaceHref(slug: string, params: RouteParams): string {
   if (params.apiId) {
-    return `/${slug}/apis`;
+    return routes.apis.list({ workspaceSlug: slug });
   }
   if (params.projectId) {
     return routes.projects.list({ workspaceSlug: slug });

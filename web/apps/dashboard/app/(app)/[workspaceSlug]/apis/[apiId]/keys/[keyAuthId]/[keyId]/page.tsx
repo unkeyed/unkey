@@ -2,6 +2,7 @@
 import { use } from "react";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { ApisNavbar } from "../../../api-id-navbar";
 import { KeyDetailsLogsClient } from "./logs-client";
 export default function KeyDetailsPage(props: {
@@ -18,7 +19,12 @@ export default function KeyDetailsPage(props: {
         keyspaceId={keyspaceId}
         keyId={keyId}
         activePage={{
-          href: `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyId}`,
+          href: routes.apis.keys.detail({
+            workspaceSlug: workspace.slug,
+            apiId,
+            keyAuthId: keyspaceId,
+            keyId,
+          }),
           text: "Keys",
         }}
       />
