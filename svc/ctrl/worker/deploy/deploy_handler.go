@@ -187,9 +187,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Starting ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
-		// krane asserts these async in its watcher, so a bad value (e.g. port 0)
-		// hangs the deployment until timeout. Both entrypoints funnel here, so
-		// validate at this shared chokepoint and fail fast.
 		if err := assert.All(
 			assert.Greater(deployment.Port, int32(0), "Port must be greater than 0"),
 			assert.LessOrEqual(deployment.Port, int32(65535), "Port must be at most 65535"),
