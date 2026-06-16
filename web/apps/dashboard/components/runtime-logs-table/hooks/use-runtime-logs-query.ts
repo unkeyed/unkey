@@ -80,9 +80,12 @@ export function useRuntimeLogsQuery({
   }, [activeRealtimeLogsMap]);
 
   // Resolve the historical window once per filter/anchor change. Relative `since`
-  // filters resolve against the pinned anchor; explicit start/end are used as-is.
-  // We always pass concrete start/end (not `since`) so the server uses our pinned
-  // window instead of resolving `endTime` to its own `Date.now()` per request.
+  // filters resolve their `startTime` against wall-clock-at-recompute (this memo
+  // only re-runs on filter/anchor change, so it stays stable across page
+  // navigations); their `endTime` is the pinned anchor. Explicit start/end are
+  // used as-is. We always pass concrete start/end (not `since`) so the server
+  // uses our window instead of resolving `endTime` to its own `Date.now()` per
+  // request.
   const timeWindow = useMemo(() => {
     const startTimeFilter = filters.find((f) => f.field === "startTime");
     const endTimeFilter = filters.find((f) => f.field === "endTime");
@@ -222,6 +225,8 @@ export function useRuntimeLogsQuery({
       const result = await queryClient.deploy.runtimeLogs.query.fetch({
         ...queryInput,
         page: 1,
+        // The poll only reads `result.logs`, so skip the count(*) it would discard.
+        includeTotal: false,
         startTime: latestTime ?? Date.now() - pollIntervalMs,
         endTime: Date.now(),
       });

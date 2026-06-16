@@ -86,14 +86,17 @@ export const queryRuntimeLogs = workspaceProcedure
       transformedInputs.environmentId = [prod.id];
     }
 
-    const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs({
-      ...transformedInputs,
-      k8sPodNames,
-      workspaceId: ctx.workspace.id,
-      projectId: project.id,
-      deploymentId: input.deploymentId,
-      appId,
-    });
+    const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs(
+      {
+        ...transformedInputs,
+        k8sPodNames,
+        workspaceId: ctx.workspace.id,
+        projectId: project.id,
+        deploymentId: input.deploymentId,
+        appId,
+      },
+      { includeTotal: input.includeTotal },
+    );
 
     const [logsResult, totalResult] = await Promise.all([logsQuery, totalQuery]);
 
