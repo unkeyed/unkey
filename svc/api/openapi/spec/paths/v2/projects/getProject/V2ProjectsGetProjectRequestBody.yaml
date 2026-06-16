@@ -6,7 +6,7 @@ properties:
     type: string
     minLength: 1
     maxLength: 256
-    pattern: "^[a-z0-9-]+$"
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
     description: |
       URL-safe handle of the project to retrieve, unique within your workspace.
       This is the caller-defined identifier returned when the project was created.
