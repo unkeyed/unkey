@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Gauge, Plus } from "@unkey/icons";
 import { Crumb } from "./crumb";
@@ -22,7 +23,7 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
   const items: CrumbPopoverItem[] = namespaces.map((n) => ({
     id: n.id,
     label: n.name,
-    href: `/${workspace.slug}/ratelimits/${n.id}`,
+    href: routes.ratelimits.detail({ workspaceSlug: workspace.slug, namespaceId: n.id }),
   }));
 
   return (
@@ -30,7 +31,7 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
       icon={<Gauge className="size-3.5 text-accent-11" iconSize="sm-regular" />}
       label={current?.name ?? namespaceId}
       loading={loading}
-      href={`/${workspace.slug}/ratelimits/${namespaceId}`}
+      href={routes.ratelimits.detail({ workspaceSlug: workspace.slug, namespaceId })}
       items={items}
       currentId={namespaceId}
       searchPlaceholder="Find namespace..."
@@ -38,7 +39,7 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
       footer={{
         icon: Plus,
         label: "All namespaces",
-        href: `/${workspace.slug}/ratelimits`,
+        href: routes.ratelimits.list({ workspaceSlug: workspace.slug }),
       }}
     />
   );

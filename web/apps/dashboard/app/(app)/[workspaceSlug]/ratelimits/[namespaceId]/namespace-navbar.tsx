@@ -4,6 +4,7 @@ import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { ChevronExpandY, Gauge, Plus, TaskUnchecked } from "@unkey/icons";
 import dynamic from "next/dynamic";
@@ -35,7 +36,9 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/ratelimits`}>
+          <Navbar.Breadcrumbs.Link
+            href={routes.ratelimits.list({ workspaceSlug: workspace.slug })}
+          >
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" className="group" noop>
@@ -67,11 +70,13 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/ratelimits`}>
+          <Navbar.Breadcrumbs.Link
+            href={routes.ratelimits.list({ workspaceSlug: workspace.slug })}
+          >
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
-            href={`/${workspace.slug}/ratelimits/${namespaceId}`}
+            href={routes.ratelimits.detail({ workspaceSlug: workspace.slug, namespaceId })}
             className="group"
             noop
           >

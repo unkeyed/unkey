@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input, Loading } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -45,7 +46,7 @@ export const DeleteNamespaceDialog = ({
 
   const onSubmit = async () => {
     collection.ratelimitNamespaces.delete(namespace.id);
-    router.push(`/${workspace.slug}/ratelimits`);
+    router.push(routes.ratelimits.list({ workspaceSlug: workspace.slug }));
 
     //await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
   };
