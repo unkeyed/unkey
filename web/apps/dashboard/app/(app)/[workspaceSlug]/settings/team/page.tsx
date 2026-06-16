@@ -23,7 +23,7 @@ export default async function SettingTeamPage() {
       </PageHeader>
       <PageBody>
         {workspace ? (
-          <div className="w-full flex flex-col pt-4">
+          <div className="w-full flex flex-col">
             <TeamPageClient team={team} />
           </div>
         ) : (

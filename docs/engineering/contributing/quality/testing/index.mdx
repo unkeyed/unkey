@@ -9,6 +9,23 @@ Tests exist to give confidence. Confidence to ship changes quickly, confidence t
 
 We prioritize quality over quantity. A single well-designed test that validates complex business logic is worth more than a dozen tests that exercise trivial code paths. When writing tests, ask what could go wrong in production that this test would catch.
 
+Treat test code as production code. Tests are part of the system contract, not a safety net added after implementation. They must be readable, typed, deterministic, reviewed with the same care as application code, and maintained when behavior changes.
+
+Every test must make its guarantee clear to the reader. The guarantee is the production behavior that would break if the test failed. A future reader must be able to understand what risk the test covers without reverse engineering setup, mocks, or fixtures.
+
+Document non-obvious guarantees with docstrings or comments. Use them when a test protects a security property, regression, invariant, concurrency condition, failure mode, or business rule that the test name cannot fully explain.
+
+```go
+// TestTokenParserRejectsAlgorithmConfusion guarantees that tokens signed with
+// one algorithm cannot be accepted under another algorithm. This protects the
+// verifier from accepting attacker-controlled headers as trusted policy.
+func TestTokenParserRejectsAlgorithmConfusion(t *testing.T) {
+    // ...
+}
+```
+
+Do not document obvious mechanics. A comment that says "creates a workspace" above `createWorkspace(t)` adds noise. A comment that explains why cross-workspace access must return 404 instead of 403 documents a guarantee.
+
 ## What to test
 
 Invest testing effort where bugs would hurt most.
@@ -49,7 +66,9 @@ Tests live alongside the code they test. A file `cache.go` has its tests in `cac
 
 For integration tests that require substantial setup or external dependencies, create an `integration/` subdirectory when it improves clarity.
 
-Bazel requires each test target to declare a size that determines its timeout and resource allocation. Unit tests should be `small`. Integration tests that spin up containers should be `large`.
+Organize tests around guarantees, not implementation details. File names, test names, table cases, and helper names must help a reader answer which behavior is protected and why it matters.
+
+Bazel requires each test target to declare a size that determines its timeout and resource allocation. Unit tests must be `small`. Integration tests that spin up containers must be `large`.
 
 ```python
 go_test(

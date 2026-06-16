@@ -2,6 +2,7 @@
 import { PostAuthInvitationHandler } from "@/components/auth/post-auth-invitation-handler";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Nodes } from "@unkey/icons";
 import { useSearchParams } from "next/navigation";
 import { ApiListClient } from "./_components/api-list-client";
@@ -18,7 +19,10 @@ export default function ApisOverviewPage() {
       <PostAuthInvitationHandler />
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
-          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`} active>
+          <Navbar.Breadcrumbs.Link
+            href={routes.apis.list({ workspaceSlug: workspace.slug })}
+            active
+          >
             Keyspaces (APIs)
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>

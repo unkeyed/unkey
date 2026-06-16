@@ -169,14 +169,24 @@ func (e *counterEntry) observeGlobalPushLimit(limit int64) {
 	logger.Error("global push threshold update retries exhausted")
 }
 
-// shouldPushGlobalCount is true when the entry's live local count has reached
-// the observed global-push threshold and grown past what we last successfully
-// pushed. Both checks are necessary: the threshold excludes pull-created or
-// low-utilization entries; lastPushed excludes entries with no new state to
-// share.
+// shouldPushGlobalCount reports whether the entry's local count should be
+// shared through ratelimit_global_counters.
 func (e *counterEntry) shouldPushGlobalCount(val int64) bool {
+	// If the counter hasn't increased, there's nothing to push.
+	if val <= e.lastPushed.Load() {
+		return false
+	}
+
+	// Once another region has emitted this cell, any changed local count matters
+	// globally and should not wait for this region's utilization floor.
+	if e.globalCount.Load() > 0 {
+		return true
+	}
+
+	// Without imported remote count, keep the normal floor so pull-created or
+	// low-utilization entries do not create unnecessary MySQL writes.
 	threshold := e.globalPushThreshold.Load()
-	return threshold > 0 && val >= threshold && val > e.lastPushed.Load()
+	return threshold > 0 && val >= threshold
 }
 
 // EnsureFreshFromOrigin populates val from origin on first use and refreshes

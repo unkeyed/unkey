@@ -1,4 +1,5 @@
 "use client";
+import { routes } from "@/lib/navigation/routes";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -42,7 +43,7 @@ export function SuccessClient({ workSpaceSlug, showPlanSelection, products }: Pr
 
     // Redirect based on workspace availability
     if (workSpaceSlug) {
-      router.push(`/${workSpaceSlug}/settings/billing`);
+      router.push(routes.settings.billing({ workspaceSlug: workSpaceSlug }));
     } else {
       router.push("/");
     }

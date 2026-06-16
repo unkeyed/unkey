@@ -227,11 +227,16 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Clock:                     o.clock,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		SlackQuotaCheckWebhookURL: "",
+		// Deploy billing push disabled in tests: nil reader + empty Stripe key
+		// make the handler a no-op.
+		BillingUsageReader: nil,
+		StripeSecretKey:    "",
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:      healthcheck.NewNoop(),
-			KeyRefill:       healthcheck.NewNoop(),
-			KeyLastUsedSync: healthcheck.NewNoop(),
-			AuditLogExport:  healthcheck.NewNoop(),
+			QuotaCheck:        healthcheck.NewNoop(),
+			KeyRefill:         healthcheck.NewNoop(),
+			KeyLastUsedSync:   healthcheck.NewNoop(),
+			AuditLogExport:    healthcheck.NewNoop(),
+			DeployBillingPush: healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)

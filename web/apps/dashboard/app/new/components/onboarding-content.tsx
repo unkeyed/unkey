@@ -1,5 +1,5 @@
 "use client";
-import { HelpButton } from "@/components/navigation/sidebar/help-button";
+import { HelpButton } from "@/components/navigation/top-nav/help-button";
 import { signOut } from "@/lib/auth/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";

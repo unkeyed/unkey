@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import {
   Button,
@@ -54,7 +55,7 @@ export const Client: React.FC = () => {
     return (
       <BillingContainer>
         <div className="animate-pulse">
-          <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
+          <div className="flex w-full flex-col items-center gap-6">
             <div className="w-full h-[150px] bg-grayA-3 rounded-lg" />
             <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
             <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
@@ -96,7 +97,7 @@ export const Client: React.FC = () => {
 
   return (
     <BillingContainer>
-      <div className="flex w-full flex-col items-center gap-6 pt-4 pb-16">
+      <div className="flex w-full flex-col items-center gap-6">
         {subscription ? (
           <SubscriptionStatus
             workspaceSlug={workspace.slug}
@@ -129,7 +130,9 @@ export const Client: React.FC = () => {
                         aria-label="Open billing portal"
                         disabled={!isAdmin}
                         onClick={() => {
-                          router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
+                          router.push(
+                            routes.settings.stripe.portal({ workspaceSlug: workspace.slug }),
+                          );
                         }}
                       >
                         Open Portal
@@ -166,7 +169,9 @@ export const Client: React.FC = () => {
                         aria-label="Add payment method"
                         disabled={!isAdmin}
                         onClick={() => {
-                          router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
+                          router.push(
+                            routes.settings.stripe.checkout({ workspaceSlug: workspace.slug }),
+                          );
                         }}
                       >
                         Add payment method

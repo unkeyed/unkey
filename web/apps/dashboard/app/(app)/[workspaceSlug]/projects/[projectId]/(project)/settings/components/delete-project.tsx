@@ -42,8 +42,13 @@ export function DeleteProject() {
 
   const isValid = watch("name") === projectName;
 
-  const onSubmit = (_values: FormValues) => {
-    collection.projects.delete(projectId);
+  const onSubmit = async () => {
+    // Non-optimistic: keep the project in the collection until the server delete
+    // resolves. An optimistic removal empties the local project while this page
+    // is still mounted and trips the data provider's notFound() guard, 404ing
+    // before navigation lands.
+    const tx = collection.projects.delete(projectId, { optimistic: false });
+    await tx.isPersisted.promise;
     setIsDialogOpen(false);
     router.push(routes.projects.list({ workspaceSlug: workspace.slug }));
   };
