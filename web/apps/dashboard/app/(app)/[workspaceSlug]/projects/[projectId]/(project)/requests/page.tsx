@@ -1,5 +1,5 @@
 "use client";
-import { ProjectContentWrapper } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/project-content-wrapper";
+import { PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { useState } from "react";
 import { SentinelLogsControlCloud } from "./components/control-cloud";
 import { SentinelLogsControls } from "./components/controls";
@@ -11,7 +11,12 @@ export default function Page() {
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
   return (
-    <ProjectContentWrapper>
+    <PageContainer width="full">
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Requests</PageHeaderTitle>
+        </PageHeaderContent>
+      </PageHeader>
       <SentinelLogsProvider>
         <SentinelLogsControls />
         <div
@@ -26,6 +31,6 @@ export default function Page() {
         <SentinelLogsTable />
         <SentinelLogDetails distanceToTop={tableDistanceToTop} />
       </SentinelLogsProvider>
-    </ProjectContentWrapper>
+    </PageContainer>
   );
 }

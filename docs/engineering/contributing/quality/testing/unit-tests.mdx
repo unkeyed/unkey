@@ -37,6 +37,19 @@ Use individual tests when setup or assertions diverge meaningfully.
 
 Name test functions `Test<Type>_<Behavior>` or `Test<Function>_<Scenario>`. Name table cases so failures read like a sentence.
 
+Prefer names that state the guarantee under test. `TestParseURN_RejectsCrossWorkspaceResources` is better than `TestParseURN_InvalidInput` because it tells the reader which production boundary the test protects.
+
+Add a docstring when the guarantee is not obvious from the name. Use the docstring to explain the invariant, regression, or business rule, not the steps the test performs.
+
+```go
+// TestAuthorizeRejectsCrossWorkspaceAccess guarantees that a valid key from one
+// workspace cannot authorize reads in another workspace. Returning not found
+// prevents callers from discovering that the target resource exists.
+func TestAuthorizeRejectsCrossWorkspaceAccess(t *testing.T) {
+    // ...
+}
+```
+
 ## Parallel execution
 
 Use `t.Parallel()` only when tests do not share mutable state or external resources.
@@ -45,9 +58,13 @@ Use `t.Parallel()` only when tests do not share mutable state or external resour
 
 Helpers that assert must call `t.Helper()`. Use `t.Cleanup()` for resource cleanup so subtests complete before cleanup runs.
 
+Helpers are production test APIs. Keep them small, typed, and named after the domain object or state they create. If a helper hides important setup, document the guarantee it establishes for callers.
+
 ## Test data
 
 Inline small fixtures. Use `testdata/` for larger files and include them in Bazel targets.
+
+Name fixtures by the behavior they exercise. A fixture named `expired_root_key.json` is better than `case_3.json` because it carries the test guarantee into the filesystem.
 
 ## Time-dependent logic
 

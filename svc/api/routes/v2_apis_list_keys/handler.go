@@ -9,6 +9,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -153,6 +154,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("api not set up for key encryption"), fault.Public("The requested API does not support key encryption."),
 			)
 		}
+	}
+
+	// Portal sessions are scoped to a single external identity. Override any
+	// user-supplied externalId filter so that the session can only list its own keys.
+	// Fail closed: if the externalId is empty, reject the request rather than
+	// returning unscoped keys.
+	//
+	// Identity scoping is intentionally separate from the RBAC permission system.
+	// Permissions gate what operations a principal can perform; identity scoping
+	// gates what data is visible. Portal sessions carry a fixed externalId that
+	// restricts visibility regardless of what the request body says.
+	switch src := principal.Source.(type) {
+	case authprincipal.PortalSessionSource:
+		if src.ExternalID == "" {
+			return fault.New("portal session missing identity",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("portal session externalId is empty"),
+				fault.Public("An internal error occurred."),
+			)
+		}
+		req.ExternalId = &src.ExternalID
 	}
 
 	limit := ptr.SafeDeref(req.Limit, 100)
