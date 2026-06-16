@@ -17,7 +17,7 @@ Each tick does four things:
 
 1. Reads the running month-to-date usage for every workspace from ClickHouse, windowed from the first of the month to now.
 2. Aggregates the per-resource rows into per-workspace meter totals, converting each meter into the unit its Stripe meter expects.
-3. Resolves each workspace's Stripe customer ID from MySQL and drops workspaces that are disabled or have no customer.
+3. Resolves each workspace's Stripe customer ID from MySQL and drops only workspaces with no customer. Disabled workspaces are still billed: usage already incurred is owed regardless of current state.
 4. Pushes each remaining workspace's totals to Stripe as billing meter events, fanning the pushes out in bounded batches.
 
 ```mermaid
@@ -37,7 +37,7 @@ sequenceDiagram
     loop batches of 16 workspaces
         Handler->>Stripe: POST meter events (period-to-date total)
     end
-    Handler-->>Restate: workspaces_pushed, meters_pushed
+    Handler-->>Restate: empty response (counts are logged, not returned)
 ```
 
 ### The meter contract
@@ -138,6 +138,6 @@ To exercise the full path against a real Stripe test account:
      "http://localhost:8080/hydra.v1.CronService/$(date -u +%Y-%m)/RunDeployBillingPush/send"
    ```
 
-5. Verify the result. The response reports `workspaces_pushed` and `meters_pushed`. In the Stripe test dashboard, open the customer's billing meters and confirm the meter values match the month-to-date totals. Run the push again and confirm the values converge on the latest total rather than doubling, which demonstrates the `last` aggregation.
+5. Verify the result. The worker logs `workspaces_pushed` and `meters_pushed` on completion. In the Stripe test dashboard, open the customer's billing meters and confirm the meter values match the month-to-date totals. Run the push again and confirm the values converge on the latest total rather than doubling, which demonstrates the `last` aggregation.
 
 Because the push sends absolute totals, you can re-run it as many times as you like during testing without inflating the billed quantity.
