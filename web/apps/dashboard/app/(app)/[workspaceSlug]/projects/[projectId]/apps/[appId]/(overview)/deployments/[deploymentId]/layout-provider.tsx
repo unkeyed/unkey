@@ -41,7 +41,11 @@ export const DeploymentLayoutProvider = ({
   const resolved = deployment ?? (parsed?.success ? parsed.data : undefined);
   if (!resolved) {
     if (isDeploymentsLoading || isFetchingById) {
-      return <LoadingState message="Loading deployment..." />;
+      return (
+        <div className="h-dvh flex flex-col">
+          <LoadingState message="Loading deployment..." />
+        </div>
+      );
     }
     notFound();
   }
