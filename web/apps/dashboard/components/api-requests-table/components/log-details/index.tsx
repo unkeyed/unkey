@@ -1,6 +1,7 @@
 "use client";
 import { LogDetails } from "@/components/logs/details/log-details";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { TimestampInfo, toast } from "@unkey/ui";
 import Link from "next/link";
@@ -71,7 +72,12 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, api
       <Link
         title={`View details for ${log.key_id}`}
         className="font-mono underline decoration-dotted"
-        href={`/${workspace.slug}/apis/${apiId}/keys/${log.key_details.key_auth_id}/${log.key_id}`}
+        href={routes.apis.keys.detail({
+          workspaceSlug: workspace.slug,
+          apiId,
+          keyAuthId: log.key_details.key_auth_id,
+          keyId: log.key_id,
+        })}
       >
         <div className="font-mono font-medium truncate">{log.key_id}</div>
       </Link>
