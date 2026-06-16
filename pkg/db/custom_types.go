@@ -66,6 +66,8 @@ func UnmarshalNullableJSONTo[T any](data any) (T, error) {
 	switch v := data.(type) {
 	case []byte:
 		bytes = v
+	case json.RawMessage:
+		bytes = v
 	case string:
 		bytes = []byte(v)
 	default:

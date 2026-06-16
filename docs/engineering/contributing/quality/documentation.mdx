@@ -21,7 +21,7 @@ Before submitting documentation, verify each item.
 - [ ] Constraints documented are enforced, and the docs note when and how
 
 **Completeness**
-- [ ] Every exported symbol has a doc comment
+- [ ] Every symbol has a doc comment
 - [ ] Package has a `doc.go` if it has non-trivial behavior
 - [ ] Non-obvious behavior is documented (edge cases, nil handling, concurrency)
 - [ ] The why is explained for design choices that are not self-evident
@@ -97,6 +97,8 @@ func Validate(req *Request) []ValidationError
 ## Public API documentation
 
 Every exported function, type, constant, and variable must be documented. This is the contract with users of the code.
+
+Unexported functions and methods must be documented too. They have no external contract, but the next reader still needs to know what they do and why they exist without reverse-engineering the body. A single sentence is usually enough.
 
 The depth of documentation should match complexity. A simple getter needs one line. A distributed algorithm needs paragraphs.
 

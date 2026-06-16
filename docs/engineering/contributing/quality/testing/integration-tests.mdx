@@ -7,6 +7,17 @@ description: "Testing components with real dependencies"
 
 Use integration tests to cover behavior across service boundaries, real databases, caches, and storage. These tests catch failures that mocks miss.
 
+Integration tests must document the cross-boundary guarantee they protect. Make it clear which production contract would be broken if the test failed, such as transaction rollback, idempotency, permission propagation, cache invalidation, or persistence after restart.
+
+```go
+// TestCreateKeyRollsBackAuditLogOnDatabaseFailure guarantees that key creation
+// and audit logging remain atomic. Operators must not see an audit log for a
+// key that was never committed.
+func TestCreateKeyRollsBackAuditLogOnDatabaseFailure(t *testing.T) {
+    // ...
+}
+```
+
 ## Container patterns
 
 Use `pkg/testutil/containers` for isolated, per-test containers. Helpers register cleanup with `t.Cleanup` immediately after creating a container, so failed readiness checks don't leak resources. Run tests that use these helpers through Bazel so schema runfiles are available.
@@ -23,6 +34,8 @@ Use `pkg/testutil` when you need a full service graph and seeded data:
 h := testutil.NewHarness(t)
 workspace := h.CreateWorkspace()
 ```
+
+Keep harness setup explicit when it affects the guarantee. Do not hide permissions, feature flags, tenants, or seeded records behind generic helpers unless the helper name or docstring explains the resulting system state.
 
 ## Bazel sizing
 
