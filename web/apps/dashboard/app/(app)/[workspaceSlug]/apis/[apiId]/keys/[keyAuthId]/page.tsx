@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { use } from "react";
 import { ApisNavbar } from "../../api-id-navbar";
 import { KeysClient } from "./_components/keys-client";
@@ -21,7 +22,11 @@ export default function APIKeysPage(props: {
       <ApisNavbar
         apiId={apiId}
         activePage={{
-          href: `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}`,
+          href: routes.apis.keys.list({
+            workspaceSlug: workspace.slug,
+            apiId,
+            keyAuthId: keyspaceId,
+          }),
           text: "Keys",
         }}
       />

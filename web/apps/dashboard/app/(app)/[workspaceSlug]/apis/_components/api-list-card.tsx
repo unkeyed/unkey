@@ -4,6 +4,7 @@ import { StatsTimeseriesBarChart } from "@/components/stats-card/components/char
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatNumber } from "@/lib/fmt";
+import { routes } from "@/lib/navigation/routes";
 import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 import { Key, ProgressBar } from "@unkey/icons";
 import { InfoTooltip, Loading } from "@unkey/ui";
@@ -27,7 +28,7 @@ export const ApiListCard = ({ api }: Props) => {
       <StatsCard
         name={api.name}
         secondaryId={api.id}
-        linkPath={`/${workspace.slug}/apis/${api.id}`}
+        linkPath={routes.apis.detail({ workspaceSlug: workspace.slug, apiId: api.id })}
         chart={
           <StatsTimeseriesBarChart
             data={timeseries}
