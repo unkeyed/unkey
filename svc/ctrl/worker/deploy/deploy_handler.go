@@ -189,7 +189,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
 		if err := assert.All(
 			assert.Greater(deployment.Port, int32(0), "Port must be greater than 0"),
-			assert.LessOrEqual(deployment.Port, int32(65535), "Port must be at most 65535"),
+			assert.LessOrEqual(deployment.Port, int32(65535), "Port cannot exceed 65535"),
 			assert.Greater(deployment.CpuMillicores, int32(0), "CPU millicores must be greater than 0"),
 			assert.Greater(deployment.MemoryMib, int32(0), "MemoryMib must be greater than 0"),
 		); err != nil {
