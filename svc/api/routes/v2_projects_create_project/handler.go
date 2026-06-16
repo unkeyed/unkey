@@ -69,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 		if err != nil {
 			if db.IsDuplicateKeyError(err) {
-				return fault.Wrap(err,
+				return fault.New("project already exists",
 					fault.Code(codes.Data.Project.Duplicate.URN()),
 					fault.Internal("project slug already exists"),
 					fault.Public(fmt.Sprintf("A project with slug '%s' already exists in this workspace.", req.Slug)),
@@ -97,7 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						ID:          projectID,
 						Type:        auditlog.ProjectResourceType,
-						Meta:        nil,
+						Meta:        map[string]any{"name": req.Name, "slug": req.Slug},
 						Name:        req.Name,
 						DisplayName: req.Name,
 					},

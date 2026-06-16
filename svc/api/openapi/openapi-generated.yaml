@@ -6910,11 +6910,11 @@ paths:
                                     summary: Invalid slug format
                                     value:
                                         error:
-                                            detail: The slug must match the pattern ^[a-z0-9-]+$.
+                                            detail: The slug must match the pattern ^[a-z0-9]+(-[a-z0-9]+)*$.
                                             errors:
-                                                - fix: Use only lowercase letters, numbers, and hyphens
+                                                - fix: Use lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens)
                                                   location: body.slug
-                                                  message: must match ^[a-z0-9-]+$
+                                                  message: must match ^[a-z0-9]+(-[a-z0-9]+)*$
                                             status: 400
                                             title: Bad Request
                                             type: validation-error

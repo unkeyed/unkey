@@ -63,13 +63,13 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Bad Request
-                  detail: The slug must match the pattern ^[a-z0-9-]+$.
+                  detail: The slug must match the pattern ^[a-z0-9]+(-[a-z0-9]+)*$.
                   status: 400
                   type: validation-error
                   errors:
                     - location: body.slug
-                      message: must match ^[a-z0-9-]+$
-                      fix: Use only lowercase letters, numbers, and hyphens
+                      message: must match ^[a-z0-9]+(-[a-z0-9]+)*$
+                      fix: Use lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens)
     "401":
       description: Unauthorized
       content:
