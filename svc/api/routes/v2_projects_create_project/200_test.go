@@ -37,7 +37,6 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
-		require.Equal(t, req.Slug, res.Body.Data.Slug)
 		require.True(t, strings.HasPrefix(res.Body.Data.Id, "proj_"))
 
 		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
@@ -69,7 +68,7 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 			req := handler.Request{Name: slug, Slug: slug}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-			require.Equal(t, slug, res.Body.Data.Slug)
+			require.True(t, strings.HasPrefix(res.Body.Data.Id, "proj_"))
 		}
 	})
 }

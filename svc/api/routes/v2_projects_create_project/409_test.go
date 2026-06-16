@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -54,6 +55,6 @@ func TestCreateProjectDuplicate(t *testing.T) {
 
 		second := testutil.CallRoute[handler.Request, handler.Response](h, route, otherHeaders, req)
 		require.Equal(t, 200, second.Status, "expected 200 for other workspace, received: %s", second.RawBody)
-		require.Equal(t, req.Slug, second.Body.Data.Slug)
+		require.True(t, strings.HasPrefix(second.Body.Data.Id, "proj_"))
 	})
 }

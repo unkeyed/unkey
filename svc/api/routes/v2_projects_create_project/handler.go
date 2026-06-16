@@ -119,8 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2ProjectsCreateProjectResponseData{
-			Id:   projectID,
-			Slug: req.Slug,
+			Id: projectID,
 		},
 	})
 }
