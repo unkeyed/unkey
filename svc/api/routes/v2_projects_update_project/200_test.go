@@ -107,6 +107,36 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		require.True(t, project.DeleteProtection.Bool)
 	})
 
+	t.Run("omitted fields keep non-default values", func(t *testing.T) {
+		_, slug := createProject(t, "Original", true)
+
+		newName := "Renamed"
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Slug: slug,
+			Name: &newName,
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Equal(t, newName, res.Body.Data.Name)
+		require.True(t, res.Body.Data.DeleteProtection, "delete protection must survive a name-only update")
+
+		project := getProject(t, slug)
+		require.Equal(t, newName, project.Name)
+		require.True(t, project.DeleteProtection.Bool)
+
+		unprotect := false
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Slug:             slug,
+			DeleteProtection: &unprotect,
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Equal(t, newName, res.Body.Data.Name, "name must survive a delete-protection-only update")
+		require.False(t, res.Body.Data.DeleteProtection)
+
+		project = getProject(t, slug)
+		require.Equal(t, newName, project.Name)
+		require.False(t, project.DeleteProtection.Bool)
+	})
+
 	t.Run("update both name and delete protection", func(t *testing.T) {
 		_, slug := createProject(t, "Before", true)
 		newName := "After"

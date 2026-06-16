@@ -3281,10 +3281,16 @@ type Querier interface {
 	UpdateKeysLastUsed(ctx context.Context, db DBTX, arg UpdateKeysLastUsedParams) error
 	//UpdateProject
 	//
-	//  UPDATE projects
+	//  UPDATE projects p
 	//  SET
-	//      name = ?,
-	//      delete_protection = ?,
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.name
+	//      END,
+	//      delete_protection = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.delete_protection
+	//      END,
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	//    AND slug = ?

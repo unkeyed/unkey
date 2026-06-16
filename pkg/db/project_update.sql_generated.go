@@ -11,35 +11,51 @@ import (
 )
 
 const updateProject = `-- name: UpdateProject :exec
-UPDATE projects
+UPDATE projects p
 SET
-    name = ?,
-    delete_protection = ?,
+    name = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE p.name
+    END,
+    delete_protection = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE p.delete_protection
+    END,
     updated_at = ?
 WHERE workspace_id = ?
   AND slug = ?
 `
 
 type UpdateProjectParams struct {
-	Name             string        `db:"name"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
-	WorkspaceID      string        `db:"workspace_id"`
-	Slug             string        `db:"slug"`
+	NameSpecified             int64         `db:"name_specified"`
+	Name                      string        `db:"name"`
+	DeleteProtectionSpecified int64         `db:"delete_protection_specified"`
+	DeleteProtection          sql.NullBool  `db:"delete_protection"`
+	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
+	WorkspaceID               string        `db:"workspace_id"`
+	Slug                      string        `db:"slug"`
 }
 
 // UpdateProject
 //
-//	UPDATE projects
+//	UPDATE projects p
 //	SET
-//	    name = ?,
-//	    delete_protection = ?,
+//	    name = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE p.name
+//	    END,
+//	    delete_protection = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE p.delete_protection
+//	    END,
 //	    updated_at = ?
 //	WHERE workspace_id = ?
 //	  AND slug = ?
 func (q *Queries) UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error {
 	_, err := db.ExecContext(ctx, updateProject,
+		arg.NameSpecified,
 		arg.Name,
+		arg.DeleteProtectionSpecified,
 		arg.DeleteProtection,
 		arg.UpdatedAt,
 		arg.WorkspaceID,
