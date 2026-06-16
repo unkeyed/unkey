@@ -53,7 +53,7 @@ func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunKeyLastUsedSyncRequest,
 ) (*hydrav1.RunKeyLastUsedSyncResponse, error) {
-	logger.Info("running key last used sync", "partitions", partitions)
+	logger.Debug("running key last used sync", "partitions", partitions)
 
 	type partitionFuture = restate.ResponseFuture[*hydrav1.SyncPartitionResponse]
 	futures := make([]partitionFuture, partitions)
@@ -72,8 +72,6 @@ func (h *Handler) Handle(
 		}
 		totalSynced += resp.GetKeysSynced()
 	}
-
-	logger.Info("key last used sync complete", "keys_synced", totalSynced)
 
 	if _, err := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, h.heartbeat.Ping(rc)

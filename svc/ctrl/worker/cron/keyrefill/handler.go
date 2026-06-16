@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -116,12 +117,11 @@ func (h *Handler) Handle(
 			continue
 		}
 
-		now, nowErr := restate.Run(ctx, func(restate.RunContext) (int64, error) {
-			return time.Now().UnixMilli(), nil
-		}, restate.WithName("get now timestamp"))
+		nowTime, nowErr := restateutil.Now(ctx)
 		if nowErr != nil {
 			return nil, fmt.Errorf("get now: %w", nowErr)
 		}
+		now := nowTime.UnixMilli()
 
 		keyIDs := make([]string, len(keysToProcess))
 		for i, key := range keysToProcess {

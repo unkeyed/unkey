@@ -7,22 +7,32 @@
 --      or query performance collapses as partition count grows.
 --   2. Group by container_uid. Never mix counter values across a container
 --      restart boundary. container_uid = pod_uid + restart_count.
+--   3. Integrate over consecutive checkpoint pairs and drop any pair with
+--      dt <= 0 or dt > maxSampleGapMillis (2 min). A larger gap means the
+--      agent was down: dropping the interval makes an outage under-count
+--      rather than over-charge. This applies to every meter below.
 --
 -- Prefer the `instance_checkpoints` VIEW over this table directly — the view
 -- already applies FINAL.
 --
--- CPU usage (seconds):
---   (max(cpu_usage_usec) - min(cpu_usage_usec)) / 1e6
+-- Every meter is summed over the in-gap pairs of one container_uid, so all
+-- four share the leadInFrame(...) OVER (PARTITION BY container_uid ORDER BY
+-- ts) shape. With no dropped gaps the counter sums telescope to (max - min);
+-- the authoritative query is GetInstanceMeterUsage in instance_meter.go.
 --
--- Memory byte-seconds:
+-- CPU usage (seconds): monotonic counter
+--   sum(greatest(0, leadInFrame(cpu_usage_usec) - cpu_usage_usec)) / 1e6
+--
+-- Memory byte-seconds: gauge integral
 --   sum(least(memory_bytes, leadInFrame(memory_bytes)) *
 --       (leadInFrame(ts) - ts)) / 1000
 --
--- Disk byte-seconds:
---   max(disk_allocated_bytes) * (max(ts) - min(ts)) / 1000
+-- Disk byte-seconds: gauge integral, same shape as memory
+--   sum(least(disk_allocated_bytes, leadInFrame(disk_allocated_bytes)) *
+--       (leadInFrame(ts) - ts)) / 1000
 --
--- Network byte totals (same shape as CPU):
---   max(network_*_bytes) - min(network_*_bytes)
+-- Network byte totals: monotonic counter, same shape as CPU
+--   sum(greatest(0, leadInFrame(network_*_bytes) - network_*_bytes))
 --
 -- Utilization % (observability, not billing):
 --   used_cpu_seconds / (cpu_allocated_millicores / 1000 * window_seconds)

@@ -1,5 +1,6 @@
 "use server";
 
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { deleteCookie, getCookie } from "./cookies";
 import { auth } from "./server";
@@ -28,5 +29,5 @@ export async function signOut(): Promise<void> {
     await auth.revokeSession(sessionToken);
   }
   await deleteCookie(UNKEY_SESSION_COOKIE);
-  redirect("/auth/sign-in");
+  redirect("/auth/sign-in" as Route);
 }

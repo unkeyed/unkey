@@ -1,8 +1,7 @@
 "use client";
 
-import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Plus } from "@unkey/icons";
-import type React from "react";
+import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { CreateProjectDialog } from "./create-project-dialog";
 
@@ -11,26 +10,17 @@ type Props = {
   workspaceSlug: string;
 };
 
-export const CreateProjectButton = ({
-  defaultOpen,
-  workspaceSlug,
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
+export function CreateProjectButton({ defaultOpen, workspaceSlug }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
 
   return (
     <>
-      <NavbarActionButton
-        title="Create new project"
-        {...rest}
-        color="default"
-        onClick={() => setIsOpen(true)}
-      >
-        <Plus />
-        Create new project
-      </NavbarActionButton>
+      <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
+        <Plus iconSize="sm-regular" />
+        Create project
+      </Button>
 
       <CreateProjectDialog isOpen={isOpen} onOpenChange={setIsOpen} workspaceSlug={workspaceSlug} />
     </>
   );
-};
+}

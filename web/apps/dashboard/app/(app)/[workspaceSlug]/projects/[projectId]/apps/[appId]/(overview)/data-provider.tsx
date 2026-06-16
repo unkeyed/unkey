@@ -7,7 +7,7 @@ import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { useParams } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import {
   type PropsWithChildren,
   createContext,
@@ -194,6 +194,13 @@ export const ProjectDataProvider = ({
     environmentsQuery,
     customDomainsQuery,
   ]);
+
+  // The projects collection holds every project in the workspace, so once it has
+  // finished loading an absent project means it does not exist (or is inaccessible).
+  // Checked after all hooks have run to keep hook ordering stable across renders.
+  if (!projectQuery.isLoading && !project) {
+    notFound();
+  }
 
   return <ProjectDataContext.Provider value={value}>{children}</ProjectDataContext.Provider>;
 };

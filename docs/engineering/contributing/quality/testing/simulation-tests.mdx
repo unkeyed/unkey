@@ -9,6 +9,8 @@ Example tests verify specific inputs and outputs. Simulation tests verify invari
 
 Unkey uses `pkg/sim` for simulation testing.
 
+Simulation tests must document the invariant they protect. Random events can obscure intent, so the test docstring and validator names must state the production guarantee directly.
+
 ## The mental model
 
 A simulation has state, events, and validators.
@@ -42,6 +44,9 @@ func (e *setEvent) Run(rng *rand.Rand, s *state) error {
 ## Running the simulation
 
 ```go
+// TestCacheSimulation guarantees that cache operations preserve basic cache
+// invariants across random event orderings. No event may leave the cache in a
+// nil or unreadable state.
 func TestCacheSimulation(t *testing.T) {
     seed := sim.NewSeed()
 
@@ -76,7 +81,9 @@ When a simulation fails, save the seed and rerun with `sim.SeedFromString` to re
 
 ## Writing effective events
 
-Events should be self-contained and valid regardless of current state. If preconditions are not met, return early.
+Events must be self-contained and valid regardless of current state. If preconditions are not met, return early.
+
+Name events and validators after domain behavior. `rejectExpiredKeyValidator` is clearer than `validator1` because it tells the reader which guarantee failed.
 
 ## When to use simulations
 

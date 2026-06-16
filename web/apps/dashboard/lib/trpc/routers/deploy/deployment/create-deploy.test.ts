@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseDeployRef, resolveSourceRepo } from "./resolve-deploy-ref";
+import { parseDeployRef, resolveSourceRepo, validateSourceRepo } from "./resolve-deploy-ref";
+
+const repoConn = { installationId: 1, repositoryFullName: "ogzhanolguncu/demo_api" };
 
 describe("parseDeployRef", () => {
   it("parses a PR URL with sourceRepo", () => {
@@ -106,5 +108,54 @@ describe("resolveSourceRepo", () => {
 
   it("constructs full repo from owner-only sourceRepo", () => {
     expect(resolveSourceRepo("fork-owner", "ogzhanolguncu/demo_api")).toBe("fork-owner/demo_api");
+  });
+
+  it("rejects names with characters that could smuggle a fragment or query into the git URL", () => {
+    // Bad char lives in the owner segment so it survives the repo-name match
+    // and is caught by the charset guard rather than the name comparison.
+    expect(resolveSourceRepo("evil#frag/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+    expect(resolveSourceRepo("evil?q=1/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+    expect(resolveSourceRepo("evil owner/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+  });
+
+  it("treats a casing-drifted spelling of the base repo as the base, not a fork", () => {
+    // GitHub owner/repo are case-insensitive: Acme/app must not slip through as
+    // a fork of acme/app and get run at the untrusted fork tier.
+    expect(resolveSourceRepo("Ogzhanolguncu/demo_api", "ogzhanolguncu/demo_api")).toBeUndefined();
+    expect(resolveSourceRepo("Ogzhanolguncu", "ogzhanolguncu/demo_api")).toBeUndefined();
+  });
+
+  it("accepts a legitimate fork whose repo-name casing drifts", () => {
+    expect(resolveSourceRepo("fork-owner/Demo_API", "ogzhanolguncu/demo_api")).toBe(
+      "fork-owner/Demo_API",
+    );
+  });
+});
+
+describe("validateSourceRepo", () => {
+  it("returns the resolved fork for a valid fork ref", () => {
+    expect(validateSourceRepo("fork-owner", repoConn)).toBe("fork-owner/demo_api");
+    expect(validateSourceRepo("fork-owner/demo_api", repoConn)).toBe("fork-owner/demo_api");
+  });
+
+  it("returns empty string when the ref points at the base repo", () => {
+    expect(validateSourceRepo("ogzhanolguncu", repoConn)).toBe("");
+    expect(validateSourceRepo("ogzhanolguncu/demo_api", repoConn)).toBe("");
+  });
+
+  it("returns empty string for a casing-drifted spelling of the base repo", () => {
+    expect(validateSourceRepo("Ogzhanolguncu", repoConn)).toBe("");
+    expect(validateSourceRepo("Ogzhanolguncu/demo_api", repoConn)).toBe("");
+  });
+
+  it("throws for a slashed ref that is not a fork of the base", () => {
+    expect(() => validateSourceRepo("ogzhanolguncu/http-echo", repoConn)).toThrow();
+  });
+
+  it("throws for a malformed owner-only ref instead of silently dropping it", () => {
+    // Regression: an owner-only ref that fails the charset guard must not be
+    // dropped and reinterpreted as a trusted build of the base branch.
+    expect(() => validateSourceRepo("evil owner", repoConn)).toThrow();
+    expect(() => validateSourceRepo("evil#frag", repoConn)).toThrow();
   });
 });

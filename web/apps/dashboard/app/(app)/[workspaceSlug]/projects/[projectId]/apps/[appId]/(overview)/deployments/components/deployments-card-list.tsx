@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useProjectData } from "../../data-provider";
@@ -10,7 +11,7 @@ import { DeploymentsSkeleton } from "./deployments-skeleton";
 
 export function DeploymentsCardList() {
   const { deployments } = useDeployments();
-  const { project } = useProjectData();
+  const { project, projectId } = useProjectData();
   const currentDeploymentId = project?.currentDeploymentId;
   const workspace = useWorkspaceNavigation();
 
@@ -58,7 +59,12 @@ export function DeploymentsCardList() {
             environment={environment}
             isCurrent={isCurrent}
             isRolledBack={isCurrent && (project?.isRolledBack ?? false)}
-            href={`/${workspace.slug}/projects/${project?.id}/apps/${deployment.appId}/deployments/${deployment.id}`}
+            href={routes.projects.apps.deployment({
+              workspaceSlug: workspace.slug,
+              projectId,
+              appId: deployment.appId,
+              deploymentId: deployment.id,
+            })}
           />
         );
       })}

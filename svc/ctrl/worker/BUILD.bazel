@@ -39,6 +39,7 @@ go_library(
         "//svc/ctrl/worker/certificate",
         "//svc/ctrl/worker/clickhouseuser",
         "//svc/ctrl/worker/cron",
+        "//svc/ctrl/worker/cron/deploybilling",
         "//svc/ctrl/worker/customdomain",
         "//svc/ctrl/worker/deploy",
         "//svc/ctrl/worker/deployment",

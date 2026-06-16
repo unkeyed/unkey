@@ -43,6 +43,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -126,6 +127,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewGoCollector())
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
 	buildinfo.RegisterBuildInfoMetrics("worker")
 
@@ -171,6 +173,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	// Billing usage reader is the concrete *clickhouse.Client: the meter query
+	// (GetInstanceMeterUsage) is not on the ClickHouse interface. Nil until
+	// ClickHouse is configured, which leaves the billing push disabled.
+	var billingUsageReader deploybilling.UsageReader
 	buildSteps := batch.NewNoop[schema.BuildStepV1]()
 	buildStepLogs := batch.NewNoop[schema.BuildStepLogV1]()
 
@@ -182,6 +188,7 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
 		} else {
 			ch = chClient
+			billingUsageReader = chClient
 
 			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, "default.build_steps_v1", clickhouse.BufferConfig{
 				Name:          "build_steps",
@@ -209,8 +216,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Restate Server - uses logging.GetHandler() for slog integration
-	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
+	// Restate Server. The SDK logs "Handling invocation" / "Invocation
+	// completed successfully" at INFO on every invocation, and several crons
+	// tick every minute, so its INFO chatter drowns out real signal. Give it a
+	// WARN-gated view of our handler: its warnings and errors (e.g. invocation
+	// panics) still surface, its routine success noise is dropped, and the
+	// app's own INFO/DEBUG logs (which honor UNKEY_LOG_LEVEL) are unaffected.
+	restateSrv := restateServer.NewRestate().WithLogger(logger.AtLevel(logger.GetHandler(), slog.LevelWarn), false)
 
 	// Shared Restate admin client used both for service registration and
 	// for in-flight invocation cancellation (e.g. superseded sibling cleanup).
@@ -442,11 +454,14 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:                     clk,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
+		BillingUsageReader:        billingUsageReader,
+		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:      cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
-			KeyRefill:       cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
-			KeyLastUsedSync: cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
-			AuditLogExport:  cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
+			QuotaCheck:        cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
+			KeyRefill:         cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
+			KeyLastUsedSync:   cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
+			AuditLogExport:    cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
+			DeployBillingPush: cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 		},
 	})
 	if err != nil {

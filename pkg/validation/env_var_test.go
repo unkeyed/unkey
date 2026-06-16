@@ -19,6 +19,9 @@ func TestIsValidEnvVarKey_Invalid(t *testing.T) {
 		{name: "sentence as key", envKey: "when I click the i below it submits"},
 		{name: "slash", envKey: "path/to/key"},
 		{name: "at sign", envKey: "my@key"},
+		{name: "starts with digit", envKey: "1VAR"},
+		{name: "with dot", envKey: "app.config"},
+		{name: "with hyphen", envKey: "my-key"},
 	}
 
 	for _, tt := range tests {
@@ -39,10 +42,7 @@ func TestIsValidEnvVarKey_Valid(t *testing.T) {
 		{name: "uppercase", envKey: "MY_VAR"},
 		{name: "lowercase", envKey: "my_var"},
 		{name: "alphanumeric", envKey: "KEY123"},
-		{name: "starts with digit", envKey: "1VAR"},
-		{name: "with dot", envKey: "app.config"},
-		{name: "with hyphen", envKey: "my-key"},
-		{name: "mixed", envKey: "My-App.Config_VAR"},
+		{name: "leading underscore", envKey: "_PRIVATE"},
 	}
 
 	for _, tt := range tests {

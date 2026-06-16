@@ -234,7 +234,8 @@ type GitSource struct {
 	CommitSha string `protobuf:"bytes,3,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
 	// Subdirectory within the repository to use as the Docker build context.
 	ContextPath string `protobuf:"bytes,4,opt,name=context_path,json=contextPath,proto3" json:"context_path,omitempty"`
-	// Path to the Dockerfile, relative to context_path.
+	// Path to the Dockerfile, relative to context_path. Empty means no
+	// Dockerfile is configured and the image is built with Railpack instead.
 	DockerfilePath string `protobuf:"bytes,5,opt,name=dockerfile_path,json=dockerfilePath,proto3" json:"dockerfile_path,omitempty"`
 	// Branch name used to resolve commit_sha when it is empty. The deploy worker
 	// calls GitHub to look up the HEAD commit of this branch.

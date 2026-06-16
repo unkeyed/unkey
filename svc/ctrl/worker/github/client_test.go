@@ -1,6 +1,8 @@
 package github
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -101,6 +103,40 @@ func TestResolveCommitAuthor(t *testing.T) {
 			handle, avatarURL := resolveCommitAuthor(tt.commit)
 			require.Equal(t, tt.expectedHandle, handle)
 			require.Equal(t, tt.expectedAvatarURL, avatarURL)
+		})
+	}
+}
+
+// TestProbeRepoVisibility pins the status mapping: only 200 and 404 are
+// answers. A rate limit (403) must surface as an error, never as "private",
+// so callers can distinguish an inconclusive probe from a real answer.
+func TestProbeRepoVisibility(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     int
+		wantPublic bool
+		wantErr    bool
+	}{
+		{name: "200 means public", status: http.StatusOK, wantPublic: true},
+		{name: "404 means private", status: http.StatusNotFound, wantPublic: false},
+		{name: "403 rate limit is an error, not private", status: http.StatusForbidden, wantErr: true},
+		{name: "500 is an error", status: http.StatusInternalServerError, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.status)
+			}))
+			defer srv.Close()
+
+			public, err := probeRepoVisibility(srv.Client(), srv.URL, "acme/app")
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPublic, public)
 		})
 	}
 }

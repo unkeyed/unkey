@@ -4,7 +4,6 @@ import { githubAppEnv } from "@/lib/env";
 import {
   type BranchActivity,
   MAX_BRANCHES,
-  checkFileExists,
   getInstallationRepositories,
   getMostActiveBranches,
   getRepository,
@@ -531,8 +530,6 @@ export const githubRouter = t.router({
         });
       }
 
-      // Fetch repo metadata first to get the actual GitHub default branch for tree lookups.
-      // input.defaultBranch is the user-configured production branch which may not exist yet.
       const [repoData, activeBranches, alphabeticalBranches] = await Promise.all([
         getRepository(input.installationId, input.owner, input.repo),
         getMostActiveBranches(input.installationId, input.owner, input.repo).catch(
@@ -540,29 +537,6 @@ export const githubRouter = t.router({
         ),
         getRepositoryBranches(input.installationId, input.owner, input.repo, MAX_BRANCHES),
       ]);
-
-      const treeBranch = repoData.default_branch || input.defaultBranch;
-      const treeResult = await getRepositoryTree(
-        input.installationId,
-        input.owner,
-        input.repo,
-        treeBranch,
-      );
-
-      let hasDockerfile: boolean;
-      if (treeResult.truncated) {
-        hasDockerfile = await checkFileExists(
-          input.installationId,
-          input.owner,
-          input.repo,
-          treeBranch,
-          "Dockerfile",
-        );
-      } else {
-        hasDockerfile = treeResult.tree.some(
-          (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
-        );
-      }
 
       const activityMap = new Map(activeBranches.map((b) => [b.name, b.lastPushDate]));
       const seen = new Set<string>();
@@ -587,7 +561,6 @@ export const githubRouter = t.router({
       }
 
       return {
-        hasDockerfile,
         branches,
         pushedAt: repoData.pushed_at,
       };
