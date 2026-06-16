@@ -187,6 +187,18 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Starting ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
+		if err := assert.All(
+			assert.Greater(deployment.Port, int32(0), "Port must be greater than 0"),
+			assert.LessOrEqual(deployment.Port, int32(65535), "Port cannot exceed 65535"),
+			assert.Greater(deployment.CpuMillicores, int32(0), "CPU millicores must be greater than 0"),
+			assert.Greater(deployment.MemoryMib, int32(0), "MemoryMib must be greater than 0"),
+		); err != nil {
+			return fault.Wrap(
+				restate.TerminalError(err),
+				fault.Public(err.Error()),
+			)
+		}
+
 		workspace, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 			var ws db.Workspace
 			err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
@@ -332,7 +344,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		Description: "Deployment is live",
 	})
 
-	logger.Info("deployment workflow completed",
+	logger.Info(
+		"deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
 	)
@@ -406,7 +419,8 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		var build *buildResult
 		var err error
 		if params.DockerfilePath == "" {
-			logger.Info("no dockerfile configured, building with railpack",
+			logger.Info(
+				"no dockerfile configured, building with railpack",
 				"deployment_id", deployment.ID,
 				"repository", params.Repository,
 				"commit_sha", params.CommitSHA,
@@ -501,7 +515,8 @@ func (w *Workflow) createTopologies(
 	schedulable := make([]db.FindAppRegionalSettingsByAppAndEnvRow, 0, len(regionalSettings))
 	for _, rs := range regionalSettings {
 		if !rs.RegionCanSchedule {
-			logger.Warn("skipping non-schedulable region",
+			logger.Warn(
+				"skipping non-schedulable region",
 				"region_id", rs.RegionID,
 				"region_name", rs.RegionName,
 				"app_id", deployment.AppID,
@@ -888,7 +903,8 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 	}
 	requiredRegions := max(len(regionMinReplicas)-1, 1)
 
-	logger.Info("waiting for deployments to be ready",
+	logger.Info(
+		"waiting for deployments to be ready",
 		"deployment_id", deploymentID,
 		"total_regions", len(regionMinReplicas),
 		"required_regions", requiredRegions,
@@ -915,7 +931,8 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 		return w.checkInstancesHealthy(runCtx, deploymentID, regionMinReplicas, requiredRegions)
 	}, restate.WithName("initial healthy-regions check"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		logger.Warn("initial healthy-regions check failed, proceeding to await NotifyInstancesReady",
+		logger.Warn(
+			"initial healthy-regions check failed, proceeding to await NotifyInstancesReady",
 			"deployment_id", deploymentID,
 			"error", err,
 		)
@@ -979,7 +996,8 @@ func (w *Workflow) checkInstancesHealthy(
 		}
 	}
 
-	logger.Info("checked instances",
+	logger.Info(
+		"checked instances",
 		"deployment_id", deploymentID,
 		"healthy_regions", healthyRegions,
 		"required_regions", requiredRegions,
@@ -1032,7 +1050,8 @@ func (w *Workflow) initGitHubStatus(
 		return found, nil
 	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
+		logger.Warn(
+			"failed to look up github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
 			"error", err,
 		)
@@ -1041,7 +1060,8 @@ func (w *Workflow) initGitHubStatus(
 	}
 
 	if repoConn.InstallationID == 0 {
-		logger.Info("no github repo connection, skipping deployment status reporting",
+		logger.Info(
+			"no github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
 		)
 
