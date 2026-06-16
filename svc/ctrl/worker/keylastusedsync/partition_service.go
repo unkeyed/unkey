@@ -112,13 +112,12 @@ func (s *PartitionService) SyncPartition(
 	}
 	restate.Set(ctx, "total_partitions", totalPartitions)
 
-	logger.Info("partition sync starting",
+	logger.Debug("partition sync starting",
 		"partition", partition,
 		"cursor_time", cursor.Time,
 	)
 
 	var totalSynced int32
-	start := time.Now()
 
 	for batchNum := 0; ; batchNum++ {
 		currentCursor := cursor
@@ -169,12 +168,6 @@ func (s *PartitionService) SyncPartition(
 			break
 		}
 	}
-
-	logger.Info("partition sync complete",
-		"partition", partition,
-		"keys_synced", totalSynced,
-		"elapsed", time.Since(start),
-	)
 
 	return &hydrav1.SyncPartitionResponse{
 		KeysSynced: totalSynced,

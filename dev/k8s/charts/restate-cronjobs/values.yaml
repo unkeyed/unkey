@@ -30,3 +30,12 @@ jobs:
     schedule: "0 * * * *"
     urlPath: "hydra.v1.CronService/ratelimit-global-counters-cleanup/RunRatelimitGlobalCountersCleanup/send"
     idempotencyKey: "ratelimit-global-counters-cleanup-$(date -u +%Y-%m-%dT%H)"
+
+  # Hourly month-to-date Deploy usage push to Stripe. Keyed by billing period
+  # (YYYY-MM) so ticks for the same month serialize; the pushed quantity is the
+  # absolute month-to-date total (Stripe meters aggregate with formula "last"),
+  # so retries and overlapping ticks are harmless.
+  deploy-billing-push:
+    schedule: "0 * * * *"
+    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunDeployBillingPush/send"
+    idempotencyKey: "deploy-billing-push-$(date -u +%Y-%m-%dT%H)"

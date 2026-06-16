@@ -191,6 +191,15 @@ local_resource(
 )
 
 local_resource(
+    'stripe-credentials',
+    'if [ -f ./.env.stripe ]; then kubectl -n unkey create secret generic stripe-credentials --from-env-file=./.env.stripe -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping stripe-credentials (no .env.stripe file)"; fi',
+    resource_deps=['namespace'],
+    deps=['./.env.stripe'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
+local_resource(
     'webhooks-config',
     'if [ -f ./.env.webhooks ]; then kubectl -n unkey create configmap ctrl-worker-webhooks --from-env-file=./.env.webhooks -o yaml --dry-run=client | kubectl apply -f -; else kubectl -n unkey delete configmap ctrl-worker-webhooks --ignore-not-found; fi',
     resource_deps=['namespace'],
@@ -258,6 +267,7 @@ k8s_resource('restate-key-refill', resource_deps=['restate', 'ctrl-worker'], lab
 k8s_resource('restate-quota-check', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-ratelimit-global-counters-cleanup', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-audit-log-export', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-deploy-billing-push', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
 # Service images are built by Bazel via the //build/<svc>:load target, the
@@ -334,7 +344,7 @@ custom_build(
     deps=SERVICE_DEPS,
 )
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(
