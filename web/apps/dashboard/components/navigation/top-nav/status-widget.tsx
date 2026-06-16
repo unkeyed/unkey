@@ -20,10 +20,10 @@ type StatusSummary = {
 type SystemStatus = "operational" | "incident" | "maintenance" | "unknown";
 
 const STATUS_META: Record<SystemStatus, { label: string; dot: string; pulse: boolean }> = {
-  operational: { label: "Operational", dot: "bg-success-9", pulse: false },
-  incident: { label: "Incident", dot: "bg-error-9", pulse: true },
-  maintenance: { label: "Maintenance", dot: "bg-warning-9", pulse: true },
-  unknown: { label: "Unavailable", dot: "bg-gray-7", pulse: false },
+  operational: { label: "Fully operational", dot: "bg-success-9", pulse: false },
+  incident: { label: "Active incident", dot: "bg-error-9", pulse: true },
+  maintenance: { label: "Under maintenance", dot: "bg-warning-9", pulse: true },
+  unknown: { label: "Status unavailable", dot: "bg-gray-7", pulse: false },
 };
 
 function deriveStatus(summary: StatusSummary | undefined): SystemStatus {

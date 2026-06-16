@@ -4,6 +4,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -47,7 +48,6 @@ export const HelpButton: React.FC = () => {
               <span className="text-accent-12 text-sm font-medium">Community</span>
             </DropdownMenuItem>
           </Link>
-
           <DropdownMenuItem
             onClick={() => {
               setOpen(false);
@@ -57,11 +57,12 @@ export const HelpButton: React.FC = () => {
             <Chats className="size-4 mr-3 text-gray-9" />
             <span className="text-accent-12 text-sm font-medium">Support</span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator className="my-1" />
+          <DropdownMenuLabel>Platform status</DropdownMenuLabel>
+          <DropdownMenuItem asChild className="cursor-pointer w-full">
+            <StatusWidget />
+          </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild className="cursor-pointer w-full">
-          <StatusWidget />
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
