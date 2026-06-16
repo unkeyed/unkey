@@ -94,7 +94,7 @@ func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunAuditLogExportRequest,
 ) (*hydrav1.RunAuditLogExportResponse, error) {
-	logger.Info("running audit log export")
+	logger.Debug("running audit log export")
 	start := time.Now()
 
 	var totalExported int32
@@ -113,7 +113,7 @@ func (h *Handler) Handle(
 		}
 	}
 
-	logger.Info("audit log export complete",
+	logger.Debug("audit log export complete",
 		"events_exported", totalExported,
 		"elapsed", time.Since(start),
 	)

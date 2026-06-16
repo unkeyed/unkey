@@ -69,6 +69,9 @@ var excludePatterns = []string{
 	// AWS SDK
 	`^github\.com/aws/aws-sdk-go-v2/.*$`,
 
+	// Stripe SDK (params structs have many optional fields)
+	`^github\.com/stripe/stripe-go/.*$`,
+
 	// Unkey internal
 	`^github\.com/unkeyed/unkey/svc/api/openapi\.Meta$`,
 	`^github\.com/unkeyed/unkey/pkg/cli\.Command$`,

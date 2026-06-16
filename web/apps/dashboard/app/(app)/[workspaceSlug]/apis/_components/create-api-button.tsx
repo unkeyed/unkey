@@ -2,6 +2,7 @@
 
 import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
@@ -50,9 +51,9 @@ export const CreateApiButton = ({
   const create = trpc.api.create.useMutation({
     async onSuccess(res) {
       toast.success("Your keyspace has been created");
-      await revalidate(`/${workspaceSlug}/apis`);
+      await revalidate(routes.apis.list({ workspaceSlug }));
       api.overview.query.invalidate();
-      router.push(`/${workspaceSlug}/apis/${res.id}`);
+      router.push(routes.apis.detail({ workspaceSlug, apiId: res.id }));
       setIsOpen(false);
     },
     onError(err) {

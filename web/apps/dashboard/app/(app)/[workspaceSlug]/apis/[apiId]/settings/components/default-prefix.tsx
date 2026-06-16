@@ -1,6 +1,7 @@
 "use client";
 import { revalidate } from "@/app/actions";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, SettingCard } from "@unkey/ui";
@@ -67,7 +68,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
     }
 
     await setDefaultPrefix.mutateAsync(values);
-    revalidate(`/${workspace.slug}/apis/${apiId}/settings`);
+    revalidate(routes.apis.settings({ workspaceSlug: workspace.slug, apiId }));
   }
 
   return (

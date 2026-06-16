@@ -1,4 +1,5 @@
 import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actions";
+import { routes } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -106,7 +107,7 @@ export const useWorkspaceStep = (): WorkspaceStep => {
       }
 
       // Navigate to the APIs page for the new workspace
-      router.push(`/${slug}/apis`);
+      router.push(routes.apis.list({ workspaceSlug: slug }));
     },
     onError: (error) => {
       if (error.data?.code === "METHOD_NOT_SUPPORTED") {
@@ -222,7 +223,7 @@ export const useWorkspaceStep = (): WorkspaceStep => {
     ),
     submit: () => {
       if (workspaceCreated && createdSlug) {
-        router.push(`/${createdSlug}/apis`);
+        router.push(routes.apis.list({ workspaceSlug: createdSlug }));
         return;
       }
       if (!isLoading) {

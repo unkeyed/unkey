@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Badge, Button, DialogContainer, FormInput } from "@unkey/ui";
@@ -92,7 +93,7 @@ export const IdentifierDialog = ({
           duration: values.duration,
         });
         onOpenChange(false);
-        router.push(`/${workspace.slug}/ratelimits/${namespaceId}/overrides`);
+        router.push(routes.ratelimits.overrides({ workspaceSlug: workspace.slug, namespaceId }));
       }
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
