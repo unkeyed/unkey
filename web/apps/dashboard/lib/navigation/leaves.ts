@@ -29,7 +29,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     {
       key: "apis",
       label: "Keyspaces (APIs)",
-      href: `/${slug}/apis`,
+      href: routes.apis.list({ workspaceSlug: slug }),
       icon: Nodes,
       isActive: top === "apis",
     },
@@ -211,14 +211,16 @@ export function buildApiLinks(
     {
       key: "requests",
       label: "Requests",
-      href: `/${slug}/apis/${apiId}`,
+      href: routes.apis.detail({ workspaceSlug: slug, apiId }),
       icon: ArrowOppositeDirectionY,
       isActive: !page,
     },
     {
       key: "keys",
       label: "Keys",
-      href: keyAuthId ? `/${slug}/apis/${apiId}/keys/${keyAuthId}` : `/${slug}/apis/${apiId}`,
+      href: keyAuthId
+        ? routes.apis.keys.list({ workspaceSlug: slug, apiId, keyAuthId })
+        : routes.apis.detail({ workspaceSlug: slug, apiId }),
       icon: Key,
       isActive: page === "keys",
       disabled: !keyAuthId,
@@ -226,7 +228,7 @@ export function buildApiLinks(
     {
       key: "settings",
       label: "Settings",
-      href: `/${slug}/apis/${apiId}/settings`,
+      href: routes.apis.settings({ workspaceSlug: slug, apiId }),
       icon: Gear,
       isActive: page === "settings",
     },

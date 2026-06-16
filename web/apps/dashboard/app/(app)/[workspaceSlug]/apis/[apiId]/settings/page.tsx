@@ -2,6 +2,7 @@
 import { use } from "react";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { ApisNavbar } from "../api-id-navbar";
 import { SettingsClient } from "./components/settings-client";
 
@@ -21,7 +22,7 @@ export default function SettingsPage(props: Props) {
       <ApisNavbar
         apiId={apiId}
         activePage={{
-          href: `/${workspace.slug}/apis/${apiId}/settings`,
+          href: routes.apis.settings({ workspaceSlug: workspace.slug, apiId }),
           text: "Settings",
         }}
       />

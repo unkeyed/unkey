@@ -3,6 +3,7 @@
  * the hierarchy: `routes.projects.apps.deployment(scope)`. New areas register
  * here as they get builders.
  */
+import { apiRoutes } from "./apis";
 import { projectRoutes } from "./projects";
 import { ratelimitRoutes } from "./ratelimits";
 import { settingsRoutes } from "./settings";
@@ -13,4 +14,5 @@ export const routes = {
   projects: projectRoutes,
   ratelimits: ratelimitRoutes,
   settings: settingsRoutes,
+  apis: apiRoutes,
 };
