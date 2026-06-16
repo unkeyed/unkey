@@ -186,6 +186,9 @@ const (
 
 	// UpdateProject permits modifying existing projects
 	UpdateProject ActionType = "update_project"
+
+	// DeleteProject permits deleting projects
+	DeleteProject ActionType = "delete_project"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

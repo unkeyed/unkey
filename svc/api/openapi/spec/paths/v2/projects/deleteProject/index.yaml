@@ -1,0 +1,112 @@
+post:
+  tags:
+    - projects
+  summary: Delete project
+  description: |
+    Delete an existing project in your workspace, identified by its slug.
+
+    Deletion is asynchronous and eventually consistent. The project and all of its associated resources (apps, environments, deployments, custom domains) are torn down by a background workflow. A successful response indicates the deletion was enqueued, not that every resource has already been removed.
+
+    Projects with delete protection enabled cannot be deleted until protection is disabled.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `project.*.delete_project` (to delete any project)
+    - `project.<project_id>.delete_project` (to delete a specific project)
+  operationId: projects.deleteProject
+  x-speakeasy-name-override: deleteProject
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2ProjectsDeleteProjectRequestBody.yaml"
+        examples:
+          delete:
+            summary: Delete a project
+            description: Delete a project by its slug
+            value:
+              slug: payments-service
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully enqueued deletion of the project.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2ProjectsDeleteProjectResponseBody.yaml"
+          examples:
+            success:
+              summary: Deletion enqueued
+              description: Project deletion was successfully enqueued
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `project.*.delete_project`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'project.*.delete_project' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - The requested project does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            projectNotFound:
+              summary: Project not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested project does not exist.
+                  status: 404
+                  type: not-found
+    "412":
+      description: Delete protection is enabled. Disable protection through the dashboard or API, then retry the deletion.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

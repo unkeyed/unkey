@@ -1,0 +1,43 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "v2_projects_delete_project",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/rpc/ctrl",
+        "//internal/services/auditlogs",
+        "//pkg/auditlog",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/rbac",
+        "//pkg/zen",
+        "//svc/api/internal/ctrlclient",
+        "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "v2_projects_delete_project_test",
+    size = "medium",
+    srcs = [
+        "200_test.go",
+        "400_test.go",
+        "401_test.go",
+        "403_test.go",
+        "404_test.go",
+        "412_test.go",
+    ],
+    deps = [
+        ":v2_projects_delete_project",
+        "//pkg/db",
+        "//pkg/uid",
+        "//svc/api/internal/testutil",
+        "//svc/api/internal/testutil/seed",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)

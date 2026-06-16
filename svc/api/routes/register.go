@@ -64,6 +64,7 @@ import (
 	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
 	v2ProjectsGetProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
 	v2ProjectsListProjects "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
+	v2ProjectsDeleteProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project"
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 
 	zen "github.com/unkeyed/unkey/pkg/zen"
@@ -631,6 +632,16 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2ProjectsUpdateProject.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/projects.deleteProject
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2ProjectsDeleteProject.Handler{
+			DB:         svc.Database,
+			Auditlogs:  svc.Auditlogs,
+			CtrlClient: svc.CtrlProjectClient,
 		},
 	)
 
