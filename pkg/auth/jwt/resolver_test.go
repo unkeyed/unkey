@@ -1213,8 +1213,9 @@ func TestResolver_ClaimPrecedence(t *testing.T) {
 }
 
 // TestResolver_UnusableJWKSDocuments guarantees documents the verifier cannot
-// use surface as infrastructure failures, and that the failed fetch is not
-// repeated inside the backoff window.
+// use surface as infrastructure failures, and that a cold-start failure (no
+// key set ever served) keeps retrying rather than wedging auth for the full
+// backoff window.
 func TestResolver_UnusableJWKSDocuments(t *testing.T) {
 	t.Parallel()
 
@@ -1251,7 +1252,7 @@ func TestResolver_UnusableJWKSDocuments(t *testing.T) {
 				require.True(t, ok)
 				require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), code)
 			}
-			require.Equal(t, int64(1), fetches.Load(), "the second attempt inside the backoff window must not fetch")
+			require.Equal(t, int64(2), fetches.Load(), "a cold-start failure must keep retrying, not back off before any key set is served")
 		})
 	}
 }

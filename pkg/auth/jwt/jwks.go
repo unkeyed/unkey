@@ -124,10 +124,12 @@ func (v *jwksVerifier) refetch(ctx context.Context, seen *keySet) (*keySet, bool
 // set, whether that set differs from seen, and an error only when no set is
 // available at all.
 //
-// Fetch attempts are rate-limited to one per jwksRefetchMinInterval; inside
-// the window callers keep the set they have. A failed fetch keeps serving the
-// previous set, so a JWKS endpoint outage does not invalidate tokens signed
-// by already known keys.
+// Fetch attempts are rate-limited to one per jwksRefetchMinInterval once a key
+// set has been served; inside the window callers keep the set they have. A
+// failed fetch keeps serving the previous set, so a JWKS endpoint outage does
+// not invalidate tokens signed by already known keys. Before the first
+// successful fetch the rate limit is not armed, so a transient cold-start
+// failure does not wedge all auth for the full interval.
 func (v *jwksVerifier) fetchLatest(ctx context.Context, seen *keySet) (*keySet, bool, error) {
 	v.fetchMu.Lock()
 	defer v.fetchMu.Unlock()
@@ -137,7 +139,11 @@ func (v *jwksVerifier) fetchLatest(ctx context.Context, seen *keySet) (*keySet, 
 		return current, true, nil
 	}
 
-	if !v.lastAttempt.IsZero() && v.clock.Now().Sub(v.lastAttempt) < jwksRefetchMinInterval {
+	// Once a key set has been served, throttle refetches so a token that failed
+	// against a known key cannot hammer the endpoint. Before the first success
+	// there is nothing to serve, so retry every request instead of wedging all
+	// auth for the full interval after a transient cold-start failure.
+	if v.current.Load() != nil && !v.lastAttempt.IsZero() && v.clock.Now().Sub(v.lastAttempt) < jwksRefetchMinInterval {
 		if seen != nil {
 			return seen, false, nil
 		}

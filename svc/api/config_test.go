@@ -72,8 +72,8 @@ func TestConfig_ValidateJWTSecretMinimumLength(t *testing.T) {
 	}
 }
 
-// TestConfig_ValidateJWTJWKSURL guarantees JWKS auth accepts absolute HTTP(S)
-// URLs and rejects missing, relative, or unsupported key sources.
+// TestConfig_ValidateJWTJWKSURL guarantees JWKS auth accepts absolute https
+// URLs and rejects missing, relative, plain http, or unsupported key sources.
 func TestConfig_ValidateJWTJWKSURL(t *testing.T) {
 	t.Parallel()
 
@@ -93,9 +93,9 @@ func TestConfig_ValidateJWTJWKSURL(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "http URL passes for local development",
+			name:    "http URL is rejected",
 			url:     "http://auth.local/.well-known/jwks.json",
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name:    "relative URL is rejected",
@@ -184,6 +184,23 @@ func TestConfig_ValidateRejectsUnknownProvider(t *testing.T) {
 	err := cfg.Validate()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "provider")
+}
+
+// TestConfig_ValidateWorkOSProviderRequiresJWKSURL guarantees a workos entry
+// paired with shared secrets fails at startup, since WorkOS issues RS256
+// tokens that only a JWKS endpoint can verify.
+func TestConfig_ValidateWorkOSProviderRequiresJWKSURL(t *testing.T) {
+	t.Parallel()
+
+	cfg := &Config{Auth: AuthConfigs{JWTAuthConfig{
+		Issuer:   "https://api.workos.com",
+		Secrets:  []string{strings.Repeat("a", 32)},
+		Provider: "workos",
+	}}}
+
+	err := cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "jwks_url")
 }
 
 // TestConfig_ValidateJWTJWKSRequiresIssuer guarantees JWKS auth entries bind

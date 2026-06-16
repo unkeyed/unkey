@@ -423,12 +423,21 @@ func (c *Config) Validate() error {
 				if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 					return fmt.Errorf("auth[%d].jwks_url must be an absolute URL", i)
 				}
-				if parsed.Scheme != "https" && parsed.Scheme != "http" {
-					return fmt.Errorf("auth[%d].jwks_url must use http or https", i)
+				// Signing keys are fetched over this URL, so plain http would let
+				// an on-path attacker substitute a public key and forge accepted
+				// tokens. Require https.
+				if parsed.Scheme != "https" {
+					return fmt.Errorf("auth[%d].jwks_url must use https", i)
 				}
 			}
 			if auth.Provider != "" && auth.Provider != jwtProviderWorkOS {
 				return fmt.Errorf("auth[%d].provider must be %q when set", i, jwtProviderWorkOS)
+			}
+			// WorkOS issues RS256 tokens verified against a JWKS endpoint, so a
+			// workos entry without jwks_url could never verify a token. Reject
+			// it at load time instead of failing every request at runtime.
+			if auth.Provider == jwtProviderWorkOS && !hasJWKSURL {
+				return fmt.Errorf("auth[%d].provider %q requires jwks_url", i, jwtProviderWorkOS)
 			}
 		case PortalSessionAuthConfig:
 		case RootKeyAuthConfig:

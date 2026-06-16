@@ -85,11 +85,19 @@ token = "${UNKEY_VAULT_TOKEN}"
       Auth mechanism. Supported values are `jwt`, `portal_session`, and
       `root_key`.
     </ResponseField>
-    <ResponseField name="auth.issuer" type="string" required>
-      Expected JWT `iss` claim for `type = "jwt"`. When this is the WorkOS
-      issuer (`https://api.workos.com`), the API translates WorkOS permission
-      slugs into canonical Unkey permissions; any other issuer is verified
-      generically and its permission claims pass through unchanged.
+    <ResponseField name="auth.issuer" type="string">
+      Expected JWT `iss` claim. Required for `type = "jwt"` entries and rejected
+      as an unknown field on `portal_session` and `root_key` entries. The issuer
+      does not affect permission translation; set `auth.provider` to opt into
+      WorkOS slug translation.
+    </ResponseField>
+    <ResponseField name="auth.provider" type="string">
+      Permission dialect carried by this entry's tokens for `type = "jwt"`.
+      Leave unset when tokens already carry canonical Unkey permissions. Set
+      `provider = "workos"` to translate WorkOS permission slugs into canonical
+      Unkey permissions after verification. Translation is selected by this
+      field, not inferred from the issuer, so any issuer (including custom auth
+      domains) can opt in the same way.
     </ResponseField>
     <ResponseField name="auth.audience" type="string">
       Optional expected JWT `aud` claim for `type = "jwt"`. Verification
@@ -113,12 +121,13 @@ token = "${UNKEY_VAULT_TOKEN}"
       Configure either `secrets` or `jwks_url`, never both.
     </ResponseField>
     <ResponseField name="auth.jwks_url" type="string">
-      JWKS endpoint for `type = "jwt"`. The API fetches the JSON Web Key Set
-      on first use and verifies incoming JWTs against usable RSA signing keys
-      from the response. When a token fails verification against every cached
-      key, the key set is refetched (rate limited to once per minute), so
-      signing-key rotations are picked up without a restart. Configure either
-      `jwks_url` or `secrets`, never both.
+      JWKS endpoint for `type = "jwt"`. Must be an absolute `https` URL so
+      signing keys cannot be substituted over an unauthenticated channel. The
+      API fetches the JSON Web Key Set on first use and verifies incoming JWTs
+      against usable RSA signing keys from the response. When a token fails
+      verification against every cached key, the key set is refetched (rate
+      limited to once per minute), so signing-key rotations are picked up
+      without a restart. Configure either `jwks_url` or `secrets`, never both.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -308,6 +317,7 @@ type = "jwt"
 issuer = "https://api.workos.com"
 audience = "api.unkey.com"
 jwks_url = "${UNKEY_JWT_JWKS_URL}"
+provider = "workos"
 
 [[auth]]
 type = "portal_session"
