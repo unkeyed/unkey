@@ -52,7 +52,7 @@ function resolveWorkspaceHref(slug: string, params: RouteParams): string {
     return routes.projects.list({ workspaceSlug: slug });
   }
   if (params.namespaceId) {
-    return `/${slug}/ratelimits`;
+    return routes.ratelimits.list({ workspaceSlug: slug });
   }
   if (params.identityId) {
     return `/${slug}/identities`;

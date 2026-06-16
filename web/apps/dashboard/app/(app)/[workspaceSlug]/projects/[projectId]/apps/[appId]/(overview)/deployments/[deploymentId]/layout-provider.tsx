@@ -1,6 +1,7 @@
 "use client";
 
 import { LoadingState } from "@/components/loading-state";
+import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
 import { type Deployment, deploymentSchema } from "@/lib/collections/deploy/deployments";
 import { trpc } from "@/lib/trpc/client";
 import { notFound, useParams } from "next/navigation";
@@ -41,7 +42,11 @@ export const DeploymentLayoutProvider = ({
   const resolved = deployment ?? (parsed?.success ? parsed.data : undefined);
   if (!resolved) {
     if (isDeploymentsLoading || isFetchingById) {
-      return <LoadingState message="Loading deployment..." />;
+      return (
+        <div className="flex flex-col" style={{ height: `calc(100dvh - ${TOP_NAV_HEIGHT}px)` }}>
+          <LoadingState message="Loading deployment..." />
+        </div>
+      );
     }
     notFound();
   }

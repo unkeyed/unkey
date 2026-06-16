@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import {
   Button,
@@ -129,7 +130,9 @@ export const Client: React.FC = () => {
                         aria-label="Open billing portal"
                         disabled={!isAdmin}
                         onClick={() => {
-                          router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
+                          router.push(
+                            routes.settings.stripe.portal({ workspaceSlug: workspace.slug }),
+                          );
                         }}
                       >
                         Open Portal
@@ -166,7 +169,9 @@ export const Client: React.FC = () => {
                         aria-label="Add payment method"
                         disabled={!isAdmin}
                         onClick={() => {
-                          router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
+                          router.push(
+                            routes.settings.stripe.checkout({ workspaceSlug: workspace.slug }),
+                          );
                         }}
                       >
                         Add payment method

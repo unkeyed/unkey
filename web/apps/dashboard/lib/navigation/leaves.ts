@@ -36,7 +36,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     {
       key: "ratelimits",
       label: "Ratelimit",
-      href: `/${slug}/ratelimits`,
+      href: routes.ratelimits.list({ workspaceSlug: slug }),
       icon: Gauge,
       isActive: top === "ratelimits",
     },
@@ -71,7 +71,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     {
       key: "settings",
       label: "Settings",
-      href: `/${slug}/settings/general`,
+      href: routes.settings.general({ workspaceSlug: slug }),
       icon: Gear,
       isActive: top === "settings",
     },
@@ -241,32 +241,33 @@ export function buildNamespaceLinks(
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[2];
+  const scope = { workspaceSlug: slug, namespaceId };
   return [
     {
       key: "requests",
       label: "Requests",
-      href: `/${slug}/ratelimits/${namespaceId}`,
+      href: routes.ratelimits.detail(scope),
       icon: ArrowOppositeDirectionY,
       isActive: !page,
     },
     {
       key: "logs",
       label: "Logs",
-      href: `/${slug}/ratelimits/${namespaceId}/logs`,
+      href: routes.ratelimits.logs(scope),
       icon: Layers3,
       isActive: page === "logs",
     },
     {
       key: "settings",
       label: "Settings",
-      href: `/${slug}/ratelimits/${namespaceId}/settings`,
+      href: routes.ratelimits.settings(scope),
       icon: Gear,
       isActive: page === "settings",
     },
     {
       key: "overrides",
       label: "Overrides",
-      href: `/${slug}/ratelimits/${namespaceId}/overrides`,
+      href: routes.ratelimits.overrides(scope),
       icon: ArrowDottedRotateAnticlockwise,
       isActive: page === "overrides",
     },
