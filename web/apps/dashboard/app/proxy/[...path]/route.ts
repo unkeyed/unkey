@@ -1,6 +1,5 @@
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
-import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { SignJWT } from "jose";
 import type { NextRequest } from "next/server";
@@ -11,53 +10,6 @@ type RouteContext = {
     path: string[];
   }>;
 };
-
-const encoder = new TextEncoder();
-
-const dashboardProxyPermissions = [
-  "api.*.read_api",
-  "api.*.create_api",
-  "api.*.delete_api",
-  "api.*.update_api",
-  "api.*.create_key",
-  "api.*.update_key",
-  "api.*.delete_key",
-  "api.*.encrypt_key",
-  "api.*.decrypt_key",
-  "api.*.read_key",
-  "api.*.verify_key",
-  "api.*.read_analytics",
-  "ratelimit.*.limit",
-  "ratelimit.*.create_namespace",
-  "ratelimit.*.read_namespace",
-  "ratelimit.*.update_namespace",
-  "ratelimit.*.delete_namespace",
-  "ratelimit.*.set_override",
-  "ratelimit.*.read_override",
-  "ratelimit.*.delete_override",
-  "ratelimit.*.list_overrides",
-  "rbac.*.create_permission",
-  "rbac.*.update_permission",
-  "rbac.*.delete_permission",
-  "rbac.*.read_permission",
-  "rbac.*.create_role",
-  "rbac.*.update_role",
-  "rbac.*.delete_role",
-  "rbac.*.read_role",
-  "rbac.*.add_permission_to_key",
-  "rbac.*.remove_permission_from_key",
-  "rbac.*.add_role_to_key",
-  "rbac.*.remove_role_from_key",
-  "rbac.*.add_permission_to_role",
-  "rbac.*.remove_permission_from_role",
-  "identity.*.create_identity",
-  "identity.*.read_identity",
-  "identity.*.update_identity",
-  "identity.*.delete_identity",
-  "project.*.create_deployment",
-  "project.*.read_deployment",
-  "project.*.generate_upload_url",
-] as const;
 
 export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   if (req.headers.has("authorization")) {
@@ -73,29 +25,22 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
   }
   const orgId = auth.orgId;
   const userId = auth.userId;
-  const user = await authProvider.getUser(userId);
-  const actorName = user?.fullName || user?.email || userId;
 
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    columns: {
-      id: true,
-      name: true,
-    },
-  });
-  if (!workspace) {
-    return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+  let bearerToken: string | null | undefined = auth.accessToken;
+  if (!bearerToken) {
+    const user = await authProvider.getUser(userId);
+    const actorName = user?.fullName ?? user?.email ?? userId;
+    bearerToken = await mintProxyJWT({
+      orgId,
+      permissions: auth.permissions ?? [],
+      subject: userId,
+      name: actorName,
+    }).catch((error) => {
+      console.error("Failed to mint dashboard proxy JWT", { error });
+      return null;
+    });
   }
-
-  const jwt = await mintProxyJWT({
-    workspaceId: workspace.id,
-    subject: userId,
-    name: actorName,
-  }).catch((error) => {
-    console.error("Failed to mint dashboard proxy JWT", { error });
-    return null;
-  });
-  if (!jwt) {
+  if (!bearerToken) {
     return NextResponse.json({ error: "Dashboard proxy is not configured." }, { status: 500 });
   }
 
@@ -104,7 +49,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
   upstreamURL.search = req.nextUrl.search;
 
   const headers = upstreamRequestHeaders(req);
-  headers.set("authorization", `Bearer ${jwt}`);
+  headers.set("authorization", `Bearer ${bearerToken}`);
 
   const body = await req.arrayBuffer();
   const upstream = await fetch(upstreamURL, {
@@ -162,7 +107,8 @@ const hopByHopResponseHeaders = new Set([
 // the active signing secret. svc/api carries the ordered verification set so old
 // secrets can remain valid during a rotation window.
 async function mintProxyJWT(params: {
-  workspaceId: string;
+  orgId: string;
+  permissions: readonly string[];
   subject: string;
   name: string;
 }): Promise<string> {
@@ -170,18 +116,23 @@ async function mintProxyJWT(params: {
   if (!signingSecret) {
     throw new Error("UNKEY_JWT_SECRET must be configured for dashboard proxy signing");
   }
+  if (params.permissions.length === 0) {
+    throw new Error("local auth permissions are required for dashboard proxy signing");
+  }
 
-  const key = encoder.encode(signingSecret);
+  const key = new TextEncoder().encode(signingSecret);
   const now = Math.floor(Date.now() / 1000);
 
   return new SignJWT({
-    wid: params.workspaceId,
+    org: {
+      id: params.orgId,
+    },
     name: params.name,
-    perms: dashboardProxyPermissions,
+    perms: params.permissions,
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuer("app.unkey.com")
-    .setAudience(["api.unkey.com"])
+    .setAudience(["app.unkey.com", "api.unkey.com"])
     .setSubject(params.subject)
     .setIssuedAt(now)
     .setNotBefore(now)
