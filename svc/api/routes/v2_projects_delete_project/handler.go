@@ -54,8 +54,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
+			return fault.New(
+				"project not found",
 				fault.Code(codes.Data.Project.NotFound.URN()),
 				fault.Internal("project not found"),
 				fault.Public("The requested project does not exist."),
@@ -120,7 +120,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				{
 					ID:          project.ID,
 					Type:        auditlog.ProjectResourceType,
-					Meta:        nil,
+					Meta:        map[string]any{"name": project.Name, "slug": project.Slug},
 					Name:        project.Name,
 					DisplayName: project.Name,
 				},
