@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "urn",
+    srcs = [
+        "doc.go",
+        "resources.go",
+        "resources_app.go",
+        "resources_billing.go",
+        "resources_deployment.go",
+        "resources_environment.go",
+        "resources_keyspace.go",
+        "resources_portal.go",
+        "resources_project.go",
+        "resources_ratelimit.go",
+        "resources_rbac.go",
+        "resources_team.go",
+        "resources_workspace.go",
+        "urn.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/urn",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "urn_test",
+    size = "small",
+    srcs = ["urn_test.go"],
+    embed = [":urn"],
+    deps = [
+        "//pkg/fuzz",
+        "@com_github_stretchr_testify//require",
+    ],
+)
