@@ -52,8 +52,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
+			return fault.New(
+				"project not found",
 				fault.Code(codes.Data.Project.NotFound.URN()),
 				fault.Internal("project not found"),
 				fault.Public("The requested project does not exist."),
@@ -82,6 +82,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	))
 	if err != nil {
 		return err
+	}
+
+	if req.Name == nil && req.DeleteProtection == nil {
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: openapi.Project{
+				Id:               project.ID,
+				Name:             project.Name,
+				Slug:             project.Slug,
+				CreatedAt:        project.CreatedAt,
+				UpdatedAt:        project.UpdatedAt.Int64,
+				DeleteProtection: project.DeleteProtection.Bool,
+			},
+		})
 	}
 
 	name := project.Name
@@ -128,7 +144,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						ID:          project.ID,
 						Type:        auditlog.ProjectResourceType,
-						Meta:        nil,
+						Meta:        map[string]any{"name": name, "slug": project.Slug, "deleteProtection": deleteProtection},
 						Name:        name,
 						DisplayName: name,
 					},
