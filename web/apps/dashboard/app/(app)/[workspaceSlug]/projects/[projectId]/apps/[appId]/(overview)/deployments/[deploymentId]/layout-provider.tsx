@@ -40,8 +40,8 @@ export const DeploymentLayoutProvider = ({
 
   const parsed = fetchedDeployment ? deploymentSchema.safeParse(fetchedDeployment) : undefined;
   const resolved = deployment ?? (parsed?.success ? parsed.data : undefined);
-  if (true) {
-    if (true) {
+  if (!resolved) {
+    if (isDeploymentsLoading || isFetchingById) {
       return (
         <div className="flex flex-col" style={{ height: `calc(100dvh - ${TOP_NAV_HEIGHT}px)` }}>
           <LoadingState message="Loading deployment..." />
