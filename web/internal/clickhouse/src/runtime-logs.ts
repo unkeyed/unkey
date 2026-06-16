@@ -66,8 +66,17 @@ const runtimeLogRow = z.object({
   attributes_text: z.string().nullable(),
 });
 
+// `includeTotal` gates the count(*) query. Offset pagination needs a total to
+// render page counts, but callers that only read a single page (e.g. the
+// deployment-detail view) should pass `false` to skip the extra ClickHouse
+// round-trip.
+type RuntimeLogsOptions = {
+  includeTotal?: boolean;
+};
+
 export function getRuntimeLogs(ch: Querier) {
-  return async (args: RuntimeLogsRequest) => {
+  return async (args: RuntimeLogsRequest, options?: RuntimeLogsOptions) => {
+    const includeTotal = options?.includeTotal ?? true;
     const wheres: string[] = [
       "workspace_id = {workspaceId: String}",
       "project_id = {projectId: String}",
@@ -110,22 +119,6 @@ export function getRuntimeLogs(ch: Querier) {
     const partitionStartTime = args.startTime - INGESTION_LAG_GRACE_MS;
     const partitionEndTime = args.endTime + INGESTION_LAG_GRACE_MS;
 
-    // Offset pagination needs a total to compute page count, so we count the
-    // filtered window. This is the count(*) the cursor-based design avoided;
-    // it's bounded by the same partition pruning and max_execution_time as the
-    // page query.
-    const totalQuery = ch.query({
-      query: `
-        SELECT count(*) as total_count
-        FROM ${TABLE}
-        WHERE ${filterConditions}
-        SETTINGS
-          optimize_move_to_prewhere = 1,
-          max_execution_time = ${MAX_EXECUTION_TIME_SECONDS}`,
-      params: runtimeLogsCountParamsSchema,
-      schema: z.object({ total_count: z.int() }),
-    });
-
     const logsQuery = ch.query({
       query: `
         SELECT
@@ -152,21 +145,35 @@ export function getRuntimeLogs(ch: Querier) {
       partitionEndTime,
     });
 
-    const totalPromise = totalQuery({
-      ...args,
-      partitionStartTime,
-      partitionEndTime,
-    });
+    // Offset pagination needs a total to compute the page count, so callers that
+    // page (the default) count the filtered window. This is the count(*) the
+    // cursor-based design avoided; it's bounded by the same partition pruning and
+    // max_execution_time as the page query. Single-page callers pass
+    // includeTotal: false and skip the query entirely.
+    let totalResult: Promise<Result<number, QueryError>> = Promise.resolve(Ok(0));
+    if (includeTotal) {
+      const totalQuery = ch.query({
+        query: `
+        SELECT count(*) as total_count
+        FROM ${TABLE}
+        WHERE ${filterConditions}
+        SETTINGS
+          optimize_move_to_prewhere = 1,
+          max_execution_time = ${MAX_EXECUTION_TIME_SECONDS}`,
+        params: runtimeLogsCountParamsSchema,
+        schema: z.object({ total_count: z.int() }),
+      });
+      totalResult = totalQuery({ ...args, partitionStartTime, partitionEndTime }).then((res) =>
+        res.err ? Err(res.err) : Ok(res.val[0]?.total_count ?? 0),
+      );
+    }
 
     return {
       logsQuery: rowsPromise.then(
         (res): Result<RuntimeLog[], QueryError> =>
           res.err ? Err(res.err) : Ok(res.val.map(toRuntimeLog)),
       ),
-      totalQuery: totalPromise.then(
-        (res): Result<number, QueryError> =>
-          res.err ? Err(res.err) : Ok(res.val[0]?.total_count ?? 0),
-      ),
+      totalQuery: totalResult,
     };
   };
 }
