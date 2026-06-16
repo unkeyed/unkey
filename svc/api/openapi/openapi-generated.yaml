@@ -2006,8 +2006,8 @@ components:
                     maxLength: 256
                     pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
                     description: |
-                        URL-safe handle identifying the project to update, unique within your workspace.
-                        This is the caller-defined identifier returned when the project was created and is not itself modifiable here.
+                        Specifies which project to update using the URL-safe slug you chose when creating the project, unique within your workspace.
+                        Do not confuse this with the project ID returned from `createProject`.
                     example: payments-service
                 name:
                     type: string
