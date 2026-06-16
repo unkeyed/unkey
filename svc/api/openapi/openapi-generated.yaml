@@ -3641,6 +3641,7 @@ components:
                 - name
                 - slug
                 - createdAt
+                - deleteProtection
             properties:
                 id:
                     type: string
@@ -3683,8 +3684,6 @@ components:
                         Whether delete protection is enabled for this project.
                         When true, the project cannot be deleted until protection is disabled.
                     example: false
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2RatelimitDeleteOverrideResponseData:
             type: object
