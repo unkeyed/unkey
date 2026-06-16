@@ -34,6 +34,7 @@ go_library(
         "//pkg/logger",
         "//pkg/ptr",
         "//pkg/restate/compensation",
+        "//pkg/restate/restateutil",
         "//pkg/uid",
         "//pkg/validation",
         "//svc/ctrl/worker/github",

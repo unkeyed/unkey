@@ -7,15 +7,15 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Menu } from "@unkey/icons";
 import Link from "next/link";
 import { Fragment } from "react";
-import { HelpButton } from "../sidebar/help-button";
-import { UserButton } from "../sidebar/user-button";
 import { ApiCrumb } from "./api-crumb";
 import { AppCrumb } from "./app-crumb";
 import { CrumbSeparator } from "./crumb";
 import { TopNavFeedbackButton } from "./feedback-button";
+import { HelpButton } from "./help-button";
 import { IdentityCrumb } from "./identity-crumb";
 import { NamespaceCrumb } from "./namespace-crumb";
 import { ProjectCrumb } from "./project-crumb";
+import { UserButton } from "./user-button";
 import { WorkspaceCrumb } from "./workspace-crumb";
 
 export const TOP_NAV_HEIGHT = 52;

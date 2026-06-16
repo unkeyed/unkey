@@ -101,13 +101,13 @@ func (s *service) runGlobalPushOnce() {
 		if val <= 0 {
 			return true
 		}
-		// shouldPushGlobalCount gates on both the observed threshold and
-		// the change filter. Pull-created entries with no local traffic
-		// have no threshold; quiet entries with unchanged val fail the
-		// lastPushed comparison. The lastPushed comparison uses `<`
-		// (i.e. val > lastPushed inside shouldPushGlobalCount) so a
-		// transient regression from a RatelimitMany rollback doesn't leak
-		// a write that the receiver's GREATEST would no-op anyway.
+		// shouldPushGlobalCount always applies the change filter, then either
+		// accepts remote-aware entries or requires the observed threshold.
+		// Pull-created entries with no local traffic have no val; quiet entries
+		// with unchanged val fail the lastPushed comparison. The lastPushed
+		// comparison uses `<` (i.e. val > lastPushed inside shouldPushGlobalCount)
+		// so a transient regression from a RatelimitMany rollback doesn't leak a
+		// write that the receiver's GREATEST would no-op anyway.
 		if !entry.shouldPushGlobalCount(val) {
 			return true
 		}

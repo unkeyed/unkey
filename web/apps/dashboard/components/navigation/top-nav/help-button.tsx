@@ -4,14 +4,17 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import type React from "react";
 
 import { useFeedback } from "@/components/dashboard/feedback-component";
-import { Book2, BracketsCurly, Chats, CircleCaretRight, CircleQuestion } from "@unkey/icons";
+import { Book2, BracketsCurly, Chats, CircleQuestion } from "@unkey/icons";
 import { useState } from "react";
+import { StatusWidget } from "./status-widget";
 
 export const HelpButton: React.FC = () => {
   const { openFeedback } = useFeedback();
@@ -27,12 +30,6 @@ export const HelpButton: React.FC = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" className="flex w-44 flex-col gap-3" align="end">
         <DropdownMenuGroup className="w-full">
-          <Link href="/new">
-            <DropdownMenuItem className="cursor-pointer w-full">
-              <CircleCaretRight className="size-4 mr-3 text-gray-9" />
-              <span className="text-accent-12 text-sm font-medium">Onboarding</span>
-            </DropdownMenuItem>
-          </Link>
           <Link href="https://unkey.com/docs" target="_blank">
             <DropdownMenuItem className="cursor-pointer w-full">
               <Book2 className="size-4 mr-3 text-gray-9" />
@@ -51,7 +48,6 @@ export const HelpButton: React.FC = () => {
               <span className="text-accent-12 text-sm font-medium">Community</span>
             </DropdownMenuItem>
           </Link>
-
           <DropdownMenuItem
             onClick={() => {
               setOpen(false);
@@ -60,6 +56,11 @@ export const HelpButton: React.FC = () => {
           >
             <Chats className="size-4 mr-3 text-gray-9" />
             <span className="text-accent-12 text-sm font-medium">Support</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="my-1" />
+          <DropdownMenuLabel>Platform status</DropdownMenuLabel>
+          <DropdownMenuItem asChild className="cursor-pointer w-full">
+            <StatusWidget />
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

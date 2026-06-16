@@ -9,17 +9,17 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strconv"
-	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -102,7 +102,7 @@ func (h *Handler) Handle(
 	billingPeriod := restate.Key(ctx)
 	logger.Info("running quota check", "billing_period", billingPeriod)
 
-	year, month, err := parseBillingPeriod(billingPeriod)
+	p, err := billingperiod.Parse(billingPeriod)
 	if err != nil {
 		return nil, fmt.Errorf("invalid billing period %q: %w", billingPeriod, err)
 	}
@@ -115,15 +115,14 @@ func (h *Handler) Handle(
 		notifiedAt = make(map[string]int64)
 	}
 
-	now, err := restate.Run(ctx, func(restate.RunContext) (int64, error) {
-		return time.Now().Unix(), nil
-	}, restate.WithName("get current time"))
+	nowTime, err := restateutil.Now(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
+	now := nowTime.Unix()
 
 	usageAboveThreshold, err := restate.Run(ctx, func(rc restate.RunContext) (map[string]int64, error) {
-		return h.clickhouse.GetBillableUsageAboveThreshold(rc, year, month, minUsageThreshold)
+		return h.clickhouse.GetBillableUsageAboveThreshold(rc, p.Year, int(p.Month), minUsageThreshold)
 	}, restate.WithName("get billable usage above threshold"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get billable usage: %w", err)
@@ -225,25 +224,6 @@ func (h *Handler) Handle(
 		WorkspacesExceeded: int32(len(exceeded)),
 		NotificationsSent:  int32(len(newlyNotified)),
 	}, nil
-}
-
-func parseBillingPeriod(period string) (year, month int, err error) {
-	parts := strings.Split(period, "-")
-	if len(parts) != 2 {
-		return 0, 0, fmt.Errorf("expected YYYY-MM format")
-	}
-	year, err = strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, 0, fmt.Errorf("invalid year: %w", err)
-	}
-	month, err = strconv.Atoi(parts[1])
-	if err != nil {
-		return 0, 0, fmt.Errorf("invalid month: %w", err)
-	}
-	if month < 1 || month > 12 {
-		return 0, 0, fmt.Errorf("month must be 1-12")
-	}
-	return year, month, nil
 }
 
 func sendSlackNotification(ctx context.Context, webhookURL string, e exceededWorkspace) error {
