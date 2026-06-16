@@ -36,9 +36,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link
-            href={routes.ratelimits.list({ workspaceSlug: workspace.slug })}
-          >
+          <Navbar.Breadcrumbs.Link href={routes.ratelimits.list({ workspaceSlug: workspace.slug })}>
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" className="group" noop>
@@ -70,9 +68,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
     <>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link
-            href={routes.ratelimits.list({ workspaceSlug: workspace.slug })}
-          >
+          <Navbar.Breadcrumbs.Link href={routes.ratelimits.list({ workspaceSlug: workspace.slug })}>
             Ratelimits
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link

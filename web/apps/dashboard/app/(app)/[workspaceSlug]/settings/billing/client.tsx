@@ -130,7 +130,9 @@ export const Client: React.FC = () => {
                         aria-label="Open billing portal"
                         disabled={!isAdmin}
                         onClick={() => {
-                          router.push(routes.settings.stripe.portal({ workspaceSlug: workspace.slug }));
+                          router.push(
+                            routes.settings.stripe.portal({ workspaceSlug: workspace.slug }),
+                          );
                         }}
                       >
                         Open Portal
@@ -167,7 +169,9 @@ export const Client: React.FC = () => {
                         aria-label="Add payment method"
                         disabled={!isAdmin}
                         onClick={() => {
-                          router.push(routes.settings.stripe.checkout({ workspaceSlug: workspace.slug }));
+                          router.push(
+                            routes.settings.stripe.checkout({ workspaceSlug: workspace.slug }),
+                          );
                         }}
                       >
                         Add payment method
