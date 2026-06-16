@@ -49,6 +49,13 @@ type Caches struct {
 	// Short fresh window because sessions can expire; stale window allows
 	// serving slightly-stale data while revalidating in the background.
 	PortalSession cache.Cache[string, db.PortalSession]
+
+	// WorkspaceByOrgID caches workspace lookups by organization ID for JWT
+	// authentication. Keys are string (org ID) and values are db.Workspace.
+	// Short fresh window so disabling or deleting a workspace locks out its
+	// JWT principals quickly; long stale window keeps the effectively
+	// immutable org-to-workspace mapping served from memory.
+	WorkspaceByOrgID cache.Cache[string, db.Workspace]
 }
 
 // Close shuts down the caches and cleans up resources.
@@ -166,6 +173,17 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	workspaceByOrgID, err := cache.New(cache.Config[string, db.Workspace]{
+		Fresh:    10 * time.Second,
+		Stale:    24 * time.Hour,
+		MaxSize:  100_000,
+		Resource: "workspace_by_org_id",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
@@ -175,5 +193,6 @@ func New(config Config) (Caches, error) {
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
 		WorkspaceQuota:        middleware.WithTracing(workspaceQuota),
 		PortalSession:         middleware.WithTracing(portalSession),
+		WorkspaceByOrgID:      middleware.WithTracing(workspaceByOrgID),
 	}, nil
 }
