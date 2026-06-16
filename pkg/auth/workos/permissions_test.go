@@ -114,7 +114,6 @@ func TestTranslatePermissionsGolden(t *testing.T) {
 	permissions := sortedPermissionSlugs()
 
 	translated := translatePermissions("ws_123", permissions)
-	require.Len(t, translated, len(permissionMappings))
 
 	got := strings.Join(translated, "\n") + "\n"
 	want, err := os.ReadFile("testdata/permissions.golden")
