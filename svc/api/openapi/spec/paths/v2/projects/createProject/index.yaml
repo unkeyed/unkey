@@ -40,14 +40,15 @@ post:
           examples:
             success:
               summary: Project created successfully
-              description: Successfully created a project, returning its slug
+              description: Successfully created a project, returning its id and slug
               value:
                 meta:
                   requestId: req_1234abcd
                 data:
+                  id: proj_1234abcd
                   slug: payments-service
       description: |
-        Project created successfully. The response contains the project slug used to reference it in subsequent operations.
+        Project created successfully. The response contains the project id and slug used to reference it in subsequent operations.
     "400":
       description: Bad request
       content:

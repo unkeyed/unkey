@@ -38,6 +38,7 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Equal(t, req.Slug, res.Body.Data.Slug)
+		require.True(t, strings.HasPrefix(res.Body.Data.Id, "proj_"))
 
 		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -47,6 +48,7 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 		require.Equal(t, req.Name, project.Name)
 		require.Equal(t, h.Resources().UserWorkspace.ID, project.WorkspaceID)
 		require.True(t, strings.HasPrefix(project.ID, "proj_"))
+		require.Equal(t, project.ID, res.Body.Data.Id)
 
 		auditLogs := h.FindAuditLogsByTargetID(ctx, t, project.ID)
 		var foundCreateEvent bool
