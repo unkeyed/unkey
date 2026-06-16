@@ -7,7 +7,11 @@ description: "Finding edge cases with randomized inputs"
 
 Fuzz testing feeds random inputs to your code and watches for crashes, panics, or assertion failures. It finds bugs that humans do not think to test for, such as malformed UTF-8, integer overflows, and nil pointer dereferences.
 
-Go has built-in fuzzing since Go 1.18. You write a fuzz test, provide seed inputs, and the fuzzer mutates those seeds to explore the input space. When it finds a failure, it saves that input so the bug becomes a regression test.
+Go has built-in fuzzing since Go 1.18. Unkey fuzz tests must use `pkg/fuzz` on top of Go's native fuzzing API. `pkg/fuzz` provides deterministic seeds and converts fuzzer-controlled byte slices into typed values without hiding inputs from the coverage-guided fuzzer.
+
+Every fuzz test must call `fuzz.Seed(f)`, accept `data []byte`, create a `fuzz.Consumer` with `fuzz.New(t, data)`, and derive generated values from that consumer. Do not fuzz typed parameters directly, and do not use `math/rand` or ad hoc byte slicing inside fuzz tests.
+
+When the fuzzer finds a failure, Go saves that input so the bug becomes a regression test.
 
 ## When to write fuzz tests
 
@@ -17,14 +21,21 @@ They are less useful for business logic with complex preconditions.
 
 ## Writing your first fuzz test
 
-```go
-func FuzzParseConfig(f *testing.F) {
-    f.Add(`{"timeout": "30s"}`)
-    f.Add(`{"timeout": "0s", "retries": 0}`)
-    f.Add(`{}`)
-    f.Add(`not json at all`)
+Start a fuzz test by naming the property it protects. Seed inputs are examples of the property, not the property itself. Add a docstring when the property is a security boundary, parser invariant, or regression from a production bug.
 
-    f.Fuzz(func(t *testing.T, input string) {
+```go
+import "github.com/unkeyed/unkey/pkg/fuzz"
+
+// FuzzParseConfigPreservesTimeoutBounds guarantees that every accepted config
+// produces a non-negative timeout. Invalid config may be rejected, but accepted
+// config must be safe to execute.
+func FuzzParseConfig(f *testing.F) {
+    fuzz.Seed(f)
+
+    f.Fuzz(func(t *testing.T, data []byte) {
+        c := fuzz.New(t, data)
+        input := c.String()
+
         cfg, err := ParseConfig(input)
         if err != nil {
             return
@@ -38,7 +49,7 @@ func FuzzParseConfig(f *testing.F) {
 
 ## Skipping invalid inputs
 
-Use `t.Skip()` for inputs that do not meet required preconditions.
+Use `t.Skip()` for inputs that do not meet required preconditions. `pkg/fuzz` also calls `t.Skip()` when the consumer runs out of bytes, which keeps every generated value tied to fuzzer-controlled input.
 
 ```go
 if len(key) != 16 && len(key) != 24 && len(key) != 32 {
@@ -49,6 +60,8 @@ if len(key) != 16 && len(key) != 24 && len(key) != 32 {
 ## Testing security properties
 
 Use fuzzing to validate tamper detection and authentication guarantees.
+
+Document security properties in the fuzz test docstring. A future reader must know whether the fuzzer protects parser safety, signature verification, canonical encoding, authorization boundaries, or another guarantee.
 
 ## Running fuzz tests
 
@@ -72,4 +85,4 @@ Write a deterministic unit test for the failing input, then fix the bug. Keep th
 
 ## Bazel configuration
 
-Fuzz tests live in regular `go_test` targets and include the fuzz corpus with `data = glob(["testdata/**"])`.
+Fuzz tests live in regular `go_test` targets. Add `//pkg/fuzz` to the target dependencies, and include the fuzz corpus with `data = glob(["testdata/**"])` when the test has saved failure inputs.
