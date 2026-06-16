@@ -1,4 +1,4 @@
--- name: ListProjectsByWorkspace :many
+-- name: ListProjectsByWorkspaceId :many
 SELECT
     id,
     workspace_id,

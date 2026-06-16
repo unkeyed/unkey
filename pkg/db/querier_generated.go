@@ -2631,7 +2631,7 @@ type Querier interface {
 	//  WHERE environment_id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, db DBTX, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
-	//ListProjectsByWorkspace
+	//ListProjectsByWorkspaceId
 	//
 	//  SELECT
 	//      id,
@@ -2646,7 +2646,7 @@ type Querier interface {
 	//    AND id >= ?
 	//  ORDER BY id ASC
 	//  LIMIT ?
-	ListProjectsByWorkspace(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceParams) ([]ListProjectsByWorkspaceRow, error)
+	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides

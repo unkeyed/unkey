@@ -57,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
-	rows, err := db.Query.ListProjectsByWorkspace(ctx, h.DB.RO(), db.ListProjectsByWorkspaceParams{
+	rows, err := db.Query.ListProjectsByWorkspaceId(ctx, h.DB.RO(), db.ListProjectsByWorkspaceIdParams{
 		WorkspaceID: principal.WorkspaceID,
 		IDCursor:    cursor,
 		Limit:       int32(limit + 1), // nolint:gosec

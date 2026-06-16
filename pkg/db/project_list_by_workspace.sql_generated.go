@@ -10,7 +10,7 @@ import (
 	"database/sql"
 )
 
-const listProjectsByWorkspace = `-- name: ListProjectsByWorkspace :many
+const listProjectsByWorkspaceId = `-- name: ListProjectsByWorkspaceId :many
 SELECT
     id,
     workspace_id,
@@ -26,13 +26,13 @@ ORDER BY id ASC
 LIMIT ?
 `
 
-type ListProjectsByWorkspaceParams struct {
+type ListProjectsByWorkspaceIdParams struct {
 	WorkspaceID string `db:"workspace_id"`
 	IDCursor    string `db:"id_cursor"`
 	Limit       int32  `db:"limit"`
 }
 
-type ListProjectsByWorkspaceRow struct {
+type ListProjectsByWorkspaceIdRow struct {
 	ID               string        `db:"id"`
 	WorkspaceID      string        `db:"workspace_id"`
 	Name             string        `db:"name"`
@@ -42,7 +42,7 @@ type ListProjectsByWorkspaceRow struct {
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
-// ListProjectsByWorkspace
+// ListProjectsByWorkspaceId
 //
 //	SELECT
 //	    id,
@@ -57,15 +57,15 @@ type ListProjectsByWorkspaceRow struct {
 //	  AND id >= ?
 //	ORDER BY id ASC
 //	LIMIT ?
-func (q *Queries) ListProjectsByWorkspace(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceParams) ([]ListProjectsByWorkspaceRow, error) {
-	rows, err := db.QueryContext(ctx, listProjectsByWorkspace, arg.WorkspaceID, arg.IDCursor, arg.Limit)
+func (q *Queries) ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error) {
+	rows, err := db.QueryContext(ctx, listProjectsByWorkspaceId, arg.WorkspaceID, arg.IDCursor, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListProjectsByWorkspaceRow
+	var items []ListProjectsByWorkspaceIdRow
 	for rows.Next() {
-		var i ListProjectsByWorkspaceRow
+		var i ListProjectsByWorkspaceIdRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.WorkspaceID,
