@@ -1995,6 +1995,46 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
+        V2ProjectsUpdateProjectRequestBody:
+            type: object
+            required:
+                - slug
+            properties:
+                slug:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    pattern: "^[a-z0-9-]+$"
+                    description: |
+                        URL-safe handle identifying the project to update, unique within your workspace.
+                        This is the caller-defined identifier returned when the project was created and is not itself modifiable here.
+                    example: payments-service
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        New human-readable name for the project.
+                        Omit this field to leave the current name unchanged.
+                    example: Payments Service
+                deleteProtection:
+                    type: boolean
+                    description: |
+                        Enable or disable delete protection for the project.
+                        Omit this field to leave the current setting unchanged.
+                    example: true
+            additionalProperties: false
+        V2ProjectsUpdateProjectResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Project"
+            additionalProperties: false
         V2RatelimitDeleteOverrideRequestBody:
             description: |-
                 Deletes an existing rate limit override. This permanently removes a custom rate limit rule, reverting affected identifiers back to the default rate limits for the namespace.
@@ -7319,6 +7359,118 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/projects.updateProject:
+        post:
+            description: |
+                Update an existing project in your workspace, identified by its slug.
+
+                Only the project name and delete protection setting can be changed. Omitted fields are left unchanged. The slug itself cannot be modified.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `project.*.update_project` (to update any project)
+                - `project.<project_id>.update_project` (to update a specific project)
+            operationId: projects.updateProject
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            rename:
+                                description: Update only the display name of a project
+                                summary: Rename a project
+                                value:
+                                    name: Payments API
+                                    slug: payments-service
+                        schema:
+                            $ref: '#/components/schemas/V2ProjectsUpdateProjectRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                project:
+                                    description: Successfully updated a project
+                                    summary: Updated project
+                                    value:
+                                        data:
+                                            createdAt: 1704067200000
+                                            deleteProtection: true
+                                            id: proj_1234abcd
+                                            name: Payments API
+                                            slug: payments-service
+                                            updatedAt: 1704153600000
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2ProjectsUpdateProjectResponseBody'
+                    description: |
+                        Successfully updated the project.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'project.*.update_project' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `project.*.update_project`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                projectNotFound:
+                                    summary: Project not found
+                                    value:
+                                        error:
+                                            detail: The requested project does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested project does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Update project
+            tags:
+                - projects
+            x-speakeasy-name-override: updateProject
     /v2/ratelimit.deleteOverride:
         post:
             description: |

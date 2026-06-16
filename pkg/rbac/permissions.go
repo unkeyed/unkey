@@ -183,6 +183,9 @@ const (
 
 	// ReadProject permits reading and listing projects
 	ReadProject ActionType = "read_project"
+
+	// UpdateProject permits modifying existing projects
+	UpdateProject ActionType = "update_project"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

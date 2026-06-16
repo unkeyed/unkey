@@ -1,0 +1,41 @@
+type: object
+required:
+  - slug
+properties:
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9-]+$"
+    description: |
+      URL-safe handle identifying the project to update, unique within your workspace.
+      This is the caller-defined identifier returned when the project was created and is not itself modifiable here.
+    example: payments-service
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      New human-readable name for the project.
+      Omit this field to leave the current name unchanged.
+    example: Payments Service
+  deleteProtection:
+    type: boolean
+    description: |
+      Enable or disable delete protection for the project.
+      Omit this field to leave the current setting unchanged.
+    example: true
+additionalProperties: false
+examples:
+  rename:
+    summary: Rename a project
+    description: Update only the display name of a project
+    value:
+      slug: payments-service
+      name: Payments API
+  protect:
+    summary: Toggle delete protection
+    description: Enable delete protection without changing the name
+    value:
+      slug: payments-service
+      deleteProtection: true
