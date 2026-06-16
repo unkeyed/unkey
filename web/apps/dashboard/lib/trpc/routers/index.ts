@@ -195,6 +195,7 @@ import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
+import { permissionResources } from "./settings/root-keys/permission-resources";
 import { queryRootKeys } from "./settings/root-keys/query";
 import { cancelSubscription } from "./stripe/cancelSubscription";
 import { createSubscription } from "./stripe/createSubscription";
@@ -263,6 +264,7 @@ export const router = t.router({
       query: queryRootKeys,
       llmSearch: rootKeysLlmSearch,
       delete: deleteRootKeys,
+      permissionResources,
     }),
   }),
   api: t.router({
