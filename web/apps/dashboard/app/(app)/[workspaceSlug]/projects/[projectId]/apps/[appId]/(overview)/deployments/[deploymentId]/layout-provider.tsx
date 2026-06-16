@@ -42,7 +42,7 @@ export const DeploymentLayoutProvider = ({
   if (!resolved) {
     if (isDeploymentsLoading || isFetchingById) {
       return (
-        <div className="h-dvh flex flex-col">
+        <div className="flex flex-col h-full">
           <LoadingState message="Loading deployment..." />
         </div>
       );
