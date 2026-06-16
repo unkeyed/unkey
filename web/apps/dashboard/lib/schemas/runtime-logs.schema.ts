@@ -61,15 +61,15 @@ export const runtimeLogsRequestSchema = z.object({
       ),
     })
     .nullable(),
-  cursor: z.number().nullable().optional(),
+  // 1-based page for offset pagination. Defaults to 1 (offset 0).
+  page: z.number().int().min(1).optional().default(1),
 });
 
 export type RuntimeLogsRequestSchema = z.infer<typeof runtimeLogsRequestSchema>;
 
 export const runtimeLogsResponseSchema = z.object({
   logs: z.array(dashboardRuntimeLog),
-  hasMore: z.boolean(),
-  nextCursor: z.int().optional(),
+  total: z.number().int(),
 });
 
 export type RuntimeLogsResponseSchema = z.infer<typeof runtimeLogsResponseSchema>;

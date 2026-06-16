@@ -55,7 +55,7 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
       region: [],
       message: null,
       k8sPodNames: [],
-      cursorTime: null,
+      page: 1,
     });
 
     const logsResult = await logsQuery;

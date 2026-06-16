@@ -63,7 +63,7 @@ export const queryRuntimeLogs = workspaceProcedure
       });
 
       if (instances.length === 0) {
-        return { logs: [], hasMore: false };
+        return { logs: [], total: 0 };
       }
 
       k8sPodNames = instances.map((inst) => inst.k8sName);
@@ -86,7 +86,7 @@ export const queryRuntimeLogs = workspaceProcedure
       transformedInputs.environmentId = [prod.id];
     }
 
-    const { logsQuery } = await clickhouse.runtimeLogs.logs({
+    const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs({
       ...transformedInputs,
       k8sPodNames,
       workspaceId: ctx.workspace.id,
@@ -95,20 +95,17 @@ export const queryRuntimeLogs = workspaceProcedure
       appId,
     });
 
-    const logsResult = await logsQuery;
+    const [logsResult, totalResult] = await Promise.all([logsQuery, totalQuery]);
 
-    if (logsResult.err) {
+    if (logsResult.err || totalResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }
 
-    // The CH query fetched limit+1 rows; if we got more than `limit`,
-    // there is at least one more page.
-    const allLogs = logsResult.val;
-    const hasMore = allLogs.length > input.limit;
-    const chLogs = hasMore ? allLogs.slice(0, input.limit) : allLogs;
+    const chLogs = logsResult.val;
+    const total = totalResult.val;
 
     const unknownEntries = uniqueK8sRegionEntries(chLogs, knownK8sToInstanceId);
     const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownEntries, ctx.workspace.id);
@@ -126,8 +123,7 @@ export const queryRuntimeLogs = workspaceProcedure
 
     const response: RuntimeLogsResponseSchema = {
       logs,
-      hasMore,
-      nextCursor: logs.length > 0 ? logs[logs.length - 1].time : undefined,
+      total,
     };
 
     return response;
