@@ -1008,6 +1008,19 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     userId: string;
     email: string;
   }): Promise<MfaEnrollmentStart> {
+    // Enrollment only starts when the user has no usable factor (settings shows
+    // the enroll button only in the empty state; sign-in enrollment is forced
+    // because the account has none). Any factor lingering here is therefore an
+    // unverified orphan from an abandoned attempt — delete it so refreshing or
+    // reopening enrollment doesn't accumulate dead TOTP factors in WorkOS.
+    const existing = await this.provider.multiFactorAuth.listUserAuthFactors({
+      userId: params.userId,
+      limit: 100,
+    });
+    await Promise.all(
+      existing.data.map((factor) => this.provider.multiFactorAuth.deleteFactor(factor.id)),
+    );
+
     const { authenticationFactor, authenticationChallenge } =
       await this.provider.multiFactorAuth.createUserAuthFactor({
         userId: params.userId,

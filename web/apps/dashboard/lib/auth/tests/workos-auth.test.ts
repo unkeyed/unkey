@@ -560,6 +560,7 @@ describe("WorkOSAuthProvider", () => {
 
   describe("MFA factor management", () => {
     it("begins enrollment and returns the TOTP secrets", async () => {
+      workos.multiFactorAuth.listUserAuthFactors.mockResolvedValue({ data: [] });
       workos.multiFactorAuth.createUserAuthFactor.mockResolvedValue({
         authenticationFactor: {
           id: "auth_factor_1",
@@ -586,6 +587,25 @@ describe("WorkOSAuthProvider", () => {
         secret: "SECRET",
         uri: "otpauth://...",
       });
+    });
+
+    it("deletes orphaned factors before enrolling a new one", async () => {
+      workos.multiFactorAuth.listUserAuthFactors.mockResolvedValue({
+        data: [{ id: "orphan_1" }, { id: "orphan_2" }],
+      });
+      workos.multiFactorAuth.createUserAuthFactor.mockResolvedValue({
+        authenticationFactor: {
+          id: "auth_factor_1",
+          totp: { qrCode: "data:image/png;base64,abc", secret: "SECRET", uri: "otpauth://..." },
+        },
+        authenticationChallenge: { id: "auth_challenge_1" },
+      });
+
+      await provider.beginMfaEnrollment({ userId: "user_123", email: "test@example.com" });
+
+      expect(workos.multiFactorAuth.deleteFactor).toHaveBeenCalledWith("orphan_1");
+      expect(workos.multiFactorAuth.deleteFactor).toHaveBeenCalledWith("orphan_2");
+      expect(workos.multiFactorAuth.createUserAuthFactor).toHaveBeenCalled();
     });
 
     it("lists factors for a user", async () => {
