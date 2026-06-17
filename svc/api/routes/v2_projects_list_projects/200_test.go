@@ -157,7 +157,7 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 	})
 
 	otherWorkspace := h.CreateWorkspace()
-	h.CreateProject(seed.CreateProjectRequest{
+	theirs := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: otherWorkspace.ID,
 		Name:        "Theirs",
@@ -168,4 +168,26 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Len(t, res.Body.Data, 1)
 	require.Equal(t, mine.ID, res.Body.Data[0].Id)
+
+	t.Run("foreign cursor does not leak across workspaces", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Cursor: ptr.P(theirs.ID),
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		for _, p := range res.Body.Data {
+			require.NotEqual(t, theirs.ID, p.Id, "foreign project must never be returned")
+			require.Equal(t, mine.ID, p.Id, "only own-workspace projects may be returned")
+		}
+	})
+
+	t.Run("malformed cursor terminates cleanly", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Cursor: ptr.P("not-a-valid-cursor-@@@"),
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.NotNil(t, res.Body.Pagination)
+		for _, p := range res.Body.Data {
+			require.Equal(t, mine.ID, p.Id, "only own-workspace projects may be returned")
+		}
+	})
 }
