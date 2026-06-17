@@ -117,7 +117,7 @@ async function mintProxyJWT(params: {
     throw new Error("UNKEY_JWT_SECRET must be configured for dashboard proxy signing");
   }
   if (params.permissions.length === 0) {
-    throw new Error("local auth permissions are required for dashboard proxy signing");
+    throw new Error("permissions are required for dashboard proxy signing");
   }
 
   const key = new TextEncoder().encode(signingSecret);
@@ -132,6 +132,9 @@ async function mintProxyJWT(params: {
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuer("app.unkey.com")
+    // Mirror the WorkOS JWT template's audience so svc/api's WorkOS auth entry
+    // (configured with audience = "api.unkey.com") verifies this fallback token
+    // the same way it verifies a forwarded WorkOS access token.
     .setAudience(["app.unkey.com", "api.unkey.com"])
     .setSubject(params.subject)
     .setIssuedAt(now)
