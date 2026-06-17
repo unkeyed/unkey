@@ -1,0 +1,319 @@
+---
+title: "Unkey Resource Names"
+description: "Canonical resource names for public Unkey resources"
+---
+
+Unkey Resource Names, or URNs, identify public Unkey resources in a stable,
+parseable format. URNs are used anywhere Unkey needs to refer to the same
+resource across product surfaces, audit logs, permission checks, traces, and
+internal events.
+
+This document defines the `v1` resource-name contract. Future versions can add
+path shapes or change parsing rules, but `v1` URNs must keep the behavior
+defined here. A permission attaches an action to a URN, but the URN itself names
+only the resource.
+
+The Go implementation lives in
+[`pkg/urn`](https://github.com/unkeyed/unkey/tree/main/pkg/urn).
+
+## Format
+
+A URN has four colon-separated fields.
+
+```plaintext
+unkey:v1:{workspace_id}:{resource_path}
+```
+
+Each field has a fixed meaning.
+
+| Field | Description |
+| --- | --- |
+| `unkey` | Fixed prefix for every Unkey Resource Name. |
+| `v1` | Resource-name grammar version. |
+| `{workspace_id}` | Workspace that owns the resource. |
+| `{resource_path}` | Canonical path to the resource inside the workspace. |
+
+For example:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123
+unkey:v1:ws_123:projects/proj_123/apps/app_456
+unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc
+```
+
+The workspace ID is part of the URN even when the caller already has workspace
+context. Audit logs, background jobs, and support tools must be able to copy a
+URN and identify the owning workspace without extra state.
+
+## Path rules
+
+Resource paths are part of the contract. Code that creates, parses, or matches
+URNs must follow these rules.
+
+- Concrete resource URNs must use the full canonical path from the catalog.
+- Collection segments are plural, for example `keyspaces`, `keys`, and
+  `projects`.
+- ID segments use the existing public Unkey ID for that resource.
+- `:` is reserved for top-level URN fields and must not appear in a resource
+  path.
+- `#` is reserved for permissions and must not appear in a URN.
+- A resource path must not start or end with `/`.
+
+Concrete URNs identify one resource. Resource-name patterns identify a set of
+resources and are part of the `v1` URN grammar. Callers that need one exact
+resource, such as audit logs and authorization requests, must use concrete
+URNs. Stored authorization grants can use patterns.
+
+## Resource-name patterns
+
+Resource-name patterns use the same four-field URN format as concrete resource
+names. The difference is in the resource path.
+
+| Operator | Meaning |
+| --- | --- |
+| `*` | Matches exactly one complete path segment. |
+| `/**` | Matches the base path and every descendant below it. |
+
+The `*` operator must be the whole path segment. A pattern such as `key_*` is
+invalid because it would make prefix matching ambiguous.
+
+The `/**` operator must be the final path segment. A pattern such as
+`projects/**/deployments/*` is invalid because descendant matching has to stop
+at the end of the path.
+
+After a path uses `*` for an ID selector, descendant ID selectors must also use
+`*`. The path can still name child collections, but it can't narrow back to a
+specific child. This keeps wildcard paths canonical and avoids permissions that
+pretend to select a child without selecting the parent that owns it.
+
+Valid:
+
+```plaintext
+unkey:v1:ws_123:projects/*/apps/*
+unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*
+unkey:v1:ws_123:projects/proj_123/apps/*/environments/*
+```
+
+Invalid:
+
+```plaintext
+unkey:v1:ws_123:projects/*/apps/app_123
+unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123
+unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123
+```
+
+For example, this pattern:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/*/keys/*
+```
+
+matches this concrete URN:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/ks_123/keys/key_456
+```
+
+This descendant pattern:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123/**
+```
+
+matches the project itself and every public descendant below that project.
+Patterns never cross workspace boundaries, including the global workspace
+pattern:
+
+```plaintext
+unkey:v1:ws_123:**
+```
+
+`pkg/urn` parses concrete names and patterns. It also decides whether one URN
+covers another. The permission system adds the action suffix and decides what a
+covered resource authorizes. It doesn't define its own path matching.
+
+## Resource catalog
+
+The public catalog defines every concrete resource path that can appear in a
+`v1` URN. Implementation code must reject concrete URNs that don't match one of
+these path shapes. Pattern grants must still be built from these path shapes,
+with `*` replacing complete ID segments or trailing `/**` covering descendants.
+
+### Team
+
+Team resources are rooted under `team`.
+
+| Resource | Path |
+| --- | --- |
+| Membership | `team/memberships/{membership_id}` |
+| Invitation | `team/invitations/{invitation_id}` |
+
+Examples:
+
+```plaintext
+unkey:v1:ws_123:team/memberships/mbr_123
+unkey:v1:ws_123:team/invitations/inv_456
+```
+
+### Billing
+
+Billing resources are rooted under `billing`. Workspace quota is a singleton
+resource because quota applies to the workspace billing state.
+
+| Resource | Path |
+| --- | --- |
+| Billing state | `billing` |
+| Invoice | `billing/invoices/{invoice_id}` |
+| Quota | `billing/quotas` |
+
+Examples:
+
+```plaintext
+unkey:v1:ws_123:billing
+unkey:v1:ws_123:billing/invoices/inv_123
+unkey:v1:ws_123:billing/quotas
+```
+
+### Keyspaces
+
+Key resources are rooted under the keyspace that owns the key.
+
+| Resource | Path |
+| --- | --- |
+| Keyspace | `keyspaces/{keyspace_id}` |
+| Key | `keyspaces/{keyspace_id}/keys/{key_id}` |
+
+Examples:
+
+```plaintext
+unkey:v1:ws_123:keyspaces/ks_123
+unkey:v1:ws_123:keyspaces/ks_123/keys/key_456
+```
+
+### Identities
+
+Identity resources are rooted under `identities`.
+
+| Resource | Path |
+| --- | --- |
+| Identity | `identities/{identity_id}` |
+
+Example:
+
+```plaintext
+unkey:v1:ws_123:identities/id_123
+```
+
+### Rate limits
+
+Standalone rate limiting resources are rooted under `ratelimits`. Overrides
+belong to the namespace they modify.
+
+| Resource | Path |
+| --- | --- |
+| Namespace | `ratelimits/namespaces/{namespace_id}` |
+| Override | `ratelimits/namespaces/{namespace_id}/overrides/{override_id}` |
+
+Examples:
+
+```plaintext
+unkey:v1:ws_123:ratelimits/namespaces/rlns_123
+unkey:v1:ws_123:ratelimits/namespaces/rlns_123/overrides/rlor_456
+```
+
+### RBAC
+
+RBAC resources are rooted under `rbac`. Relationship changes, such as adding a
+role to a key, are audited against both affected resources rather than by
+creating a separate join-table URN.
+
+| Resource | Path |
+| --- | --- |
+| Role | `rbac/roles/{role_id}` |
+| Permission | `rbac/permissions/{permission_id}` |
+
+Examples:
+
+```plaintext
+unkey:v1:ws_123:rbac/roles/role_123
+unkey:v1:ws_123:rbac/permissions/perm_456
+```
+
+### Deploy
+
+Deploy resources use the full product hierarchy. A deployment belongs to one
+environment, which belongs to one app, which belongs to one project.
+
+| Resource | Path |
+| --- | --- |
+| Project | `projects/{project_id}` |
+| App | `projects/{project_id}/apps/{app_id}` |
+| Environment | `projects/{project_id}/apps/{app_id}/environments/{environment_id}` |
+| Deployment | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}` |
+| Deployment instance | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/deployments/{deployment_id}/instances/{instance_id}` |
+| Domain | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/domains/{domain_id}` |
+| Variable | `projects/{project_id}/apps/{app_id}/environments/{environment_id}/variables/{variable_id}` |
+
+Examples:
+
+```plaintext
+unkey:v1:ws_123:projects/proj_123
+unkey:v1:ws_123:projects/proj_123/apps/app_456
+unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789
+unkey:v1:ws_123:projects/proj_123/apps/app_456/environments/env_789/deployments/d_abc
+```
+
+### Portal
+
+Portal resources are rooted under `portals`. Session tokens and sessions belong
+to the portal that created them.
+
+| Resource | Path |
+| --- | --- |
+| Portal | `portals/{portal_id}` |
+| Portal session token | `portals/{portal_id}/session_tokens/{portal_session_token_id}` |
+| Portal session | `portals/{portal_id}/sessions/{portal_session_id}` |
+| Portal branding | `portals/{portal_id}/branding` |
+
+Examples:
+
+```plaintext
+unkey:v1:ws_123:portals/portal_123
+unkey:v1:ws_123:portals/portal_123/sessions/ps_456
+```
+
+## Internal resources
+
+Runtime and implementation resources are not part of the public `v1` catalog
+unless a product feature explicitly promotes them.
+
+This includes:
+
+- Frontline routes
+- Sentinels
+- Regional counters
+- ClickHouse outbox rows
+- Cache entries
+- Join-table rows
+
+Internal systems can still log implementation IDs in metadata. They must not
+mint public URNs for these resources unless the catalog is updated first.
+
+## Invalid examples
+
+These strings are invalid URNs or invalid concrete URNs.
+
+| Value | Reason |
+| --- | --- |
+| `urn:unkey:v1:ws_123:keyspaces/ks_123` | Uses the wrong prefix. |
+| `unkey:v1:ws_123` | Missing the resource path. |
+| `unkey:v1:ws_123:keyspaces/ks_123#read_keyspace` | Contains a permission action. |
+| `unkey:v1:ws_123:keyspaces/ks_*` | Uses `*` inside a path segment. |
+| `unkey:v1:ws_123:projects/**/deployments/*` | Uses `**` before the end of the path. |
+| `unkey:v1:ws_123:projects/*/apps/app_123` | Selects a specific child under a wildcard parent. |
+| `unkey:v1:ws_123:keyspace/ks_123` | Uses an unknown path shape. |
+
+## Related pages
+
+- [Resource permissions](/architecture/authorization/resource-permissions)
+  defines how actions attach to URNs for authorization.
