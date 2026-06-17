@@ -1,0 +1,42 @@
+type: object
+required:
+  - projectSlug
+  - name
+  - slug
+properties:
+  projectSlug:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    description: |
+      The slug of the project this app belongs to, unique within your workspace.
+      Identifies the parent project under which the app is created.
+    example: payments-service
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      Human-readable name for this app.
+      Use a descriptive name like 'Payments API' to identify its purpose.
+    example: Payments API
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    description: |
+      URL-safe handle you choose for this app, unique within the project.
+      Pick a short identifier like 'payments-api'.
+      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
+    example: payments-api
+additionalProperties: false
+examples:
+  basic:
+    summary: Basic app creation
+    description: Create an app within a project
+    value:
+      projectSlug: payments-service
+      name: Payments API
+      slug: payments-api

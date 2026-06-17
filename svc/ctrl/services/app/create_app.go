@@ -50,7 +50,7 @@ func (s *Service) CreateApp(
 	appID := uid.New(uid.AppPrefix)
 	now := time.Now().UnixMilli()
 
-	err := db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+	err := db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		if txErr := db.Query.InsertApp(txCtx, tx, db.InsertAppParams{
 			ID:               appID,
 			WorkspaceID:      workspaceID,
@@ -119,6 +119,9 @@ func (s *Service) CreateApp(
 		return nil
 	})
 	if err != nil {
+		if db.IsDuplicateKeyError(err) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("app with slug %q already exists in project", req.Msg.GetSlug()))
+		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create app: %w", err))
 	}
 
