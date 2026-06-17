@@ -6880,18 +6880,17 @@ paths:
                         application/json:
                             examples:
                                 success:
-                                    description: Successfully created a project, returning its id and slug
+                                    description: Successfully created a project, returning its id
                                     summary: Project created successfully
                                     value:
                                         data:
                                             id: proj_1234abcd
-                                            slug: payments-service
                                         meta:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/V2ProjectsCreateProjectResponseBody'
                     description: |
-                        Project created successfully. The response contains the project id and slug used to reference it in subsequent operations.
+                        Project created successfully. The response contains the project id used to reference it in subsequent operations.
                 "400":
                     content:
                         application/json:
