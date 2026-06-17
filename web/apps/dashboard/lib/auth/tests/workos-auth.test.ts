@@ -48,7 +48,7 @@ vi.mock("@workos-inc/node", async (importOriginal) => {
 });
 
 // Now import after mocks are set up
-import { AuthenticationException, WorkOS } from "@workos-inc/node";
+import { AuthenticationException, OauthException, WorkOS } from "@workos-inc/node";
 import {
   AUTH_CHALLENGE_COOKIE,
   AuthErrorCode,
@@ -320,6 +320,32 @@ describe("WorkOSAuthProvider", () => {
           userId: "user_123",
           email: "test@example.com",
         });
+      }
+    });
+
+    it("maps a 403 Radar block to AUTHENTICATION_BLOCKED", async () => {
+      workos.userManagement.authenticateWithMagicAuth.mockRejectedValue(
+        new OauthException(403, "req_test", "access_denied", "Request was blocked", {}),
+      );
+
+      const result = await provider.verifyAuthCode({ email: "test@example.com", code: "123456" });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe(AuthErrorCode.AUTHENTICATION_BLOCKED);
+      }
+    });
+
+    it("does not treat a 400 bad-code error as a Radar block", async () => {
+      workos.userManagement.authenticateWithMagicAuth.mockRejectedValue(
+        new OauthException(400, "req_test", "invalid_grant", "The code is invalid", {}),
+      );
+
+      const result = await provider.verifyAuthCode({ email: "test@example.com", code: "000000" });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).not.toBe(AuthErrorCode.AUTHENTICATION_BLOCKED);
       }
     });
 

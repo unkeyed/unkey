@@ -48,6 +48,13 @@ function SignInContent() {
   const invitationEmail = searchParams?.get("email");
   const redirectParam = searchParams?.get("redirect");
   const orgsParam = searchParams?.get("orgs");
+  // Error surfaced via redirect (e.g. a Radar block on the OAuth callback,
+  // which has no client action to set context error). Map the code to its
+  // message, falling back to the generic one for unknown codes.
+  const errorParam = searchParams?.get("error");
+  const urlError = errorParam
+    ? (errorMessages[errorParam as AuthErrorCode] ?? errorMessages[AuthErrorCode.UNKNOWN_ERROR])
+    : null;
   const [lastUsedOrgId, setLastUsedOrgId] = useState<string | undefined>(undefined);
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
@@ -181,7 +188,7 @@ function SignInContent() {
           </div>
         </WarnBanner>
       )}
-      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {(error || urlError) && <ErrorBanner>{error ?? urlError}</ErrorBanner>}
 
       {challengeParam === "mfa" ? (
         <FadeIn>

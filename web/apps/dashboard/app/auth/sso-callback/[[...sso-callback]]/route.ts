@@ -69,8 +69,11 @@ export async function GET(request: NextRequest) {
       return await setCookiesOnResponse(response, authResult.cookies);
     }
 
-    // Handle other errors
-    return NextResponse.redirect(new URL(SIGN_IN_URL, request.url));
+    // Surface the failure (e.g. a Radar block) on the sign-in page instead of
+    // bouncing to a bare form with no explanation.
+    const errorUrl = new URL(SIGN_IN_URL, request.url);
+    errorUrl.searchParams.set("error", authResult.code);
+    return NextResponse.redirect(errorUrl);
   }
 
   // Get base URL from request because Next.js wants it

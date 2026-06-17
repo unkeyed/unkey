@@ -3,6 +3,9 @@ import {
   AuthenticateWithSessionCookieFailureReason,
   AuthenticationException,
   type AuthenticationResponse,
+  GenericServerException,
+  OauthException,
+  RateLimitExceededException,
   WorkOS,
   type Invitation as WorkOSInvitation,
   type Organization as WorkOSOrganization,
@@ -249,12 +252,61 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         cookies: this.sessionCookies(sealedSession),
       };
     } catch (error: unknown) {
-      const pending = await this.mapAuthenticationException(error);
-      if (pending) {
-        return pending;
-      }
-      return this.handleError(error as Error);
+      return this.mapAuthError(await this.mapAuthenticationException(error), error);
     }
+  }
+
+  /**
+   * Detects a Radar denial (impossible travel, IP/email blocklist, bot
+   * detection, ...). Unlike Radar *challenges*, a block is not a typed error
+   * code in the SDK: it comes back from authenticateWith* as a 403
+   * OauthException / GenericServerException. Typed challenges (also 403) are
+   * resolved earlier via mapAuthenticationException, and bad/expired codes
+   * are 400/401, so a remaining 403 here is a denial. We also match an
+   * explicit hint in the error body in case the status ever differs.
+   */
+  private isRadarBlock(error: unknown): boolean {
+    // Typed auth exceptions and rate limits both extend GenericServerException
+    // — they are handled elsewhere and are never a Radar block.
+    if (error instanceof AuthenticationException || error instanceof RateLimitExceededException) {
+      return false;
+    }
+
+    if (!(error instanceof OauthException || error instanceof GenericServerException)) {
+      return false;
+    }
+
+    if (error.status === 403) {
+      return true;
+    }
+
+    const hints = [
+      error instanceof OauthException ? error.error : error.code,
+      error instanceof OauthException ? error.errorDescription : error.message,
+      JSON.stringify(error.rawData ?? ""),
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return /radar|blocked|impossible_travel|blocklist|bot_detection/i.test(hints);
+  }
+
+  /**
+   * Resolves the catch path shared by every authenticate* call: a pending
+   * challenge takes priority, then a Radar block gets a clear "contact
+   * support" message, otherwise fall back to generic error handling.
+   */
+  private mapAuthError(pending: VerificationResult | null, error: unknown): VerificationResult {
+    if (pending) {
+      return pending;
+    }
+    if (this.isRadarBlock(error)) {
+      return {
+        success: false,
+        code: AuthErrorCode.AUTHENTICATION_BLOCKED,
+        message: errorMessages[AuthErrorCode.AUTHENTICATION_BLOCKED],
+      };
+    }
+    return this.handleError(error as Error);
   }
 
   // Session Management
@@ -1187,12 +1239,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         };
       }
 
-      const pending = await this.mapAuthenticationException(error);
-      if (pending) {
-        return pending;
-      }
-
-      return this.handleError(error as Error);
+      return this.mapAuthError(await this.mapAuthenticationException(error), error);
     }
   }
 

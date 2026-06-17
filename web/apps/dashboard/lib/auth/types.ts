@@ -252,6 +252,7 @@ export enum AuthErrorCode {
   ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
   EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
   PENDING_SESSION_EXPIRED = "PENDING_SESSION_EXPIRED",
+  AUTHENTICATION_BLOCKED = "AUTHENTICATION_BLOCKED",
   MFA_CHALLENGE_REQUIRED = "MFA_CHALLENGE_REQUIRED",
   MFA_ENROLLMENT_REQUIRED = "MFA_ENROLLMENT_REQUIRED",
   RADAR_EMAIL_CHALLENGE_REQUIRED = "RADAR_EMAIL_CHALLENGE_REQUIRED",
@@ -273,6 +274,8 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.EMAIL_VERIFICATION_REQUIRED]:
     "Email address not verified. Please check your email for a verification code.",
   [AuthErrorCode.PENDING_SESSION_EXPIRED]: "Your session has expired. Please sign in again.",
+  [AuthErrorCode.AUTHENTICATION_BLOCKED]:
+    "We couldn't sign you in because this attempt was flagged as suspicious. If you believe this is a mistake, contact support@unkey.com.",
   [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
   [AuthErrorCode.MFA_CHALLENGE_REQUIRED]:
     "Please enter the code from your authenticator app to continue.",
