@@ -12,3 +12,7 @@ svc/vault/proto
 
 # mise task scripts; filenames like `build` collide with Bazel BUILD on case-insensitive filesystems
 .mise
+
+# pricing is a standalone Go module with its own go.mod (it pulls in stripe-go,
+# which we keep out of the root module); run it via `mise run pricing`.
+tools/pricing
