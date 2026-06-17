@@ -2,6 +2,8 @@
 
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Button } from "@unkey/ui";
 import { FormInput } from "@unkey/ui";
@@ -10,6 +12,8 @@ import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { PermissionBadgeList } from "./components/permission-badge-list";
 import { PermissionSheet } from "./components/permission-sheet";
+import { UrnPermissionBadgeList } from "./components/urn-permission-badge-list";
+import { UrnPermissionSheet } from "./components/urn-permission-sheet";
 import { ROOT_KEY_CONSTANTS, ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeyDialog } from "./hooks/use-root-key-dialog";
 import { WORKSPACE_SCOPE } from "./permissions";
@@ -49,6 +53,8 @@ export const RootKeyDialog = ({
   existingKey,
 }: RootKeyDialogProps) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const useUrnPermissions = useFlag("rootKeyUrnPermissions");
+  const workspace = useWorkspaceNavigation();
 
   const handleOpenSheet = () => {
     setIsSheetOpen(true);
@@ -71,6 +77,7 @@ export const RootKeyDialog = ({
     allApis,
     apisLoading,
     allProjects,
+    permissionResources,
     projectsLoading,
     hasNextPage,
     isFetchingNextPage,
@@ -84,6 +91,7 @@ export const RootKeyDialog = ({
     hasChanges,
   } = useRootKeyDialog({
     isOpen,
+    useUrnPermissions,
     editMode,
     existingKey,
     onOpenChange,
@@ -149,36 +157,45 @@ export const RootKeyDialog = ({
       </div>
       <ScrollArea className="w-full overflow-y-auto pt-0 mb-4">
         <div className="flex flex-col px-6 py-0 gap-3">
-          <PermissionBadgeList
-            selectedPermissions={selectedPermissions}
-            scope={WORKSPACE_SCOPE}
-            title="Selected from"
-            name="Workspace"
-            expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
-            removePermission={removePermission}
-          />
-          {apiBadges.map((api) => (
-            <PermissionBadgeList
-              key={api.id}
+          {useUrnPermissions ? (
+            <UrnPermissionBadgeList
               selectedPermissions={selectedPermissions}
-              scope={api.scope}
-              title="from"
-              name={api.name}
-              expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
               removePermission={removePermission}
             />
-          ))}
-          {projectBadges.map((project) => (
-            <PermissionBadgeList
-              key={project.id}
-              selectedPermissions={selectedPermissions}
-              scope={project.scope}
-              title="from project"
-              name={project.name}
-              expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
-              removePermission={removePermission}
-            />
-          ))}
+          ) : (
+            <>
+              <PermissionBadgeList
+                selectedPermissions={selectedPermissions}
+                scope={WORKSPACE_SCOPE}
+                title="Selected from"
+                name="Workspace"
+                expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
+                removePermission={removePermission}
+              />
+              {apiBadges.map((api) => (
+                <PermissionBadgeList
+                  key={api.id}
+                  selectedPermissions={selectedPermissions}
+                  scope={api.scope}
+                  title="from"
+                  name={api.name}
+                  expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
+                  removePermission={removePermission}
+                />
+              ))}
+              {projectBadges.map((project) => (
+                <PermissionBadgeList
+                  key={project.id}
+                  selectedPermissions={selectedPermissions}
+                  scope={project.scope}
+                  title="from project"
+                  name={project.name}
+                  expandCount={ROOT_KEY_CONSTANTS.EXPAND_COUNT}
+                  removePermission={removePermission}
+                />
+              ))}
+            </>
+          )}
         </div>
       </ScrollArea>
     </>
@@ -237,18 +254,34 @@ export const RootKeyDialog = ({
           {dialogContent}
         </DynamicDialogContainer>
       )}
-      <PermissionSheet
-        selectedPermissions={selectedPermissions}
-        apis={allApis}
-        projects={allProjects}
-        onChange={handlePermissionChange}
-        loadMore={fetchMoreApis}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        editMode={editMode}
-        open={isSheetOpen}
-        onOpenChange={setIsSheetOpen}
-      />
+      {useUrnPermissions ? (
+        <UrnPermissionSheet
+          workspaceId={workspace.id}
+          selectedPermissions={selectedPermissions}
+          apis={allApis}
+          projects={allProjects}
+          permissionResources={permissionResources}
+          onChange={handlePermissionChange}
+          loadMore={fetchMoreApis}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          open={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+        />
+      ) : (
+        <PermissionSheet
+          selectedPermissions={selectedPermissions}
+          apis={allApis}
+          projects={allProjects}
+          onChange={handlePermissionChange}
+          loadMore={fetchMoreApis}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          editMode={editMode}
+          open={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+        />
+      )}
       <RootKeySuccess keyValue={key.data?.key} onClose={handleClose} />
     </>
   );

@@ -35,6 +35,7 @@ function arePermissionArraysEqual(
 
 type UseRootKeyDialogProps = {
   isOpen: boolean;
+  useUrnPermissions?: boolean;
   editMode?: boolean;
   existingKey?: {
     id: string;
@@ -46,6 +47,7 @@ type UseRootKeyDialogProps = {
 
 export function useRootKeyDialog({
   isOpen,
+  useUrnPermissions = false,
   editMode = false,
   existingKey,
   onOpenChange,
@@ -94,6 +96,7 @@ export function useRootKeyDialog({
       return page.apiList.map((api) => ({
         id: api.id,
         name: api.name,
+        keyspaceId: api.keyspaceId,
       }));
     });
   }, [apisData]);
@@ -112,6 +115,11 @@ export function useRootKeyDialog({
       name: project.name,
     }));
   }, [projectsData]);
+
+  const { data: permissionResources } = trpc.settings.rootKeys.permissionResources.useQuery(
+    undefined,
+    { enabled: isOpen && useUrnPermissions },
+  );
 
   // Mutations
   const key = trpc.rootKey.create.useMutation({
@@ -237,6 +245,7 @@ export function useRootKeyDialog({
     allApis,
     apisLoading,
     allProjects,
+    permissionResources,
     projectsLoading,
     hasNextPage,
     isFetchingNextPage,
