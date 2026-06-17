@@ -66,6 +66,12 @@ func TestRBAC_EvaluatePermissions(t *testing.T) {
 			wantValid:   false,
 		},
 		{
+			name:        "Tuple wildcard remains literal (Fail)",
+			query:       S("api.*.read_key"),
+			permissions: []string{"api.key_123.read_key"},
+			wantValid:   false,
+		},
+		{
 			name: "Complex query with asterisk permissions",
 			query: Or(
 				S("api.*"),
