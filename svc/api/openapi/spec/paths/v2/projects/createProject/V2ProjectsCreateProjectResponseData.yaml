@@ -1,7 +1,6 @@
 type: object
 required:
   - id
-  - slug
 properties:
   id:
     type: string
