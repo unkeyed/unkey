@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "permissions",
+    srcs = [
+        "action.go",
+        "apps.go",
+        "environments.go",
+        "keys.go",
+        "keyspaces.go",
+        "projects.go",
+        "ratelimit_namespaces.go",
+        "ratelimit_overrides.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/rbac/permissions",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/urn"],
+)

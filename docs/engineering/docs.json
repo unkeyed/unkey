@@ -59,6 +59,13 @@
             "pages": [
               "architecture/index",
               {
+                "group": "Resource model",
+                "pages": [
+                  "architecture/resources/unkey-resource-names",
+                  "architecture/authorization/resource-permissions"
+                ]
+              },
+              {
                 "group": "Rate limiting",
                 "pages": [
                   "architecture/ratelimiting/overview",
@@ -113,7 +120,8 @@
                           "architecture/services/control-plane/worker/workflows/certificates",
                           "architecture/services/control-plane/worker/workflows/custom-domains",
                           "architecture/services/control-plane/worker/workflows/github-app",
-                          "architecture/services/control-plane/worker/workflows/key-last-used-sync"
+                          "architecture/services/control-plane/worker/workflows/key-last-used-sync",
+                          "architecture/services/control-plane/worker/workflows/deploy-billing"
                         ]
                       }
                     ]

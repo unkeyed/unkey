@@ -464,6 +464,64 @@ func TestGlobal_AtFloorPushes(t *testing.T) {
 	require.Equal(t, uint64(2), row.Count, "row count must reflect the at-floor utilization")
 }
 
+// TestGlobal_RemoteEmitForcesLocalSubFloorPush covers ENG-2903: skewed multi-region
+// traffic: once one region has published a global counter for a cell, another
+// region must publish any non-zero local contribution for the same cell instead
+// of waiting for its own utilization floor.
+func TestGlobal_RemoteEmitForcesLocalSubFloorPush(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	clk := clock.NewTestClock()
+	regionA := env.newRegionAs(clk, "region-a")
+	regionB := env.newRegionAs(clk, "region-b")
+
+	const (
+		workspaceID = "ws_test"
+		namespace   = "ns"
+		identifier  = "user-skewed"
+		limit       = int64(10)
+	)
+	duration := time.Minute
+	ctx := context.Background()
+
+	makeReq := func() RatelimitRequest {
+		return RatelimitRequest{
+			WorkspaceID: workspaceID,
+			Namespace:   namespace,
+			Identifier:  identifier,
+			Limit:       limit,
+			Duration:    duration,
+			Cost:        1,
+			Time:        clk.Now(),
+		}
+	}
+
+	// A crosses the normal floor and emits. B imports that row before it sees
+	// enough local traffic to cross its own floor.
+	for range 6 {
+		resp, err := regionA.Ratelimit(ctx, makeReq())
+		require.NoError(t, err)
+		require.True(t, resp.Success)
+	}
+	regionA.runGlobalPushOnce()
+	env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
+
+	regionB.runGlobalPullOnce()
+	regionB.runGlobalPushOnce()
+	require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-b", duration.Milliseconds()),
+		"import alone must not emit a zero-local row")
+
+	resp, err := regionB.Ratelimit(ctx, makeReq())
+	require.NoError(t, err)
+	require.True(t, resp.Success)
+
+	regionB.runGlobalPushOnce()
+	row := env.waitForRow(workspaceID, namespace, identifier, "region-b", duration.Milliseconds())
+	require.Equal(t, uint64(1), row.Count,
+		"remote emission must force B to publish below its normal utilization floor")
+}
+
 // TestGlobal_SyncKeepsOwnRegionOutOfGlobalCount asserts that a region's own
 // MySQL row merges into regional val, not globalCount. Folding own traffic into
 // globalCount would double-count it because sliding-window math already adds

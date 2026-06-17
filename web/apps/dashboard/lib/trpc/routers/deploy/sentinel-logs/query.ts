@@ -20,8 +20,6 @@ export const querySentinelLogs = workspaceProcedure
     z.object({
       logs: z.array(sentinelLogsResponseSchema),
       total: z.number().int(),
-      hasMore: z.boolean(),
-      nextCursor: z.number().int().nullable(),
     }),
   )
   .query(async ({ ctx, input }) => {
@@ -95,8 +93,6 @@ export const querySentinelLogs = workspaceProcedure
       return {
         logs,
         total,
-        hasMore: logs.length === input.limit,
-        nextCursor: logs.length > 0 ? logs[logs.length - 1].time : null,
       };
     } catch (error) {
       if (error instanceof TRPCError) {

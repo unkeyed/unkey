@@ -374,6 +374,7 @@ go_library(
         "to_mysql.go",
         "traced_tx.go",
         "tx.go",
+        "workspace_deploy_billing.sql_generated.go",
         "workspace_find_by_id.sql_generated.go",
         "workspace_hard_delete.sql_generated.go",
         "workspace_insert.sql_generated.go",

@@ -1,18 +1,26 @@
 "use client";
-import { ProjectContentWrapper } from "../../components/project-content-wrapper";
-import { useOptionalProjectLayout } from "../layout-provider";
+import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
+import { Plus } from "@unkey/icons";
+import {
+  Button,
+  PageBody,
+  PageContainer,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from "@unkey/ui";
 import { SentinelPolicyPanel } from "./components/add-panel";
 import { SentinelPoliciesList } from "./components/list";
 import { SentinelPoliciesEmpty } from "./components/list/empty";
 import { SentinelPoliciesError } from "./components/list/error";
-import { SentinelPoliciesHeader } from "./components/list/header";
 import { SentinelPoliciesListSkeleton } from "./components/list/skeleton";
 import { useSentinelPoliciesData } from "./hooks/use-sentinel-policies-data";
 import { useSentinelPolicyActions } from "./hooks/use-sentinel-policy-actions";
 import { useSentinelPolicyPanels } from "./hooks/use-sentinel-policy-panels";
 
 export default function SentinelPoliciesPage() {
-  const layout = useOptionalProjectLayout();
   const { envAId, envBId, envASlug, envBSlug, merged, isLoading, isError } =
     useSentinelPoliciesData();
   const actions = useSentinelPolicyActions({ envAId, envBId });
@@ -34,9 +42,23 @@ export default function SentinelPoliciesPage() {
           : "__all__";
 
   return (
-    <ProjectContentWrapper centered maxWidth="960px" className="mt-8">
-      <div className="flex flex-col gap-5">
-        <SentinelPoliciesHeader onAddPolicy={panels.openAdd} />
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Sentinel Policies</PageHeaderTitle>
+          <PageHeaderDescription>
+            Middleware policy chains that protect your API. Policies are evaluated in order, drag to
+            reorder.
+          </PageHeaderDescription>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <Button size="md" onClick={panels.openAdd} variant="primary">
+            <Plus iconSize="sm-regular" />
+            Add policy
+          </Button>
+        </PageHeaderActions>
+      </PageHeader>
+      <PageBody>
         {isError ? (
           <SentinelPoliciesError />
         ) : isLoading ? (
@@ -60,7 +82,7 @@ export default function SentinelPoliciesPage() {
           envASlug={envASlug}
           envBSlug={envBSlug}
           isOpen={panels.isAddPanelOpen}
-          topOffset={layout?.tableDistanceToTop ?? 0}
+          topOffset={TOP_NAV_HEIGHT}
           onClose={panels.closeAdd}
           onSave={actions.save}
         />
@@ -71,7 +93,7 @@ export default function SentinelPoliciesPage() {
             envASlug={envASlug}
             envBSlug={envBSlug}
             isOpen={panels.isEditPanelOpen}
-            topOffset={layout?.tableDistanceToTop ?? 0}
+            topOffset={TOP_NAV_HEIGHT}
             onClose={panels.closeEdit}
             initialPolicy={panels.editing}
             initialEnvironmentId={editingInitialEnvId}
@@ -81,7 +103,7 @@ export default function SentinelPoliciesPage() {
             }}
           />
         )}
-      </div>
-    </ProjectContentWrapper>
+      </PageBody>
+    </PageContainer>
   );
 }

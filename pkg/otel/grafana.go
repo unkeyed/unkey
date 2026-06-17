@@ -6,8 +6,6 @@ import (
 	"time"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
@@ -18,7 +16,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/log"
 	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -51,21 +48,29 @@ type Config struct {
 	// As long as the sampling rate is greater than 0.0, all errors will be sampled.
 	TraceSampleRate float64
 
-	// PrometheusGatherer is the prometheus registry to gather metrics from when
-	// bridging prometheus metrics into OTLP. If nil, the default prometheus
-	// registry is used (which is almost certainly wrong when lazy metrics register
-	// to a custom registry).
+	// PrometheusGatherer, when non-nil, enables pushing metrics over OTLP by
+	// bridging this Prometheus registry into the OTLP exporter.
+	//
+	// Most services are scraped in-cluster via their /metrics endpoint, so
+	// they leave this nil and rely on pull alone — pushing as well would
+	// double-ship the same series. Set it only for services that cannot be
+	// scraped (e.g. the API running against Grafana Cloud), where OTLP push
+	// is the only way to get metrics out.
 	PrometheusGatherer promclient.Gatherer
 }
 
-// InitGrafana initializes the global tracer and metric providers for OpenTelemetry,
+// InitGrafana initializes the global tracer and log providers for OpenTelemetry,
 // configured to send telemetry data to Grafana Cloud or any compatible OTLP endpoint.
 //
 // It sets up:
 // - Distributed tracing using the OTLP HTTP exporter
-// - Metrics collection via OTLP HTTP exporter
-// - Runtime metrics for Go applications (memory, GC, goroutines, etc.)
-// - Custom application metrics defined in the metrics package
+// - Log export using the OTLP HTTP exporter
+// - Optionally, metrics push over OTLP (only when config.PrometheusGatherer is set)
+//
+// Metrics are normally exposed on a Prometheus pull endpoint (see pkg/prometheus)
+// and scraped in-cluster, so pushing them over OTLP as well would double-ship the
+// same series. The OTLP metric push is therefore opt-in via PrometheusGatherer and
+// intended only for services that cannot be scraped (e.g. the API on Grafana Cloud).
 //
 // The function returns a shutdown function that should be registered with a runner instance.
 // This shutdown function will be called during application termination to ensure proper cleanup.
@@ -170,44 +175,41 @@ func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) 
 	otel.SetTracerProvider(traceProvider)
 	tracing.SetGlobalTraceProvider(traceProvider)
 
-	// Initialize metrics exporter with configuration matching the old implementation
-	metricExporter, err := otlpmetrichttp.New(ctx,
-		otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
-	//	otlpmetrichttp.WithInsecure(), // For local development
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
+	// Shutdown functions run in order during graceful termination. Traces and
+	// logs always ship over OTLP; metrics only when a gatherer is provided.
+	shutdownFns := []func(context.Context) error{
+		traceProvider.Shutdown,
+		traceExporter.Shutdown,
+		logProvider.Shutdown,
+		processor.Shutdown,
+		logExporter.Shutdown,
 	}
 
-	var bridgeOpts []prometheus.Option
+	// Optionally push metrics over OTLP by bridging the provided Prometheus
+	// registry. Services that are scraped via /metrics leave the gatherer nil
+	// and skip this entirely to avoid double-shipping the same series.
 	if config.PrometheusGatherer != nil {
-		bridgeOpts = append(bridgeOpts, prometheus.WithGatherer(config.PrometheusGatherer))
-	}
-	bridge := prometheus.NewMetricProducer(bridgeOpts...)
+		metricExporter, metricErr := otlpmetrichttp.New(ctx,
+			otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
+		)
+		if metricErr != nil {
+			return nil, fmt.Errorf("failed to create metric exporter: %w", metricErr)
+		}
 
-	reader := metricsdk.NewPeriodicReader(metricExporter, metricsdk.WithProducer(bridge), metricsdk.WithInterval(60*time.Second))
+		bridge := prometheus.NewMetricProducer(prometheus.WithGatherer(config.PrometheusGatherer))
+		reader := metricsdk.NewPeriodicReader(metricExporter, metricsdk.WithProducer(bridge), metricsdk.WithInterval(60*time.Second))
+		meterProvider := metricsdk.NewMeterProvider(metricsdk.WithReader(reader), metricsdk.WithResource(res))
+		otel.SetMeterProvider(meterProvider)
 
-	// Create and register the metric provider globally
-	meterProvider := metricsdk.NewMeterProvider(metricsdk.WithReader(reader), metricsdk.WithResource(res))
-	otel.SetMeterProvider(meterProvider)
-
-	err = registerSystemMetrics(meterProvider.Meter(config.Application))
-	if err != nil {
-		return nil, err
+		// meterProvider.Shutdown cascades to the reader, which flushes and
+		// shuts down the exporter — calling those explicitly afterwards would
+		// just return "reader is shutdown" errors.
+		shutdownFns = append(shutdownFns, meterProvider.Shutdown)
 	}
 
 	// return combined shutdown function that will be called during application termination to cleanly shut down all telemetry components
 	return func(ctx context.Context) error {
-		for _, fn := range []func(context.Context) error{
-			meterProvider.Shutdown,
-			reader.Shutdown,
-			metricExporter.Shutdown,
-			traceProvider.Shutdown,
-			traceExporter.Shutdown,
-			logProvider.Shutdown,
-			processor.Shutdown,
-			logExporter.Shutdown,
-		} {
+		for _, fn := range shutdownFns {
 			if err := fn(ctx); err != nil {
 				return err
 			}
@@ -216,39 +218,4 @@ func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) 
 		return nil
 
 	}, nil
-}
-
-func registerSystemMetrics(m metric.Meter) error {
-
-	_, err := m.Float64ObservableGauge("resources_cpu_percent", metric.WithFloat64Callback(func(ctx context.Context, o metric.Float64Observer) error {
-		cpuPcts, cpuErr := cpu.PercentWithContext(ctx, time.Second, false)
-		if cpuErr != nil {
-			return cpuErr
-		}
-		if len(cpuPcts) == 0 {
-			return fmt.Errorf("no cpu data")
-		}
-		o.Observe(cpuPcts[0])
-
-		return nil
-	}))
-	if err != nil {
-		return err
-	}
-
-	_, err = m.Float64ObservableGauge("resources_memory_percent", metric.WithFloat64Callback(func(ctx context.Context, o metric.Float64Observer) error {
-
-		vm, vmErr := mem.VirtualMemoryWithContext(ctx)
-		if vmErr != nil {
-			return vmErr
-		}
-
-		o.Observe(vm.UsedPercent)
-
-		return nil
-	}))
-	if err != nil {
-		return err
-	}
-	return nil
 }

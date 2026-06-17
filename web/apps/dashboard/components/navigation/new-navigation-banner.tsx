@@ -2,6 +2,7 @@
 
 import { useDismissibleBanner } from "@/hooks/use-dismissible-banner";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Badge, BannerCard, Button } from "@unkey/ui";
 import { motion, useReducedMotion } from "framer-motion";
@@ -56,7 +57,7 @@ export function NewNavigationBanner() {
             <p className="text-xs text-content-subtle">
               A cleaner dashboard, built around Projects. Your APIs now live in{" "}
               <Link
-                href={`/${workspace.slug}/apis`}
+                href={routes.apis.list({ workspaceSlug: workspace.slug })}
                 onClick={dismiss}
                 className="text-content underline underline-offset-2 hover:text-content/80"
               >

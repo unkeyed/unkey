@@ -1,17 +1,17 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import type { ReactNode } from "react";
 
 const ITEMS = [
-  { segment: "general", label: "General" },
-  { segment: "team", label: "Team" },
-  { segment: "root-keys", label: "Root Keys" },
-  { segment: "billing", label: "Billing" },
-  { segment: "security", label: "Security" },
+  { segment: "general", label: "General", getHref: routes.settings.general },
+  { segment: "team", label: "Team", getHref: routes.settings.team },
+  { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
+  { segment: "billing", label: "Billing", getHref: routes.settings.billing },
 ] as const;
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
@@ -26,7 +26,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         <SecondaryNavGroup>
           {ITEMS.map((item) => (
             <SecondaryNavItem key={item.segment} asChild active={active === item.segment}>
-              <Link href={`/${workspace.slug}/settings/${item.segment}`}>{item.label}</Link>
+              <Link href={item.getHref({ workspaceSlug: workspace.slug })}>{item.label}</Link>
             </SecondaryNavItem>
           ))}
         </SecondaryNavGroup>
