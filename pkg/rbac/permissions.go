@@ -196,6 +196,9 @@ const (
 const (
 	// CreateApp permits creating new apps within a project
 	CreateApp ActionType = "create_app"
+
+	// ReadApp permits reading apps within a project
+	ReadApp ActionType = "read_app"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

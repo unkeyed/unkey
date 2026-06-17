@@ -1,0 +1,47 @@
+---
+title: "app_not_found"
+description: "The requested app was not found in Unkey. Verify the project slug and app slug are correct and that the app exists within your current workspace."
+---
+
+<Danger>err:unkey:data:app_not_found</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested app does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "https://unkey.com/docs/errors/unkey/data/app_not_found"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you're trying to perform an operation on an app that doesn't exist in the Unkey system.
+
+Common scenarios that trigger this error:
+
+- Using an incorrect app slug or project slug in your request
+- Referencing an app that has been deleted
+- Looking up an app under the wrong project (app slugs are unique per project, not per workspace)
+- Attempting to access an app in a workspace you don't have access to
+- Using a root key that lacks a permission covering `read_app` for the app (a missing permission returns not found so app existence is never leaked)
+
+## How To Fix
+
+Verify that you're using the correct project slug and app slug and that the app still exists in your workspace:
+
+1. Check the app and its parent project in the Unkey dashboard
+2. Verify the app has not been deleted
+3. Confirm the app slug belongs to the project slug you provided
+4. Confirm you're working in the correct workspace
+5. Ensure your root key has a permission covering `read_app` on the target project
+
+## Related Errors
+
+- [err:unkey:data:project_not_found](./project_not_found) - When the requested project doesn't exist
+- [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist

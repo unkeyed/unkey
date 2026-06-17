@@ -75,6 +75,7 @@ export const projectActions = z.enum([
   "update_project",
   "delete_project",
   "create_app",
+  "read_app",
   "create_deployment",
   "read_deployment",
   "generate_upload_url",

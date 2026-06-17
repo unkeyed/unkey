@@ -1,0 +1,115 @@
+post:
+  tags:
+    - apps
+  summary: Get app
+  description: |
+    Retrieve a single app by its project slug and app slug.
+
+    Use this to fetch app details after creation, verify an app exists before performing operations, or resolve an app's id and metadata from its caller-defined slug. App slugs are unique within a project, so both the project slug and app slug are required.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `project.*.read_app` (to read apps in any project)
+    - `project.<project_id>.read_app` (to read apps in a specific project)
+  operationId: apps.getApp
+  x-speakeasy-name-override: getApp
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AppsGetAppRequestBody.yaml"
+        examples:
+          basic:
+            summary: Retrieve an app by slug
+            description: Fetch a single app using its project slug and app slug
+            value:
+              projectSlug: payments-service
+              slug: payments-api
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully retrieved the app.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AppsGetAppResponseBody.yaml"
+          examples:
+            app:
+              summary: App details
+              description: Successfully retrieved an app
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: app_1234abcd
+                  name: Payments API
+                  slug: payments-api
+                  projectId: proj_1234abcd
+                  defaultBranch: main
+                  currentDeploymentId: dep_1234abcd
+                  isRolledBack: false
+                  deleteProtection: false
+                  createdAt: 1704067200000
+                  updatedAt: 1704153600000
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `project.*.read_app`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'project.*.read_app' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - The requested app does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            appNotFound:
+              summary: App not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested app does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

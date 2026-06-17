@@ -209,6 +209,10 @@ export const workspacePermissions = {
       description: "Create new apps in any project in this workspace",
       permission: "project.*.create_app",
     },
+    read_app: {
+      description: "Read and list apps in any project in this workspace",
+      permission: "project.*.read_app",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -277,6 +281,10 @@ export function projectPermissions(projectId: string): {
       create_app: {
         description: "Create new apps in this project.",
         permission: `project.${projectId}.create_app`,
+      },
+      read_app: {
+        description: "Read and list apps in this project.",
+        permission: `project.${projectId}.read_app`,
       },
     },
     Projects: {
