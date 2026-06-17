@@ -56,6 +56,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	deleteProtection := false
+	if req.DeleteProtection != nil {
+		deleteProtection = *req.DeleteProtection
+	}
+
 	projectID := uid.New(uid.ProjectPrefix)
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
@@ -63,7 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			WorkspaceID:      principal.WorkspaceID,
 			Name:             req.Name,
 			Slug:             req.Slug,
-			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
+			DeleteProtection: sql.NullBool{Valid: true, Bool: deleteProtection},
 			CreatedAt:        time.Now().UnixMilli(),
 			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
 		})
@@ -97,7 +102,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						ID:          projectID,
 						Type:        auditlog.ProjectResourceType,
-						Meta:        map[string]any{"name": req.Name, "slug": req.Slug},
+						Meta:        map[string]any{"name": req.Name, "slug": req.Slug, "deleteProtection": deleteProtection},
 						Name:        req.Name,
 						DisplayName: req.Name,
 					},

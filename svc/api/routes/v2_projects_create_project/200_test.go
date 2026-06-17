@@ -61,6 +61,36 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 		require.True(t, foundCreateEvent, "Should find a project.create audit log event")
 	})
 
+	t.Run("create project with delete protection", func(t *testing.T) {
+		deleteProtection := true
+		req := handler.Request{Name: "Protected Service", Slug: "protected-service", DeleteProtection: &deleteProtection}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Slug:        req.Slug,
+		})
+		require.NoError(t, err)
+		require.True(t, project.DeleteProtection.Valid)
+		require.True(t, project.DeleteProtection.Bool)
+	})
+
+	t.Run("create project without delete protection defaults to false", func(t *testing.T) {
+		req := handler.Request{Name: "Unprotected Service", Slug: "unprotected-service"}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			Slug:        req.Slug,
+		})
+		require.NoError(t, err)
+		require.False(t, project.DeleteProtection.Bool)
+	})
+
 	t.Run("create multiple projects with unique slugs", func(t *testing.T) {
 		slugs := []string{uid.New("test"), uid.New("test"), uid.New("test")}
 		for _, slug := range slugs {

@@ -2041,6 +2041,10 @@ type V2PortalExchangeSessionResponseData struct {
 
 // V2ProjectsCreateProjectRequestBody defines model for V2ProjectsCreateProjectRequestBody.
 type V2ProjectsCreateProjectRequestBody struct {
+	// DeleteProtection Enable delete protection for the project on creation.
+	// Defaults to false. When enabled, the project cannot be deleted until protection is disabled via updateProject.
+	DeleteProtection *bool `json:"deleteProtection,omitempty"`
+
 	// Name Human-readable name for this project.
 	// Use a descriptive name like 'Payments Service' to identify its purpose.
 	Name string `json:"name"`
