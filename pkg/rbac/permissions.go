@@ -189,6 +189,9 @@ const (
 
 	// DeleteProject permits deleting projects
 	DeleteProject ActionType = "delete_project"
+
+	// CreateApp permits creating new apps within a project
+	CreateApp ActionType = "create_app"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

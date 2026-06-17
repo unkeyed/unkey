@@ -44,13 +44,14 @@ func TestCreateAppForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "exact project permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "#create_app"}, shouldPass: true},
-		{name: "wildcard project permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#create_app"}, shouldPass: true},
-		{name: "admin permission", permissions: []string{"unkey:v1:" + workspace.ID + ":**#*"}, shouldPass: true},
-		{name: "wrong action", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#create_project"}, shouldPass: false},
-		{name: "legacy dotted does not satisfy urn check", permissions: []string{"project.*.create_app"}, shouldPass: false},
+		{name: "wildcard project permission", permissions: []string{"project.*.create_app"}, shouldPass: true},
+		{name: "specific project permission", permissions: []string{fmt.Sprintf("project.%s.create_app", project.ID)}, shouldPass: true},
+		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.create_app"}, shouldPass: true},
+		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
+		{name: "read does not grant create", permissions: []string{"project.*.read_app"}, shouldPass: false},
+		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
+		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#create_app"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
-		{name: "wrong workspace", permissions: []string{"unkey:v1:ws_wrong:projects/*#create_app"}, shouldPass: false},
 	}
 
 	for _, tc := range testCases {
