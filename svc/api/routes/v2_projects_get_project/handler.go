@@ -79,7 +79,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	))
 	if err != nil {
-		return err
+		// Mirror the missing-slug 404 so an unauthorized key can't probe which
+		// slugs exist or read the project ID from the authorization error.
+		return fault.New(
+			"project not found",
+			fault.Code(codes.Data.Project.NotFound.URN()),
+			fault.Internal("authorization failed; returning not found to avoid leaking project existence"),
+			fault.Public("The requested project does not exist."),
+		)
 	}
 
 	return s.JSON(http.StatusOK, Response{
