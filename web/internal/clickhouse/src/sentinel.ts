@@ -88,7 +88,8 @@ export const sentinelLogsRequestSchema = z.object({
     )
     .nullable()
     .default(null),
-  cursor: z.number().int().nullable().optional(),
+  // 1-based page for offset pagination. Defaults to 1 (offset 0).
+  page: z.number().int().min(1).default(1),
 });
 
 export type SentinelLogsRequest = z.infer<typeof sentinelLogsRequestSchema>;
@@ -177,6 +178,9 @@ export function getSentinelLogs(ch: Querier) {
       schema: z.object({ total_count: z.number().int() }),
     });
 
+    // Offset pagination. `page` is 1-based; page 1 maps to offset 0.
+    const offset = (args.page - 1) * args.limit;
+
     const logsQuery = ch.query({
       query: `
         SELECT request_id, time, deployment_id, region, method, path, host,
@@ -185,18 +189,19 @@ export function getSentinelLogs(ch: Querier) {
                response_headers, response_body, user_agent, ip_address
         FROM ${TABLE}
         WHERE ${filterConditions}
-          AND ({cursor: Nullable(UInt64)} IS NULL OR time < {cursor: Nullable(UInt64)})
-        ORDER BY time DESC
-        LIMIT {limit: Int}`,
-      params: sentinelLogsRequestSchema.extend(
-        Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
-      ),
+        ORDER BY time DESC, request_id DESC
+        LIMIT {limit: Int}
+        OFFSET {offset: Int}`,
+      params: sentinelLogsRequestSchema.extend({
+        offset: z.number().int(),
+        ...Object.fromEntries(Object.keys(pathParams).map((k) => [k, z.string()])),
+      }),
       schema: sentinelLogsResponseSchema,
     });
 
     return {
       totalQuery: totalQuery({ ...args, ...pathValues } as never),
-      logsQuery: logsQuery({ ...args, ...pathValues } as never),
+      logsQuery: logsQuery({ ...args, ...pathValues, offset } as never),
     };
   };
 }

@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Button, Empty, InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
@@ -57,7 +58,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
           <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
           <Empty.Actions>
             <Suspense fallback={<Loading type="spinner" />}>
-              <Link href={`/${workspace.slug}/settings/billing`}>
+              <Link href={routes.settings.billing({ workspaceSlug: workspace.slug })}>
                 <Button>Upgrade</Button>
               </Link>
             </Suspense>
