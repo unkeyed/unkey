@@ -18,7 +18,6 @@ func TestCreateProjectDuplicate(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Auditlogs: h.Auditlogs,
 		CtrlClient: &testutil.MockProjectClient{
 			CreateProjectFunc: func(ctx context.Context, req *ctrlv1.CreateProjectRequest) (*ctrlv1.CreateProjectResponse, error) {
 				return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("project with slug %q already exists", req.GetSlug()))

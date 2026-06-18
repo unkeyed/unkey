@@ -8,8 +8,6 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -24,7 +22,6 @@ type (
 )
 
 type Handler struct {
-	Auditlogs  auditlogs.AuditLogService
 	CtrlClient ctrl.ProjectServiceClient
 }
 
@@ -60,10 +57,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		WorkspaceId: principal.WorkspaceID,
 		Name:        req.Name,
 		Slug:        req.Slug,
+		Actor:       ctrlclient.Actor(principal, s.Location(), s.UserAgent()),
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeAlreadyExists {
-			return fault.Wrap(err,
+			return fault.Wrap(
+				err,
 				fault.Code(codes.Data.Project.Duplicate.URN()),
 				fault.Internal("project slug already exists"),
 				fault.Public(fmt.Sprintf("A project with slug '%s' already exists in this workspace.", req.Slug)),
@@ -73,33 +72,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	projectID := ctrlResp.GetId()
-
-	err = h.Auditlogs.Insert(ctx, nil, []auditlog.AuditLog{
-		{
-			WorkspaceID:   principal.WorkspaceID,
-			Event:         auditlog.ProjectCreateEvent,
-			Display:       fmt.Sprintf("Created project %s", projectID),
-			ActorID:       principal.Subject.ID,
-			ActorName:     principal.Subject.Name,
-			ActorMeta:     map[string]any{},
-			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-			RemoteIP:      s.Location(),
-			UserAgent:     s.UserAgent(),
-			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          projectID,
-					Type:        auditlog.ProjectResourceType,
-					Meta:        map[string]any{"name": req.Name, "slug": req.Slug},
-					Name:        req.Name,
-					DisplayName: req.Name,
-				},
-			},
-		},
-	})
-	if err != nil {
-		return err
-	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

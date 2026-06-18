@@ -602,7 +602,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2ProjectsCreateProject.Handler{
-			Auditlogs:  svc.Auditlogs,
 			CtrlClient: svc.CtrlProjectClient,
 		},
 	)

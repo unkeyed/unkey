@@ -4,6 +4,7 @@ go_library(
     name = "ctrl",
     srcs = [
         "acme.pb.go",
+        "actor.pb.go",
         "app.pb.go",
         "cluster.pb.go",
         "custom_domain.pb.go",

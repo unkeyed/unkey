@@ -3,6 +3,8 @@ package ctrl.v1;
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
+import "ctrl/v1/actor.proto";
+
 service ProjectService {
   // Create a new project within a workspace
   rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {}
@@ -15,6 +17,7 @@ message CreateProjectRequest {
   string workspace_id = 1;
   string name = 2;
   string slug = 3;
+  ActorInfo actor = 4;
 }
 
 message CreateProjectResponse {

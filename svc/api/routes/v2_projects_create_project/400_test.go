@@ -17,7 +17,6 @@ func TestCreateProjectBadRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Auditlogs:  h.Auditlogs,
 		CtrlClient: &testutil.MockProjectClient{},
 	}
 

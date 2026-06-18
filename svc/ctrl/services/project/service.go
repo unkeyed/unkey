@@ -3,6 +3,7 @@ package project
 import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
@@ -13,6 +14,7 @@ type Service struct {
 	ctrlv1connect.UnimplementedProjectServiceHandler
 	db                db.Database
 	restate           *restateingress.Client
+	auditlogs         auditlogs.AuditLogService
 	bearer            string
 	enforceDeployGate bool
 }
@@ -24,6 +26,9 @@ type Config struct {
 
 	// Restate is the ingress client used to trigger durable project deletion workflows.
 	Restate *restateingress.Client
+
+	// Auditlogs records project mutations within the same transaction as the write.
+	Auditlogs auditlogs.AuditLogService
 
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
@@ -40,6 +45,7 @@ func New(cfg Config) *Service {
 		UnimplementedProjectServiceHandler: ctrlv1connect.UnimplementedProjectServiceHandler{},
 		db:                                 cfg.Database,
 		restate:                            cfg.Restate,
+		auditlogs:                          cfg.Auditlogs,
 		bearer:                             cfg.Bearer,
 		enforceDeployGate:                  cfg.EnforceDeployGate,
 	}

@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,11 +13,9 @@ import (
 )
 
 func TestCreateProjectSuccessfully(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Auditlogs:  h.Auditlogs,
 		CtrlClient: &testutil.MockProjectClient{},
 	}
 
@@ -37,17 +34,6 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.True(t, strings.HasPrefix(res.Body.Data.Id, "proj_"))
-
-		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.Id)
-		var foundCreateEvent bool
-		for _, ev := range auditLogs {
-			if ev.Event == "project.create" {
-				foundCreateEvent = true
-				require.Equal(t, h.Resources().UserWorkspace.ID, ev.WorkspaceID)
-				break
-			}
-		}
-		require.True(t, foundCreateEvent, "Should find a project.create audit log event")
 	})
 
 	t.Run("create multiple projects with unique slugs", func(t *testing.T) {
