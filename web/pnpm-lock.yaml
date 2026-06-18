@@ -262,6 +262,9 @@ importers:
       jose:
         specifier: 5.6.3
         version: 5.6.3
+      libphonenumber-js:
+        specifier: 1.13.6
+        version: 1.13.6
       mysql2:
         specifier: 'catalog:'
         version: 3.10.3
@@ -352,7 +355,7 @@ importers:
         version: 26.0.0
       vitest:
         specifier: 1.6.1
-        version: 1.6.1(@types/node@22.14.0)(@vitest/ui@3.2.4)(jsdom@26.0.0)(lightningcss@1.32.0)(terser@5.47.1)
+        version: 1.6.1(@types/node@22.14.0)(@vitest/ui@3.2.4(vitest@3.2.4))(jsdom@26.0.0)(lightningcss@1.32.0)(terser@5.47.1)
 
   apps/design:
     dependencies:
@@ -6923,6 +6926,9 @@ packages:
 
   leac@0.6.0:
     resolution: {integrity: sha512-y+SqErxb8h7nE/fiEX07jsbuhrpO9lL8eca7/Y1nuWV2moNlXhyd59iDGcRf6moVyDMbmTNzL40SUyrFU/yDpg==}
+
+  libphonenumber-js@1.13.6:
+    resolution: {integrity: sha512-NdB6O6QvlGMCoG003m0YIKG2+Xw7DjmCZhmc1RH+K6HncADUbRf8TZeLegxBBN1VFyPHcNpPTKpIhYLXzJVy1Q==}
 
   lightningcss-android-arm64@1.31.1:
     resolution: {integrity: sha512-HXJF3x8w9nQ4jbXRiNppBCqeZPIAfUo8zE/kOEGbW5NZvGc/K7nMxbhIr+YlFlHW5mpbg/YFPdbnCh1wAXCKFg==}
@@ -15433,6 +15439,8 @@ snapshots:
 
   leac@0.6.0: {}
 
+  libphonenumber-js@1.13.6: {}
+
   lightningcss-android-arm64@1.31.1:
     optional: true
 
@@ -18039,7 +18047,7 @@ snapshots:
       - supports-color
       - terser
 
-  vitest@1.6.1(@types/node@22.14.0)(@vitest/ui@3.2.4)(jsdom@26.0.0)(lightningcss@1.32.0)(terser@5.47.1):
+  vitest@1.6.1(@types/node@22.14.0)(@vitest/ui@3.2.4(vitest@3.2.4))(jsdom@26.0.0)(lightningcss@1.32.0)(terser@5.47.1):
     dependencies:
       '@vitest/expect': 1.6.1
       '@vitest/runner': 1.6.1

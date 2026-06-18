@@ -1,12 +1,13 @@
 "use client";
 
-import { FormInput, Loading } from "@unkey/ui";
+import { Loading } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { completeAuthRadarSmsChallenge, sendAuthRadarSmsCode } from "../actions";
 import { ErrorBanner } from "../banners";
 import { CodeInput } from "./code-input";
 import { applyVerificationResult } from "./handle-result";
+import { PhoneInput } from "./phone-input";
 
 type SmsVerification = {
   verificationId: string;
@@ -20,18 +21,19 @@ export function RadarSmsChallenge() {
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // E.164 phone number from the PhoneInput; empty until a valid number is entered.
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   const sendCode = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const phoneNumber = new FormData(e.currentTarget).get("phoneNumber");
-    if (typeof phoneNumber !== "string" || !phoneNumber.trim() || isLoading) {
+    if (!phoneNumber || isLoading) {
       return;
     }
 
     setIsLoading(true);
     setError(null);
     try {
-      const result = await sendAuthRadarSmsCode({ phoneNumber: phoneNumber.trim() });
+      const result = await sendAuthRadarSmsCode({ phoneNumber });
       if (result.success) {
         setVerification({
           verificationId: result.verificationId,
@@ -111,19 +113,12 @@ export function RadarSmsChallenge() {
         </form>
       ) : (
         <form className="flex flex-col gap-12 mt-10" onSubmit={sendCode}>
-          <FormInput
-            label="Phone number"
-            name="phoneNumber"
-            placeholder="+1 555 555 5555"
-            type="tel"
-            autoComplete="tel"
-            className="h-10 dark bg-black! w-full [&_input]:text-white!"
-          />
+          <PhoneInput onChange={(e164) => setPhoneNumber(e164)} disabled={isLoading} />
 
           <button
             type="submit"
             className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
-            disabled={isLoading}
+            disabled={isLoading || !phoneNumber}
           >
             {isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
             Send code
