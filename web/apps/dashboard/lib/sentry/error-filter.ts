@@ -15,6 +15,7 @@ import {
   logTRPCError,
 } from "../logging/structured-logger";
 import { classifyError } from "../utils/error-classification";
+import { scrubEventPii } from "./pii-scrubber";
 
 /**
  * Type definitions for Sentry event processing
@@ -108,6 +109,11 @@ export function createErrorFilter(options: ErrorFilterOptions = {}): BeforeSendH
     // classification so that INTERNAL_SERVER_ERROR and uncaught errors do not
     // leak secret values through `contexts.trpc.input`.
     scrubTrpcInput(event);
+
+    // Scrub secrets/PII that leak through URLs in the request and breadcrumbs
+    // (e.g. root keys or OAuth codes in query strings). `sendDefaultPii: false`
+    // does not cover URLs we generate ourselves, so this runs on every event.
+    scrubEventPii(event, hint);
 
     const error = hint.originalException;
 
