@@ -25,7 +25,6 @@ func TestCreateAppForbidden(t *testing.T) {
 	}
 	route := &handler.Handler{
 		DB:         h.DB,
-		Auditlogs:  h.Auditlogs,
 		CtrlClient: ctrlClient,
 	}
 	h.Register(route)

@@ -17,7 +17,6 @@ func TestCreateAppValidationErrors(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:         h.DB,
-		Auditlogs:  h.Auditlogs,
 		CtrlClient: &testutil.MockAppClient{},
 	}
 	h.Register(route)

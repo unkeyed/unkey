@@ -650,7 +650,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2AppsCreateApp.Handler{
 			DB:         svc.Database,
-			Auditlogs:  svc.Auditlogs,
 			CtrlClient: svc.CtrlAppClient,
 		},
 	)

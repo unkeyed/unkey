@@ -8,8 +8,6 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/rpc/ctrl",
-        "//internal/services/auditlogs",
-        "//pkg/auditlog",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",

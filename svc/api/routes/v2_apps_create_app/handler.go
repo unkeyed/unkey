@@ -8,8 +8,6 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -26,7 +24,6 @@ type (
 
 type Handler struct {
 	DB         db.Database
-	Auditlogs  auditlogs.AuditLogService
 	CtrlClient ctrl.AppServiceClient
 }
 
@@ -91,6 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ProjectId:   project.ID,
 		Name:        req.Name,
 		Slug:        req.Slug,
+		Actor:       ctrlclient.Actor(principal, s.Location(), s.UserAgent()),
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeAlreadyExists {
@@ -102,33 +100,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		return ctrlclient.HandleError(err, "create app")
-	}
-
-	err = h.Auditlogs.Insert(ctx, h.DB.RW(), []auditlog.AuditLog{
-		{
-			WorkspaceID:   principal.WorkspaceID,
-			Event:         auditlog.AppCreateEvent,
-			Display:       fmt.Sprintf("Created app %s", res.GetId()),
-			ActorID:       principal.Subject.ID,
-			ActorName:     principal.Subject.Name,
-			ActorMeta:     map[string]any{},
-			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-			RemoteIP:      s.Location(),
-			UserAgent:     s.UserAgent(),
-			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          res.GetId(),
-					Type:        auditlog.AppResourceType,
-					Meta:        map[string]any{"name": req.Name, "slug": req.Slug, "projectId": project.ID},
-					Name:        req.Name,
-					DisplayName: req.Name,
-				},
-			},
-		},
-	})
-	if err != nil {
-		return err
 	}
 
 	return s.JSON(http.StatusOK, Response{

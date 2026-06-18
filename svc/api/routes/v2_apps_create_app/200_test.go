@@ -16,7 +16,6 @@ import (
 )
 
 func TestCreateAppSuccessfully(t *testing.T) {
-	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
 	appID := uid.New(uid.AppPrefix)
@@ -27,7 +26,6 @@ func TestCreateAppSuccessfully(t *testing.T) {
 	}
 	route := &handler.Handler{
 		DB:         h.DB,
-		Auditlogs:  h.Auditlogs,
 		CtrlClient: ctrlClient,
 	}
 	h.Register(route)
@@ -57,21 +55,14 @@ func TestCreateAppSuccessfully(t *testing.T) {
 	require.Equal(t, appID, res.Body.Data.AppId)
 	require.True(t, strings.HasPrefix(res.Body.Data.AppId, "app_"))
 
+	// App creation is delegated to the control plane, which also writes the
+	// audit log within the same transaction. Assert the RPC carried the
+	// resolved ids and the actor.
 	require.Len(t, ctrlClient.CreateAppCalls, 1)
 	call := ctrlClient.CreateAppCalls[0]
 	require.Equal(t, workspace.ID, call.GetWorkspaceId())
 	require.Equal(t, project.ID, call.GetProjectId())
 	require.Equal(t, "Payments API", call.GetName())
 	require.Equal(t, "payments-api", call.GetSlug())
-
-	auditLogs := h.FindAuditLogsByTargetID(ctx, t, appID)
-	var found bool
-	for _, ev := range auditLogs {
-		if ev.Event == "app.create" {
-			found = true
-			require.Equal(t, workspace.ID, ev.WorkspaceID)
-			break
-		}
-	}
-	require.True(t, found, "should find an app.create audit log event")
+	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, call.GetActor().GetType())
 }

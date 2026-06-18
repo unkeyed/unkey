@@ -19,7 +19,6 @@ func TestCreateAppProjectNotFound(t *testing.T) {
 	ctrlClient := &testutil.MockAppClient{}
 	route := &handler.Handler{
 		DB:         h.DB,
-		Auditlogs:  h.Auditlogs,
 		CtrlClient: ctrlClient,
 	}
 	h.Register(route)
