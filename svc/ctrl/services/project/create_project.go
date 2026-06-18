@@ -71,6 +71,9 @@ func (s *Service) CreateProject(
 		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
 	if err != nil {
+		if db.IsDuplicateKeyError(err) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("project with slug %q already exists: %w", req.Msg.GetSlug(), err))
+		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to insert project: %w", err))
 	}
 

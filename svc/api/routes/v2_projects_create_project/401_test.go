@@ -13,8 +13,8 @@ func TestCreateProjectUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:        h.DB,
-		Auditlogs: h.Auditlogs,
+		Auditlogs:  h.Auditlogs,
+		CtrlClient: &testutil.MockProjectClient{},
 	}
 
 	h.Register(route)

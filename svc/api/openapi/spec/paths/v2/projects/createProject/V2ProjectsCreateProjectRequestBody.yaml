@@ -21,12 +21,6 @@ properties:
       Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
       Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
     example: payments-service
-  deleteProtection:
-    type: boolean
-    description: |
-      Enable delete protection for the project on creation.
-      Defaults to false. When enabled, the project cannot be deleted until protection is disabled via updateProject.
-    example: true
 additionalProperties: false
 examples:
   basic:
@@ -35,10 +29,3 @@ examples:
     value:
       name: Payments Service
       slug: payments-service
-  protected:
-    summary: Create a project with delete protection
-    description: Create a project that cannot be deleted until protection is disabled
-    value:
-      name: Payments Service
-      slug: payments-service
-      deleteProtection: true

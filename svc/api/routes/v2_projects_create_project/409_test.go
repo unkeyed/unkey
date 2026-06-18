@@ -1,12 +1,14 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
@@ -16,8 +18,12 @@ func TestCreateProjectDuplicate(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
+		CtrlClient: &testutil.MockProjectClient{
+			CreateProjectFunc: func(ctx context.Context, req *ctrlv1.CreateProjectRequest) (*ctrlv1.CreateProjectResponse, error) {
+				return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("project with slug %q already exists", req.GetSlug()))
+			},
+		},
 	}
 
 	h.Register(route)
@@ -28,33 +34,12 @@ func TestCreateProjectDuplicate(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("same slug twice returns 409", func(t *testing.T) {
+	t.Run("duplicate slug returns 409", func(t *testing.T) {
 		req := handler.Request{Name: "Payments Service", Slug: "duplicate-slug"}
-
-		successRes := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, successRes.Status, "expected 200, received: %s", successRes.RawBody)
 
 		errorRes := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, req)
 		require.Equal(t, 409, errorRes.Status, "expected 409, received: %s", errorRes.RawBody)
 		require.NotNil(t, errorRes.Body)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_already_exists", errorRes.Body.Error.Type)
-	})
-
-	t.Run("same slug in different workspace succeeds", func(t *testing.T) {
-		otherWorkspace := h.CreateWorkspace()
-		otherRootKey := h.CreateRootKey(otherWorkspace.ID, "project.*.create_project")
-		otherHeaders := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", otherRootKey)},
-		}
-
-		req := handler.Request{Name: "Payments Service", Slug: "shared-slug"}
-
-		first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, first.Status, "expected 200, received: %s", first.RawBody)
-
-		second := testutil.CallRoute[handler.Request, handler.Response](h, route, otherHeaders, req)
-		require.Equal(t, 200, second.Status, "expected 200 for other workspace, received: %s", second.RawBody)
-		require.True(t, strings.HasPrefix(second.Body.Data.Id, "proj_"))
 	})
 }

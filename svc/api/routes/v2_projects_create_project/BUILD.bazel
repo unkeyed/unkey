@@ -6,15 +6,17 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project",
     visibility = ["//visibility:public"],
     deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/rpc/ctrl",
         "//internal/services/auditlogs",
         "//pkg/auditlog",
         "//pkg/codes",
-        "//pkg/db",
         "//pkg/fault",
         "//pkg/rbac",
-        "//pkg/uid",
         "//pkg/zen",
+        "//svc/api/internal/ctrlclient",
         "//svc/api/openapi",
+        "@com_connectrpc_connect//:connect",
     ],
 )
 
@@ -30,10 +32,11 @@ go_test(
     ],
     deps = [
         ":v2_projects_create_project",
-        "//pkg/db",
+        "//gen/proto/ctrl/v1:ctrl",
         "//pkg/uid",
         "//svc/api/internal/testutil",
         "//svc/api/openapi",
+        "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",
     ],
 )

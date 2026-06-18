@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
@@ -19,8 +18,8 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:        h.DB,
-		Auditlogs: h.Auditlogs,
+		Auditlogs:  h.Auditlogs,
+		CtrlClient: &testutil.MockProjectClient{},
 	}
 
 	h.Register(route)
@@ -39,17 +38,7 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.True(t, strings.HasPrefix(res.Body.Data.Id, "proj_"))
 
-		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Slug:        req.Slug,
-		})
-		require.NoError(t, err)
-		require.Equal(t, req.Name, project.Name)
-		require.Equal(t, h.Resources().UserWorkspace.ID, project.WorkspaceID)
-		require.True(t, strings.HasPrefix(project.ID, "proj_"))
-		require.Equal(t, project.ID, res.Body.Data.Id)
-
-		auditLogs := h.FindAuditLogsByTargetID(ctx, t, project.ID)
+		auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.Id)
 		var foundCreateEvent bool
 		for _, ev := range auditLogs {
 			if ev.Event == "project.create" {
@@ -59,36 +48,6 @@ func TestCreateProjectSuccessfully(t *testing.T) {
 			}
 		}
 		require.True(t, foundCreateEvent, "Should find a project.create audit log event")
-	})
-
-	t.Run("create project with delete protection", func(t *testing.T) {
-		deleteProtection := true
-		req := handler.Request{Name: "Protected Service", Slug: "protected-service", DeleteProtection: &deleteProtection}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-
-		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Slug:        req.Slug,
-		})
-		require.NoError(t, err)
-		require.True(t, project.DeleteProtection.Valid)
-		require.True(t, project.DeleteProtection.Bool)
-	})
-
-	t.Run("create project without delete protection defaults to false", func(t *testing.T) {
-		req := handler.Request{Name: "Unprotected Service", Slug: "unprotected-service"}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-
-		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
-			WorkspaceID: h.Resources().UserWorkspace.ID,
-			Slug:        req.Slug,
-		})
-		require.NoError(t, err)
-		require.False(t, project.DeleteProtection.Bool)
 	})
 
 	t.Run("create multiple projects with unique slugs", func(t *testing.T) {

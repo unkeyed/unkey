@@ -2,19 +2,19 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
-	"time"
 
+	"connectrpc.com/connect"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -24,8 +24,8 @@ type (
 )
 
 type Handler struct {
-	DB        db.Database
-	Auditlogs auditlogs.AuditLogService
+	Auditlogs  auditlogs.AuditLogService
+	CtrlClient ctrl.ProjectServiceClient
 }
 
 func (h *Handler) Method() string {
@@ -56,64 +56,46 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	deleteProtection := false
-	if req.DeleteProtection != nil {
-		deleteProtection = *req.DeleteProtection
-	}
-
-	projectID := uid.New(uid.ProjectPrefix)
-	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
-			ID:               projectID,
-			WorkspaceID:      principal.WorkspaceID,
-			Name:             req.Name,
-			Slug:             req.Slug,
-			DeleteProtection: sql.NullBool{Valid: true, Bool: deleteProtection},
-			CreatedAt:        time.Now().UnixMilli(),
-			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
-		})
-		if err != nil {
-			if db.IsDuplicateKeyError(err) {
-				return fault.New("project already exists",
-					fault.Code(codes.Data.Project.Duplicate.URN()),
-					fault.Internal("project slug already exists"),
-					fault.Public(fmt.Sprintf("A project with slug '%s' already exists in this workspace.", req.Slug)),
-				)
-			}
+	ctrlResp, err := h.CtrlClient.CreateProject(ctx, &ctrlv1.CreateProjectRequest{
+		WorkspaceId: principal.WorkspaceID,
+		Name:        req.Name,
+		Slug:        req.Slug,
+	})
+	if err != nil {
+		if connect.CodeOf(err) == connect.CodeAlreadyExists {
 			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to create project"), fault.Public("We're unable to create the project."),
+				fault.Code(codes.Data.Project.Duplicate.URN()),
+				fault.Internal("project slug already exists"),
+				fault.Public(fmt.Sprintf("A project with slug '%s' already exists in this workspace.", req.Slug)),
 			)
 		}
+		return ctrlclient.HandleError(err, "create project")
+	}
 
-		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-			{
-				WorkspaceID:   principal.WorkspaceID,
-				Event:         auditlog.ProjectCreateEvent,
-				Display:       fmt.Sprintf("Created project %s", projectID),
-				ActorID:       principal.Subject.ID,
-				ActorName:     principal.Subject.Name,
-				ActorMeta:     map[string]any{},
-				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-				RemoteIP:      s.Location(),
-				UserAgent:     s.UserAgent(),
-				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
-					{
-						ID:          projectID,
-						Type:        auditlog.ProjectResourceType,
-						Meta:        map[string]any{"name": req.Name, "slug": req.Slug, "deleteProtection": deleteProtection},
-						Name:        req.Name,
-						DisplayName: req.Name,
-					},
+	projectID := ctrlResp.GetId()
+
+	err = h.Auditlogs.Insert(ctx, nil, []auditlog.AuditLog{
+		{
+			WorkspaceID:   principal.WorkspaceID,
+			Event:         auditlog.ProjectCreateEvent,
+			Display:       fmt.Sprintf("Created project %s", projectID),
+			ActorID:       principal.Subject.ID,
+			ActorName:     principal.Subject.Name,
+			ActorMeta:     map[string]any{},
+			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			CorrelationID: "",
+			Resources: []auditlog.AuditLogResource{
+				{
+					ID:          projectID,
+					Type:        auditlog.ProjectResourceType,
+					Meta:        map[string]any{"name": req.Name, "slug": req.Slug},
+					Name:        req.Name,
+					DisplayName: req.Name,
 				},
 			},
-		})
-		if err != nil {
-			return err
-		}
-
-		return nil
+		},
 	})
 	if err != nil {
 		return err
