@@ -31,6 +31,14 @@ jobs:
     urlPath: "hydra.v1.CronService/ratelimit-global-counters-cleanup/RunRatelimitGlobalCountersCleanup/send"
     idempotencyKey: "ratelimit-global-counters-cleanup-$(date -u +%Y-%m-%dT%H)"
 
+  # Daily sweep of already-exported audit log outbox rows past the 30-day
+  # retention window. Stateless, cutoff-bounded DELETE; the fixed slug key
+  # keeps a paused/wedged run from blocking the every-minute handlers.
+  audit-log-outbox-cleanup:
+    schedule: "0 2 * * *"
+    urlPath: "hydra.v1.CronService/audit-log-outbox-cleanup/RunAuditLogOutboxCleanup/send"
+    idempotencyKey: "audit-log-outbox-cleanup-$(date -u +%Y-%m-%d)"
+
   # Hourly month-to-date Deploy usage push to Stripe. Keyed by billing period
   # (YYYY-MM) so ticks for the same month serialize; the pushed quantity is the
   # absolute month-to-date total (Stripe meters aggregate with formula "last"),

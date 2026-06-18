@@ -34,6 +34,14 @@ export const workspaces = mysqlTable("workspaces", {
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 256 }),
 
   /**
+   * Local mirror of the workspace's Unkey Deploy plan, synced from Stripe by the
+   * customer.subscription.* webhook. NULL means no Deploy plan (cannot use
+   * Deploy). Lets the deploy gate and dashboard read entitlement without calling
+   * Stripe in the hot path. Stripe stays source of truth; this is a cache.
+   */
+  deployPlan: varchar("deploy_plan", { length: 64 }),
+
+  /**
    * feature flags
    *
    * betaFeatures may be toggled by the user for early access
