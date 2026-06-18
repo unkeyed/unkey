@@ -183,6 +183,12 @@ type HeartbeatConfig struct {
 	// into ClickHouse. Optional - if empty, no heartbeat is sent.
 	AuditLogExportURL string `toml:"audit_log_export_url"`
 
+	// AuditLogOutboxCleanupURL is the Checkly heartbeat URL for the daily sweep
+	// that hard-deletes exported clickhouse_outbox rows past the retention
+	// window. When set, a heartbeat is sent after a successful sweep.
+	// Optional - if empty, no heartbeat is sent.
+	AuditLogOutboxCleanupURL string `toml:"audit_log_outbox_cleanup_url"`
+
 	// DeployBillingPushURL is the Checkly heartbeat URL for the hourly Deploy
 	// billing push. When set, a heartbeat is sent after a successful push.
 	// Optional - if empty, no heartbeat is sent.
