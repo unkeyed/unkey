@@ -142,7 +142,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					return err
 				}
 
-				if deployment.DesiredState == db.DeploymentsDesiredStateStandby || deployment.DesiredState == db.DeploymentsDesiredStateArchived {
+				if deployment.DesiredState == db.DeploymentsDesiredStateStopped {
 					if err := db.Query.StopDeploymentIfNoInstances(ctx, tx, db.StopDeploymentIfNoInstancesParams{
 						ID:        deployment.ID,
 						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

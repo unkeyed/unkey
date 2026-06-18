@@ -1,4 +1,5 @@
 import * as flags from ".";
+import { safeResolve } from "./safe-resolve";
 
 // Add a line per flag here when you declare one in ./index.ts so the
 // FlagsProvider exposes it to client components. The Flags type is derived
@@ -6,8 +7,8 @@ import * as flags from ".";
 // fail to type-check at every useFlag(key) call site.
 export async function resolveAll() {
   const [helloWorld, deployBilling] = await Promise.all([
-    flags.helloWorld(),
-    flags.deployBilling(),
+    safeResolve("hello-world", flags.helloWorld, false),
+    safeResolve("deploy-billing", flags.deployBilling, false),
   ]);
   return { helloWorld, deployBilling };
 }

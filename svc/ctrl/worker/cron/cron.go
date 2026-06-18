@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/quotacheck"
@@ -40,6 +41,7 @@ type Service struct {
 
 	auditLogExport   *auditlogexport.Handler
 	deployBilling    *deploybilling.Handler
+	idlePreview      *idlepreview.Handler
 	keyLastUsedSync  *keylastusedsync.Handler
 	keyRefill        *keyrefill.Handler
 	quotaCheck       *quotacheck.Handler
@@ -162,11 +164,19 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	idlePreviewH, err := idlepreview.New(idlepreview.Config{
+		DB:         cfg.DB,
+		Clickhouse: cfg.Clickhouse,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
+		idlePreview:                    idlePreviewH,
 		keyLastUsedSync:                keyLastUsedSyncH,
 		keyRefill:                      keyRefillH,
 		quotaCheck:                     quotaCheckH,
@@ -214,4 +224,11 @@ func (s *Service) RunDeployBillingPush(
 	req *hydrav1.RunDeployBillingPushRequest,
 ) (*hydrav1.RunDeployBillingPushResponse, error) {
 	return s.deployBilling.Handle(ctx, req)
+}
+
+func (s *Service) RunScaleDownIdlePreviewDeployments(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest,
+) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
+	return s.idlePreview.Handle(ctx, req)
 }

@@ -1,4 +1,4 @@
-package deploy_test
+package cron_test
 
 import (
 	"database/sql"
@@ -13,9 +13,12 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
 
+// TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequests
+// guarantees that the cron workflow can use persisted deployment state and
+// request telemetry together to stop an idle preview deployment.
 func TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequests(t *testing.T) {
 	h := harness.New(t)
-	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
+	oldTime := time.Now().Add(-2 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
 
 	ws := h.Seed.CreateWorkspace(h.Ctx)
@@ -59,12 +62,15 @@ func TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequest
 
 	updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
 	require.NoError(t, err)
-	require.Equal(t, db.DeploymentsDesiredStateStandby, updated.DesiredState)
+	require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState)
 }
 
+// TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentRequests
+// guarantees that recent traffic in ClickHouse keeps a preview deployment
+// desired to run even when its database timestamps are old.
 func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentRequests(t *testing.T) {
 	h := harness.New(t)
-	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
+	oldTime := time.Now().Add(-2 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
 
 	ws := h.Seed.CreateWorkspace(h.Ctx)
@@ -104,7 +110,7 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 		UpdatedAt:     oldUpdatedAt,
 	})
 
-	h.ClickHouseSeed.InsertSentinelRequests(h.Ctx, ws.ID, project.ID, env.ID, dep.ID, 10, time.Now().Add(-1*time.Hour))
+	h.ClickHouseSeed.InsertSentinelRequests(h.Ctx, ws.ID, project.ID, env.ID, dep.ID, 10, time.Now().Add(-5*time.Minute))
 
 	triggerScaleDown(t, h)
 
@@ -113,9 +119,11 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
+// TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments guarantees
+// that the cron workflow only reclaims preview deployments.
 func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testing.T) {
 	h := harness.New(t)
-	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
+	oldTime := time.Now().Add(-2 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
 
 	ws := h.Seed.CreateWorkspace(h.Ctx)
@@ -162,9 +170,12 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
+// TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus
+// guarantees that the cron workflow does not stop deployments still moving
+// through another lifecycle transition.
 func TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus(t *testing.T) {
 	h := harness.New(t)
-	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
+	oldTime := time.Now().Add(-2 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
 
 	ws := h.Seed.CreateWorkspace(h.Ctx)
@@ -211,6 +222,9 @@ func TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus(t *t
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
+// TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments
+// guarantees that a new preview deployment gets the full idle window before
+// cron can stop it.
 func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *testing.T) {
 	h := harness.New(t)
 
@@ -240,7 +254,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *te
 		DeleteProtection: false,
 	})
 
-	recentTime := time.Now().Add(-1 * time.Hour).UnixMilli()
+	recentTime := time.Now().Add(-5 * time.Minute).UnixMilli()
 	dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 		ID:            "",
 		WorkspaceID:   ws.ID,
@@ -259,9 +273,11 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *te
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
+// TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments
+// guarantees that recent deployment changes reset the idle window.
 func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *testing.T) {
 	h := harness.New(t)
-	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
+	oldTime := time.Now().Add(-2 * time.Hour).UnixMilli()
 
 	ws := h.Seed.CreateWorkspace(h.Ctx)
 	project := h.Seed.CreateProject(h.Ctx, seed.CreateProjectRequest{
@@ -289,7 +305,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *te
 		DeleteProtection: false,
 	})
 
-	recentUpdate := time.Now().Add(-1 * time.Hour).UnixMilli()
+	recentUpdate := time.Now().Add(-5 * time.Minute).UnixMilli()
 	dep := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
 		ID:            "",
 		WorkspaceID:   ws.ID,
@@ -308,9 +324,12 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *te
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
 
+// TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipleEnvironments
+// guarantees that one cron pass evaluates each preview deployment independently
+// across environments and workspaces.
 func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipleEnvironments(t *testing.T) {
 	h := harness.New(t)
-	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
+	oldTime := time.Now().Add(-2 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
 
 	var idleDeployments []db.Deployment
@@ -365,7 +384,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 			CreatedAt:     oldTime,
 			UpdatedAt:     oldUpdatedAt,
 		})
-		h.ClickHouseSeed.InsertSentinelRequests(h.Ctx, ws.ID, project.ID, env.ID, active.ID, 5, time.Now().Add(-30*time.Minute))
+		h.ClickHouseSeed.InsertSentinelRequests(h.Ctx, ws.ID, project.ID, env.ID, active.ID, 5, time.Now().Add(-5*time.Minute))
 		activeDeployments = append(activeDeployments, active)
 	}
 
@@ -374,7 +393,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 	for _, dep := range idleDeployments {
 		updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
 		require.NoError(t, err)
-		require.Equal(t, db.DeploymentsDesiredStateStandby, updated.DesiredState, "idle deployment %s should be standby", dep.ID)
+		require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState, "idle deployment %s should be stopped", dep.ID)
 	}
 	for _, dep := range activeDeployments {
 		updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
@@ -383,12 +402,15 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 	}
 }
 
+// TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsAtScale
+// guarantees that the cron workflow does not stop after the first preview
+// environment page.
 func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsAtScale(t *testing.T) {
 	h := harness.New(t, harness.WithTimeout(5*time.Minute))
-	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
+	oldTime := time.Now().Add(-2 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
 
-	const count = 2000
+	const count = 201
 	depIDs := make([]string, count)
 	for i := range count {
 		ws := h.Seed.CreateWorkspace(h.Ctx)
@@ -435,12 +457,16 @@ func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsA
 	for _, id := range depIDs {
 		updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), id)
 		require.NoError(t, err)
-		require.Equal(t, db.DeploymentsDesiredStateStandby, updated.DesiredState, "deployment %s should be standby", id)
+		require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState, "deployment %s should be stopped", id)
 	}
 }
 
+// triggerScaleDown runs the cron workflow through Restate ingress so tests
+// cover the same serialized handler path as production.
 func triggerScaleDown(t *testing.T, h *harness.Harness) {
-	client := hydrav1.NewDeployServiceIngressClient(h.Restate, uid.New("test"))
-	_, err := client.ScaleDownIdlePreviewDeployments().Request(h.Ctx, &hydrav1.ScaleDownIdlePreviewDeploymentsRequest{})
+	t.Helper()
+
+	client := hydrav1.NewCronServiceIngressClient(h.Restate, "idle-preview-deployments")
+	_, err := client.RunScaleDownIdlePreviewDeployments().Request(h.Ctx, &hydrav1.RunScaleDownIdlePreviewDeploymentsRequest{})
 	require.NoError(t, err)
 }

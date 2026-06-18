@@ -60,6 +60,11 @@ service CronService {
   // pushed quantity is the absolute month-to-date total, so retries and
   // overlapping ticks are harmless. Hourly schedule.
   rpc RunDeployBillingPush(RunDeployBillingPushRequest) returns (RunDeployBillingPushResponse) {}
+
+  // RunScaleDownIdlePreviewDeployments scans preview deployments and schedules
+  // idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
+  // scan is singleton-keyed without sharing a queue with other cron handlers.
+  rpc RunScaleDownIdlePreviewDeployments(RunScaleDownIdlePreviewDeploymentsRequest) returns (RunScaleDownIdlePreviewDeploymentsResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -96,3 +101,6 @@ message RunDeployBillingPushRequest {}
 // (workspaces and meters pushed) is logged by the handler, not consumed by a
 // caller.
 message RunDeployBillingPushResponse {}
+
+message RunScaleDownIdlePreviewDeploymentsRequest {}
+message RunScaleDownIdlePreviewDeploymentsResponse {}

@@ -489,9 +489,8 @@ func (ns NullDeploymentTopologyDesiredStatus) Value() (driver.Value, error) {
 type DeploymentsDesiredState string
 
 const (
-	DeploymentsDesiredStateRunning  DeploymentsDesiredState = "running"
-	DeploymentsDesiredStateStandby  DeploymentsDesiredState = "standby"
-	DeploymentsDesiredStateArchived DeploymentsDesiredState = "archived"
+	DeploymentsDesiredStateRunning DeploymentsDesiredState = "running"
+	DeploymentsDesiredStateStopped DeploymentsDesiredState = "stopped"
 )
 
 func (e *DeploymentsDesiredState) Scan(src interface{}) error {

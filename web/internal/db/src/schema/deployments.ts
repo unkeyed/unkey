@@ -57,9 +57,7 @@ export const deployments = mysqlTable(
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
     storageMib: int("storage_mib", { unsigned: true }).notNull().default(0),
-    desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])
-      .notNull()
-      .default("running"),
+    desiredState: mysqlEnum("desired_state", ["running", "stopped"]).notNull().default("running"),
 
     // Environment variables snapshot (protobuf: ctrl.v1.SecretsBlob)
     // Encrypted values from environment_variables at deploy time
