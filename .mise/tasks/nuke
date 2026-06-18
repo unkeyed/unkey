@@ -4,6 +4,16 @@ set -euo pipefail
 
 read -r -p "Delete local Docker data? [Y/n] " delete_docker
 if [[ ! "${delete_docker}" =~ ^[Nn]$ ]]; then
+  running_containers="$(docker --context default ps --quiet)"
+  if [[ -n "${running_containers}" ]]; then
+    docker --context default stop ${running_containers}
+  fi
+
+  containers="$(docker --context default ps --all --quiet)"
+  if [[ -n "${containers}" ]]; then
+    docker --context default rm --force ${containers}
+  fi
+
   docker --context default builder prune --all --force
   docker --context default system prune --all --force --volumes
 fi
@@ -11,8 +21,8 @@ fi
 read -r -p "Delete Bazel, Next.js, and Turborepo caches? [Y/n] " delete_caches
 if [[ ! "${delete_caches}" =~ ^[Nn]$ ]]; then
   bazel shutdown || true
-  bazel clean --expunge --async || true
   rm -rf ./.cache
+  bazel clean --expunge || true
 
   rm -rf ./**/.turbo
   rm -rf ./**/.next
