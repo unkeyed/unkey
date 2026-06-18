@@ -9,7 +9,7 @@ import {
   errorMessages,
 } from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
-import { Empty, Loading } from "@unkey/ui";
+import { Empty, Loading, toast } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -67,6 +67,14 @@ function SignInContent() {
       saveRedirectUrl(redirectParam);
     }
   }, [redirectParam]);
+
+  // Errors arriving via redirect (e.g. a Radar block on the OAuth callback)
+  // are surfaced as a toast, matching how every other flow shows them.
+  useEffect(() => {
+    if (urlError) {
+      toast.error(urlError);
+    }
+  }, [urlError]);
   const hasAttemptedSignIn = useRef(false);
   // Used while the invitation auto sign-in sends its code
   const [isLoading, setIsLoading] = useState(false);
@@ -188,7 +196,7 @@ function SignInContent() {
           </div>
         </WarnBanner>
       )}
-      {(error || urlError) && <ErrorBanner>{error ?? urlError}</ErrorBanner>}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {challengeParam === "mfa" ? (
         <FadeIn>

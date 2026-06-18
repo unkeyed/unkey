@@ -171,6 +171,41 @@ describe("WorkOSAuthProvider", () => {
       }
       expect(workos.userManagement.createMagicAuth).not.toHaveBeenCalled();
     });
+
+    it("maps a Radar block at the create step to AUTHENTICATION_BLOCKED", async () => {
+      workos.userManagement.createUser.mockRejectedValue(
+        new OauthException(403, "req_test", "access_denied", "Country is blocked", {}),
+      );
+
+      const result = await provider.signUpViaEmail({
+        email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe(AuthErrorCode.AUTHENTICATION_BLOCKED);
+      }
+    });
+  });
+
+  describe("signInViaEmail", () => {
+    it("maps a Radar block to AUTHENTICATION_BLOCKED", async () => {
+      workos.userManagement.listUsers.mockResolvedValue({
+        data: [{ id: "user_123", email: "test@example.com" }],
+      });
+      workos.userManagement.createMagicAuth.mockRejectedValue(
+        new OauthException(403, "req_test", "access_denied", "Country is blocked", {}),
+      );
+
+      const result = await provider.signInViaEmail({ email: "test@example.com" });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe(AuthErrorCode.AUTHENTICATION_BLOCKED);
+      }
+    });
   });
 
   describe("verifyAuthCode", () => {

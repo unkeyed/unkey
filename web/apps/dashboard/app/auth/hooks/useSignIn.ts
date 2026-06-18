@@ -10,6 +10,7 @@ import {
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
+import { toast } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
@@ -47,6 +48,17 @@ export function useSignIn() {
   const [loading, setLoading] = useState(true);
 
   const { setError, setIsVerifying, setEmail, setAccountNotFound } = context;
+
+  // A Radar block is a hard, support-actionable failure; surface it as a toast
+  // (consistent with the sign-up flow) rather than the inline banner used for
+  // ordinary, recoverable errors.
+  const surfaceError = (result: AuthErrorResponse) => {
+    if (result.code === AuthErrorCode.AUTHENTICATION_BLOCKED) {
+      toast.error(result.message);
+      return;
+    }
+    setError(result.message);
+  };
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -104,7 +116,7 @@ export function useSignIn() {
           setAccountNotFound(true);
           setEmail(email);
         } else {
-          setError(result.message);
+          surfaceError(result);
         }
       } else {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
@@ -183,7 +195,7 @@ export function useSignIn() {
 
       // Handle error case - only set error message if we have an error response
       if (isAuthErrorResponse(result)) {
-        setError(result.message);
+        surfaceError(result);
       } else {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       }

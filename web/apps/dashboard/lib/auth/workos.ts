@@ -21,6 +21,7 @@ import {
   type AuthChallengeCookieData,
   type AuthChallengeType,
   AuthErrorCode,
+  type AuthErrorResponse,
   type EmailAuthResult,
   type Invitation,
   type InvitationListResponse,
@@ -300,13 +301,22 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return pending;
     }
     if (this.isRadarBlock(error)) {
-      return {
-        success: false,
-        code: AuthErrorCode.AUTHENTICATION_BLOCKED,
-        message: errorMessages[AuthErrorCode.AUTHENTICATION_BLOCKED],
-      };
+      return this.radarBlockedResponse();
     }
     return this.handleError(error as Error);
+  }
+
+  /**
+   * The single source of truth for a Radar block response, so every flow
+   * (email entry, code verification, OAuth) surfaces the same code and the
+   * same "contact support" message.
+   */
+  private radarBlockedResponse(): AuthErrorResponse {
+    return {
+      success: false,
+      code: AuthErrorCode.AUTHENTICATION_BLOCKED,
+      message: errorMessages[AuthErrorCode.AUTHENTICATION_BLOCKED],
+    };
   }
 
   // Session Management
@@ -824,6 +834,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         radarAuthAttemptId: createUserResponse.radarAuthAttemptId,
       });
     } catch (error: unknown) {
+      // Radar can deny at attempt creation (e.g. a blocked country), so
+      // surface the unified block message here too.
+      if (this.isRadarBlock(error)) {
+        return this.radarBlockedResponse();
+      }
       // Perform structural narrowing before accessing properties
       if (
         typeof error === "object" &&
@@ -883,6 +898,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       return await this.sendMagicAuthCode({ email, ipAddress, userAgent });
     } catch (error) {
+      if (this.isRadarBlock(error)) {
+        return this.radarBlockedResponse();
+      }
       return this.handleError(error);
     }
   }
