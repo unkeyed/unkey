@@ -43,7 +43,7 @@ func TestDeleteProjectSuccessfully(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Slug: slug,
+		ProjectId: project.ID,
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -57,9 +57,9 @@ func TestDeleteProjectSuccessfully(t *testing.T) {
 
 	// Sanity: the project still exists in our DB because the cascade runs in
 	// the (mocked) control plane, not in this handler.
-	_, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
+	_, err := db.Query.FindProjectByWorkspaceAndId(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndIdParams{
 		WorkspaceID: workspace.ID,
-		Slug:        slug,
+		ID:          project.ID,
 	})
 	require.NoError(t, err)
 }

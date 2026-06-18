@@ -1935,17 +1935,17 @@ components:
         V2ProjectsDeleteProjectRequestBody:
             type: object
             required:
-                - slug
+                - projectId
             properties:
-                slug:
+                projectId:
                     type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
                     description: |
-                        URL-safe handle identifying the project to delete, unique within your workspace.
-                        This is the caller-defined identifier returned when the project was created.
-                    example: payments-service
+                        Specifies which project to delete by its unique identifier.
+                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+                    example: proj_1234abcd
             additionalProperties: false
         V2ProjectsDeleteProjectResponseBody:
             type: object
@@ -7164,7 +7164,7 @@ paths:
     /v2/projects.deleteProject:
         post:
             description: |
-                Delete an existing project in your workspace, identified by its slug.
+                Delete an existing project in your workspace, identified by its id.
 
                 Deletion is asynchronous and eventually consistent. The project and all of its associated resources (apps, environments, deployments, custom domains) are torn down by a background workflow. A successful response indicates the deletion was enqueued, not that every resource has already been removed.
 
@@ -7181,10 +7181,10 @@ paths:
                     application/json:
                         examples:
                             delete:
-                                description: Delete a project by its slug
+                                description: Delete a project by its unique identifier
                                 summary: Delete a project
                                 value:
-                                    slug: payments-service
+                                    projectId: proj_1234abcd
                         schema:
                             $ref: '#/components/schemas/V2ProjectsDeleteProjectRequestBody'
                 required: true

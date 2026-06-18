@@ -1,20 +1,20 @@
 type: object
 required:
-  - slug
+  - projectId
 properties:
-  slug:
+  projectId:
     type: string
-    minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
     description: |
-      URL-safe handle identifying the project to delete, unique within your workspace.
-      This is the caller-defined identifier returned when the project was created.
-    example: payments-service
+      Specifies which project to delete by its unique identifier.
+      Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+    example: proj_1234abcd
 additionalProperties: false
 examples:
   delete:
     summary: Delete a project
-    description: Delete a project by its slug
+    description: Delete a project by its unique identifier
     value:
-      slug: payments-service
+      projectId: proj_1234abcd

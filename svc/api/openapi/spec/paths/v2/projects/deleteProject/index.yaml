@@ -3,7 +3,7 @@ post:
     - projects
   summary: Delete project
   description: |
-    Delete an existing project in your workspace, identified by its slug.
+    Delete an existing project in your workspace, identified by its id.
 
     Deletion is asynchronous and eventually consistent. The project and all of its associated resources (apps, environments, deployments, custom domains) are torn down by a background workflow. A successful response indicates the deletion was enqueued, not that every resource has already been removed.
 
@@ -26,9 +26,9 @@ post:
         examples:
           delete:
             summary: Delete a project
-            description: Delete a project by its slug
+            description: Delete a project by its unique identifier
             value:
-              slug: payments-service
+              projectId: proj_1234abcd
     required: true
   responses:
     "200":

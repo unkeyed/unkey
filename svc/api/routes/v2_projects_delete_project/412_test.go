@@ -32,7 +32,7 @@ func TestDeleteProjectDeleteProtection(t *testing.T) {
 	}
 
 	slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-	h.CreateProject(seed.CreateProjectRequest{
+	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:               uid.New(uid.ProjectPrefix),
 		WorkspaceID:      workspace.ID,
 		Name:             "Protected",
@@ -41,7 +41,7 @@ func TestDeleteProjectDeleteProtection(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, headers, handler.Request{
-		Slug: slug,
+		ProjectId: project.ID,
 	})
 	require.Equal(t, 412, res.Status, "expected 412, received: %s", res.RawBody)
 	require.NotNil(t, res.Body.Error)
