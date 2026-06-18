@@ -624,9 +624,15 @@ describe("WorkOSAuthProvider", () => {
       });
     });
 
-    it("deletes orphaned factors before enrolling a new one", async () => {
+    it("deletes pending orphan factors before enrolling, but keeps verified ones", async () => {
       workos.multiFactorAuth.listUserAuthFactors.mockResolvedValue({
-        data: [{ id: "orphan_1" }, { id: "orphan_2" }],
+        data: [
+          // Pending orphans: enrolled but never verified (no totp metadata).
+          { id: "orphan_1" },
+          { id: "orphan_2" },
+          // A verified, in-use factor must be left untouched.
+          { id: "verified_1", totp: { issuer: "Unkey", user: "test@example.com" } },
+        ],
       });
       workos.multiFactorAuth.createUserAuthFactor.mockResolvedValue({
         authenticationFactor: {
@@ -640,10 +646,29 @@ describe("WorkOSAuthProvider", () => {
 
       expect(workos.multiFactorAuth.deleteFactor).toHaveBeenCalledWith("orphan_1");
       expect(workos.multiFactorAuth.deleteFactor).toHaveBeenCalledWith("orphan_2");
+      expect(workos.multiFactorAuth.deleteFactor).not.toHaveBeenCalledWith("verified_1");
       expect(workos.multiFactorAuth.createUserAuthFactor).toHaveBeenCalled();
     });
 
-    it("lists factors for a user", async () => {
+    it("still enrolls when cleanup fails", async () => {
+      workos.multiFactorAuth.listUserAuthFactors.mockRejectedValue(new Error("list failed"));
+      workos.multiFactorAuth.createUserAuthFactor.mockResolvedValue({
+        authenticationFactor: {
+          id: "auth_factor_1",
+          totp: { qrCode: "data:image/png;base64,abc", secret: "SECRET", uri: "otpauth://..." },
+        },
+        authenticationChallenge: { id: "auth_challenge_1" },
+      });
+
+      const enrollment = await provider.beginMfaEnrollment({
+        userId: "user_123",
+        email: "test@example.com",
+      });
+
+      expect(enrollment.factorId).toBe("auth_factor_1");
+    });
+
+    it("lists only verified factors, hiding pending orphans", async () => {
       workos.multiFactorAuth.listUserAuthFactors.mockResolvedValue({
         data: [
           {
@@ -652,6 +677,8 @@ describe("WorkOSAuthProvider", () => {
             totp: { issuer: "Unkey", user: "test@example.com" },
             createdAt: "2026-01-01T00:00:00.000Z",
           },
+          // Pending orphan with no totp metadata — must be filtered out.
+          { id: "orphan_1", type: "totp", createdAt: "2026-01-02T00:00:00.000Z" },
         ],
       });
 

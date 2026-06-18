@@ -1026,18 +1026,24 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     userId: string;
     email: string;
   }): Promise<MfaEnrollmentStart> {
-    // Enrollment only starts when the user has no usable factor (settings shows
-    // the enroll button only in the empty state; sign-in enrollment is forced
-    // because the account has none). Any factor lingering here is therefore an
-    // unverified orphan from an abandoned attempt — delete it so refreshing or
-    // reopening enrollment doesn't accumulate dead TOTP factors in WorkOS.
-    const existing = await this.provider.multiFactorAuth.listUserAuthFactors({
-      userId: params.userId,
-      limit: 100,
-    });
-    await Promise.all(
-      existing.data.map((factor) => this.provider.multiFactorAuth.deleteFactor(factor.id)),
-    );
+    // Clean up orphans from abandoned enrollments so they don't accumulate in
+    // WorkOS. An enrolled-but-unverified factor comes back from the list
+    // without its `totp` metadata; a verified, in-use factor always has it.
+    // Delete only the former so we never remove a factor the user still relies
+    // on. Best-effort: a cleanup failure must not block a fresh enrollment.
+    try {
+      const existing = await this.provider.multiFactorAuth.listUserAuthFactors({
+        userId: params.userId,
+        limit: 100,
+      });
+      await Promise.all(
+        existing.data
+          .filter((factor) => !factor.totp)
+          .map((factor) => this.provider.multiFactorAuth.deleteFactor(factor.id)),
+      );
+    } catch (error) {
+      console.error("Failed to clean up pending MFA factors:", error);
+    }
 
     const { authenticationFactor, authenticationChallenge } =
       await this.provider.multiFactorAuth.createUserAuthFactor({
@@ -1073,13 +1079,19 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       limit: 100,
     });
 
-    return factors.data.map((factor) => ({
-      id: factor.id,
-      type: factor.type,
-      issuer: factor.totp.issuer,
-      user: factor.totp.user,
-      createdAt: factor.createdAt,
-    }));
+    // Surface only verified, usable factors. An enrolled-but-unverified factor
+    // comes back without its `totp` metadata; showing it would both mislead
+    // ("MFA configured" when it isn't) and, in settings, hide the enroll
+    // button behind an unusable orphan.
+    return factors.data
+      .filter((factor) => factor.totp)
+      .map((factor) => ({
+        id: factor.id,
+        type: factor.type,
+        issuer: factor.totp?.issuer ?? "",
+        user: factor.totp?.user ?? "",
+        createdAt: factor.createdAt,
+      }));
   }
 
   async removeMfaFactor(factorId: string): Promise<void> {
