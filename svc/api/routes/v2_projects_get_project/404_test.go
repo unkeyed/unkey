@@ -26,23 +26,22 @@ func TestGetProjectNotFound(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("unknown slug returns 404", func(t *testing.T) {
-		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Slug: slug})
+	t.Run("unknown id returns 404", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: uid.New(uid.ProjectPrefix)})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
 	t.Run("project in another workspace returns 404", func(t *testing.T) {
 		otherWorkspace := h.CreateWorkspace()
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-		h.CreateProject(seed.CreateProjectRequest{
+		project := h.CreateProject(seed.CreateProjectRequest{
 			ID:          uid.New(uid.ProjectPrefix),
 			WorkspaceID: otherWorkspace.ID,
 			Name:        "Theirs",
 			Slug:        slug,
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Slug: slug})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace project, received: %s", res.RawBody)
 	})
 }

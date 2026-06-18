@@ -2092,9 +2092,9 @@ type V2ProjectsCreateProjectResponseData struct {
 
 // V2ProjectsGetProjectRequestBody defines model for V2ProjectsGetProjectRequestBody.
 type V2ProjectsGetProjectRequestBody struct {
-	// Slug URL-safe handle of the project to retrieve, unique within your workspace.
-	// This is the caller-defined identifier returned when the project was created.
-	Slug string `json:"slug"`
+	// ProjectId Specifies which project to retrieve by its unique identifier.
+	// Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+	ProjectId string `json:"projectId"`
 }
 
 // V2ProjectsGetProjectResponseBody defines model for V2ProjectsGetProjectResponseBody.

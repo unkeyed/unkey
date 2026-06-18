@@ -1,4 +1,4 @@
--- name: FindProjectByWorkspaceAndSlug :one
+-- name: FindProjectByWorkspaceAndId :one
 SELECT
     id,
     workspace_id,
@@ -8,5 +8,5 @@ SELECT
     created_at,
     updated_at
 FROM projects
-WHERE workspace_id = ? AND slug = ?
+WHERE workspace_id = ? AND id = ?
 LIMIT 1;

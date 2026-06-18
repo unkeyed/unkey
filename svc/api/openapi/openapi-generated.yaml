@@ -1935,17 +1935,17 @@ components:
         V2ProjectsGetProjectRequestBody:
             type: object
             required:
-                - slug
+                - projectId
             properties:
-                slug:
+                projectId:
                     type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
                     description: |
-                        URL-safe handle of the project to retrieve, unique within your workspace.
-                        This is the caller-defined identifier returned when the project was created.
-                    example: payments-service
+                        Specifies which project to retrieve by its unique identifier.
+                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+                    example: proj_1234abcd
             additionalProperties: false
         V2ProjectsGetProjectResponseBody:
             type: object
@@ -7088,9 +7088,9 @@ paths:
     /v2/projects.getProject:
         post:
             description: |
-                Retrieve a single project in your workspace by its slug.
+                Retrieve a single project in your workspace by its id.
 
-                Use this to fetch project details after creation, verify a project exists before performing operations, or resolve a project's id and metadata from its caller-defined slug.
+                Use this to fetch project details after creation, verify a project exists before performing operations, or resolve a project's metadata from its id.
 
                 **Required Permissions**
 
@@ -7103,10 +7103,10 @@ paths:
                     application/json:
                         examples:
                             basic:
-                                description: Fetch a single project using its workspace-unique slug
-                                summary: Retrieve a project by slug
+                                description: Fetch a single project using its unique identifier
+                                summary: Retrieve a project by ID
                                 value:
-                                    slug: payments-service
+                                    projectId: proj_1234abcd
                         schema:
                             $ref: '#/components/schemas/V2ProjectsGetProjectRequestBody'
                 required: true

@@ -3,9 +3,9 @@ post:
     - projects
   summary: Get project
   description: |
-    Retrieve a single project in your workspace by its slug.
+    Retrieve a single project in your workspace by its id.
 
-    Use this to fetch project details after creation, verify a project exists before performing operations, or resolve a project's id and metadata from its caller-defined slug.
+    Use this to fetch project details after creation, verify a project exists before performing operations, or resolve a project's metadata from its id.
 
     **Required Permissions**
 
@@ -23,10 +23,10 @@ post:
           "$ref": "./V2ProjectsGetProjectRequestBody.yaml"
         examples:
           basic:
-            summary: Retrieve a project by slug
-            description: Fetch a single project using its workspace-unique slug
+            summary: Retrieve a project by ID
+            description: Fetch a single project using its unique identifier
             value:
-              slug: payments-service
+              projectId: proj_1234abcd
     required: true
   responses:
     "200":

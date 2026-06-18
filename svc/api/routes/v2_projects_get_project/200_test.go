@@ -35,7 +35,7 @@ func TestGetProjectSuccessfully(t *testing.T) {
 			Slug:        slug,
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Slug: slug})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Equal(t, project.ID, res.Body.Data.Id)
@@ -49,7 +49,7 @@ func TestGetProjectSuccessfully(t *testing.T) {
 
 	t.Run("returns a delete-protected project", func(t *testing.T) {
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-		h.CreateProject(seed.CreateProjectRequest{
+		project := h.CreateProject(seed.CreateProjectRequest{
 			ID:               uid.New(uid.ProjectPrefix),
 			WorkspaceID:      workspace.ID,
 			Name:             "Protected Service",
@@ -57,7 +57,7 @@ func TestGetProjectSuccessfully(t *testing.T) {
 			DeleteProtection: true,
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Slug: slug})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.True(t, res.Body.Data.DeleteProtection)
 	})
