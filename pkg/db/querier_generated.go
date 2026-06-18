@@ -2269,8 +2269,10 @@ type Querier interface {
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE project_id = ?
-	//  ORDER BY created_at ASC
-	ListAppsByProject(ctx context.Context, db DBTX, projectID string) ([]ListAppsByProjectRow, error)
+	//    AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]ListAppsByProjectRow, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks

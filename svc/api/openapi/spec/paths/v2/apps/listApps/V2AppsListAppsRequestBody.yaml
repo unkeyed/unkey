@@ -1,0 +1,41 @@
+type: object
+required:
+  - projectSlug
+properties:
+  projectSlug:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    description: |
+      The slug of the project whose apps you want to list, unique within your workspace.
+      Identifies the parent project the apps are enumerated under.
+    example: payments-service
+  limit:
+    type: integer
+    description: |
+      Maximum number of apps to return per request.
+      Balance between response size and number of pagination calls needed.
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: |
+      Pagination cursor from a previous response to fetch the next page.
+      Use when `hasMore: true` in the previous response.
+    example: app_1234abcd
+additionalProperties: false
+examples:
+  basic:
+    summary: List a project's apps
+    description: List the first page of apps in the given project
+    value:
+      projectSlug: payments-service
+  paginated:
+    summary: Paginate with a smaller page size
+    description: Fetch a smaller page and continue from a cursor
+    value:
+      projectSlug: payments-service
+      limit: 20
+      cursor: app_1234abcd

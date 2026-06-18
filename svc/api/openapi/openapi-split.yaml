@@ -226,6 +226,8 @@ paths:
     $ref: "./spec/paths/v2/apps/createApp/index.yaml"
   /v2/apps.getApp:
     $ref: "./spec/paths/v2/apps/getApp/index.yaml"
+  /v2/apps.listApps:
+    $ref: "./spec/paths/v2/apps/listApps/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:

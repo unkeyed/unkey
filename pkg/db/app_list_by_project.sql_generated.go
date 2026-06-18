@@ -13,8 +13,16 @@ const listAppsByProject = `-- name: ListAppsByProject :many
 SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 FROM apps
 WHERE project_id = ?
-ORDER BY created_at ASC
+  AND id >= ?
+ORDER BY id ASC
+LIMIT ?
 `
+
+type ListAppsByProjectParams struct {
+	ProjectID string `db:"project_id"`
+	IDCursor  string `db:"id_cursor"`
+	Limit     int32  `db:"limit"`
+}
 
 type ListAppsByProjectRow struct {
 	App App `db:"app"`
@@ -25,9 +33,11 @@ type ListAppsByProjectRow struct {
 //	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 //	FROM apps
 //	WHERE project_id = ?
-//	ORDER BY created_at ASC
-func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, projectID string) ([]ListAppsByProjectRow, error) {
-	rows, err := db.QueryContext(ctx, listAppsByProject, projectID)
+//	  AND id >= ?
+//	ORDER BY id ASC
+//	LIMIT ?
+func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]ListAppsByProjectRow, error) {
+	rows, err := db.QueryContext(ctx, listAppsByProject, arg.ProjectID, arg.IDCursor, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
