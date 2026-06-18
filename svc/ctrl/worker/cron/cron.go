@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
@@ -39,6 +40,7 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
+	auditLogCleanup  *auditlogcleanup.Handler
 	auditLogExport   *auditlogexport.Handler
 	deployBilling    *deploybilling.Handler
 	idlePreview      *idlepreview.Handler
@@ -59,6 +61,7 @@ type Heartbeats struct {
 	KeyRefill         healthcheck.Heartbeat
 	KeyLastUsedSync   healthcheck.Heartbeat
 	AuditLogExport    healthcheck.Heartbeat
+	AuditLogCleanup   healthcheck.Heartbeat
 	DeployBillingPush healthcheck.Heartbeat
 }
 
@@ -102,6 +105,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.KeyRefill, "Heartbeats.KeyRefill must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.KeyLastUsedSync, "Heartbeats.KeyLastUsedSync must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.AuditLogExport, "Heartbeats.AuditLogExport must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.AuditLogCleanup, "Heartbeats.AuditLogCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
@@ -147,6 +151,13 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	auditLogCleanupH, err := auditlogcleanup.New(auditlogcleanup.Config{
+		DB:        cfg.DB,
+		Heartbeat: cfg.Heartbeats.AuditLogCleanup,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	// The push is enabled only when ClickHouse (usage source) and Stripe
 	// (sink) are both configured; otherwise it runs as a no-op so the cron
@@ -174,6 +185,7 @@ func New(cfg Config) (*Service, error) {
 
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
+		auditLogCleanup:                auditLogCleanupH,
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
 		idlePreview:                    idlePreviewH,
@@ -217,6 +229,13 @@ func (s *Service) RunRatelimitGlobalCountersCleanup(
 	req *hydrav1.RunRatelimitGlobalCountersCleanupRequest,
 ) (*hydrav1.RunRatelimitGlobalCountersCleanupResponse, error) {
 	return s.ratelimitCleanup.Handle(ctx, req)
+}
+
+func (s *Service) RunAuditLogOutboxCleanup(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunAuditLogOutboxCleanupRequest,
+) (*hydrav1.RunAuditLogOutboxCleanupResponse, error) {
+	return s.auditLogCleanup.Handle(ctx, req)
 }
 
 func (s *Service) RunDeployBillingPush(

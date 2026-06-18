@@ -14,6 +14,7 @@ go_library(
         "//pkg/db",
         "//pkg/healthcheck",
         "//svc/ctrl/internal/billingmeter",
+        "//svc/ctrl/worker/cron/auditlogcleanup",
         "//svc/ctrl/worker/cron/auditlogexport",
         "//svc/ctrl/worker/cron/deploybilling",
         "//svc/ctrl/worker/cron/idlepreview",
@@ -28,6 +29,7 @@ go_library(
 go_test(
     name = "cron_test",
     srcs = [
+        "audit_log_outbox_cleanup_integration_test.go",
         "key_last_used_sync_integration_test.go",
         "key_refill_integration_test.go",
         "quota_check_integration_test.go",

@@ -52,6 +52,12 @@ service CronService {
   // Hourly schedule.
   rpc RunRatelimitGlobalCountersCleanup(RunRatelimitGlobalCountersCleanupRequest) returns (RunRatelimitGlobalCountersCleanupResponse) {}
 
+  // RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
+  // rows (deleted_at stamped) older than the retention window so the outbox
+  // stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
+  // so a paused/wedged invocation cannot block other handlers. Daily schedule.
+  rpc RunAuditLogOutboxCleanup(RunAuditLogOutboxCleanupRequest) returns (RunAuditLogOutboxCleanupResponse) {}
+
   // RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
   // egress, disk) from ClickHouse and pushes each billable workspace's
   // running total to Stripe as a meter event. The meters aggregate with
@@ -91,6 +97,12 @@ message RunAuditLogExportResponse {
 
 message RunRatelimitGlobalCountersCleanupRequest {}
 message RunRatelimitGlobalCountersCleanupResponse {
+  // Number of rows deleted.
+  int64 rows_deleted = 1;
+}
+
+message RunAuditLogOutboxCleanupRequest {}
+message RunAuditLogOutboxCleanupResponse {
   // Number of rows deleted.
   int64 rows_deleted = 1;
 }
