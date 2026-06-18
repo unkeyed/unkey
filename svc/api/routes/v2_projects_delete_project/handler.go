@@ -83,11 +83,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if project.DeleteProtection.Valid && project.DeleteProtection.Bool {
-		return fault.New("delete protected",
+		return fault.New(
+			"delete protected",
 			fault.Code(codes.App.Protection.ProtectedResource.URN()),
 			fault.Internal("project is protected from deletion"),
 			fault.Public("This project has delete protection enabled. Disable it before attempting to delete."),
 		)
+	}
+
+	actor, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
 	}
 
 	// Deletion cascades through the project's apps, environments, and
@@ -95,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// the workflow and returns immediately; teardown is eventually consistent.
 	_, err = h.CtrlClient.DeleteProject(ctx, &ctrlv1.DeleteProjectRequest{
 		ProjectId: project.ID,
-		Actor:     ctrlclient.Actor(principal, s.Location(), s.UserAgent()),
+		Actor:     actor,
 	})
 	if err != nil {
 		return ctrlclient.HandleError(err, "delete project")
