@@ -8,9 +8,9 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // pushTask is one eligible workspace push, resolved after filtering so the
@@ -69,8 +69,8 @@ func (h *Handler) resolvePushTasks(
 		return nil, 0, fmt.Errorf("get active keys: %w", err)
 	}
 
-	valuesByWorkspace := aggregateUsage(rows)
-	mergeActiveKeys(valuesByWorkspace, keyRows)
+	valuesByWorkspace := AggregateUsage(rows)
+	MergeActiveKeys(valuesByWorkspace, keyRows)
 	if len(valuesByWorkspace) == 0 {
 		logger.Info("no deploy usage this period", "billing_period", period)
 		return nil, 0, nil

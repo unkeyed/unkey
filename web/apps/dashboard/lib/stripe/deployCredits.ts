@@ -19,8 +19,19 @@ import type { DeployPlan } from "./deployPlan";
 const EXPIRY_GRACE_SECONDS = 3 * 24 * 60 * 60;
 
 export type DeployCreditGrantResult =
-  | { granted: false; reason: string }
-  | { granted: true; grantId: string; amountCents: number };
+  | {
+      granted: false;
+      reason: string;
+      /**
+       * The period's total granted credit (cents), recomputed from Stripe's
+       * grants, when the invoice carries Deploy fee lines for an open period.
+       * Present on the already-granted path so a redelivered webhook can
+       * re-persist a total an earlier delivery failed to write. Undefined when
+       * there is nothing to persist (no fee lines, closed period, no config).
+       */
+      periodTotalCents?: number;
+    }
+  | { granted: true; grantId: string; amountCents: number; periodTotalCents: number };
 
 export type NetDeployFee = {
   /** Net of the invoice's Deploy plan-fee lines (cents); can be negative. */
@@ -124,23 +135,30 @@ export async function grantDeployCreditsForInvoice(
     return { granted: false, reason: "period already closed" };
   }
 
-  // Replay guard beyond the 24h idempotency window: skip if this invoice
-  // already produced a grant. creditGrants.list has no metadata or created
-  // filter, so we page the customer's grants and match on the invoice id.
-  // Grants are roughly one per month, so this is a page or two even for
-  // long-tenured customers; paging avoids missing a match past the first page.
+  // One pass over the customer's grants serves two purposes. Replay guard
+  // beyond the 24h idempotency window: skip if this invoice already produced
+  // a grant (creditGrants.list has no metadata filter, so match on the
+  // invoice id). Period total: sum the grants that expire at this period's
+  // boundary — a period's grants (subscribe or renewal baseline plus upgrade
+  // top-ups) all share expires_at, and no other period's can, so the sum is
+  // the period's true included credit regardless of how many deliveries or
+  // replays got here first. Grants are roughly one per month, so this is a
+  // page or two even for long-tenured customers.
   let duplicate: Stripe.Billing.CreditGrant | undefined;
+  let periodTotalCents = 0;
   for await (const grant of stripe.billing.creditGrants.list({
     customer: customerId,
     limit: 100,
   })) {
+    if (grant.expires_at === expiresAt) {
+      periodTotalCents += grant.amount.monetary?.value ?? 0;
+    }
     if (grant.metadata?.stripe_invoice_id === invoice.id) {
       duplicate = grant;
-      break;
     }
   }
   if (duplicate) {
-    return { granted: false, reason: `already granted (${duplicate.id})` };
+    return { granted: false, reason: `already granted (${duplicate.id})`, periodTotalCents };
   }
 
   // The grant name shows up as the credit line on the invoice, so it should
@@ -166,5 +184,10 @@ export async function grantDeployCreditsForInvoice(
     { idempotencyKey: `deploy-credit-grant:${invoice.id}` },
   );
 
-  return { granted: true, grantId: created.id, amountCents: fee.amountCents };
+  return {
+    granted: true,
+    grantId: created.id,
+    amountCents: fee.amountCents,
+    periodTotalCents: periodTotalCents + fee.amountCents,
+  };
 }

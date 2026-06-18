@@ -12,6 +12,7 @@ CREATE TABLE `workspaces` (
 	`deploy_plan_override` varchar(64),
 	`deploy_spend_budget_cents` bigint unsigned,
 	`deploy_spend_budget_stop` boolean NOT NULL DEFAULT false,
+	`deploy_included_credit_cents` bigint unsigned,
 	`beta_features` json NOT NULL,
 	`subscriptions` json,
 	`enabled` boolean NOT NULL DEFAULT true,

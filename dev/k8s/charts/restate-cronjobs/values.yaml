@@ -64,3 +64,18 @@ jobs:
     schedule: "30 0 1 * *"
     urlPath: "hydra.v1.CronService/$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)/RunDeployBillingClose/send"
     idempotencyKey: "deploy-billing-close-$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)-backup-$(date -u +%Y-%m-%dT%H%M)"
+
+  # Deploy spend-cap check: prices each budgeted workspace's month-to-date usage,
+  # emails budget alerts (50/75/100%), and stops compute at 100% when the
+  # workspace opted in. Keyed by the CURRENT billing period (YYYY-MM) so the
+  # per-workspace checks serialize on one orchestrator VO. The idempotency key
+  # is distinct PER TICK (down to the minute), not per period: a per-period key
+  # would dedupe every run in the month onto one invocation, so the check would
+  # fire once a month instead of every cadence. Cadence sets the worst-case
+  # alert and enforcement latency (and thus how far a runaway can overshoot the
+  # cap before compute stops); 15 minutes balances that against ClickHouse and
+  # Stripe load.
+  deploy-spend-check:
+    schedule: "*/15 * * * *"
+    urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunDeploySpendCheck/send"
+    idempotencyKey: "deploy-spend-check-$(date -u +%Y-%m-%dT%H:%M)"
