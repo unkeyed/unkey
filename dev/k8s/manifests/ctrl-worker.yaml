@@ -15,6 +15,11 @@ data:
     cname_domain = "unkey.local"
     build_platform = "linux/arm64"
 
+    # WorkOS API key: resolves an org's admin emails for the spend-cap budget
+    # alerts. From the optional workos-credentials secret (dev/.env.workos);
+    # empty resolves no recipients, so alerts just log.
+    workos_api_key = "${WORKOS_API_KEY}"
+
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
@@ -51,6 +56,12 @@ data:
     # Empty (no .env.stripe) leaves the push as a no-op that only logs numbers.
     [billing]
     stripe_secret_key = "${STRIPE_SECRET_KEY}"
+
+    # Resend API key for the spend-cap budget alert emails. From the optional
+    # resend-credentials secret (dev/.env.resend); empty uses a noop sender that
+    # only logs.
+    [email]
+    resend_api_key = "${RESEND_API_KEY}"
 
     # GitHub App credentials for authenticating with the GitHub API.
     # app_id is resolved at runtime via os.ExpandEnv from the github-credentials secret.
@@ -141,6 +152,18 @@ spec:
                 secretKeyRef:
                   name: stripe-credentials
                   key: STRIPE_SECRET_KEY
+                  optional: true
+            - name: WORKOS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: workos-credentials
+                  key: WORKOS_API_KEY
+                  optional: true
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: resend-credentials
+                  key: RESEND_API_KEY
                   optional: true
             - name: FORCE_DEPLOYMENT_APPROVAL
               value: "false"

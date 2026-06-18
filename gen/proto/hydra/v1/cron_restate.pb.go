@@ -81,6 +81,14 @@ type CronServiceClient interface {
 	// invoice counts as done, so the Stripe invoice.created webhook (via
 	// ctrl-api) and the 00:30 UTC backup cron can both invoke it safely.
 	RunDeployBillingClose(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse]
+	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
+	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
+	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
+	// workspace. Runs every few minutes (far tighter than the hourly billing
+	// push) because a runaway can blow past the cap between hourly ticks; the
+	// per-workspace work prices usage locally from ClickHouse, so the tight
+	// cadence costs no Stripe calls.
+	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
 }
 
 type cronServiceClient struct {
@@ -169,6 +177,14 @@ func (c *cronServiceClient) RunDeployBillingClose(opts ...sdk_go.ClientOption) s
 	return sdk_go.WithRequestType[*RunDeployBillingCloseRequest](sdk_go.Object[*RunDeployBillingCloseResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeployBillingClose", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeploySpendCheckRequest](sdk_go.Object[*RunDeploySpendCheckResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploySpendCheck", cOpts...))
+}
+
 // CronServiceIngressClient is the ingress client API for hydra.v1.CronService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -222,6 +238,14 @@ type CronServiceIngressClient interface {
 	// invoice counts as done, so the Stripe invoice.created webhook (via
 	// ctrl-api) and the 00:30 UTC backup cron can both invoke it safely.
 	RunDeployBillingClose() ingress.Requester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse]
+	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
+	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
+	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
+	// workspace. Runs every few minutes (far tighter than the hourly billing
+	// push) because a runaway can blow past the cap between hourly ticks; the
+	// per-workspace work prices usage locally from ClickHouse, so the tight
+	// cadence costs no Stripe calls.
+	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
 }
 
 type cronServiceIngressClient struct {
@@ -281,6 +305,11 @@ func (c *cronServiceIngressClient) RunScaleDownIdlePreviewDeployments() ingress.
 func (c *cronServiceIngressClient) RunDeployBillingClose() ingress.Requester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeployBillingCloseRequest, *RunDeployBillingCloseResponse](c.client, c.serviceName, "RunDeployBillingClose", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse](c.client, c.serviceName, "RunDeploySpendCheck", &c.key, &codec)
 }
 
 // CronServiceServer is the server API for hydra.v1.CronService service.
@@ -353,6 +382,14 @@ type CronServiceServer interface {
 	// invoice counts as done, so the Stripe invoice.created webhook (via
 	// ctrl-api) and the 00:30 UTC backup cron can both invoke it safely.
 	RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error)
+	// RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
+	// period "YYYY-MM". It lists the opt-in set of workspaces that configured a
+	// Deploy spend budget and fans out one DeploySpendCheckService invocation per
+	// workspace. Runs every few minutes (far tighter than the hourly billing
+	// push) because a runaway can blow past the cap between hourly ticks; the
+	// per-workspace work prices usage locally from ClickHouse, so the tight
+	// cadence costs no Stripe calls.
+	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
 }
 
 // UnimplementedCronServiceServer should be embedded to have
@@ -389,6 +426,9 @@ func (UnimplementedCronServiceServer) RunScaleDownIdlePreviewDeployments(ctx sdk
 func (UnimplementedCronServiceServer) RunDeployBillingClose(ctx sdk_go.ObjectContext, req *RunDeployBillingCloseRequest) (*RunDeployBillingCloseResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeployBillingClose not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) testEmbeddedByValue() {}
 
 // UnsafeCronServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -417,5 +457,6 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunDeployBillingPush", sdk_go.NewObjectHandler(srv.RunDeployBillingPush))
 	router = router.Handler("RunScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.RunScaleDownIdlePreviewDeployments))
 	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
+	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
 	return router
 }

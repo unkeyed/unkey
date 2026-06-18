@@ -20,13 +20,16 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/email"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
@@ -44,15 +47,17 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
-	auditLogCleanup   *auditlogcleanup.Handler
-	auditLogExport    *auditlogexport.Handler
-	deployBilling     *deploybilling.Handler
-	deployBillingPush *deploybilling.PushHandler
-	idlePreview       *idlepreview.Handler
-	keyLastUsedSync   *keylastusedsync.Handler
-	keyRefill         *keyrefill.Handler
-	quotaCheck        *quotacheck.Handler
-	ratelimitCleanup  *ratelimitcleanup.Handler
+	auditLogCleanup      *auditlogcleanup.Handler
+	auditLogExport       *auditlogexport.Handler
+	deployBilling        *deploybilling.Handler
+	deployBillingPush    *deploybilling.PushHandler
+	deploySpendCheck     *deployspendcheck.Handler
+	deploySpendCheckWork *deployspendcheck.CheckHandler
+	idlePreview          *idlepreview.Handler
+	keyLastUsedSync      *keylastusedsync.Handler
+	keyRefill            *keyrefill.Handler
+	quotaCheck           *quotacheck.Handler
+	ratelimitCleanup     *ratelimitcleanup.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
@@ -62,6 +67,13 @@ var _ hydrav1.CronServiceServer = (*Service)(nil)
 // service alongside the CronService.
 func (s *Service) DeployBillingPushServer() hydrav1.DeployBillingPushServiceServer {
 	return s.deployBillingPush
+}
+
+// DeploySpendCheckServer returns the DeploySpendCheckService implementation,
+// fanned out to by the spend-check orchestrator. Bound as its own restate
+// service alongside the CronService.
+func (s *Service) DeploySpendCheckServer() hydrav1.DeploySpendCheckServiceServer {
+	return s.deploySpendCheckWork
 }
 
 // Heartbeats groups the per-task healthcheck pingers. Every field must
@@ -76,6 +88,7 @@ type Heartbeats struct {
 	AuditLogCleanup    healthcheck.Heartbeat
 	DeployBillingPush  healthcheck.Heartbeat
 	DeployBillingClose healthcheck.Heartbeat
+	DeploySpendCheck   healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
@@ -113,6 +126,16 @@ type Config struct {
 	// tests inject a fake to record finalize calls.
 	BillingCloser invoicecloser.Closer
 
+	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
+	// emails (the budget-alert recipients). Empty resolves no recipients, so
+	// the check logs crossings but sends no email.
+	WorkOSAPIKey string
+	// ResendAPIKey authenticates the budget-alert email send. Empty uses a noop
+	// sender that logs instead of sending.
+	ResendAPIKey string
+	// BillingBaseURL is the dashboard origin used to build the alert's billing
+	// link, e.g. "https://app.unkey.com".
+	BillingBaseURL string
 	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
@@ -131,6 +154,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.AuditLogCleanup, "Heartbeats.AuditLogCleanup must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.DeploySpendCheck, "Heartbeats.DeploySpendCheck must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -236,12 +260,49 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	// Spend check reuses the billing usage reader (same ClickHouse meter query);
+	// a nil reader makes the per-workspace check a no-op, matching the push.
+	deploySpendCheckH, err := deployspendcheck.New(deployspendcheck.Config{
+		DB:        cfg.DB,
+		Heartbeat: cfg.Heartbeats.DeploySpendCheck,
+	})
+	if err != nil {
+		return nil, err
+	}
+	// The alert email uses a real Resend sender only when a key is configured;
+	// otherwise it logs. Likewise WorkOS resolves recipients only with a key.
+	// Budget alerts use the published template's own sender and subject, so the
+	// send leaves From empty; no default From to pass.
+	var alertSender email.Sender = email.NewNoop()
+	if cfg.ResendAPIKey != "" {
+		alertSender = email.NewResend(cfg.ResendAPIKey, "")
+	} else {
+		// Deliberately loud, same as the billing pusher above: without a
+		// Resend key every budget alert and suspension notice is silently
+		// dropped, so customers hit their spend cap with no warning.
+		logger.Error("deploy spend-cap alert emails are DISABLED: no resend api key configured")
+	}
+	if cfg.WorkOSAPIKey == "" {
+		logger.Error("deploy spend-cap alert recipients are DISABLED: no workos api key configured; alerts resolve no admins")
+	}
+	deploySpendCheckWorkH, err := deployspendcheck.NewCheckHandler(deployspendcheck.CheckConfig{
+		Usage:          cfg.BillingUsageReader,
+		Admins:         workos.New(cfg.WorkOSAPIKey),
+		Email:          alertSender,
+		BillingBaseURL: cfg.BillingBaseURL,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogCleanup:                auditLogCleanupH,
 		auditLogExport:                 auditLogExportH,
 		deployBilling:                  deployBillingH,
 		deployBillingPush:              deployBillingPushH,
+		deploySpendCheck:               deploySpendCheckH,
+		deploySpendCheckWork:           deploySpendCheckWorkH,
 		idlePreview:                    idlePreviewH,
 		keyLastUsedSync:                keyLastUsedSyncH,
 		keyRefill:                      keyRefillH,
@@ -311,4 +372,11 @@ func (s *Service) RunDeployBillingClose(
 	req *hydrav1.RunDeployBillingCloseRequest,
 ) (*hydrav1.RunDeployBillingCloseResponse, error) {
 	return s.deployBilling.HandleClose(ctx, req)
+}
+
+func (s *Service) RunDeploySpendCheck(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeploySpendCheckRequest,
+) (*hydrav1.RunDeploySpendCheckResponse, error) {
+	return s.deploySpendCheck.Handle(ctx, req)
 }

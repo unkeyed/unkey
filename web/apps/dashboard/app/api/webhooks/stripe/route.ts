@@ -42,6 +42,22 @@ async function mirrorDeployPlan(
 }
 
 /**
+ * Persists the included Compute usage credit for the workspace's current period,
+ * so the spend-cap check reads net-of-credit overage locally without a Stripe
+ * balance call. The value is the period's total recomputed from Stripe's own
+ * credit grants (baseline plus any upgrade top-ups), so the write is a pure set:
+ * idempotent under webhook redelivery, safe to retry after a failed persist,
+ * and self-resetting at each renewal. Keyed by Stripe customer id; a no-op when
+ * no workspace matches.
+ */
+async function persistIncludedCredit(customerId: string, periodTotalCents: number): Promise<void> {
+  await db
+    .update(schema.workspaces)
+    .set({ deployIncludedCreditCents: periodTotalCents })
+    .where(eq(schema.workspaces.stripeCustomerId, customerId));
+}
+
+/**
  * Resolves the API plan item on a subscription and loads its price, customer,
  * and product. Anchors on findApiItem rather than items[0] so a mixed
  * (API + Compute) subscription resolves the API product, not a Compute item.
@@ -495,7 +511,10 @@ export const POST = async (req: Request): Promise<Response> => {
           customer.email,
           customer.name || "Unknown",
         );
-        break;
+        // Return rather than break so this case can never fall through into
+        // invoice.payment_failed below; every other terminus in this case
+        // returns too.
+        return new Response("OK");
       } catch (error) {
         console.error("Subscription creation webhook error:", {
           error:
@@ -652,6 +671,27 @@ export const POST = async (req: Request): Promise<Response> => {
               invoiceId: invoice.id,
               reason: grant.reason,
             });
+          }
+          // Cache the period's total credit for the spend-cap check, which
+          // skips (no alerts, no cap) any workspace with an unknown credit.
+          // The total comes back on the already-granted path too and the
+          // write is a pure set, so failing the webhook here is safe: the
+          // redelivery recomputes the same total and retries the persist.
+          if (grant.periodTotalCents !== undefined) {
+            try {
+              const customerId =
+                typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+              if (customerId) {
+                await persistIncludedCredit(customerId, grant.periodTotalCents);
+              }
+            } catch (creditPersistError) {
+              console.error("Failed to persist included Compute credit:", {
+                error: creditPersistError,
+                invoiceId: invoice.id,
+                eventId: event.id,
+              });
+              return new Response("Error persisting Compute credit", { status: 500 });
+            }
           }
         } catch (grantError) {
           console.error("Failed to grant Deploy usage credits:", {

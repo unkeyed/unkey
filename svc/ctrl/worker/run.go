@@ -457,8 +457,11 @@ func Run(ctx context.Context, cfg Config) error {
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		// Derived from StripeSecretKey; only tests inject these directly.
-		BillingPusher: nil,
-		BillingCloser: nil,
+		BillingPusher:  nil,
+		BillingCloser:  nil,
+		WorkOSAPIKey:   cfg.WorkOSAPIKey,
+		ResendAPIKey:   cfg.Email.ResendAPIKey,
+		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
 			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
@@ -467,6 +470,7 @@ func Run(ctx context.Context, cfg Config) error {
 			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
+			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
 		},
 	})
 	if err != nil {
@@ -543,6 +547,11 @@ func Run(ctx context.Context, cfg Config) error {
 	// deploy billing orchestrator. Standalone, not cron-triggered.
 	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()))
 	logger.Info("DeployBillingPushService enabled")
+
+	// DeploySpendCheckService is the per-workspace spend-cap VO fanned out from
+	// the RunDeploySpendCheck orchestrator.
+	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()))
+	logger.Info("DeploySpendCheckService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
