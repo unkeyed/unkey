@@ -135,15 +135,23 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
               <ChevronDown className="w-3 h-3 text-white/40" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="dark p-0 w-72" align="start">
+          {/* The popover renders in a portal, and the auth pages theme
+              themselves with explicit colors rather than a .dark class, so
+              the shared gray tokens don't resolve to dark values here. Style
+              the dropdown white-on-black explicitly to match the auth flow. */}
+          <PopoverContent className="p-0 w-72 bg-black border-white/10 text-white" align="start">
             <Command
               filter={(value, search) =>
                 value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
               }
+              className="bg-black text-white [&_[cmdk-input-wrapper]]:border-white/10 [&_[cmdk-input-wrapper]_svg]:text-white/40"
             >
-              <CommandInput placeholder="Search country..." />
+              <CommandInput
+                placeholder="Search country..."
+                className="text-white placeholder:text-white/40"
+              />
               <CommandList>
-                <CommandEmpty>No country found.</CommandEmpty>
+                <CommandEmpty className="text-white/40">No country found.</CommandEmpty>
                 <CommandGroup>
                   {COUNTRIES.map((item) => (
                     <CommandItem
@@ -151,12 +159,12 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
                       // Searchable by name, ISO code, and dial code.
                       value={`${item.name} ${item.code} +${item.callingCode}`}
                       onSelect={() => handleSelectCountry(item.code)}
-                      className="flex items-center gap-2 cursor-pointer"
+                      className="flex items-center gap-2 cursor-pointer text-white aria-selected:bg-white/10 aria-selected:text-white"
                     >
                       <span className="text-base leading-none">{flagEmoji(item.code)}</span>
                       <span className="flex-1 truncate">{item.name}</span>
-                      <span className="text-grayA-9 tabular-nums">+{item.callingCode}</span>
-                      {item.code === country && <Check className="w-4 h-4" />}
+                      <span className="text-white/40 tabular-nums">+{item.callingCode}</span>
+                      {item.code === country && <Check className="w-4 h-4 text-white shrink-0" />}
                     </CommandItem>
                   ))}
                 </CommandGroup>
