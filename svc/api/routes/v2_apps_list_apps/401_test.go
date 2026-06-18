@@ -20,7 +20,7 @@ func TestListAppsUnauthorized(t *testing.T) {
 		"Authorization": {"Bearer invalid_token"},
 	}
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		ProjectSlug: "payments",
+		ProjectId: "proj_1234abcd",
 	})
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
 }

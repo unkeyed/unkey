@@ -414,17 +414,17 @@ components:
         V2AppsListAppsRequestBody:
             type: object
             required:
-                - projectSlug
+                - projectId
             properties:
-                projectSlug:
+                projectId:
                     type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
                     description: |
-                        The slug of the project whose apps you want to list, unique within your workspace.
-                        Identifies the parent project the apps are enumerated under.
-                    example: payments-service
+                        Identifies the parent project whose apps you want to list by its unique identifier.
+                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+                    example: proj_1234abcd
                 limit:
                     type: integer
                     description: |
@@ -4886,7 +4886,7 @@ paths:
             description: |
                 Retrieve a paginated list of apps within a project.
 
-                Use this to build app management dashboards or to enumerate the apps belonging to a project. Apps are scoped to a project, so the project slug is required. Results are ordered by app id and returned in pages. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
+                Use this to build app management dashboards or to enumerate the apps belonging to a project. Apps are scoped to a project, so the project id is required. Results are ordered by app id and returned in pages. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
 
                 **Required Permissions**
 
@@ -4902,7 +4902,7 @@ paths:
                                 description: List the first page of apps in the given project
                                 summary: List a project's apps
                                 value:
-                                    projectSlug: payments-service
+                                    projectId: proj_1234abcd
                         schema:
                             $ref: '#/components/schemas/V2AppsListAppsRequestBody'
                 required: true

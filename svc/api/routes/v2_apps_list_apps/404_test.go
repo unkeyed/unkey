@@ -26,9 +26,8 @@ func TestListAppsNotFound(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("unknown project slug returns 404", func(t *testing.T) {
-		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectSlug: slug})
+	t.Run("unknown project id returns 404", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: uid.New(uid.ProjectPrefix)})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -50,7 +49,7 @@ func TestListAppsNotFound(t *testing.T) {
 			DefaultBranch: "main",
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectSlug: otherProjectSlug})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: otherProject.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace project, received: %s", res.RawBody)
 	})
 }

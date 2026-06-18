@@ -5,7 +5,7 @@ post:
   description: |
     Retrieve a paginated list of apps within a project.
 
-    Use this to build app management dashboards or to enumerate the apps belonging to a project. Apps are scoped to a project, so the project slug is required. Results are ordered by app id and returned in pages. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
+    Use this to build app management dashboards or to enumerate the apps belonging to a project. Apps are scoped to a project, so the project id is required. Results are ordered by app id and returned in pages. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
 
     **Required Permissions**
 
@@ -26,7 +26,7 @@ post:
             summary: List a project's apps
             description: List the first page of apps in the given project
             value:
-              projectSlug: payments-service
+              projectId: proj_1234abcd
     required: true
   responses:
     "200":

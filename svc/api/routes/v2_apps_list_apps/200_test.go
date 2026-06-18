@@ -36,7 +36,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 	})
 
 	t.Run("project with no apps returns empty list", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectSlug: projectSlug})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
 		require.Empty(t, res.Body.Data)
@@ -60,7 +60,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 	}
 
 	t.Run("lists seeded apps with populated fields", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectSlug: projectSlug})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Len(t, res.Body.Data, len(seeded))
@@ -99,7 +99,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 			DefaultBranch: "main",
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectSlug: projectSlug})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Len(t, res.Body.Data, len(seeded))
 		for _, a := range res.Body.Data {
@@ -109,8 +109,8 @@ func TestListAppsSuccessfully(t *testing.T) {
 
 	t.Run("non-existent cursor returns 200 without error", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectSlug: projectSlug,
-			Cursor:      ptr.P("app_doesnotexist"),
+			ProjectId: project.ID,
+			Cursor:    ptr.P("app_doesnotexist"),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
@@ -139,8 +139,8 @@ func TestListAppsSuccessfully(t *testing.T) {
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectSlug: projectSlug,
-			Cursor:      ptr.P(foreignApp.ID),
+			ProjectId: project.ID,
+			Cursor:    ptr.P(foreignApp.ID),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		for _, a := range res.Body.Data {
@@ -188,7 +188,7 @@ func TestListAppsPagination(t *testing.T) {
 	cursor := (*string)(nil)
 	pages := 0
 	for {
-		req := handler.Request{ProjectSlug: projectSlug, Limit: ptr.P(2)}
+		req := handler.Request{ProjectId: project.ID, Limit: ptr.P(2)}
 		if cursor != nil {
 			req.Cursor = cursor
 		}
