@@ -13,6 +13,7 @@ go_library(
         "//pkg/auth/principal",
         "//pkg/codes",
         "//pkg/fault",
+        "//pkg/zen",
         "@com_connectrpc_connect//:connect",
     ],
 )

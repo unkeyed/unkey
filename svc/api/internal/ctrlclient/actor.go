@@ -3,19 +3,27 @@ package ctrlclient
 import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/zen"
 )
 
 // Actor builds the ctrl.v1.ActorInfo that ctrl RPCs require to attribute audit
-// logs to the caller. Every handler that calls a ctrl mutation passes the
-// authenticated principal plus the request's origin.
-func Actor(p *principal.Principal, remoteIP, userAgent string) *ctrlv1.ActorInfo {
+// logs, reading the principal and origin off the session so handlers don't
+// assemble it by hand. Errors if the session has no principal (route wired
+// without auth middleware).
+func Actor(s *zen.Session) (*ctrlv1.ActorInfo, error) {
+	p, err := s.GetPrincipal()
+	if err != nil {
+		return nil, err
+	}
+
 	return &ctrlv1.ActorInfo{
 		Id:        p.Subject.ID,
 		Name:      p.Subject.Name,
 		Type:      subjectType(p.Subject.Type),
-		RemoteIp:  remoteIP,
-		UserAgent: userAgent,
-	}
+		RemoteIp:  s.Location(),
+		UserAgent: s.UserAgent(),
+		Meta:      make(map[string]string),
+	}, nil
 }
 
 func subjectType(t principal.SubjectType) ctrlv1.ActorType {

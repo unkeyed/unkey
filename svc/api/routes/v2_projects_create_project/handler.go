@@ -53,11 +53,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	actor, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
+	}
+
 	ctrlResp, err := h.CtrlClient.CreateProject(ctx, &ctrlv1.CreateProjectRequest{
 		WorkspaceId: principal.WorkspaceID,
 		Name:        req.Name,
 		Slug:        req.Slug,
-		Actor:       ctrlclient.Actor(principal, s.Location(), s.UserAgent()),
+		Actor:       actor,
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeAlreadyExists {
