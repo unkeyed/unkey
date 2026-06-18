@@ -640,7 +640,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2ProjectsDeleteProject.Handler{
 			DB:         svc.Database,
-			Auditlogs:  svc.Auditlogs,
 			CtrlClient: svc.CtrlProjectClient,
 		},
 	)

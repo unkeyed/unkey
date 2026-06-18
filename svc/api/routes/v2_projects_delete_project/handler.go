@@ -2,13 +2,10 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -25,7 +22,6 @@ type (
 
 type Handler struct {
 	DB         db.Database
-	Auditlogs  auditlogs.AuditLogService
 	CtrlClient ctrl.ProjectServiceClient
 }
 
@@ -99,36 +95,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// the workflow and returns immediately; teardown is eventually consistent.
 	_, err = h.CtrlClient.DeleteProject(ctx, &ctrlv1.DeleteProjectRequest{
 		ProjectId: project.ID,
+		Actor:     ctrlclient.Actor(principal, s.Location(), s.UserAgent()),
 	})
 	if err != nil {
 		return ctrlclient.HandleError(err, "delete project")
-	}
-
-	err = h.Auditlogs.Insert(ctx, h.DB.RW(), []auditlog.AuditLog{
-		{
-			WorkspaceID:   principal.WorkspaceID,
-			Event:         auditlog.ProjectDeleteEvent,
-			Display:       fmt.Sprintf("Deleted project %s", project.ID),
-			ActorID:       principal.Subject.ID,
-			ActorName:     principal.Subject.Name,
-			ActorMeta:     map[string]any{},
-			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-			RemoteIP:      s.Location(),
-			UserAgent:     s.UserAgent(),
-			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          project.ID,
-					Type:        auditlog.ProjectResourceType,
-					Meta:        map[string]any{"name": project.Name, "slug": project.Slug},
-					Name:        project.Name,
-					DisplayName: project.Name,
-				},
-			},
-		},
-	})
-	if err != nil {
-		return err
 	}
 
 	return s.JSON(http.StatusOK, Response{

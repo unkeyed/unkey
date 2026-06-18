@@ -20,7 +20,6 @@ func TestDeleteProjectDeleteProtection(t *testing.T) {
 	ctrlClient := &testutil.MockProjectClient{}
 	route := &handler.Handler{
 		DB:         h.DB,
-		Auditlogs:  h.Auditlogs,
 		CtrlClient: ctrlClient,
 	}
 	h.Register(route)

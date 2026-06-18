@@ -8,8 +8,6 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/rpc/ctrl",
-        "//internal/services/auditlogs",
-        "//pkg/auditlog",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
@@ -33,6 +31,7 @@ go_test(
     ],
     deps = [
         ":v2_projects_delete_project",
+        "//gen/proto/ctrl/v1:ctrl",
         "//pkg/db",
         "//pkg/uid",
         "//svc/api/internal/testutil",
