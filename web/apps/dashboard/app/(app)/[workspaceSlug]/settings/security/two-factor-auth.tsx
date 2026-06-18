@@ -143,7 +143,6 @@ function EnrollDialog() {
             onSubmit={(e) => {
               e.preventDefault();
               verifyEnrollment.mutate({
-                factorId: enrollment.factorId,
                 challengeId: enrollment.challengeId,
                 code,
               });
