@@ -344,19 +344,19 @@ components:
         V2AppsCreateAppRequestBody:
             type: object
             required:
-                - projectSlug
+                - projectId
                 - name
                 - slug
             properties:
-                projectSlug:
+                projectId:
                     type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
                     description: |
-                        The slug of the project this app belongs to, unique within your workspace.
-                        Identifies the parent project under which the app is created.
-                    example: payments-service
+                        Identifies the parent project this app belongs to by its unique identifier.
+                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+                    example: proj_1234abcd
                 name:
                     type: string
                     minLength: 1
@@ -4508,7 +4508,7 @@ paths:
                                 summary: Basic app creation
                                 value:
                                     name: Payments API
-                                    projectSlug: payments-service
+                                    projectId: proj_1234abcd
                                     slug: payments-api
                         schema:
                             $ref: '#/components/schemas/V2AppsCreateAppRequestBody'

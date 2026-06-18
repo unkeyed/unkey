@@ -28,18 +28,22 @@ func TestCreateAppValidationErrors(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	validProjectID := "proj_1234abcd"
+
 	testCases := []struct {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing projectSlug", req: handler.Request{Name: "App", Slug: "app-slug"}},
-		{name: "missing name", req: handler.Request{ProjectSlug: "payments", Slug: "app-slug"}},
-		{name: "missing slug", req: handler.Request{ProjectSlug: "payments", Name: "App"}},
-		{name: "slug uppercase", req: handler.Request{ProjectSlug: "payments", Name: "App", Slug: "App-Slug"}},
-		{name: "slug underscore", req: handler.Request{ProjectSlug: "payments", Name: "App", Slug: "app_slug"}},
-		{name: "slug leading hyphen", req: handler.Request{ProjectSlug: "payments", Name: "App", Slug: "-app"}},
-		{name: "slug consecutive hyphens", req: handler.Request{ProjectSlug: "payments", Name: "App", Slug: "ap--p"}},
-		{name: "slug too long", req: handler.Request{ProjectSlug: "payments", Name: "App", Slug: strings.Repeat("a", 257)}},
+		{name: "missing projectId", req: handler.Request{Name: "App", Slug: "app-slug"}},
+		{name: "projectId too short", req: handler.Request{ProjectId: "proj_1", Name: "App", Slug: "app-slug"}},
+		{name: "projectId invalid chars", req: handler.Request{ProjectId: "proj-1234abc", Name: "App", Slug: "app-slug"}},
+		{name: "missing name", req: handler.Request{ProjectId: validProjectID, Slug: "app-slug"}},
+		{name: "missing slug", req: handler.Request{ProjectId: validProjectID, Name: "App"}},
+		{name: "slug uppercase", req: handler.Request{ProjectId: validProjectID, Name: "App", Slug: "App-Slug"}},
+		{name: "slug underscore", req: handler.Request{ProjectId: validProjectID, Name: "App", Slug: "app_slug"}},
+		{name: "slug leading hyphen", req: handler.Request{ProjectId: validProjectID, Name: "App", Slug: "-app"}},
+		{name: "slug consecutive hyphens", req: handler.Request{ProjectId: validProjectID, Name: "App", Slug: "ap--p"}},
+		{name: "slug too long", req: handler.Request{ProjectId: validProjectID, Name: "App", Slug: strings.Repeat("a", 257)}},
 	}
 
 	for _, tc := range testCases {
