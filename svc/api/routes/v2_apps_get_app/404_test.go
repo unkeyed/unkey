@@ -26,23 +26,8 @@ func TestGetAppNotFound(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	projectSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-	h.CreateProject(seed.CreateProjectRequest{
-		ID:          uid.New(uid.ProjectPrefix),
-		WorkspaceID: workspace.ID,
-		Name:        "Payments Service",
-		Slug:        projectSlug,
-	})
-
-	t.Run("unknown app slug returns 404", func(t *testing.T) {
-		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectSlug: projectSlug, Slug: slug})
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	})
-
-	t.Run("unknown project slug returns 404", func(t *testing.T) {
-		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectSlug: slug, Slug: "app-slug"})
+	t.Run("unknown app id returns 404", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{AppId: uid.New(uid.AppPrefix)})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -56,7 +41,7 @@ func TestGetAppNotFound(t *testing.T) {
 			Slug:        otherProjectSlug,
 		})
 		otherAppSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-		h.CreateApp(seed.CreateAppRequest{
+		otherApp := h.CreateApp(seed.CreateAppRequest{
 			ID:            uid.New(uid.AppPrefix),
 			WorkspaceID:   otherWorkspace.ID,
 			ProjectID:     otherProject.ID,
@@ -65,7 +50,7 @@ func TestGetAppNotFound(t *testing.T) {
 			DefaultBranch: "main",
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectSlug: otherProjectSlug, Slug: otherAppSlug})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{AppId: otherApp.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace app, received: %s", res.RawBody)
 	})
 }

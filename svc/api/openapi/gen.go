@@ -784,13 +784,9 @@ type V2AppsCreateAppResponseData struct {
 
 // V2AppsGetAppRequestBody defines model for V2AppsGetAppRequestBody.
 type V2AppsGetAppRequestBody struct {
-	// ProjectSlug The slug of the project this app belongs to, unique within your workspace.
-	// Identifies the parent project the app is looked up under.
-	ProjectSlug string `json:"projectSlug"`
-
-	// Slug URL-safe handle of the app to retrieve, unique within its project.
-	// This is the caller-defined identifier returned when the app was created.
-	Slug string `json:"slug"`
+	// AppId Specifies which app to retrieve by its unique identifier.
+	// Must be a valid app ID that begins with 'app_' and exists within your workspace.
+	AppId string `json:"appId"`
 }
 
 // V2AppsGetAppResponseBody defines model for V2AppsGetAppResponseBody.

@@ -29,14 +29,10 @@ func TestGetAppValidationErrors(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing projectSlug", req: handler.Request{Slug: "app-slug"}},
-		{name: "missing slug", req: handler.Request{ProjectSlug: "payments"}},
-		{name: "slug uppercase", req: handler.Request{ProjectSlug: "payments", Slug: "App-Slug"}},
-		{name: "slug underscore", req: handler.Request{ProjectSlug: "payments", Slug: "app_slug"}},
-		{name: "slug leading hyphen", req: handler.Request{ProjectSlug: "payments", Slug: "-app"}},
-		{name: "slug consecutive hyphens", req: handler.Request{ProjectSlug: "payments", Slug: "ap--p"}},
-		{name: "projectSlug uppercase", req: handler.Request{ProjectSlug: "Payments", Slug: "app-slug"}},
-		{name: "slug too long", req: handler.Request{ProjectSlug: "payments", Slug: strings.Repeat("a", 257)}},
+		{name: "missing appId", req: handler.Request{}},
+		{name: "appId too short", req: handler.Request{AppId: "app_1"}},
+		{name: "appId invalid chars", req: handler.Request{AppId: "app-1234abc"}},
+		{name: "appId too long", req: handler.Request{AppId: strings.Repeat("a", 256)}},
 	}
 
 	for _, tc := range testCases {

@@ -3,9 +3,9 @@ post:
     - apps
   summary: Get app
   description: |
-    Retrieve a single app by its project slug and app slug.
+    Retrieve a single app by its id.
 
-    Use this to fetch app details after creation, verify an app exists before performing operations, or resolve an app's id and metadata from its caller-defined slug. App slugs are unique within a project, so both the project slug and app slug are required.
+    Use this to fetch app details after creation, verify an app exists before performing operations, or resolve an app's metadata from its id.
 
     **Required Permissions**
 
@@ -23,11 +23,10 @@ post:
           "$ref": "./V2AppsGetAppRequestBody.yaml"
         examples:
           basic:
-            summary: Retrieve an app by slug
-            description: Fetch a single app using its project slug and app slug
+            summary: Retrieve an app by ID
+            description: Fetch a single app using its unique identifier
             value:
-              projectSlug: payments-service
-              slug: payments-api
+              appId: app_1234abcd
     required: true
   responses:
     "200":

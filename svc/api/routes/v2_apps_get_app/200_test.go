@@ -45,8 +45,7 @@ func TestGetAppSuccessfully(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		ProjectSlug: projectSlug,
-		Slug:        appSlug,
+		AppId: app.ID,
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)

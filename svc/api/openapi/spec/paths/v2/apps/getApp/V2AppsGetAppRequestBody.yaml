@@ -1,31 +1,20 @@
 type: object
 required:
-  - projectSlug
-  - slug
+  - appId
 properties:
-  projectSlug:
+  appId:
     type: string
-    minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
     description: |
-      The slug of the project this app belongs to, unique within your workspace.
-      Identifies the parent project the app is looked up under.
-    example: payments-service
-  slug:
-    type: string
-    minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-    description: |
-      URL-safe handle of the app to retrieve, unique within its project.
-      This is the caller-defined identifier returned when the app was created.
-    example: payments-api
+      Specifies which app to retrieve by its unique identifier.
+      Must be a valid app ID that begins with 'app_' and exists within your workspace.
+    example: app_1234abcd
 additionalProperties: false
 examples:
   basic:
-    summary: Retrieve an app by slug
-    description: Fetch a single app using its project slug and app slug
+    summary: Retrieve an app by ID
+    description: Fetch a single app using its unique identifier
     value:
-      projectSlug: payments-service
-      slug: payments-api
+      appId: app_1234abcd

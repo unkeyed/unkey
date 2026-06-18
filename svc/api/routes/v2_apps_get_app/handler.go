@@ -40,10 +40,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	row, err := db.Query.FindAppByWorkspaceAndSlugs(ctx, h.DB.RO(), db.FindAppByWorkspaceAndSlugsParams{
+	app, err := db.Query.FindAppByWorkspaceAndId(ctx, h.DB.RO(), db.FindAppByWorkspaceAndIdParams{
 		WorkspaceID: principal.WorkspaceID,
-		ProjectSlug: req.ProjectSlug,
-		AppSlug:     req.Slug,
+		ID:          req.AppId,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -70,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
-			ResourceID:   row.App.ProjectID,
+			ResourceID:   app.ProjectID,
 			Action:       rbac.ReadApp,
 		}),
 	))
@@ -90,16 +89,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.App{
-			Id:                  row.App.ID,
-			Name:                row.App.Name,
-			Slug:                row.App.Slug,
-			ProjectId:           row.App.ProjectID,
-			DefaultBranch:       row.App.DefaultBranch,
-			CurrentDeploymentId: row.App.CurrentDeploymentID.String,
-			IsRolledBack:        row.App.IsRolledBack,
-			DeleteProtection:    row.App.DeleteProtection.Bool,
-			CreatedAt:           row.App.CreatedAt,
-			UpdatedAt:           row.App.UpdatedAt.Int64,
+			Id:                  app.ID,
+			Name:                app.Name,
+			Slug:                app.Slug,
+			ProjectId:           app.ProjectID,
+			DefaultBranch:       app.DefaultBranch,
+			CurrentDeploymentId: app.CurrentDeploymentID.String,
+			IsRolledBack:        app.IsRolledBack,
+			DeleteProtection:    app.DeleteProtection.Bool,
+			CreatedAt:           app.CreatedAt,
+			UpdatedAt:           app.UpdatedAt.Int64,
 		},
 	})
 }
