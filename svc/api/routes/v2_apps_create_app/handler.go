@@ -83,12 +83,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	actor, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
+	}
 	res, err := h.CtrlClient.CreateApp(ctx, &ctrlv1.CreateAppRequest{
 		WorkspaceId: principal.WorkspaceID,
 		ProjectId:   project.ID,
 		Name:        req.Name,
 		Slug:        req.Slug,
-		Actor:       ctrlclient.Actor(principal, s.Location(), s.UserAgent()),
+		Actor:       actor,
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeAlreadyExists {
