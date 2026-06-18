@@ -10,10 +10,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
 )
 
-func TestUpdateProjectNotFound(t *testing.T) {
+func TestUpdateProjectDuplicateSlug(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -29,24 +30,27 @@ func TestUpdateProjectNotFound(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	newName := "New Name"
-
-	t.Run("unknown id returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: uid.New(uid.ProjectPrefix), Name: &newName})
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	})
-
-	t.Run("project in another workspace returns 404", func(t *testing.T) {
-		otherWorkspace := h.CreateWorkspace()
+	createProject := func(t *testing.T) (string, string) {
+		t.Helper()
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		project := h.CreateProject(seed.CreateProjectRequest{
 			ID:          uid.New(uid.ProjectPrefix),
-			WorkspaceID: otherWorkspace.ID,
-			Name:        "Theirs",
+			WorkspaceID: workspace.ID,
+			Name:        "Project",
 			Slug:        slug,
 		})
+		return project.ID, slug
+	}
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID, Name: &newName})
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace project, received: %s", res.RawBody)
+	t.Run("changing slug to an existing slug returns 409", func(t *testing.T) {
+		_, existingSlug := createProject(t)
+		id, _ := createProject(t)
+
+		res := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, handler.Request{
+			ProjectId: id,
+			Slug:      &existingSlug,
+		})
+		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_already_exists", res.Body.Error.Type)
 	})
 }

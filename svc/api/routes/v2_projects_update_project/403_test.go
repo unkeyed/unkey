@@ -38,7 +38,7 @@ func TestUpdateProjectForbidden(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-			h.CreateProject(seed.CreateProjectRequest{
+			project := h.CreateProject(seed.CreateProjectRequest{
 				ID:          uid.New(uid.ProjectPrefix),
 				WorkspaceID: workspace.ID,
 				Name:        "Forbidden Test",
@@ -52,7 +52,7 @@ func TestUpdateProjectForbidden(t *testing.T) {
 			}
 
 			newName := "Updated"
-			req := handler.Request{Slug: slug, Name: &newName}
+			req := handler.Request{ProjectId: project.ID, Name: &newName}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if tc.shouldPass {

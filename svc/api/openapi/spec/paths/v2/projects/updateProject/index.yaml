@@ -3,9 +3,9 @@ post:
     - projects
   summary: Update project
   description: |
-    Update an existing project in your workspace, identified by its slug.
+    Update an existing project in your workspace, identified by its id.
 
-    Only the project name and delete protection setting can be changed. Omitted fields are left unchanged. The slug itself cannot be modified.
+    The project name, slug, and delete protection setting can be changed. Omitted fields are left unchanged. Changing the slug affects the deployment domains generated for this project.
 
     **Required Permissions**
 
@@ -26,8 +26,14 @@ post:
             summary: Rename a project
             description: Update only the display name of a project
             value:
-              slug: payments-service
+              projectId: proj_1234abcd
               name: Payments API
+          changeSlug:
+            summary: Change a project slug
+            description: Update the URL-safe slug of a project
+            value:
+              projectId: proj_1234abcd
+              slug: payments-api
     required: true
   responses:
     "200":
@@ -97,6 +103,23 @@ post:
                   detail: The requested project does not exist.
                   status: 404
                   type: not-found
+    "409":
+      description: Conflict - Project with this slug already exists
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+          examples:
+            projectExists:
+              summary: Project already exists
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Conflict
+                  detail: A project with slug 'payments-api' already exists in this workspace.
+                  status: 409
+                  type: conflict
     "429":
       description: Too Many Requests
       content:

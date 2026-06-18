@@ -17,23 +17,29 @@ SET
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE p.name
     END,
+    slug = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE p.slug
+    END,
     delete_protection = CASE
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE p.delete_protection
     END,
     updated_at = ?
 WHERE workspace_id = ?
-  AND slug = ?
+  AND id = ?
 `
 
 type UpdateProjectParams struct {
 	NameSpecified             int64         `db:"name_specified"`
 	Name                      string        `db:"name"`
+	SlugSpecified             int64         `db:"slug_specified"`
+	Slug                      string        `db:"slug"`
 	DeleteProtectionSpecified int64         `db:"delete_protection_specified"`
 	DeleteProtection          sql.NullBool  `db:"delete_protection"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
 	WorkspaceID               string        `db:"workspace_id"`
-	Slug                      string        `db:"slug"`
+	ID                        string        `db:"id"`
 }
 
 // UpdateProject
@@ -44,22 +50,28 @@ type UpdateProjectParams struct {
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE p.name
 //	    END,
+//	    slug = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE p.slug
+//	    END,
 //	    delete_protection = CASE
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE p.delete_protection
 //	    END,
 //	    updated_at = ?
 //	WHERE workspace_id = ?
-//	  AND slug = ?
+//	  AND id = ?
 func (q *Queries) UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error {
 	_, err := db.ExecContext(ctx, updateProject,
 		arg.NameSpecified,
 		arg.Name,
+		arg.SlugSpecified,
+		arg.Slug,
 		arg.DeleteProtectionSpecified,
 		arg.DeleteProtection,
 		arg.UpdatedAt,
 		arg.WorkspaceID,
-		arg.Slug,
+		arg.ID,
 	)
 	return err
 }

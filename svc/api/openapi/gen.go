@@ -2138,9 +2138,14 @@ type V2ProjectsUpdateProjectRequestBody struct {
 	// Omit this field to leave the current name unchanged.
 	Name *string `json:"name,omitempty"`
 
-	// Slug Specifies which project to update using the URL-safe slug you chose when creating the project, unique within your workspace.
-	// Do not confuse this with the project ID returned from `createProject`.
-	Slug string `json:"slug"`
+	// ProjectId Specifies which project to update by its unique identifier.
+	// Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+	ProjectId string `json:"projectId"`
+
+	// Slug New URL-safe slug for the project, unique within your workspace.
+	// Changing it affects the deployment domains generated for this project.
+	// Omit this field to leave the current slug unchanged.
+	Slug *string `json:"slug,omitempty"`
 }
 
 // V2ProjectsUpdateProjectResponseBody defines model for V2ProjectsUpdateProjectResponseBody.

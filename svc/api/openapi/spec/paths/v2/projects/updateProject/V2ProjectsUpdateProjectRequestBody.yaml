@@ -1,15 +1,25 @@
 type: object
 required:
-  - slug
+  - projectId
 properties:
+  projectId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which project to update by its unique identifier.
+      Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+    example: proj_1234abcd
   slug:
     type: string
     minLength: 1
     maxLength: 256
     pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
     description: |
-      Specifies which project to update using the URL-safe slug you chose when creating the project, unique within your workspace.
-      Do not confuse this with the project ID returned from `createProject`.
+      New URL-safe slug for the project, unique within your workspace.
+      Changing it affects the deployment domains generated for this project.
+      Omit this field to leave the current slug unchanged.
     example: payments-service
   name:
     type: string
@@ -31,11 +41,17 @@ examples:
     summary: Rename a project
     description: Update only the display name of a project
     value:
-      slug: payments-service
+      projectId: proj_1234abcd
       name: Payments API
+  changeSlug:
+    summary: Change a project slug
+    description: Update the URL-safe slug of a project
+    value:
+      projectId: proj_1234abcd
+      slug: payments-api
   protect:
     summary: Toggle delete protection
     description: Enable delete protection without changing the name
     value:
-      slug: payments-service
+      projectId: proj_1234abcd
       deleteProtection: true

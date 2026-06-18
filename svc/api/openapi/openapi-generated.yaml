@@ -1998,16 +1998,26 @@ components:
         V2ProjectsUpdateProjectRequestBody:
             type: object
             required:
-                - slug
+                - projectId
             properties:
+                projectId:
+                    type: string
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: |
+                        Specifies which project to update by its unique identifier.
+                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+                    example: proj_1234abcd
                 slug:
                     type: string
                     minLength: 1
                     maxLength: 256
                     pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
                     description: |
-                        Specifies which project to update using the URL-safe slug you chose when creating the project, unique within your workspace.
-                        Do not confuse this with the project ID returned from `createProject`.
+                        New URL-safe slug for the project, unique within your workspace.
+                        Changing it affects the deployment domains generated for this project.
+                        Omit this field to leave the current slug unchanged.
                     example: payments-service
                 name:
                     type: string
@@ -7362,9 +7372,9 @@ paths:
     /v2/projects.updateProject:
         post:
             description: |
-                Update an existing project in your workspace, identified by its slug.
+                Update an existing project in your workspace, identified by its id.
 
-                Only the project name and delete protection setting can be changed. Omitted fields are left unchanged. The slug itself cannot be modified.
+                The project name, slug, and delete protection setting can be changed. Omitted fields are left unchanged. Changing the slug affects the deployment domains generated for this project.
 
                 **Required Permissions**
 
@@ -7376,12 +7386,18 @@ paths:
                 content:
                     application/json:
                         examples:
+                            changeSlug:
+                                description: Update the URL-safe slug of a project
+                                summary: Change a project slug
+                                value:
+                                    projectId: proj_1234abcd
+                                    slug: payments-api
                             rename:
                                 description: Update only the display name of a project
                                 summary: Rename a project
                                 value:
                                     name: Payments API
-                                    slug: payments-service
+                                    projectId: proj_1234abcd
                         schema:
                             $ref: '#/components/schemas/V2ProjectsUpdateProjectRequestBody'
                 required: true
@@ -7453,6 +7469,23 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found - The requested project does not exist in your workspace
+                "409":
+                    content:
+                        application/json:
+                            examples:
+                                projectExists:
+                                    summary: Project already exists
+                                    value:
+                                        error:
+                                            detail: A project with slug 'payments-api' already exists in this workspace.
+                                            status: 409
+                                            title: Conflict
+                                            type: conflict
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - Project with this slug already exists
                 "429":
                     content:
                         application/problem+json:

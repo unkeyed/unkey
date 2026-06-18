@@ -47,9 +47,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.Project, error) {
-		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, tx, db.FindProjectByWorkspaceAndSlugParams{
+		project, err := db.Query.FindProjectByWorkspaceAndId(ctx, tx, db.FindProjectByWorkspaceAndIdParams{
 			WorkspaceID: principal.WorkspaceID,
-			Slug:        req.Slug,
+			ID:          req.ProjectId,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -88,10 +88,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		updatedAt := time.Now().UnixMilli()
 		update := db.UpdateProjectParams{
 			WorkspaceID:               principal.WorkspaceID,
-			Slug:                      req.Slug,
+			ID:                        project.ID,
 			UpdatedAt:                 sql.NullInt64{Valid: true, Int64: updatedAt},
 			NameSpecified:             0,
 			Name:                      "",
+			SlugSpecified:             0,
+			Slug:                      "",
 			DeleteProtectionSpecified: 0,
 			DeleteProtection:          sql.NullBool{Valid: false, Bool: false},
 		}
@@ -103,6 +105,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			update.NameSpecified = 1
 		}
 
+		slug := project.Slug
+		if req.Slug != nil {
+			slug = *req.Slug
+			update.Slug = *req.Slug
+			update.SlugSpecified = 1
+		}
+
 		deleteProtection := project.DeleteProtection.Bool
 		if req.DeleteProtection != nil {
 			deleteProtection = *req.DeleteProtection
@@ -110,7 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			update.DeleteProtectionSpecified = 1
 		}
 
-		if update.NameSpecified == 0 && update.DeleteProtectionSpecified == 0 {
+		if update.NameSpecified == 0 && update.SlugSpecified == 0 && update.DeleteProtectionSpecified == 0 {
 			return openapi.Project{
 				Id:               project.ID,
 				Name:             project.Name,
@@ -123,6 +132,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = db.Query.UpdateProject(ctx, tx, update)
 		if err != nil {
+			if db.IsDuplicateKeyError(err) {
+				return openapi.Project{}, fault.Wrap(err,
+					fault.Code(codes.Data.Project.Duplicate.URN()),
+					fault.Internal("project slug already exists"),
+					fault.Public(fmt.Sprintf("A project with slug '%s' already exists in this workspace.", slug)),
+				)
+			}
+
 			return openapi.Project{}, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("unable to update project"),
@@ -146,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						ID:          project.ID,
 						Type:        auditlog.ProjectResourceType,
-						Meta:        map[string]any{"name": name, "slug": project.Slug, "deleteProtection": deleteProtection},
+						Meta:        map[string]any{"name": name, "slug": slug, "deleteProtection": deleteProtection},
 						Name:        name,
 						DisplayName: name,
 					},
@@ -160,7 +177,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return openapi.Project{
 			Id:               project.ID,
 			Name:             name,
-			Slug:             project.Slug,
+			Slug:             slug,
 			CreatedAt:        project.CreatedAt,
 			UpdatedAt:        updatedAt,
 			DeleteProtection: deleteProtection,

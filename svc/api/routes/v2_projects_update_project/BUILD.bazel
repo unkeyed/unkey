@@ -26,10 +26,12 @@ go_test(
         "401_test.go",
         "403_test.go",
         "404_test.go",
+        "409_test.go",
     ],
     deps = [
         ":v2_projects_update_project",
         "//pkg/db",
+        "//pkg/ptr",
         "//pkg/uid",
         "//svc/api/internal/testutil",
         "//svc/api/internal/testutil/seed",

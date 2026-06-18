@@ -45,11 +45,11 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		return project.ID, slug
 	}
 
-	getProject := func(t *testing.T, slug string) db.FindProjectByWorkspaceAndSlugRow {
+	getProject := func(t *testing.T, id string) db.FindProjectByWorkspaceAndIdRow {
 		t.Helper()
-		project, err := db.Query.FindProjectByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndSlugParams{
+		project, err := db.Query.FindProjectByWorkspaceAndId(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndIdParams{
 			WorkspaceID: workspace.ID,
-			Slug:        slug,
+			ID:          id,
 		})
 		require.NoError(t, err)
 		return project
@@ -60,8 +60,8 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		newName := "New Name"
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug: slug,
-			Name: &newName,
+			ProjectId: id,
+			Name:      &newName,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -71,7 +71,7 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		require.False(t, res.Body.Data.DeleteProtection)
 		require.Greater(t, res.Body.Data.UpdatedAt, int64(0))
 
-		project := getProject(t, slug)
+		project := getProject(t, id)
 		require.Equal(t, newName, project.Name)
 		require.Equal(t, slug, project.Slug)
 		require.False(t, project.DeleteProtection.Bool)
@@ -90,60 +90,77 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		require.True(t, found, "should find a project.update audit log event")
 	})
 
+	t.Run("update slug only", func(t *testing.T) {
+		id, _ := createProject(t, "Slug Change", false)
+		newSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			ProjectId: id,
+			Slug:      &newSlug,
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Equal(t, newSlug, res.Body.Data.Slug)
+		require.Equal(t, "Slug Change", res.Body.Data.Name, "name must survive a slug-only update")
+
+		project := getProject(t, id)
+		require.Equal(t, newSlug, project.Slug)
+		require.Equal(t, "Slug Change", project.Name)
+	})
+
 	t.Run("update delete protection only", func(t *testing.T) {
-		_, slug := createProject(t, "Keep Name", false)
+		id, _ := createProject(t, "Keep Name", false)
 		protect := true
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug:             slug,
+			ProjectId:        id,
 			DeleteProtection: &protect,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, "Keep Name", res.Body.Data.Name)
 		require.True(t, res.Body.Data.DeleteProtection)
 
-		project := getProject(t, slug)
+		project := getProject(t, id)
 		require.Equal(t, "Keep Name", project.Name)
 		require.True(t, project.DeleteProtection.Bool)
 	})
 
 	t.Run("omitted fields keep non-default values", func(t *testing.T) {
-		_, slug := createProject(t, "Original", true)
+		id, _ := createProject(t, "Original", true)
 
 		newName := "Renamed"
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug: slug,
-			Name: &newName,
+			ProjectId: id,
+			Name:      &newName,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, newName, res.Body.Data.Name)
 		require.True(t, res.Body.Data.DeleteProtection, "delete protection must survive a name-only update")
 
-		project := getProject(t, slug)
+		project := getProject(t, id)
 		require.Equal(t, newName, project.Name)
 		require.True(t, project.DeleteProtection.Bool)
 
 		unprotect := false
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug:             slug,
+			ProjectId:        id,
 			DeleteProtection: &unprotect,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, newName, res.Body.Data.Name, "name must survive a delete-protection-only update")
 		require.False(t, res.Body.Data.DeleteProtection)
 
-		project = getProject(t, slug)
+		project = getProject(t, id)
 		require.Equal(t, newName, project.Name)
 		require.False(t, project.DeleteProtection.Bool)
 	})
 
 	t.Run("update both name and delete protection", func(t *testing.T) {
-		_, slug := createProject(t, "Before", true)
+		id, _ := createProject(t, "Before", true)
 		newName := "After"
 		unprotect := false
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug:             slug,
+			ProjectId:        id,
 			Name:             &newName,
 			DeleteProtection: &unprotect,
 		})
@@ -151,23 +168,25 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		require.Equal(t, newName, res.Body.Data.Name)
 		require.False(t, res.Body.Data.DeleteProtection)
 
-		project := getProject(t, slug)
+		project := getProject(t, id)
 		require.Equal(t, newName, project.Name)
 		require.False(t, project.DeleteProtection.Bool)
 	})
 
 	t.Run("empty body leaves project unchanged", func(t *testing.T) {
-		_, slug := createProject(t, "Unchanged", true)
+		id, slug := createProject(t, "Unchanged", true)
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Slug: slug,
+			ProjectId: id,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, "Unchanged", res.Body.Data.Name)
+		require.Equal(t, slug, res.Body.Data.Slug)
 		require.True(t, res.Body.Data.DeleteProtection)
 
-		project := getProject(t, slug)
+		project := getProject(t, id)
 		require.Equal(t, "Unchanged", project.Name)
+		require.Equal(t, slug, project.Slug)
 		require.True(t, project.DeleteProtection.Bool)
 	})
 }

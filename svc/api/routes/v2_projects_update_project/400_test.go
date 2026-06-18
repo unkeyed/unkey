@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
@@ -28,6 +29,7 @@ func TestUpdateProjectBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	validID := "proj_1234abcd"
 	emptyName := ""
 	longName := strings.Repeat("a", 257)
 
@@ -35,12 +37,14 @@ func TestUpdateProjectBadRequest(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing slug", req: handler.Request{}},
-		{name: "slug with uppercase", req: handler.Request{Slug: "Payments-Service"}},
-		{name: "slug with invalid chars", req: handler.Request{Slug: "payments_service"}},
-		{name: "slug too long", req: handler.Request{Slug: strings.Repeat("a", 257)}},
-		{name: "empty name", req: handler.Request{Slug: "payments-service", Name: &emptyName}},
-		{name: "name too long", req: handler.Request{Slug: "payments-service", Name: &longName}},
+		{name: "missing projectId", req: handler.Request{}},
+		{name: "projectId too short", req: handler.Request{ProjectId: "proj_1"}},
+		{name: "projectId with invalid chars", req: handler.Request{ProjectId: "proj-1234abc"}},
+		{name: "slug with uppercase", req: handler.Request{ProjectId: validID, Slug: ptr.P("Payments-Service")}},
+		{name: "slug with invalid chars", req: handler.Request{ProjectId: validID, Slug: ptr.P("payments_service")}},
+		{name: "slug too long", req: handler.Request{ProjectId: validID, Slug: ptr.P(strings.Repeat("a", 257))}},
+		{name: "empty name", req: handler.Request{ProjectId: validID, Name: &emptyName}},
+		{name: "name too long", req: handler.Request{ProjectId: validID, Name: &longName}},
 	}
 
 	for _, tc := range testCases {
@@ -55,7 +59,7 @@ func TestUpdateProjectBadRequest(t *testing.T) {
 	}
 
 	t.Run("invalid json", func(t *testing.T) {
-		invalidJSON := `{"slug": }`
+		invalidJSON := `{"projectId": }`
 
 		req, err := http.NewRequest(route.Method(), route.Path(), strings.NewReader(invalidJSON))
 		require.NoError(t, err)

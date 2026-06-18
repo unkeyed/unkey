@@ -3287,13 +3287,17 @@ type Querier interface {
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE p.name
 	//      END,
+	//      slug = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.slug
+	//      END,
 	//      delete_protection = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE p.delete_protection
 	//      END,
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
-	//    AND slug = ?
+	//    AND id = ?
 	UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error
 	//UpdateProjectDepotID
 	//
