@@ -150,7 +150,10 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
                 placeholder="Search country..."
                 className="text-white placeholder:text-white/40"
               />
-              <CommandList>
+              {/* Thin, dark, overlay-style scrollbar. Without this, desktop
+                  browsers (and macOS with "always show scrollbars") render a
+                  wide light classic scrollbar over the dark dropdown. */}
+              <CommandList className="[scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
                 <CommandEmpty className="text-white/40">No country found.</CommandEmpty>
                 <CommandGroup>
                   {COUNTRIES.map((item) => (
