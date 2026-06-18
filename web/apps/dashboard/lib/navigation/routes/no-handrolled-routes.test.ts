@@ -4,16 +4,18 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Regression guard for the workspace-scoped areas that link through the typed
- * `routes` builders. It fails if a hand-rolled internal path (href="/...",
+ * Regression guard for the dashboard surfaces that link through the typed
+ * `routes` builders: the workspace-scoped page areas plus the shared
+ * `components/` tree. It fails if a hand-rolled internal path (href="/...",
  * router.push("/..."), redirect("/...")) is introduced, so reviewers catch it
- * instead of shipping an untyped url. New builder areas should be added here.
+ * instead of shipping an untyped url. New page areas go in AREAS.
  *
- * Scope and limits: only `[workspaceSlug]/<area>` dirs are scanned, so routes
- * outside that tree (auth, /new) are covered by their own builders, not this
- * guard. Detection is nav-context only (href / push / replace / redirect), so
- * it won't catch a path stored in a variable and used indirectly. A line with
- * a `route-guard-ignore` comment is skipped for deliberate exceptions.
+ * Scope and limits: only these dirs are scanned, so routes elsewhere (page
+ * files at other paths) rely on their builders, not this guard. Detection is
+ * nav-context only (href / push / replace / redirect), so it won't catch a
+ * path stored in a variable and used indirectly. A line with a
+ * `route-guard-ignore` comment (on it or the line above) is skipped for
+ * deliberate exceptions.
  */
 const AREAS = [
   "apis",
@@ -26,15 +28,14 @@ const AREAS = [
   "logs",
 ] as const;
 
-const WORKSPACE_DIR = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../app/(app)/[workspaceSlug]",
-);
+const DASHBOARD_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+const WORKSPACE_DIR = join(DASHBOARD_ROOT, "app/(app)/[workspaceSlug]");
+const COMPONENTS_DIR = join(DASHBOARD_ROOT, "components");
 
-// An href attribute or a push/replace/redirect call whose argument is a string
-// or template literal opening with an absolute path (`/`). Quote can be ' " or
-// a backtick, optionally wrapped in JSX braces for href.
-const HAND_ROLLED = /href=\{?\s*["'`]\/|\b(?:push|replace|redirect)\(\s*["'`]\//;
+// An href attribute (= or object-literal :) or a push/replace/redirect call
+// whose argument is a string or template literal opening with an absolute path
+// (`/`). Quote can be ' " or a backtick, optionally wrapped in JSX braces.
+const HAND_ROLLED = /href\s*[=:]\s*\{?\s*["'`]\/|\b(?:push|replace|redirect)\(\s*["'`]\//;
 const EXTERNAL = /https?:\/\/|mailto:/;
 const COMMENT = /^\s*(?:\/\/|\*|\/\*)/;
 const IGNORE = /route-guard-ignore/;
@@ -67,5 +68,9 @@ function violations(dir: string): string[] {
 describe("no hand-rolled routes in migrated areas", () => {
   it.each(AREAS)("%s links through the routes builders", (area) => {
     expect(violations(join(WORKSPACE_DIR, area))).toEqual([]);
+  });
+
+  it("shared components link through the routes builders", () => {
+    expect(violations(COMPONENTS_DIR)).toEqual([]);
   });
 });
