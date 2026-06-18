@@ -1,9 +1,9 @@
 syntax = "proto3";
 package ctrl.v1;
 
-option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
-
 import "ctrl/v1/actor.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 service ProjectService {
   // Create a new project within a workspace
