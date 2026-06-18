@@ -133,6 +133,25 @@ type Querier interface {
 	//
 	//  DELETE FROM environments WHERE id = ?
 	DeleteEnvironmentById(ctx context.Context, db DBTX, id string) error
+	// DeleteExportedClickhouseOutbox hard-deletes a bounded batch of outbox rows
+	// that were already exported to ClickHouse (deleted_at stamped) before the
+	// retention cutoff, and returns the number of rows deleted so the caller can
+	// loop until the table is drained of expired rows.
+	//
+	// deleted_at < cutoff implicitly skips pending rows: deleted_at IS NULL never
+	// satisfies the comparison, so unprocessed events are never touched. The
+	// drainer_pending_idx (deleted_at, version, pk) leading on deleted_at turns
+	// this into a range seek rather than a full scan.
+	//
+	// LIMIT bounds each DELETE so locks stay short and replication lag stays
+	// bounded; the cron loops until a batch deletes fewer than the limit. Marked
+	// rows are kept until this cutoff so ops can re-queue (clear deleted_at) or
+	// audit recently-exported events.
+	//
+	//  DELETE FROM clickhouse_outbox
+	//  WHERE deleted_at < ?
+	//  LIMIT ?
+	DeleteExportedClickhouseOutbox(ctx context.Context, db DBTX, arg DeleteExportedClickhouseOutboxParams) (int64, error)
 	//DeleteFrontlineRouteByFQDN
 	//
 	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?
