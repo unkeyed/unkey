@@ -2,8 +2,8 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections";
-import { Ban, Bolt, Clone, Github, Hammer2 } from "@unkey/icons";
-import { toast } from "@unkey/ui";
+import { Ban, Bolt, Clone, Dots, Github, Hammer2 } from "@unkey/icons";
+import { Button, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { isRedeployableDeploymentStatus } from "../../deployments/components/table/components/actions/deployment-action-eligibility";
@@ -76,5 +76,16 @@ export function ProductionCardActionsMenu({
     ];
   }, [deployment, status, commitUrl]);
 
-  return <TableActionPopover items={items} />;
+  return (
+    <TableActionPopover items={items}>
+      <Button
+        variant="outline"
+        size="sm"
+        aria-label="More actions"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Dots iconSize="sm-regular" />
+      </Button>
+    </TableActionPopover>
+  );
 }
