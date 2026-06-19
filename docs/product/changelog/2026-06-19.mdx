@@ -1,40 +1,16 @@
 ---
 title: "June 19, 2026"
-description: "A redesigned two-product billing page with Unkey Deploy plans, resource-scoped permissions for the API, JWT auth, identity-scoped portal sessions, and a Stripe-meter billing pipeline."
+description: "Status indicator in the dashboard, source account now shows when selecting a repo and plenly of bug fixes"
 noindex: true
 ---
 
 ## New features
-
-### Two-product billing for Compute and API
-
-The [billing page](/platform/workspaces/billing) is now organized around two products — Unkey Compute and Unkey API — each with its own plan card, usage meters, and a shared plan-change modal. You can subscribe to, change, or cancel a Compute plan independently of your API plan, and mixed subscriptions are supported end-to-end. Cancellation guards prevent you from accidentally stopping deployments by cancelling the wrong line.
-
-### Metered Compute billing
-
-Compute usage (CPU, memory, egress, and disk) is now metered hourly and reported to Stripe as a running month-to-date total, so the amount shown on your invoice always matches what's running in your account. Available to workspaces on a paid Compute plan.
-
-### Resource-scoped permissions on the API
-
-[Root key permissions](/platform/root-keys/permissions) now authorize API routes against URN-style resource permissions, so a key can be scoped down to specific APIs, rate-limit namespaces, identities, or RBAC resources rather than blanket access. WorkOS-issued tokens are translated into the same permission model, so dashboard sessions and root keys share one authorization surface.
-
-### JWT authentication with JWKS
-
-You can now [authenticate to the Unkey API](/api-reference/auth) with a JWT signed by your own provider. Configure an `auth.provider` and an HTTPS `jwks_url` and the API verifies incoming tokens against your JWKS. The JWKS fetcher handles cold starts without wedging auth on a transient failure.
-
-### Identity-scoped key portals
-
-Portal sessions opened for an end user are now scoped to that user's `externalId`. Listing keys through a portal session only returns keys owned by that identity, and user-supplied filters can no longer widen the result set. Existing portal links keep working.
 
 ### Status indicator in the help menu
 
 The dashboard's help menu now shows live Unkey status next to a link to the status page, so you can tell at a glance whether an issue is on your side or ours.
 
 ## Updates
-
-### Project gating for Compute
-
-Creating a project now checks your Compute plan. The dashboard surfaces this as a paywall on the [projects screen](/platform/projects/overview) when a workspace isn't entitled to Compute yet, so you find out before you've filled out the form.
 
 ### Repo picker shows the source account
 
