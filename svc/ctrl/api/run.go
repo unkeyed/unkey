@@ -290,6 +290,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:           restateClient,
 		Bearer:            cfg.AuthToken,
 		EnforceDeployGate: cfg.DeployGate.Enforce,
+		Auditlogs:         auditlogSvc,
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {

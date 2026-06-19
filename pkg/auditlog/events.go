@@ -67,4 +67,7 @@ const (
 
 	// Deployment events
 	DeploymentRebuildEvent AuditLogEvent = "deployment.rebuild"
+
+	// Project events
+	ProjectCreateEvent AuditLogEvent = "project.create"
 )

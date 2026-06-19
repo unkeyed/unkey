@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ActorInfo } from "./actor_pb";
+import { file_ctrl_v1_actor } from "./actor_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/project.proto.
  */
 export const file_ctrl_v1_project: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL3Byb2plY3QucHJvdG8SB2N0cmwudjEiSAoUQ3JlYXRlUHJvamVjdFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCSIjChVDcmVhdGVQcm9qZWN0UmVzcG9uc2USCgoCaWQYASABKAkiKgoURGVsZXRlUHJvamVjdFJlcXVlc3QSEgoKcHJvamVjdF9pZBgBIAEoCSIXChVEZWxldGVQcm9qZWN0UmVzcG9uc2UytAEKDlByb2plY3RTZXJ2aWNlElAKDUNyZWF0ZVByb2plY3QSHS5jdHJsLnYxLkNyZWF0ZVByb2plY3RSZXF1ZXN0Gh4uY3RybC52MS5DcmVhdGVQcm9qZWN0UmVzcG9uc2UiABJQCg1EZWxldGVQcm9qZWN0Eh0uY3RybC52MS5EZWxldGVQcm9qZWN0UmVxdWVzdBoeLmN0cmwudjEuRGVsZXRlUHJvamVjdFJlc3BvbnNlIgBCiwEKC2NvbS5jdHJsLnYxQgxQcm9qZWN0UHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM");
+  fileDesc("ChVjdHJsL3YxL3Byb2plY3QucHJvdG8SB2N0cmwudjEiawoUQ3JlYXRlUHJvamVjdFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIiMKFUNyZWF0ZVByb2plY3RSZXNwb25zZRIKCgJpZBgBIAEoCSIqChREZWxldGVQcm9qZWN0UmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJIhcKFURlbGV0ZVByb2plY3RSZXNwb25zZTK0AQoOUHJvamVjdFNlcnZpY2USUAoNQ3JlYXRlUHJvamVjdBIdLmN0cmwudjEuQ3JlYXRlUHJvamVjdFJlcXVlc3QaHi5jdHJsLnYxLkNyZWF0ZVByb2plY3RSZXNwb25zZSIAElAKDURlbGV0ZVByb2plY3QSHS5jdHJsLnYxLkRlbGV0ZVByb2plY3RSZXF1ZXN0Gh4uY3RybC52MS5EZWxldGVQcm9qZWN0UmVzcG9uc2UiAEKLAQoLY29tLmN0cmwudjFCDFByb2plY3RQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateProjectRequest
@@ -30,6 +32,11 @@ export type CreateProjectRequest = Message<"ctrl.v1.CreateProjectRequest"> & {
    * @generated from field: string slug = 3;
    */
   slug: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 4;
+   */
+  actor?: ActorInfo;
 };
 
 /**

@@ -175,6 +175,10 @@ export const workspacePermissions = {
     },
   },
   Projects: {
+    create_project: {
+      description: "Create new projects in this workspace",
+      permission: "project.*.create_project",
+    },
     create_deployment: {
       description: "Create new deployments in this workspace",
       permission: "project.*.create_deployment",
