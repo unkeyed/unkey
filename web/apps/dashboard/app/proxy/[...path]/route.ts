@@ -1,4 +1,5 @@
 import { getAuth } from "@/lib/auth/get-auth";
+import { db } from "@/lib/db";
 import { auth as authProvider } from "@/lib/auth/server";
 import { env } from "@/lib/env";
 import { SignJWT } from "jose";
@@ -28,11 +29,21 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
 
   let bearerToken: string | null | undefined = auth.accessToken;
   if (!bearerToken) {
+    const workspace = await db.query.workspaces.findFirst({
+      where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+      columns: {
+        id: true,
+      },
+    });
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found." }, { status: 403 });
+    }
+
     const user = await authProvider.getUser(userId);
     const actorName = user?.fullName ?? user?.email ?? userId;
     bearerToken = await mintProxyJWT({
       orgId,
-      permissions: auth.permissions ?? [],
+      permissions: proxyPermissions(workspace.id, auth.permissions ?? []),
       subject: userId,
       name: actorName,
     }).catch((error) => {
@@ -143,4 +154,13 @@ async function mintProxyJWT(params: {
       .setExpirationTime(now + 120)
       .sign(key)
   );
+}
+
+function proxyPermissions(workspaceID: string, permissions: readonly string[]): string[] {
+  return permissions.map((permission) => {
+    if (permission === "admin:*") {
+      return `unkey:v1:${workspaceID}:**#*`;
+    }
+    return permission;
+  });
 }
