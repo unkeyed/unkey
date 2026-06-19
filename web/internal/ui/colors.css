@@ -567,6 +567,9 @@ This file only provides color variable definitions.
     --info-11: 210, 100%, 72%;
     --info-12: 205, 100%, 88%;
 
+    /* Activity — shared chart accent (the requests blue, #2E90FA) */
+    --activity: 211, 95%, 58%;
+
     /* BlueA */
     --infoA-1: 231, 100%, 49%, 0.05;
     --infoA-2: 215, 100%, 49%, 0.09;
