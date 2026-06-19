@@ -86,24 +86,157 @@ func TestServiceAuthenticate_StoresResolvedPrincipalOnSession(t *testing.T) {
 	require.Same(t, want, cached)
 }
 
-// TestServiceAuthenticate_StopsOnResolverError verifies verification errors fail
-// closed and prevent later resolvers from claiming the request. A resolver error
-// means the request contained that resolver's credential shape and verification
-// rejected it, so trying a later source would create an auth bypass path.
-func TestServiceAuthenticate_StopsOnResolverError(t *testing.T) {
+// TestServiceAuthenticate_ContinuesPastResolverError verifies a rejection by one
+// resolver does not block a later resolver that can verify the credential.
+// Multiple resolvers may claim the same credential shape (two jwt auth entries
+// with different key sources), and each one fully verifies before accepting, so
+// continuing is not a bypass.
+func TestServiceAuthenticate_ContinuesPastResolverError(t *testing.T) {
+	t.Parallel()
+
+	first := &stubResolver{err: errors.New("invalid credential")}
+	second := &stubResolver{principal: testPrincipal("ws_123")}
+	service := New(first, second)
+
+	got, err := service.Authenticate(context.Background(), &zen.Session{})
+
+	require.NoError(t, err)
+	require.Same(t, second.principal, got)
+	require.Equal(t, 1, first.calls)
+	require.Equal(t, 1, second.calls)
+}
+
+// TestServiceAuthenticate_ReturnsFirstResolverErrorWhenNothingResolves verifies
+// the most specific rejection is reported when every resolver declines or
+// errors, instead of the generic missing-credentials response.
+func TestServiceAuthenticate_ReturnsFirstResolverErrorWhenNothingResolves(t *testing.T) {
 	t.Parallel()
 
 	wantErr := errors.New("invalid credential")
 	first := &stubResolver{err: wantErr}
-	second := &stubResolver{principal: testPrincipal("ws_123")}
-	service := New(first, second)
+	second := &stubResolver{err: errors.New("also invalid")}
+	third := &stubResolver{}
+	service := New(first, second, third)
 
 	got, err := service.Authenticate(context.Background(), &zen.Session{})
 
 	require.ErrorIs(t, err, wantErr)
 	require.Nil(t, got)
 	require.Equal(t, 1, first.calls)
-	require.Zero(t, second.calls)
+	require.Equal(t, 1, second.calls)
+	require.Equal(t, 1, third.calls)
+}
+
+// TestServiceAuthenticate_PrefersInfrastructureErrorOverCredentialRejection
+// verifies a resolver that could not determine validity (503) outranks an
+// earlier resolver's credential rejection (401), in both orderings. With a
+// JWKS-backed and an HS256 jwt entry both claiming the same bearer, an outage
+// of one must surface as a retryable failure instead of masking it as an
+// invalid token and logging the user out.
+func TestServiceAuthenticate_PrefersInfrastructureErrorOverCredentialRejection(t *testing.T) {
+	t.Parallel()
+
+	credentialErr := fault.New("bad credential",
+		fault.Code(codes.Auth.Authentication.Malformed.URN()),
+		fault.Public("Invalid bearer token."),
+	)
+	infraErr := fault.New("jwks down",
+		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+		fault.Public("Unable to verify the bearer token right now."),
+	)
+
+	t.Run("credential rejection first", func(t *testing.T) {
+		t.Parallel()
+
+		service := New(&stubResolver{err: credentialErr}, &stubResolver{err: infraErr})
+
+		got, err := service.Authenticate(context.Background(), &zen.Session{})
+
+		require.Nil(t, got)
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), code)
+	})
+
+	t.Run("infrastructure failure first", func(t *testing.T) {
+		t.Parallel()
+
+		service := New(&stubResolver{err: infraErr}, &stubResolver{err: credentialErr})
+
+		got, err := service.Authenticate(context.Background(), &zen.Session{})
+
+		require.Nil(t, got)
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), code)
+	})
+}
+
+// TestServiceAuthenticate_PrefersAuthorizationOverAuthentication verifies a
+// resolver that verified the credential and then denied it (403) outranks a
+// sibling resolver's credential rejection (401), in both orderings. With an
+// HS256 and a WorkOS JWKS jwt entry both claiming the same bearer, a valid
+// WorkOS token whose org has no workspace must surface as the WorkOS resolver's
+// 403, not the HS256 resolver's "invalid token" 401 that would log the user out.
+func TestServiceAuthenticate_PrefersAuthorizationOverAuthentication(t *testing.T) {
+	t.Parallel()
+
+	authnErr := fault.New("bad credential",
+		fault.Code(codes.Auth.Authentication.Malformed.URN()),
+		fault.Public("Invalid bearer token."),
+	)
+	authzErr := fault.New("no workspace",
+		fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+		fault.Public("Your organization does not have an active workspace."),
+	)
+
+	t.Run("authentication rejection first", func(t *testing.T) {
+		t.Parallel()
+
+		service := New(&stubResolver{err: authnErr}, &stubResolver{err: authzErr})
+
+		got, err := service.Authenticate(context.Background(), &zen.Session{})
+
+		require.Nil(t, got)
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), code)
+	})
+
+	t.Run("authorization denial first", func(t *testing.T) {
+		t.Parallel()
+
+		service := New(&stubResolver{err: authzErr}, &stubResolver{err: authnErr})
+
+		got, err := service.Authenticate(context.Background(), &zen.Session{})
+
+		require.Nil(t, got)
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), code)
+	})
+}
+
+// TestServiceAuthenticate_InfrastructureFailureDoesNotMaskSuccess verifies a
+// resolver that errors for infrastructure reasons never blocks a later resolver
+// that can actually authenticate the request, so a degraded resolver entry
+// cannot take down authentication that another entry can complete.
+func TestServiceAuthenticate_InfrastructureFailureDoesNotMaskSuccess(t *testing.T) {
+	t.Parallel()
+
+	infraErr := fault.New("jwks down",
+		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+	)
+	first := &stubResolver{err: infraErr}
+	second := &stubResolver{principal: testPrincipal("ws_123")}
+	service := New(first, second)
+
+	got, err := service.Authenticate(context.Background(), &zen.Session{})
+
+	require.NoError(t, err)
+	require.Same(t, second.principal, got)
+	require.Equal(t, 1, first.calls)
+	require.Equal(t, 1, second.calls)
 }
 
 // TestServiceAuthenticate_ReturnsBearerErrorWhenNoResolverMatches verifies

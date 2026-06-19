@@ -110,3 +110,62 @@ func TestOverrideNotFound(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 	})
 }
+
+// TestOverrideResponsesDoNotLeakExistence guarantees a caller without
+// read_override permission receives the same 404 whether or not an override
+// exists, so the response cannot be used to enumerate which identifiers have
+// overrides.
+func TestOverrideResponsesDoNotLeakExistence(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	namespaceID := uid.New("test_ns")
+	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
+		ID:          namespaceID,
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		Name:        uid.New("test"),
+		CreatedAt:   time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
+	existingIdentifier := "existing_identifier"
+	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
+		ID:          uid.New(uid.RatelimitOverridePrefix),
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		NamespaceID: namespaceID,
+		Identifier:  existingIdentifier,
+		Limit:       10,
+		Duration:    1000,
+		CreatedAt:   time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
+	route := &handler.Handler{
+		DB:             h.DB,
+		NamespaceCache: h.Caches.RatelimitNamespace,
+	}
+	h.Register(route)
+
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
+	headers := http.Header{
+		"Content-Type":  []string{"application/json"},
+		"Authorization": []string{fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	probe := func(identifier string) testutil.TestResponse[openapi.NotFoundErrorResponse] {
+		return testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+			Namespace:  namespaceID,
+			Identifier: identifier,
+		})
+	}
+
+	existing := probe(existingIdentifier)
+	missing := probe("non_existent_identifier")
+
+	require.Equal(t, http.StatusNotFound, existing.Status, "got: %s", existing.RawBody)
+	require.Equal(t, http.StatusNotFound, missing.Status, "got: %s", missing.RawBody)
+	require.Equal(t, existing.Body.Error.Type, missing.Body.Error.Type)
+	require.Equal(t, existing.Body.Error.Detail, missing.Body.Error.Detail)
+	require.Equal(t, existing.Body.Error.Status, missing.Body.Error.Status)
+	require.Equal(t, existing.Body.Error.Title, missing.Body.Error.Title)
+}
