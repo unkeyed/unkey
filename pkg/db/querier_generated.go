@@ -1303,6 +1303,12 @@ type Querier interface {
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
+	//FindWorkspaceByOrgID
+	//
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  WHERE org_id = ?
+	//  AND deleted_at_m IS NULL
+	FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error)
 	// Reads the Unkey Deploy entitlement signals for the project-creation gate:
 	// deploy_plan (mirrored from Stripe by the dashboard webhook) and
 	// deploy_plan_override (manual comp for internal workspaces). The gate treats

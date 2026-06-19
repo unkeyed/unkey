@@ -49,11 +49,41 @@ agents can parse every response with the same content-type rule.
 | --- | --- | --- |
 | 400 | validation-error | Request body failed validation |
 | 401 | unauthorized | Missing or invalid authorization |
-| 403 | forbidden | Valid authorization but insufficient permissions |
-| 404 | not-found | Resource not found |
+| 403 | forbidden | Valid authorization but insufficient permissions, only when the caller may know the resource exists |
+| 404 | not-found | Resource not found, or the caller may not read it |
 | 409 | conflict | Conflicts with current state |
 | 429 | rate-limited | Rate limit exceeded |
 | 500 | internal-server-error | Unexpected server error |
+
+## Authorization failures must not reveal resource existence
+
+A 403 and a 404 carry different information. If an endpoint answers 404 when a
+resource does not exist and 403 when it exists but the caller may not read it,
+a caller with no permissions can enumerate which resources exist by telling the
+two responses apart.
+
+The rule: an endpoint returns 403 only when the principal is allowed to know
+the resource exists, meaning it holds a permission that covers reading the
+resource, but lacks the permission the operation requires. When the principal
+may not read the resource, every operation on it returns the same 404 the
+missing resource produces, with an identical error type, title, and detail.
+This matches GitHub's documented behavior of returning 404 instead of 403 for
+private resources.
+
+For read endpoints this collapses to: a permission rejection returns the
+resource's not-found error. Two consequences for handler code:
+
+- The not-found branch needs no permission check at all, since unauthorized
+  callers receive the identical response either way.
+- The masked 404 must be constructed fresh, not by wrapping the authorization
+  error. The error middleware joins every public message in a fault chain into
+  the response detail, and authorization rejections name the missing
+  permissions, including concrete resource IDs, which would leak the existence
+  the 404 is masking.
+
+The reference implementation is `svc/api/routes/v2_ratelimit_get_override`,
+including a test that probes an existing and a missing resource with a
+zero-permission key and asserts the responses are indistinguishable.
 
 ## Status codes and domain outcomes
 
