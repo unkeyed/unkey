@@ -1,6 +1,5 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -17,8 +16,8 @@ import type Stripe from "stripe";
 import { BillingContainer } from "./billing-container";
 import { CancelAlert } from "./components/cancel-alert";
 import { CancelPlan } from "./components/cancel-plan";
+import { ADMIN_ONLY_TOOLTIP } from "./components/constants";
 import { CurrentPlanCard } from "./components/current-plan-card";
-import { DeployBillingSection } from "./components/deploy-billing-section";
 import { FreeTierAlert } from "./components/free-tier-alert";
 import { PlanSelectionModal } from "./components/plan-selection-modal";
 import { SubscriptionStatus } from "./components/subscription-status";
@@ -26,13 +25,10 @@ import { Usage } from "./components/usage";
 
 const MAX_QUOTA = 150000;
 
-const ADMIN_ONLY_TOOLTIP = "Admin access required to manage billing";
-
 export const Client: React.FC = () => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const [showPlanModal, setShowPlanModal] = useState(false);
-  const deployBillingEnabled = useFlag("deployBilling");
 
   // Server-side `requireWorkspaceAdmin` enforces this on every billing
   // mutation; we mirror it on the client purely for UX so non-admin members
@@ -187,13 +183,6 @@ export const Client: React.FC = () => {
             </SettingCardGroup>
           </div>
         )}
-
-        {deployBillingEnabled ? (
-          <DeployBillingSection
-            isAdmin={isAdmin}
-            hasPaymentMethod={Boolean(workspace.stripeCustomerId)}
-          />
-        ) : null}
 
         <CancelAlert
           cancelAt={subscription?.cancelAt}
