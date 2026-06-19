@@ -3279,6 +3279,26 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, db DBTX, arg UpdateKeysLastUsedParams) error
+	//UpdateProject
+	//
+	//  UPDATE projects p
+	//  SET
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.name
+	//      END,
+	//      slug = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.slug
+	//      END,
+	//      delete_protection = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.delete_protection
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects

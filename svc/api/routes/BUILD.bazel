@@ -69,6 +69,7 @@ go_library(
         "//svc/api/routes/v2_projects_create_project",
         "//svc/api/routes/v2_projects_get_project",
         "//svc/api/routes/v2_projects_list_projects",
+        "//svc/api/routes/v2_projects_update_project",
         "//svc/api/routes/v2_ratelimit_delete_override",
         "//svc/api/routes/v2_ratelimit_get_override",
         "//svc/api/routes/v2_ratelimit_limit",

@@ -163,6 +163,10 @@ export const workspacePermissions = {
       description: "Read and list projects in this workspace",
       permission: "project.*.read_project",
     },
+    update_project: {
+      description: "Update projects in this workspace",
+      permission: "project.*.update_project",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 

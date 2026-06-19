@@ -214,6 +214,8 @@ paths:
     $ref: "./spec/paths/v2/projects/listProjects/index.yaml"
   /v2/projects.getProject:
     $ref: "./spec/paths/v2/projects/getProject/index.yaml"
+  /v2/projects.updateProject:
+    $ref: "./spec/paths/v2/projects/updateProject/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:

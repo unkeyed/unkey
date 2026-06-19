@@ -2128,6 +2128,34 @@ type V2ProjectsListProjectsResponseBody struct {
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
+// V2ProjectsUpdateProjectRequestBody defines model for V2ProjectsUpdateProjectRequestBody.
+type V2ProjectsUpdateProjectRequestBody struct {
+	// DeleteProtection Enable or disable delete protection for the project.
+	// Omit this field to leave the current setting unchanged.
+	DeleteProtection *bool `json:"deleteProtection,omitempty"`
+
+	// Name New human-readable name for the project.
+	// Omit this field to leave the current name unchanged.
+	Name *string `json:"name,omitempty"`
+
+	// ProjectId Specifies which project to update by its unique identifier.
+	// Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+	ProjectId string `json:"projectId"`
+
+	// Slug New URL-safe slug for the project, unique within your workspace.
+	// Changing it affects the deployment domains generated for this project.
+	// Omit this field to leave the current slug unchanged.
+	Slug *string `json:"slug,omitempty"`
+}
+
+// V2ProjectsUpdateProjectResponseBody defines model for V2ProjectsUpdateProjectResponseBody.
+type V2ProjectsUpdateProjectResponseBody struct {
+	Data Project `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2RatelimitDeleteOverrideRequestBody Deletes an existing rate limit override. This permanently removes a custom rate limit rule, reverting affected identifiers back to the default rate limits for the namespace.
 //
 // Use this endpoint when you need to:
@@ -2612,6 +2640,9 @@ type ProjectsGetProjectJSONRequestBody = V2ProjectsGetProjectRequestBody
 
 // ProjectsListProjectsJSONRequestBody defines body for ProjectsListProjects for application/json ContentType.
 type ProjectsListProjectsJSONRequestBody = V2ProjectsListProjectsRequestBody
+
+// ProjectsUpdateProjectJSONRequestBody defines body for ProjectsUpdateProject for application/json ContentType.
+type ProjectsUpdateProjectJSONRequestBody = V2ProjectsUpdateProjectRequestBody
 
 // RatelimitDeleteOverrideJSONRequestBody defines body for RatelimitDeleteOverride for application/json ContentType.
 type RatelimitDeleteOverrideJSONRequestBody = V2RatelimitDeleteOverrideRequestBody
