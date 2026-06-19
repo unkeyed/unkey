@@ -1932,6 +1932,32 @@ components:
                 data:
                     $ref: "#/components/schemas/V2ProjectsCreateProjectResponseData"
             additionalProperties: false
+        V2ProjectsDeleteProjectRequestBody:
+            type: object
+            required:
+                - projectId
+            properties:
+                projectId:
+                    type: string
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: |
+                        Specifies which project to delete by its unique identifier.
+                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+                    example: proj_1234abcd
+            additionalProperties: false
+        V2ProjectsDeleteProjectResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2ProjectsGetProjectRequestBody:
             type: object
             required:
@@ -7135,6 +7161,119 @@ paths:
                 - projects
             x-speakeasy-name-override: createProject
             x-unkey-idempotency: conditionally-idempotent
+    /v2/projects.deleteProject:
+        post:
+            description: |
+                Delete an existing project in your workspace, identified by its id.
+
+                Deletion is asynchronous and eventually consistent. The project and all of its associated resources (apps, environments, deployments, custom domains) are torn down by a background workflow. A successful response indicates the deletion was enqueued, not that every resource has already been removed.
+
+                Projects with delete protection enabled cannot be deleted until protection is disabled.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `project.*.delete_project` (to delete any project)
+                - `project.<project_id>.delete_project` (to delete a specific project)
+            operationId: projects.deleteProject
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            delete:
+                                description: Delete a project by its unique identifier
+                                summary: Delete a project
+                                value:
+                                    projectId: proj_1234abcd
+                        schema:
+                            $ref: '#/components/schemas/V2ProjectsDeleteProjectRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: Project deletion was successfully enqueued
+                                    summary: Deletion enqueued
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2ProjectsDeleteProjectResponseBody'
+                    description: |
+                        Successfully enqueued deletion of the project.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'project.*.delete_project' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `project.*.delete_project`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                projectNotFound:
+                                    summary: Project not found
+                                    value:
+                                        error:
+                                            detail: The requested project does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested project does not exist in your workspace
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: Delete protection is enabled. Disable protection through the dashboard or API, then retry the deletion.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Delete project
+            tags:
+                - projects
+            x-speakeasy-name-override: deleteProject
     /v2/projects.getProject:
         post:
             description: |

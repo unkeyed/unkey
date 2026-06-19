@@ -2090,6 +2090,22 @@ type V2ProjectsCreateProjectResponseData struct {
 	Id string `json:"id"`
 }
 
+// V2ProjectsDeleteProjectRequestBody defines model for V2ProjectsDeleteProjectRequestBody.
+type V2ProjectsDeleteProjectRequestBody struct {
+	// ProjectId Specifies which project to delete by its unique identifier.
+	// Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+	ProjectId string `json:"projectId"`
+}
+
+// V2ProjectsDeleteProjectResponseBody defines model for V2ProjectsDeleteProjectResponseBody.
+type V2ProjectsDeleteProjectResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2ProjectsGetProjectRequestBody defines model for V2ProjectsGetProjectRequestBody.
 type V2ProjectsGetProjectRequestBody struct {
 	// ProjectId Specifies which project to retrieve by its unique identifier.
@@ -2634,6 +2650,9 @@ type PortalExchangeSessionJSONRequestBody = V2PortalExchangeSessionRequestBody
 
 // ProjectsCreateProjectJSONRequestBody defines body for ProjectsCreateProject for application/json ContentType.
 type ProjectsCreateProjectJSONRequestBody = V2ProjectsCreateProjectRequestBody
+
+// ProjectsDeleteProjectJSONRequestBody defines body for ProjectsDeleteProject for application/json ContentType.
+type ProjectsDeleteProjectJSONRequestBody = V2ProjectsDeleteProjectRequestBody
 
 // ProjectsGetProjectJSONRequestBody defines body for ProjectsGetProject for application/json ContentType.
 type ProjectsGetProjectJSONRequestBody = V2ProjectsGetProjectRequestBody

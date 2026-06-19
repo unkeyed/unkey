@@ -26,6 +26,7 @@ message CreateProjectResponse {
 
 message DeleteProjectRequest {
   string project_id = 1;
+  ActorInfo actor = 2;
 }
 
 message DeleteProjectResponse {}

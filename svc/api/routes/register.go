@@ -62,6 +62,7 @@ import (
 	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
 
 	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
+	v2ProjectsDeleteProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project"
 	v2ProjectsGetProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
 	v2ProjectsListProjects "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
 	v2ProjectsUpdateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_update_project"
@@ -631,6 +632,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2ProjectsUpdateProject.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/projects.deleteProject
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2ProjectsDeleteProject.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlProjectClient,
 		},
 	)
 

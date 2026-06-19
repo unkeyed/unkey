@@ -167,6 +167,10 @@ export const workspacePermissions = {
       description: "Update projects in this workspace",
       permission: "project.*.update_project",
     },
+    delete_project: {
+      description: "Delete projects in this workspace",
+      permission: "project.*.delete_project",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 

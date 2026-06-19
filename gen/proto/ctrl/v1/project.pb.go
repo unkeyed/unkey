@@ -136,6 +136,7 @@ func (x *CreateProjectResponse) GetId() string {
 type DeleteProjectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Actor         *ActorInfo             `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -175,6 +176,13 @@ func (x *DeleteProjectRequest) GetProjectId() string {
 		return x.ProjectId
 	}
 	return ""
+}
+
+func (x *DeleteProjectRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
 }
 
 type DeleteProjectResponse struct {
@@ -224,10 +232,11 @@ const file_ctrl_v1_project_proto_rawDesc = "" +
 	"\x04slug\x18\x03 \x01(\tR\x04slug\x12(\n" +
 	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"'\n" +
 	"\x15CreateProjectResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"5\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"_\n" +
 	"\x14DeleteProjectRequest\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\"\x17\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12(\n" +
+	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x17\n" +
 	"\x15DeleteProjectResponse2\xb4\x01\n" +
 	"\x0eProjectService\x12P\n" +
 	"\rCreateProject\x12\x1d.ctrl.v1.CreateProjectRequest\x1a\x1e.ctrl.v1.CreateProjectResponse\"\x00\x12P\n" +
@@ -256,15 +265,16 @@ var file_ctrl_v1_project_proto_goTypes = []any{
 }
 var file_ctrl_v1_project_proto_depIdxs = []int32{
 	4, // 0: ctrl.v1.CreateProjectRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 1: ctrl.v1.ProjectService.CreateProject:input_type -> ctrl.v1.CreateProjectRequest
-	2, // 2: ctrl.v1.ProjectService.DeleteProject:input_type -> ctrl.v1.DeleteProjectRequest
-	1, // 3: ctrl.v1.ProjectService.CreateProject:output_type -> ctrl.v1.CreateProjectResponse
-	3, // 4: ctrl.v1.ProjectService.DeleteProject:output_type -> ctrl.v1.DeleteProjectResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 1: ctrl.v1.DeleteProjectRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 2: ctrl.v1.ProjectService.CreateProject:input_type -> ctrl.v1.CreateProjectRequest
+	2, // 3: ctrl.v1.ProjectService.DeleteProject:input_type -> ctrl.v1.DeleteProjectRequest
+	1, // 4: ctrl.v1.ProjectService.CreateProject:output_type -> ctrl.v1.CreateProjectResponse
+	3, // 5: ctrl.v1.ProjectService.DeleteProject:output_type -> ctrl.v1.DeleteProjectResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_project_proto_init() }

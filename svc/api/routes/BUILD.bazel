@@ -67,6 +67,7 @@ go_library(
         "//svc/api/routes/v2_portal_create_session",
         "//svc/api/routes/v2_portal_exchange_session",
         "//svc/api/routes/v2_projects_create_project",
+        "//svc/api/routes/v2_projects_delete_project",
         "//svc/api/routes/v2_projects_get_project",
         "//svc/api/routes/v2_projects_list_projects",
         "//svc/api/routes/v2_projects_update_project",
