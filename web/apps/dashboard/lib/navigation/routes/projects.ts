@@ -49,6 +49,13 @@ export const projectRoutes = {
   },
 
   apps: {
+    overview(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/overview",
+        appParams(scope),
+      );
+    },
+
     new({ step, appId, ...scope }: ProjectScope & { step?: string; appId?: string }): Route {
       return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/new", projectParams(scope), {
         step,

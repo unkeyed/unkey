@@ -112,7 +112,7 @@ function AppIconStack({
           position={{ side: "top" }}
         >
           <Link
-            href={routes.projects.apps.deployments({
+            href={routes.projects.apps.overview({
               workspaceSlug: workspace.slug,
               projectId,
               appId: app.id,
@@ -143,7 +143,7 @@ function AppIconStack({
               {apps.map((app) => (
                 <Link
                   key={app.id}
-                  href={routes.projects.apps.deployments({
+                  href={routes.projects.apps.overview({
                     workspaceSlug: workspace.slug,
                     projectId,
                     appId: app.id,
