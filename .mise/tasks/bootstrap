@@ -2,73 +2,99 @@
 #MISE description="Bootstrap the repo"
 set -euo pipefail
 
-echo "Installing pinned toolchain..."
-mise install
-
 readonly ENV_FILE_DASHBOARD="web/apps/dashboard/.env"
 readonly ENV_EXAMPLE_DASHBOARD="web/apps/dashboard/dev/.env.example"
 readonly ENV_FILE_DEPOT="dev/.env.depot"
 readonly ENV_EXAMPLE_DEPOT="dev/.env.depot.example"
 
-# These files contain local secrets and machine-specific config. If they already
-# exist, ask before replacing them so bootstrap never silently discards edits.
-if [ -e "$ENV_FILE_DASHBOARD" ] || [ -e "$ENV_FILE_DEPOT" ]; then
-  echo "Bootstrap needs to recreate these files:" >&2
+write_depot_env_from_template() {
+  local template="$1"
+  local file="$2"
+  local depot_token="$3"
+  local tmp
+  local depot_token_count=0
+  local registry_password_count=0
 
-  if [ -e "$ENV_FILE_DASHBOARD" ]; then
-    echo "- $ENV_FILE_DASHBOARD" >&2
+  tmp="$(mktemp "${file}.tmp.XXXXXX")"
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      "UNKEY_DEPOT_TOKEN="*)
+        depot_token_count=$((depot_token_count + 1))
+        printf "UNKEY_DEPOT_TOKEN=%s\n" "$depot_token"
+        ;;
+      "UNKEY_REGISTRY_PASSWORD="*)
+        registry_password_count=$((registry_password_count + 1))
+        printf "UNKEY_REGISTRY_PASSWORD=%s\n" "$depot_token"
+        ;;
+      *)
+        printf "%s\n" "$line"
+        ;;
+    esac
+  done < "$template" > "$tmp"
+
+  if [ "$depot_token_count" -ne 1 ] || [ "$registry_password_count" -ne 1 ]; then
+    rm -f "$tmp"
+    echo "Error: $template must contain exactly one UNKEY_DEPOT_TOKEN and one UNKEY_REGISTRY_PASSWORD entry." >&2
+    return 1
   fi
 
-  if [ -e "$ENV_FILE_DEPOT" ]; then
-    echo "- $ENV_FILE_DEPOT" >&2
+  mv "$tmp" "$file"
+}
+
+main() {
+  echo "Installing pinned toolchain..."
+  mise install
+
+  # These files contain local secrets and machine-specific config. If they already
+  # exist, ask before replacing them so bootstrap never silently discards edits.
+  if [ -e "$ENV_FILE_DASHBOARD" ] || [ -e "$ENV_FILE_DEPOT" ]; then
+    echo "Bootstrap needs to recreate these files:" >&2
+
+    if [ -e "$ENV_FILE_DASHBOARD" ]; then
+      echo "- $ENV_FILE_DASHBOARD" >&2
+    fi
+
+    if [ -e "$ENV_FILE_DEPOT" ]; then
+      echo "- $ENV_FILE_DEPOT" >&2
+    fi
+
+    read -r -p "Delete and recreate them? [y/N] " delete_env_files
+
+    if [[ "$delete_env_files" != "y" && "$delete_env_files" != "Y" ]]; then
+      echo "Bootstrap cancelled. Existing env files were left unchanged." >&2
+      exit 1
+    fi
+
+    rm -f "$ENV_FILE_DASHBOARD" "$ENV_FILE_DEPOT"
   fi
 
-  read -r -p "Delete and recreate them? [y/N] " delete_env_files
+  echo "Configuring Depot credentials..."
+  echo "Enter your Depot token:"
+  read -r -s depot_token
+  echo ""
 
-  if [[ "$delete_env_files" != "y" && "$delete_env_files" != "Y" ]]; then
-    echo "Bootstrap cancelled. Existing env files were left unchanged." >&2
+  if [ -z "$depot_token" ]; then
+    echo "Error: Depot token is required." >&2
     exit 1
   fi
 
-  rm -f "$ENV_FILE_DASHBOARD" "$ENV_FILE_DEPOT"
+  echo "Creating $ENV_FILE_DASHBOARD from $ENV_EXAMPLE_DASHBOARD..."
+  cp "$ENV_EXAMPLE_DASHBOARD" "$ENV_FILE_DASHBOARD"
+
+  # Tilt reads this file to create the Depot Kubernetes secret for local builds.
+  echo "Creating $ENV_FILE_DEPOT from $ENV_EXAMPLE_DEPOT..."
+  write_depot_env_from_template "$ENV_EXAMPLE_DEPOT" "$ENV_FILE_DEPOT" "$depot_token"
+
+  chmod 600 "$ENV_FILE_DEPOT"
+
+  # Add a github app and configure it.
+  echo "Configuring the local GitHub app..."
+  go run . dev github setup
+
+  echo "Bootstrap complete."
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
 fi
-
-echo "Configuring Depot credentials..."
-echo "Enter your Depot token:"
-read -r -s depot_token
-echo ""
-
-if [ -z "$depot_token" ]; then
-  echo "Error: Depot token is required." >&2
-  exit 1
-fi
-
-echo "Creating $ENV_FILE_DASHBOARD from $ENV_EXAMPLE_DASHBOARD..."
-cp "$ENV_EXAMPLE_DASHBOARD" "$ENV_FILE_DASHBOARD"
-
-echo "Creating $ENV_FILE_DEPOT from $ENV_EXAMPLE_DEPOT..."
-cp "$ENV_EXAMPLE_DEPOT" "$ENV_FILE_DEPOT"
-
-# Tilt reads this file to create the Depot Kubernetes secret for local builds.
-echo "Writing Depot credentials to $ENV_FILE_DEPOT..."
-depot_env_tmp="$(mktemp "${ENV_FILE_DEPOT}.tmp.XXXXXX")"
-awk -v depot_token="$depot_token" '
-  /^UNKEY_DEPOT_TOKEN=/ {
-    print "UNKEY_DEPOT_TOKEN=" depot_token
-    next
-  }
-  /^UNKEY_REGISTRY_PASSWORD=/ {
-    print "UNKEY_REGISTRY_PASSWORD=" depot_token
-    next
-  }
-  { print }
-' "$ENV_FILE_DEPOT" > "$depot_env_tmp"
-mv "$depot_env_tmp" "$ENV_FILE_DEPOT"
-
-chmod 600 "$ENV_FILE_DEPOT"
-
-# Add a github app and configure it.
-echo "Configuring the local GitHub app..."
-go run . dev github setup
-
-echo "Bootstrap complete."
