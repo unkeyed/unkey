@@ -124,14 +124,14 @@ export function ProductionDeploymentCard() {
   })}#custom-domains`;
   const domainView =
     debug.domain === "none"
-      ? { primaryDomain: null, additionalDomainCount: 0, addCustomDomainHref: undefined }
+      ? { primaryDomain: null, additionalDomains: [], addCustomDomainHref: undefined }
       : debug.domain === "generated"
         ? {
             primaryDomain: {
               hostname: "app-rhtktlljk.unkey.app",
               url: "https://app-rhtktlljk.unkey.app",
             },
-            additionalDomainCount: 0,
+            additionalDomains: [],
             addCustomDomainHref,
           }
         : {
@@ -139,7 +139,12 @@ export function ProductionDeploymentCard() {
               hostname: "api.unkey.com",
               url: "https://api.unkey.com",
             },
-            additionalDomainCount: realPrimary ? additional.length : 2,
+            additionalDomains: realPrimary
+              ? additional.map((d) => ({ hostname: d.hostname, url: d.url }))
+              : [
+                  { hostname: "gateway.unkey.com", url: "https://gateway.unkey.com" },
+                  { hostname: "unkey-web-lac.vercel.app", url: "https://unkey-web-lac.vercel.app" },
+                ],
             addCustomDomainHref: undefined,
           };
 
@@ -197,7 +202,7 @@ export function ProductionDeploymentCard() {
     authorAvatarUrl: deployment.gitCommitAuthorAvatarUrl,
     createdAt: deployment.createdAt,
     primaryDomain: domainView.primaryDomain,
-    additionalDomainCount: domainView.additionalDomainCount,
+    additionalDomains: domainView.additionalDomains,
     addCustomDomainHref: domainView.addCustomDomainHref,
     canRollback: Boolean(rollbackTarget),
     regions: regionSource.map((r) => ({

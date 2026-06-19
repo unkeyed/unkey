@@ -8,13 +8,21 @@ import { cn } from "@/lib/utils";
 import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
+  ArrowUpRight,
   CodeBranch,
   CodeCommit,
   Layers3,
   Plus,
   TriangleWarning2,
 } from "@unkey/icons";
-import { Badge, Button, TimestampInfo } from "@unkey/ui";
+import {
+  Badge,
+  Button,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+  TimestampInfo,
+} from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -71,7 +79,9 @@ export type ProductionDeploymentViewModel = {
   authorAvatarUrl: string | null;
   createdAt: number;
   primaryDomain: { hostname: string; url: string } | null;
-  additionalDomainCount: number;
+  // Domains routed to this deployment beyond the primary shown above. The
+  // count drives the "+N" pill; the list populates its hover card.
+  additionalDomains: { hostname: string; url: string }[];
   // Set only when the app has no custom domain (just the generated *.unkey.app)
   // — links to the settings page where the custom-domain form lives.
   addCustomDomainHref?: string;
@@ -128,10 +138,30 @@ function DomainHero({ vm }: { vm: ProductionDeploymentViewModel }) {
           No domain yet
         </span>
       )}
-      {vm.additionalDomainCount > 0 && (
-        <span className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-[11px] leading-[18px] font-mono tabular-nums shrink-0">
-          +{vm.additionalDomainCount}
-        </span>
+      {vm.additionalDomains.length > 0 && (
+        <HoverCard openDelay={0} closeDelay={100}>
+          <HoverCardTrigger asChild>
+            <span className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-[11px] leading-[18px] font-mono tabular-nums shrink-0 cursor-default">
+              +{vm.additionalDomains.length}
+            </span>
+          </HoverCardTrigger>
+          <HoverCardContent align="start" className="w-64 p-1">
+            <div className="flex flex-col max-h-64 overflow-y-auto">
+              {vm.additionalDomains.map((domain) => (
+                <a
+                  key={domain.hostname}
+                  href={domain.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 font-mono text-[13px] text-gray-12 hover:bg-grayA-3 transition-colors"
+                >
+                  <span className="truncate">{domain.hostname}</span>
+                  <ArrowUpRight iconSize="sm-regular" className="shrink-0 text-gray-9" />
+                </a>
+              ))}
+            </div>
+          </HoverCardContent>
+        </HoverCard>
       )}
       {vm.addCustomDomainHref && (
         <Button variant="outline" size="sm" asChild className="shrink-0 border-dashed">
