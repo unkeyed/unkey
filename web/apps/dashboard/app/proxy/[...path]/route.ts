@@ -1,6 +1,6 @@
 import { getAuth } from "@/lib/auth/get-auth";
-import { db } from "@/lib/db";
 import { auth as authProvider } from "@/lib/auth/server";
+import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { SignJWT } from "jose";
 import type { NextRequest } from "next/server";

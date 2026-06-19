@@ -59,10 +59,6 @@ describe("dashboard proxy POST", () => {
     vi.unstubAllGlobals();
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("rejects requests that smuggle an Authorization header", async () => {
     // The proxy mints its own JWT; accepting a caller-supplied Authorization
     // header would let a browser forward an attacker-controlled bearer to the
