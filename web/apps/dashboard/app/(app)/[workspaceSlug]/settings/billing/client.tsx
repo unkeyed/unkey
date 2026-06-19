@@ -1,5 +1,6 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -17,6 +18,7 @@ import { BillingContainer } from "./billing-container";
 import { CancelAlert } from "./components/cancel-alert";
 import { CancelPlan } from "./components/cancel-plan";
 import { CurrentPlanCard } from "./components/current-plan-card";
+import { DeployBillingSection } from "./components/deploy-billing-section";
 import { FreeTierAlert } from "./components/free-tier-alert";
 import { PlanSelectionModal } from "./components/plan-selection-modal";
 import { SubscriptionStatus } from "./components/subscription-status";
@@ -30,6 +32,7 @@ export const Client: React.FC = () => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const deployBillingEnabled = useFlag("deployBilling");
 
   // Server-side `requireWorkspaceAdmin` enforces this on every billing
   // mutation; we mirror it on the client purely for UX so non-admin members
@@ -184,6 +187,13 @@ export const Client: React.FC = () => {
             </SettingCardGroup>
           </div>
         )}
+
+        {deployBillingEnabled ? (
+          <DeployBillingSection
+            isAdmin={isAdmin}
+            hasPaymentMethod={Boolean(workspace.stripeCustomerId)}
+          />
+        ) : null}
 
         <CancelAlert
           cancelAt={subscription?.cancelAt}
