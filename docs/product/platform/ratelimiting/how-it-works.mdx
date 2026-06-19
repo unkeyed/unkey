@@ -31,34 +31,27 @@ For example, with a limit of `100` per minute, a request halfway through the cur
 
 Unkey is globally distributed. A request first affects the node that handles it, then converges within the region, then contributes to the global view for longer windows.
 
-```plaintext
-Incoming request
-      │
-      ▼
-╭──────────────────────────────╮
-│ Node that receives request    │
-╰──────────────┬───────────────╯
-               │ local decision stays fast
-               ▼
-╭──────────────────────────────╮
-│ Regional view                 │
-│ Nodes in the region converge  │
-╰──────────────┬───────────────╯
-               │ meaningful usage is shared
-               ▼
-╭──────────────────────────────╮
-│ Global view                   │
-│ Longer windows converge       │
-╰──────────────┬───────────────╯
-               │ remote usage affects future decisions
-               ▼
-╭──────────────────────────────╮
-│ Later rate limit decision     │
-│ Allow or deny                 │
-╰──────────────────────────────╯
-```
+<Steps>
+  <Step title="Handle the request locally">
+    The node that receives the request makes the first decision, so the request
+    stays fast.
+  </Step>
 
-Within a region, nodes converge so a request accepted by one node affects later decisions on neighboring nodes. Across regions, identifiers that are using a meaningful share of their limit are included in the global view and affect later decisions elsewhere.
+  <Step title="Converge within the region">
+    Nodes in the same region share what they observed, so a request accepted by
+    one node affects later decisions on neighboring nodes.
+  </Step>
+
+  <Step title="Share meaningful usage globally">
+    Longer windows contribute to the global view when an identifier uses a
+    meaningful share of its limit.
+  </Step>
+
+  <Step title="Apply remote usage to future decisions">
+    After propagation, remote traffic can affect later allow or deny decisions
+    in other regions.
+  </Step>
+</Steps>
 
 This model is eventually consistent. Requests that arrive in different regions at the same time can be accepted before every region has the latest remote usage. After propagation, each region includes the other regions' observed traffic in its decision.
 
