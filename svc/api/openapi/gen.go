@@ -828,6 +828,38 @@ type V2AppsListAppsResponseBody struct {
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
+// V2AppsUpdateAppRequestBody defines model for V2AppsUpdateAppRequestBody.
+type V2AppsUpdateAppRequestBody struct {
+	// AppId Specifies which app to update by its unique identifier.
+	// Must be a valid app ID that begins with 'app_' and exists within your workspace.
+	AppId string `json:"appId"`
+
+	// DefaultBranch New default git branch deployments track for this app.
+	// Omit this field to leave the current branch unchanged.
+	DefaultBranch *string `json:"defaultBranch,omitempty"`
+
+	// DeleteProtection Enable or disable delete protection for the app.
+	// Omit this field to leave the current setting unchanged.
+	DeleteProtection *bool `json:"deleteProtection,omitempty"`
+
+	// Name New human-readable name for the app.
+	// Omit this field to leave the current name unchanged.
+	Name *string `json:"name,omitempty"`
+
+	// Slug New URL-safe handle for the app, unique within its project.
+	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
+	// Omit this field to leave the current slug unchanged.
+	Slug *string `json:"slug,omitempty"`
+}
+
+// V2AppsUpdateAppResponseBody defines model for V2AppsUpdateAppResponseBody.
+type V2AppsUpdateAppResponseBody struct {
+	Data App `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
 type V2DeployCreateDeploymentRequestBody struct {
 	// App App slug within the project
@@ -2675,6 +2707,9 @@ type AppsGetAppJSONRequestBody = V2AppsGetAppRequestBody
 
 // AppsListAppsJSONRequestBody defines body for AppsListApps for application/json ContentType.
 type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
+
+// AppsUpdateAppJSONRequestBody defines body for AppsUpdateApp for application/json ContentType.
+type AppsUpdateAppJSONRequestBody = V2AppsUpdateAppRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody

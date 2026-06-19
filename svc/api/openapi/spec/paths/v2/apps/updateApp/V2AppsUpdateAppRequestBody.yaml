@@ -1,0 +1,65 @@
+type: object
+required:
+  - appId
+properties:
+  appId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which app to update by its unique identifier.
+      Must be a valid app ID that begins with 'app_' and exists within your workspace.
+    example: app_1234abcd
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      New human-readable name for the app.
+      Omit this field to leave the current name unchanged.
+    example: Payments API
+  slug:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    description: |
+      New URL-safe handle for the app, unique within its project.
+      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
+      Omit this field to leave the current slug unchanged.
+    example: payments-api
+  defaultBranch:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      New default git branch deployments track for this app.
+      Omit this field to leave the current branch unchanged.
+    example: main
+  deleteProtection:
+    type: boolean
+    description: |
+      Enable or disable delete protection for the app.
+      Omit this field to leave the current setting unchanged.
+    example: true
+additionalProperties: false
+examples:
+  rename:
+    summary: Rename an app
+    description: Update only the display name of an app
+    value:
+      appId: app_1234abcd
+      name: Payments API
+  changeSlug:
+    summary: Change an app slug
+    description: Update the URL-safe slug of an app
+    value:
+      appId: app_1234abcd
+      slug: payments-api
+  protect:
+    summary: Toggle delete protection
+    description: Enable delete protection without changing the name
+    value:
+      appId: app_1234abcd
+      deleteProtection: true

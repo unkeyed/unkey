@@ -75,4 +75,5 @@ const (
 
 	// App events
 	AppCreateEvent AuditLogEvent = "app.create"
+	AppUpdateEvent AuditLogEvent = "app.update"
 )

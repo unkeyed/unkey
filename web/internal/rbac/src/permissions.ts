@@ -80,7 +80,7 @@ export const projectActions = z.enum([
   "read_deployment",
   "generate_upload_url",
 ]);
-export const appActions = z.enum(["read_app"]);
+export const appActions = z.enum(["read_app","update_app"]);
 
 // Resources that require an ID (resource.id.action format)
 const scopedResources = {
