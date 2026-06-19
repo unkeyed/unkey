@@ -20,8 +20,12 @@ All other tools are managed via [mise](https://mise.en.dev/), which you'll insta
 
 Unkey uses Depot as the build runner for local development.
 
-To get your Depot token, sign in to <a href="https://depot.dev" target="_blank">Depot</a>,
+To get your Depot token, sign in to <a href="https://depot.dev/orgs/25j3k7j1zw/settings" target="_blank">Depot</a>,
 then create a token. Name it something like `<your-name>-local`.
+
+The Depot org settings page is only accessible to Depot org owners. If you are
+not an owner, Depot might redirect you away from the settings page or block
+access. Ask Andreas for the appropriate token or access path.
 
 During bootstrap, paste that token when prompted or manually add it to
 `./dev/.env.depot`.
