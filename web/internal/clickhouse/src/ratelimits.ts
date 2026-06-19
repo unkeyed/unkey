@@ -366,6 +366,16 @@ export function getRatelimitLastUsed(ch: Querier) {
   };
 }
 
+// Columns the logs list can be ordered by. These map to physical
+// `ratelimits_raw_v2` columns (see SORT_COLUMN_SQL), so the set is closed —
+// never derive an ORDER BY column from a raw client string.
+export const ratelimitLogsSort = z.object({
+  column: z.enum(["time", "identifier", "status"]),
+  direction: z.enum(["asc", "desc"]),
+});
+
+export type RatelimitLogsSort = z.infer<typeof ratelimitLogsSort>;
+
 export const ratelimitLogsParams = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
@@ -389,7 +399,8 @@ export const ratelimitLogsParams = z.object({
       }),
     )
     .nullable(),
-  cursorTime: z.int().nullable(),
+  sorts: z.array(ratelimitLogsSort).nullable(),
+  offset: z.int(),
 });
 
 export const ratelimitLogs = z.object({
@@ -467,6 +478,25 @@ export function getRatelimitLogs(ch: Querier) {
 
     const extendedParamsSchema = ratelimitLogsParams.extend(paramSchemaExtension);
 
+    // ORDER BY is built from a closed column allowlist keyed by the validated
+    // `sorts` enum — column names and directions are never raw client strings,
+    // so this cannot be an injection vector. `time DESC` is always appended as
+    // the final tiebreaker so OFFSET pagination stays deterministic when
+    // sorting by a non-unique column (identifier/status).
+    const SORT_COLUMN_SQL: Record<RatelimitLogsSort["column"], string> = {
+      time: "time",
+      identifier: "identifier",
+      status: "passed",
+    };
+    const sorts = args.sorts ?? [];
+    const orderByParts = sorts.map(
+      (sort) => `${SORT_COLUMN_SQL[sort.column]} ${sort.direction === "asc" ? "ASC" : "DESC"}`,
+    );
+    if (!sorts.some((sort) => sort.column === "time")) {
+      orderByParts.push("time DESC");
+    }
+    const orderByClause = orderByParts.join(", ");
+
     const logsQuery = ch.query({
       query: `
 SELECT
@@ -481,11 +511,9 @@ WHERE workspace_id = {workspaceId: String}
     ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
     AND (${identifierConditions})
     AND (${statusCondition})
-    AND (
-        {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
-    )
-ORDER BY time DESC
-LIMIT {limit: Int}`,
+ORDER BY ${orderByClause}
+LIMIT {limit: Int}
+OFFSET {offset: Int}`,
       params: extendedParamsSchema,
       schema: ratelimitLogs,
     });

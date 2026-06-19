@@ -21,14 +21,12 @@ export const RepoListItem = ({
   onSelect,
   disabled,
   loading,
-  hasMultipleAccounts,
 }: {
   repo: RepoItem;
   projectId: string;
   onSelect: (repo: RepoItem, selectedBranch: string) => void;
   disabled: boolean;
   loading: boolean;
-  hasMultipleAccounts: boolean;
 }) => {
   const [owner, repoName] = repo.fullName.split("/");
   const [selectedBranch, setSelectedBranch] = useState(repo.defaultBranch);
@@ -93,17 +91,11 @@ export const RepoListItem = ({
           {repoName}
         </div>
         <div className="flex items-center gap-0 text-[13px] text-gray-10 leading-3 max-w-52">
-          {hasMultipleAccounts ? (
-            <>
-              <span className="truncate shrink min-w-0">{owner}</span>
-              <span className="shrink-0">
-                &nbsp;·&nbsp;
-                <TimestampInfo value={repo.pushedAt ?? 0} displayType="relative" />
-              </span>
-            </>
-          ) : (
+          <span className="truncate shrink min-w-0">{owner}</span>
+          <span className="shrink-0">
+            &nbsp;·&nbsp;
             <TimestampInfo value={repo.pushedAt ?? 0} displayType="relative" />
-          )}
+          </span>
         </div>
       </div>
       <div className="flex gap-2 items-center ml-auto">

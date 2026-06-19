@@ -461,6 +461,7 @@ func Run(ctx context.Context, cfg Config) error {
 			KeyRefill:         cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
 			KeyLastUsedSync:   cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
 			AuditLogExport:    cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
+			AuditLogCleanup:   cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
 			DeployBillingPush: cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 		},
 	})
@@ -497,6 +498,18 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.PauseOnMaxAttempts(),
 	)
+	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy: a
+	// stateless, cutoff-bounded DELETE the hot path doesn't depend on, so
+	// pausing for an operator to inspect a real failure beats killing
+	// silently. The daily cadence means a paused run is caught well before
+	// the next tick.
+	cronAuditLogCleanupRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.PauseOnMaxAttempts(),
+	)
 	// AuditLogExport runs every minute and is idempotent: any failure is
 	// recovered by the next tick, not by replaying journals from
 	// yesterday. 1h journal retention keeps enough debugging headroom for
@@ -506,6 +519,7 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
+		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)))
 	logger.Info("CronService enabled")
 
