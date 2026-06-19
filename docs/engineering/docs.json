@@ -59,6 +59,14 @@
             "pages": [
               "architecture/index",
               {
+                "group": "Resource model",
+                "pages": [
+                  "architecture/resources/unkey-resource-names",
+                  "architecture/authorization/resource-permissions",
+                  "architecture/authorization/workos-permissions"
+                ]
+              },
+              {
                 "group": "Rate limiting",
                 "pages": [
                   "architecture/ratelimiting/overview",

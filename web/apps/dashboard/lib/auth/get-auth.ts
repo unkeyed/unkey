@@ -4,6 +4,8 @@ import { updateSession } from "./sessions";
 type GetAuthResult = {
   userId: string | null;
   orgId: string | null;
+  accessToken?: string;
+  permissions?: readonly string[];
   role: string | null;
   impersonator?: {
     email: string;

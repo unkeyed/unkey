@@ -261,7 +261,7 @@ export const RatelimitSetup = ({
                         label="Learn more"
                         target="_blank"
                         rel="noopener noreferrer"
-                        href="https://unkey.com/docs/apis/features/ratelimiting/overview#auto-apply-vs-manual-ratelimits"
+                        href="https://unkey.com/docs/platform/apis/features/ratelimiting/overview#auto-apply-vs-manual-ratelimits"
                       />
                       .
                     </p>

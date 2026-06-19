@@ -4,6 +4,7 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { useQuery } from "@tanstack/react-query";
@@ -59,7 +60,7 @@ interface NavbarContentProps {
 const LoadingNavbar = ({ workspace }: LoadingNavbarProps) => (
   <Navbar>
     <Navbar.Breadcrumbs icon={<Nodes />}>
-      <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`}>
+      <Navbar.Breadcrumbs.Link href={routes.apis.list({ workspaceSlug: workspace.slug })}>
         Keyspaces (APIs)
       </Navbar.Breadcrumbs.Link>
       <Navbar.Breadcrumbs.Link href="#" className="group" noop>
@@ -125,14 +126,14 @@ const NavbarContent = ({
     name: proxiedApiName ?? layoutData.currentApi.name,
   };
 
-  const base = `/${workspace.slug}/apis/${currentApi.id}`;
+  const base = routes.apis.detail({ workspaceSlug: workspace.slug, apiId: currentApi.id });
 
   return (
     <div className="w-full">
       <Navbar className="w-full flex justify-between">
         <Navbar.Breadcrumbs className="flex-1 w-full" icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link
-            href={`/${workspace.slug}/apis`}
+            href={routes.apis.list({ workspaceSlug: workspace.slug })}
             className={isMobile ? "hidden" : "max-md:hidden"}
           >
             Keyspaces (APIs)

@@ -2,6 +2,7 @@
 import { use } from "react";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { LogsClient } from "./_overview/logs-client";
 import { NamespaceNavbar } from "./namespace-navbar";
 
@@ -19,7 +20,7 @@ export default function RatelimitNamespacePage(props: {
     <div>
       <NamespaceNavbar
         activePage={{
-          href: `/${workspace.slug}/ratelimits/${namespaceId}`,
+          href: routes.ratelimits.detail({ workspaceSlug: workspace.slug, namespaceId }),
           text: "Requests",
         }}
         namespaceId={namespaceId}

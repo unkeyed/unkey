@@ -29,14 +29,14 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     {
       key: "apis",
       label: "Keyspaces (APIs)",
-      href: `/${slug}/apis`,
+      href: routes.apis.list({ workspaceSlug: slug }),
       icon: Nodes,
       isActive: top === "apis",
     },
     {
       key: "ratelimits",
       label: "Ratelimit",
-      href: `/${slug}/ratelimits`,
+      href: routes.ratelimits.list({ workspaceSlug: slug }),
       icon: Gauge,
       isActive: top === "ratelimits",
     },
@@ -71,7 +71,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
     {
       key: "settings",
       label: "Settings",
-      href: `/${slug}/settings/general`,
+      href: routes.settings.general({ workspaceSlug: slug }),
       icon: Gear,
       isActive: top === "settings",
     },
@@ -211,14 +211,16 @@ export function buildApiLinks(
     {
       key: "requests",
       label: "Requests",
-      href: `/${slug}/apis/${apiId}`,
+      href: routes.apis.detail({ workspaceSlug: slug, apiId }),
       icon: ArrowOppositeDirectionY,
       isActive: !page,
     },
     {
       key: "keys",
       label: "Keys",
-      href: keyAuthId ? `/${slug}/apis/${apiId}/keys/${keyAuthId}` : `/${slug}/apis/${apiId}`,
+      href: keyAuthId
+        ? routes.apis.keys.list({ workspaceSlug: slug, apiId, keyAuthId })
+        : routes.apis.detail({ workspaceSlug: slug, apiId }),
       icon: Key,
       isActive: page === "keys",
       disabled: !keyAuthId,
@@ -226,7 +228,7 @@ export function buildApiLinks(
     {
       key: "settings",
       label: "Settings",
-      href: `/${slug}/apis/${apiId}/settings`,
+      href: routes.apis.settings({ workspaceSlug: slug, apiId }),
       icon: Gear,
       isActive: page === "settings",
     },
@@ -239,32 +241,33 @@ export function buildNamespaceLinks(
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[2];
+  const scope = { workspaceSlug: slug, namespaceId };
   return [
     {
       key: "requests",
       label: "Requests",
-      href: `/${slug}/ratelimits/${namespaceId}`,
+      href: routes.ratelimits.detail(scope),
       icon: ArrowOppositeDirectionY,
       isActive: !page,
     },
     {
       key: "logs",
       label: "Logs",
-      href: `/${slug}/ratelimits/${namespaceId}/logs`,
+      href: routes.ratelimits.logs(scope),
       icon: Layers3,
       isActive: page === "logs",
     },
     {
       key: "settings",
       label: "Settings",
-      href: `/${slug}/ratelimits/${namespaceId}/settings`,
+      href: routes.ratelimits.settings(scope),
       icon: Gear,
       isActive: page === "settings",
     },
     {
       key: "overrides",
       label: "Overrides",
-      href: `/${slug}/ratelimits/${namespaceId}/overrides`,
+      href: routes.ratelimits.overrides(scope),
       icon: ArrowDottedRotateAnticlockwise,
       isActive: page === "overrides",
     },

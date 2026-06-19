@@ -2,6 +2,7 @@
 import { use } from "react";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { NamespaceNavbar } from "../namespace-navbar";
 import { SettingsClient } from "./components/settings-client";
 
@@ -21,7 +22,7 @@ export default function SettingsPage(props: Props) {
       <NamespaceNavbar
         namespaceId={namespaceId}
         activePage={{
-          href: `/${workspace.slug}/ratelimits/${namespaceId}/settings`,
+          href: routes.ratelimits.settings({ workspaceSlug: workspace.slug, namespaceId }),
           text: "Settings",
         }}
       />

@@ -42,7 +42,7 @@ The worker groups multiple Restate services into one process. Each service uses 
 | ClickhouseUserService | `workspace_id` | ClickHouse user provisioning and quota updates when enabled. |
 | SentinelService | `sentinel_id` | Deploys a single sentinel: updates config, suspends on an awakeable until Krane reports healthy, marks failed on timeout. |
 | SentinelRolloutService | `singleton` | Fleet-wide progressive rollout of sentinel images using percentage waves, with pause-on-failure and RollbackAll. |
-| CronService | `varies per handler` | Unified entry point for all scheduled tasks (quota check, key refill, key last-used sync, audit log export, ratelimit global counters cleanup). Per-handler VO keys: billing period, date, or a fixed per-task slug. |
+| CronService | `varies per handler` | Unified entry point for all scheduled tasks (quota check, key refill, key last-used sync, audit log export, audit log outbox cleanup, ratelimit global counters cleanup). Per-handler VO keys: billing period, date, or a fixed per-task slug. |
 | KeyLastUsedPartitionService | `partition_index` | Per-partition fan-out target for `CronService.RunKeyLastUsedSync`. |
 
 ## System responsibilities
@@ -62,6 +62,22 @@ The worker relies on Restate to make workflows durable and idempotent. Each work
 - Virtual object keys serialize conflicting operations per domain, project, deployment, workspace, or region.
 - Long-running operations use Restate retries and durable sleep for external rate limits.
 - Background jobs persist progress in Restate state for safe resumption.
+
+### Determinism: never read the wall clock directly
+
+Handler bodies replay on every retry, so any non-deterministic value read outside a journaled step diverges between executions and Restate aborts with a diverging-paths error. Reading `time.Now()` (or a `clock.Clock`) directly in handler code is the common offender: the first run and each replay observe different timestamps.
+
+Read the current time through `restateutil.Now(ctx)`, which wraps the read in a `restate.Run` step so the value is journaled on the first execution and reused verbatim on every replay. Unit conversions on the result (`UnixMilli`, `Add`, ...) are deterministic and safe outside the step.
+
+```go
+now, err := restateutil.Now(ctx)
+if err != nil {
+    return nil, fmt.Errorf("get now: %w", err)
+}
+cutoff := now.Add(-retention).UnixMilli()
+```
+
+The same rule applies to any other non-deterministic source (randomness, external reads): produce it inside a `restate.Run` step, never in the bare handler body.
 
 ## Dependencies
 

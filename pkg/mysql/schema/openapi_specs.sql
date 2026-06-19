@@ -9,8 +9,8 @@ CREATE TABLE `openapi_specs` (
 	`updated_at` bigint,
 	CONSTRAINT `openapi_specs_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `openapi_specs_id_unique` UNIQUE(`id`),
+	CONSTRAINT `idx_openapi_specs_on_deployment_id` UNIQUE(`deployment_id`),
 	CONSTRAINT `workspace_deployment_idx` UNIQUE(`workspace_id`,`deployment_id`),
 	CONSTRAINT `workspace_portal_config_idx` UNIQUE(`workspace_id`,`portal_config_id`)
 );
 
-CREATE UNIQUE INDEX `idx_openapi_specs_on_deployment_id` ON `openapi_specs` (`deployment_id`);
