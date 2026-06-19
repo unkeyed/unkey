@@ -27,6 +27,7 @@ message CreateAppResponse {
 
 message DeleteAppRequest {
   string app_id = 1;
+  ActorInfo actor = 2;
 }
 
 message DeleteAppResponse {}
