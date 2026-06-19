@@ -11,9 +11,9 @@ post:
 
     **Required Permissions**
 
-    Your root key must have a permission that covers creating apps in the target project, for example:
-    - `unkey:v1:<workspace_id>:projects/*#create_app` (to create apps in any project)
-    - `unkey:v1:<workspace_id>:projects/<project_id>#create_app` (to create apps in a specific project)
+    Your root key must have one of the following permissions:
+    - `project.*.create_app` (to create apps in any project)
+    - `project.<project_id>.create_app` (to create apps in a specific project)
   operationId: apps.createApp
   x-speakeasy-name-override: createApp
   x-unkey-idempotency: conditionally-idempotent
@@ -78,7 +78,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions
+      description: Forbidden - Insufficient permissions (requires `project.*.create_app`)
       content:
         application/json:
           schema:
@@ -91,7 +91,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'create_app' permission on the target project to perform this operation
+                  detail: Your root key requires the 'project.*.create_app' permission to perform this operation
                   status: 403
                   type: forbidden
     "404":
