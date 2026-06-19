@@ -13,7 +13,6 @@ import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
-import { clearWorkspaceCache } from "../workspace/getCurrent";
 import { assertSubscriptionAttachable } from "./subscriptionGuards";
 
 export const createSubscription = workspaceProcedure
