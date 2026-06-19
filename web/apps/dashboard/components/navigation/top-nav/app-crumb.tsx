@@ -20,7 +20,7 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
   const items: CrumbPopoverItem[] = apps.map((a) => ({
     id: a.id,
     label: a.name,
-    href: routes.projects.apps.deployments({
+    href: routes.projects.apps.overview({
       workspaceSlug: workspace.slug,
       projectId,
       appId: a.id,
@@ -38,7 +38,7 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
       }
       label={current?.name ?? appId}
       loading={appsQuery.isLoading}
-      href={routes.projects.apps.deployments({ workspaceSlug: workspace.slug, projectId, appId })}
+      href={routes.projects.apps.overview({ workspaceSlug: workspace.slug, projectId, appId })}
       items={items}
       currentId={appId}
       searchPlaceholder="Find app..."

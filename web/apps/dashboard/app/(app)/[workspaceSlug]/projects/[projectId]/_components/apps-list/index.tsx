@@ -58,7 +58,7 @@ export const AppsList = () => {
           {apps.data.map((app) => (
             <ResourceCard
               key={app.id}
-              href={routes.projects.apps.deployments({
+              href={routes.projects.apps.overview({
                 workspaceSlug: workspace.slug,
                 projectId,
                 appId: app.id,
