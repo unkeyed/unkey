@@ -9,9 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
@@ -29,50 +27,48 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 	}{
 		{
 			name: "exact override permission",
-			permission: permissionURN(
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/%s#read_override",
 				setup.workspaceID,
-				fmt.Sprintf("ratelimits/namespaces/%s/overrides/%s", setup.namespaceID, setup.overrideID),
-				rbac.ReadOverride,
+				setup.namespaceID,
+				setup.overrideID,
 			),
 		},
 		{
 			name: "namespace override wildcard permission",
-			permission: permissionURN(
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/*#read_override",
 				setup.workspaceID,
-				fmt.Sprintf("ratelimits/namespaces/%s/overrides/*", setup.namespaceID),
-				rbac.ReadOverride,
+				setup.namespaceID,
 			),
 		},
 		{
 			name: "namespace descendant wildcard permission",
-			permission: permissionURN(
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:ratelimits/namespaces/%s/**#read_override",
 				setup.workspaceID,
-				fmt.Sprintf("ratelimits/namespaces/%s/**", setup.namespaceID),
-				rbac.ReadOverride,
+				setup.namespaceID,
 			),
 		},
 		{
 			name: "ratelimits descendant wildcard permission",
-			permission: permissionURN(
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:ratelimits/**#read_override",
 				setup.workspaceID,
-				"ratelimits/**",
-				rbac.ReadOverride,
 			),
 		},
 		{
 			name: "workos wildcard namespace permission",
-			permission: permissionURN(
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:ratelimits/namespaces/*/overrides/*#read_override",
 				setup.workspaceID,
-				"ratelimits/namespaces/*/overrides/*",
-				rbac.ReadOverride,
 			),
 		},
 		{
 			name: "admin permission",
-			permission: permissionURN(
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:**#*",
 				setup.workspaceID,
-				"**",
-				"*",
 			),
 		},
 	}
@@ -107,26 +103,26 @@ func TestGetOverride_RejectsNonCoveringURNPermissions(t *testing.T) {
 	}{
 		{
 			name: "sibling namespace wildcard permission",
-			permission: permissionURN(
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:ratelimits/namespaces/ns_other/overrides/*#read_override",
 				setup.workspaceID,
-				"ratelimits/namespaces/ns_other/overrides/*",
-				rbac.ReadOverride,
 			),
 		},
 		{
 			name: "wrong action permission",
-			permission: permissionURN(
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/%s#delete_override",
 				setup.workspaceID,
-				fmt.Sprintf("ratelimits/namespaces/%s/overrides/%s", setup.namespaceID, setup.overrideID),
-				rbac.DeleteOverride,
+				setup.namespaceID,
+				setup.overrideID,
 			),
 		},
 		{
 			name: "wrong workspace permission",
-			permission: permissionURN(
-				"ws_other",
-				fmt.Sprintf("ratelimits/namespaces/%s/overrides/%s", setup.namespaceID, setup.overrideID),
-				rbac.ReadOverride,
+			permission: fmt.Sprintf(
+				"unkey:v1:ws_other:ratelimits/namespaces/%s/overrides/%s#read_override",
+				setup.namespaceID,
+				setup.overrideID,
 			),
 		},
 	}
@@ -199,14 +195,4 @@ func setupGetOverrideURNPermissionTest(t *testing.T, ctx context.Context) getOve
 		namespaceID: namespaceID,
 		overrideID:  overrideID,
 	}
-}
-
-func permissionURN(workspaceID string, resource string, action rbac.ActionType) string {
-	return rbac.UnkeyPermission{
-		Resource: urn.V1{
-			WorkspaceID: workspaceID,
-			Resource:    resource,
-		},
-		Action: action,
-	}.String()
 }

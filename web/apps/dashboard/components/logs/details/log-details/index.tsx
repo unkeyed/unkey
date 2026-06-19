@@ -1,7 +1,7 @@
 "use client";
 import { extractResponseField, safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
-import type { EnrichedRatelimitLog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/components/table/hooks/use-logs-query";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
+import type { EnrichedRatelimitLog } from "@/components/ratelimit-logs-table";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";

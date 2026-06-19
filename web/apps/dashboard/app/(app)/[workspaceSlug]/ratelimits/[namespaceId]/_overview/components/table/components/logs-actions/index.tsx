@@ -5,6 +5,7 @@ import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namesp
 import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Clone, Layers3, PenWriting3, Trash } from "@unkey/icons";
 import { Loading, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -53,7 +54,9 @@ export const LogsTableAction = ({
         icon: <Layers3 iconSize="md-medium" />,
         onClick: (e) => {
           e.stopPropagation();
-          router.push(`/${workspace.slug}/ratelimits/${namespaceId}/logs?${getTimeParams()}`);
+          router.push(
+            `${routes.ratelimits.logs({ workspaceSlug: workspace.slug, namespaceId })}?${getTimeParams()}`,
+          );
         },
       },
       {

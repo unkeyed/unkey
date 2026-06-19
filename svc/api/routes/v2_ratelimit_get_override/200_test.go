@@ -9,9 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
 )
@@ -57,14 +55,10 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.UnkeyPermission{
-		Resource: urn.New().
-			Workspace(h.Resources().UserWorkspace.ID).
-			RatelimitNamespace(namespaceID).
-			Override("*").
-			V1(),
-		Action: rbac.ReadOverride,
-	}.String())
+	rootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:ratelimits/namespaces/%s/overrides/*#read_override", h.Resources().UserWorkspace.ID, namespaceID),
+	)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

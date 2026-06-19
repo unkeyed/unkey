@@ -107,6 +107,7 @@ go_library(
         "cilium_network_policy_insert.sql_generated.go",
         "cilium_network_policy_list_all_by_region.sql_generated.go",
         "cilium_network_policy_update.sql_generated.go",
+        "clickhouse_outbox_delete_exported.sql_generated.go",
         "clickhouse_outbox_find_batch.sql_generated.go",
         "clickhouse_outbox_insert.sql_generated.go",
         "clickhouse_outbox_list_by_workspace.sql_generated.go",

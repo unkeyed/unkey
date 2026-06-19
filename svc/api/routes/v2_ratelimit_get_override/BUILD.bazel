@@ -36,9 +36,7 @@ go_test(
     deps = [
         ":v2_ratelimit_get_override",
         "//pkg/db",
-        "//pkg/rbac",
         "//pkg/uid",
-        "//pkg/urn",
         "//svc/api/internal/testutil",
         "//svc/api/openapi",
         "@com_github_stretchr_testify//require",

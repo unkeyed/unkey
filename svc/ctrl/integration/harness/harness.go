@@ -236,6 +236,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			KeyRefill:         healthcheck.NewNoop(),
 			KeyLastUsedSync:   healthcheck.NewNoop(),
 			AuditLogExport:    healthcheck.NewNoop(),
+			AuditLogCleanup:   healthcheck.NewNoop(),
 			DeployBillingPush: healthcheck.NewNoop(),
 		},
 	})

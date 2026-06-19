@@ -4,6 +4,7 @@ import { StatsTimeseriesBarChart } from "@/components/stats-card/components/char
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatMs } from "@/lib/ms";
+import { routes } from "@/lib/navigation/routes";
 import { Clock, ProgressBar } from "@unkey/icons";
 import { Loading } from "@unkey/ui";
 import { Suspense } from "react";
@@ -35,7 +36,10 @@ export const NamespaceCard = ({ namespace, timeseries, isLoading, isError }: Pro
       <Suspense fallback={<Loading type="spinner" />}>
         <StatsCard
           name={namespace.name}
-          linkPath={`/${workspace.slug}/ratelimits/${namespace.id}`}
+          linkPath={routes.ratelimits.detail({
+            workspaceSlug: workspace.slug,
+            namespaceId: namespace.id,
+          })}
           chart={
             <StatsTimeseriesBarChart
               data={timeseries}

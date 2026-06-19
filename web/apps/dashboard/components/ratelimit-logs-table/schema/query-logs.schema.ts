@@ -1,5 +1,6 @@
+import { ratelimitFilterOperatorEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
+import { ratelimitLogsSort } from "@unkey/clickhouse/src/ratelimits";
 import { z } from "zod";
-import { ratelimitFilterOperatorEnum } from "../../filters.schema";
 
 export const ratelimitQueryLogsPayload = z.object({
   limit: z.int(),
@@ -7,6 +8,8 @@ export const ratelimitQueryLogsPayload = z.object({
   endTime: z.int(),
   namespaceId: z.string(),
   since: z.string(),
+  page: z.int().optional().default(1),
+  sorts: z.array(ratelimitLogsSort).nullable().optional(),
   identifiers: z
     .object({
       filters: z.array(
@@ -37,7 +40,6 @@ export const ratelimitQueryLogsPayload = z.object({
       ),
     })
     .nullable(),
-  cursor: z.number().nullable().optional().nullable(),
 });
 
 export type RatelimitQueryLogsPayload = z.infer<typeof ratelimitQueryLogsPayload>;

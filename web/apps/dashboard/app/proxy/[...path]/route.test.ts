@@ -13,16 +13,6 @@ vi.mock("@/lib/auth/server", () => ({
   },
 }));
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    query: {
-      workspaces: {
-        findFirst: vi.fn(),
-      },
-    },
-  },
-}));
-
 vi.mock("@/lib/env", () => ({
   env: vi.fn(),
 }));
@@ -63,6 +53,10 @@ describe("dashboard proxy POST", () => {
       UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
     } as ReturnType<typeof env>);
     mockedFindWorkspace.mockResolvedValue({ id: "ws_123" });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   afterEach(() => {

@@ -1,9 +1,9 @@
 "use client";
 
+import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Clone, InputSearch } from "@unkey/icons";
 import { toast } from "@unkey/ui";
-import { useFilters } from "../../../hooks/use-filters";
 
 export const LogsTableAction = ({ identifier }: { identifier: string }) => {
   const { filters, updateFilters } = useFilters();
