@@ -11,9 +11,7 @@ export const SIGN_UP_URL = "/auth/sign-up";
 export const LOCAL_USER_ID = "user_local_admin";
 export const LOCAL_ORG_ID = "org_localdefault"; // org IDs can only have one underscore
 export const LOCAL_ORG_ROLE = "admin";
-export const LOCAL_AUTH_PERMISSIONS = [
-  "admin:*",
-] as const;
+export const LOCAL_AUTH_PERMISSIONS = ["admin:*"] as const;
 
 // WorkOS API endpoints
 export const WORKOS_RADAR_API_URL = "https://api.workos.com/radar/attempts";

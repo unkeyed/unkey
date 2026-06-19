@@ -123,22 +123,24 @@ async function mintProxyJWT(params: {
   const key = new TextEncoder().encode(signingSecret);
   const now = Math.floor(Date.now() / 1000);
 
-  return new SignJWT({
-    org: {
-      id: params.orgId,
-    },
-    name: params.name,
-    perms: params.permissions,
-  })
-    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .setIssuer("app.unkey.com")
-    // Mirror the WorkOS JWT template's audience so svc/api's WorkOS auth entry
-    // (configured with audience = "api.unkey.com") verifies this fallback token
-    // the same way it verifies a forwarded WorkOS access token.
-    .setAudience(["app.unkey.com", "api.unkey.com"])
-    .setSubject(params.subject)
-    .setIssuedAt(now)
-    .setNotBefore(now)
-    .setExpirationTime(now + 120)
-    .sign(key);
+  return (
+    new SignJWT({
+      org: {
+        id: params.orgId,
+      },
+      name: params.name,
+      perms: params.permissions,
+    })
+      .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+      .setIssuer("app.unkey.com")
+      // Mirror the WorkOS JWT template's audience so svc/api's WorkOS auth entry
+      // (configured with audience = "api.unkey.com") verifies this fallback token
+      // the same way it verifies a forwarded WorkOS access token.
+      .setAudience(["api.unkey.com"])
+      .setSubject(params.subject)
+      .setIssuedAt(now)
+      .setNotBefore(now)
+      .setExpirationTime(now + 120)
+      .sign(key)
+  );
 }
