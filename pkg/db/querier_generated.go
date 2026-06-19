@@ -1118,6 +1118,20 @@ type Querier interface {
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
+	//FindProjectByWorkspaceAndId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ? AND id = ?
+	//  LIMIT 1
+	FindProjectByWorkspaceAndId(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndIdParams) (FindProjectByWorkspaceAndIdRow, error)
 	//FindProjectByWorkspaceAndSlug
 	//
 	//  SELECT

@@ -1932,6 +1932,32 @@ components:
                 data:
                     $ref: "#/components/schemas/V2ProjectsCreateProjectResponseData"
             additionalProperties: false
+        V2ProjectsGetProjectRequestBody:
+            type: object
+            required:
+                - projectId
+            properties:
+                projectId:
+                    type: string
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: |
+                        Specifies which project to retrieve by its unique identifier.
+                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+                    example: proj_1234abcd
+            additionalProperties: false
+        V2ProjectsGetProjectResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Project"
+            additionalProperties: false
         V2ProjectsListProjectsRequestBody:
             type: object
             properties:
@@ -1962,7 +1988,7 @@ components:
                     type: array
                     maxItems: 100
                     items:
-                        "$ref": "#/components/schemas/V2ProjectsListProjectsResponseData"
+                        "$ref": "#/components/schemas/Project"
                     description: Array of projects in the workspace, ordered by project id.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
@@ -3634,7 +3660,7 @@ components:
                         Always begins with 'proj_' followed by a unique alphanumeric sequence.
                     example: proj_1234abcd
             additionalProperties: false
-        V2ProjectsListProjectsResponseData:
+        Project:
             type: object
             required:
                 - id
@@ -7059,6 +7085,117 @@ paths:
                 - projects
             x-speakeasy-name-override: createProject
             x-unkey-idempotency: conditionally-idempotent
+    /v2/projects.getProject:
+        post:
+            description: |
+                Retrieve a single project in your workspace by its id.
+
+                Use this to fetch project details after creation, verify a project exists before performing operations, or resolve a project's metadata from its id.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `project.*.read_project` (to read any project)
+                - `project.<project_id>.read_project` (to read a specific project)
+            operationId: projects.getProject
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            basic:
+                                description: Fetch a single project using its unique identifier
+                                summary: Retrieve a project by ID
+                                value:
+                                    projectId: proj_1234abcd
+                        schema:
+                            $ref: '#/components/schemas/V2ProjectsGetProjectRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                project:
+                                    description: Successfully retrieved a project
+                                    summary: Project details
+                                    value:
+                                        data:
+                                            createdAt: 1704067200000
+                                            deleteProtection: true
+                                            id: proj_1234abcd
+                                            name: Payments Service
+                                            slug: payments-service
+                                            updatedAt: 1704153600000
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2ProjectsGetProjectResponseBody'
+                    description: |
+                        Successfully retrieved the project.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'project.*.read_project' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `project.*.read_project`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                projectNotFound:
+                                    summary: Project not found
+                                    value:
+                                        error:
+                                            detail: The requested project does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested project does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Get project
+            tags:
+                - projects
+            x-speakeasy-name-override: getProject
     /v2/projects.listProjects:
         post:
             description: |

@@ -78,9 +78,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rows = rows[:limit]
 	}
 
-	data := make([]openapi.V2ProjectsListProjectsResponseData, len(rows))
+	data := make([]openapi.Project, len(rows))
 	for i, row := range rows {
-		data[i] = openapi.V2ProjectsListProjectsResponseData{
+		data[i] = openapi.Project{
 			Id:               row.ID,
 			Name:             row.Name,
 			Slug:             row.Slug,
