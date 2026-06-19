@@ -53,6 +53,7 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 		Request(&hydrav1.ScheduleDesiredStateChangeRequest{
 			DelayMillis: 0,
 			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+			Overwrite:   true,
 		})
 	if err != nil {
 		return nil, fmt.Errorf("stop deployment workflow failed: %w", err)

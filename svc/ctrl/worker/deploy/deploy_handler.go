@@ -33,10 +33,6 @@ const (
 	// [waitForDeployments]'s required minimum become healthy within this window.
 	regionReadyTimeout = 15 * time.Minute
 
-	// wakeReadinessPollInterval controls how often a manual wake checks the DB
-	// for running instances before it marks the deployment ready.
-	wakeReadinessPollInterval = 10 * time.Second
-
 	// noInstallationID is the zero value for a GitHub App installation ID.
 	// Proto3 omits zero-value int64 fields, so a missing installation ID arrives
 	// as 0. When this is the case the repo has no GitHub App connection and we
@@ -863,7 +859,7 @@ func (w *Workflow) spinDownPreviousDeployments(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: time.Minute.Milliseconds(), // give frontline a graceperiod to clear their caches
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-				Overwrite:   false, // do not overwride previously scheduled
+				Overwrite:   false, // do not overwrite a previously scheduled transition
 			},
 			restate.WithIdempotencyKey(previousDeploymentID),
 		)

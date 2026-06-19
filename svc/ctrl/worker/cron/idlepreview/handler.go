@@ -118,6 +118,9 @@ func (h *Handler) Handle(
 						Request(&hydrav1.ScheduleDesiredStateChangeRequest{
 							DelayMillis: 0,
 							State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+							// Never clobber a user-initiated pending transition (e.g. a
+							// manual wake): idle scaledown yields to explicit intent.
+							Overwrite: false,
 						})
 					if err != nil {
 						return nil, err

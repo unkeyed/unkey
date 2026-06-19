@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 )
 
 // WakeDeployment is the public Restate entrypoint for waking a stopped
@@ -73,37 +74,50 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		regionMinReplicas[row.RegionID] = row.AutoscalingReplicasMin
 	}
 	requiredRegions := max(len(regionMinReplicas)-1, 1)
-	attempts := int(regionReadyTimeout / wakeReadinessPollInterval)
-	for attempt := 0; attempt <= attempts; attempt++ {
-		healthy, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
-			return w.checkInstancesHealthy(runCtx, deploymentID, regionMinReplicas, requiredRegions)
-		}, restate.WithName(fmt.Sprintf("check wake instance readiness %d", attempt)), restate.WithMaxRetryAttempts(runMaxAttempts))
-		if err != nil {
-			return nil, fmt.Errorf("check wake instance readiness: %w", err)
-		}
-		if healthy {
-			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				return db.Query.UpdateDeploymentStatus(runCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
-					ID:        deploymentID,
-					Status:    db.DeploymentsStatusReady,
-					UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				})
-			}, restate.WithName("mark woken deployment ready"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if err != nil {
-				return nil, fmt.Errorf("mark woken deployment ready: %w", err)
-			}
-			return &hydrav1.WakeDeploymentResponse{}, nil
-		}
 
-		if attempt < attempts {
-			if err := restate.Sleep(ctx, wakeReadinessPollInterval); err != nil {
-				return nil, fmt.Errorf("sleep before wake readiness check: %w", err)
+	now, err := restateutil.Now(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// The deadline is anchored to the journaled wall clock so it stays stable if
+	// this side effect is retried. The poll below runs as a single blocking
+	// restate.Run rather than a durable restate.Sleep loop: it does not journal
+	// per-check progress, so a worker restart mid-wake restarts the poll from the
+	// start (bounded by deadline).
+	deadline := now.Add(regionReadyTimeout)
+
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		for {
+			healthy, checkErr := w.checkInstancesHealthy(runCtx, deploymentID, regionMinReplicas, requiredRegions)
+			if checkErr != nil {
+				return fmt.Errorf("check wake instance readiness: %w", checkErr)
 			}
+			if healthy {
+				return nil
+			}
+
+			if time.Now().After(deadline) {
+				return fault.Wrap(
+					restate.TerminalErrorf("not enough regions became healthy in %v, required %d of %d", regionReadyTimeout, requiredRegions, len(regionMinReplicas)),
+					fault.Public("Not enough regions became healthy in time."),
+				)
+			}
+			time.Sleep(time.Second)
 		}
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fault.Wrap(
-		restate.TerminalErrorf("not enough regions became healthy in %v, required %d of %d", regionReadyTimeout, requiredRegions, len(regionMinReplicas)),
-		fault.Public("Not enough regions became healthy in time."),
-	)
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.Query.UpdateDeploymentStatus(runCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+			ID:        deploymentID,
+			Status:    db.DeploymentsStatusReady,
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("mark woken deployment ready"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return nil, fmt.Errorf("mark woken deployment ready: %w", err)
+	}
+	return &hydrav1.WakeDeploymentResponse{}, nil
 }
