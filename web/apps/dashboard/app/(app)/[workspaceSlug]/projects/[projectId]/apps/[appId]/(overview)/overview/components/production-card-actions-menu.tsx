@@ -82,6 +82,7 @@ export function ProductionCardActionsMenu({
         variant="outline"
         size="sm"
         aria-label="More actions"
+        className="w-7 p-0"
         onClick={(e) => e.stopPropagation()}
       >
         <Dots iconSize="sm-regular" />
