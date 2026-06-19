@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -23,6 +24,8 @@ import (
 )
 
 const jwksFetchTimeout = 10 * time.Second
+
+const jwksMaxResponseBytes = 256 * 1024
 
 // jwksRefetchMinInterval rate-limits JWKS fetches triggered by tokens naming
 // an unknown signing key, so a storm of invalid tokens cannot hammer the JWKS
@@ -51,6 +54,17 @@ type jwksVerifier struct {
 }
 
 var _ claimsVerifier = (*jwksVerifier)(nil)
+
+var jwksHTTPClient = &http.Client{
+	Transport: jwksHTTPTransport(),
+	Timeout:   jwksFetchTimeout,
+}
+
+func jwksHTTPTransport() http.RoundTripper {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.ResponseHeaderTimeout = jwksFetchTimeout
+	return transport
+}
 
 func (v *jwksVerifier) verify(ctx context.Context, token string) (Claims, error) {
 	var zero Claims
@@ -246,7 +260,7 @@ func fetchKeySet(ctx context.Context, issuer string, audience string, jwksURL st
 		return nil, fmt.Errorf("create JWKS request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := jwksHTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch JWKS: %w", err)
 	}
@@ -259,7 +273,7 @@ func fetchKeySet(ctx context.Context, issuer string, audience string, jwksURL st
 	}
 
 	var jwks jwksResponse
-	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, jwksMaxResponseBytes)).Decode(&jwks); err != nil {
 		return nil, fmt.Errorf("decode JWKS: %w", err)
 	}
 	if len(jwks.Keys) == 0 {

@@ -336,8 +336,11 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			return "", err
 		}
-		if hit == cache.Null || !workspace.Enabled {
+		if hit == cache.Null {
 			return "", authjwt.ErrWorkspaceNotFound
+		}
+		if !workspace.Enabled {
+			return "", authjwt.ErrWorkspaceDisabled
 		}
 		return workspace.ID, nil
 	})

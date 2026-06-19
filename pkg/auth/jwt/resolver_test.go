@@ -606,6 +606,29 @@ func TestResolver_JWKSFetchFailureIsNotACredentialError(t *testing.T) {
 	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), code)
 }
 
+// TestResolver_RejectsOversizedJWKSBody pins the JWKS response size limit so a
+// misconfigured endpoint cannot make the decoder consume unbounded memory.
+func TestResolver_RejectsOversizedJWKSBody(t *testing.T) {
+	t.Parallel()
+
+	jwksServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"keys":[` + strings.Repeat(`{"kty":"RSA"},`, jwksMaxResponseBytes) + `]}`))
+	}))
+	t.Cleanup(jwksServer.Close)
+
+	resolver, err := NewResolverWithJWKSURL(testWorkspaceLookup("ws_123"), jwksIssuer, Audience, jwksServer.URL)
+	require.NoError(t, err)
+
+	keyPEM, _ := generateJWKS(t)
+	principal, err := resolver.Resolve(context.Background(), jwtSession(t, signRS256Token(t, keyPEM, "user_123")))
+	require.Error(t, err)
+	require.Nil(t, principal)
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), code)
+}
+
 // TestResolver_GarbageTokenIsACredentialError guarantees a bearer token whose
 // header does not decode is rejected as an invalid credential without ever
 // contacting the JWKS endpoint, so garbage tokens cannot trigger fetches.
@@ -781,29 +804,50 @@ func TestResolver_WorkspaceLookupErrorMapping(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	notFoundLookup := WorkspaceLookupFunc(func(_ context.Context, _ string) (string, error) {
-		return "", ErrWorkspaceNotFound
+	for _, tc := range []struct {
+		name string
+		err  error
+		code codes.URN
+	}{
+		{
+			name: "missing workspace",
+			err:  ErrWorkspaceNotFound,
+			code: codes.Auth.Authorization.Forbidden.URN(),
+		},
+		{
+			name: "disabled workspace",
+			err:  ErrWorkspaceDisabled,
+			code: codes.Auth.Authorization.WorkspaceDisabled.URN(),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			workspaceLookup := WorkspaceLookupFunc(func(_ context.Context, _ string) (string, error) {
+				return "", tc.err
+			})
+			resolver, err := NewResolver(workspaceLookup, dashboardIssuer, Audience, secret)
+			require.NoError(t, err)
+
+			principal, err := resolver.Resolve(context.Background(), jwtSession(t, token))
+			require.Error(t, err)
+			require.Nil(t, principal)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, tc.code, code)
+		})
+	}
+
+	dbErrorLookup := WorkspaceLookupFunc(func(_ context.Context, _ string) (string, error) {
+		return "", errors.New("database unreachable")
 	})
-	resolver, err := NewResolver(notFoundLookup, dashboardIssuer, Audience, secret)
+	resolver, err := NewResolver(dbErrorLookup, dashboardIssuer, Audience, secret)
 	require.NoError(t, err)
 
 	principal, err := resolver.Resolve(context.Background(), jwtSession(t, token))
 	require.Error(t, err)
 	require.Nil(t, principal)
 	code, ok := fault.GetCode(err)
-	require.True(t, ok)
-	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), code)
-
-	dbErrorLookup := WorkspaceLookupFunc(func(_ context.Context, _ string) (string, error) {
-		return "", errors.New("database unreachable")
-	})
-	resolver, err = NewResolver(dbErrorLookup, dashboardIssuer, Audience, secret)
-	require.NoError(t, err)
-
-	principal, err = resolver.Resolve(context.Background(), jwtSession(t, token))
-	require.Error(t, err)
-	require.Nil(t, principal)
-	code, ok = fault.GetCode(err)
 	require.True(t, ok)
 	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), code)
 }

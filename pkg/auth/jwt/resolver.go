@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -20,14 +21,18 @@ import (
 )
 
 // ErrWorkspaceNotFound is returned by [WorkspaceLookup] implementations when
-// the organization has no usable workspace: missing, soft-deleted, or
-// disabled. The token itself is valid, so the resolver reports this as a
-// forbidden (403) condition rather than an invalid credential (401): the
-// caller authenticated, but the organization has no workspace to act in.
-// Reporting it as a credential failure would make the dashboard treat a valid
-// session as expired and log the user out. Every other lookup error is treated
-// as an infrastructure failure, not a credential problem.
+// the organization has no usable workspace because it is missing or
+// soft-deleted. The token itself is valid, so the resolver reports this as a
+// forbidden (403) condition rather than an invalid credential (401): the caller
+// authenticated, but the organization has no workspace to act in. Reporting it
+// as a credential failure would make the dashboard treat a valid session as
+// expired and log the user out. Every other lookup error is treated as an
+// infrastructure failure, not a credential problem.
 var ErrWorkspaceNotFound = errors.New("workspace not found")
+
+// ErrWorkspaceDisabled is returned by [WorkspaceLookup] implementations when
+// the organization belongs to a disabled workspace.
+var ErrWorkspaceDisabled = errors.New("workspace disabled")
 
 // WorkspaceLookup resolves a JWT organization claim to a workspace ID.
 type WorkspaceLookup interface {
@@ -63,14 +68,12 @@ type Resolver struct {
 // and keep recently retired secrets later in the list until every token signed
 // with those secrets has expired.
 func NewResolver(workspaceLookup WorkspaceLookup, issuer string, audience string, secrets ...[]byte) (*Resolver, error) {
-	if len(secrets) == 0 {
-		return nil, errors.New("at least one JWT secret is required")
-	}
-	if workspaceLookup == nil {
-		return nil, errors.New("workspace lookup is required")
-	}
-	if strings.TrimSpace(issuer) == "" {
-		return nil, errors.New("JWT issuer is required")
+	if err := assert.All(
+		assert.Greater(len(secrets), 0, "at least one JWT secret is required"),
+		assert.NotNil(workspaceLookup, "workspace lookup is required"),
+		assert.NotEmpty(strings.TrimSpace(issuer), "JWT issuer is required"),
+	); err != nil {
+		return nil, err
 	}
 
 	verifiers := make([]tokenjwt.Verifier[Claims], 0, len(secrets))
@@ -96,14 +99,12 @@ func NewResolver(workspaceLookup WorkspaceLookup, issuer string, audience string
 // picked up without a restart. A temporarily unreachable JWKS endpoint does
 // not prevent construction; affected requests fail until the endpoint recovers.
 func NewResolverWithJWKSURL(workspaceLookup WorkspaceLookup, issuer string, audience string, jwksURL string) (*Resolver, error) {
-	if workspaceLookup == nil {
-		return nil, errors.New("workspace lookup is required")
-	}
-	if strings.TrimSpace(issuer) == "" {
-		return nil, errors.New("JWT issuer is required")
-	}
-	if strings.TrimSpace(jwksURL) == "" {
-		return nil, errors.New("JWKS URL must not be empty")
+	if err := assert.All(
+		assert.NotNil(workspaceLookup, "workspace lookup is required"),
+		assert.NotEmpty(strings.TrimSpace(issuer), "JWT issuer is required"),
+		assert.NotEmpty(strings.TrimSpace(jwksURL), "JWKS URL must not be empty"),
+	); err != nil {
+		return nil, err
 	}
 
 	return &Resolver{
@@ -150,6 +151,13 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			return nil, fault.Wrap(err,
 				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 				fault.Internal("JWT organization has no usable workspace"),
+				fault.Public("Your organization does not have an active workspace."),
+			)
+		}
+		if errors.Is(err, ErrWorkspaceDisabled) {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.Auth.Authorization.WorkspaceDisabled.URN()),
+				fault.Internal("JWT organization workspace is disabled"),
 				fault.Public("Your organization does not have an active workspace."),
 			)
 		}

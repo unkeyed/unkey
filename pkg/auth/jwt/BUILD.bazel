@@ -11,6 +11,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/auth/jwt",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/assert",
         "//pkg/auth/principal",
         "//pkg/clock",
         "//pkg/codes",
