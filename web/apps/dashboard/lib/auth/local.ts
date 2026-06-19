@@ -6,6 +6,7 @@ import {
   type EmailAuthResult,
   type Invitation,
   type InvitationListResponse,
+  LOCAL_AUTH_PERMISSIONS,
   LOCAL_ORG_ID,
   LOCAL_ORG_ROLE,
   LOCAL_USER_ID,
@@ -97,6 +98,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
       shouldRefresh: false,
       userId: this.USER_ID,
       orgId: this.ORG_ID,
+      permissions: LOCAL_AUTH_PERMISSIONS,
       role: this.ROLE,
     };
   }
@@ -117,6 +119,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
       session: {
         userId: this.USER_ID,
         orgId: this.ORG_ID,
+        permissions: LOCAL_AUTH_PERMISSIONS,
         role: this.ROLE,
       },
     };

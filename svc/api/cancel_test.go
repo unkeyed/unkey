@@ -46,6 +46,9 @@ func TestContextCancellation(t *testing.T) {
 			Primary: dbDsn,
 		},
 		Observability: config.Observability{},
+		Auth: api.AuthConfigs{
+			api.RootKeyAuthConfig{Enabled: nil},
+		},
 	}
 
 	// Create a channel to receive the result of the Run function
