@@ -282,9 +282,9 @@ The Helm chart provides these variables for the default config template:
 
 The dashboard proxy forwards the WorkOS access token when a WorkOS session is
 available. The API verifies that token through a `type = "jwt"` auth entry
-configured with the WorkOS issuer and JWKS URL. WorkOS access tokens include the
-organization as `org_id`, and the API reads Unkey RBAC permissions from the
-token's `permissions` claim. The WorkOS JWT template also sets `aud` to
+configured with the WorkOS issuer and JWKS URL. The WorkOS JWT template includes
+the organization as `org.id`, and the API reads Unkey RBAC permissions from the
+token's `permissions` claim. The template also sets `aud` to
 `["app.unkey.com", "api.unkey.com"]`, and the auth entry pins
 `audience = "api.unkey.com"`.
 

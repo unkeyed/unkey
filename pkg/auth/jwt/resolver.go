@@ -136,7 +136,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	if err != nil {
 		return nil, err
 	}
-	orgID := claims.organizationID()
+	orgID := claims.Org.ID
 	subjectID := claims.subjectID()
 	if subjectID == "" || orgID == "" || claims.ExpiresAt == 0 || claims.IssuedAt == 0 {
 		return nil, fault.New("invalid JWT claims",

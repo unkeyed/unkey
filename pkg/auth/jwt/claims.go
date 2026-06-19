@@ -11,11 +11,8 @@ const Audience = "api.unkey.com"
 type Claims struct {
 	tokenjwt.RegisteredClaims
 
-	// Org scopes locally minted dashboard fallback tokens.
+	// Org scopes JWT principals to one organization.
 	Org OrganizationClaims `json:"org"`
-
-	// WorkOSOrgID is the built-in organization claim in WorkOS access tokens.
-	WorkOSOrgID string `json:"org_id"`
 
 	// User supports providers that put user identity in a nested object.
 	User UserClaims `json:"user"`
@@ -39,15 +36,6 @@ type OrganizationClaims struct {
 type UserClaims struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
-}
-
-// organizationID returns the organization claim, preferring the dashboard
-// shape over the WorkOS access-token shape.
-func (c Claims) organizationID() string {
-	if c.Org.ID != "" {
-		return c.Org.ID
-	}
-	return c.WorkOSOrgID
 }
 
 // subjectID returns the token subject, falling back to the nested user id used

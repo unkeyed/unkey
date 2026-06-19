@@ -160,7 +160,7 @@ func TestResolver_ResolveJWTWithJWKSURL(t *testing.T) {
 	require.Equal(t, []string{"deployments:create"}, principal.Permissions)
 }
 
-// TestResolver_ResolveWorkOSAccessTokenClaims guarantees WorkOS access-token
+// TestResolver_ResolveWorkOSAccessTokenClaims guarantees WorkOS JWT-template
 // claim names populate the principal subject, workspace lookup, and permissions.
 func TestResolver_ResolveWorkOSAccessTokenClaims(t *testing.T) {
 	t.Parallel()
@@ -176,7 +176,7 @@ func TestResolver_ResolveWorkOSAccessTokenClaims(t *testing.T) {
 			ExpiresAt: now.Add(time.Minute).Unix(),
 			IssuedAt:  now.Unix(),
 		},
-		WorkOSOrgID:       "org_123",
+		Org:               OrganizationClaims{ID: "org_123"},
 		User:              UserClaims{ID: "user_123", Email: "user@example.test"},
 		WorkOSPermissions: []string{"deployments:create"},
 	})
@@ -203,7 +203,9 @@ func TestResolver_ResolveWorkOSAccessTokenClaims(t *testing.T) {
 	require.Equal(t, "ws_123", principal.WorkspaceID)
 	source, ok := principal.Source.(authprincipal.JWTSource)
 	require.True(t, ok)
-	require.Equal(t, "org_123", source.Payload["org_id"])
+	org, ok := source.Payload["org"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "org_123", org["id"])
 	require.Equal(t, []string{"deployments:create"}, principal.Permissions)
 }
 
@@ -1183,9 +1185,8 @@ func TestResolver_RejectsIncompleteClaims(t *testing.T) {
 		name   string
 		mutate func(claims Claims) Claims
 	}{
-		{name: "no organization in either claim shape", mutate: func(claims Claims) Claims {
+		{name: "no organization", mutate: func(claims Claims) Claims {
 			claims.Org.ID = ""
-			claims.WorkOSOrgID = ""
 			return claims
 		}},
 		{name: "no subject in either claim shape", mutate: func(claims Claims) Claims {
@@ -1212,9 +1213,8 @@ func TestResolver_RejectsIncompleteClaims(t *testing.T) {
 	}
 }
 
-// TestResolver_ClaimPrecedence guarantees the dashboard claim shapes win over
-// the WorkOS shapes when a token carries both, so a WorkOS-issued claim can
-// never override what a dashboard-minted token states.
+// TestResolver_ClaimPrecedence guarantees the dashboard subject and permission
+// shapes win over provider fallback shapes when a token carries both.
 func TestResolver_ClaimPrecedence(t *testing.T) {
 	t.Parallel()
 
@@ -1233,7 +1233,6 @@ func TestResolver_ClaimPrecedence(t *testing.T) {
 			IssuedAt:  now.Unix(),
 		},
 		Org:               OrganizationClaims{ID: "org_dashboard"},
-		WorkOSOrgID:       "org_workos",
 		User:              UserClaims{ID: "user_workos", Email: "workos@acme.com"},
 		Name:              "Dashboard Name",
 		Permissions:       []string{"dashboard:perm"},
