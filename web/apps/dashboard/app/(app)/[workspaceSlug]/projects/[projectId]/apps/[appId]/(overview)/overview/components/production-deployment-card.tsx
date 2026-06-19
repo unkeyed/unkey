@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import type { LastExit } from "@/lib/types/deploy";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -13,6 +14,7 @@ import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
 import { adaptiveWindowForAge, buildPulse } from "./g-pulse";
+import { ProductionCardActionsMenu } from "./production-card-actions-menu";
 import { ProductionDeploymentCardSkeleton } from "./production-deployment-card-skeleton";
 import {
   type DeploymentDisplayStatus,
@@ -228,6 +230,13 @@ export function ProductionDeploymentCard() {
         pulse={pulse}
         onRollback={rollbackTarget ? () => setRollbackOpen(true) : undefined}
         onUndoRollback={debug.rolledBack ? () => setUndoOpen(true) : undefined}
+        actionsSlot={
+          <ProductionCardActionsMenu
+            deployment={deployment}
+            status={status}
+            commitUrl={githubUrl.commit(repoFullName, deployment.gitCommitSha)}
+          />
+        }
       />
       {rollbackTarget && (
         <RollbackDialog

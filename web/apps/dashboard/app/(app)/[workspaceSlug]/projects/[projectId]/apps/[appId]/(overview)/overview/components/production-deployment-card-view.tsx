@@ -179,9 +179,11 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
 function ProductionCardHeader({
   vm,
   onRollback,
+  actionsSlot,
 }: {
   vm: ProductionDeploymentViewModel;
   onRollback?: () => void;
+  actionsSlot?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b border-gray-4">
@@ -222,6 +224,7 @@ function ProductionCardHeader({
             Instant Rollback
           </Button>
         )}
+        {actionsSlot}
       </div>
     </div>
   );
@@ -385,11 +388,13 @@ export function ProductionDeploymentCardView({
   pulse,
   onRollback,
   onUndoRollback,
+  actionsSlot,
 }: {
   vm: ProductionDeploymentViewModel;
   pulse: Pulse;
   onRollback?: () => void;
   onUndoRollback?: () => void;
+  actionsSlot?: React.ReactNode;
 }) {
   const [active, setActive] = useState<AreaChartPoint | null>(null);
 
@@ -411,7 +416,7 @@ export function ProductionDeploymentCardView({
     <div className="relative">
       {vm.rolledBack && <RollbackBanner onUndoRollback={onUndoRollback} />}
       <Card className="relative z-10 bg-base-12 flex flex-col">
-        <ProductionCardHeader vm={vm} onRollback={onRollback} />
+        <ProductionCardHeader vm={vm} onRollback={onRollback} actionsSlot={actionsSlot} />
         <div className="grid grid-cols-1 md:grid-cols-2">
           <div className="flex flex-col gap-2 p-4 md:border-r border-gray-4">
             <div className="flex items-start justify-between gap-2">
