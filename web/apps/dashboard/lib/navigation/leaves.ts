@@ -145,6 +145,13 @@ export function buildAppLinks(
   const scope = { workspaceSlug: slug, projectId, appId };
   return [
     {
+      key: "overview",
+      label: "Overview",
+      href: routes.projects.apps.overview(scope),
+      icon: Cube,
+      isActive: page === "overview",
+    },
+    {
       key: "deployments",
       label: "Deployments",
       href: routes.projects.apps.deployments(scope),
