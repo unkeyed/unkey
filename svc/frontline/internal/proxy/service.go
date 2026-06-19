@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -29,7 +31,35 @@ type service struct {
 	upstreamTransports *TransportRegistry
 	maxHops            int
 	errorPageRenderer  errorpage.Renderer
+
+	// regionHeader is the precomputed "platform::region" value written to
+	// the X-Unkey-Region response header on every request.
+	regionHeader string
+
+	// copyBufs feeds httputil.ReverseProxy.BufferPool. Without a pool the
+	// proxy allocates a fresh 32 KiB copy buffer per request, which was
+	// two thirds of all allocated bytes on the hot path.
+	copyBufs copyBufferPool
+
+	// reverseProxy is built once and shared by every request. Per-request
+	// state travels through the request context as a [proxyState] instead of
+	// rebuilding the proxy and its callbacks per request. See [proxyState].
+	reverseProxy *httputil.ReverseProxy
 }
+
+// copyBufferPool implements httputil.BufferPool over a sync.Pool. Buffers
+// are stored as pointers so Get/Put do not allocate on the interface
+// boxing.
+type copyBufferPool struct{ p sync.Pool }
+
+func (p *copyBufferPool) Get() []byte {
+	if b, ok := p.p.Get().(*[]byte); ok {
+		return *b
+	}
+	return make([]byte, 32<<10)
+}
+
+func (p *copyBufferPool) Put(b []byte) { p.p.Put(&b) }
 
 var _ Service = (*service)(nil)
 
@@ -48,15 +78,20 @@ func New(cfg Config) (*service, error) {
 			Proxy:             http.ProxyFromEnvironment,
 			ForceAttemptHTTP2: true,
 			// TCP KeepAlive for detecting dead connections and keeping connections alive through NAT/firewalls
-			DialContext: (&net.Dialer{
+			DialContext: countingDialContext((&net.Dialer{
 				Timeout:   10 * time.Second,
 				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			MaxIdleConns:          200,
-			MaxIdleConnsPerHost:   100,
+			}).DialContext, destinationFrontline), //nolint:exhaustruct
+			// The peer-region hop targets one frontline endpoint per
+			// region, so per-host is effectively the pool size.
+			MaxIdleConns:          1024,
+			MaxIdleConnsPerHost:   512,
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
+			// Pass client encodings through untouched; never negotiate
+			// and undo gzip on the client's behalf.
+			DisableCompression: true,
 			// Enable TLS session resumption for faster cross-region forwarding
 			TLSClientConfig: &tls.Config{
 				MinVersion:         tls.VersionTLS12,
@@ -87,7 +122,7 @@ func New(cfg Config) (*service, error) {
 		renderer = errorpage.NewRenderer()
 	}
 
-	return &service{
+	s := &service{
 		instanceID:         cfg.InstanceID,
 		platform:           cfg.Platform,
 		region:             cfg.Region,
@@ -97,19 +132,23 @@ func New(cfg Config) (*service, error) {
 		upstreamTransports: upstreamTransports,
 		maxHops:            maxHops,
 		errorPageRenderer:  renderer,
-	}, nil
+		regionHeader:       cfg.Platform + "::" + cfg.Region,
+		copyBufs:           copyBufferPool{p: sync.Pool{New: nil}},
+		reverseProxy:       nil,
+	}
+	// Built after the struct exists: the proxy's callbacks are method values
+	// bound to s and its BufferPool points at s.copyBufs.
+	s.reverseProxy = s.newReverseProxy()
+	return s, nil
 }
 
 func (s *service) ForwardToInstance(ctx context.Context, sess *zen.Session, protocol db.DeploymentsUpstreamProtocol, instance db.FindInstancesByDeploymentIDRow) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s", instance.Address))
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-			fault.Internal("failed to parse instance URL"),
-		)
-	}
+	// Build the URL directly instead of url.Parse(fmt.Sprintf(...)): the
+	// address is host:port straight from the DB, there is nothing to parse,
+	// and this runs on every request.
+	targetURL := &url.URL{Scheme: "http", Host: instance.Address} //nolint:exhaustruct
 
 	transport := s.upstreamTransports.Get(protocol)
 
@@ -129,7 +168,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		if hops, err := strconv.Atoi(hopCountStr); err == nil {
 			srcRegion := sess.Request().Header.Get(HeaderRegion)
 			if srcRegion == "" {
-				srcRegion = fmt.Sprintf("%s::%s", s.platform, s.region)
+				srcRegion = s.regionHeader
 			}
 			hopsHistogram.WithLabelValues(srcRegion, targetRegionPlatform).Observe(float64(hops))
 

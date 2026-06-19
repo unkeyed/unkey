@@ -212,8 +212,10 @@ func Run(ctx context.Context, cfg Config) error {
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
+		// The API buffers request bodies so handlers can BindBody them.
+		DisableRequestBodyBuffering: false,
+		ReadTimeout:                 0,
+		WriteTimeout:                0,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)

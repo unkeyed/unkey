@@ -298,7 +298,7 @@ func newSession(t *testing.T, req *http.Request) *zen.Session {
 	w := httptest.NewRecorder()
 	//nolint:exhaustruct
 	sess := &zen.Session{}
-	err := sess.Init(w, req, 0)
+	err := sess.Init(w, req, zen.SessionConfig{})
 	require.NoError(t, err)
 	return sess
 }
@@ -308,7 +308,7 @@ func newSessionWithRecorder(t *testing.T, req *http.Request) (*zen.Session, *htt
 	w := httptest.NewRecorder()
 	//nolint:exhaustruct
 	sess := &zen.Session{}
-	err := sess.Init(w, req, 0)
+	err := sess.Init(w, req, zen.SessionConfig{})
 	require.NoError(t, err)
 	return sess, w
 }

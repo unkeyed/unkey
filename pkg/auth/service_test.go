@@ -116,7 +116,7 @@ func TestServiceAuthenticate_ReturnsBearerErrorWhenNoResolverMatches(t *testing.
 	service := New(&stubResolver{})
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	got, err := service.Authenticate(context.Background(), sess)
 
@@ -131,7 +131,7 @@ func TestServiceAuthenticate_PreservesMalformedBearerError(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "not-a-bearer-token")
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	got, err := service.Authenticate(context.Background(), sess)
 

@@ -43,7 +43,7 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.AddCookie(&http.Cookie{Name: CookieName, Value: "portal_session_123"})
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.NoError(t, err)
@@ -66,7 +66,7 @@ func TestResolver_IgnoresMissingCookie(t *testing.T) {
 	resolver := NewResolver(stubPortal{})
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.NoError(t, err)
@@ -89,7 +89,7 @@ func TestResolver_IgnoresCookieWhenBearerIsPresent(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer root_key")
 	req.AddCookie(&http.Cookie{Name: CookieName, Value: "portal_session_123"})
 	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0, true))
 
 	principal, err := resolver.Resolve(context.Background(), sess)
 	require.NoError(t, err)

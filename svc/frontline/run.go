@@ -66,13 +66,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.InstanceID == "" {
 		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
-	if cfg.Observability.Logging != nil {
 
-		logger.SetSampler(logger.TailSampler{
-			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
-			SampleRate:    cfg.Observability.Logging.SampleRate,
-		})
-	}
+	// Note: frontline intentionally has no per-request access logging (and
+	// therefore no wide-event sampler). Successful requests are recorded in
+	// ClickHouse and Prometheus; errors are logged by the observability
+	// middleware. cfg.Observability.Logging has no effect here.
 
 	clk := clock.New()
 
@@ -331,6 +329,9 @@ func Run(ctx context.Context, cfg Config) error {
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
+			// Proxy path: never buffer request bodies; they stream to the
+			// upstream and are captured for ClickHouse via TeeReader.
+			DisableRequestBodyBuffering: true,
 		})
 		if httpsErr != nil {
 			return fmt.Errorf("unable to create HTTPS server: %w", httpsErr)
@@ -371,6 +372,8 @@ func Run(ctx context.Context, cfg Config) error {
 			MaxRequestBodySize: 0,
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
+			// ACME challenges and redirects never read request bodies.
+			DisableRequestBodyBuffering: true,
 		})
 		if httpErr != nil {
 			return fmt.Errorf("unable to create HTTP server: %w", httpErr)

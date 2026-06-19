@@ -51,12 +51,18 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 			defer metrics.InflightRequests.Dec()
 
 			ctx, span := tracing.Start(ctx, "frontline.proxy")
-			span.SetAttributes(
-				attribute.String("request_id", s.RequestID()),
-				attribute.String("host", s.Request().Host),
-				attribute.String("method", s.Request().Method),
-				attribute.String("path", s.Request().URL.Path),
-			)
+			// Building attributes allocates; skip it for spans that were
+			// sampled out (or when tracing is disabled) since they discard
+			// attributes anyway.
+			recording := span.IsRecording()
+			if recording {
+				span.SetAttributes(
+					attribute.String("request_id", s.RequestID()),
+					attribute.String("host", s.Request().Host),
+					attribute.String("method", s.Request().Method),
+					attribute.String("path", s.Request().URL.Path),
+				)
+			}
 			defer span.End()
 
 			err := next(ctx, s)
@@ -172,11 +178,13 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 				}
 			}
 
-			span.SetAttributes(
-				attribute.Int("status_code", statusCode),
-				attribute.String("code", string(urn)),
-				attribute.String("fault_domain", domain),
-			)
+			if recording {
+				span.SetAttributes(
+					attribute.Int("status_code", statusCode),
+					attribute.String("code", string(urn)),
+					attribute.String("fault_domain", domain),
+				)
+			}
 
 			metrics.RequestsTotal.WithLabelValues(metrics.StatusClass(statusCode), domain, string(urn)).Inc()
 

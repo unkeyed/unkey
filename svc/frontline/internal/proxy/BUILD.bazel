@@ -7,6 +7,7 @@ go_library(
         "director.go",
         "doc.go",
         "error.go",
+        "flush.go",
         "forward.go",
         "headers.go",
         "hostname.go",

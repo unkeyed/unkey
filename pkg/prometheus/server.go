@@ -66,12 +66,13 @@ import (
 // See [promhttp.Handler] for details on the Prometheus metrics handler.
 func New() (*zen.Server, error) {
 	z, err := zen.New(zen.Config{
-		MaxRequestBodySize: 0,
-		Flags:              nil,
-		TLS:                nil,
-		EnableH2C:          false,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
+		MaxRequestBodySize:          0,
+		DisableRequestBodyBuffering: false,
+		Flags:                       nil,
+		TLS:                         nil,
+		EnableH2C:                   false,
+		ReadTimeout:                 0,
+		WriteTimeout:                0,
 	})
 	if err != nil {
 		return nil, err
@@ -96,12 +97,13 @@ func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
 	}
 
 	z, err := zen.New(zen.Config{
-		MaxRequestBodySize: 0,
-		Flags:              nil,
-		TLS:                nil,
-		EnableH2C:          false,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
+		MaxRequestBodySize:          0,
+		DisableRequestBodyBuffering: false,
+		Flags:                       nil,
+		TLS:                         nil,
+		EnableH2C:                   false,
+		ReadTimeout:                 0,
+		WriteTimeout:                0,
 	})
 	if err != nil {
 		return nil, err

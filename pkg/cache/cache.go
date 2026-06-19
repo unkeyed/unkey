@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -30,6 +29,10 @@ type cache[K comparable, V any] struct {
 
 	inflightMu        sync.Mutex
 	inflightRefreshes map[K]bool
+
+	// timingAttrs holds the precomputed attribute maps for recordTiming,
+	// keyed by status ("fresh", "stale", "miss"). Read-only after New.
+	timingAttrs map[string]map[string]string
 }
 
 type Config[K comparable, V any] struct {
@@ -86,6 +89,11 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		revalidateC:       make(chan func(), 1000),
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
+		timingAttrs: map[string]map[string]string{
+			"fresh": {"cache": config.Resource, "status": "fresh"},
+			"stale": {"cache": config.Resource, "status": "stale"},
+			"miss":  {"cache": config.Resource, "status": "miss"},
+		},
 	}
 
 	for range 10 {
@@ -107,14 +115,15 @@ func (c *cache[K, V]) registerMetrics() {
 	})
 }
 
+// recordTiming emits a timing entry for a cache operation. status must be
+// one of "fresh", "stale", or "miss" — the attribute maps are precomputed
+// per status at construction so the hot path does not allocate a map per
+// cache read.
 func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, start time.Time) {
 	timing.Record(ctx, timing.Entry{
-		Name:     name,
-		Duration: time.Since(start),
-		Attributes: map[string]string{
-			"cache":  c.resource,
-			"status": strings.ToLower(status),
-		},
+		Name:       name,
+		Duration:   time.Since(start),
+		Attributes: c.timingAttrs[status],
 	})
 }
 
@@ -129,9 +138,9 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 	now := c.clock.Now()
 
 	if now.Before(e.Stale) {
-		status := "STALE"
+		status := "stale"
 		if now.Before(e.Fresh) {
-			status = "FRESH"
+			status = "fresh"
 		}
 		c.recordTiming(ctx, "cache_get", status, start)
 		return e.Value, e.Hit
@@ -221,7 +230,13 @@ func (c *cache[K, V]) SetMany(ctx context.Context, values map[K]V) {
 func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 	v, ok := c.otter.Get(key)
 
-	metrics.CacheReads.WithLabelValues(c.resource, fmt.Sprintf("%t", ok)).Inc()
+	// Constant label values instead of fmt.Sprintf("%t", ok), which
+	// allocated a string on every cache read.
+	hit := "false"
+	if ok {
+		hit = "true"
+	}
+	metrics.CacheReads.WithLabelValues(c.resource, hit).Inc()
 
 	return v, ok
 }

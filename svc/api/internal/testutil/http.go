@@ -139,10 +139,11 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Flags: &zen.Flags{
 			TestMode: true,
 		},
-		TLS:          nil,
-		EnableH2C:    false,
-		ReadTimeout:  0,
-		WriteTimeout: 0,
+		TLS:                         nil,
+		EnableH2C:                   false,
+		DisableRequestBodyBuffering: false,
+		ReadTimeout:                 0,
+		WriteTimeout:                0,
 	})
 	require.NoError(t, err)
 

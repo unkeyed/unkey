@@ -7,6 +7,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestCaptureBufferHint(t *testing.T) {
+	require.Equal(t, 0, CaptureBufferHint(-1), "unknown length must not pre-allocate")
+	require.Equal(t, 0, CaptureBufferHint(0), "zero length must not pre-allocate")
+	require.Equal(t, 1024, CaptureBufferHint(1024), "known small length sizes exactly")
+	require.Equal(t, MaxBodyCapture, CaptureBufferHint(MaxBodyCapture), "at-cap length sizes to cap")
+	require.Equal(t, MaxBodyCapture, CaptureBufferHint(MaxBodyCapture+1), "over-cap length clamps to cap")
+}
+
 func TestLimitedWriter_CapsAtLimit(t *testing.T) {
 	var buf bytes.Buffer
 	lw := &LimitedWriter{W: &buf, N: 10}

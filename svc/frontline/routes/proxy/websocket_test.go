@@ -134,9 +134,10 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 	}
 
 	zenSrv, err := zen.New(zen.Config{
-		ReadTimeout:        -1,
-		WriteTimeout:       -1,
-		MaxRequestBodySize: 0,
+		ReadTimeout:                 -1,
+		WriteTimeout:                -1,
+		MaxRequestBodySize:          0,
+		DisableRequestBodyBuffering: true, // mirrors production (run.go)
 	})
 	require.NoError(t, err)
 	// Mirror the production middleware chain in svc/frontline/routes/register.go.
@@ -146,7 +147,6 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 	mws := []zen.Middleware{
 		zen.WithPanicRecovery(),
 		middleware.WithReservedHeaderStrip(),
-		zen.WithLogging(),
 		middleware.WithObservability(errorpage.NewRenderer()),
 	}
 	zenSrv.RegisterRoute(mws, h)

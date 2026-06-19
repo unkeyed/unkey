@@ -21,30 +21,69 @@ type TransportRegistry struct {
 	fallback   http.RoundTripper
 }
 
+// countingDialContext wraps a dial function so every new TCP connection
+// increments upstreamDialsTotal. Counting at the transport level costs
+// nothing on pooled-connection requests, unlike the previous per-request
+// httptrace.ClientTrace which allocated a trace struct + context on every
+// request to observe an event that only happens on (rare) new dials.
+func countingDialContext(dial func(context.Context, string, string) (net.Conn, error), destination string) func(context.Context, string, string) (net.Conn, error) {
+	success := upstreamDialsTotal.WithLabelValues(destination, dialOutcomeSuccess)
+	failure := upstreamDialsTotal.WithLabelValues(destination, dialOutcomeError)
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		conn, err := dial(ctx, network, addr)
+		if err != nil {
+			failure.Inc()
+		} else {
+			success.Inc()
+		}
+		return conn, err
+	}
+}
+
 // NewTransportRegistry creates transports for http1 and h2c. Unknown or
 // unimplemented protocols (h2, h3) fall back to http1.
 func NewTransportRegistry() *TransportRegistry {
+	dialer := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+	} //nolint:exhaustruct
+
 	//nolint:exhaustruct
 	h1 := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   10 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		MaxIdleConns:        200,
-		MaxIdleConnsPerHost: 50,
+		DialContext: countingDialContext(dialer.DialContext, destinationInstance),
+		// All requests for a deployment in this region hit a handful of
+		// instance addresses, so per-host is effectively the pool size.
+		// Sized for high-concurrency load: a small per-host cap forces
+		// connection churn (dial + slow-start per request) once concurrent
+		// requests exceed it.
+		MaxIdleConns:        1024,
+		MaxIdleConnsPerHost: 512,
 		IdleConnTimeout:     90 * time.Second,
+		// A proxy must not negotiate gzip on behalf of clients: with
+		// DisableCompression unset, the transport silently adds
+		// Accept-Encoding gzip when the client sent none and then
+		// decompresses the response, burning CPU to undo work the
+		// upstream just did. Pass encodings through untouched.
+		DisableCompression: true,
+		// Default read/write buffers are 4 KiB; typical API responses are
+		// larger, and bigger buffers mean fewer syscalls per response.
+		// These buffers live per connection (a 16 KiB reader + 16 KiB
+		// writer = 32 KiB per conn), so the size trades resident memory
+		// against syscall count — 64 KiB measured ~no extra throughput
+		// over 16 KiB but 4x the idle-pool memory.
+		ReadBufferSize:  16 << 10,
+		WriteBufferSize: 16 << 10,
 	}
 
+	h2cDial := countingDialContext(dialer.DialContext, destinationInstance)
 	//nolint:exhaustruct
 	h2c := &http2.Transport{
 		AllowHTTP: true,
 		DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-			d := net.Dialer{
-				Timeout:   10 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}
-			return d.DialContext(ctx, network, addr)
+			return h2cDial(ctx, network, addr)
 		},
+		// Same reasoning as the h1 transport: pass encodings through.
+		DisableCompression: true,
 	}
 
 	return &TransportRegistry{
