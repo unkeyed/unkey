@@ -62,7 +62,8 @@
                 "group": "Resource model",
                 "pages": [
                   "architecture/resources/unkey-resource-names",
-                  "architecture/authorization/resource-permissions"
+                  "architecture/authorization/resource-permissions",
+                  "architecture/authorization/workos-permissions"
                 ]
               },
               {
