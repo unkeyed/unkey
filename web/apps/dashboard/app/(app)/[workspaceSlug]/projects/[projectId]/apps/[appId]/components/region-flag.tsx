@@ -1,8 +1,9 @@
 import type { FlagCode } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
-import BoringAvatar from "boring-avatars";
+import { Laptop2 } from "@unkey/icons";
+
 type RegionFlagSize = "xs" | "sm" | "md" | "lg";
-type RegionFlagShape = "rounded" | "circle";
+type RegionFlagShape = "rounded" | "circle" | "square";
 type RegionFlagProps = {
   flagCode: FlagCode;
   size?: RegionFlagSize;
@@ -10,33 +11,35 @@ type RegionFlagProps = {
   className?: string;
 };
 
-const sizeConfig = {
-  xs: {
-    container: "size-4",
-    flag: "size-4",
-    padding: "",
-  },
-  sm: {
-    container: "size-[22px]",
-    flag: "size-4",
-    padding: "p-[3px]",
-  },
-  md: {
-    container: "size-9",
-    flag: "size-4",
-    padding: "",
-  },
-  lg: {
-    container: "size-12",
-    flag: "size-[22px]",
-    padding: "",
-  },
+const sizeClass: Record<RegionFlagSize, string> = {
+  xs: "size-4",
+  sm: "size-[22px]",
+  md: "size-9",
+  lg: "size-12",
 };
 
-const shapeClass = {
+// Height for the rectangular ("square") variant; width follows the flag's
+// natural 4:3 aspect.
+const rectHeight: Record<RegionFlagSize, string> = {
+  xs: "h-3.5",
+  sm: "h-[18px]",
+  md: "h-7",
+  lg: "h-9",
+};
+
+const shapeClass: Record<Exclude<RegionFlagShape, "square">, string> = {
   rounded: "rounded-[10px]",
   circle: "rounded-full",
 };
+
+// "local" has no country flag; like the "Global → globe" convention, it gets a
+// neutral glyph (a laptop = your own machine) in the same slot.
+const localIconSize = {
+  xs: "sm-regular",
+  sm: "md-regular",
+  md: "xl-regular",
+  lg: "2xl-regular",
+} as const;
 
 export function RegionFlag({
   flagCode,
@@ -44,24 +47,52 @@ export function RegionFlag({
   shape = "rounded",
   className,
 }: RegionFlagProps) {
-  const config = sizeConfig[size];
-  const hasExplicitPadding = config.padding !== "";
+  const isLocal = flagCode === "local";
+
+  // "square" shows the real, rectangular country flag at its natural aspect —
+  // no container, no crop. Local renders the glyph in a matching 4:3 frame.
+  if (shape === "square") {
+    if (isLocal) {
+      return (
+        <div
+          className={cn(
+            "flex aspect-[4/3] items-center justify-center rounded-[3px] bg-grayA-3 text-gray-11",
+            rectHeight[size],
+            className,
+          )}
+        >
+          <Laptop2 iconSize={localIconSize[size]} />
+        </div>
+      );
+    }
+    return (
+      <img
+        src={`/images/flags/${flagCode}.svg`}
+        alt={flagCode}
+        className={cn("w-auto", rectHeight[size], className)}
+      />
+    );
+  }
+
+  // circle / rounded: contents fill a fixed square box and are clipped to shape.
   return (
     <div
       className={cn(
-        "bg-grayA-3 flex items-center justify-center",
-        config.container,
+        "bg-grayA-3 flex items-center justify-center overflow-hidden text-gray-11",
+        sizeClass[size],
         shapeClass[shape],
         shape === "rounded" && "border border-grayA-3",
-        hasExplicitPadding && config.padding,
-        !hasExplicitPadding && "p-0",
         className,
       )}
     >
-      {flagCode === "local" ? (
-        <BoringAvatar size="100%" variant="marble" />
+      {isLocal ? (
+        <Laptop2 iconSize={localIconSize[size]} />
       ) : (
-        <img src={`/images/flags/${flagCode}.svg`} alt={flagCode} className={config.flag} />
+        <img
+          src={`/images/flags/${flagCode}.svg`}
+          alt={flagCode}
+          className="size-full object-cover"
+        />
       )}
     </div>
   );

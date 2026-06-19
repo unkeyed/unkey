@@ -24,6 +24,24 @@ function isAreaChartPoint(value: unknown): value is AreaChartPoint {
   );
 }
 
+// Recharts v3 mouse handlers report the hovered tick via `activeTooltipIndex`
+// (no `activePayload` on the state anymore), so resolve the point by indexing
+// into the data. Narrowed from unknown to avoid depending on recharts' types.
+function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChartPoint | null {
+  if (typeof state !== "object" || state === null) {
+    return null;
+  }
+  const s = state as { activeTooltipIndex?: unknown; activeIndex?: unknown };
+  const raw = s.activeTooltipIndex ?? s.activeIndex;
+  const idx =
+    typeof raw === "number" ? raw : typeof raw === "string" ? Number.parseInt(raw, 10) : Number.NaN;
+  if (!Number.isInteger(idx) || idx < 0 || idx >= data.length) {
+    return null;
+  }
+  const candidate = data[idx];
+  return isAreaChartPoint(candidate) ? candidate : null;
+}
+
 // When the observed data covers less than this fraction of the caller's
 // window, we stop anchoring the x-axis and let it contract to the data's
 // extent. 7 days of axis with 20 minutes of data looks broken — better
@@ -68,6 +86,33 @@ type Props = {
   // 1h old), so the tick labels change visibly between windows.
   xAxisDomain?: [number, number];
   hideAxes?: boolean;
+  // Stack the series so they sum vertically (top edge = total) instead of
+  // overlapping. Off by default so existing single/overlay callers are
+  // unaffected.
+  stacked?: boolean;
+  // Fill the area with a visible top-to-bottom gradient that never fades to
+  // transparent, and drop the soft glow stroke. Default (off) keeps the faint,
+  // shimmering "live heartbeat" gradient for single-series charts. On dark
+  // backgrounds the default fades to ~nothing, so stacked fills need this.
+  solidFill?: boolean;
+  // PlanetScale-style fill: a pale tint that fades 0.85 → 0.1, with the
+  // saturated stroke carrying the color. Pair with `fillColors` so the fill
+  // uses a light token (e.g. info-3) while the line keeps the brand color —
+  // avoids the "too solid" block a saturated fill produces. Drops the glow.
+  paleFill?: boolean;
+  // Per-key override for the gradient fill color (the stroke still uses the
+  // config color). Lets the area read as a pale tint while the line stays
+  // saturated.
+  fillColors?: Record<string, string>;
+  // Render the X-axis tick labels in UTC instead of the viewer's local zone.
+  // Pair with a "UTC" current-time label so the axis and the label agree.
+  xAxisUTC?: boolean;
+  // Surface the hovered datum to the caller so an external legend can show the
+  // value at the cursor (PlanetScale pattern). Fires null on mouse leave.
+  onActiveChange?: (point: AreaChartPoint | null) => void;
+  // Suppress the floating tooltip box while keeping the cursor line + active
+  // dots — used when an external legend is the readout instead.
+  hideTooltip?: boolean;
 };
 
 export function AreaTimeseriesChart({
@@ -83,7 +128,18 @@ export function AreaTimeseriesChart({
   axisFloor = 1024,
   xAxisDomain,
   hideAxes,
+  stacked,
+  solidFill,
+  paleFill,
+  fillColors,
+  xAxisUTC,
+  onActiveChange,
+  hideTooltip,
 }: Props) {
+  const stackId = stacked ? "a" : undefined;
+  const handleActive = onActiveChange
+    ? (state: unknown) => onActiveChange(activePointFromState(state, data))
+    : undefined;
   const chartId = useId().replace(/:/g, "");
   const [shouldAnimate, setShouldAnimate] = useState(true);
   useEffect(() => {
@@ -113,10 +169,14 @@ export function AreaTimeseriesChart({
   // because recharts' auto-picker chooses "nice round" values (300/600/1.0K)
   // that aren't evenly distributed on the pixel axis. Explicit ticks keep
   // the dashed grid lines visually even regardless of data range.
-  const dataMax = data.reduce(
-    (m, p) => configKeys.reduce((mm, k) => Math.max(mm, Number(p[k]) || 0), m),
-    0,
-  );
+  // When stacked, the visual top at each point is the sum of the series, so the
+  // axis ceiling tracks per-point sums; otherwise it's the largest single value.
+  const dataMax = data.reduce((m, p) => {
+    const perPoint = stacked
+      ? configKeys.reduce((sum, k) => sum + (Number(p[k]) || 0), 0)
+      : configKeys.reduce((mm, k) => Math.max(mm, Number(p[k]) || 0), 0);
+    return Math.max(m, perPoint);
+  }, 0);
   const top = niceCeil(Math.max(dataMax, axisFloor));
   const yTicks = [0, top / 3, (2 * top) / 3, top];
   const yDomain: [number, number] = [0, top];
@@ -162,7 +222,7 @@ export function AreaTimeseriesChart({
       ? [firstNonZeroTs, lastNonZeroTs]
       : undefined;
   const spanMs = useAnchoredDomain ? windowSpanMs : nonZeroSpanMs;
-  const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs);
+  const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs, xAxisUTC);
 
   // Explicit ticks at 0% / 33% / 66% / 100% of the anchored domain so the
   // user always sees the window's start and end labeled. Without this,
@@ -184,6 +244,8 @@ export function AreaTimeseriesChart({
     >
       <AreaChart
         data={data}
+        onMouseMove={handleActive}
+        onMouseLeave={onActiveChange ? () => onActiveChange(null) : undefined}
         margin={
           hideAxes
             ? { top: 4, right: 0, bottom: 0, left: 0 }
@@ -191,42 +253,59 @@ export function AreaTimeseriesChart({
         }
       >
         <defs>
-          {configKeys.map((key) => (
-            <linearGradient
-              key={`${chartId}-${key}`}
-              id={`${chartId}-${key}`}
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="1"
-            >
-              <stop offset="0%" stopColor={config[key].color} stopOpacity={0.45}>
-                <animate
-                  attributeName="stop-opacity"
-                  values="0.45;0.3;0.45"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="50%" stopColor={config[key].color} stopOpacity={0.2}>
-                <animate
-                  attributeName="stop-opacity"
-                  values="0.2;0.35;0.2"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="85%" stopColor={config[key].color} stopOpacity={0.08}>
-                <animate
-                  attributeName="stop-opacity"
-                  values="0.08;0.15;0.08"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="100%" stopColor={config[key].color} stopOpacity={0.03} />
-            </linearGradient>
-          ))}
+          {configKeys.map((key) => {
+            const fillColor = fillColors?.[key] ?? config[key].color;
+            return (
+              <linearGradient
+                key={`${chartId}-${key}`}
+                id={`${chartId}-${key}`}
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                {paleFill ? (
+                  <>
+                    <stop offset="0%" stopColor={fillColor} stopOpacity={0.85} />
+                    <stop offset="90%" stopColor={fillColor} stopOpacity={0.1} />
+                  </>
+                ) : solidFill ? (
+                  <>
+                    <stop offset="0%" stopColor={fillColor} stopOpacity={0.85} />
+                    <stop offset="100%" stopColor={fillColor} stopOpacity={0.4} />
+                  </>
+                ) : (
+                  <>
+                    <stop offset="0%" stopColor={config[key].color} stopOpacity={0.45}>
+                      <animate
+                        attributeName="stop-opacity"
+                        values="0.45;0.3;0.45"
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                    </stop>
+                    <stop offset="50%" stopColor={config[key].color} stopOpacity={0.2}>
+                      <animate
+                        attributeName="stop-opacity"
+                        values="0.2;0.35;0.2"
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                    </stop>
+                    <stop offset="85%" stopColor={config[key].color} stopOpacity={0.08}>
+                      <animate
+                        attributeName="stop-opacity"
+                        values="0.08;0.15;0.08"
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                    </stop>
+                    <stop offset="100%" stopColor={config[key].color} stopOpacity={0.03} />
+                  </>
+                )}
+              </linearGradient>
+            );
+          })}
         </defs>
         {!hideAxes && (
           <CartesianGrid
@@ -250,17 +329,20 @@ export function AreaTimeseriesChart({
           minTickGap={48}
           hide={hideAxes}
         />
-        {!hideAxes && (
-          <YAxis
-            width={Y_GUTTER_PX}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={formatYTick}
-            tick={{ fill: "hsl(var(--gray-10))", fontSize: 10 }}
-            ticks={yTicks}
-            domain={yDomain}
-          />
-        )}
+        {/* Always render the YAxis (mirroring the XAxis above) and hide it when
+            hideAxes is set. Removing it from the tree makes recharts substitute
+            a default y-axis and render it on the left — so the chart wouldn't
+            actually go edge-to-edge. */}
+        <YAxis
+          width={hideAxes ? 0 : Y_GUTTER_PX}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={formatYTick}
+          tick={hideAxes ? false : { fill: "hsl(var(--gray-10))", fontSize: 10 }}
+          ticks={yTicks}
+          domain={yDomain}
+          hide={hideAxes}
+        />
         <ChartTooltip
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
@@ -271,7 +353,7 @@ export function AreaTimeseriesChart({
             strokeOpacity: 0.5,
           }}
           content={({ active, payload }) => {
-            if (!active || !payload?.length) {
+            if (hideTooltip || !active || !payload?.length) {
               return null;
             }
             const candidate = payload[0]?.payload;
@@ -322,26 +404,30 @@ export function AreaTimeseriesChart({
             );
           }}
         />
-        {configKeys.map((key) => (
-          <Area
-            key={`${key}-glow`}
-            dataKey={key}
-            type="monotone"
-            stroke={config[key].color}
-            strokeWidth={3.5}
-            strokeOpacity={0.12}
-            fill="none"
-            isAnimationActive={shouldAnimate}
-            animationDuration={500}
-            animationEasing="ease-out"
-            dot={false}
-            activeDot={false}
-          />
-        ))}
+        {!solidFill &&
+          !paleFill &&
+          configKeys.map((key) => (
+            <Area
+              key={`${key}-glow`}
+              dataKey={key}
+              stackId={stackId}
+              type="monotone"
+              stroke={config[key].color}
+              strokeWidth={3.5}
+              strokeOpacity={0.12}
+              fill="none"
+              isAnimationActive={shouldAnimate}
+              animationDuration={500}
+              animationEasing="ease-out"
+              dot={false}
+              activeDot={false}
+            />
+          ))}
         {configKeys.map((key) => (
           <Area
             key={key}
             dataKey={key}
+            stackId={stackId}
             type="monotone"
             stroke={config[key].color}
             strokeWidth={1.5}
@@ -446,15 +532,16 @@ function niceCeil(max: number): number {
 // looking at a multi-day window. Inferred from the data span so the chart
 // doesn't need the caller to pass the selected window explicitly.
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
-function formatXAxisTick(v: number, spanMs: number): string {
+function formatXAxisTick(v: number, spanMs: number, utc?: boolean): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
+  const tz: Intl.DateTimeFormatOptions = utc ? { timeZone: "UTC" } : {};
   const d = new Date(v);
   if (spanMs >= TWO_DAYS_MS) {
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", ...tz });
   }
-  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", ...tz });
 }
 
 function formatCompactInterval(

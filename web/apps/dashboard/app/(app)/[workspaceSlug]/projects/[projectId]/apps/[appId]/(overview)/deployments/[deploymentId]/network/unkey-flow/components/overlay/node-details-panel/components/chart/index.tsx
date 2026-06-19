@@ -29,6 +29,8 @@ type LogsTimeseriesBarChartProps = {
   valueFormatter?: (value: number) => string;
   formatTooltipValue?: (value: number) => TooltipValueParts;
   showDateInTooltip?: boolean;
+  // Fill bars with a flat color instead of the default top-down gradient.
+  solidFill?: boolean;
 };
 
 export function LogsTimeseriesBarChart({
@@ -41,6 +43,7 @@ export function LogsTimeseriesBarChart({
   valueFormatter,
   formatTooltipValue,
   showDateInTooltip,
+  solidFill,
 }: LogsTimeseriesBarChartProps) {
   const timestampToIndexMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -192,7 +195,7 @@ export function LogsTimeseriesBarChart({
             key={key}
             dataKey={key}
             stackId="a"
-            fill={`url(#${chartId}-bar-${key})`}
+            fill={solidFill ? config[key].color : `url(#${chartId}-bar-${key})`}
             radius={[2, 2, 0, 0]}
           />
         ))}
