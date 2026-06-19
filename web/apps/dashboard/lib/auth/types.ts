@@ -18,6 +18,7 @@ export const SIGN_UP_URL = "/auth/sign-up";
 export const LOCAL_USER_ID = "user_local_admin";
 export const LOCAL_ORG_ID = "org_localdefault"; // org IDs can only have one underscore
 export const LOCAL_ORG_ROLE = "admin";
+export const LOCAL_AUTH_PERMISSIONS = ["admin:*"] as const;
 
 export interface User {
   id: string;
@@ -163,6 +164,8 @@ export interface SessionValidationResult {
   isValid: boolean;
   shouldRefresh: boolean;
   token?: string;
+  accessToken?: string;
+  permissions?: readonly string[];
   userId?: string;
   orgId?: string | null;
   role?: string | null;
@@ -188,6 +191,8 @@ export interface SessionRefreshResult {
 export interface SessionData {
   userId: string;
   orgId: string | null;
+  accessToken?: string;
+  permissions?: readonly string[];
   role?: string | null;
   // See SessionValidationResult.user
   user?: User | null;

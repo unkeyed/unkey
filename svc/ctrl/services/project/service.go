@@ -11,9 +11,10 @@ import (
 // resources.
 type Service struct {
 	ctrlv1connect.UnimplementedProjectServiceHandler
-	db      db.Database
-	restate *restateingress.Client
-	bearer  string
+	db                db.Database
+	restate           *restateingress.Client
+	bearer            string
+	enforceDeployGate bool
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -26,6 +27,11 @@ type Config struct {
 
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
+
+	// EnforceDeployGate hard-blocks project creation for workspaces without an
+	// Unkey Deploy entitlement. When false (default), the gate runs in observe
+	// mode: it logs when it would block but allows creation.
+	EnforceDeployGate bool
 }
 
 // New creates a new [Service] with the given configuration.
@@ -35,5 +41,6 @@ func New(cfg Config) *Service {
 		db:                                 cfg.Database,
 		restate:                            cfg.Restate,
 		bearer:                             cfg.Bearer,
+		enforceDeployGate:                  cfg.EnforceDeployGate,
 	}
 }
