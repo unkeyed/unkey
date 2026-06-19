@@ -66,8 +66,8 @@ export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "faile
 export type ProductionDeploymentViewModel = {
   status: DeploymentDisplayStatus;
   rolledBack: boolean;
-  // The deployment that was live before the rollback (status "superseded").
-  // Only populated when rolledBack; the now-live half of the pair is this vm.
+  // The deployment rolled back away from (newest ready one above the now-live
+  // deployment). Only populated when rolledBack; the now-live half is this vm.
   rolledBackFrom: { commitSha: string | null; commitMessage: string | null } | null;
   branch: string | null;
   commitSha: string | null;

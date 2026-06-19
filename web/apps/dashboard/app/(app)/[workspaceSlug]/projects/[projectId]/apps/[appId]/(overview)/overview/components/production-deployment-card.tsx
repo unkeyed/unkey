@@ -6,7 +6,6 @@ import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import type { LastExit } from "@/lib/types/deploy";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { Button, DialogContainer } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment-card/components/active-deployment-card-empty";
@@ -28,6 +27,11 @@ const RollbackDialog = dynamic(
     import("../../deployments/components/table/components/actions/rollback-dialog").then(
       (m) => m.RollbackDialog,
     ),
+  { ssr: false },
+);
+
+const UndoRollbackDialog = dynamic(
+  () => import("./undo-rollback-dialog").then((m) => m.UndoRollbackDialog),
   { ssr: false },
 );
 
@@ -103,6 +107,28 @@ export function ProductionDeploymentCard() {
       d.status === "ready" &&
       d.createdAt < deployment.createdAt,
   );
+
+  const isRolledBack = (project?.isRolledBack ?? false) || debug.rolledBack;
+
+  // Ready production deployments, newest first, for the undo selector. Includes
+  // the current live deployment so the user can resume deploys without moving.
+  const undoCandidates = isRolledBack
+    ? deployments
+        .filter((d) => d.environmentId === deployment.environmentId && d.status === "ready")
+        .sort((a, b) => b.createdAt - a.createdAt)
+    : [];
+
+  // Deployment rolled back away from — the newest ready one above the current
+  // live deployment. Nothing in the backend flags it, so we derive it.
+  const rolledBackFromDeployment = isRolledBack
+    ? deployments.find(
+        (d) =>
+          d.environmentId === deployment.environmentId &&
+          d.status === "ready" &&
+          d.id !== deployment.id &&
+          d.createdAt > deployment.createdAt,
+      )
+    : undefined;
 
   const instances = deployment.instances ?? [];
   const regionSource =
@@ -183,15 +209,18 @@ export function ProductionDeploymentCard() {
 
   const vm: ProductionDeploymentViewModel = {
     status,
-    rolledBack: debug.rolledBack,
-    // Synthetic superseded deployment. Live: query the most recent
-    // status="superseded" deployment in this environment.
-    rolledBackFrom: debug.rolledBack
+    rolledBack: isRolledBack,
+    rolledBackFrom: rolledBackFromDeployment
       ? {
-          commitSha: "833a8ff",
-          commitMessage: "chore(nuke): stop and remove containers before pruning",
+          commitSha: rolledBackFromDeployment.gitCommitSha,
+          commitMessage: rolledBackFromDeployment.gitCommitMessage,
         }
-      : null,
+      : debug.rolledBack
+        ? {
+            commitSha: "833a8ff",
+            commitMessage: "chore(nuke): stop and remove containers before pruning",
+          }
+        : null,
     branch: deployment.gitBranch,
     commitSha: deployment.gitCommitSha,
     commitMessage: deployment.gitCommitMessage,
@@ -234,7 +263,7 @@ export function ProductionDeploymentCard() {
         vm={vm}
         pulse={pulse}
         onRollback={rollbackTarget ? () => setRollbackOpen(true) : undefined}
-        onUndoRollback={debug.rolledBack ? () => setUndoOpen(true) : undefined}
+        onUndoRollback={isRolledBack ? () => setUndoOpen(true) : undefined}
         actionsSlot={
           <ProductionCardActionsMenu
             deployment={deployment}
@@ -251,32 +280,15 @@ export function ProductionDeploymentCard() {
           currentDeployment={deployment}
         />
       )}
-      <DialogContainer
-        isOpen={undoOpen}
-        onOpenChange={() => setUndoOpen(false)}
-        title="Undo rollback?"
-        subTitle="Resume automatic production deploys"
-        footer={
-          <Button
-            variant="primary"
-            size="xlg"
-            className="w-full rounded-lg"
-            onClick={() => {
-              // Synthetic undo. Live: call the undo/promote mutation to restore
-              // the superseded deployment and unset isRolledBack.
-              debug.setRolledBack(false);
-              setUndoOpen(false);
-            }}
-          >
-            Undo rollback
-          </Button>
-        }
-      >
-        <p className="text-[13px] text-gray-11">
-          This re-enables automatic production deploys. The currently live deployment stays live
-          until your next deploy or rollback.
-        </p>
-      </DialogContainer>
+      {isRolledBack && undoCandidates.length > 0 && (
+        <UndoRollbackDialog
+          isOpen={undoOpen}
+          onClose={() => setUndoOpen(false)}
+          deployments={undoCandidates}
+          currentDeploymentId={deployment.id}
+          onUndone={() => debug.setRolledBack(false)}
+        />
+      )}
     </>
   );
 }
