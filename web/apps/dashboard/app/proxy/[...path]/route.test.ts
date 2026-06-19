@@ -17,6 +17,16 @@ vi.mock("@/lib/env", () => ({
   env: vi.fn(),
 }));
 
+vi.mock("@/lib/db", () => ({
+  db: {
+    query: {
+      workspaces: {
+        findFirst: vi.fn(),
+      },
+    },
+  },
+}));
+
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
 import { LOCAL_AUTH_PERMISSIONS } from "@/lib/auth/types";
