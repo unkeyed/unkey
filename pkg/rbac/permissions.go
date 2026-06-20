@@ -177,6 +177,18 @@ const (
 
 	// GenerateUploadURL permits generating S3 upload URLs for build contexts
 	GenerateUploadURL ActionType = "generate_upload_url"
+
+	// CreateProject permits creating new projects
+	CreateProject ActionType = "create_project"
+
+	// ReadProject permits reading and listing projects
+	ReadProject ActionType = "read_project"
+
+	// UpdateProject permits modifying existing projects
+	UpdateProject ActionType = "update_project"
+
+	// DeleteProject permits deleting projects
+	DeleteProject ActionType = "delete_project"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

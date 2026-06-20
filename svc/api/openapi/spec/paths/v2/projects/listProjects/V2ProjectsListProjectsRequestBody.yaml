@@ -1,0 +1,28 @@
+type: object
+properties:
+  limit:
+    type: integer
+    description: |
+      Maximum number of projects to return per request.
+      Balance between response size and number of pagination calls needed.
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: |
+      Pagination cursor from a previous response to fetch the next page.
+      Use when `hasMore: true` in the previous response.
+    example: proj_1234abcd
+additionalProperties: false
+examples:
+  basic:
+    summary: List all projects
+    description: List the first page of projects in your workspace
+    value: {}
+  paginated:
+    summary: Paginate with a smaller page size
+    description: Fetch a smaller page and continue from a cursor
+    value:
+      limit: 20
+      cursor: proj_1234abcd

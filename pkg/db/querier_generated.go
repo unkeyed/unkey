@@ -1118,7 +1118,21 @@ type Querier interface {
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
-	//FindProjectByWorkspaceSlug
+	//FindProjectByWorkspaceAndId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ? AND id = ?
+	//  LIMIT 1
+	FindProjectByWorkspaceAndId(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndIdParams) (FindProjectByWorkspaceAndIdRow, error)
+	//FindProjectByWorkspaceAndSlug
 	//
 	//  SELECT
 	//      id,
@@ -1131,7 +1145,7 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
-	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
+	FindProjectByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndSlugParams) (FindProjectByWorkspaceAndSlugRow, error)
 	//FindQuotaByWorkspaceID
 	//
 	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds
@@ -2631,6 +2645,22 @@ type Querier interface {
 	//  WHERE environment_id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, db DBTX, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
+	//ListProjectsByWorkspaceId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
@@ -3249,6 +3279,26 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, db DBTX, arg UpdateKeysLastUsedParams) error
+	//UpdateProject
+	//
+	//  UPDATE projects p
+	//  SET
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.name
+	//      END,
+	//      slug = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.slug
+	//      END,
+	//      delete_protection = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.delete_protection
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects

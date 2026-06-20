@@ -1,0 +1,20 @@
+type: object
+required:
+  - projectId
+properties:
+  projectId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which project to delete by its unique identifier.
+      Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+    example: proj_1234abcd
+additionalProperties: false
+examples:
+  delete:
+    summary: Delete a project
+    description: Delete a project by its unique identifier
+    value:
+      projectId: proj_1234abcd

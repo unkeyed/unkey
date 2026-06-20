@@ -2,12 +2,18 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "ctrlclient",
-    srcs = ["errors.go"],
+    srcs = [
+        "actor.go",
+        "errors.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/api/internal/ctrlclient",
     visibility = ["//svc/api:__subpackages__"],
     deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//pkg/auth/principal",
         "//pkg/codes",
         "//pkg/fault",
+        "//pkg/zen",
         "@com_connectrpc_connect//:connect",
     ],
 )
