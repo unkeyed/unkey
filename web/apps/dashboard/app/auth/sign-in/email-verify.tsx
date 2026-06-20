@@ -52,6 +52,7 @@ export const EmailVerify: React.FC = () => {
       <form className="flex flex-col gap-12 mt-10" onSubmit={() => verifyEmail(otp)}>
         <OTPInput
           data-1p-ignore
+          autoFocus
           value={otp}
           onChange={setOtp}
           onComplete={(value) => verifyEmail(value)}

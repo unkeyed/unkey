@@ -127,6 +127,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
       >
         <OTPInput
           data-1p-ignore
+          autoFocus
           className="[&_input]:text-white!"
           value={otp}
           onChange={setOtp}

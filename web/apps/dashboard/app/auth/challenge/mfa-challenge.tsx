@@ -58,13 +58,7 @@ export function MfaChallenge() {
           verifyCode(otp);
         }}
       >
-        <CodeInput
-          value={otp}
-          onChange={setOtp}
-          onComplete={verifyCode}
-          disabled={isLoading}
-          autoFocus
-        />
+        <CodeInput value={otp} onChange={setOtp} onComplete={verifyCode} disabled={isLoading} />
 
         <button
           type="submit"

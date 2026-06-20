@@ -8,7 +8,9 @@ export function CodeInput({
   onChange,
   onComplete,
   disabled,
-  autoFocus,
+  // OTP code entry always lives on a dedicated screen, so focusing the input
+  // on mount is the expected UX: typing works immediately and Enter submits.
+  autoFocus = true,
 }: {
   value: string;
   onChange: (value: string) => void;

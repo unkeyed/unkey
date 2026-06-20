@@ -119,6 +119,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
       >
         <OTPInput
           data-1p-ignore
+          autoFocus
           value={otp}
           onChange={setOtp}
           onComplete={(value) => {
