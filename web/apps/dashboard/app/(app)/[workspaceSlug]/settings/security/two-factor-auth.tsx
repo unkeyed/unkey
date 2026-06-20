@@ -1,7 +1,15 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Button, CopyButton, DialogContainer, FormInput, SettingCard, toast } from "@unkey/ui";
+import {
+  Button,
+  CopyButton,
+  DialogContainer,
+  FormInput,
+  SettingCard,
+  Skeleton,
+  toast,
+} from "@unkey/ui";
 import { useState } from "react";
 
 export function TwoFactorAuth() {
@@ -29,7 +37,13 @@ export function TwoFactorAuth() {
     >
       <div className="flex flex-col w-full gap-3">
         {isLoading ? (
-          <div className="text-gray-9 text-[13px]">Loading...</div>
+          <div className="flex items-center justify-between w-full gap-2 border border-grayA-4 rounded-lg px-3 py-2">
+            <div className="flex flex-col gap-1.5">
+              <Skeleton className="h-3.5 w-28" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+            <Skeleton className="h-8 w-20 rounded-lg" />
+          </div>
         ) : factors && factors.length > 0 ? (
           factors.map((factor) => (
             <div

@@ -294,7 +294,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   /**
    * Resolves the catch path shared by every authenticate* call: a pending
    * challenge takes priority, then a Radar block gets a clear "contact
-   * support" message, otherwise fall back to generic error handling.
+   * support" message, then a code-verification failure gets a user-friendly
+   * message, otherwise fall back to generic error handling.
    */
   private mapAuthError(pending: VerificationResult | null, error: unknown): VerificationResult {
     if (pending) {
@@ -303,7 +304,48 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     if (this.isRadarBlock(error)) {
       return this.radarBlockedResponse();
     }
+    const codeError = this.mapCodeVerificationError(error);
+    if (codeError) {
+      return codeError;
+    }
     return this.handleError(error as Error);
+  }
+
+  /**
+   * Maps a one-time-code verification failure (TOTP, magic auth, email
+   * verification, Radar email/SMS) to a safe, actionable message. WorkOS
+   * phrases these errors for operators — e.g. "One-time code for
+   * 'auth_challenge_...' has had too many failed attempts." — which both leaks
+   * an internal id and reads as a server error to the user. We match on the
+   * message text because the SDK surfaces these as untyped
+   * GenericServerException / UnprocessableEntityException without a stable
+   * `code`. Returns null when the error is not a recognized code failure so
+   * the caller falls through to generic handling.
+   */
+  private mapCodeVerificationError(error: unknown): AuthErrorResponse | null {
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    if (!message) {
+      return null;
+    }
+    if (message.includes("too many")) {
+      return {
+        success: false,
+        code: AuthErrorCode.RATE_ERROR,
+        message: errorMessages[AuthErrorCode.RATE_ERROR],
+      };
+    }
+    if (
+      message.includes("incorrect") ||
+      message.includes("invalid") ||
+      message.includes("expired")
+    ) {
+      return {
+        success: false,
+        code: AuthErrorCode.INVALID_CODE,
+        message: errorMessages[AuthErrorCode.INVALID_CODE],
+      };
+    }
+    return null;
   }
 
   /**

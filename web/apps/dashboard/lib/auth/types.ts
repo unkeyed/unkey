@@ -253,6 +253,7 @@ export enum AuthErrorCode {
   NETWORK_ERROR = "NETWORK_ERROR",
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
   RATE_ERROR = "RATE_ERROR",
+  INVALID_CODE = "INVALID_CODE",
   ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND",
   ORGANIZATION_SELECTION_REQUIRED = "ORGANIZATION_SELECTION_REQUIRED",
   EMAIL_VERIFICATION_REQUIRED = "EMAIL_VERIFICATION_REQUIRED",
@@ -281,7 +282,9 @@ export const errorMessages: Record<AuthErrorCode, string> = {
   [AuthErrorCode.PENDING_SESSION_EXPIRED]: "Your session has expired. Please sign in again.",
   [AuthErrorCode.AUTHENTICATION_BLOCKED]:
     "We couldn't sign you in because this attempt was flagged as suspicious. If you believe this is a mistake, contact support@unkey.com.",
-  [AuthErrorCode.RATE_ERROR]: "Limited OTP attempts",
+  [AuthErrorCode.RATE_ERROR]:
+    "Too many incorrect attempts. Please return to sign in and start over.",
+  [AuthErrorCode.INVALID_CODE]: "That code is incorrect or has expired. Please try again.",
   [AuthErrorCode.MFA_CHALLENGE_REQUIRED]:
     "Please enter the code from your authenticator app to continue.",
   [AuthErrorCode.MFA_ENROLLMENT_REQUIRED]: "Please set up two-factor authentication to continue.",

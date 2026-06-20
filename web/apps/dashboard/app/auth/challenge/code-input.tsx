@@ -8,15 +8,18 @@ export function CodeInput({
   onChange,
   onComplete,
   disabled,
+  autoFocus,
 }: {
   value: string;
   onChange: (value: string) => void;
   onComplete: (value: string) => void;
   disabled?: boolean;
+  autoFocus?: boolean;
 }) {
   return (
     <OTPInput
       data-1p-ignore
+      autoFocus={autoFocus}
       className="[&_input]:text-white!"
       value={value}
       onChange={onChange}
