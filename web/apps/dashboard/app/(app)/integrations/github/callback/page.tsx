@@ -11,6 +11,10 @@ export default function Page() {
   const searchParams = useSearchParams();
   const installationId = searchParams?.get("installation_id") ?? null;
   const state = searchParams?.get("state") ?? null;
+  // OAuth code GitHub returns when the App requests user authorization during
+  // installation. The server uses it to verify the caller can access this
+  // installation before binding it to their workspace.
+  const code = searchParams?.get("code") ?? null;
   const installationIdNumber = useMemo(() => {
     if (!installationId) {
       return null;
@@ -47,7 +51,7 @@ export default function Page() {
   });
 
   useEffect(() => {
-    if (!state || installationIdNumber === null) {
+    if (!state || installationIdNumber === null || !code) {
       return;
     }
 
@@ -55,9 +59,10 @@ export default function Page() {
       mutation.mutate({
         state,
         installationId: installationIdNumber,
+        code,
       });
     }
-  }, [mutation, state, installationIdNumber]);
+  }, [mutation, state, installationIdNumber, code]);
 
   if (!state) {
     return (
@@ -76,6 +81,19 @@ export default function Page() {
         <Empty>
           <Empty.Title>Missing installation</Empty.Title>
           <Empty.Description>Missing or invalid GitHub installation id.</Empty.Description>
+        </Empty>
+      </div>
+    );
+  }
+
+  if (!code) {
+    return (
+      <div className="w-full min-h-[60vh] flex justify-center items-center">
+        <Empty>
+          <Empty.Title>Missing authorization</Empty.Title>
+          <Empty.Description>
+            Missing GitHub authorization code. Please restart the installation from Unkey.
+          </Empty.Description>
         </Empty>
       </div>
     );
