@@ -16,6 +16,7 @@ import { queryApiKeyDetails } from "./api/query-api-key-details";
 import { setDefaultApiBytes } from "./api/setDefaultBytes";
 import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
+import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
@@ -279,6 +280,7 @@ export const router = t.router({
     updateName: updateApiName,
     setDefaultPrefix: setDefaultApiPrefix,
     setDefaultBytes: setDefaultApiBytes,
+    updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
     queryApiKeyDetails,
     keys: t.router({

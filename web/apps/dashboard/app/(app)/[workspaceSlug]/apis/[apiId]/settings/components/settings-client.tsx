@@ -1,5 +1,6 @@
 "use client";
 
+import { useFlag } from "@/lib/flags/provider";
 import { trpc } from "@/lib/trpc/client";
 import { SettingCardGroup, SettingsDangerZone, SettingsShell } from "@unkey/ui";
 import { CopyApiId } from "./copy-api-id";
@@ -10,8 +11,10 @@ import { DeleteApi } from "./delete-api";
 import { DeleteProtection } from "./delete-protection";
 import { SettingsClientSkeleton } from "./skeleton";
 import { UpdateApiName } from "./update-api-name";
+import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
 export const SettingsClient = ({ apiId }: { apiId: string }) => {
+  const ipWhitelistEnabled = useFlag("ipWhitelist");
   const {
     data: layoutData,
     isLoading,
@@ -39,6 +42,7 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
     name: currentApi.name,
     workspaceId: currentApi.workspaceId,
     deleteProtection: currentApi.deleteProtection,
+    ipWhitelist: currentApi.ipWhitelist,
   };
 
   const keyAuthForComponents = {
@@ -69,6 +73,13 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
           <DefaultPrefix keyAuth={keyAuthForComponents} apiId={api.id} />
         </SettingCardGroup>
       </div>
+      {ipWhitelistEnabled && (
+        <div className="w-full">
+          <SettingCardGroup>
+            <UpdateIpWhitelist api={api} />
+          </SettingCardGroup>
+        </div>
+      )}
       <SettingsDangerZone>
         <DeleteProtection api={api} />
         <DeleteApi api={api} keys={keyAuthForComponents.sizeApprox} />

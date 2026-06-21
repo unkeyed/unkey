@@ -31,3 +31,17 @@ export const deployBilling = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+// ipWhitelist gates the per-API IP whitelist setting in the keyspace settings
+// page. Defaults off until we roll it back out.
+export const ipWhitelist = flag<boolean, Entities>({
+  key: "ip-whitelist",
+  description: "Show the per-API IP whitelist setting in keyspace settings.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
