@@ -156,6 +156,12 @@ type Querier interface {
 	//
 	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?
 	DeleteFrontlineRouteByFQDN(ctx context.Context, db DBTX, fqdn string) error
+	//DeleteFrontlineRouteByFQDNAndProject
+	//
+	//  DELETE FROM frontline_routes
+	//  WHERE fully_qualified_domain_name = ?
+	//    AND project_id = ?
+	DeleteFrontlineRouteByFQDNAndProject(ctx context.Context, db DBTX, arg DeleteFrontlineRouteByFQDNAndProjectParams) error
 	//DeleteFrontlineRoutesByEnvironmentId
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
