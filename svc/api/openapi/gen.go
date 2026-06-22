@@ -811,8 +811,7 @@ type V2AppsListAppsRequestBody struct {
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
 
-	// Project URL-safe handle of the project whose apps you want to list.
-	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+	// Project Slug of the parent project this app belongs to, unique within your workspace.
 	Project string `json:"project"`
 }
 

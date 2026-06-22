@@ -421,9 +421,7 @@ components:
                     minLength: 1
                     maxLength: 256
                     pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-                    description: |
-                        URL-safe handle of the project whose apps you want to list.
-                        Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+                    description: Slug of the parent project this app belongs to, unique within your workspace.
                     example: payments-service
                 limit:
                     type: integer
