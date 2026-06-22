@@ -1,0 +1,39 @@
+---
+title: "June 22, 2026"
+description: "Manage projects from the Unkey API: create, list, get, update, and delete projects with the new projects.* endpoints and matching root key permissions."
+noindex: true
+---
+
+## New features
+
+### Manage projects from the API
+
+You can now create, list, read, update, and delete projects without leaving your own tooling. Five new endpoints live under the `projects` namespace:
+
+- `POST /v2/projects.createProject`
+- `POST /v2/projects.listProjects`
+- `POST /v2/projects.getProject`
+- `POST /v2/projects.updateProject`
+- `POST /v2/projects.deleteProject`
+
+Use them to provision projects for new tenants, automate cleanup of staging projects, or sync project metadata into an internal admin tool. The slug you pass on create is the stable, caller-defined handle used to reference the project in later calls and is embedded in generated deployment domains.
+
+```bash
+curl -X POST "https://api.unkey.com/v2/projects.createProject" \
+  -H "Authorization: Bearer unkey_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Payments Service", "slug": "payments-service" }'
+```
+
+See the [Projects API reference](/platform/projects/api) for the full request and response shape of each endpoint.
+
+### Project management root key permissions
+
+Four new permissions gate the project endpoints, and read/update/delete can be scoped to a specific project id:
+
+- `project.*.create_project`
+- `project.{projectId}.read_project` (or `project.*.read_project`)
+- `project.{projectId}.update_project` (or `project.*.update_project`)
+- `project.{projectId}.delete_project` (or `project.*.delete_project`)
+
+Grant them when issuing a root key for the dashboard, CI, or any internal tool that manages projects. See [root key permissions](/platform/root-keys/permissions#project-management-permissions).

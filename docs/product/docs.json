@@ -151,7 +151,8 @@
                 "group": "Projects",
                 "pages": [
                   "platform/projects/overview",
-                  "platform/projects/settings"
+                  "platform/projects/settings",
+                  "platform/projects/api"
                 ]
               },
               {

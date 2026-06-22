@@ -1,0 +1,189 @@
+---
+title: API
+description: "Manage Unkey projects programmatically. Create, list, read, update, and delete projects via the Unkey API."
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The Unkey API exposes a `projects` namespace so you can manage projects from your own tooling, dashboards, or CI workflows. Use it when you want to provision projects for new tenants, automate cleanup of staging projects, or sync project metadata into an internal admin tool.
+
+All endpoints use the [RPC-style API](/api-reference/rpc) and live under `https://api.unkey.com/v2/projects.*`. Every request must include an [authenticated root key](/api-reference/auth) with the required permission listed on each endpoint.
+
+## Permissions
+
+Project endpoints require one of the following permissions on your root key:
+
+| Endpoint        | Required permission                                                       |
+| --------------- | ------------------------------------------------------------------------- |
+| `createProject` | `project.*.create_project`                                                |
+| `listProjects`  | `project.*.read_project`                                                  |
+| `getProject`    | `project.*.read_project` or `project.<project_id>.read_project`           |
+| `updateProject` | `project.*.update_project` or `project.<project_id>.update_project`       |
+| `deleteProject` | `project.*.delete_project` or `project.<project_id>.delete_project`       |
+
+See [root key permissions](/platform/root-keys/permissions#project-management-permissions) for the full reference.
+
+## Create a project
+
+`POST /v2/projects.createProject`
+
+Create a project under your workspace. The `slug` you provide is the stable, caller-defined handle used to reference this project in subsequent operations. It must be unique within the workspace; a duplicate returns `409 Conflict`.
+
+<ParamField body="name" type="string" required>
+  Human-readable name for the project. 1–256 characters.
+</ParamField>
+
+<ParamField body="slug" type="string" required>
+  URL-safe handle, unique within your workspace. Lowercase letters, numbers, and hyphens only — no leading, trailing, or consecutive hyphens. Pattern: `^[a-z0-9]+(-[a-z0-9]+)*$`. The slug is embedded in generated deployment domains.
+</ParamField>
+
+```bash
+curl -X POST "https://api.unkey.com/v2/projects.createProject" \
+  -H "Authorization: Bearer unkey_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Payments Service",
+    "slug": "payments-service"
+  }'
+```
+
+```json Response
+{
+  "meta": { "requestId": "req_1234abcd" },
+  "data": { "id": "proj_1234abcd" }
+}
+```
+
+## List projects
+
+`POST /v2/projects.listProjects`
+
+Return a paginated list of projects in your workspace, ordered by project id.
+
+<ParamField body="limit" type="integer">
+  Maximum projects per page. Default `100`, max `100`.
+</ParamField>
+
+<ParamField body="cursor" type="string">
+  Pagination cursor from a previous response. Send when the previous response had `pagination.hasMore: true`.
+</ParamField>
+
+```bash
+curl -X POST "https://api.unkey.com/v2/projects.listProjects" \
+  -H "Authorization: Bearer unkey_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "limit": 50 }'
+```
+
+```json Response
+{
+  "meta": { "requestId": "req_1234abcd" },
+  "data": [
+    {
+      "id": "proj_1234abcd",
+      "name": "Payments Service",
+      "slug": "payments-service",
+      "createdAt": 1704067200000,
+      "deleteProtection": false
+    }
+  ],
+  "pagination": { "cursor": "proj_5678efgh", "hasMore": true }
+}
+```
+
+## Get a project
+
+`POST /v2/projects.getProject`
+
+Fetch a single project by id. Useful for verifying a project exists before performing a downstream operation or resolving its metadata from an id.
+
+<ParamField body="projectId" type="string" required>
+  The id of the project to fetch. Begins with `proj_`.
+</ParamField>
+
+```bash
+curl -X POST "https://api.unkey.com/v2/projects.getProject" \
+  -H "Authorization: Bearer unkey_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "projectId": "proj_1234abcd" }'
+```
+
+Returns the same `Project` shape used in `listProjects`.
+
+## Update a project
+
+`POST /v2/projects.updateProject`
+
+Update a project's name, slug, or delete-protection setting. Omitted fields are left unchanged.
+
+<Warning>
+  Changing the slug rewrites the deployment domains generated for this project. Update any external references (DNS, integrations, bookmarks) after a slug change.
+</Warning>
+
+<ParamField body="projectId" type="string" required>
+  The id of the project to update.
+</ParamField>
+
+<ParamField body="name" type="string">
+  New display name. 1–256 characters.
+</ParamField>
+
+<ParamField body="slug" type="string">
+  New URL-safe slug, unique within your workspace. Same pattern as on create.
+</ParamField>
+
+<ParamField body="deleteProtection" type="boolean">
+  Enable or disable [delete protection](/security/delete-protection). When `true`, `deleteProject` is rejected with `412 Precondition Failed` until protection is turned off.
+</ParamField>
+
+```bash
+curl -X POST "https://api.unkey.com/v2/projects.updateProject" \
+  -H "Authorization: Bearer unkey_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectId": "proj_1234abcd",
+    "name": "Payments API",
+    "deleteProtection": true
+  }'
+```
+
+## Delete a project
+
+`POST /v2/projects.deleteProject`
+
+Enqueue deletion of a project. The project disappears from your workspace immediately; deployments, environments, custom domains, and variables are removed in the background.
+
+If the project has delete protection enabled, the call returns `412 Precondition Failed`. Disable protection via `updateProject` (or the dashboard) and retry.
+
+<ParamField body="projectId" type="string" required>
+  The id of the project to delete.
+</ParamField>
+
+```bash
+curl -X POST "https://api.unkey.com/v2/projects.deleteProject" \
+  -H "Authorization: Bearer unkey_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "projectId": "proj_1234abcd" }'
+```
+
+```json Response
+{
+  "meta": { "requestId": "req_1234abcd" },
+  "data": {}
+}
+```
+
+## Errors
+
+| Status | When it happens                                                                                                  |
+| ------ | ---------------------------------------------------------------------------------------------------------------- |
+| `400`  | Validation failure — typically a slug that does not match the required pattern, or a name outside 1–256 chars.   |
+| `401`  | Missing or invalid root key.                                                                                     |
+| `403`  | Root key is missing the required `project.*` permission.                                                         |
+| `404`  | The `projectId` does not exist in your workspace (`getProject`, `updateProject`, `deleteProject`).               |
+| `409`  | A project with the requested slug already exists in the workspace (`createProject`, `updateProject`).            |
+| `412`  | Delete protection is enabled (`deleteProject`). Disable it first, then retry.                                    |
+
+See [error handling](/api-reference/errors) for the full response shape.

@@ -201,6 +201,26 @@ These permissions control [identities](/platform/identities/overview), which let
   Delete an identity from the workspace.
 </ResponseField>
 
+## Project management permissions
+
+These permissions control management of projects in your workspace through the [Projects API](/platform/projects/api). Read, update, and delete permissions support per-project scoping using the project id.
+
+<ResponseField name="project.*.create_project">
+  Create new projects in the workspace. There is no project-scoped variant of this permission, since the project does not exist yet at creation time.
+</ResponseField>
+
+<ResponseField name="project.{projectId}.read_project">
+  Read a project's metadata, including name, slug, timestamps, and delete-protection state. Use `project.*.read_project` to read all projects.
+</ResponseField>
+
+<ResponseField name="project.{projectId}.update_project">
+  Update a project's name, slug, or delete-protection setting. Use `project.*.update_project` to update any project.
+</ResponseField>
+
+<ResponseField name="project.{projectId}.delete_project">
+  Delete a project. Granting this on a specific project does not grant delete access to other projects. Use `project.*.delete_project` to delete any project.
+</ResponseField>
+
 ## Deployment permissions
 
 These permissions control deployment operations. All deployment permissions use the `project.*` scope.
@@ -227,4 +247,5 @@ These permissions control deployment operations. All deployment permissions use 
 | Rate limiting         | `ratelimit.*.limit`                                                          |
 | Rate limit overrides  | `ratelimit.*.set_override`, `ratelimit.*.read_override`                      |
 | CI/CD deployments     | `project.*.create_deployment`, `project.*.generate_upload_url`               |
+| Project management    | `project.*.create_project`, `project.*.read_project`, `project.*.update_project`, `project.*.delete_project` |
 | RBAC management       | `rbac.*.create_role`, `rbac.*.create_permission`, `rbac.*.add_role_to_key`   |
