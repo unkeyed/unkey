@@ -5,7 +5,7 @@ post:
   description: |
     Retrieve a single app by its id.
 
-    Use this to fetch app details after creation, verify an app exists before performing operations, or resolve an app's metadata from its id.
+    Use this to fetch app details after creation or to verify an app exists before performing operations.
 
     **Required Permissions**
 

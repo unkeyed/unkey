@@ -74,8 +74,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 	))
 	if err != nil {
-		// Mirror the missing-app 404 so an unauthorized key can't probe which
-		// apps exist or read identifiers from the authorization error.
 		return fault.New(
 			"app not found",
 			fault.Code(codes.Data.App.NotFound.URN()),

@@ -89,7 +89,7 @@ type App struct {
 	ProjectId string `json:"projectId"`
 
 	// Slug URL-safe handle for this app, unique within its project.
-	// This is the caller-defined identifier used to reference the app in get and list operations.
+	// Chosen at creation time.
 	Slug string `json:"slug"`
 
 	// UpdatedAt Unix timestamp in milliseconds when the app was last updated.

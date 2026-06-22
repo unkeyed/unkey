@@ -2859,7 +2859,7 @@ components:
                     type: string
                     description: |
                         URL-safe handle for this app, unique within its project.
-                        This is the caller-defined identifier used to reference the app in get and list operations.
+                        Chosen at creation time.
                     example: payments-api
                 projectId:
                     type: string
@@ -4720,7 +4720,7 @@ paths:
             description: |
                 Retrieve a single app by its id.
 
-                Use this to fetch app details after creation, verify an app exists before performing operations, or resolve an app's metadata from its id.
+                Use this to fetch app details after creation or to verify an app exists before performing operations.
 
                 **Required Permissions**
 

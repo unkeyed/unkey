@@ -23,7 +23,7 @@ properties:
     type: string
     description: |
       URL-safe handle for this app, unique within its project.
-      This is the caller-defined identifier used to reference the app in get and list operations.
+      Chosen at creation time.
     example: payments-api
   projectId:
     type: string
