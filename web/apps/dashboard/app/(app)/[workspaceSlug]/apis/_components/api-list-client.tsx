@@ -1,5 +1,6 @@
 "use client";
 
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -48,7 +49,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
 
   useEffect(() => {
     if (error) {
-      router.push("/new");
+      router.push(routes.workspaces.create());
     }
   }, [error, router]);
 

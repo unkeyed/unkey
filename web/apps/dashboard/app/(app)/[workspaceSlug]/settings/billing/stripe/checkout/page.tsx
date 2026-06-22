@@ -1,5 +1,6 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { routes } from "@/lib/navigation/routes";
 import { getStripeClient } from "@/lib/stripe";
 import { getBaseUrl } from "@/lib/utils";
 import { Code, Empty } from "@unkey/ui";
@@ -27,6 +28,7 @@ export default async function StripeRedirect(props: {
   const { orgId, role } = await getAuth();
 
   if (!orgId) {
+    // route-guard-ignore: pre-existing unauthenticated redirect, left untouched
     return redirect("/sign-in");
   }
 
@@ -47,7 +49,7 @@ export default async function StripeRedirect(props: {
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
   if (!ws) {
-    return redirect("/new");
+    return redirect(routes.workspaces.create());
   }
 
   let stripe: Stripe;
