@@ -215,7 +215,15 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
-import { getCurrentUser, listMemberships, switchOrg } from "./user";
+import {
+  getCurrentUser,
+  listMemberships,
+  listMfaFactors,
+  removeMfaFactor,
+  startMfaEnrollment,
+  switchOrg,
+  verifyMfaEnrollment,
+} from "./user";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -413,6 +421,12 @@ export const router = t.router({
     getCurrentUser,
     listMemberships,
     switchOrg,
+    mfa: t.router({
+      listFactors: listMfaFactors,
+      startEnrollment: startMfaEnrollment,
+      verifyEnrollment: verifyMfaEnrollment,
+      removeFactor: removeMfaFactor,
+    }),
   }),
   org: t.router({
     getOrg,
