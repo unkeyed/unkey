@@ -5,7 +5,7 @@ post:
   description: |
     Retrieve a paginated list of apps within a project.
 
-    Use this to build app management dashboards or to enumerate the apps belonging to a project. Apps are scoped to a project, so the project id is required. Results are ordered by app id and returned in pages. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
+    Use this to enumerate every app in a project. Results are ordered by app id and paginated; when `hasMore` is true, pass the returned `cursor` to fetch the next page.
 
     **Required Permissions**
 
@@ -61,7 +61,6 @@ post:
                     deleteProtection: false
                     createdAt: 1704240000000
                 pagination:
-                  cursor: app_5678efgh
                   hasMore: false
       description: |
         Successfully retrieved a paginated list of apps. Use the pagination cursor for additional results when `hasMore: true`.

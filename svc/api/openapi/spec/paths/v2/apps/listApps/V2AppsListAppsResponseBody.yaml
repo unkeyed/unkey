@@ -43,7 +43,6 @@ examples:
           deleteProtection: false
           createdAt: 1704240000000
       pagination:
-        cursor: app_5678efgh
         hasMore: false
   paginatedResponse:
     summary: Paginated app listing with more results

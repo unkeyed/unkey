@@ -4886,7 +4886,7 @@ paths:
             description: |
                 Retrieve a paginated list of apps within a project.
 
-                Use this to build app management dashboards or to enumerate the apps belonging to a project. Apps are scoped to a project, so the project id is required. Results are ordered by app id and returned in pages. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
+                Use this to enumerate every app in a project. Results are ordered by app id and paginated; when `hasMore` is true, pass the returned `cursor` to fetch the next page.
 
                 **Required Permissions**
 
@@ -4937,7 +4937,6 @@ paths:
                                         meta:
                                             requestId: req_1234abcd
                                         pagination:
-                                            cursor: app_5678efgh
                                             hasMore: false
                             schema:
                                 $ref: '#/components/schemas/V2AppsListAppsResponseBody'
