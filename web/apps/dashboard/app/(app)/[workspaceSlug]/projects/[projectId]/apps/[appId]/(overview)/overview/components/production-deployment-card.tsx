@@ -12,7 +12,7 @@ import { getDomainPriority } from "../../../components/domain-priority";
 import { Card } from "../../components/card";
 import { useAppId, useProjectData } from "../../data-provider";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
-import { ProductionCardChart } from "./card-chart";
+import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
 import { ProductionCardHeader } from "./card-header";
 import { ProductionCardMetadata } from "./card-metadata";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
@@ -38,6 +38,7 @@ export function ProductionDeploymentCard() {
   const {
     projectId,
     deployments,
+    environments,
     customDomains,
     getDeploymentById,
     getDomainsForDeployment,
@@ -59,7 +60,19 @@ export function ProductionDeploymentCard() {
   const repoFullName = app?.repositoryFullName ?? null;
 
   const currentDeploymentId = app?.currentDeploymentId ?? null;
-  const deployment = currentDeploymentId ? getDeploymentById(currentDeploymentId) : undefined;
+  const currentDeployment = currentDeploymentId
+    ? getDeploymentById(currentDeploymentId)
+    : undefined;
+
+  // currentDeploymentId is null until the first production go-live, so fall back
+  // to the latest production deploy to surface a first build/failure.
+  const productionEnvironmentId = environments.find((e) => e.slug === "production")?.id;
+  const latestProductionDeployment = productionEnvironmentId
+    ? deployments.find((d) => d.environmentId === productionEnvironmentId)
+    : undefined;
+
+  const deployment = currentDeployment ?? latestProductionDeployment;
+  const isCurrent = Boolean(currentDeployment);
 
   const metrics = trpc.deploy.metrics.getAppRpsMetrics.useQuery(
     { appId },
@@ -73,13 +86,19 @@ export function ProductionDeploymentCard() {
   if (!deployment) {
     return (
       <CreateDeploymentButton
-        renderTrigger={({ onClick }) => <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />}
+        renderTrigger={({ onClick }) => (
+          <ActiveDeploymentCardEmpty
+            onCreateDeployment={onClick}
+            title="No production deployment yet"
+            description="This app hasn't been deployed to production. Deploy to production to make it live."
+          />
+        )}
       />
     );
   }
 
   const status = deriveProductionStatus(deployment);
-  const isRolledBack = app?.isRolledBack ?? false;
+  const isRolledBack = isCurrent ? (app?.isRolledBack ?? false) : false;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { primary, additional } = getDomainPriority({
@@ -147,6 +166,7 @@ export function ProductionDeploymentCard() {
   const ctx: ProductionCardContextValue = {
     deployment,
     status,
+    isCurrent,
     isRolledBack,
     rolledBackFrom: rolledBackFromDeployment
       ? {
@@ -182,7 +202,11 @@ export function ProductionDeploymentCard() {
         <Card className="relative z-10 flex flex-col">
           <ProductionCardHeader />
           <div className="grid grid-cols-1 md:grid-cols-2">
-            <ProductionCardChart />
+            {!isCurrent && status === "deploying" ? (
+              <BuildInProgressChart />
+            ) : (
+              <ProductionCardChart />
+            )}
             <div className="p-4">
               <ProductionCardMetadata />
             </div>

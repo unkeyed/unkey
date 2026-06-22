@@ -11,6 +11,7 @@ export type CardDomain = { hostname: string; url: string };
 export type ProductionCardContextValue = {
   deployment: Deployment;
   status: DeploymentDisplayStatus;
+  isCurrent: boolean;
   isRolledBack: boolean;
   rolledBackFrom: { commitSha: string | null; commitMessage: string | null } | null;
   sourceRepo: string | null;

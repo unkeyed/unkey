@@ -2,6 +2,7 @@
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
+import { Loading, Skeleton } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import {
   type AreaChartPoint,
@@ -49,6 +50,24 @@ function LegendStat({
       <span className="text-gray-9">{label}</span>
       <span className={cn("font-medium", alert ? "text-error-11" : "text-accent-12")}>{value}</span>
     </span>
+  );
+}
+
+// Placeholder shown while the app's first production deploy is still building —
+// there is no live traffic to chart yet.
+export function BuildInProgressChart() {
+  return (
+    <div className="flex flex-col gap-2 p-4 md:border-r border-gray-4">
+      <div className="flex flex-col gap-1">
+        <Skeleton className="h-6 w-20" />
+        <Skeleton className="h-3 w-28" />
+      </div>
+      <Skeleton className="h-[120px] w-full rounded-md" />
+      <div className="flex items-center gap-2 text-[13px] text-gray-9">
+        <Loading type="dots" size={16} />
+        Waiting for build to finish…
+      </div>
+    </div>
   );
 }
 
