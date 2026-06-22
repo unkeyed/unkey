@@ -2,6 +2,7 @@
 
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -163,7 +164,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
                     if (hasPaymentMethod) {
                       setShowPlanModal(true);
                     } else {
-                      router.push(`/${workspaceSlug}/settings/billing/stripe/checkout?intent=api`);
+                      router.push(routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }));
                     }
                   }}
                 >
