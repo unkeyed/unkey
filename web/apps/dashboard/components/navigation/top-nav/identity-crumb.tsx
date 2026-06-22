@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Fingerprint, Plus } from "@unkey/icons";
 import { Crumb } from "./crumb";
@@ -15,14 +16,14 @@ export function IdentityCrumb({ identityId }: { identityId: string }) {
   const items: CrumbPopoverItem[] = identities.map((identity) => ({
     id: identity.id,
     label: identity.id,
-    href: `/${workspace.slug}/identities/${identity.id}`,
+    href: routes.identities.detail({ workspaceSlug: workspace.slug, identityId: identity.id }),
   }));
 
   return (
     <Crumb
       icon={<Fingerprint className="size-3.5 text-accent-11" iconSize="sm-regular" />}
       label={identityId}
-      href={`/${workspace.slug}/identities/${identityId}`}
+      href={routes.identities.detail({ workspaceSlug: workspace.slug, identityId })}
       items={items}
       currentId={identityId}
       searchPlaceholder="Find identity..."
@@ -30,7 +31,7 @@ export function IdentityCrumb({ identityId }: { identityId: string }) {
       footer={{
         icon: Plus,
         label: "All identities",
-        href: `/${workspace.slug}/identities`,
+        href: routes.identities.list({ workspaceSlug: workspace.slug }),
       }}
     />
   );

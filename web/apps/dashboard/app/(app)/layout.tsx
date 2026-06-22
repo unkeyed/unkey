@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import type { Route } from "next";
 
 import { LoadingState } from "@/components/loading-state";
+import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
@@ -92,7 +93,7 @@ export default function Layout({ children }: LayoutProps) {
     // Case 1: User exists but no orgId or role (incomplete setup)
     // Case 2: No workspace exists for the org (WorkOS org without workspace)
     if (user && (!user.orgId || workspaceMissing)) {
-      router.push("/new");
+      router.push(routes.workspaces.create());
       return;
     }
   }, [user, isLoading, error, workspaceMissing, router]);
