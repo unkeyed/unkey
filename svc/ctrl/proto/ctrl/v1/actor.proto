@@ -1,0 +1,23 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+// ActorType identifies who performed an action, for audit logging.
+enum ActorType {
+  ACTOR_TYPE_UNSPECIFIED = 0;
+  ACTOR_TYPE_USER = 1;
+  ACTOR_TYPE_ROOT_KEY = 2;
+  ACTOR_TYPE_SYSTEM = 3;
+}
+
+// ActorInfo carries audit-relevant caller identity and request origin so ctrl
+// can write audit logs on behalf of the caller. Shared across ctrl RPCs.
+message ActorInfo {
+  string id = 1;
+  string name = 2;
+  ActorType type = 3;
+  string remote_ip = 4;
+  string user_agent = 5;
+  map<string, string> meta = 6;
+}

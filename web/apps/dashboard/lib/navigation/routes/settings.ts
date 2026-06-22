@@ -25,6 +25,10 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
   },
 
+  security({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/security", { workspaceSlug });
+  },
+
   stripe: {
     portal({ workspaceSlug }: WorkspaceScope): Route {
       return buildRoute("/[workspaceSlug]/settings/billing/stripe/portal", { workspaceSlug });

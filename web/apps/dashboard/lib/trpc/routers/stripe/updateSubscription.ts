@@ -2,6 +2,11 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import {
+  deployBillingConfig,
+  deployBillingConfigured,
+  findApiItem,
+} from "@/lib/stripe/deployBilling";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
@@ -87,20 +92,29 @@ export const updateSubscription = workspaceProcedure
 
     // Derive the current subscription item from the existing subscription
     // rather than trusting a client-supplied `oldProductId`. The client should
-    // not be able to influence which item gets repriced.
-    const item = sub.items.data[0];
+    // not be able to influence which item gets repriced. On a mixed
+    // subscription the Deploy items (plan-fee + meters) are skipped — items[0]
+    // would be one of them on a Compute-first subscription, and repricing it
+    // to an API price would destroy the Compute plan.
+    //
+    // Fail closed when Deploy is configured but its config can't be resolved:
+    // findApiItem(null) falls back to items[0], which on a Compute-first
+    // subscription is a Deploy item, so repricing under a transient resolution
+    // failure would destroy Compute. Unconfigured (no Deploy at all) still uses
+    // the items[0] fallback safely.
+    const deployConfig = await deployBillingConfig();
+    if (!deployConfig && deployBillingConfigured()) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Billing is temporarily unavailable. Please try again in a moment.",
+      });
+    }
+    const item = findApiItem(deployConfig, sub.items.data);
 
     if (!item) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Subscription has no items to update.",
-      });
-    }
-
-    if (!item.id) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Subscription item is missing an ID.",
+        message: "Subscription has no API plan item to update.",
       });
     }
 

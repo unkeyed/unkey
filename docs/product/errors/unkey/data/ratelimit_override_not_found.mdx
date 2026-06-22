@@ -11,7 +11,7 @@ description: "The requested rate limit override was not found in Unkey. Verify t
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The requested rate limit override could not be found",
+    "detail": "This override does not exist.",
     "status": 404,
     "title": "Not Found",
     "type": "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found"
@@ -21,7 +21,9 @@ description: "The requested rate limit override was not found in Unkey. Verify t
 
 ## What Happened?
 
-This error occurs when you're trying to perform an operation on a rate limit override that doesn't exist in the Unkey system. Rate limit overrides are used to create custom rate limits for specific identifiers within a namespace.
+This error occurs when you're trying to perform an operation on a rate limit override that doesn't exist in the Unkey system, or when your key lacks the permission to read it. Rate limit overrides are used to create custom rate limits for specific identifiers within a namespace.
+
+Unkey deliberately returns this same 404 whether the override is missing or your key is not allowed to read it, so that responses never reveal whether an override exists to callers without read access. If you are certain the override exists, treat this error as a permission problem.
 
 Common scenarios that trigger this error:
 
@@ -29,6 +31,7 @@ Common scenarios that trigger this error:
 - Referencing an override that has been deleted
 - Trying to get or modify an override for an identifier that doesn't have one
 - Using the wrong namespace when looking up an override
+- Using a root key that lacks the `ratelimit.*.read_override` permission for this namespace or override
 
 Here's an example of a request that would trigger this error:
 
@@ -45,11 +48,12 @@ curl -X POST https://api.unkey.com/v2/ratelimit.getOverride \
 
 ## How To Fix
 
-Verify that you're using the correct namespace and identifier, and that the override still exists:
+Verify that you're using the correct namespace and identifier, that the override still exists, and that your key may read it:
 
 1. Check the namespace ID and identifier in your request for typos
 2. List all overrides in the namespace to confirm if the one you're looking for exists
 3. If the override has been deleted or never existed, you may need to create it
+4. If the override exists, check in the dashboard that your root key has the `read_override` permission for the namespace
 
 Here's how to list overrides in a namespace:
 
@@ -82,6 +86,7 @@ curl -X POST https://api.unkey.com/v2/ratelimit.setOverride \
 - **Deleted overrides**: Attempting to reference overrides that have been removed
 - **Namespace mismatch**: Looking in the wrong namespace for an override
 - **Assuming defaults are overrides**: Trying to get an override for an identifier that's using default limits
+- **Missing read permission**: Debugging this as a data issue when the override exists but the root key lacks `read_override` for it
 
 ## Related Errors
 

@@ -207,6 +207,18 @@ paths:
   /v2/portal.exchangeSession:
     $ref: "./spec/paths/v2/portal/exchangeSession/index.yaml"
 
+  # Project Endpoints
+  /v2/projects.createProject:
+    $ref: "./spec/paths/v2/projects/createProject/index.yaml"
+  /v2/projects.listProjects:
+    $ref: "./spec/paths/v2/projects/listProjects/index.yaml"
+  /v2/projects.getProject:
+    $ref: "./spec/paths/v2/projects/getProject/index.yaml"
+  /v2/projects.updateProject:
+    $ref: "./spec/paths/v2/projects/updateProject/index.yaml"
+  /v2/projects.deleteProject:
+    $ref: "./spec/paths/v2/projects/deleteProject/index.yaml"
+
   # Permissions Endpoints
   /v2/permissions.createRole:
     $ref: "./spec/paths/v2/permissions/createRole/index.yaml"

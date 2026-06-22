@@ -1,0 +1,36 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "workos",
+    srcs = [
+        "doc.go",
+        "permissions.go",
+        "resolver.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/auth/workos",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/auth",
+        "//pkg/auth/principal",
+        "//pkg/logger",
+        "//pkg/rbac",
+        "//pkg/urn",
+        "//pkg/zen",
+    ],
+)
+
+go_test(
+    name = "workos_test",
+    size = "small",
+    srcs = [
+        "permissions_test.go",
+        "resolver_test.go",
+    ],
+    data = ["testdata/permissions.golden"],
+    embed = [":workos"],
+    deps = [
+        "//pkg/auth/principal",
+        "//pkg/zen",
+        "@com_github_stretchr_testify//require",
+    ],
+)

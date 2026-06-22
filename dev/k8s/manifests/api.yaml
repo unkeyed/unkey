@@ -16,8 +16,18 @@ data:
     max_request_body_size = 10485760
 
     portal_base_url = "http://localhost:3100"
-    jwt_secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
 
+    [[auth]]
+    type = "jwt"
+    issuer = "app.unkey.com"
+    audience = "api.unkey.com"
+    secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
+
+    [[auth]]
+    type = "portal_session"
+
+    [[auth]]
+    type = "root_key"
 
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"

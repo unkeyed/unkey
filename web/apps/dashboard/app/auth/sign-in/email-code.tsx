@@ -63,15 +63,20 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
   }, [startCountdown]);
 
   const verifyCode = async (code: string) => {
-    if (!code) {
+    if (!code || isLoading) {
       return;
     }
     setIsLoading(true);
     try {
-      await handleVerification(code, invitationToken);
-      toast.success("Signed in", {
-        description: "redirecting...",
-      });
+      const isNavigating = await handleVerification(code, invitationToken);
+      if (isNavigating) {
+        toast.success("Signed in", {
+          description: "redirecting...",
+        });
+        // Keep the button in its loading state until the browser leaves the
+        // page, otherwise it pops back to "Continue" mid-navigation.
+        return;
+      }
     } catch (err) {
       setError((err as Error).message);
     }
@@ -122,10 +127,12 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
       >
         <OTPInput
           data-1p-ignore
+          autoFocus
           className="[&_input]:text-white!"
           value={otp}
           onChange={setOtp}
-          onComplete={() => verifyCode(otp)}
+          onComplete={(value) => verifyCode(value)}
+          disabled={isLoading}
           maxLength={6}
           render={({ slots }) => (
             <div className="flex items-center justify-between">
@@ -140,7 +147,7 @@ export function EmailCode({ invitationToken }: { invitationToken?: string }) {
         <button
           type="submit"
           className="flex items-center cursor-pointer disabled:cursor-not-allowed justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
-          disabled={isLoading}
+          disabled={isLoading || otp.length !== 6}
           onClick={() => verifyCode(otp)}
         >
           {clientReady && isLoading ? <Loading className="w-4 h-4 mr-2 animate-spin" /> : null}
