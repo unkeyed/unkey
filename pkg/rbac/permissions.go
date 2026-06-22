@@ -208,6 +208,9 @@ const (
 
 	// DeleteApp permits deleting apps within a project
 	DeleteApp ActionType = "delete_app"
+
+	// ReadEnvironment permits reading environments within a project
+	ReadEnvironment ActionType = "read_environment"
 )
 
 // Tuple represents a specific permission as a combination of resource type,
