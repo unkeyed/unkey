@@ -4,6 +4,8 @@ import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
 import { freeTierQuotas } from "@/lib/quotas";
+import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
+import { grantDeployCreditsForInvoice } from "@/lib/stripe/deployCredits";
 import { detectDeployPlan } from "@/lib/stripe/deployPlan";
 import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/paymentUtils";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
@@ -37,6 +39,44 @@ async function mirrorDeployPlan(
   if (changed) {
     await db.update(schema.workspaces).set({ deployPlan }).where(eq(schema.workspaces.id, ws.id));
   }
+}
+
+/**
+ * Resolves the API plan item on a subscription and loads its price, customer,
+ * and product. Anchors on findApiItem rather than items[0] so a mixed
+ * (API + Compute) subscription resolves the API product, not a Compute item.
+ * Returns null when there is nothing to act on: no API item (e.g. a
+ * Compute-only subscription), no customer, or a price with no product/amount.
+ */
+async function resolveApiSubscriptionContext(
+  stripe: Stripe,
+  sub: Stripe.Subscription,
+): Promise<{
+  // Narrowed to a number here so callers do not have to re-check it; the guard
+  // below rejects a price with no unit_amount.
+  unitAmount: number;
+  customer: Stripe.Customer | Stripe.DeletedCustomer;
+  product: Stripe.Product;
+} | null> {
+  const apiItem = findApiItem(await deployBillingConfig(), sub.items?.data ?? []);
+  if (!apiItem?.price?.id || !sub.customer) {
+    return null;
+  }
+
+  const [price, customer] = await Promise.all([
+    stripe.prices.retrieve(apiItem.price.id),
+    stripe.customers.retrieve(typeof sub.customer === "string" ? sub.customer : sub.customer.id),
+  ]);
+
+  if (!price.product || price.unit_amount === null || price.unit_amount === undefined) {
+    return null;
+  }
+
+  const product = await stripe.products.retrieve(
+    typeof price.product === "string" ? price.product : price.product.id,
+  );
+
+  return { unitAmount: price.unit_amount, customer, product };
 }
 
 /**
@@ -172,24 +212,13 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 201 });
         }
 
-        if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
+        // Reconcile tier/quotas from the API plan item (the Deploy signal is
+        // mirrored above). Nothing to reconcile on a Compute-only subscription.
+        const apiContext = await resolveApiSubscriptionContext(stripe, sub);
+        if (!apiContext) {
           return new Response("OK");
         }
-
-        const [price, customer] = await Promise.all([
-          stripe.prices.retrieve(sub.items.data[0].price.id),
-          stripe.customers.retrieve(
-            typeof sub.customer === "string" ? sub.customer : sub.customer.id,
-          ),
-        ]);
-
-        if (!price.product || price.unit_amount === null || price.unit_amount === undefined) {
-          return new Response("OK");
-        }
-
-        const product = await stripe.products.retrieve(
-          typeof price.product === "string" ? price.product : price.product.id,
-        );
+        const { unitAmount, customer, product } = apiContext;
 
         /**
          * In our case, when a user cancels their subscription, it's not in effect until the beginning of the next month.
@@ -197,7 +226,7 @@ export const POST = async (req: Request): Promise<Response> => {
          */
         if (sub.cancel_at) {
           if (customer && !customer.deleted && customer.email) {
-            const formattedPrice = formatPrice(price.unit_amount);
+            const formattedPrice = formatPrice(unitAmount);
             await alertIsCancellingSubscription(
               product.name,
               formattedPrice,
@@ -283,7 +312,7 @@ export const POST = async (req: Request): Promise<Response> => {
               previousTier = previousProduct.name;
 
               // Compare amounts to determine upgrade/downgrade
-              const currentAmount = price.unit_amount;
+              const currentAmount = unitAmount;
               const previousAmount = previousPrice.unit_amount;
 
               if (currentAmount !== previousAmount && previousAmount !== null) {
@@ -305,7 +334,7 @@ export const POST = async (req: Request): Promise<Response> => {
 
         // Send notification for subscription update
         if (customer && !customer.deleted && customer.email) {
-          const formattedPrice = formatPrice(price.unit_amount);
+          const formattedPrice = formatPrice(unitAmount);
 
           await alertSubscriptionUpdate(
             product.name,
@@ -446,30 +475,19 @@ export const POST = async (req: Request): Promise<Response> => {
           await mirrorDeployPlan(wsForDeploy, sub);
         }
 
-        if (!sub.items?.data?.[0]?.price?.id || !sub.customer) {
+        // Alert on the API plan item (the Deploy signal is mirrored above).
+        // Nothing to alert on for a Compute-only subscription.
+        const apiContext = await resolveApiSubscriptionContext(stripe, sub);
+        if (!apiContext) {
           return new Response("OK");
         }
-
-        const [price, customer] = await Promise.all([
-          stripe.prices.retrieve(sub.items.data[0].price.id),
-          stripe.customers.retrieve(
-            typeof sub.customer === "string" ? sub.customer : sub.customer.id,
-          ),
-        ]);
-
-        if (!price.product || price.unit_amount === null || price.unit_amount === undefined) {
-          return new Response("OK");
-        }
-
-        const product = await stripe.products.retrieve(
-          typeof price.product === "string" ? price.product : price.product.id,
-        );
+        const { unitAmount, customer, product } = apiContext;
 
         if (customer.deleted || !customer.email) {
           return new Response("OK");
         }
 
-        const formattedPrice = formatPrice(price.unit_amount);
+        const formattedPrice = formatPrice(unitAmount);
 
         await alertSubscriptionCreation(
           product.name,
@@ -611,6 +629,37 @@ export const POST = async (req: Request): Promise<Response> => {
             eventId: event.id,
           });
           return new Response("OK", { status: 200 });
+        }
+
+        // A paid invoice carrying a Deploy plan-fee entitles the workspace to
+        // usage credits equal to the fee. This must run before the alert
+        // logic below, whose early returns (deleted customer, no email) must
+        // not skip the grant. Failure returns 500 so Stripe retries; the
+        // grant is idempotent per invoice, so retries cannot double-grant.
+        try {
+          const grant = await grantDeployCreditsForInvoice(stripe, invoice);
+          if (grant.granted) {
+            console.info("Granted Deploy usage credits", {
+              invoiceId: invoice.id,
+              grantId: grant.grantId,
+              amountCents: grant.amountCents,
+            });
+          } else {
+            // No credits is usually a deliberate skip: no Deploy plan-fee
+            // line, period already closed, already granted, or non-positive
+            // net. Log the reason so the skip is explained.
+            console.info("Did not grant Deploy usage credits", {
+              invoiceId: invoice.id,
+              reason: grant.reason,
+            });
+          }
+        } catch (grantError) {
+          console.error("Failed to grant Deploy usage credits:", {
+            error: grantError,
+            invoiceId: invoice.id,
+            eventId: event.id,
+          });
+          return new Response("Error granting Deploy credits", { status: 500 });
         }
 
         let customer: Stripe.Customer | Stripe.DeletedCustomer;
