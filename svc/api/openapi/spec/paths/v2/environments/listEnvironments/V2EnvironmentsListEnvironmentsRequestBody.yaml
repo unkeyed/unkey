@@ -1,0 +1,53 @@
+type: object
+required:
+  - project
+  - app
+properties:
+  project:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    description: |
+      URL-safe handle of the project that owns the app whose environments you want to list.
+      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+    example: payments-service
+  app:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    description: |
+      URL-safe handle of the app whose environments you want to list, unique within the project.
+      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+    example: payments-api
+  limit:
+    type: integer
+    description: |
+      Maximum number of environments to return per request.
+      Balance between response size and number of pagination calls needed.
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: |
+      Pagination cursor from a previous response to fetch the next page.
+      Use when `hasMore: true` in the previous response.
+    example: env_1234abcd
+additionalProperties: false
+examples:
+  basic:
+    summary: List an app's environments
+    description: List the first page of environments in the given app
+    value:
+      project: payments-service
+      app: payments-api
+  paginated:
+    summary: Paginate with a smaller page size
+    description: Fetch a smaller page and continue from a cursor
+    value:
+      project: payments-service
+      app: payments-api
+      limit: 20
+      cursor: env_1234abcd

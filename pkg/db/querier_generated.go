@@ -2383,6 +2383,15 @@ type Querier interface {
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
 	ListEnvironmentIdsByApp(ctx context.Context, db DBTX, appID string) ([]string, error)
+	//ListEnvironmentsByApp
+	//
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  FROM environments
+	//  WHERE app_id = ?
+	//    AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListEnvironmentsByApp(ctx context.Context, db DBTX, arg ListEnvironmentsByAppParams) ([]ListEnvironmentsByAppRow, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc

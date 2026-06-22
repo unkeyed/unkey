@@ -1,0 +1,77 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    type: array
+    maxItems: 100
+    items:
+      "$ref": "../../../../common/Environment.yaml"
+    description: Array of environments in the app, ordered by environment id.
+  pagination:
+    "$ref": "../../../../common/Pagination.yaml"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
+additionalProperties: false
+examples:
+  environmentList:
+    summary: Environment list
+    description: Typical response listing environments in an app
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        - id: env_1234abcd
+          projectId: proj_1234abcd
+          appId: app_1234abcd
+          slug: production
+          description: Production environment
+          deleteProtection: false
+          createdAt: 1704067200000
+          updatedAt: 1704153600000
+        - id: env_5678efgh
+          projectId: proj_1234abcd
+          appId: app_1234abcd
+          slug: staging
+          description: Staging environment
+          deleteProtection: false
+          createdAt: 1704240000000
+      pagination:
+        hasMore: false
+  paginatedResponse:
+    summary: Paginated environment listing with more results
+    description: Response showing pagination when there are more environments than the requested limit
+    value:
+      meta:
+        requestId: req_5678efgh
+      data:
+        - id: env_1111aaaa
+          projectId: proj_1234abcd
+          appId: app_1234abcd
+          slug: production
+          description: Production environment
+          deleteProtection: false
+          createdAt: 1704067200000
+        - id: env_2222bbbb
+          projectId: proj_1234abcd
+          appId: app_1234abcd
+          slug: staging
+          description: Staging environment
+          deleteProtection: false
+          createdAt: 1704153600000
+      pagination:
+        cursor: env_2222bbbb
+        hasMore: true
+  emptyResponse:
+    summary: Empty environment list
+    description: Response when the app has no environments
+    value:
+      meta:
+        requestId: req_9876zyxw
+      data: []
+      pagination:
+        cursor: null
+        hasMore: false
