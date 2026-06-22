@@ -1,18 +1,16 @@
 type: object
 required:
-  - projectId
+  - project
   - name
   - slug
 properties:
-  projectId:
+  project:
     type: string
-    minLength: 8
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
-    description: |
-      Identifies the parent project this app belongs to by its unique identifier.
-      Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-    example: proj_1234abcd
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    description: Slug of the parent project this app belongs to, unique within your workspace.
+    example: payments
   name:
     type: string
     minLength: 1
@@ -37,6 +35,6 @@ examples:
     summary: Basic app creation
     description: Create an app within a project
     value:
-      projectId: proj_1234abcd
+      project: payments
       name: Payments API
       slug: payments-api

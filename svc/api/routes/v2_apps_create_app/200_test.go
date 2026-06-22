@@ -46,9 +46,9 @@ func TestCreateAppSuccessfully(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		ProjectId: project.ID,
-		Name:      "Payments API",
-		Slug:      "payments-api",
+		Project: projectSlug,
+		Name:    "Payments API",
+		Slug:    "payments-api",
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)

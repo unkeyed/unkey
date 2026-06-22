@@ -721,9 +721,8 @@ type V2AppsCreateAppRequestBody struct {
 	// Use a descriptive name like 'Payments API' to identify its purpose.
 	Name string `json:"name"`
 
-	// ProjectId Identifies the parent project this app belongs to by its unique identifier.
-	// Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-	ProjectId string `json:"projectId"`
+	// Project Slug of the parent project this app belongs to, unique within your workspace.
+	Project string `json:"project"`
 
 	// Slug URL-safe handle you choose for this app, unique within the project.
 	// Pick a short identifier like 'payments-api'.

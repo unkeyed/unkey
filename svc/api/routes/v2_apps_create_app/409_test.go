@@ -39,7 +39,7 @@ func TestCreateAppDuplicateSlug(t *testing.T) {
 	}
 
 	projectSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-	project := h.CreateProject(seed.CreateProjectRequest{
+	h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
 		Name:        "Payments",
@@ -47,9 +47,9 @@ func TestCreateAppDuplicateSlug(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, handler.Request{
-		ProjectId: project.ID,
-		Name:      "Payments API",
-		Slug:      "payments-api",
+		Project: projectSlug,
+		Name:    "Payments API",
+		Slug:    "payments-api",
 	})
 	require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/app_already_exists", res.Body.Error.Type)

@@ -29,7 +29,7 @@ post:
             summary: Basic app creation
             description: Create an app within a project
             value:
-              projectId: proj_1234abcd
+              project: payments
               name: Payments API
               slug: payments-api
     required: true
