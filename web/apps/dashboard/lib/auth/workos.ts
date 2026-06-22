@@ -32,6 +32,7 @@ import {
   type OAuthResult,
   type OrgInviteParams,
   type Organization,
+  OrganizationScopeError,
   PENDING_SESSION_COOKIE,
   type PendingAuthChallengeResponse,
   RADAR_ATTEMPT_COOKIE,
@@ -670,13 +671,27 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  /**
+   * Asserts the membership belongs to `orgId` before it is mutated. WorkOS
+   * scopes membership mutations by ID alone, so without this check an admin of
+   * one organization could target a membership ID belonging to another.
+   */
+  private async assertMembershipInOrg(membershipId: string, orgId: string): Promise<void> {
+    const membership = await this.provider.userManagement.getOrganizationMembership(membershipId);
+    if (membership.organizationId !== orgId) {
+      throw new OrganizationScopeError("membership", membershipId);
+    }
+  }
+
   async updateMembership(params: UpdateMembershipParams): Promise<Membership> {
-    const { membershipId, role } = params;
-    if (!membershipId || !role) {
-      throw new Error("Membership id and role are required.");
+    const { membershipId, role, orgId } = params;
+    if (!membershipId || !role || !orgId) {
+      throw new Error("Membership id, role, and organization id are required.");
     }
 
     try {
+      await this.assertMembershipInOrg(membershipId, orgId);
+
       const membership = await this.provider.userManagement.updateOrganizationMembership(
         membershipId,
         { roleSlug: role },
@@ -702,18 +717,25 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         status: membership.status,
       };
     } catch (error) {
+      if (error instanceof OrganizationScopeError) {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }
 
-  async removeMembership(membershipId: string): Promise<void> {
-    if (!membershipId) {
-      throw new Error("Membership Id is required");
+  async removeMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
     }
 
     try {
+      await this.assertMembershipInOrg(membershipId, orgId);
       await this.provider.userManagement.deleteOrganizationMembership(membershipId);
     } catch (error) {
+      if (error instanceof OrganizationScopeError) {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }
@@ -797,14 +819,24 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async revokeOrgInvitation(invitationId: string): Promise<void> {
-    if (!invitationId) {
-      throw new Error("Invitation Id is required");
+  async revokeOrgInvitation(invitationId: string, orgId: string): Promise<void> {
+    if (!invitationId || !orgId) {
+      throw new Error("Invitation id and organization id are required.");
     }
 
     try {
+      // WorkOS revokes by invitation ID alone, so confirm the invitation
+      // belongs to the caller's organization before revoking it.
+      const invitation = await this.provider.userManagement.getInvitation(invitationId);
+      if (invitation.organizationId !== orgId) {
+        throw new OrganizationScopeError("invitation", invitationId);
+      }
+
       await this.provider.userManagement.revokeInvitation(invitationId);
     } catch (error) {
+      if (error instanceof OrganizationScopeError) {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }

@@ -695,4 +695,117 @@ describe("WorkOSAuthProvider", () => {
       ]);
     });
   });
+
+  describe("org-scoped membership & invitation mutations", () => {
+    const CALLER_ORG = "org_caller";
+    const OTHER_ORG = "org_other";
+
+    describe("updateMembership", () => {
+      it("rejects a membership belonging to another organization", async () => {
+        workos.userManagement.getOrganizationMembership.mockResolvedValue({
+          id: "om_victim",
+          organizationId: OTHER_ORG,
+        });
+
+        await expect(
+          provider.updateMembership({
+            membershipId: "om_victim",
+            role: "admin",
+            orgId: CALLER_ORG,
+          }),
+        ).rejects.toMatchObject({ name: "OrganizationScopeError" });
+
+        expect(workos.userManagement.updateOrganizationMembership).not.toHaveBeenCalled();
+      });
+
+      it("updates a membership in the caller's organization", async () => {
+        workos.userManagement.getOrganizationMembership.mockResolvedValue({
+          id: "om_mine",
+          organizationId: CALLER_ORG,
+        });
+        workos.userManagement.updateOrganizationMembership.mockResolvedValue({
+          id: "om_mine",
+          organizationId: CALLER_ORG,
+          userId: "user_1",
+          role: { slug: "admin" },
+          status: "active",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        });
+        workos.organizations.getOrganization.mockResolvedValue({
+          id: CALLER_ORG,
+          name: "Caller Org",
+        });
+        workos.userManagement.getUser.mockResolvedValue({
+          id: "user_1",
+          email: "user@example.com",
+        });
+
+        const result = await provider.updateMembership({
+          membershipId: "om_mine",
+          role: "admin",
+          orgId: CALLER_ORG,
+        });
+
+        expect(result.id).toBe("om_mine");
+        expect(workos.userManagement.updateOrganizationMembership).toHaveBeenCalledWith("om_mine", {
+          roleSlug: "admin",
+        });
+      });
+    });
+
+    describe("removeMembership", () => {
+      it("rejects a membership belonging to another organization", async () => {
+        workos.userManagement.getOrganizationMembership.mockResolvedValue({
+          id: "om_victim",
+          organizationId: OTHER_ORG,
+        });
+
+        await expect(provider.removeMembership("om_victim", CALLER_ORG)).rejects.toMatchObject({
+          name: "OrganizationScopeError",
+        });
+
+        expect(workos.userManagement.deleteOrganizationMembership).not.toHaveBeenCalled();
+      });
+
+      it("removes a membership in the caller's organization", async () => {
+        workos.userManagement.getOrganizationMembership.mockResolvedValue({
+          id: "om_mine",
+          organizationId: CALLER_ORG,
+        });
+        workos.userManagement.deleteOrganizationMembership.mockResolvedValue(undefined);
+
+        await provider.removeMembership("om_mine", CALLER_ORG);
+
+        expect(workos.userManagement.deleteOrganizationMembership).toHaveBeenCalledWith("om_mine");
+      });
+    });
+
+    describe("revokeOrgInvitation", () => {
+      it("rejects an invitation belonging to another organization", async () => {
+        workos.userManagement.getInvitation.mockResolvedValue({
+          id: "inv_victim",
+          organizationId: OTHER_ORG,
+        });
+
+        await expect(provider.revokeOrgInvitation("inv_victim", CALLER_ORG)).rejects.toMatchObject({
+          name: "OrganizationScopeError",
+        });
+
+        expect(workos.userManagement.revokeInvitation).not.toHaveBeenCalled();
+      });
+
+      it("revokes an invitation in the caller's organization", async () => {
+        workos.userManagement.getInvitation.mockResolvedValue({
+          id: "inv_mine",
+          organizationId: CALLER_ORG,
+        });
+        workos.userManagement.revokeInvitation.mockResolvedValue(undefined);
+
+        await provider.revokeOrgInvitation("inv_mine", CALLER_ORG);
+
+        expect(workos.userManagement.revokeInvitation).toHaveBeenCalledWith("inv_mine");
+      });
+    });
+  });
 });
