@@ -26,18 +26,17 @@ func TestListAppsValidationErrors(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	validProjectID := "proj_1234abcd"
+	validProject := "payments-service"
 
 	testCases := []struct {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing projectId", req: handler.Request{Limit: ptr.P(10)}},
-		{name: "projectId too short", req: handler.Request{ProjectId: "proj_1"}},
-		{name: "projectId invalid chars", req: handler.Request{ProjectId: "proj-1234abc"}},
-		{name: "projectId too long", req: handler.Request{ProjectId: strings.Repeat("a", 256)}},
-		{name: "limit below minimum", req: handler.Request{ProjectId: validProjectID, Limit: ptr.P(0)}},
-		{name: "limit above maximum", req: handler.Request{ProjectId: validProjectID, Limit: ptr.P(101)}},
+		{name: "missing project", req: handler.Request{Limit: ptr.P(10)}},
+		{name: "project invalid chars", req: handler.Request{Project: "Payments_Service"}},
+		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 257)}},
+		{name: "limit below minimum", req: handler.Request{Project: validProject, Limit: ptr.P(0)}},
+		{name: "limit above maximum", req: handler.Request{Project: validProject, Limit: ptr.P(101)}},
 	}
 
 	for _, tc := range testCases {

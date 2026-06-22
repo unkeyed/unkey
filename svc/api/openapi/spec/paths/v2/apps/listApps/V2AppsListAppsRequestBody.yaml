@@ -1,16 +1,16 @@
 type: object
 required:
-  - projectId
+  - project
 properties:
-  projectId:
+  project:
     type: string
-    minLength: 8
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
+    minLength: 1
+    maxLength: 256
+    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
     description: |
-      Identifies the parent project whose apps you want to list by its unique identifier.
-      Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-    example: proj_1234abcd
+      URL-safe handle of the project whose apps you want to list.
+      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+    example: payments-service
   limit:
     type: integer
     description: |
@@ -31,11 +31,11 @@ examples:
     summary: List a project's apps
     description: List the first page of apps in the given project
     value:
-      projectId: proj_1234abcd
+      project: payments-service
   paginated:
     summary: Paginate with a smaller page size
     description: Fetch a smaller page and continue from a cursor
     value:
-      projectId: proj_1234abcd
+      project: payments-service
       limit: 20
       cursor: app_1234abcd

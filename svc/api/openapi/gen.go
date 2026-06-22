@@ -811,9 +811,9 @@ type V2AppsListAppsRequestBody struct {
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
 
-	// ProjectId Identifies the parent project whose apps you want to list by its unique identifier.
-	// Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-	ProjectId string `json:"projectId"`
+	// Project URL-safe handle of the project whose apps you want to list.
+	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+	Project string `json:"project"`
 }
 
 // V2AppsListAppsResponseBody defines model for V2AppsListAppsResponseBody.

@@ -26,7 +26,7 @@ post:
             summary: List a project's apps
             description: List the first page of apps in the given project
             value:
-              projectId: proj_1234abcd
+              project: payments-service
     required: true
   responses:
     "200":

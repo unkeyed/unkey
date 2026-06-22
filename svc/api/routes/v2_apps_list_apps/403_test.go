@@ -63,7 +63,7 @@ func TestListAppsForbidden(t *testing.T) {
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				ProjectId: project.ID,
+				Project: project.Slug,
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
@@ -108,7 +108,7 @@ func TestListAppsExistenceNotLeaked(t *testing.T) {
 		DefaultBranch: "main",
 	})
 
-	missingID := uid.New(uid.ProjectPrefix)
+	missingSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 
 	// Key in the same workspace with an unrelated grant but no read_app action.
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
@@ -117,8 +117,8 @@ func TestListAppsExistenceNotLeaked(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{ProjectId: project.ID})
-	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{ProjectId: missingID})
+	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Project: project.Slug})
+	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Project: missingSlug})
 
 	require.Equal(t, http.StatusNotFound, realRes.Status, "real project should look not-found, got: %s", realRes.RawBody)
 	require.Equal(t, http.StatusNotFound, missingRes.Status, "missing project should be not-found, got: %s", missingRes.RawBody)
