@@ -1,0 +1,20 @@
+type: object
+required:
+  - environmentId
+properties:
+  environmentId:
+    type: string
+    minLength: 8
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_]+$"
+    description: |
+      Specifies which environment to retrieve by its unique identifier.
+      Must be a valid environment ID that begins with 'env_' and exists within your workspace.
+    example: env_1234abcd
+additionalProperties: false
+examples:
+  basic:
+    summary: Retrieve an environment by ID
+    description: Fetch a single environment using its unique identifier
+    value:
+      environmentId: env_1234abcd
