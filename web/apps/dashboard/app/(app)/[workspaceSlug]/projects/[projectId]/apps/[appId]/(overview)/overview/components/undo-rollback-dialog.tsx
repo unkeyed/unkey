@@ -40,6 +40,7 @@ export function UndoRollbackDialog({
       });
       try {
         collection.projects.utils.refetch();
+        collection.apps.utils.refetch();
         collection.deployments.utils.refetch();
         collection.domains.utils.refetch();
       } catch (error) {

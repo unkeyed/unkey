@@ -7,12 +7,13 @@ import {
   type AreaChartPoint,
   AreaTimeseriesChart,
 } from "../../deployments/[deploymentId]/network/unkey-flow/components/overlay/node-details-panel/components/chart/area-timeseries-chart";
-import { formatCount, formatRps, formatStamp } from "./g-pulse";
+import { formatBucketCount, formatCount, formatStamp } from "./g-pulse";
 import { useProductionCard } from "./production-card-context";
 
-const BLUE = "hsl(var(--info-9))";
+const BLUE = "hsl(var(--activity))";
 const BLUE_FILL = "hsl(var(--info-3))";
 const ERROR = "hsl(var(--error-9))";
+const ERROR_FILL = "hsl(var(--error-3))";
 
 const CHART_CONFIG: ChartConfig = {
   total: { label: "Requests", color: BLUE },
@@ -20,15 +21,15 @@ const CHART_CONFIG: ChartConfig = {
 };
 
 // Hoisted so its identity is stable: a fresh object each render resets recharts' cursor.
-const FILL_COLORS = { total: BLUE_FILL };
+const FILL_COLORS = { total: BLUE_FILL, errors: ERROR_FILL };
 
-const formatRpsTooltip = (value: number) => ({ value: value.toFixed(1), unit: "req/s" });
+const formatCountTooltip = (value: number) => ({ value: `${Math.round(value)}`, unit: "req" });
 
-function formatRpsYTick(v: number): string {
+function formatCountYTick(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
-  return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`;
+  return formatBucketCount(v);
 }
 
 function LegendStat({
@@ -55,7 +56,7 @@ export function ProductionCardChart() {
   const { pulse, isChartLoading, isChartError } = useProductionCard();
   const [active, setActive] = useState<AreaChartPoint | null>(null);
 
-  const reqValue = active ? Number(active.total) || 0 : pulse.rpsCurrent;
+  const reqValue = active ? Number(active.total) || 0 : pulse.requestsCurrent;
   const errValue = active ? Number(active.errors) || 0 : pulse.errorsCurrent;
   const stampTs = active ? active.originalTimestamp : pulse.latestTimestamp;
   const xDomain = useMemo<[number, number] | undefined>(
@@ -91,16 +92,21 @@ export function ProductionCardChart() {
         axisFloor={0}
         isLoading={isChartLoading}
         isError={isChartError}
-        formatTooltipValue={formatRpsTooltip}
-        formatYTick={formatRpsYTick}
+        formatTooltipValue={formatCountTooltip}
+        formatYTick={formatCountYTick}
         xAxisDomain={xDomain}
         xAxisUTC
         hideTooltip
         onActiveChange={setActive}
       />
       <div className="flex items-center gap-4 text-[13px]">
-        <LegendStat color={BLUE} label="Requests" value={formatRps(reqValue)} />
-        <LegendStat color={ERROR} label="Errors" value={formatRps(errValue)} alert={errValue > 0} />
+        <LegendStat color={BLUE} label="Requests" value={formatBucketCount(reqValue)} />
+        <LegendStat
+          color={ERROR}
+          label="Errors"
+          value={formatBucketCount(errValue)}
+          alert={errValue > 0}
+        />
       </div>
     </div>
   );

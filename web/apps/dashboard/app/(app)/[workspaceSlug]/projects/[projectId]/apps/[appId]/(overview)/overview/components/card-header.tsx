@@ -83,7 +83,7 @@ export function ProductionCardHeader() {
   } = useProductionCard();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b border-gray-4">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b border-gray-4 bg-background rounded-t-[14px]">
       <DomainHero />
       <div className="flex items-center gap-2 shrink-0">
         {diagnostic && (

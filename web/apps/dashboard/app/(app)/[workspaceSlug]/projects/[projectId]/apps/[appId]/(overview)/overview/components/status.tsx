@@ -32,12 +32,9 @@ export function deriveProductionStatus(deployment: Deployment): DeploymentDispla
   return "live";
 }
 
-export const STATUS_META: Record<
-  DeploymentDisplayStatus,
-  { label: string; dotClass: string; dotStyle?: string }
-> = {
+export const STATUS_META: Record<DeploymentDisplayStatus, { label: string; dotClass: string }> = {
   live: { label: "Live", dotClass: "bg-success-9" },
-  deploying: { label: "Deploying", dotClass: "", dotStyle: "hsl(38, 92%, 50%)" },
+  deploying: { label: "Deploying", dotClass: "bg-warning-9" },
   crashing: { label: "Crashing", dotClass: "bg-error-9" },
   failed: { label: "Failed", dotClass: "bg-error-9" },
   stopped: { label: "Stopped", dotClass: "bg-gray-9" },
@@ -45,10 +42,5 @@ export const STATUS_META: Record<
 
 export function StatusDot({ status }: { status: DeploymentDisplayStatus }) {
   const meta = STATUS_META[status];
-  return (
-    <span
-      className={cn("size-2 shrink-0 rounded-full", meta.dotClass)}
-      style={meta.dotStyle ? { backgroundColor: meta.dotStyle } : undefined}
-    />
-  );
+  return <span className={cn("size-2 shrink-0 rounded-full", meta.dotClass)} />;
 }

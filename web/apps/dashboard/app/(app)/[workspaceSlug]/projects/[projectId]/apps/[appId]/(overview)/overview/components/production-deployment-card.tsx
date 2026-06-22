@@ -36,7 +36,6 @@ const UndoRollbackDialog = dynamic(
 
 export function ProductionDeploymentCard() {
   const {
-    project,
     projectId,
     deployments,
     customDomains,
@@ -49,9 +48,6 @@ export function ProductionDeploymentCard() {
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
 
-  const currentDeploymentId = project?.currentDeploymentId ?? null;
-  const deployment = currentDeploymentId ? getDeploymentById(currentDeploymentId) : undefined;
-
   const appsQuery = useLiveQuery(
     (q) =>
       q
@@ -59,14 +55,18 @@ export function ProductionDeploymentCard() {
         .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
     [projectId, appId],
   );
-  const repoFullName = appsQuery.data?.[0]?.repositoryFullName ?? null;
+  const app = appsQuery.data?.[0];
+  const repoFullName = app?.repositoryFullName ?? null;
+
+  const currentDeploymentId = app?.currentDeploymentId ?? null;
+  const deployment = currentDeploymentId ? getDeploymentById(currentDeploymentId) : undefined;
 
   const metrics = trpc.deploy.metrics.getAppRpsMetrics.useQuery(
     { appId },
     { refetchInterval: 30_000 },
   );
 
-  if (isDeploymentsLoading) {
+  if (isDeploymentsLoading || appsQuery.isLoading) {
     return <ProductionDeploymentCardSkeleton />;
   }
 
@@ -79,7 +79,7 @@ export function ProductionDeploymentCard() {
   }
 
   const status = deriveProductionStatus(deployment);
-  const isRolledBack = project?.isRolledBack ?? false;
+  const isRolledBack = app?.isRolledBack ?? false;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { primary, additional } = getDomainPriority({
