@@ -293,12 +293,38 @@ export function useRuntimeLogsQuery({
     historicalLogs,
   ]);
 
+  // pollForNewLogs changes identity on every successful poll (its deps include
+  // realtimeLogs/historicalLogs). If the interval depended on it directly, each
+  // batch of new logs would tear down and restart the timer, making the cadence
+  // "5s after each response" rather than a fixed 5s — drift that compounds under
+  // slow ClickHouse or network. Hold the latest callback in a ref so a single
+  // stable interval can call it without re-subscribing.
+  const pollForNewLogsRef = useRef(pollForNewLogs);
   useEffect(() => {
-    if (startPolling) {
-      const interval = setInterval(pollForNewLogs, pollIntervalMs);
-      return () => clearInterval(interval);
+    pollForNewLogsRef.current = pollForNewLogs;
+  }, [pollForNewLogs]);
+
+  useEffect(() => {
+    if (!startPolling) {
+      return;
     }
-  }, [startPolling, pollForNewLogs, pollIntervalMs]);
+    // Skip a tick while the previous poll is still in flight. ClickHouse allows
+    // queries up to 20s, well past the 5s interval, so without this guard slow
+    // responses would pile up overlapping requests against a struggling backend.
+    let inFlight = false;
+    const interval = setInterval(async () => {
+      if (inFlight) {
+        return;
+      }
+      inFlight = true;
+      try {
+        await pollForNewLogsRef.current();
+      } finally {
+        inFlight = false;
+      }
+    }, pollIntervalMs);
+    return () => clearInterval(interval);
+  }, [startPolling, pollIntervalMs]);
 
   // Clear the realtime buffer whenever live mode is turned off.
   useEffect(() => {
