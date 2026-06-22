@@ -62,7 +62,9 @@ describe("dashboard proxy POST", () => {
       UNKEY_API_URL: "https://api.example.test",
       UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
     } as ReturnType<typeof env>);
-    mockedFindWorkspace.mockResolvedValue({ id: "ws_123" });
+    mockedFindWorkspace.mockResolvedValue({ id: "ws_123" } as Awaited<
+      ReturnType<typeof mockedFindWorkspace>
+    >);
   });
 
   afterEach(() => {

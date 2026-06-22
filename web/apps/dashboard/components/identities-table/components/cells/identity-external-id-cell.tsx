@@ -1,5 +1,6 @@
 "use client";
 
+import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { Fingerprint } from "@unkey/icons";
@@ -47,7 +48,7 @@ export const IdentityExternalIdCell = ({
           >
             <Link
               className="font-mono group-hover:underline decoration-dotted text-accent-9 w-full inline-block text-left"
-              href={`/${workspaceSlug}/identities/${identity.id}`}
+              href={routes.identities.detail({ workspaceSlug, identityId: identity.id })}
               onClick={(e) => e.stopPropagation()}
             >
               {shortenId(identity.id)}

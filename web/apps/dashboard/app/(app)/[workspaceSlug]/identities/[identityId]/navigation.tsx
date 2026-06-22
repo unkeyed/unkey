@@ -1,6 +1,7 @@
 "use client";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Fingerprint } from "@unkey/icons";
 
 import type { JSX } from "react";
@@ -16,11 +17,11 @@ export function Navigation({ identityId }: NavigationProps): JSX.Element {
   return (
     <Navbar>
       <Navbar.Breadcrumbs icon={<Fingerprint aria-hidden="true" focusable={false} />}>
-        <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/identities`}>
+        <Navbar.Breadcrumbs.Link href={routes.identities.list({ workspaceSlug: workspace.slug })}>
           Identities
         </Navbar.Breadcrumbs.Link>
         <Navbar.Breadcrumbs.Link
-          href={`/${workspace.slug}/identities/${encodeURIComponent(identityId)}`}
+          href={routes.identities.detail({ workspaceSlug: workspace.slug, identityId })}
           className="w-[200px] truncate"
           active
         >
