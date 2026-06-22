@@ -56,11 +56,29 @@ export const getSeverityStyle = (severity: string): StatusStyle => {
   return STATUS_STYLES.success;
 };
 
-// Runtime logs have no unique id, so the row identity is a composite of the
-// fields that together make a log line unique. Shared by the table (getRowId),
-// the realtime dedup buffer, and selection styling.
+// Content identity of a log line (runtime logs have no server id); drives
+// realtime dedup and selection. Not collision-proof on its own, so the table
+// derives unique React keys via RuntimeLogRow.
 export const getLogKey = (log: RuntimeLog): string =>
   `${log.time}-${log.region}-${log.instance_id}-${log.message}`;
+
+// A log row plus a unique render key for DataTable getRowId. Optional so a bare
+// RuntimeLog (the selected log from context) stays assignable; getRowId falls
+// back to getLogKey when absent.
+export type RuntimeLogRow = RuntimeLog & { rowKey?: string };
+
+// Suffix duplicate getLogKey values so byte-identical lines get a unique `rowKey`
+// for DataTable getRowId. The first occurrence keeps the bare key so realtime and
+// historical rows for the same line still match during the table's merge dedup.
+export const attachRowKeys = (logs: RuntimeLog[]): RuntimeLogRow[] => {
+  const counts = new Map<string, number>();
+  return logs.map((log) => {
+    const base = getLogKey(log);
+    const occurrence = counts.get(base) ?? 0;
+    counts.set(base, occurrence + 1);
+    return { ...log, rowKey: occurrence === 0 ? base : `${base}#${occurrence}` };
+  });
+};
 
 export const getSelectedClassName = (log: RuntimeLog, isSelected: boolean): string => {
   if (!isSelected) {

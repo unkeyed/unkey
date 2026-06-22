@@ -126,7 +126,8 @@ export function getRuntimeLogs(ch: Querier) {
           region, k8s_pod_name, attributes_text
         FROM ${TABLE}
         WHERE ${filterConditions}
-        ORDER BY time DESC, deployment_id DESC
+
+        ORDER BY time DESC, deployment_id DESC, k8s_pod_name DESC, message DESC
         LIMIT {limit: Int}
         OFFSET {offset: Int}
         SETTINGS

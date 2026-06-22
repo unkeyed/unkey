@@ -11,7 +11,7 @@ import { DEFAULT_LOGS_SINCE, getTimestampFromRelative } from "@/lib/utils";
 import { useParams, useSearchParams } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getLogKey } from "../utils/get-row-class";
+import { attachRowKeys, getLogKey } from "../utils/get-row-class";
 
 type UseRuntimeLogsQueryParams = {
   limit?: number;
@@ -78,7 +78,7 @@ export function useRuntimeLogsQuery({
   }, [startPolling, realtimeLogsMap]);
 
   const realtimeLogs = useMemo(() => {
-    return sortLogs(Array.from(activeRealtimeLogsMap.values()));
+    return attachRowKeys(sortLogs(Array.from(activeRealtimeLogsMap.values())));
   }, [activeRealtimeLogsMap]);
 
   // Resolve the historical window once per filter/anchor change. Relative `since`
@@ -136,6 +136,8 @@ export function useRuntimeLogsQuery({
       deploymentId: deploymentIdFilters,
       limit,
       page: effectivePage,
+      // Total comes from the window-keyed query below; skip the per-page count(*).
+      includeTotal: false,
       startTime: timeWindow.startTime,
       endTime: timeWindow.endTime,
       since: null,
@@ -152,6 +154,22 @@ export function useRuntimeLogsQuery({
     PAGINATED_LIST_QUERY_OPTIONS,
   );
 
+  // The total is the same for every page in the current window, so fetch it once
+  // (page 1, limit 1) and reuse it instead of counting per page. Re-runs when the
+  // window changes. Disabled in live mode (footer hidden).
+  const totalQueryInput = useMemo(
+    () => ({ ...queryInput, page: 1, limit: 1, includeTotal: true }),
+    [queryInput],
+  );
+  const { data: totalData, isFetching: isTotalFetching } = trpc.deploy.runtimeLogs.query.useQuery(
+    totalQueryInput,
+    {
+      ...PAGINATED_LIST_QUERY_OPTIONS,
+      enabled: !startPolling,
+    },
+  );
+
+  // Keyed page rows; the live poll dedups incoming rows against this map.
   const historicalLogsMap = useMemo(() => {
     const map = new Map<string, RuntimeLog>();
     if (data) {
@@ -162,9 +180,10 @@ export function useRuntimeLogsQuery({
     return map;
   }, [data]);
 
-  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
+  // Server page verbatim (no content dedup); attachRowKeys only makes React keys unique.
+  const historicalLogs = useMemo(() => attachRowKeys(data?.logs ?? []), [data]);
 
-  const totalCount = data?.total ?? 0;
+  const totalCount = totalData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   // Commit the reset signalled synchronously above: advance the ref, snap to
@@ -190,18 +209,16 @@ export function useRuntimeLogsQuery({
     }
   }, [startPolling, page, setPage]);
 
-  // Clamp page into range once totals are known (pagination is off while live).
-  // The `data == null` guard is essential: before the first response totalCount
-  // is 0 and totalPages collapses to 1, so without it a deep-linked ?page=3
-  // would snap back to page 1 on the very first render.
+  // Clamp page once the count resolves (off while live). The `totalData == null`
+  // guard stops a deep-linked ?page=3 from snapping to 1 before the count returns.
   useEffect(() => {
-    if (startPolling || data == null) {
+    if (startPolling || totalData == null) {
       return;
     }
     if (effectivePage > totalPages) {
       setPage(totalPages);
     }
-  }, [startPolling, data, effectivePage, totalPages, setPage]);
+  }, [startPolling, totalData, effectivePage, totalPages, setPage]);
 
   // Prefetch the next few pages for snappy navigation (skipped while live).
   useEffect(() => {
@@ -303,12 +320,18 @@ export function useRuntimeLogsQuery({
   const isInitialLoading = isLoading && !data;
   const isNavigating = isFetching && !isInitialLoading;
 
+  // Hold the footer in its loading state until the separate count first resolves,
+  // so it doesn't flash out when rows arrive before the total. `isFetching` (not
+  // `=== undefined`) so an errored/disabled count reports done, not stuck.
+  const isCountLoading = isTotalFetching && totalData === undefined;
+
   return {
     realtimeLogs,
     historicalLogs,
     totalCount,
     error,
     isLoading: isInitialLoading,
+    isCountLoading,
     isNavigating,
     page: effectivePage,
     pageSize: limit,

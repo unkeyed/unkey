@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type RuntimeLogRow,
   createRuntimeLogsColumns,
   getLogKey,
   getRowClassName,
@@ -17,6 +18,7 @@ export function RuntimeLogsTable() {
     realtimeLogs,
     historicalLogs,
     isLoading,
+    isCountLoading,
     isNavigating,
     totalCount,
     page,
@@ -30,11 +32,11 @@ export function RuntimeLogsTable() {
 
   return (
     <div className="flex flex-col">
-      <DataTable
+      <DataTable<RuntimeLogRow>
         data={historicalLogs}
         realtimeData={realtimeLogs}
         columns={columns}
-        getRowId={getLogKey}
+        getRowId={(log) => log.rowKey ?? getLogKey(log)}
         isLoading={isLoading}
         onRowClick={setSelectedLog}
         selectedItem={selectedLog}
@@ -55,7 +57,7 @@ export function RuntimeLogsTable() {
           totalCount={totalCount}
           onPageChange={onPageChange}
           itemLabel="logs"
-          loading={isLoading}
+          loading={isLoading || isCountLoading}
           disabled={isNavigating}
         />
       )}
