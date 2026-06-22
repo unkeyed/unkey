@@ -164,7 +164,9 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
                     if (hasPaymentMethod) {
                       setShowPlanModal(true);
                     } else {
-                      router.push(routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }));
+                      router.push(
+                        routes.settings.stripe.checkout({ workspaceSlug, intent: "api" }),
+                      );
                     }
                   }}
                 >
