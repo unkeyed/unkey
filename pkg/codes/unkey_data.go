@@ -49,6 +49,12 @@ type dataApp struct {
 	NotFound Code
 }
 
+// dataEnvironment defines errors related to environment operations.
+type dataEnvironment struct {
+	// NotFound indicates the requested environment does not exist.
+	NotFound Code
+}
+
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
 	// Duplicate indicates the requested permission already exists.
@@ -126,6 +132,7 @@ type UnkeyDataErrors struct {
 	Api                dataApi
 	Project            dataProject
 	App                dataApp
+	Environment        dataEnvironment
 	Migration          dataMigration
 	KeySpace           dataKeySpace
 	Permission         dataPermission
@@ -171,6 +178,10 @@ var Data = UnkeyDataErrors{
 	App: dataApp{
 		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "app_already_exists"},
 		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "app_not_found"},
+	},
+
+	Environment: dataEnvironment{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "environment_not_found"},
 	},
 
 	Permission: dataPermission{

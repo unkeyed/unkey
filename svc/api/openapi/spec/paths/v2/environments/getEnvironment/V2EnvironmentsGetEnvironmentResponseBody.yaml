@@ -1,0 +1,26 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/Environment.yaml"
+additionalProperties: false
+examples:
+  environment:
+    summary: Environment details
+    description: Successfully retrieved an environment
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        id: env_1234abcd
+        projectId: proj_1234abcd
+        appId: app_1234abcd
+        slug: production
+        description: Production environment
+        deleteProtection: false
+        createdAt: 1704067200000
+        updatedAt: 1704153600000

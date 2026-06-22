@@ -66,6 +66,7 @@ import (
 	v2AppsGetApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_get_app"
 	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
 	v2AppsUpdateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
+	v2EnvironmentsGetEnvironment "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
 	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
 	v2ProjectsDeleteProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project"
 	v2ProjectsGetProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
@@ -689,6 +690,14 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2AppsDeleteApp.Handler{
 			DB:         svc.Database,
 			CtrlClient: svc.CtrlAppClient,
+		},
+	)
+
+	// v2/environments.getEnvironment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2EnvironmentsGetEnvironment.Handler{
+			DB: svc.Database,
 		},
 	)
 
