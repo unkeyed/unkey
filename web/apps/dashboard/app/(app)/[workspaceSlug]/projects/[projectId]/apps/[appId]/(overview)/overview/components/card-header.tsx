@@ -59,10 +59,10 @@ function DomainHero() {
       )}
       {addCustomDomainHref && (
         <Button variant="outline" size="sm" asChild className="shrink-0 border-dashed">
-          <a href={addCustomDomainHref}>
+          <Link href={addCustomDomainHref}>
             <Plus iconSize="sm-regular" />
             Add custom domain
-          </a>
+          </Link>
         </Button>
       )}
     </div>

@@ -16,7 +16,7 @@ export type ProductionCardContextValue = {
   sourceRepo: string | null;
   primaryDomain: CardDomain | null;
   additionalDomains: CardDomain[];
-  addCustomDomainHref: string | null;
+  addCustomDomainHref: { pathname: Route; hash: string } | null;
   diagnostic: { label: string; href: Route } | null;
   logsHref: Route;
   requestsHref: Route;
