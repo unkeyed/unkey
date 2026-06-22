@@ -1,0 +1,25 @@
+---
+title: "June 19, 2026"
+description: "Status indicator in the dashboard, source account now shows when selecting a repo and plenly of bug fixes"
+noindex: true
+---
+
+## New features
+
+### Status indicator in the help menu
+
+The dashboard's help menu now shows live Unkey status next to a link to the status page, so you can tell at a glance whether an issue is on your side or ours.
+
+## Updates
+
+### Repo picker shows the source account
+
+The "select a repository" step when [creating an app](/platform/apps/settings) now shows which GitHub account or organization each repo belongs to, so picking the right repo across multiple connected accounts is unambiguous.
+
+## Bug fixes
+
+- Global rate limit counters are now emitted after the remote sync completes, so dashboards reflect the authoritative count instead of a local pre-sync value.
+- Workers reject invalid port, CPU, and memory values up front instead of failing later in the deploy with an opaque error.
+- Deleting a project now redirects you to the projects list instead of leaving you on a dead URL.
+- Loading messages in the dashboard are centered correctly again.
+- Fixed a broken link in the dashboard navigation.

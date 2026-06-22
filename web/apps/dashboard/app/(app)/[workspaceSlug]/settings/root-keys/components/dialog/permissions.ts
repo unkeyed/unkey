@@ -175,6 +175,22 @@ export const workspacePermissions = {
     },
   },
   Projects: {
+    create_project: {
+      description: "Create new projects in this workspace",
+      permission: "project.*.create_project",
+    },
+    read_project: {
+      description: "Read and list projects in this workspace",
+      permission: "project.*.read_project",
+    },
+    update_project: {
+      description: "Update projects in this workspace",
+      permission: "project.*.update_project",
+    },
+    delete_project: {
+      description: "Delete projects in this workspace",
+      permission: "project.*.delete_project",
+    },
     create_deployment: {
       description: "Create new deployments in this workspace",
       permission: "project.*.create_deployment",

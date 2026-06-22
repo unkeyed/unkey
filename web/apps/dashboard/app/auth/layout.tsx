@@ -1,23 +1,18 @@
-import { getAuth } from "@/lib/auth/get-auth";
 import { Page2 } from "@unkey/icons";
 import { FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import type React from "react";
 
-export const dynamic = "force-dynamic";
-
-export default async function AuthenticatedLayout({
+// NOTE: do not add a signed-in redirect here. Setting the session cookie in
+// a server action re-renders this layout as part of the action response, so
+// a redirect("/apis") from here races ahead of the action's own navigation
+// (e.g. the invite flow's /join/success) and flashes the dashboard. The
+// signed-in bounce lives in proxy.ts, where it only applies to document GETs.
+export default function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await getAuth(); // we want the one without redirect
-
-  if (userId) {
-    return redirect("/apis");
-  }
-
   return (
     <FullScreenLayout className="overflow-x-hidden bg-black">
       <nav className="container flex items-center justify-between h-16 w-full shrink-0">

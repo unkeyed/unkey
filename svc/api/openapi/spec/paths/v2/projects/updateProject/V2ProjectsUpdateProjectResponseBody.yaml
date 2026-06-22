@@ -1,0 +1,24 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/Project.yaml"
+additionalProperties: false
+examples:
+  project:
+    summary: Updated project
+    description: Successfully updated a project
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        id: proj_1234abcd
+        name: Payments API
+        slug: payments-service
+        createdAt: 1704067200000
+        updatedAt: 1704153600000
+        deleteProtection: true

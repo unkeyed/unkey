@@ -5,13 +5,17 @@ import type { NextRequest } from "next/server";
 import { getAuthCookieOptions } from "./cookie-security";
 import { getCookie, getCookieOptionsAsString, setSessionCookie } from "./cookies";
 import { auth } from "./server";
-import { LOCAL_ORG_ID, LOCAL_ORG_ROLE, LOCAL_USER_ID, UNKEY_SESSION_COOKIE } from "./types";
+import { UNKEY_SESSION_COOKIE, type User } from "./types";
 
 type SessionResult = {
   session: {
     userId: string;
     orgId: string | null;
+    accessToken?: string;
+    permissions?: readonly string[];
     role: string | null;
+    // Profile embedded in the sealed session cookie, when available
+    user?: User | null;
     impersonator?: {
       email: string;
       reason?: string | null;
@@ -54,11 +58,17 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
       }
     }
 
+    const sessionValidationResult = await auth.validateSession(localSessionToken);
+    if (!sessionValidationResult.isValid || !sessionValidationResult.userId) {
+      return { session: null, headers };
+    }
+
     return {
       session: {
-        userId: LOCAL_USER_ID,
-        orgId: LOCAL_ORG_ID,
-        role: LOCAL_ORG_ROLE,
+        userId: sessionValidationResult.userId,
+        orgId: sessionValidationResult.orgId ?? null,
+        permissions: sessionValidationResult.permissions,
+        role: sessionValidationResult.role ?? null,
       },
       headers,
     };
@@ -95,7 +105,10 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
           session: {
             userId: sessionValidationResult.userId,
             orgId: sessionValidationResult.orgId ?? null,
+            accessToken: sessionValidationResult.accessToken,
+            permissions: sessionValidationResult.permissions,
             role: sessionValidationResult.role ?? null,
+            user: sessionValidationResult.user ?? null,
             impersonator: sessionValidationResult.impersonator,
           },
           headers,
@@ -148,7 +161,10 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
               session: {
                 userId: refreshedSession.session?.userId,
                 orgId: refreshedSession.session?.orgId ?? null,
+                accessToken: refreshedSession.session?.accessToken,
+                permissions: refreshedSession.session?.permissions,
                 role: refreshedSession.session?.role ?? null,
+                user: refreshedSession.session?.user ?? null,
                 impersonator: refreshedSession.impersonator,
               },
               headers,

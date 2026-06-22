@@ -34,6 +34,7 @@ import { queryRolesPermissions } from "./authorization/roles/permissions/query-p
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
 import { upsertRole } from "./authorization/roles/upsert";
+import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryUsage } from "./billing/query-usage";
 import { createApp } from "./deploy/app/create";
 import { deleteApp } from "./deploy/app/delete";
@@ -196,18 +197,33 @@ import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
+import { cancelDeploy } from "./stripe/cancelDeploy";
 import { cancelSubscription } from "./stripe/cancelSubscription";
+import { changeDeployPlan } from "./stripe/changeDeployPlan";
 import { createSubscription } from "./stripe/createSubscription";
 import { getBillingInfo } from "./stripe/getBillingInfo";
 import { getCheckoutSession } from "./stripe/getCheckoutSession";
 import { getCustomer } from "./stripe/getCustomer";
+import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
+import { getDeployPlans } from "./stripe/getDeployPlans";
+import { getDeploySubscription } from "./stripe/getDeploySubscription";
 import { getProducts } from "./stripe/getProducts";
 import { getSetupIntent } from "./stripe/getSetupIntent";
+import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
+import { subscribeDeploy } from "./stripe/subscribeDeploy";
 import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
-import { getCurrentUser, listMemberships, switchOrg } from "./user";
+import {
+  getCurrentUser,
+  listMemberships,
+  listMfaFactors,
+  removeMfaFactor,
+  startMfaEnrollment,
+  switchOrg,
+  verifyMfaEnrollment,
+} from "./user";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -309,6 +325,13 @@ export const router = t.router({
     getProducts,
     getSetupIntent,
     updateWorkspaceStripeCustomer,
+    subscribeDeploy,
+    changeDeployPlan,
+    cancelDeploy,
+    getDeploySubscription,
+    getDeployPlans,
+    getDeployEntitlement,
+    getUpcomingInvoice,
   }),
   github: githubRouter,
   plain: t.router({
@@ -388,6 +411,7 @@ export const router = t.router({
   }),
   billing: t.router({
     queryUsage,
+    queryDeployUsage,
   }),
   audit: t.router({
     logs: fetchAuditLog,
@@ -397,6 +421,12 @@ export const router = t.router({
     getCurrentUser,
     listMemberships,
     switchOrg,
+    mfa: t.router({
+      listFactors: listMfaFactors,
+      startEnrollment: startMfaEnrollment,
+      verifyEnrollment: verifyMfaEnrollment,
+      removeFactor: removeMfaFactor,
+    }),
   }),
   org: t.router({
     getOrg,
