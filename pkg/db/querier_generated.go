@@ -1111,6 +1111,19 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	//FindProjectByIdOrSlug
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
+	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at

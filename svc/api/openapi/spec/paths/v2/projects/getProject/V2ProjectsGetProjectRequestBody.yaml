@@ -1,20 +1,24 @@
 type: object
 required:
-  - projectId
+  - project
 properties:
-  projectId:
+  project:
     type: string
-    minLength: 8
+    minLength: 1
     maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
     description: |
-      Specifies which project to retrieve by its unique identifier.
-      Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+      Specifies which project to retrieve by its unique identifier or slug.
+      Must be a valid project ID that begins with 'proj_' or slug, and exists within your workspace.
     example: proj_1234abcd
 additionalProperties: false
 examples:
-  basic:
+  getById:
     summary: Retrieve a project by ID
     description: Fetch a single project using its unique identifier
     value:
       projectId: proj_1234abcd
+  getBySlug:
+    summary: Retrieve a project by slug
+    description: Fetch a single project using its slug
+    value:
+      projectId: payment-service

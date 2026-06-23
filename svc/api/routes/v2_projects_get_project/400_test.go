@@ -30,9 +30,9 @@ func TestGetProjectBadRequest(t *testing.T) {
 		req  handler.Request
 	}{
 		{name: "missing projectId", req: handler.Request{}},
-		{name: "projectId too short", req: handler.Request{ProjectId: "proj_1"}},
-		{name: "projectId with invalid chars", req: handler.Request{ProjectId: "proj-1234abc"}},
-		{name: "projectId too long", req: handler.Request{ProjectId: strings.Repeat("a", 256)}},
+		{name: "projectId too short", req: handler.Request{Project: "proj_1"}},
+		{name: "projectId with invalid chars", req: handler.Request{Project: "proj-1234abc"}},
+		{name: "projectId too long", req: handler.Request{Project: strings.Repeat("a", 256)}},
 	}
 
 	for _, tc := range testCases {
