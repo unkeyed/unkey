@@ -136,6 +136,8 @@ func formatPermissionQuery(query PermissionQuery) string {
 	}
 
 	switch query.Operation {
+	case OperatorNil:
+		return "invalid permission query"
 	case OperatorAnd:
 		return strings.Join(parts, " and ")
 	case OperatorOr:
