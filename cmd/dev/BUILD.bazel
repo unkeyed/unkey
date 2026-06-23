@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//cmd/dev/github",
         "//cmd/dev/seed",
+        "//cmd/dev/stripe",
         "//pkg/cli",
         "//svc/vault/keys",
     ],
