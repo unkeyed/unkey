@@ -22,6 +22,9 @@ go = "1.25.1"
 "github:planetscale/cli" = "0.284.0"
 "github:depot/cli" = "2.101.63"
 "github:pnpm/pnpm" = "11.5.0"
+# speakeasy CLI: used by the `generate-sdk` task to regenerate the vendored
+# @unkey/api SDK (web/internal/sdk) from this repo's current OpenAPI spec.
+"github:speakeasy-api/speakeasy" = "1.783.1"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
 "aqua:stripe/stripe-cli" = "1.42.13"
