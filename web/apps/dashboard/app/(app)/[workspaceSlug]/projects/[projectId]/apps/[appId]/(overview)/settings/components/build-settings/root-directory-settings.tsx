@@ -14,6 +14,19 @@ const rootDirectorySchema = z.object({
   dockerContext: z.string(),
 });
 
+function normalizeRootDirectory(value: string): string {
+  const normalized = value
+    .trim()
+    .replace(/^(\.\/)+/, "")
+    .replace(/^\/+|\/+$/g, "");
+  return normalized || ".";
+}
+
+function formatRootDirectory(value: string): string {
+  const normalized = normalizeRootDirectory(value);
+  return normalized === "." ? "Repository root (.)" : normalized;
+}
+
 export const RootDirectory = () => {
   const { settings, variant } = useEnvironmentSettings();
   const { dockerContext: defaultValue } = settings;
@@ -42,7 +55,7 @@ export const RootDirectory = () => {
     () => [
       {
         label: <span className="text-gray-11">Repository root (.)</span>,
-        selectedLabel: ".",
+        selectedLabel: "Repository root (.)",
         value: ".",
         searchValue: "repository root .",
       },
@@ -102,7 +115,7 @@ export const RootDirectory = () => {
       icon={<FolderLink className="text-gray-12" iconSize="xl-medium" />}
       title="Root directory"
       description="The directory your app lives in. Unkey builds from here. Set it when your app is in a subdirectory (e.g., services/api)."
-      displayValue={defaultValue || "."}
+      displayValue={formatRootDirectory(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -119,7 +132,9 @@ export const RootDirectory = () => {
           wrapperClassName="max-w-[calc(var(--setting-w)-1rem)]"
           className="max-w-[calc(var(--setting-w)-1rem)]"
           value={currentDockerContext}
-          onSelect={(val) => setValue("dockerContext", val, { shouldValidate: true })}
+          onSelect={(val) =>
+            setValue("dockerContext", normalizeRootDirectory(val), { shouldValidate: true })
+          }
           creatable
           searchPlaceholder="Search or type a directory..."
           emptyMessage={<div className="mt-2">No directories detected in repository</div>}
