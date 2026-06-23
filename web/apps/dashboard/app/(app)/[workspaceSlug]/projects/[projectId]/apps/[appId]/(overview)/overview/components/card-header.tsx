@@ -79,6 +79,7 @@ export function ProductionCardHeader() {
     requestsHref,
     rollbackTarget,
     openRollback,
+    isRolledBack,
   } = useProductionCard();
 
   return (
@@ -105,7 +106,7 @@ export function ProductionCardHeader() {
             Requests
           </Link>
         </Button>
-        {rollbackTarget && (
+        {!isRolledBack && rollbackTarget && (
           <Button variant="outline" size="sm" onClick={openRollback}>
             <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
             Instant Rollback

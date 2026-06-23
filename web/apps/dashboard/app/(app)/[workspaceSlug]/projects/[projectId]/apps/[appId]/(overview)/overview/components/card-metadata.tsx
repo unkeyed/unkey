@@ -27,8 +27,8 @@ function StatusCell() {
   if (isRolledBack) {
     return (
       <span className="flex items-center gap-2 text-[13px] text-accent-12">
-        <StatusDot status="live" />
-        Live
+        <StatusDot status={status} />
+        {STATUS_META[status].label}
         <Badge variant="warning" size="sm">
           Rolled back
         </Badge>
