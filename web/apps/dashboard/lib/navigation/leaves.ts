@@ -179,23 +179,6 @@ export function buildAppLinks(
       icon: Gear,
       isActive: page === "settings",
     },
-    // Project-level views scoped to this app; separated since they navigate
-    // out of the app section.
-    {
-      key: "logs",
-      label: "Logs",
-      href: routes.projects.logs(scope),
-      icon: Layers3,
-      isActive: false,
-      separatorAbove: true,
-    },
-    {
-      key: "requests",
-      label: "Requests",
-      href: routes.projects.requests({ ...scope, since: "6h" }),
-      icon: ArrowOppositeDirectionY,
-      isActive: false,
-    },
     // Will be polished and added back in the future iterations
     // {
     //   key: "openapi-diff",
