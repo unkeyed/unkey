@@ -10,6 +10,7 @@ import { Internal } from "./internal.js";
 import { Keys } from "./keys.js";
 import { Permissions } from "./permissions.js";
 import { Portal } from "./portal.js";
+import { Projects } from "./projects.js";
 import { Ratelimit } from "./ratelimit.js";
 
 export class Unkey extends ClientSDK {
@@ -46,6 +47,11 @@ export class Unkey extends ClientSDK {
   private _portal?: Portal;
   get portal(): Portal {
     return (this._portal ??= new Portal(this._options));
+  }
+
+  private _projects?: Projects;
+  get projects(): Projects {
+    return (this._projects ??= new Projects(this._options));
   }
 
   private _ratelimit?: Ratelimit;
