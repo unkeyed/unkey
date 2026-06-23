@@ -7,8 +7,8 @@ const TIMESERIES_INTERVAL_SECONDS = TIMESERIES_INTERVAL_MINUTES * 60;
 const CURRENT_RPS_WINDOW_MINUTES = 15;
 const CURRENT_RPS_WINDOW_MS = CURRENT_RPS_WINDOW_MINUTES * 60 * 1000;
 
-const TABLE = "default.sentinel_requests_raw_v1";
-const MV_TABLE = "default.sentinel_requests_per_15m_v1";
+const TABLE = "default.frontline_requests_raw_v1";
+const MV_TABLE = "default.frontline_requests_per_15m_v1";
 
 const SQL = {
   deploymentFilter: `
@@ -184,7 +184,7 @@ export function getSentinelLogs(ch: Querier) {
     const logsQuery = ch.query({
       query: `
         SELECT request_id, time, deployment_id, region, method, path, host,
-               response_status, total_latency, instance_latency, sentinel_latency,
+               response_status, total_latency, instance_latency, frontline_latency AS sentinel_latency,
                query_string, query_params, request_headers, request_body,
                response_headers, response_body, user_agent, ip_address
         FROM ${TABLE}

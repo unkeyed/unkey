@@ -7,7 +7,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import { SettingCardGroup } from "@unkey/ui";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
@@ -21,9 +21,12 @@ import { FailedDeploymentBanner } from "./failed-deployment-banner";
 type RouterOutputs = inferRouterOutputs<Router>;
 export type StepsData = RouterOutputs["deploy"]["deployment"]["steps"];
 
+const EXPAND_ANIMATION_MS = 300;
+
 export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   const { deployment } = useDeployment();
   const router = useRouter();
+  const pathname = usePathname();
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;
   const isFailed = deployment.status === "failed";
@@ -71,25 +74,35 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   }
   const isPrebuilt = !hasFreshBuild.current && !building?.error;
 
-  const [focusBuildStepId, setFocusBuildStepId] = useState<string | null>(null);
+  const [buildFocus, setBuildFocus] = useState<{ stepId: string; tick: number } | null>(null);
   const [buildExpanded, setBuildExpanded] = useState(!isPrebuilt);
-  const failedBuildStep = buildSteps.data?.steps.find((s) => Boolean(s.error));
-  const handleViewBuildLogs = () => {
-    const wasExpanded = buildExpanded;
-    setBuildExpanded(true);
-    const focusFailedStep = () => {
-      if (failedBuildStep) {
-        setFocusBuildStepId(`${failedBuildStep.step_id}#${Date.now()}`);
-      }
-    };
-    // Wait out the SettingCard expand animation so the panel has real
-    // height to scroll to.
-    if (wasExpanded) {
-      focusFailedStep();
-    } else {
-      setTimeout(focusFailedStep, 320);
+  const failedBuildStep = buildSteps.data?.steps.findLast((s) => Boolean(s.error));
+  const failedStepId = failedBuildStep?.step_id;
+
+  const focusFailedStep = () => {
+    if (failedStepId) {
+      // Bump tick so the table re-scrolls even when the same step is focused again.
+      setBuildFocus((prev) => ({ stepId: failedStepId, tick: (prev?.tick ?? 0) + 1 }));
     }
   };
+
+  const revealFailedStep = () => {
+    if (buildExpanded) {
+      focusFailedStep();
+      return;
+    }
+    setBuildExpanded(true);
+    return setTimeout(focusFailedStep, EXPAND_ANIMATION_MS);
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revealFailedStep reads buildExpanded for the open-state branch; failedStepId + pathname are the real triggers.
+  useEffect(() => {
+    if (!failedStepId || isPrebuilt) {
+      return;
+    }
+    const timer = revealFailedStep();
+    return () => clearTimeout(timer);
+  }, [failedStepId, isPrebuilt, pathname]);
 
   const queuedStep = resolveDeploymentStep({
     step: queued,
@@ -180,7 +193,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
                 <BuildErrorDescription
                   error={b?.error ?? ""}
                   canViewLogs={Boolean(failedBuildStep)}
-                  onViewLogs={handleViewBuildLogs}
+                  onViewLogs={revealFailedStep}
                 />
               ),
             )
@@ -210,7 +223,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
                 <DeploymentBuildStepsTable
                   steps={buildSteps.data?.steps ?? []}
                   isLoading={buildSteps.isLoading}
-                  focusStepId={focusBuildStepId}
+                  focusStep={buildFocus}
                 />
               </div>
             )

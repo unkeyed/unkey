@@ -3,25 +3,35 @@ package ratelimit
 import (
 	"context"
 	"errors"
+	"net"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
-// errorReason classifies err for the origin_errors_total{reason} label.
-// We only single out timeouts because they are the most actionable signal
-// (the per-call budget elapsed, not a Redis-side problem); everything else
-// — Redis errors, circuit-breaker trips, network failures — collapses to
-// "other".
+// errorReason buckets err for the origin_errors_total{reason} label so breaker
+// short-circuits don't drown out the real failures that tripped it.
 func errorReason(err error) string {
-	if errors.Is(err, context.DeadlineExceeded) {
+	if isCircuitOpen(err) {
+		return "circuit_open"
+	}
+	// go-redis surfaces a blown deadline as a socket timeout that doesn't unwrap
+	// to context.DeadlineExceeded, so check net.Error too.
+	var netErr net.Error
+	if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &netErr) && netErr.Timeout()) {
 		return "timeout"
 	}
 	return "other"
+}
+
+// isCircuitOpen reports whether err is the breaker short-circuiting rather than a real origin failure.
+func isCircuitOpen(err error) bool {
+	return circuitbreaker.IsErrTripped(err) || circuitbreaker.IsErrTooManyRequests(err)
 }
 
 // originFetchTimeout caps how long a single Redis GET on the hot path may
@@ -31,7 +41,12 @@ func errorReason(err error) string {
 // times out we treat the origin as unavailable for this request — local
 // state is used, the circuit breaker tracks the failure, and the next
 // caller will retry.
-const originFetchTimeout = 150 * time.Millisecond
+const originFetchTimeout = 300 * time.Millisecond
+
+// originBreakerOpenTimeout caps how long the breaker stays open — i.e. how long
+// ratelimiting runs local-only after a blip. Far below the 60s library default
+// since in-region Redis recovers fast.
+const originBreakerOpenTimeout = 5 * time.Second
 
 // fetchFromOrigin returns the current counter value from the origin. The call is
 // wrapped in the origin circuit breaker so that Redis outages fail fast instead
@@ -54,10 +69,14 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, op string
 	})
 	if err != nil {
 		metrics.RatelimitOriginErrors.WithLabelValues(op, errorReason(err)).Inc()
-		logger.Error("unable to get counter value from origin",
-			"key", rk,
-			"error", err.Error(),
-		)
+		// Don't log breaker short-circuits — they'd flood the log for the whole
+		// open window; the circuit_open metric already tracks them.
+		if !isCircuitOpen(err) {
+			logger.Error("unable to get counter value from origin",
+				"key", rk,
+				"error", err.Error(),
+			)
+		}
 		return 0, false
 	}
 	return res, true
@@ -72,7 +91,8 @@ func (s *service) replayRequests() {
 			continue
 		}
 		err := s.syncWithOrigin(context.Background(), *ptr)
-		if err != nil {
+		// Don't log breaker short-circuits (see fetchFromOrigin).
+		if err != nil && !isCircuitOpen(err) {
 			logger.Error("failed to replay request", "error", err.Error())
 		}
 	}

@@ -27,7 +27,6 @@ type Services struct {
 	ErrorPageRenderer errorpage.Renderer
 	RequestTimeout    time.Duration
 	// FrontlineRequests buffers per-request analytics for ClickHouse on the
-	// local-instance path. Carries the same schema sentinel used so existing
-	// dashboards and materialized views keep working through the cutover.
-	FrontlineRequests *batch.BatchProcessor[schema.SentinelRequest]
+	// local-instance path.
+	FrontlineRequests *batch.BatchProcessor[schema.FrontlineRequest]
 }

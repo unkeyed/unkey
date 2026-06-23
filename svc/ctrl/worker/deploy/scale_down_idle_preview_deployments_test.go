@@ -104,7 +104,7 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 		UpdatedAt:     oldUpdatedAt,
 	})
 
-	h.ClickHouseSeed.InsertSentinelRequests(h.Ctx, ws.ID, project.ID, env.ID, dep.ID, 10, time.Now().Add(-1*time.Hour))
+	h.ClickHouseSeed.InsertFrontlineRequests(h.Ctx, ws.ID, project.ID, app.ID, env.ID, dep.ID, 10, time.Now().Add(-1*time.Hour))
 
 	triggerScaleDown(t, h)
 
@@ -365,7 +365,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 			CreatedAt:     oldTime,
 			UpdatedAt:     oldUpdatedAt,
 		})
-		h.ClickHouseSeed.InsertSentinelRequests(h.Ctx, ws.ID, project.ID, env.ID, active.ID, 5, time.Now().Add(-30*time.Minute))
+		h.ClickHouseSeed.InsertFrontlineRequests(h.Ctx, ws.ID, project.ID, app.ID, env.ID, active.ID, 5, time.Now().Add(-30*time.Minute))
 		activeDeployments = append(activeDeployments, active)
 	}
 
