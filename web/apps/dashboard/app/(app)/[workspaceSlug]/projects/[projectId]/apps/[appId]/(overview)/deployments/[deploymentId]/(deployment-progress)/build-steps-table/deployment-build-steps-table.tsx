@@ -18,23 +18,25 @@ type Props = {
   steps: BuildStepRow[];
   isLoading: boolean;
   fixedHeight?: number;
-  focusStepId?: string | null;
+  focusStep?: { stepId: string; tick: number } | null;
 };
 
 export const DeploymentBuildStepsTable: React.FC<Props> = ({
   steps,
   isLoading,
   fixedHeight = 500,
-  focusStepId,
+  focusStep,
 }) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const stepId = focusStep?.stepId;
+  const tick = focusStep?.tick;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tick is the intentional re-fire trigger.
   useEffect(() => {
-    if (!focusStepId) {
+    if (!stepId) {
       return;
     }
-    const stepId = focusStepId.split("#")[0];
     setExpandedIds((prev) => (prev.has(stepId) ? prev : new Set(prev).add(stepId)));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -43,7 +45,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
           ?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
     });
-  }, [focusStepId]);
+  }, [stepId, tick]);
 
   const toggleExpand = (step: BuildStepRow) => {
     if (!step.has_logs) {
