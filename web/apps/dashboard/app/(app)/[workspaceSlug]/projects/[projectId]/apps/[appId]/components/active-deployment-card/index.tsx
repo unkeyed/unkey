@@ -24,12 +24,23 @@ import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-e
 import { MetadataCell } from "./components/metadata-cell";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
 
-function GitHubLink({ href, children }: { href: string | undefined; children: React.ReactNode }) {
+const ACTIVE_DEPLOYMENT_LINK_CLASS =
+  "block min-w-0 max-w-full text-accent-12 text-xs decoration-dotted underline underline-offset-3 transition-all font-medium";
+
+function GitHubLink({
+  href,
+  children,
+  className,
+}: {
+  href: string | undefined;
+  children: React.ReactNode;
+  className?: string;
+}) {
   if (!href) {
     return children;
   }
   return (
-    <DottedLink href={href} external>
+    <DottedLink href={href} external className={className}>
       {children}
     </DottedLink>
   );
@@ -94,8 +105,8 @@ export function ActiveDeploymentCard({
   return (
     <Card className="flex flex-col">
       <div className="px-4 pt-3 pb-2.5">
-        <div className="flex w-full justify-between items-center gap-4">
-          <div className="flex items-baseline gap-2">
+        <div className="flex w-full min-w-0 justify-between items-center gap-4">
+          <div className="flex items-baseline gap-2 min-w-0">
             <span className="font-mono text-[13px] text-accent-12 font-semibold shrink-0">
               {deployment.id}
             </span>
@@ -106,21 +117,28 @@ export function ActiveDeploymentCard({
               />
             )}
           </div>
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex flex-1 items-center justify-end gap-3 min-w-0">
             {deployment.gitCommitMessage && (
-              <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                  <span className="text-xs text-accent-12 truncate">
-                    {deployment.gitCommitMessage}
-                  </span>
-                </div>
-              </GitHubLink>
+              <div className="min-w-0 flex-1">
+                <GitHubLink
+                  href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}
+                  className={ACTIVE_DEPLOYMENT_LINK_CLASS}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                    <span className="text-xs text-accent-12 truncate">
+                      {deployment.gitCommitMessage}
+                    </span>
+                  </div>
+                </GitHubLink>
+              </div>
             )}
             {showLastExit && deployment.lastExit && (
-              <LastExitBadge lastExit={deployment.lastExit} />
+              <div className="shrink-0">
+                <LastExitBadge lastExit={deployment.lastExit} />
+              </div>
             )}
-            {statusBadge}
+            {statusBadge && <div className="shrink-0">{statusBadge}</div>}
           </div>
         </div>
       </div>
