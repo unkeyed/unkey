@@ -56,7 +56,7 @@ export class RBAC {
       }
       return Ok({
         valid: false,
-        message: `Missing one of these permissions: ${query.or.filter(Boolean).map(formatPermissionQuery).join(" or ")}`,
+        message: `Missing one of these permissions: ${query.or.filter(isPermissionQuery).map(formatPermissionQuery).join(" or ")}`,
       });
     }
 
@@ -70,12 +70,16 @@ function formatPermissionQuery(query: PermissionQuery): string {
   }
 
   if (query.and) {
-    return query.and.filter(Boolean).map(formatPermissionQuery).join(" and ");
+    return query.and.filter(isPermissionQuery).map(formatPermissionQuery).join(" and ");
   }
 
   if (query.or) {
-    return query.or.filter(Boolean).map(formatPermissionQuery).join(" or ");
+    return query.or.filter(isPermissionQuery).map(formatPermissionQuery).join(" or ");
   }
 
   return "invalid permission query";
+}
+
+function isPermissionQuery(query: PermissionQuery | undefined): query is PermissionQuery {
+  return query !== undefined;
 }
