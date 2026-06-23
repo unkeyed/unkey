@@ -672,14 +672,60 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   /**
+   * Whether a thrown WorkOS error is a 404. A missing resource is treated the
+   * same as one belonging to another organization so the two cases are
+   * indistinguishable to the caller (see `OrganizationScopeError`).
+   */
+  private isNotFoundError(error: unknown): boolean {
+    return typeof error === "object" && error !== null && "status" in error && error.status === 404;
+  }
+
+  /**
    * Asserts the membership belongs to `orgId` before it is mutated. WorkOS
    * scopes membership mutations by ID alone, so without this check an admin of
-   * one organization could target a membership ID belonging to another.
+   * one organization could target a membership ID belonging to another. A
+   * missing membership raises the same `OrganizationScopeError` as a wrong-org
+   * one so callers cannot use the error to probe for IDs in other organizations.
    */
   private async assertMembershipInOrg(membershipId: string, orgId: string): Promise<void> {
-    const membership = await this.provider.userManagement.getOrganizationMembership(membershipId);
-    if (membership.organizationId !== orgId) {
+    let organizationId: string;
+    try {
+      const membership = await this.provider.userManagement.getOrganizationMembership(membershipId);
+      organizationId = membership.organizationId;
+    } catch (error) {
+      if (this.isNotFoundError(error)) {
+        throw new OrganizationScopeError("membership", membershipId);
+      }
+      throw error;
+    }
+
+    if (organizationId !== orgId) {
       throw new OrganizationScopeError("membership", membershipId);
+    }
+  }
+
+  /**
+   * Asserts the invitation belongs to `orgId` before it is mutated. Mirrors
+   * {@link assertMembershipInOrg}: WorkOS revokes by invitation ID alone, and a
+   * missing invitation raises the same `OrganizationScopeError` as a wrong-org
+   * one so the error cannot confirm another organization's invitation IDs.
+   */
+  private async assertInvitationInOrg(invitationId: string, orgId: string): Promise<void> {
+    // WorkOS invitations may be created without an organization; such an
+    // invitation can never match the caller's org and is rejected below.
+    let organizationId: string | null;
+    try {
+      const invitation = await this.provider.userManagement.getInvitation(invitationId);
+      organizationId = invitation.organizationId;
+    } catch (error) {
+      if (this.isNotFoundError(error)) {
+        throw new OrganizationScopeError("invitation", invitationId);
+      }
+      throw error;
+    }
+
+    if (organizationId !== orgId) {
+      throw new OrganizationScopeError("invitation", invitationId);
     }
   }
 
@@ -825,13 +871,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
-      // WorkOS revokes by invitation ID alone, so confirm the invitation
-      // belongs to the caller's organization before revoking it.
-      const invitation = await this.provider.userManagement.getInvitation(invitationId);
-      if (invitation.organizationId !== orgId) {
-        throw new OrganizationScopeError("invitation", invitationId);
-      }
-
+      await this.assertInvitationInOrg(invitationId, orgId);
       await this.provider.userManagement.revokeInvitation(invitationId);
     } catch (error) {
       if (error instanceof OrganizationScopeError) {

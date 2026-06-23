@@ -718,6 +718,20 @@ describe("WorkOSAuthProvider", () => {
         expect(workos.userManagement.updateOrganizationMembership).not.toHaveBeenCalled();
       });
 
+      it("rejects a missing membership with the same error as a wrong-org one", async () => {
+        workos.userManagement.getOrganizationMembership.mockRejectedValue({ status: 404 });
+
+        await expect(
+          provider.updateMembership({
+            membershipId: "om_missing",
+            role: "admin",
+            orgId: CALLER_ORG,
+          }),
+        ).rejects.toMatchObject({ name: "OrganizationScopeError" });
+
+        expect(workos.userManagement.updateOrganizationMembership).not.toHaveBeenCalled();
+      });
+
       it("updates a membership in the caller's organization", async () => {
         workos.userManagement.getOrganizationMembership.mockResolvedValue({
           id: "om_mine",
@@ -768,6 +782,16 @@ describe("WorkOSAuthProvider", () => {
         expect(workos.userManagement.deleteOrganizationMembership).not.toHaveBeenCalled();
       });
 
+      it("rejects a missing membership with the same error as a wrong-org one", async () => {
+        workos.userManagement.getOrganizationMembership.mockRejectedValue({ status: 404 });
+
+        await expect(provider.removeMembership("om_missing", CALLER_ORG)).rejects.toMatchObject({
+          name: "OrganizationScopeError",
+        });
+
+        expect(workos.userManagement.deleteOrganizationMembership).not.toHaveBeenCalled();
+      });
+
       it("removes a membership in the caller's organization", async () => {
         workos.userManagement.getOrganizationMembership.mockResolvedValue({
           id: "om_mine",
@@ -791,6 +815,18 @@ describe("WorkOSAuthProvider", () => {
         await expect(provider.revokeOrgInvitation("inv_victim", CALLER_ORG)).rejects.toMatchObject({
           name: "OrganizationScopeError",
         });
+
+        expect(workos.userManagement.revokeInvitation).not.toHaveBeenCalled();
+      });
+
+      it("rejects a missing invitation with the same error as a wrong-org one", async () => {
+        workos.userManagement.getInvitation.mockRejectedValue({ status: 404 });
+
+        await expect(provider.revokeOrgInvitation("inv_missing", CALLER_ORG)).rejects.toMatchObject(
+          {
+            name: "OrganizationScopeError",
+          },
+        );
 
         expect(workos.userManagement.revokeInvitation).not.toHaveBeenCalled();
       });
