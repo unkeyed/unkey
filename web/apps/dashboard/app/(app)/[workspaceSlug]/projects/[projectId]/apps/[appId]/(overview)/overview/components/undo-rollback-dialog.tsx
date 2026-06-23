@@ -26,11 +26,12 @@ export function UndoRollbackDialog({
     deployments.find((d) => d.id !== currentDeploymentId)?.id ?? currentDeploymentId;
   const [selectedId, setSelectedId] = useState(defaultId);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: seed the default only when the dialog opens, not when the live deployments list refetches
   useEffect(() => {
     if (isOpen) {
       setSelectedId(defaultId);
     }
-  }, [isOpen, defaultId]);
+  }, [isOpen]);
 
   const promote = trpc.deploy.deployment.promote.useMutation({
     onSuccess: () => {
