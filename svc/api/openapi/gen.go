@@ -2154,9 +2154,10 @@ type V2ProjectsUpdateProjectRequestBody struct {
 	// Omit this field to leave the current name unchanged.
 	Name *string `json:"name,omitempty"`
 
-	// ProjectId Specifies which project to update by its unique identifier.
-	// Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-	ProjectId string `json:"projectId"`
+	// Project Identifies which project to update, by either its unique ID or its slug.
+	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
+	// The project is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
+	Project string `json:"project"`
 
 	// Slug New URL-safe slug for the project, unique within your workspace.
 	// Changing it affects the deployment domains generated for this project.

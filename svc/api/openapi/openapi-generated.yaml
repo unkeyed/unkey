@@ -2022,16 +2022,16 @@ components:
         V2ProjectsUpdateProjectRequestBody:
             type: object
             required:
-                - projectId
+                - project
             properties:
-                projectId:
+                project:
                     type: string
-                    minLength: 8
+                    minLength: 1
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
                     description: |
-                        Specifies which project to update by its unique identifier.
-                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+                        Identifies which project to update, by either its unique ID or its slug.
+                        Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
+                        The project is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
                     example: proj_1234abcd
                 slug:
                     type: string

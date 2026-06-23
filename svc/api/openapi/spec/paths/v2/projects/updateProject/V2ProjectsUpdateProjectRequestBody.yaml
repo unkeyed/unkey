@@ -1,15 +1,15 @@
 type: object
 required:
-  - projectId
+  - project
 properties:
-  projectId:
+  project:
     type: string
-    minLength: 8
+    minLength: 1
     maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
     description: |
-      Specifies which project to update by its unique identifier.
-      Must be a valid project ID that begins with 'proj_' and exists within your workspace.
+      Identifies which project to update, by either its unique ID or its slug.
+      Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
+      The project is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
     example: proj_1234abcd
   slug:
     type: string
@@ -38,20 +38,20 @@ properties:
 additionalProperties: false
 examples:
   rename:
-    summary: Rename a project
-    description: Update only the display name of a project
+    summary: Rename a project by ID
+    description: Update only the display name, locating the project by its ID
     value:
-      projectId: proj_1234abcd
+      project: proj_1234abcd
       name: Payments API
   changeSlug:
-    summary: Change a project slug
-    description: Update the URL-safe slug of a project
+    summary: Change a project slug by slug
+    description: Locate the project by its current slug and assign a new one
     value:
-      projectId: proj_1234abcd
+      project: payments-service
       slug: payments-api
   protect:
     summary: Toggle delete protection
     description: Enable delete protection without changing the name
     value:
-      projectId: proj_1234abcd
+      project: proj_1234abcd
       deleteProtection: true

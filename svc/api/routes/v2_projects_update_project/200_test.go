@@ -60,8 +60,8 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		newName := "New Name"
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectId: id,
-			Name:      &newName,
+			Project: id,
+			Name:    &newName,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -95,8 +95,8 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		newSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectId: id,
-			Slug:      &newSlug,
+			Project: id,
+			Slug:    &newSlug,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, newSlug, res.Body.Data.Slug)
@@ -107,12 +107,28 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		require.Equal(t, "Slug Change", project.Name)
 	})
 
+	t.Run("locate by slug and change slug", func(t *testing.T) {
+		id, slug := createProject(t, "Located By Slug", false)
+		newSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Project: slug,
+			Slug:    &newSlug,
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Equal(t, id, res.Body.Data.Id, "must resolve to the same project via its slug")
+		require.Equal(t, newSlug, res.Body.Data.Slug)
+
+		project := getProject(t, id)
+		require.Equal(t, newSlug, project.Slug)
+	})
+
 	t.Run("update delete protection only", func(t *testing.T) {
 		id, _ := createProject(t, "Keep Name", false)
 		protect := true
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectId:        id,
+			Project:          id,
 			DeleteProtection: &protect,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
@@ -129,8 +145,8 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 
 		newName := "Renamed"
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectId: id,
-			Name:      &newName,
+			Project: id,
+			Name:    &newName,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, newName, res.Body.Data.Name)
@@ -142,7 +158,7 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 
 		unprotect := false
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectId:        id,
+			Project:          id,
 			DeleteProtection: &unprotect,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
@@ -160,7 +176,7 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		unprotect := false
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectId:        id,
+			Project:          id,
 			Name:             &newName,
 			DeleteProtection: &unprotect,
 		})
@@ -177,7 +193,7 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		id, slug := createProject(t, "Unchanged", true)
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			ProjectId: id,
+			Project: id,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, "Unchanged", res.Body.Data.Name)
