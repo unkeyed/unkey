@@ -2092,9 +2092,9 @@ type V2ProjectsCreateProjectResponseData struct {
 
 // V2ProjectsDeleteProjectRequestBody defines model for V2ProjectsDeleteProjectRequestBody.
 type V2ProjectsDeleteProjectRequestBody struct {
-	// ProjectId Specifies which project to delete by its unique identifier.
-	// Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-	ProjectId string `json:"projectId"`
+	// Project Identifies which project to delete, by either its unique ID or its slug.
+	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
+	Project string `json:"project"`
 }
 
 // V2ProjectsDeleteProjectResponseBody defines model for V2ProjectsDeleteProjectResponseBody.
