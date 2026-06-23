@@ -13,7 +13,7 @@ var Cmd = &cli.Command{
 	Commands: []*cli.Command{
 		localCmd,
 		verificationsCmd,
-		sentinelCmd,
+		frontlineCmd,
 		checkpoints.Cmd,
 	},
 }

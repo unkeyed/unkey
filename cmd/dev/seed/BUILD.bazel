@@ -5,7 +5,7 @@ go_library(
     srcs = [
         "local.go",
         "run.go",
-        "sentinel.go",
+        "frontline.go",
         "verifications.go",
     ],
     importpath = "github.com/unkeyed/unkey/cmd/dev/seed",
