@@ -43,7 +43,6 @@ export const deploymentTopology = mysqlTable(
     uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.regionId),
     index("workspace_idx").on(table.workspaceId),
     index("status_idx").on(table.desiredStatus),
-    index("region_status_pk_idx").on(table.regionId, table.desiredStatus, table.pk),
   ],
 );
 
