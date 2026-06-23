@@ -45,11 +45,11 @@ func TestUpdateProjectSuccessfully(t *testing.T) {
 		return project.ID, slug
 	}
 
-	getProject := func(t *testing.T, id string) db.FindProjectByWorkspaceAndIdRow {
+	getProject := func(t *testing.T, id string) db.FindProjectByIdOrSlugRow {
 		t.Helper()
-		project, err := db.Query.FindProjectByWorkspaceAndId(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndIdParams{
+		project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
 			WorkspaceID: workspace.ID,
-			ID:          id,
+			Project:     id,
 		})
 		require.NoError(t, err)
 		return project
