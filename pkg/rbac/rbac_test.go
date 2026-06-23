@@ -2,6 +2,8 @@ package rbac
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRBAC_EvaluatePermissions(t *testing.T) {
@@ -120,4 +122,25 @@ func TestRBAC_EvaluatePermissions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRBAC_ORFailureMessageDoesNotRevealGrantedPermissions(t *testing.T) {
+	t.Parallel()
+
+	query := Or(
+		S("api.*.verify_key"),
+		S("api.api_requested.verify_key"),
+	)
+	granted := []string{"api.api_secret.read_api"}
+
+	result, err := New().EvaluatePermissions(query, granted)
+	require.NoError(t, err)
+	require.False(t, result.Valid)
+	require.Equal(
+		t,
+		"Missing one of these permissions: ['{ api.*.verify_key [] false}', '{ api.api_requested.verify_key [] false}']",
+		result.Message,
+	)
+	require.NotContains(t, result.Message, "have:")
+	require.NotContains(t, result.Message, "api.api_secret.read_api")
 }

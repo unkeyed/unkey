@@ -113,10 +113,8 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 		}
 
 		return EvaluationResult{
-			Valid: false,
-			Message: fmt.Sprintf("Missing one of these permissions: [%s], have: [%s]",
-				strings.Join(missingPerms, ", "),
-				strings.Join(formatPermissions(permissions), ", ")),
+			Valid:   false,
+			Message: fmt.Sprintf("Missing one of these permissions: [%s]", strings.Join(missingPerms, ", ")),
 		}, nil
 	}
 
@@ -145,18 +143,6 @@ func evaluateLeafPermission(query PermissionQuery, permissions []string) bool {
 	}
 
 	return evaluateUnkeyPermission(requiredPermission, permissions)
-}
-
-// formatPermissions quotes each permission so evaluation messages stay readable
-// when permissions are concatenated.
-func formatPermissions(permissions []string) []string {
-	formatted := make([]string, len(permissions))
-
-	for i, p := range permissions {
-		formatted[i] = fmt.Sprintf("'%s'", p)
-	}
-
-	return formatted
 }
 
 // ParseQuery parses a SQL-like permission query string and returns a PermissionQuery.
