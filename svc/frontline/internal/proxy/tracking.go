@@ -28,6 +28,14 @@ type RequestTracking struct {
 	EnvironmentID string
 	ProjectID     string
 
+	// Credential locations derived from the route's KeyAuth policies, set by
+	// the handler. The ClickHouse logging middleware redacts the value of any
+	// request header named in SecretHeaders (lowercased) and any query
+	// parameter named in SecretQueryParams, so API keys delivered via custom
+	// header or query parameter are not persisted in cleartext.
+	SecretHeaders     []string
+	SecretQueryParams []string
+
 	// (Re)set by handler before each ForwardToInstance attempt
 	InstanceID string
 	Address    string
