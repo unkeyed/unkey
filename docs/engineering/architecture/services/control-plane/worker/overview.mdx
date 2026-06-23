@@ -18,7 +18,7 @@ The control plane worker is not an API surface. It is a workflow host that acts 
 1. The control API validates requests and persists intent to MySQL.
 2. The control API triggers a Restate workflow on the worker.
 3. The worker coordinates downstream systems, writes new state to MySQL, and emits side effects such as builds, certificate issuance, and routing updates.
-4. Edge components (Frontline, Krane, Sentinel) consume the updated state to apply changes at the data plane.
+4. Edge components (Frontline and Krane) consume the updated state to apply changes at the data plane.
 
 This separation keeps API handlers short, deterministic, and retry-safe. The worker assumes responsibility for orchestration, retries, and durable state transitions.
 
@@ -40,8 +40,6 @@ The worker groups multiple Restate services into one process. Each service uses 
 | CustomDomainService | `domain` | Domain ownership verification and post-verify actions. |
 | CertificateService | `domain` | Certificate issuance and renewal with ACME and Vault. |
 | ClickhouseUserService | `workspace_id` | ClickHouse user provisioning and quota updates when enabled. |
-| SentinelService | `sentinel_id` | Deploys a single sentinel: updates config, suspends on an awakeable until Krane reports healthy, marks failed on timeout. |
-| SentinelRolloutService | `singleton` | Fleet-wide progressive rollout of sentinel images using percentage waves, with pause-on-failure and RollbackAll. |
 | CronService | `varies per handler` | Unified entry point for all scheduled tasks (quota check, key refill, key last-used sync, audit log export, audit log outbox cleanup, ratelimit global counters cleanup). Per-handler VO keys: billing period, date, or a fixed per-task slug. |
 | KeyLastUsedPartitionService | `partition_index` | Per-partition fan-out target for `CronService.RunKeyLastUsedSync`. |
 

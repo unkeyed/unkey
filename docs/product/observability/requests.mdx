@@ -1,13 +1,13 @@
 ---
 title: Requests
-description: "Inspect every HTTP request passing through the Sentinel to your deployment. View headers, status codes, latency, and request body details."
+description: "Inspect every HTTP request passing through the gateway to your deployment. View headers, status codes, latency, and request body details."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The **Requests** tab in your project shows every HTTP request that [Sentinel](/platform/sentinel/overview) processes on behalf of your deployments. Use it to debug failed requests, trace slow responses, and understand traffic patterns.
+The **Requests** tab in your project shows every HTTP request that [the gateway](/platform/gateway/overview) processes on behalf of your deployments. Use it to debug failed requests, trace slow responses, and understand traffic patterns.
 
 ## Request fields
 
@@ -57,9 +57,9 @@ Click any row to open the detail panel on the right side. The panel shows:
 
 ## Latency breakdown
 
-The detail panel splits total latency into two components. Instance latency is the time your app spent processing the request. Sentinel latency is the time Sentinel spent on routing, policy evaluation, and proxying.
+The detail panel splits total latency into two components. Instance latency is the time your app spent processing the request. Gateway latency is the time the gateway spent on routing, policy evaluation, and proxying.
 
-If instance latency dominates, the bottleneck is in your application code. If Sentinel latency is high relative to total latency, the overhead is in the gateway layer. This distinction helps you focus debugging in the right place.
+If instance latency dominates, the bottleneck is in your application code. If gateway latency is high relative to total latency, the overhead is in the gateway layer. This distinction helps you focus debugging in the right place.
 
 ## Retention
 

@@ -21,10 +21,10 @@ Workspace
               │     ├── Deployments
               │     ├── Variables
               │     └── Custom domains
-              └── Settings (build, runtime, Sentinel)
+              └── Settings (build, runtime, gateway)
 ```
 
-A project can contain multiple apps. Each app has its own pair of default environments (production and preview), its own [build and runtime settings](/platform/apps/settings), and its own [Sentinel configuration](/platform/sentinel/overview).
+A project can contain multiple apps. Each app has its own pair of default environments (production and preview), its own [build and runtime settings](/platform/apps/settings), and its own [gateway configuration](/platform/gateway/overview).
 
 ## Default app
 
@@ -39,7 +39,7 @@ Each app in a multi-app project has:
 - Its own Dockerfile and build context
 - Its own runtime settings (CPU, memory, storage, port, health check)
 - Its own environments and deployment history
-- Its own Sentinel policies
+- Its own gateway policies
 
 <Note>
   The dashboard does not yet support creating or managing multiple apps within a project. You can deploy to a specific app using the CLI. Contact [support@unkey.com](mailto:support@unkey.com) if you need multi-app projects configured.
@@ -62,10 +62,10 @@ The `--app` flag defaults to `default`, so you can omit it for single-app projec
 
 Each app gets two environments when created:
 
-| Environment    | Purpose                                                        |
-| -------------- | -------------------------------------------------------------- |
-| **Production** | Serves live traffic. Gets three [Sentinel](/platform/sentinel/overview) replicas for high availability. |
-| **Preview**    | For testing branches before merging. Gets one Sentinel replica. |
+| Environment    | Purpose                                  |
+| -------------- | ---------------------------------------- |
+| **Production** | Serves live traffic.                     |
+| **Preview**    | For testing branches before merging.     |
 
 Environments are scoped to an app, not to the project. This means each app in a multi-app project has its own independent production and preview environments with separate [variables](/platform/variables/overview) and [custom domains](/networking/domains).
 

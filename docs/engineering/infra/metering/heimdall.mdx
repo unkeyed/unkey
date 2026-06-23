@@ -193,7 +193,7 @@ flowchart LR
     heimdall --> ch["ClickHouse:<br/>4 network columns on the next checkpoint"]
 ```
 
-Host-network pods (heimdall itself, kube-proxy, sentinels) share the host net namespace and have no pod-side eth0, so heimdall skips them via `pod.Spec.HostNetwork`. Completed/Failed pods are also skipped because their sandbox containers have been GC'd from containerd.
+Host-network pods (heimdall itself, kube-proxy) share the host net namespace and have no pod-side eth0, so heimdall skips them via `pod.Spec.HostNetwork`. Completed/Failed pods are also skipped because their sandbox containers have been GC'd from containerd.
 
 ### Deployment requirements
 
