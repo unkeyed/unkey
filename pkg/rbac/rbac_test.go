@@ -138,9 +138,11 @@ func TestRBAC_ORFailureMessageDoesNotRevealGrantedPermissions(t *testing.T) {
 	require.False(t, result.Valid)
 	require.Equal(
 		t,
-		"Missing one of these permissions: ['{ api.*.verify_key [] false}', '{ api.api_requested.verify_key [] false}']",
+		"Missing one of these permissions: api.*.verify_key or api.api_requested.verify_key",
 		result.Message,
 	)
 	require.NotContains(t, result.Message, "have:")
 	require.NotContains(t, result.Message, "api.api_secret.read_api")
+	require.NotContains(t, result.Message, "{")
+	require.NotContains(t, result.Message, "}")
 }

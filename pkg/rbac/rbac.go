@@ -109,12 +109,12 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 			if result.Valid {
 				return result, nil
 			}
-			missingPerms = append(missingPerms, fmt.Sprintf("'%v'", child))
+			missingPerms = append(missingPerms, formatPermissionQuery(child))
 		}
 
 		return EvaluationResult{
 			Valid:   false,
-			Message: fmt.Sprintf("Missing one of these permissions: [%s]", strings.Join(missingPerms, ", ")),
+			Message: fmt.Sprintf("Missing one of these permissions: %s", strings.Join(missingPerms, " or ")),
 		}, nil
 	}
 
@@ -123,6 +123,26 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 		fault.Code(codes.App.Internal.UnexpectedError.URN()),
 		fault.Public("The permission query has an invalid structure and cannot be evaluated."),
 	)
+}
+
+func formatPermissionQuery(query PermissionQuery) string {
+	if query.Value != "" {
+		return query.Value
+	}
+
+	parts := make([]string, 0, len(query.Children))
+	for _, child := range query.Children {
+		parts = append(parts, formatPermissionQuery(child))
+	}
+
+	switch query.Operation {
+	case OperatorAnd:
+		return strings.Join(parts, " and ")
+	case OperatorOr:
+		return strings.Join(parts, " or ")
+	default:
+		return "invalid permission query"
+	}
 }
 
 // evaluateLeafPermission is the shared leaf evaluator for the boolean query

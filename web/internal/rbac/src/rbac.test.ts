@@ -162,11 +162,12 @@ describe("permission denial messages", () => {
     expect(res.err).toBeUndefined();
     expect(res.val).toEqual({
       valid: false,
-      message:
-        "Missing one of these permissions: ['\"api.*.verify_key\"', '\"api.api_requested.verify_key\"']",
+      message: "Missing one of these permissions: api.*.verify_key or api.api_requested.verify_key",
     });
     expect(res.val?.message).not.toContain("have:");
     expect(res.val?.message).not.toContain("api.api_secret.read_api");
+    expect(res.val?.message).not.toContain("{");
+    expect(res.val?.message).not.toContain("}");
   });
 });
 
