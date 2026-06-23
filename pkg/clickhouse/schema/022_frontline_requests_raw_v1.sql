@@ -1,11 +1,12 @@
-CREATE TABLE sentinel_requests_raw_v1 (
+CREATE TABLE frontline_requests_raw_v1 (
   request_id String,
   -- unix milli
   time Int64 CODEC(Delta, LZ4),
   workspace_id String,
-  environment_id String,
   project_id String,
-  sentinel_id String,
+  app_id String,
+  environment_id String,
+  frontline_id String,
   deployment_id String,
   instance_id String,
   instance_address String,
@@ -32,13 +33,13 @@ CREATE TABLE sentinel_requests_raw_v1 (
   total_latency Int64,
   -- Milliseconds - instance processing time
   instance_latency Int64,
-  -- Milliseconds - sentinel overhead
-  sentinel_latency Int64,
+  -- Milliseconds - frontline overhead
+  frontline_latency Int64,
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1,
-  INDEX idx_sentinel_id (sentinel_id) TYPE bloom_filter GRANULARITY 1
+  INDEX idx_frontline_id (frontline_id) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree()
-ORDER BY (`workspace_id`, `project_id`, `environment_id`, `time`, `deployment_id`) 
-TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(30) 
+ORDER BY (`workspace_id`, `project_id`, `app_id`, `environment_id`, `time`, `deployment_id`)
+TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(7)
 SETTINGS index_granularity = 8192, non_replicated_deduplication_window = 10000;

@@ -18,7 +18,7 @@ import (
 // during proxy execution; this middleware reads it back and emits the row
 // after next() returns. Cross-region requests do not populate tracking and
 // are skipped — the peer frontline writes its own row.
-func WithClickHouseLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk clock.Clock, frontlineID, region, platform string) zen.Middleware {
+func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], clk clock.Clock, frontlineID, region, platform string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			//nolint:exhaustruct
@@ -48,33 +48,34 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.SentinelRequest], cl
 
 			req := s.Request()
 
-			buf.Buffer(schema.SentinelRequest{
-				RequestID:       tracking.RequestID,
-				Time:            tracking.StartTime.UnixMilli(),
-				WorkspaceID:     tracking.WorkspaceID,
-				EnvironmentID:   tracking.EnvironmentID,
-				ProjectID:       tracking.ProjectID,
-				SentinelID:      frontlineID,
-				DeploymentID:    tracking.DeploymentID,
-				InstanceID:      tracking.InstanceID,
-				InstanceAddress: tracking.Address,
-				Region:          region,
-				Platform:        platform,
-				Method:          strings.ToUpper(req.Method),
-				Host:            req.Host,
-				Path:            req.URL.Path,
-				QueryString:     req.URL.RawQuery,
-				QueryParams:     req.URL.Query(),
-				RequestHeaders:  formatHeaders(req.Header),
-				RequestBody:     unsafe.String(unsafe.SliceData(tracking.RequestBody), len(tracking.RequestBody)),
-				ResponseStatus:  int32(s.StatusCode()),
-				ResponseHeaders: formatHeaders(s.ResponseWriter().Header()),
-				ResponseBody:    unsafe.String(unsafe.SliceData(tracking.ResponseBody), len(tracking.ResponseBody)),
-				UserAgent:       req.UserAgent(),
-				IPAddress:       s.Location(),
-				TotalLatency:    totalLatency,
-				InstanceLatency: instanceLatency,
-				SentinelLatency: frontlineLatency,
+			buf.Buffer(schema.FrontlineRequest{
+				RequestID:        tracking.RequestID,
+				Time:             tracking.StartTime.UnixMilli(),
+				WorkspaceID:      tracking.WorkspaceID,
+				ProjectID:        tracking.ProjectID,
+				AppID:            tracking.AppID,
+				EnvironmentID:    tracking.EnvironmentID,
+				FrontlineID:      frontlineID,
+				DeploymentID:     tracking.DeploymentID,
+				InstanceID:       tracking.InstanceID,
+				InstanceAddress:  tracking.Address,
+				Region:           region,
+				Platform:         platform,
+				Method:           strings.ToUpper(req.Method),
+				Host:             req.Host,
+				Path:             req.URL.Path,
+				QueryString:      req.URL.RawQuery,
+				QueryParams:      req.URL.Query(),
+				RequestHeaders:   formatHeaders(req.Header),
+				RequestBody:      unsafe.String(unsafe.SliceData(tracking.RequestBody), len(tracking.RequestBody)),
+				ResponseStatus:   int32(s.StatusCode()),
+				ResponseHeaders:  formatHeaders(s.ResponseWriter().Header()),
+				ResponseBody:     unsafe.String(unsafe.SliceData(tracking.ResponseBody), len(tracking.ResponseBody)),
+				UserAgent:        req.UserAgent(),
+				IPAddress:        s.Location(),
+				TotalLatency:     totalLatency,
+				InstanceLatency:  instanceLatency,
+				FrontlineLatency: frontlineLatency,
 			})
 
 			return err
