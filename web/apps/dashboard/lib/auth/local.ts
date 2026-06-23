@@ -297,9 +297,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
     throw new Error(`Membership ${membershipId} not found`);
   }
 
-  async deactivateMembership(membershipId: string): Promise<void> {
-    if (!membershipId) {
-      throw new Error("Membership Id is required");
+  async deactivateMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
     }
 
     if (membershipId === this.membership.id) {

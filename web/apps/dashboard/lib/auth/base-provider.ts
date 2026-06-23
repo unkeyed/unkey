@@ -353,9 +353,10 @@ export abstract class BaseAuthProvider {
    * for non-creator members. The membership can be reactivated later.
    *
    * @param membershipId - The ID of the membership to deactivate
+   * @param orgId - The caller's organization; the membership must belong to it
    * @returns A promise that resolves when the membership is deactivated
    */
-  abstract deactivateMembership(membershipId: string): Promise<void>;
+  abstract deactivateMembership(membershipId: string, orgId: string): Promise<void>;
 
   /**
    * Invites a new user to join an organization.

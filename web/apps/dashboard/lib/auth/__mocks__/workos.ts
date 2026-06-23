@@ -32,6 +32,7 @@ export const createMockWorkOSInstance = (viFn: typeof import("vitest").vi) => ({
     getOrganizationMembership: viFn.fn(),
     updateOrganizationMembership: viFn.fn(),
     deleteOrganizationMembership: viFn.fn(),
+    deactivateOrganizationMembership: viFn.fn(),
     sendInvitation: viFn.fn(),
     listInvitations: viFn.fn(),
     findInvitationByToken: viFn.fn(),

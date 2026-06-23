@@ -786,14 +786,18 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async deactivateMembership(membershipId: string): Promise<void> {
-    if (!membershipId) {
-      throw new Error("Membership Id is required");
+  async deactivateMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
     }
 
     try {
+      await this.assertMembershipInOrg(membershipId, orgId);
       await this.provider.userManagement.deactivateOrganizationMembership(membershipId);
     } catch (error) {
+      if (error instanceof OrganizationScopeError) {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }

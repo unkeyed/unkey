@@ -805,6 +805,47 @@ describe("WorkOSAuthProvider", () => {
       });
     });
 
+    describe("deactivateMembership", () => {
+      it("rejects a membership belonging to another organization", async () => {
+        workos.userManagement.getOrganizationMembership.mockResolvedValue({
+          id: "om_victim",
+          organizationId: OTHER_ORG,
+        });
+
+        await expect(provider.deactivateMembership("om_victim", CALLER_ORG)).rejects.toMatchObject({
+          name: "OrganizationScopeError",
+        });
+
+        expect(workos.userManagement.deactivateOrganizationMembership).not.toHaveBeenCalled();
+      });
+
+      it("rejects a missing membership with the same error as a wrong-org one", async () => {
+        workos.userManagement.getOrganizationMembership.mockRejectedValue({ status: 404 });
+
+        await expect(provider.deactivateMembership("om_missing", CALLER_ORG)).rejects.toMatchObject(
+          {
+            name: "OrganizationScopeError",
+          },
+        );
+
+        expect(workos.userManagement.deactivateOrganizationMembership).not.toHaveBeenCalled();
+      });
+
+      it("deactivates a membership in the caller's organization", async () => {
+        workos.userManagement.getOrganizationMembership.mockResolvedValue({
+          id: "om_mine",
+          organizationId: CALLER_ORG,
+        });
+        workos.userManagement.deactivateOrganizationMembership.mockResolvedValue(undefined);
+
+        await provider.deactivateMembership("om_mine", CALLER_ORG);
+
+        expect(workos.userManagement.deactivateOrganizationMembership).toHaveBeenCalledWith(
+          "om_mine",
+        );
+      });
+    });
+
     describe("revokeOrgInvitation", () => {
       it("rejects an invitation belonging to another organization", async () => {
         workos.userManagement.getInvitation.mockResolvedValue({
