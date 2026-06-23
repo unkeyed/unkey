@@ -2238,7 +2238,7 @@ type Querier interface {
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
 	//  INNER JOIN `environments` e ON d.environment_id = e.id
 	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-	//  WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+	//  WHERE dt.region_id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, db DBTX, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)

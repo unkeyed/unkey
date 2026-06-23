@@ -24,7 +24,7 @@ INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
 INNER JOIN ` + "`" + `environments` + "`" + ` e ON d.environment_id = e.id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON d.app_id = grc.app_id
-WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+WHERE dt.region_id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 ORDER BY dt.pk ASC
 LIMIT ?
 `
@@ -60,7 +60,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	INNER JOIN `regions` r ON dt.region_id = r.id
 //	INNER JOIN `environments` e ON d.environment_id = e.id
 //	LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-//	WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+//	WHERE dt.region_id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 //	ORDER BY dt.pk ASC
 //	LIMIT ?
 func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, db DBTX, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error) {

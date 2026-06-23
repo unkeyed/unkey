@@ -14,6 +14,6 @@ INNER JOIN `workspaces` w ON d.workspace_id = w.id
 INNER JOIN `regions` r ON dt.region_id = r.id
 INNER JOIN `environments` e ON d.environment_id = e.id
 LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-WHERE r.id = sqlc.arg(region_id) AND dt.pk > sqlc.arg(after_pk) AND dt.desired_status = 'running'
+WHERE dt.region_id = sqlc.arg(region_id) AND dt.pk > sqlc.arg(after_pk) AND dt.desired_status = 'running'
 ORDER BY dt.pk ASC
 LIMIT ?;

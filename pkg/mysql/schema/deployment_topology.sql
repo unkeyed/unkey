@@ -18,3 +18,5 @@ CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 
+CREATE INDEX `region_status_pk_idx` ON `deployment_topology` (`region_id`,`desired_status`,`pk`);
+
