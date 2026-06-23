@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "stripe",
+    srcs = ["stripe.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/webhook/verifiers/stripe",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/webhook",
+        "@com_github_stripe_stripe_go_v86//webhook",
+    ],
+)
+
+go_test(
+    name = "stripe_test",
+    srcs = ["stripe_test.go"],
+    embed = [":stripe"],
+    deps = ["@com_github_stretchr_testify//require"],
+)
