@@ -204,6 +204,9 @@ This file only provides color variable definitions.
     --info-11: 208, 88%, 43%;
     --info-12: 216, 71%, 23%;
 
+    /* Default activity/requests color for dashboard charts (#2E90FA) */
+    --activity: 211, 95%, 58%;
+
     /* BlueA */
     --infoA-1: 210, 100%, 50%, 0.02;
     --infoA-2: 207, 100%, 50%, 0.04;
