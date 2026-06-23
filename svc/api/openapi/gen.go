@@ -2108,8 +2108,8 @@ type V2ProjectsDeleteProjectResponseBody struct {
 
 // V2ProjectsGetProjectRequestBody defines model for V2ProjectsGetProjectRequestBody.
 type V2ProjectsGetProjectRequestBody struct {
-	// Project Specifies which project to retrieve by its unique identifier or slug.
-	// Must be a valid project ID that begins with 'proj_' or slug, and exists within your workspace.
+	// Project Identifies which project to retrieve, by either its unique ID or its slug.
+	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
 	Project string `json:"project"`
 }
 

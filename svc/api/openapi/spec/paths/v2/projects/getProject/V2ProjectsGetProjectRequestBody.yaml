@@ -7,18 +7,18 @@ properties:
     minLength: 1
     maxLength: 255
     description: |
-      Specifies which project to retrieve by its unique identifier or slug.
-      Must be a valid project ID that begins with 'proj_' or slug, and exists within your workspace.
+      Identifies which project to retrieve, by either its unique ID or its slug.
+      Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
     example: proj_1234abcd
 additionalProperties: false
 examples:
   getById:
-    summary: Retrieve a project by ID
-    description: Fetch a single project using its unique identifier
+    summary: Retrieve by project ID
+    description: Fetch a project using its unique identifier
     value:
-      projectId: proj_1234abcd
+      project: proj_1234abcd
   getBySlug:
-    summary: Retrieve a project by slug
-    description: Fetch a single project using its slug
+    summary: Retrieve by project slug
+    description: Fetch a project using its slug
     value:
-      projectId: payment-service
+      project: payment-service

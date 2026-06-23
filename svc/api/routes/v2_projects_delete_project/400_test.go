@@ -48,7 +48,7 @@ func TestDeleteProjectBadRequest(t *testing.T) {
 	}
 
 	t.Run("invalid json", func(t *testing.T) {
-		invalidJSON := `{"projectId": }`
+		invalidJSON := `{"project": }`
 
 		req, err := http.NewRequest(route.Method(), route.Path(), strings.NewReader(invalidJSON))
 		require.NoError(t, err)

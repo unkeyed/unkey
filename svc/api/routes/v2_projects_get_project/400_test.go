@@ -29,10 +29,8 @@ func TestGetProjectBadRequest(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing projectId", req: handler.Request{}},
-		{name: "projectId too short", req: handler.Request{Project: "proj_1"}},
-		{name: "projectId with invalid chars", req: handler.Request{Project: "proj-1234abc"}},
-		{name: "projectId too long", req: handler.Request{Project: strings.Repeat("a", 256)}},
+		{name: "missing project", req: handler.Request{}},
+		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256)}},
 	}
 
 	for _, tc := range testCases {
@@ -47,7 +45,7 @@ func TestGetProjectBadRequest(t *testing.T) {
 	}
 
 	t.Run("invalid json", func(t *testing.T) {
-		invalidJSON := `{"projectId": }`
+		invalidJSON := `{"project": }`
 
 		req, err := http.NewRequest(route.Method(), route.Path(), strings.NewReader(invalidJSON))
 		require.NoError(t, err)

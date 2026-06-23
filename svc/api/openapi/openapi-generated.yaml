@@ -1967,8 +1967,8 @@ components:
                     minLength: 1
                     maxLength: 255
                     description: |
-                        Specifies which project to retrieve by its unique identifier or slug.
-                        Must be a valid project ID that begins with 'proj_' or slug, and exists within your workspace.
+                        Identifies which project to retrieve, by either its unique ID or its slug.
+                        Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
                     example: proj_1234abcd
             additionalProperties: false
         V2ProjectsGetProjectResponseBody:
