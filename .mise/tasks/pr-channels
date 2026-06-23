@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Run the GitHub->Slack PR channel bot server"
+set -euo pipefail
+
+cd "$MISE_PROJECT_ROOT/tools/pr-channels"
+
+# Load local, untracked config (tokens, DATABASE_URL).
+# Copy .env.example to .env and fill it in; see that file for details.
+set -a
+[ -f .env ] && . ./.env
+set +a
+
+go run ./cmd/pr-channels "$@"

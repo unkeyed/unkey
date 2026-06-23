@@ -1,0 +1,37 @@
+{
+  "version": "2",
+  "sql": [
+    {
+      "engine": "postgresql",
+      "queries": "./queries",
+      "schema": "./migrations",
+      "gen": {
+        "go": {
+          "package": "store",
+          "out": ".",
+          "sql_package": "pgx/v5",
+          "emit_interface": true,
+          "emit_sql_as_comment": true,
+          "output_files_suffix": "_generated",
+          "output_db_file_name": "db_generated",
+          "output_models_file_name": "models_generated",
+          "output_querier_file_name": "querier_generated",
+          "overrides": [
+            {
+              "db_type": "timestamptz",
+              "go_type": "time.Time"
+            },
+            {
+              "db_type": "timestamptz",
+              "nullable": true,
+              "go_type": {
+                "type": "time.Time",
+                "pointer": true
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
