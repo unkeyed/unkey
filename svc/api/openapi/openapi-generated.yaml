@@ -7178,11 +7178,16 @@ paths:
                 content:
                     application/json:
                         examples:
-                            delete:
-                                description: Delete a project by its unique identifier
-                                summary: Delete a project
+                            deleteById:
+                                description: Delete a project using its unique identifier
+                                summary: Delete by project ID
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
+                            deleteBySlug:
+                                description: Delete a project using its slug
+                                summary: Delete by project slug
+                                value:
+                                    project: payment-service
                         schema:
                             $ref: '#/components/schemas/V2ProjectsDeleteProjectRequestBody'
                 required: true
@@ -7289,11 +7294,16 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Fetch a single project using its unique identifier
-                                summary: Retrieve a project by ID
+                            getById:
+                                description: Fetch a project using its unique identifier
+                                summary: Retrieve by project ID
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
+                            getBySlug:
+                                description: Fetch a project using its slug
+                                summary: Retrieve by project slug
+                                value:
+                                    project: payment-service
                         schema:
                             $ref: '#/components/schemas/V2ProjectsGetProjectRequestBody'
                 required: true
@@ -7524,17 +7534,17 @@ paths:
                     application/json:
                         examples:
                             changeSlug:
-                                description: Update the URL-safe slug of a project
-                                summary: Change a project slug
+                                description: Locate the project by its current slug and assign a new one
+                                summary: Change a project slug by slug
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: payments-service
                                     slug: payments-api
                             rename:
-                                description: Update only the display name of a project
-                                summary: Rename a project
+                                description: Update only the display name, locating the project by its ID
+                                summary: Rename a project by ID
                                 value:
                                     name: Payments API
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
                         schema:
                             $ref: '#/components/schemas/V2ProjectsUpdateProjectRequestBody'
                 required: true
