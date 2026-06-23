@@ -1,6 +1,7 @@
 "use client";
 import { ResourceCard } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card";
 import { ResourceCardSkeleton } from "@/app/(app)/[workspaceSlug]/projects/_components/list/resource-card-skeleton";
+import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
@@ -19,6 +20,7 @@ export const AppsList = () => {
   const params = useParams();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const appHomeHref = useAppHomeHref();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
   const openCreateApp = () =>
     router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
@@ -58,7 +60,7 @@ export const AppsList = () => {
           {apps.data.map((app) => (
             <ResourceCard
               key={app.id}
-              href={routes.projects.apps.overview({
+              href={appHomeHref({
                 workspaceSlug: workspace.slug,
                 projectId,
                 appId: app.id,

@@ -1,3 +1,4 @@
+import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { Github, Terminal } from "@unkey/icons";
@@ -98,6 +99,7 @@ function AppIconStack({
   projectId,
 }: { apps: ProjectCardApp[]; appCount: number; projectId: string }) {
   const workspace = useWorkspaceNavigation();
+  const appHomeHref = useAppHomeHref();
   const visible = apps.slice(0, MAX_VISIBLE_APPS);
   const overflow = appCount - visible.length;
 
@@ -112,7 +114,7 @@ function AppIconStack({
           position={{ side: "top" }}
         >
           <Link
-            href={routes.projects.apps.overview({
+            href={appHomeHref({
               workspaceSlug: workspace.slug,
               projectId,
               appId: app.id,
@@ -143,7 +145,7 @@ function AppIconStack({
               {apps.map((app) => (
                 <Link
                   key={app.id}
-                  href={routes.projects.apps.overview({
+                  href={appHomeHref({
                     workspaceSlug: workspace.slug,
                     projectId,
                     appId: app.id,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
@@ -10,6 +11,7 @@ import type { CrumbPopoverItem } from "./crumb-popover";
 
 export function AppCrumb({ projectId, appId }: { projectId: string; appId: string }) {
   const workspace = useWorkspaceNavigation();
+  const appHomeHref = useAppHomeHref();
   const appsQuery = useLiveQuery(
     (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
     [projectId],
@@ -20,7 +22,7 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
   const items: CrumbPopoverItem[] = apps.map((a) => ({
     id: a.id,
     label: a.name,
-    href: routes.projects.apps.overview({
+    href: appHomeHref({
       workspaceSlug: workspace.slug,
       projectId,
       appId: a.id,
@@ -38,7 +40,7 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
       }
       label={current?.name ?? appId}
       loading={appsQuery.isLoading}
-      href={routes.projects.apps.overview({ workspaceSlug: workspace.slug, projectId, appId })}
+      href={appHomeHref({ workspaceSlug: workspace.slug, projectId, appId })}
       items={items}
       currentId={appId}
       searchPlaceholder="Find app..."
