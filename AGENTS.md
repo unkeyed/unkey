@@ -194,5 +194,26 @@ notes below are the non-obvious caveats for running the stack.
  create a row in the `apis` table, so to exercise the data plane create an API
  first: `POST /v2/keys`... use `/v2/apis.createApi`, then `/v2/keys.createKey`,
  then `/v2/keys.verifyKey` (all on `http://localhost:7070`, bearer = root key).
-- The full `mise run dev` (Tilt + minikube) path is heavier, needs a Depot
- token, and is not required for core key lifecycle work.
+### Full deploy stack (`mise run dev`) does NOT run in Cursor Cloud
+
+- The full Tilt + minikube deploy stack cannot start in the Cursor Cloud agent
+ VM. This is an environment limitation, not a code issue.
+- Root cause: the VM's cgroup v2 root is `domain threaded` (verify with
+ `cat /sys/fs/cgroup/cgroup.type`). A threaded subtree cannot contain domain
+ child cgroups, only exposes the `cpuset`/`cpu`/`pids` controllers (no
+ `memory`/`io`), and rejects moving a process into a child cgroup with `EIO`.
+ The root type cannot be reverted to `domain` from inside the VM (`EIO`).
+- Consequently every Kubernetes node agent fails at startup:
+ - minikube (docker driver, systemd-based kicbase node):
+   `Failed to create /init.scope control group: Structure needs cleaning`.
+ - k3s/k3d (kubelet):
+   `failed to evacuate root cgroup: read /sys/fs/cgroup/cgroup.procs: operation not supported`.
+ - kind, microk8s, etc. fail the same way (all build a `kubepods` cgroup tree).
+ - The k3s control plane alone (`server --disable-agent`) does start, since it
+   runs as in-process components, but it cannot schedule real pods.
+- Net effect: `krane`, `heimdall`, `frontline`, topolvm, cilium, and the
+ deploy/gateway flow cannot be exercised here. Use the docker-compose path
+ above for the dashboard and core key/ratelimit/RBAC flows. Test deploy-stack
+ code with targeted Bazel unit/integration tests instead.
+- The `mise run dev` path is also heavier and historically needs a Depot token
+ for builds (`dev/.env.depot`); not required for the compose path.
