@@ -20,7 +20,7 @@ const nextConfig = {
     });
     return config;
   },
-  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/error", "@unkey/id"],
+  transpilePackages: ["@unkey/api", "@unkey/db", "@unkey/resend", "@unkey/error", "@unkey/id"],
   async headers() {
     return [
       {
