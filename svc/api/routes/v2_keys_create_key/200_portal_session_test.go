@@ -211,7 +211,7 @@ func TestPortalSessionCreateKeyIgnoresClientExternalId(t *testing.T) {
 	require.Equal(t, identity.ID, key.IdentityID.String)
 }
 
-func TestPortalSessionCreateKeyThenListReturnsIt(t *testing.T) {
+func TestPortalSessionsCreateKeysWithDistinctIdentities(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	createRoute := &handler.Handler{
@@ -229,7 +229,7 @@ func TestPortalSessionCreateKeyThenListReturnsIt(t *testing.T) {
 		fmt.Sprintf("api.%s.create_key", setup.apiID),
 	})
 
-	// Create a key via portal session
+	// Create a key via portal session A
 	req := handler.Request{
 		ApiId: setup.apiID,
 		Name:  ptr.P("Portal Created Key"),
@@ -239,13 +239,12 @@ func TestPortalSessionCreateKeyThenListReturnsIt(t *testing.T) {
 	require.Equal(t, 200, res.Status)
 	require.NotEmpty(t, res.Body.Data.KeyId)
 
-	// Verify key shows up in listKeys for the same session (different externalId should NOT see it)
+	// Create a key via a different portal session (user B)
 	differentExternalID := "portal_user_B"
 	differentHeaders := createPortalSession(t, h, setup.workspace.ID, differentExternalID, []string{
 		fmt.Sprintf("api.%s.create_key", setup.apiID),
 	})
 
-	// Create a key via the different session
 	res2 := testutil.CallRoute[handler.Request, handler.Response](h, createRoute, differentHeaders, handler.Request{
 		ApiId: setup.apiID,
 		Name:  ptr.P("Different User Key"),
@@ -253,7 +252,7 @@ func TestPortalSessionCreateKeyThenListReturnsIt(t *testing.T) {
 	require.Equal(t, 200, res2.Status)
 	require.NotEmpty(t, res2.Body.Data.KeyId)
 
-	// The two keys should belong to different identities
+	// Each key should be owned by its respective session's identity
 	ctx := context.Background()
 	key1, err := db.Query.FindKeyByID(ctx, h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
