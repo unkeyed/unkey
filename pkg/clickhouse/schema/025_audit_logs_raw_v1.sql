@@ -7,7 +7,7 @@
 --
 -- Time fields are stored as Int64 unix-milli for consistency with the rest
 -- of Unkey's CH tables (`time` in key_verifications_raw_v2,
--- sentinel_requests_raw_v1, etc.). Partition and TTL expressions wrap them
+-- frontline_requests_raw_v1, etc.). Partition and TTL expressions wrap them
 -- in fromUnixTimestamp64Milli.
 --
 -- Metadata columns use the native CH JSON type (24.10+). Each JSON column

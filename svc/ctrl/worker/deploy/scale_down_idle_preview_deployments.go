@@ -66,6 +66,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 					return w.clickhouse.GetDeploymentRequestCount(runCtx, clickhouse.GetDeploymentRequestCountRequest{
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
+						AppID:         deployment.AppID,
 						EnvironmentID: deployment.EnvironmentID,
 						DeploymentID:  deployment.ID,
 						Duration:      idleTime,
