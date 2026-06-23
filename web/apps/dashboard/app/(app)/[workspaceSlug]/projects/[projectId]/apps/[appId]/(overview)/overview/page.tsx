@@ -13,8 +13,7 @@ export default function Overview() {
   const hasNoDeployments = !isDeploymentsLoading && deployments.length === 0;
 
   return (
-    // 52px is TOP_NAV_HEIGHT: sizing against the viewport lets the empty state fill
-    // the page even though the shared layout's flex chain won't propagate a height.
+    // 52px is TOP_NAV_HEIGHT.
     <PageContainer className={hasNoDeployments ? "min-h-[calc(100dvh-52px)]" : undefined}>
       <PageHeader>
         <PageHeaderContent>

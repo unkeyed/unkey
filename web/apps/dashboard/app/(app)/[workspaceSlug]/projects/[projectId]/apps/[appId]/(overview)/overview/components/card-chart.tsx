@@ -53,8 +53,6 @@ function LegendStat({
   );
 }
 
-// Placeholder shown while the app's first production deploy is still building —
-// there is no live traffic to chart yet.
 export function BuildInProgressChart() {
   return (
     <div className="flex flex-col gap-2 p-4 md:border-r border-gray-4">

@@ -64,8 +64,6 @@ export function ProductionDeploymentCard() {
     ? getDeploymentById(currentDeploymentId)
     : undefined;
 
-  // currentDeploymentId is null until the first production go-live, so fall back
-  // to the latest production deploy to surface a first build/failure.
   const productionEnvironmentId = environments.find((e) => e.slug === "production")?.id;
   const latestProductionDeployment = productionEnvironmentId
     ? deployments.find((d) => d.environmentId === productionEnvironmentId)
