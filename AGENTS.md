@@ -136,3 +136,63 @@ Report failed or skipped verification honestly.
 - Code quality: `docs/engineering/contributing/quality/code-quality.mdx`.
 - Testing: `docs/engineering/contributing/quality/testing/index.mdx`.
 - Documentation: `docs/engineering/contributing/quality/documentation.mdx`.
+
+## Cursor Cloud specific instructions
+
+The startup update script already runs `dev/install-mise`, `mise install`, and
+`mise run install-web`, so the pinned toolchain and `web/` deps are ready. The
+notes below are the non-obvious caveats for running the stack.
+
+### mise / PATH
+
+- `mise` lives at `$HOME/.local/bin/mise` and is not on `PATH` by default in
+ non-login shells. Use the full path, or `eval "$(mise activate bash --shims)"`,
+ or prefix tool commands with `mise exec -- <tool>` (e.g. `mise exec -- bazel`).
+ `mise run <task>` works without activation.
+
+### Docker (required, not auto-started)
+
+- Docker Engine is installed but the daemon is not running on boot. Start it
+ once per session: `sudo dockerd > /tmp/dockerd.log 2>&1 &` (best run in a
+ dedicated `tmux` session so it outlives the command).
+- The `ubuntu` user is added to the `docker` group, but shells started before
+ that change cannot reach the socket. Quick unblock:
+ `sudo chmod 666 /var/run/docker.sock`.
+- This is Docker 29; `/etc/docker/daemon.json` must set
+ `storage-driver: fuse-overlayfs` and `features.containerd-snapshotter: false`
+ for the VM kernel. If Docker fails to start with overlay errors, recreate that
+ file (and `update-alternatives --set iptables /usr/sbin/iptables-legacy`).
+
+### Running the full stack (dashboard + core key flows)
+
+- Lightest path is `mise run dashboard`, but it depends on `build` + `oci-load`,
+ which compile the entire Bazel graph (first run is long, ~15 min) and load 7
+ service images. The dashboard docker-compose only needs 4 of them, so to save
+ time you can build just those:
+ `mise exec -- bazel run //build/api:load` and likewise for `control-api`,
+ `control-worker`, and `vault`. The full `oci-load` also builds
+ `frontline`/`heimdall`/`krane`.
+- Then start infra and seed directly:
+ `docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait`
+ then `./bin/unkey dev seed local`, then `pnpm --dir=web/apps/dashboard dev`
+ (dashboard on `http://localhost:3000`).
+- The dashboard needs `web/apps/dashboard/.env`; create it with
+ `cp web/apps/dashboard/dev/.env.example web/apps/dashboard/.env`. Do NOT run
+ `mise run bootstrap` unattended; it is interactive and requires a Depot token.
+- `AUTH_PROVIDER="local"` makes the dashboard auto-authenticate into workspace
+ `ws_local` with no login screen.
+
+### Service ports
+
+- dashboard 3000, data-plane api 7070, ctrl-api 7091, vault 8060, restate
+ 8081/9070, mysql 3306, clickhouse 8123/9000, redis 6379.
+
+### Seeding and the data-plane API
+
+- `./bin/unkey dev seed local` prints a root key (and writes `dev/.env.seed`).
+ That root key is scoped to workspace `ws_local`. The seeded "project" does NOT
+ create a row in the `apis` table, so to exercise the data plane create an API
+ first: `POST /v2/keys`... use `/v2/apis.createApi`, then `/v2/keys.createKey`,
+ then `/v2/keys.verifyKey` (all on `http://localhost:7070`, bearer = root key).
+- The full `mise run dev` (Tilt + minikube) path is heavier, needs a Depot
+ token, and is not required for core key lifecycle work.
