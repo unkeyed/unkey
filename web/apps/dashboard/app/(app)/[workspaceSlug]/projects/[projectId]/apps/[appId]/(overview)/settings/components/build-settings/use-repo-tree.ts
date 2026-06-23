@@ -128,6 +128,13 @@ export function useRepoTree() {
       });
   }
 
+  function getDirectories(): string[] {
+    if (!tree) {
+      return [];
+    }
+    return tree.filter((entry) => entry.type === "tree").map((entry) => entry.path);
+  }
+
   return {
     branch,
     validatePath,
@@ -135,5 +142,6 @@ export function useRepoTree() {
     validateDockerfilePath,
     findDockerfileCaseMatch,
     getDockerfilesForContext,
+    getDirectories,
   };
 }

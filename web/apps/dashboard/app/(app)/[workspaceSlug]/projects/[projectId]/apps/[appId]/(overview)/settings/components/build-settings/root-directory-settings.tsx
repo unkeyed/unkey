@@ -1,6 +1,7 @@
+import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FolderLink } from "@unkey/icons";
-import { FormInput } from "@unkey/ui";
+import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -17,10 +18,9 @@ export const RootDirectory = () => {
   const { settings, variant } = useEnvironmentSettings();
   const { dockerContext: defaultValue } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
-  const { branch, validatePath, findCaseInsensitiveMatch } = useRepoTree();
+  const { branch, validatePath, findCaseInsensitiveMatch, getDirectories } = useRepoTree();
 
   const {
-    register,
     handleSubmit,
     formState: { isValid, isSubmitting, errors },
     control,
@@ -31,11 +31,30 @@ export const RootDirectory = () => {
     defaultValues: { dockerContext: defaultValue },
   });
 
-  const currentDockerContext = useWatch({ control, name: "dockerContext" });
+  const currentDockerContext = useWatch({ control, name: "dockerContext", defaultValue });
 
   const validation = validatePath(currentDockerContext, "tree");
   const caseMatch =
     validation === "invalid" ? findCaseInsensitiveMatch(currentDockerContext, "tree") : null;
+  const detectedDirectories = getDirectories();
+
+  const options = useMemo(
+    () => [
+      {
+        label: <span className="text-gray-11">Repository root (.)</span>,
+        selectedLabel: ".",
+        value: ".",
+        searchValue: "repository root .",
+      },
+      ...detectedDirectories.map((path) => ({
+        label: path,
+        selectedLabel: path,
+        value: path,
+        searchValue: path,
+      })),
+    ],
+    [detectedDirectories],
+  );
 
   const saveState = resolveSaveState([
     [isSubmitting, { status: "saving" }],
@@ -89,17 +108,24 @@ export const RootDirectory = () => {
       autoSave={variant === "onboarding"}
     >
       <SettingField>
-        <FormInput
+        <FormCombobox
           label="Root directory"
           requirement="required"
           description={
             warningMessage ??
             "Unkey detects and builds your app from this directory. For Dockerfile builds it is the build context. Changes apply on next deploy."
           }
+          options={options}
+          wrapperClassName="max-w-[calc(var(--setting-w)-1rem)]"
+          className="max-w-[calc(var(--setting-w)-1rem)]"
+          value={currentDockerContext}
+          onSelect={(val) => setValue("dockerContext", val, { shouldValidate: true })}
+          creatable
+          searchPlaceholder="Search or type a directory..."
+          emptyMessage={<div className="mt-2">No directories detected in repository</div>}
           placeholder="."
           error={errors.dockerContext?.message}
           variant={inputVariant}
-          {...register("dockerContext")}
         />
       </SettingField>
     </FormSettingCard>
