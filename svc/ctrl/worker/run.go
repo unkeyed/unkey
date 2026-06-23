@@ -432,11 +432,16 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", chAdminErr,
 			)
 		} else {
+			// Ingress-private: the workspace_id is the VO key with no caller
+			// authorization, so a public ingress call could (re)provision any
+			// tenant's ClickHouse user. This service is internal-only (no
+			// production ingress caller exists), matching the other internal
+			// services bound above.
 			restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
 				DB:         database,
 				Vault:      vaultClient,
 				Clickhouse: chAdmin,
-			})))
+			}), restate.WithIngressPrivate(true)))
 			logger.Info("ClickhouseUserService enabled")
 		}
 	}

@@ -20,6 +20,10 @@ import (
 // This service creates and configures ClickHouse users with appropriate
 // permissions, quotas, and row-level security policies for analytics access.
 // It uses the vault API for password encryption and stores credentials in MySQL.
+//
+// Internal-only: the workspace_id is taken from the virtual object key with no
+// caller authorization, so this service is bound ingress-private and must only
+// be invoked service-to-service, never from the public ingress.
 type ClickhouseUserServiceClient interface {
 	// ConfigureUser creates or updates a ClickHouse user for a workspace.
 	//
@@ -109,6 +113,10 @@ func (c *clickhouseUserServiceIngressClient) ConfigureUser() ingress.Requester[*
 // This service creates and configures ClickHouse users with appropriate
 // permissions, quotas, and row-level security policies for analytics access.
 // It uses the vault API for password encryption and stores credentials in MySQL.
+//
+// Internal-only: the workspace_id is taken from the virtual object key with no
+// caller authorization, so this service is bound ingress-private and must only
+// be invoked service-to-service, never from the public ingress.
 type ClickhouseUserServiceServer interface {
 	// ConfigureUser creates or updates a ClickHouse user for a workspace.
 	//
