@@ -143,6 +143,17 @@ The startup update script already runs `dev/install-mise`, `mise install`, and
 `mise run install-web`, so the pinned toolchain and `web/` deps are ready. The
 notes below are the non-obvious caveats for running the stack.
 
+### Commit co-author email
+
+- The startup update script also patches the Cursor-managed co-author hook
+ (`~/.cursor/agent-hooks/*/commit-msg.cursor.co-author`) to use GitHub's
+ canonical no-reply email `Flo <53355483+Flo4604@users.noreply.github.com>`
+ instead of the legacy `Flo <Flo4604@users.noreply.github.com>`. The legacy
+ form does not resolve to the GitHub account, which left the CLA bot pending.
+ Keep that line in the update script; the hook is `@cursor-managed` and can be
+ regenerated with the legacy email. The durable fix is to set the correct
+ email in Cursor account settings.
+
 ### mise / PATH
 
 - `mise` lives at `$HOME/.local/bin/mise` and is not on `PATH` by default in
