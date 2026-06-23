@@ -46,6 +46,7 @@ go_test(
     embed = [":ratelimit"],
     deps = [
         "//internal/services/ratelimit/db",
+        "//pkg/circuitbreaker",
         "//pkg/clock",
         "//pkg/counter",
         "//pkg/mysql",
