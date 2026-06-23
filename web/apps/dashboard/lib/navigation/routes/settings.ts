@@ -8,6 +8,8 @@
 import type { Route } from "next";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
+export type CheckoutIntent = "compute" | "api" | "payment";
+
 export const settingsRoutes = {
   general({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/general", { workspaceSlug });
@@ -34,8 +36,12 @@ export const settingsRoutes = {
       return buildRoute("/[workspaceSlug]/settings/billing/stripe/portal", { workspaceSlug });
     },
 
-    checkout({ workspaceSlug }: WorkspaceScope): Route {
-      return buildRoute("/[workspaceSlug]/settings/billing/stripe/checkout", { workspaceSlug });
+    checkout({ workspaceSlug, intent }: WorkspaceScope & { intent?: CheckoutIntent }): Route {
+      return buildRoute(
+        "/[workspaceSlug]/settings/billing/stripe/checkout",
+        { workspaceSlug },
+        intent ? { intent } : undefined,
+      );
     },
   },
 };

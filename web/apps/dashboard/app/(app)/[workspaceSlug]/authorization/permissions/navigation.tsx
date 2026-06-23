@@ -2,6 +2,7 @@
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Plus, ShieldKey } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -19,10 +20,15 @@ export function Navigation() {
     <>
       <Navbar className="w-full flex justify-between">
         <Navbar.Breadcrumbs icon={<ShieldKey />} className="flex-1 w-full">
-          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/authorization/roles`}>
+          <Navbar.Breadcrumbs.Link
+            href={routes.authorization.roles({ workspaceSlug: workspace.slug })}
+          >
             Authorization
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/authorization/permissions`} active>
+          <Navbar.Breadcrumbs.Link
+            href={routes.authorization.permissions({ workspaceSlug: workspace.slug })}
+            active
+          >
             Permissions
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
