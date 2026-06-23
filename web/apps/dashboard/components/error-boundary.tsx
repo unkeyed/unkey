@@ -1,4 +1,5 @@
 "use client";
+import * as Sentry from "@sentry/nextjs";
 import { Component, type ReactNode } from "react";
 
 type ErrorBoundaryProps = {
@@ -23,6 +24,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Tree layout error:", error, errorInfo);
+
+    // Report render errors caught by this boundary to Sentry. Without this,
+    // any error caught here is swallowed (shown as a fallback) and never
+    // surfaces in error tracking. The component stack is attached as React
+    // context so the failing subtree is identifiable.
+    Sentry.captureException(error, {
+      contexts: {
+        react: { componentStack: errorInfo.componentStack },
+      },
+    });
   }
 
   reset = () => {

@@ -1,4 +1,5 @@
 "use client";
+import { routes } from "@/lib/navigation/routes";
 import { Button, Empty } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 
@@ -21,7 +22,7 @@ export function NotFoundState({
         <Button
           variant="default"
           onClick={() => {
-            router.push("/");
+            router.push(routes.workspaces.root());
           }}
         >
           Go Back

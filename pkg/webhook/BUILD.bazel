@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "webhook",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "metrics.go",
+        "receiver.go",
+        "typed.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/webhook",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/logger",
+        "//pkg/prometheus/lazy",
+        "@com_github_prometheus_client_golang//prometheus",
+    ],
+)
+
+go_test(
+    name = "webhook_test",
+    srcs = ["webhook_test.go"],
+    embed = [":webhook"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

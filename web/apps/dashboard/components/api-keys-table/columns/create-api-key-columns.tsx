@@ -136,7 +136,10 @@ const KeyIdCell = ({
                   <Link
                     title="View details for identity"
                     className="font-mono group-hover:underline decoration-dotted"
-                    href={`/${workspaceSlug}/identities/${keyData.identity_id}`}
+                    href={routes.identities.detail({
+                      workspaceSlug,
+                      identityId: keyData.identity_id,
+                    })}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

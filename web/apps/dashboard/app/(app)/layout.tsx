@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import type { Route } from "next";
 
 import { LoadingState } from "@/components/loading-state";
+import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
@@ -65,7 +66,7 @@ function ImpersonationBanner() {
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, workspace, isLoading, error } = useWorkspace();
+  const { user, workspace, isLoading, error, workspaceMissing } = useWorkspace();
   // The app onboarding flow is a focused full-screen experience without the sidebar.
   const isAppOnboarding = /\/projects\/[^/]+\/apps\/new$/.test(pathname);
 
@@ -88,17 +89,14 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
-    // Handle workspace not found errors - redirect to setup
-    const isWorkspaceNotFound = error?.data?.code === "NOT_FOUND";
-
     // Handle cases where user needs workspace setup
     // Case 1: User exists but no orgId or role (incomplete setup)
-    // Case 2: Workspace not found error (WorkOS org without workspace, or no organization)
-    if (user && (!user.orgId || isWorkspaceNotFound)) {
-      router.push("/new");
+    // Case 2: No workspace exists for the org (WorkOS org without workspace)
+    if (user && (!user.orgId || workspaceMissing)) {
+      router.push(routes.workspaces.create());
       return;
     }
-  }, [user, isLoading, error, router]);
+  }, [user, isLoading, error, workspaceMissing, router]);
 
   // Show loading state while checking authentication and workspace
   if (isLoading || !user || !workspace) {

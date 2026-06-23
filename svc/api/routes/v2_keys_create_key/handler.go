@@ -22,9 +22,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 )
 
 type (
@@ -69,23 +72,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 3. Permission check
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
-	))
-	if err != nil {
-		return err
-	}
-
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -105,6 +91,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return fault.New("api not found",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("api belongs to different workspace"), fault.Public("The specified API was not found."),
+		)
+	}
+
+	// 3. Permission check. Creating a key is authorized against the keyspace
+	// because the key does not exist until after the operation succeeds. The
+	// tuple legs accept legacy API-scoped grants until those are migrated.
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   req.ApiId,
+			Action:       rbac.CreateKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateKey,
+		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
+			permissions.CreateKey{},
+		),
+	))
+	if err != nil {
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Api.NotFound.URN(),
+			"The specified API was not found.",
 		)
 	}
 
@@ -176,9 +189,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.EncryptKey,
 			}),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(keySpace.ID).Key("*"), permissions.EncryptKey{}),
 		))
 		if err != nil {
-			return err
+			return apierrors.MaskInsufficientPermissionsAsNotFound(
+				err,
+				codes.Data.Api.NotFound.URN(),
+				"The specified API was not found.",
+			)
 		}
 
 		if !keySpace.StoreEncryptedKeys {

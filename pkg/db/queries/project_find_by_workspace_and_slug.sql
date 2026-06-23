@@ -1,4 +1,4 @@
--- name: FindProjectByWorkspaceSlug :one
+-- name: FindProjectByWorkspaceAndSlug :one
 SELECT
     id,
     workspace_id,

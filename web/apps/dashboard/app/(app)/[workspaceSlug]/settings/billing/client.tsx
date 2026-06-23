@@ -16,6 +16,7 @@ import type Stripe from "stripe";
 import { BillingContainer } from "./billing-container";
 import { CancelAlert } from "./components/cancel-alert";
 import { CancelPlan } from "./components/cancel-plan";
+import { ADMIN_ONLY_TOOLTIP } from "./components/constants";
 import { CurrentPlanCard } from "./components/current-plan-card";
 import { FreeTierAlert } from "./components/free-tier-alert";
 import { PlanSelectionModal } from "./components/plan-selection-modal";
@@ -23,8 +24,6 @@ import { SubscriptionStatus } from "./components/subscription-status";
 import { Usage } from "./components/usage";
 
 const MAX_QUOTA = 150000;
-
-const ADMIN_ONLY_TOOLTIP = "Admin access required to manage billing";
 
 export const Client: React.FC = () => {
   const router = useRouter();

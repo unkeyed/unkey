@@ -30,6 +30,7 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/auth/sign-up",
     "/auth/sso-callback",
     "/auth/oauth-sign-in",
+    "/auth/continue",
     "/auth/join",
     "/join",
     "/join/success",
@@ -47,6 +48,25 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     // session and verifies a server-signed `state` HMAC.
     "/integrations/domain-connect/callback",
   ];
+
+  // Signed-in users get bounced away from the sign-in/sign-up pages. This
+  // used to live in the auth layout, but setting the session cookie in a
+  // server action re-renders that layout mid-flow, so its redirect raced
+  // ahead of the action's own navigation (e.g. the invite flow's
+  // /join/success) and flashed the dashboard. Only document GETs are
+  // bounced here; server-action POSTs pass through untouched.
+  const isAuthEntryPath =
+    url.pathname.startsWith("/auth/sign-in") || url.pathname.startsWith("/auth/sign-up");
+  if (isAuthEntryPath && req.method === "GET" && isEnabled()) {
+    try {
+      const { session } = await authMiddleware(req);
+      if (session) {
+        return NextResponse.redirect(new URL("/apis", url));
+      }
+    } catch (_error) {
+      // Fall through to render the auth page
+    }
+  }
 
   // Check if the current path is in the public paths list
   const isPublicPath = (path: string) => {
@@ -74,10 +94,21 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // API routes are fetched programmatically, so redirecting them to the
+  // sign-in page hands an HTML document to a JSON client (tRPC throws
+  // `Unexpected token '<'` when a query fires after the session ended).
+  // Every route under /api enforces its own auth and returns a JSON 401
+  // (tRPC via requireUser, the rest explicitly), so let them through and
+  // fail with a proper JSON error instead.
+  const isApiPath = url.pathname.startsWith("/api/");
+
   try {
     const { session, headers } = await authMiddleware(req);
 
     if (!session) {
+      if (isApiPath) {
+        return NextResponse.next();
+      }
       const signInUrl = new URL(SIGN_IN_URL, url);
       const currentPath = url.pathname + url.search;
       if (currentPath && currentPath !== "/") {
@@ -112,6 +143,9 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     return response;
   } catch (error) {
     console.error("Middleware error:", error);
+    if (isApiPath) {
+      return NextResponse.next();
+    }
     const signInUrl = new URL(SIGN_IN_URL, url);
     const currentPath = url.pathname + url.search;
     if (currentPath && currentPath !== "/") {

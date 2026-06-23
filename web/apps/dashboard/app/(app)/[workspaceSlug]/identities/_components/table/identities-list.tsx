@@ -7,6 +7,7 @@ import {
   useIdentitiesQuery,
 } from "@/components/identities-table";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { BookBookmark } from "@unkey/icons";
 import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
@@ -54,7 +55,9 @@ export const IdentitiesList = () => {
     (identity: Identity | null) => {
       if (identity) {
         setSelectedIdentity(identity);
-        router.push(`/${workspace.slug}/identities/${identity.id}`);
+        router.push(
+          routes.identities.detail({ workspaceSlug: workspace.slug, identityId: identity.id }),
+        );
       } else {
         setSelectedIdentity(null);
       }

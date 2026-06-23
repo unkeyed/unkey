@@ -30,19 +30,11 @@ func TestPreconditionError(t *testing.T) {
 
 	h.Register(route)
 
-	// Create API manually
+	// Create API manually with a stale keyspace reference. Only callers with
+	// create_key on that keyspace may learn that the API is not set up for keys.
 	keySpaceID := uid.New(uid.KeySpacePrefix)
-	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-		ID:            keySpaceID,
-		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false, String: ""},
-		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
-	})
-	require.NoError(t, err)
-
 	apiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
+	err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
 		ID:          apiID,
 		Name:        "test-api",
 		WorkspaceID: h.Resources().UserWorkspace.ID,
@@ -53,7 +45,11 @@ func TestPreconditionError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key", "api.*.encrypt_key")
+	rootKey := h.CreateRootKey(
+		h.Resources().UserWorkspace.ID,
+		createKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
+		encryptKeyPermission(h.Resources().UserWorkspace.ID, keySpaceID),
+	)
 
 	// Set up request headers
 	headers := http.Header{

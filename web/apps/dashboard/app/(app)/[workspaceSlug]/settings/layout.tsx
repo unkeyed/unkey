@@ -12,6 +12,7 @@ const ITEMS = [
   { segment: "team", label: "Team", getHref: routes.settings.team },
   { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
+  { segment: "security", label: "Security", getHref: routes.settings.security },
 ] as const;
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
