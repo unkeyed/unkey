@@ -36,6 +36,17 @@ func (s *Service) WakeDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is not stopped"))
 	}
 
+	environment, err := db.Query.FindEnvironmentById(ctx, s.db.RO(), deployment.EnvironmentID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
+	}
+	if environment.Slug == "production" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("production deployments cannot be woken"))
+	}
+
 	logger.Info("waking stopped deployment", "deployment_id", deploymentID)
 	_, err = s.deploymentClient(deploymentID).
 		WakeDeployment().

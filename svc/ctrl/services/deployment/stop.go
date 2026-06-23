@@ -33,6 +33,14 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
+	err = assert.All(
+		assert.Equal(deployment.Status, db.DeploymentsStatusReady, "deployment is not running"),
+		assert.Equal(deployment.DesiredState, db.DeploymentsDesiredStateRunning, "deployment is not running"),
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
 	environment, err := db.Query.FindEnvironmentById(ctx, s.db.RO(), deployment.EnvironmentID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -42,9 +50,7 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 	}
 
 	err = assert.All(
-		assert.Equal(deployment.Status, db.DeploymentsStatusReady, "deployment is not running"),
 		assert.NotEqual(environment.Slug, "production", "production deployments cannot be stopped"),
-		assert.Equal(deployment.DesiredState, db.DeploymentsDesiredStateRunning, "deployment is not running"),
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)

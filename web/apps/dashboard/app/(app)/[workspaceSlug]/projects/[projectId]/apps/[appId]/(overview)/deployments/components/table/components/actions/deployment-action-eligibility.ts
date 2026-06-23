@@ -67,7 +67,7 @@ export function getDeploymentActionEligibility(
   // Cancel: available for any in-flight deployment.
   const canCancel = isCancellableDeploymentStatus(status);
   const canStop = isNonProduction && status === "ready";
-  const canWake = status === "stopped";
+  const canWake = isNonProduction && status === "stopped";
 
   return { canRollback, canPromote, canRedeploy, canCancel, canStop, canWake };
 }

@@ -147,7 +147,7 @@ describe("getDeploymentActionEligibility", () => {
       },
     },
     {
-      name: "stopped → wake and redeploy",
+      name: "stopped + preview → wake and redeploy",
       ctx: {
         ...baseCtx,
         selectedDeployment: { id: "dep-1", status: "stopped" as const },
@@ -160,6 +160,21 @@ describe("getDeploymentActionEligibility", () => {
         canCancel: false,
         canStop: false,
         canWake: true,
+      },
+    },
+    {
+      name: "stopped + production → redeploy only",
+      ctx: {
+        ...baseCtx,
+        selectedDeployment: { id: "dep-1", status: "stopped" as const },
+      },
+      expected: {
+        canRollback: false,
+        canPromote: false,
+        canRedeploy: true,
+        canCancel: false,
+        canStop: false,
+        canWake: false,
       },
     },
   ] as const;

@@ -36,12 +36,26 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 		return nil, restate.TerminalError(fmt.Errorf("deployment is not stopped"), 400)
 	}
 
+	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
+		return db.Query.FindEnvironmentById(runCtx, w.db.RO(), deployment.EnvironmentID)
+	}, restate.WithName("find environment for wake"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, restate.TerminalError(fmt.Errorf("environment not found"), 404)
+		}
+		return nil, fmt.Errorf("failed to load environment: %w", err)
+	}
+	if environment.Slug == "production" {
+		return nil, restate.TerminalError(fmt.Errorf("production deployments cannot be woken"), 400)
+	}
+
 	_, err = hydrav1.NewDeploymentServiceClient(ctx, deploymentID).
 		ScheduleDesiredStateChange().
 		Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: 0,
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING,
+				Overwrite:   true,
 			},
 		)
 	if err != nil {
