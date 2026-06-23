@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "stripe",
+    srcs = [
+        "clock.go",
+        "grants.go",
+        "invoices.go",
+        "reset.go",
+        "stripe.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/dev/stripe",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/cli",
+        "//pkg/db",
+        "//pkg/tui",
+        "@com_github_stripe_stripe_go_v86//:stripe-go",
+    ],
+)
