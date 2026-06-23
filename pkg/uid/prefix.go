@@ -19,7 +19,7 @@ const (
 	AuditLogPrefix            Prefix = "log"
 	CorrelationPrefix         Prefix = "cor"
 	InstancePrefix            Prefix = "ins"
-	SentinelPrefix            Prefix = "s"
+	FrontlinePrefix           Prefix = "fl"
 	CiliumNetworkPolicyPrefix Prefix = "net"
 	ClusterPrefix             Prefix = "cls"
 	RegionPrefix              Prefix = "rgn"
