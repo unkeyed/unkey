@@ -14,6 +14,7 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
 import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
@@ -24,12 +25,20 @@ import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-e
 import { MetadataCell } from "./components/metadata-cell";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
 
-function GitHubLink({ href, children }: { href: string | undefined; children: React.ReactNode }) {
+function GitHubLink({
+  href,
+  children,
+  className,
+}: {
+  href: string | undefined;
+  children: React.ReactNode;
+  className?: string;
+}) {
   if (!href) {
-    return children;
+    return <span className={className}>{children}</span>;
   }
   return (
-    <DottedLink href={href} external>
+    <DottedLink href={href} external className={cn("min-w-0", className)}>
       {children}
     </DottedLink>
   );
@@ -94,8 +103,8 @@ export function ActiveDeploymentCard({
   return (
     <Card className="flex flex-col">
       <div className="px-4 pt-3 pb-2.5">
-        <div className="flex w-full justify-between items-center gap-4">
-          <div className="flex items-baseline gap-2">
+        <div className="flex w-full justify-between items-center gap-4 min-w-0">
+          <div className="flex items-baseline gap-2 shrink-0">
             <span className="font-mono text-[13px] text-accent-12 font-semibold shrink-0">
               {deployment.id}
             </span>
@@ -106,9 +115,12 @@ export function ActiveDeploymentCard({
               />
             )}
           </div>
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-end gap-3 min-w-0 flex-1">
             {deployment.gitCommitMessage && (
-              <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
+              <GitHubLink
+                href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}
+                className="flex items-center min-w-0"
+              >
                 <div className="flex items-center gap-1.5 min-w-0">
                   <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
                   <span className="text-xs text-accent-12 truncate">
@@ -118,9 +130,11 @@ export function ActiveDeploymentCard({
               </GitHubLink>
             )}
             {showLastExit && deployment.lastExit && (
-              <LastExitBadge lastExit={deployment.lastExit} />
+              <div className="shrink-0">
+                <LastExitBadge lastExit={deployment.lastExit} />
+              </div>
             )}
-            {statusBadge}
+            {statusBadge && <div className="shrink-0">{statusBadge}</div>}
           </div>
         </div>
       </div>

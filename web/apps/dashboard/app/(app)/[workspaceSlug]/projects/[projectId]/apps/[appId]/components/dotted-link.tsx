@@ -1,6 +1,7 @@
 "use client";
 
 import { CopyButton } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
 
@@ -15,21 +16,22 @@ type DottedLinkProps = {
   children: React.ReactNode;
 };
 
-export function DottedLink({
-  href,
-  copyValue,
-  external,
-  className = DEFAULT_LINK_CLASS,
-  children,
-}: DottedLinkProps) {
+export function DottedLink({ href, copyValue, external, className, children }: DottedLinkProps) {
+  const linkClassName = cn(DEFAULT_LINK_CLASS, className);
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       {external ? (
-        <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        <a href={href} target="_blank" rel="noopener noreferrer" className={linkClassName}>
           {children}
         </a>
       ) : (
-        <Link href={href as Route} target="_blank" rel="noopener noreferrer" className={className}>
+        <Link
+          href={href as Route}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClassName}
+        >
           {children}
         </Link>
       )}
