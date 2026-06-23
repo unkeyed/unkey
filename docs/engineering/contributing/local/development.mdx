@@ -112,9 +112,12 @@ mise run down
 
 ## Environment configuration
 
+Dashboard environment variables live in `web/apps/dashboard/.env`. The
+bootstrap task creates the file from `web/apps/dashboard/.env.example`.
+
 ### Local authentication
 
-Set local auth mode in your `.env` file:
+Set local auth mode in `web/apps/dashboard/.env`:
 
 ```plaintext
 AUTH_PROVIDER="local"
@@ -123,6 +126,8 @@ AUTH_PROVIDER="local"
 ### Optional services
 
 WorkOS authentication:
+
+Add WorkOS credentials to `web/apps/dashboard/.env`:
 
 ```plaintext
 AUTH_PROVIDER="workos"
