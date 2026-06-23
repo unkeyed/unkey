@@ -52,9 +52,6 @@ export const env = () =>
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.string().optional(),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
 
-      NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: z.string().optional(),
-      CLOUDFLARE_TURNSTILE_SECRET_KEY: z.string().optional(),
-
       // Sentry configuration
       SENTRY_DISABLED: z
         .string()
@@ -121,6 +118,11 @@ const stripeSchema = z.object({
   STRIPE_LOOKUP_DEPLOY_METER_MEMORY: z.string().optional(),
   STRIPE_LOOKUP_DEPLOY_METER_EGRESS: z.string().optional(),
   STRIPE_LOOKUP_DEPLOY_METER_DISK: z.string().optional(),
+  // Dev/test only: create Stripe customers under a test clock so the billing
+  // lifecycle can be time-traveled (advance the clock, invoices finalize for
+  // real, PDFs exist). Requires a test-mode key; see
+  // `unkey dev stripe clock` for advancing clocks and fetching invoices.
+  STRIPE_DEV_TEST_CLOCK: z.string().optional(),
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);

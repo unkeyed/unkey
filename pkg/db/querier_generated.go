@@ -2939,6 +2939,18 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, db DBTX, arg ResetCustomDomainVerificationParams) error
+	// Clears every billing linkage on a workspace, returning it to the Free
+	// tier. Mirrors what the customer.subscription.deleted webhook writes, plus
+	// stripe_customer_id, which no webhook ever clears. Used by the
+	// `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
+	//
+	//  UPDATE `workspaces`
+	//  SET stripe_customer_id = NULL,
+	//      stripe_subscription_id = NULL,
+	//      deploy_plan = NULL,
+	//      tier = 'Free'
+	//  WHERE id = ?
+	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`
@@ -3307,6 +3319,28 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateProjectDepotID(ctx context.Context, db DBTX, arg UpdateProjectDepotIDParams) error
+	// Overwrites every column of a workspace's quota row (team included, unlike
+	// UpsertQuota whose ON DUPLICATE KEY UPDATE leaves it untouched). Callers pass a
+	// full set of values, so it fits full resets like `unkey dev stripe reset`:
+	// resetting only the core quotas would leave a paid tier's elevated rate-limit
+	// and Deploy-resource allowances behind.
+	//
+	//  UPDATE quota
+	//  SET requests_per_month = ?,
+	//      audit_logs_retention_days = ?,
+	//      logs_retention_days = ?,
+	//      team = ?,
+	//      ratelimit_api_limit = ?,
+	//      ratelimit_api_duration = ?,
+	//      allocated_cpu_millicores_total = ?,
+	//      allocated_memory_mib_total = ?,
+	//      allocated_storage_mib_total = ?,
+	//      max_cpu_millicores_per_instance = ?,
+	//      max_memory_mib_per_instance = ?,
+	//      max_storage_mib_per_instance = ?,
+	//      max_concurrent_builds = ?
+	//  WHERE workspace_id = ?
+	UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`

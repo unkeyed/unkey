@@ -4,6 +4,7 @@ import { Logomark } from "@/components/logomark";
 import { useSidebar } from "@/components/ui/sidebar";
 import { type BreadcrumbDescriptor, useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Menu } from "@unkey/icons";
 import Link from "next/link";
 import { Fragment } from "react";
@@ -30,7 +31,11 @@ export function TopNav() {
       className="flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4"
       style={{ height: TOP_NAV_HEIGHT }}
     >
-      <Link href={`/${workspace.slug}`} aria-label="Unkey" className="inline-flex items-center">
+      <Link
+        href={routes.workspaces.overview({ workspaceSlug: workspace.slug })}
+        aria-label="Unkey"
+        className="inline-flex items-center"
+      >
         <Logomark />
       </Link>
       <div className="flex min-w-0 items-center gap-1">

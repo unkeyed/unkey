@@ -9,11 +9,20 @@ export async function GET(request: NextRequest) {
   if (!authResult.success) {
     if (
       (authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED ||
-        authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED) &&
+        authResult.code === AuthErrorCode.EMAIL_VERIFICATION_REQUIRED ||
+        "challengeType" in authResult) &&
       authResult.cookies &&
       authResult.cookies?.length > 0 // make typescript happy
     ) {
-      const url = new URL(SIGN_IN_URL, request.url);
+      // Org selection goes through /auth/continue, which auto-selects the
+      // last used organization server-side before falling back to the
+      // manual selector.
+      const url = new URL(
+        authResult.code === AuthErrorCode.ORGANIZATION_SELECTION_REQUIRED
+          ? "/auth/continue"
+          : SIGN_IN_URL,
+        request.url,
+      );
 
       // Preserve the redirect URL from OAuth state for deep link support
       const state = request.nextUrl.searchParams.get("state");
@@ -49,13 +58,22 @@ export async function GET(request: NextRequest) {
         url.searchParams.set("verify", "email");
       }
 
+      // Render the matching MFA/Radar challenge component; the data needed to
+      // complete the challenge travels in the HttpOnly cookies set below.
+      if ("challengeType" in authResult) {
+        url.searchParams.set("challenge", authResult.challengeType);
+      }
+
       const response = NextResponse.redirect(url);
 
       return await setCookiesOnResponse(response, authResult.cookies);
     }
 
-    // Handle other errors
-    return NextResponse.redirect(new URL(SIGN_IN_URL, request.url));
+    // Surface the failure (e.g. a Radar block) on the sign-in page instead of
+    // bouncing to a bare form with no explanation.
+    const errorUrl = new URL(SIGN_IN_URL, request.url);
+    errorUrl.searchParams.set("error", authResult.code);
+    return NextResponse.redirect(errorUrl);
   }
 
   // Get base URL from request because Next.js wants it

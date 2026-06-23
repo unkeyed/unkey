@@ -1,7 +1,7 @@
 "use client";
 
 import { FadeIn } from "@/components/landing/fade-in";
-import { deleteLastUsedOrgCookie, getCookie } from "@/lib/auth/cookies-actions";
+import { getCookie } from "@/lib/auth/cookies-actions";
 import {
   AuthErrorCode,
   PENDING_SESSION_COOKIE,
@@ -9,13 +9,16 @@ import {
   errorMessages,
 } from "@/lib/auth/types";
 import { ArrowRight } from "@unkey/icons";
-import { Empty, Loading } from "@unkey/ui";
+import { Empty, Loading, toast } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { completeOrgSelection } from "../../actions";
 import { ErrorBanner, WarnBanner } from "../../banners";
+import { MfaChallenge } from "../../challenge/mfa-challenge";
+import { MfaEnroll } from "../../challenge/mfa-enroll";
+import { RadarEmailChallenge } from "../../challenge/radar-email-challenge";
+import { RadarSmsChallenge } from "../../challenge/radar-sms-challenge";
 import { SignInProvider } from "../../context/signin-context";
 import { useSignIn } from "../../hooks";
 import { EmailCode } from "../email-code";
@@ -23,7 +26,7 @@ import { EmailSignIn } from "../email-signin";
 import { EmailVerify } from "../email-verify";
 import { OAuthSignIn } from "../oauth-signin";
 import { OrgSelector } from "../org-selector";
-import { consumeRedirectUrl, resolveRedirectUrl, saveRedirectUrl } from "../redirect-utils";
+import { saveRedirectUrl } from "../redirect-utils";
 
 function SignInContent() {
   const {
@@ -32,6 +35,7 @@ function SignInContent() {
     error,
     email,
     hasPendingAuth,
+    loading: pendingAuthLoading,
     orgs,
     handleSignInViaEmail,
     setError,
@@ -39,9 +43,18 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const verifyParam = searchParams?.get("verify");
+  const challengeParam = searchParams?.get("challenge");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
   const redirectParam = searchParams?.get("redirect");
+  const orgsParam = searchParams?.get("orgs");
+  // Error surfaced via redirect (e.g. a Radar block on the OAuth callback,
+  // which has no client action to set context error). Map the code to its
+  // message, falling back to the generic one for unknown codes.
+  const errorParam = searchParams?.get("error");
+  const urlError = errorParam
+    ? (errorMessages[errorParam as AuthErrorCode] ?? errorMessages[AuthErrorCode.UNKNOWN_ERROR])
+    : null;
   const [lastUsedOrgId, setLastUsedOrgId] = useState<string | undefined>(undefined);
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
@@ -54,12 +67,21 @@ function SignInContent() {
       saveRedirectUrl(redirectParam);
     }
   }, [redirectParam]);
-  const hasAttemptedSignIn = useRef(false);
-  const hasAttemptedAutoOrgSelection = useRef(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAutoSelecting, setIsAutoSelecting] = useState(false);
 
-  // Set clientReady to true after hydration
+  // Errors arriving via redirect (e.g. a Radar block on the OAuth callback)
+  // are surfaced as a toast, matching how every other flow shows them.
+  useEffect(() => {
+    if (urlError) {
+      toast.error(urlError);
+    }
+  }, [urlError]);
+  const hasAttemptedSignIn = useRef(false);
+  // Used while the invitation auto sign-in sends its code
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Set clientReady to true after hydration. The last-used org is only used
+  // to highlight the matching entry in the manual org selector; automatic
+  // selection happens server-side in /auth/continue before users land here.
   useEffect(() => {
     getCookie(UNKEY_LAST_ORG_COOKIE)
       .then((value) => {
@@ -72,61 +94,8 @@ function SignInContent() {
       })
       .finally(() => {
         setClientReady(true);
-        // Only set isLoading to false if we don't have pending auth
-        // (if we do, the auto-selection effect will handle loading state)
-        if (!hasPendingAuth) {
-          setIsLoading(false);
-        }
       });
-  }, [hasPendingAuth]);
-
-  // Handle auto org selection when returning from OAuth
-  useEffect(() => {
-    if (!clientReady || !hasPendingAuth || hasAttemptedAutoOrgSelection.current) {
-      return;
-    }
-
-    if (lastUsedOrgId) {
-      hasAttemptedAutoOrgSelection.current = true;
-      setIsLoading(true);
-      setIsAutoSelecting(true);
-
-      completeOrgSelection(lastUsedOrgId)
-        .then((result) => {
-          if (!result.success) {
-            // Auto-selection failed - clear last used workspace to prevent retry loop
-            deleteLastUsedOrgCookie().catch(() => {
-              // Ignore cookie deletion errors
-            });
-
-            setError(result.message);
-            setIsLoading(false);
-            setIsAutoSelecting(false);
-            return;
-          }
-          // On success, redirect to the original deep link or dashboard
-          // Use window.location.href for a full page load to avoid stale client state
-          // Fall back to sessionStorage if the URL param was lost (Safari)
-          const deepLink = redirectParam || consumeRedirectUrl();
-          const resolvedUrl = resolveRedirectUrl(deepLink, result.workspaceSlug);
-          window.location.href = resolvedUrl || result.redirectTo;
-        })
-        .catch((_err) => {
-          // Clear last used workspace on error
-          deleteLastUsedOrgCookie().catch(() => {
-            // Ignore cookie deletion errors
-          });
-
-          setError("Failed to automatically sign in. Please select your workspace.");
-          setIsLoading(false);
-          setIsAutoSelecting(false);
-        });
-    } else {
-      // No lastUsedOrgId, so we need to show the org selector manually
-      hasAttemptedAutoOrgSelection.current = true;
-      setIsLoading(false);
-    }
-  }, [clientReady, hasPendingAuth, setError, lastUsedOrgId, redirectParam]);
+  }, []);
 
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
@@ -196,21 +165,22 @@ function SignInContent() {
     return () => clearInterval(interval);
   }, [clientReady, hasPendingAuth, router, setError]);
 
-  if (isAutoSelecting || isLoading) {
-    let message = "Loading...";
-    if (isLoading) {
-      message = "Loading last workspace...";
-    }
+  // While the invitation auto sign-in sends its code, or while the pending
+  // session is being checked for an org-selection continuation, hold the
+  // form back to avoid flashing the wrong step.
+  if (isLoading || (orgsParam && pendingAuthLoading)) {
     return (
       <Empty>
         <Loading type="spinner" className="text-gray-6" />
-        <p className="text-sm text-white/60 mt-4">{message}</p>
+        <p className="text-sm text-white/60 mt-4">
+          {invitationToken ? "Signing you in..." : "Loading..."}
+        </p>
       </Empty>
     );
   }
 
-  // Only show org selector if we have pending auth and we're not actively auto-selecting
-  return hasPendingAuth && !isAutoSelecting ? (
+  // Show the org selector when /auth/continue could not auto-select an org
+  return hasPendingAuth ? (
     <OrgSelector organizations={orgs} lastOrgId={lastUsedOrgId} />
   ) : (
     <div className="flex flex-col gap-10">
@@ -228,7 +198,23 @@ function SignInContent() {
       )}
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
-      {isVerifying ? (
+      {challengeParam === "mfa" ? (
+        <FadeIn>
+          <MfaChallenge />
+        </FadeIn>
+      ) : challengeParam === "mfa-enroll" ? (
+        <FadeIn>
+          <MfaEnroll />
+        </FadeIn>
+      ) : challengeParam === "radar-email" ? (
+        <FadeIn>
+          <RadarEmailChallenge />
+        </FadeIn>
+      ) : challengeParam === "radar-sms" ? (
+        <FadeIn>
+          <RadarSmsChallenge />
+        </FadeIn>
+      ) : isVerifying ? (
         <FadeIn>
           <EmailCode invitationToken={invitationToken || undefined} />
         </FadeIn>
