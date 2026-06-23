@@ -13,8 +13,7 @@ export default function Overview() {
   const hasNoDeployments = !isDeploymentsLoading && deployments.length === 0;
 
   return (
-    // 52px is TOP_NAV_HEIGHT.
-    <PageContainer className={hasNoDeployments ? "min-h-[calc(100dvh-52px)]" : undefined}>
+    <PageContainer>
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>
@@ -22,22 +21,20 @@ export default function Overview() {
           </PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
-      {hasNoDeployments ? (
-        <PageBody className="flex-1">
+      <PageBody>
+        {hasNoDeployments ? (
           <CreateDeploymentButton
             renderTrigger={({ onClick }) => (
-              <ActiveDeploymentCardEmpty onCreateDeployment={onClick} className="h-full flex-1" />
+              <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />
             )}
           />
-        </PageBody>
-      ) : (
-        <PageBody>
+        ) : (
           <div className="flex flex-col gap-5">
             <ProductionDeploymentCard />
             <RecentDeployments />
           </div>
-        </PageBody>
-      )}
+        )}
+      </PageBody>
     </PageContainer>
   );
 }
