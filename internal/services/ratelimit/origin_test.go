@@ -10,9 +10,47 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+// timeoutError is a net.Error whose Timeout() reports true, mimicking the
+// socket-level i/o timeout the redis client surfaces when a deadline blows but
+// the error does not unwrap to context.DeadlineExceeded.
+type timeoutError struct{}
+
+func (timeoutError) Error() string   { return "read tcp: i/o timeout" }
+func (timeoutError) Timeout() bool   { return true }
+func (timeoutError) Temporary() bool { return true }
+
+// TestErrorReason asserts that errorReason keeps breaker short-circuits,
+// real timeouts, and other errors in separate reason buckets — the count of
+// circuit_open dwarfs the rest during a burst, so they must not collapse
+// together.
+func TestErrorReason(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"breaker tripped", circuitbreaker.ErrTripped, "circuit_open"},
+		{"breaker half-open", circuitbreaker.ErrTooManyRequests, "circuit_open"},
+		{"wrapped breaker trip", fmt.Errorf("fetch: %w", circuitbreaker.ErrTripped), "circuit_open"},
+		{"context deadline", context.DeadlineExceeded, "timeout"},
+		{"wrapped deadline", fmt.Errorf("get: %w", context.DeadlineExceeded), "timeout"},
+		{"socket i/o timeout", timeoutError{}, "timeout"},
+		{"redis error", errors.New("READONLY You can't write against a read only replica"), "other"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, errorReason(tt.err))
+		})
+	}
+}
 
 // TestRatelimit_FailsOverToLocalWhenOriginErrors asserts that when the origin
 // counter returns errors, Ratelimit still returns a decision based on local

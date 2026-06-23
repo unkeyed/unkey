@@ -198,23 +198,15 @@ var (
 	// RatelimitOriginErrors counts origin operations that returned an error
 	// (including circuit-breaker trips and hot-path timeouts).
 	//
-	// Labels:
-	//   - reason: "timeout" when the per-call deadline elapsed (e.g. the
-	//     150ms hot-path budget on fetch); "other" for any other error
-	//     surface (Redis returned an error, circuit breaker open, etc.).
-	//     Sustained timeouts on op="fetch_*" are alert-worthy: they mean
-	//     the rate-limit decision is falling back to local state because
-	//     Redis is slow, which loosens cross-node convergence.
-	//
-	// Example usage:
-	//   metrics.RatelimitOriginErrors.WithLabelValues("fetch_stale", "timeout").Inc()
-	//   metrics.RatelimitOriginErrors.WithLabelValues("sync", "other").Inc()
+	// reason: "circuit_open" (breaker short-circuit — dominates the count once
+	// open, not a real failure), "timeout" (deadline or socket timeout), or
+	// "other" (Redis/network error). For root cause, look at reason!="circuit_open".
 	RatelimitOriginErrors = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "origin_errors_total",
-			Help:      "Total number of origin operations that returned an error, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync) and reason (timeout|other).",
+			Help:      "Total number of origin operations that returned an error, labeled by op (fetch_cold|fetch_stale|fetch_strict|sync) and reason (circuit_open|timeout|other).",
 		},
 		[]string{"op", "reason"},
 	)
