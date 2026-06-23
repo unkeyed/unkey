@@ -167,6 +167,9 @@ func (c *Command) showFlags() {
 	for _, flag := range c.Flags {
 		c.showFlag(flag)
 	}
+	for _, group := range c.RequireOneOf {
+		fmt.Printf("   exactly one of --%s is required\n", strings.Join(group, " or --"))
+	}
 	fmt.Printf("\n")
 }
 
