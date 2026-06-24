@@ -17,8 +17,8 @@ const ERROR = "hsl(var(--error-9))";
 const ERROR_FILL = "hsl(var(--error-3))";
 
 const CHART_CONFIG: ChartConfig = {
-  total: { label: "Requests", color: BLUE },
-  errors: { label: "Errors", color: ERROR },
+  total: { label: "Requests / s", color: BLUE },
+  errors: { label: "Errors / s", color: ERROR },
 };
 
 // Hoisted so its identity is stable: a fresh object each render resets recharts' cursor.
@@ -47,8 +47,14 @@ function LegendStat({
   return (
     <span className="flex items-center gap-1.5 whitespace-nowrap tabular-nums">
       <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      <span className="text-gray-9">{label}</span>
-      <span className={cn("font-medium", alert ? "text-error-11" : "text-accent-12")}>{value}</span>
+      <span
+        className={cn(
+          "rounded-full bg-grayA-3 px-2 py-0.5 text-[13px] font-medium",
+          alert ? "text-error-11" : "text-accent-12",
+        )}
+      >
+        {value} {label}
+      </span>
     </span>
   );
 }
@@ -117,10 +123,10 @@ export function ProductionCardChart() {
         onActiveChange={setActive}
       />
       <div className="flex items-center gap-4 text-[13px]">
-        <LegendStat color={BLUE} label="Requests" value={formatBucketCount(reqValue)} />
+        <LegendStat color={BLUE} label="Requests / s" value={formatBucketCount(reqValue)} />
         <LegendStat
           color={ERROR}
-          label="Errors"
+          label="Errors / s"
           value={formatBucketCount(errValue)}
           alert={errValue > 0}
         />
