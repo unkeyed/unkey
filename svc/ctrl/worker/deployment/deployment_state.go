@@ -101,6 +101,10 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		return nil, restate.TerminalErrorf("unhandled state: %s", req.GetState())
 	}
 
+	// Guard and the desired-state write share one transaction so a concurrent
+	// promote cannot make this deployment the app's current one between the
+	// check and the write: the invariant is that we never change the desired
+	// state of the deployment that is currently serving the app.
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 			deployment, err := db.Query.FindDeploymentById(txCtx, tx, deploymentID)
@@ -116,35 +120,65 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 				return restate.TerminalErrorf("not allowed to modify the current deployment")
 			}
 
-			err = db.Query.UpdateDeploymentDesiredState(txCtx, tx, db.UpdateDeploymentDesiredStateParams{
+			return db.Query.UpdateDeploymentDesiredState(txCtx, tx, db.UpdateDeploymentDesiredStateParams{
 				ID:           deploymentID,
 				DesiredState: desiredState,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-			if err != nil {
-				return err
-			}
-
-			return nil
 		})
 	}, restate.WithName("updating desired state"))
 	if err != nil {
 		return nil, err
 	}
 
-	// Update all topology entries and insert deployment_changes so WatchDeployments picks up the change.
+	if err := applyTopologyDesiredStatus(ctx, v.db, deploymentID, topologyDesiredStatus); err != nil {
+		return nil, err
+	}
+
+	restate.Clear(ctx, transitionKey)
+
+	return &hydrav1.ChangeDesiredStateResponse{}, nil
+}
+
+// ApplyDesiredState writes a deployment's desired state and propagates it to
+// every region's topology, inserting deployment_changes so WatchDeployments
+// picks the change up. It performs no current-deployment guard: the
+// DeploymentService.ChangeDesiredState caller does that check atomically with
+// its own write, while Resume (DeployTeardownService) calls this to bring a
+// suspended deployment back to running while it is not yet current, so no guard
+// applies. Not for callers that need the guard.
+func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState db.DeploymentsDesiredState, topologyStatus db.DeploymentTopologyDesiredStatus) error {
+	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.Query.UpdateDeploymentDesiredState(runCtx, database.RW(), db.UpdateDeploymentDesiredStateParams{
+			ID:           deploymentID,
+			DesiredState: desiredState,
+			UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("updating desired state"))
+	if err != nil {
+		return err
+	}
+
+	return applyTopologyDesiredStatus(ctx, database, deploymentID, topologyStatus)
+}
+
+// applyTopologyDesiredStatus propagates a desired status to every region's
+// topology row and inserts a deployment_changes row per region so
+// WatchDeployments picks the change up. Shared by ChangeDesiredState (after its
+// atomic guard + desired-state write) and ApplyDesiredState.
+func applyTopologyDesiredStatus(ctx restate.ObjectContext, database db.Database, deploymentID string, topologyStatus db.DeploymentTopologyDesiredStatus) error {
 	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
-		return db.Query.FindDeploymentRegions(runCtx, v.db.RO(), deploymentID)
+		return db.Query.FindDeploymentRegions(runCtx, database.RO(), deploymentID)
 	}, restate.WithName("find deployment regions"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to find deployment regions: %w", err)
+		return fmt.Errorf("failed to find deployment regions: %w", err)
 	}
 
 	for _, region := range regions {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			return db.Tx(runCtx, database.RW(), func(txCtx context.Context, tx db.DBTX) error {
 				err := db.Query.UpdateDeploymentTopologyDesiredStatus(txCtx, tx, db.UpdateDeploymentTopologyDesiredStatusParams{
-					DesiredStatus: topologyDesiredStatus,
+					DesiredStatus: topologyStatus,
 					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 					DeploymentID:  deploymentID,
 					RegionID:      region.ID,
@@ -161,11 +195,9 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 			})
 		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {
-			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region.ID, err)
+			return fmt.Errorf("failed to update topology desired status in %s: %w", region.ID, err)
 		}
 	}
 
-	restate.Clear(ctx, transitionKey)
-
-	return &hydrav1.ChangeDesiredStateResponse{}, nil
+	return nil
 }

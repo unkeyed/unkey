@@ -28,6 +28,12 @@ service DeployTeardownService {
   // longer "current" and the DeploymentService guard permits the state change.
   // Idempotent: re-running on an already-drained workspace is a no-op.
   rpc Teardown(TeardownRequest) returns (TeardownResponse) {}
+
+  // Resume reverses a SUSPEND: it brings the workspace's suspended deployments
+  // back to running and restores each app's current deployment from the record
+  // Teardown(SUSPEND) saved. Idempotent: a no-op when the workspace was not
+  // suspended (no record).
+  rpc Resume(ResumeRequest) returns (ResumeResponse) {}
 }
 
 // TeardownMode selects the desired state the stopped deployments land in. Both
@@ -58,4 +64,11 @@ message TeardownResponse {
   // before the grace timeout. False means the grace timeout forced completion
   // with compute still draining (an alert was logged).
   bool drained = 2;
+}
+
+message ResumeRequest {}
+
+message ResumeResponse {
+  // DeploymentsResumed is how many deployments were returned to running.
+  int32 deployments_resumed = 1;
 }

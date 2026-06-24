@@ -41,7 +41,8 @@ type SpendBudgetProps = {
  * percentages of it, stopping workloads is a toggle). The bar spans the full
  * width like the usage meter above it, so the ticks line up; the Edit action
  * sits on the caption line below. Unset budget renders a one-line invitation
- * instead.
+ * instead. When the spend cap has paused compute, a warning banner sits above
+ * it.
  */
 export const SpendBudget: React.FC<SpendBudgetProps> = ({ isAdmin, usageCents }) => {
   const trpcUtils = trpc.useUtils();
@@ -73,6 +74,7 @@ export const SpendBudget: React.FC<SpendBudgetProps> = ({ isAdmin, usageCents })
 
   const currentBudget = budget?.budgetCents ?? null;
   const hasBudget = currentBudget !== null;
+  const suspended = budget?.suspended ?? false;
 
   const fraction =
     usageCents !== null && currentBudget
@@ -95,6 +97,17 @@ export const SpendBudget: React.FC<SpendBudgetProps> = ({ isAdmin, usageCents })
 
   return (
     <>
+      {suspended ? (
+        <div className="rounded-lg border border-warning-6 bg-warningA-2 px-4 py-3">
+          <span className="text-[11px] text-warning-11 uppercase tracking-wide">
+            Compute paused
+          </span>
+          <p className="mt-1 text-[13px] text-gray-12">
+            Compute is paused: spend cap reached. Raise or remove your budget and Compute
+            resumes automatically within about 15 minutes.
+          </p>
+        </div>
+      ) : null}
       {hasBudget ? (
         <div className="flex w-full flex-col gap-2">
           <div className="flex items-baseline justify-between gap-4">
