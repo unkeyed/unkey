@@ -12,6 +12,12 @@ export type Pulse = {
   latestTimestamp: number | undefined;
 };
 
+const WINDOW_LABEL: Record<WindowKey, string> = {
+  hour: "last hour",
+  day: "last day",
+  week: "last week",
+};
+
 type AppRpsMetrics = {
   range: WindowKey;
   totalRequests: number;
@@ -19,16 +25,7 @@ type AppRpsMetrics = {
 };
 
 function formatWindowLabel(data: AppRpsMetrics | undefined): string {
-  switch (data?.range) {
-    case "week":
-      return "requests last week";
-    case "day":
-      return "requests last day";
-    case "hour":
-      return "requests last hour";
-    default:
-      return "requests";
-  }
+  return data ? WINDOW_LABEL[data.range] : "";
 }
 
 export function buildPulse(data: AppRpsMetrics | undefined): Pulse {
