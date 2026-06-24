@@ -24,6 +24,23 @@ function isAreaChartPoint(value: unknown): value is AreaChartPoint {
   );
 }
 
+// Recharts v3 reports the hovered tick as `activeTooltipIndex`, not `activePayload`,
+// so look the point up by index.
+function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChartPoint | null {
+  if (typeof state !== "object" || state === null) {
+    return null;
+  }
+  const s = state as { activeTooltipIndex?: unknown; activeIndex?: unknown };
+  const raw = s.activeTooltipIndex ?? s.activeIndex;
+  const idx =
+    typeof raw === "number" ? raw : typeof raw === "string" ? Number.parseInt(raw, 10) : Number.NaN;
+  if (!Number.isInteger(idx) || idx < 0 || idx >= data.length) {
+    return null;
+  }
+  const candidate = data[idx];
+  return isAreaChartPoint(candidate) ? candidate : null;
+}
+
 // When the observed data covers less than this fraction of the caller's
 // window, we stop anchoring the x-axis and let it contract to the data's
 // extent. 7 days of axis with 20 minutes of data looks broken — better
@@ -68,6 +85,11 @@ type Props = {
   // 1h old), so the tick labels change visibly between windows.
   xAxisDomain?: [number, number];
   hideAxes?: boolean;
+  paleFill?: boolean;
+  fillColors?: Record<string, string>;
+  xAxisUTC?: boolean;
+  onActiveChange?: (point: AreaChartPoint | null) => void;
+  hideTooltip?: boolean;
 };
 
 export function AreaTimeseriesChart({
@@ -83,7 +105,15 @@ export function AreaTimeseriesChart({
   axisFloor = 1024,
   xAxisDomain,
   hideAxes,
+  paleFill,
+  fillColors,
+  xAxisUTC,
+  onActiveChange,
+  hideTooltip,
 }: Props) {
+  const handleActive = onActiveChange
+    ? (state: unknown) => onActiveChange(activePointFromState(state, data))
+    : undefined;
   const chartId = useId().replace(/:/g, "");
   const [shouldAnimate, setShouldAnimate] = useState(true);
   useEffect(() => {
@@ -162,7 +192,7 @@ export function AreaTimeseriesChart({
       ? [firstNonZeroTs, lastNonZeroTs]
       : undefined;
   const spanMs = useAnchoredDomain ? windowSpanMs : nonZeroSpanMs;
-  const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs);
+  const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs, xAxisUTC);
 
   // Explicit ticks at 0% / 33% / 66% / 100% of the anchored domain so the
   // user always sees the window's start and end labeled. Without this,
@@ -184,6 +214,8 @@ export function AreaTimeseriesChart({
     >
       <AreaChart
         data={data}
+        onMouseMove={handleActive}
+        onMouseLeave={onActiveChange ? () => onActiveChange(null) : undefined}
         margin={
           hideAxes
             ? { top: 4, right: 0, bottom: 0, left: 0 }
@@ -191,42 +223,54 @@ export function AreaTimeseriesChart({
         }
       >
         <defs>
-          {configKeys.map((key) => (
-            <linearGradient
-              key={`${chartId}-${key}`}
-              id={`${chartId}-${key}`}
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="1"
-            >
-              <stop offset="0%" stopColor={config[key].color} stopOpacity={0.45}>
-                <animate
-                  attributeName="stop-opacity"
-                  values="0.45;0.3;0.45"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="50%" stopColor={config[key].color} stopOpacity={0.2}>
-                <animate
-                  attributeName="stop-opacity"
-                  values="0.2;0.35;0.2"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="85%" stopColor={config[key].color} stopOpacity={0.08}>
-                <animate
-                  attributeName="stop-opacity"
-                  values="0.08;0.15;0.08"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </stop>
-              <stop offset="100%" stopColor={config[key].color} stopOpacity={0.03} />
-            </linearGradient>
-          ))}
+          {configKeys.map((key) => {
+            const fillColor = fillColors?.[key] ?? config[key].color;
+            return (
+              <linearGradient
+                key={`${chartId}-${key}`}
+                id={`${chartId}-${key}`}
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                {paleFill ? (
+                  <>
+                    <stop offset="0%" stopColor={fillColor} stopOpacity={0.85} />
+                    <stop offset="90%" stopColor={fillColor} stopOpacity={0.1} />
+                  </>
+                ) : (
+                  <>
+                    <stop offset="0%" stopColor={config[key].color} stopOpacity={0.45}>
+                      <animate
+                        attributeName="stop-opacity"
+                        values="0.45;0.3;0.45"
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                    </stop>
+                    <stop offset="50%" stopColor={config[key].color} stopOpacity={0.2}>
+                      <animate
+                        attributeName="stop-opacity"
+                        values="0.2;0.35;0.2"
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                    </stop>
+                    <stop offset="85%" stopColor={config[key].color} stopOpacity={0.08}>
+                      <animate
+                        attributeName="stop-opacity"
+                        values="0.08;0.15;0.08"
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                    </stop>
+                    <stop offset="100%" stopColor={config[key].color} stopOpacity={0.03} />
+                  </>
+                )}
+              </linearGradient>
+            );
+          })}
         </defs>
         {!hideAxes && (
           <CartesianGrid
@@ -271,7 +315,7 @@ export function AreaTimeseriesChart({
             strokeOpacity: 0.5,
           }}
           content={({ active, payload }) => {
-            if (!active || !payload?.length) {
+            if (hideTooltip || !active || !payload?.length) {
               return null;
             }
             const candidate = payload[0]?.payload;
@@ -322,22 +366,23 @@ export function AreaTimeseriesChart({
             );
           }}
         />
-        {configKeys.map((key) => (
-          <Area
-            key={`${key}-glow`}
-            dataKey={key}
-            type="monotone"
-            stroke={config[key].color}
-            strokeWidth={3.5}
-            strokeOpacity={0.12}
-            fill="none"
-            isAnimationActive={shouldAnimate}
-            animationDuration={500}
-            animationEasing="ease-out"
-            dot={false}
-            activeDot={false}
-          />
-        ))}
+        {!paleFill &&
+          configKeys.map((key) => (
+            <Area
+              key={`${key}-glow`}
+              dataKey={key}
+              type="monotone"
+              stroke={config[key].color}
+              strokeWidth={3.5}
+              strokeOpacity={0.12}
+              fill="none"
+              isAnimationActive={shouldAnimate}
+              animationDuration={500}
+              animationEasing="ease-out"
+              dot={false}
+              activeDot={false}
+            />
+          ))}
         {configKeys.map((key) => (
           <Area
             key={key}
@@ -446,15 +491,16 @@ function niceCeil(max: number): number {
 // looking at a multi-day window. Inferred from the data span so the chart
 // doesn't need the caller to pass the selected window explicitly.
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
-function formatXAxisTick(v: number, spanMs: number): string {
+function formatXAxisTick(v: number, spanMs: number, utc?: boolean): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
+  const tz: Intl.DateTimeFormatOptions = utc ? { timeZone: "UTC" } : {};
   const d = new Date(v);
   if (spanMs >= TWO_DAYS_MS) {
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", ...tz });
   }
-  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", ...tz });
 }
 
 function formatCompactInterval(
