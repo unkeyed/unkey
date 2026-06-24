@@ -3,7 +3,7 @@ required:
   - project
 properties:
   project:
-    "$ref": "../../../../common/ProjectIdentifier.yaml"
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
 additionalProperties: false
 examples:
   getById:

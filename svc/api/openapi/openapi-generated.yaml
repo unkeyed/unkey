@@ -1930,7 +1930,7 @@ components:
                 - project
             properties:
                 project:
-                    "$ref": "#/components/schemas/ProjectIdentifier"
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsDeleteProjectResponseBody:
             type: object
@@ -1949,7 +1949,7 @@ components:
                 - project
             properties:
                 project:
-                    "$ref": "#/components/schemas/ProjectIdentifier"
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsGetProjectResponseBody:
             type: object
@@ -2005,7 +2005,7 @@ components:
                 - project
             properties:
                 project:
-                    "$ref": "#/components/schemas/ProjectIdentifier"
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 slug:
                     "$ref": "#/components/schemas/ProjectSlug"
                 name:
@@ -3709,14 +3709,14 @@ components:
                         Always begins with 'proj_' followed by a unique alphanumeric sequence.
                     example: proj_1234abcd
             additionalProperties: false
-        ProjectIdentifier:
+        ResourceIdentifier:
             type: string
             minLength: 3
             maxLength: 255
             pattern: "^[a-zA-Z0-9_-]+$"
             description: |
-                Identifies a project by either its unique ID or its slug.
-                Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
+                Identifies a resource by either its unique ID or its slug.
+                Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug. The resource must exist within your workspace.
             example: proj_1234abcd
         Project:
             type: object

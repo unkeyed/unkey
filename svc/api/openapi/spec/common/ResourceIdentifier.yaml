@@ -1,0 +1,8 @@
+type: string
+minLength: 3
+maxLength: 255
+pattern: "^[a-zA-Z0-9_-]+$"
+description: |
+  Identifies a resource by either its unique ID or its slug.
+  Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug. The resource must exist within your workspace.
+example: proj_1234abcd

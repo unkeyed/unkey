@@ -362,10 +362,6 @@ type Project struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
-// ProjectIdentifier Identifies a project by either its unique ID or its slug.
-// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-type ProjectIdentifier = string
-
 // ProjectSlug URL-safe handle for the project, unique within your workspace.
 // Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
 // Must contain only letters, numbers, hyphens, and underscores.
@@ -459,6 +455,10 @@ type RatelimitResponse struct {
 	// Name Human-readable name for this rate limit.
 	Name string `json:"name"`
 }
+
+// ResourceIdentifier Identifies a resource by either its unique ID or its slug.
+// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug. The resource must exist within your workspace.
+type ResourceIdentifier = string
 
 // Role defines model for Role.
 type Role struct {
@@ -2101,9 +2101,9 @@ type V2ProjectsCreateProjectResponseData struct {
 
 // V2ProjectsDeleteProjectRequestBody defines model for V2ProjectsDeleteProjectRequestBody.
 type V2ProjectsDeleteProjectRequestBody struct {
-	// Project Identifies a project by either its unique ID or its slug.
-	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-	Project ProjectIdentifier `json:"project"`
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug. The resource must exist within your workspace.
+	Project ResourceIdentifier `json:"project"`
 }
 
 // V2ProjectsDeleteProjectResponseBody defines model for V2ProjectsDeleteProjectResponseBody.
@@ -2117,9 +2117,9 @@ type V2ProjectsDeleteProjectResponseBody struct {
 
 // V2ProjectsGetProjectRequestBody defines model for V2ProjectsGetProjectRequestBody.
 type V2ProjectsGetProjectRequestBody struct {
-	// Project Identifies a project by either its unique ID or its slug.
-	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-	Project ProjectIdentifier `json:"project"`
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug. The resource must exist within your workspace.
+	Project ResourceIdentifier `json:"project"`
 }
 
 // V2ProjectsGetProjectResponseBody defines model for V2ProjectsGetProjectResponseBody.
@@ -2163,9 +2163,9 @@ type V2ProjectsUpdateProjectRequestBody struct {
 	// Omit this field to leave the current name unchanged.
 	Name *string `json:"name,omitempty"`
 
-	// Project Identifies a project by either its unique ID or its slug.
-	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-	Project ProjectIdentifier `json:"project"`
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug. The resource must exist within your workspace.
+	Project ResourceIdentifier `json:"project"`
 
 	// Slug URL-safe handle for the project, unique within your workspace.
 	// Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
