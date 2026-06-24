@@ -15,7 +15,7 @@ UPDATE deployments d
 LEFT JOIN instances i ON i.deployment_id = d.id
 SET d.status = 'stopped', d.updated_at = ?
 WHERE d.id = ?
-  AND d.desired_state IN ('standby', 'archived')
+  AND d.desired_state = 'stopped'
   AND i.deployment_id IS NULL
 `
 
@@ -24,13 +24,15 @@ type StopDeploymentIfNoInstancesParams struct {
 	ID        string        `db:"id"`
 }
 
-// StopDeploymentIfNoInstances
+// StopDeploymentIfNoInstances finalizes a requested stop only after krane has
+// reported that no instances remain. The desired_state guard prevents stale
+// delete reports from marking a deployment stopped after it has been woken.
 //
 //	UPDATE deployments d
 //	LEFT JOIN instances i ON i.deployment_id = d.id
 //	SET d.status = 'stopped', d.updated_at = ?
 //	WHERE d.id = ?
-//	  AND d.desired_state IN ('standby', 'archived')
+//	  AND d.desired_state = 'stopped'
 //	  AND i.deployment_id IS NULL
 func (q *Queries) StopDeploymentIfNoInstances(ctx context.Context, db DBTX, arg StopDeploymentIfNoInstancesParams) error {
 	_, err := db.ExecContext(ctx, stopDeploymentIfNoInstances, arg.UpdatedAt, arg.ID)

@@ -47,3 +47,8 @@ jobs:
     schedule: "0 * * * *"
     urlPath: "hydra.v1.CronService/$(date -u +%Y-%m)/RunDeployBillingPush/send"
     idempotencyKey: "deploy-billing-push-$(date -u +%Y-%m-%dT%H)"
+
+  idle-preview-deployments:
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.CronService/idle-preview-deployments/RunScaleDownIdlePreviewDeployments/send"
+    idempotencyKey: "idle-preview-deployments-$(date -u +%Y-%m-%dT%H:%M)"

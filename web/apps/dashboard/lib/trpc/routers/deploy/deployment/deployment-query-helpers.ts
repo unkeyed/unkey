@@ -16,6 +16,7 @@ export const deploymentSelectFields = {
   forkRepositoryFullName: deployments.forkRepositoryFullName,
   image: deployments.image,
   status: deployments.status,
+  desiredState: deployments.desiredState,
   trigger: deployments.trigger,
   triggeredBy: deployments.triggeredBy,
   triggerReason: deployments.triggerReason,

@@ -154,6 +154,7 @@ go_library(
         "deployment_list_by_environment_id_and_status.sql_generated.go",
         "deployment_list_older_active_for_dedup.sql_generated.go",
         "deployment_list_progressing_by_environment.sql_generated.go",
+        "deployment_list_running_by_branch.sql_generated.go",
         "deployment_status.go",
         "deployment_step_delete_by_environment.sql_generated.go",
         "deployment_step_end.sql_generated.go",
