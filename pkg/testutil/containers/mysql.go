@@ -228,6 +228,8 @@ func schemaPath() string {
 		}
 	}
 
+	// Main's sourceRepoRoot helper supersedes the runtime.Caller dir-walking
+	// this branch used: both resolve the same pkg/mysql/schema directory.
 	repoRoot := sourceRepoRoot()
 	return filepath.Join(repoRoot, "pkg", "mysql", "schema")
 }
