@@ -29,10 +29,14 @@ func TestGetEnvironmentValidationErrors(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing environmentId", req: handler.Request{}},
-		{name: "environmentId too short", req: handler.Request{EnvironmentId: "env_1"}},
-		{name: "environmentId invalid chars", req: handler.Request{EnvironmentId: "env-1234abc"}},
-		{name: "environmentId too long", req: handler.Request{EnvironmentId: strings.Repeat("a", 256)}},
+		{name: "missing all", req: handler.Request{}},
+		{name: "missing environment", req: handler.Request{Project: "payments", App: "payments-api"}},
+		{name: "missing app", req: handler.Request{Project: "payments", Environment: "env_1234abcd"}},
+		{name: "missing project", req: handler.Request{App: "payments-api", Environment: "env_1234abcd"}},
+		{name: "environment invalid chars", req: handler.Request{Project: "payments", App: "payments-api", Environment: "env.1234"}},
+		{name: "environment too long", req: handler.Request{Project: "payments", App: "payments-api", Environment: strings.Repeat("a", 256)}},
+		{name: "app invalid chars", req: handler.Request{Project: "payments", App: "pay.app", Environment: "env_1234abcd"}},
+		{name: "project invalid chars", req: handler.Request{Project: "pay.ments", App: "payments-api", Environment: "env_1234abcd"}},
 	}
 
 	for _, tc := range testCases {

@@ -40,9 +40,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	environment, err := db.Query.FindEnvironmentByWorkspaceAndId(ctx, h.DB.RO(), db.FindEnvironmentByWorkspaceAndIdParams{
+	row, err := db.Query.FindEnvironmentByAppAndIdOrSlug(ctx, h.DB.RO(), db.FindEnvironmentByAppAndIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
-		ID:          req.EnvironmentId,
+		Project:     req.Project,
+		App:         req.App,
+		Environment: req.Environment,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -60,6 +62,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve environment."),
 		)
 	}
+
+	environment := row.Environment
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{

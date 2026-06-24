@@ -53,18 +53,33 @@ func TestGetEnvironmentSuccessfully(t *testing.T) {
 		Description: "Production environment",
 	})
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		EnvironmentId: environment.ID,
-	})
-	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-	require.NotEmpty(t, res.Body.Meta.RequestId)
-	require.Equal(t, environment.ID, res.Body.Data.Id)
-	require.True(t, strings.HasPrefix(res.Body.Data.Id, "env_"), "id should have env_ prefix: %s", res.Body.Data.Id)
-	require.Equal(t, project.ID, res.Body.Data.ProjectId)
-	require.Equal(t, app.ID, res.Body.Data.AppId)
-	require.Equal(t, "production", res.Body.Data.Slug)
-	require.Equal(t, "Production environment", res.Body.Data.Description)
-	require.False(t, res.Body.Data.DeleteProtection)
-	require.Greater(t, res.Body.Data.CreatedAt, int64(0))
-	require.Zero(t, res.Body.Data.UpdatedAt, "never-updated environment should have zero (omitted) updatedAt")
+	for _, tc := range []struct {
+		name        string
+		project     string
+		app         string
+		environment string
+	}{
+		{name: "by ids", project: project.ID, app: app.ID, environment: environment.ID},
+		{name: "by slugs", project: projectSlug, app: appSlug, environment: "production"},
+		{name: "mixed ids and slugs", project: project.ID, app: appSlug, environment: environment.ID},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+				Project:     tc.project,
+				App:         tc.app,
+				Environment: tc.environment,
+			})
+			require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+			require.NotEmpty(t, res.Body.Meta.RequestId)
+			require.Equal(t, environment.ID, res.Body.Data.Id)
+			require.True(t, strings.HasPrefix(res.Body.Data.Id, "env_"), "id should have env_ prefix: %s", res.Body.Data.Id)
+			require.Equal(t, project.ID, res.Body.Data.ProjectId)
+			require.Equal(t, app.ID, res.Body.Data.AppId)
+			require.Equal(t, "production", res.Body.Data.Slug)
+			require.Equal(t, "Production environment", res.Body.Data.Description)
+			require.False(t, res.Body.Data.DeleteProtection)
+			require.Greater(t, res.Body.Data.CreatedAt, int64(0))
+			require.Zero(t, res.Body.Data.UpdatedAt, "never-updated environment should have zero (omitted) updatedAt")
+		})
+	}
 }

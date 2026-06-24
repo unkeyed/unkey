@@ -559,6 +559,17 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
+	//FindEnvironmentByAppAndIdOrSlug
+	//
+	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
+	//  FROM environments e
+	//  JOIN apps a ON a.id = e.app_id
+	//  JOIN projects p ON p.id = a.project_id
+	//  WHERE p.workspace_id = ?
+	//    AND (p.id = ? OR p.slug = ?)
+	//    AND (a.id = ? OR a.slug = ?)
+	//    AND (e.id = ? OR e.slug = ?)
+	FindEnvironmentByAppAndIdOrSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppAndIdOrSlugParams) (FindEnvironmentByAppAndIdOrSlugRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments

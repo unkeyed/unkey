@@ -27,7 +27,7 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 	}
 
 	t.Run("unknown environment id returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{EnvironmentId: uid.New(uid.EnvironmentPrefix)})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: uid.New(uid.ProjectPrefix), App: uid.New(uid.AppPrefix), Environment: uid.New(uid.EnvironmentPrefix)})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -58,7 +58,7 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 			Description: "Theirs",
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{EnvironmentId: otherEnvironment.ID})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: otherProject.ID, App: otherApp.ID, Environment: otherEnvironment.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace environment, received: %s", res.RawBody)
 	})
 }

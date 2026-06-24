@@ -22,11 +22,20 @@ post:
         schema:
           "$ref": "./V2EnvironmentsGetEnvironmentRequestBody.yaml"
         examples:
-          basic:
-            summary: Retrieve an environment by ID
-            description: Fetch a single environment using its unique identifier
+          getById:
+            summary: Retrieve by environment ID
+            description: Fetch an environment using its unique identifier
             value:
-              environmentId: env_1234abcd
+              project: payments
+              app: payments-api
+              environment: env_1234abcd
+          getBySlug:
+            summary: Retrieve by environment slug
+            description: Fetch an environment using its slug
+            value:
+              project: payments
+              app: payments-api
+              environment: production
     required: true
   responses:
     "200":

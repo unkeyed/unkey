@@ -1022,9 +1022,17 @@ type V2DeployGitCommit struct {
 
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
 type V2EnvironmentsGetEnvironmentRequestBody struct {
-	// EnvironmentId Specifies which environment to retrieve by its unique identifier.
-	// Must be a valid environment ID that begins with 'env_' and exists within your workspace.
-	EnvironmentId string `json:"environmentId"`
+	// App Identifies the parent app, by either its unique ID or its slug.
+	// Required to resolve the environment, since environment slugs are only unique within an app.
+	App string `json:"app"`
+
+	// Environment Identifies which environment to retrieve, by either its unique ID or its slug.
+	// Accepts an environment ID that begins with 'env_' or an environment slug. The environment must exist within the specified app.
+	Environment string `json:"environment"`
+
+	// Project Identifies the parent project, by either its unique ID or its slug.
+	// Required to resolve the app, since app slugs are only unique within a project.
+	Project string `json:"project"`
 }
 
 // V2EnvironmentsGetEnvironmentResponseBody defines model for V2EnvironmentsGetEnvironmentResponseBody.

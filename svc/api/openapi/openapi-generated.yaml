@@ -595,16 +595,36 @@ components:
         V2EnvironmentsGetEnvironmentRequestBody:
             type: object
             required:
-                - environmentId
+                - project
+                - app
+                - environment
             properties:
-                environmentId:
+                project:
                     type: string
-                    minLength: 8
+                    minLength: 1
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z0-9_-]+$"
                     description: |
-                        Specifies which environment to retrieve by its unique identifier.
-                        Must be a valid environment ID that begins with 'env_' and exists within your workspace.
+                        Identifies the parent project, by either its unique ID or its slug.
+                        Required to resolve the app, since app slugs are only unique within a project.
+                    example: payments
+                app:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_-]+$"
+                    description: |
+                        Identifies the parent app, by either its unique ID or its slug.
+                        Required to resolve the environment, since environment slugs are only unique within an app.
+                    example: payments-api
+                environment:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_-]+$"
+                    description: |
+                        Identifies which environment to retrieve, by either its unique ID or its slug.
+                        Accepts an environment ID that begins with 'env_' or an environment slug. The environment must exist within the specified app.
                     example: env_1234abcd
             additionalProperties: false
         V2EnvironmentsGetEnvironmentResponseBody:

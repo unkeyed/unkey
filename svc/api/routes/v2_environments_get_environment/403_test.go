@@ -70,7 +70,9 @@ func TestGetEnvironmentForbidden(t *testing.T) {
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				EnvironmentId: environment.ID,
+				Project:     project.ID,
+				App:         app.ID,
+				Environment: environment.ID,
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
@@ -132,8 +134,8 @@ func TestGetEnvironmentExistenceNotLeaked(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{EnvironmentId: environment.ID})
-	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{EnvironmentId: missingID})
+	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Project: project.ID, App: app.ID, Environment: environment.ID})
+	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Project: project.ID, App: app.ID, Environment: missingID})
 
 	require.Equal(t, http.StatusNotFound, realRes.Status, "real environment should look not-found, got: %s", realRes.RawBody)
 	require.Equal(t, http.StatusNotFound, missingRes.Status, "missing environment should be not-found, got: %s", missingRes.RawBody)
