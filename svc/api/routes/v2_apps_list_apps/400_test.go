@@ -33,7 +33,7 @@ func TestListAppsValidationErrors(t *testing.T) {
 		req  handler.Request
 	}{
 		{name: "missing project", req: handler.Request{Limit: ptr.P(10)}},
-		{name: "project invalid chars", req: handler.Request{Project: "Payments_Service"}},
+		{name: "project invalid chars", req: handler.Request{Project: "payments.service"}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 257)}},
 		{name: "limit below minimum", req: handler.Request{Project: validProject, Limit: ptr.P(0)}},
 		{name: "limit above maximum", req: handler.Request{Project: validProject, Limit: ptr.P(101)}},

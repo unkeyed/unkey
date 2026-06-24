@@ -811,7 +811,8 @@ type V2AppsListAppsRequestBody struct {
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
 
-	// Project Slug of the parent project this app belongs to, unique within your workspace.
+	// Project Identifies the parent project whose apps to list, by either its unique ID or its slug.
+	// Accepts a project ID that begins with 'proj_' or a project slug.
 	Project string `json:"project"`
 }
 

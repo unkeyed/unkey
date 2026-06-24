@@ -5,9 +5,11 @@ properties:
   project:
     type: string
     minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-    description: Slug of the parent project this app belongs to, unique within your workspace.
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_-]+$"
+    description: |
+      Identifies the parent project whose apps to list, by either its unique ID or its slug.
+      Accepts a project ID that begins with 'proj_' or a project slug.
     example: payments-service
   limit:
     type: integer
@@ -25,11 +27,16 @@ properties:
     example: app_1234abcd
 additionalProperties: false
 examples:
-  basic:
-    summary: List a project's apps
-    description: List the first page of apps in the given project
+  byProjectSlug:
+    summary: List a project's apps by slug
+    description: List the first page of apps, locating the project by its slug
     value:
       project: payments-service
+  byProjectId:
+    summary: List a project's apps by ID
+    description: List the first page of apps, locating the project by its ID
+    value:
+      project: proj_1234abcd
   paginated:
     summary: Paginate with a smaller page size
     description: Fetch a smaller page and continue from a cursor

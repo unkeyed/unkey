@@ -59,6 +59,16 @@ func TestListAppsSuccessfully(t *testing.T) {
 		seeded[app.ID] = slug
 	}
 
+	t.Run("lists seeded apps by project id", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Len(t, res.Body.Data, len(seeded))
+		for _, a := range res.Body.Data {
+			_, ok := seeded[a.Id]
+			require.True(t, ok, "unexpected app %s in response", a.Id)
+		}
+	})
+
 	t.Run("lists seeded apps with populated fields", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
