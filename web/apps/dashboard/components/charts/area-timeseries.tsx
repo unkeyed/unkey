@@ -6,8 +6,10 @@ import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useId, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { resolveXAxisDomain } from "./chart-domain";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
+import { formatBucketInterval } from "./format-interval";
 
 export type AreaChartPoint = { originalTimestamp: number } & {
   [k: string]: number | undefined;
@@ -40,14 +42,6 @@ function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChart
   const candidate = data[idx];
   return isAreaChartPoint(candidate) ? candidate : null;
 }
-
-// When the observed data covers less than this fraction of the caller's
-// window, we stop anchoring the x-axis and let it contract to the data's
-// extent. 7 days of axis with 20 minutes of data looks broken — better
-// to show that 20 minutes clearly and let the axis labels indicate the
-// real span. 0.15 = 15% is the gut-check minimum for "this looks full
-// enough to anchor".
-const SPARSE_COVERAGE_THRESHOLD = 0.15;
 
 // Fixed horizontal gutter on the left of every chart. When the Y-axis is
 // shown this is its reserved width; when hidden, the AreaChart's left
@@ -84,6 +78,13 @@ type Props = {
   // always reads as 24h of x-axis even when the deployment is only
   // 1h old), so the tick labels change visibly between windows.
   xAxisDomain?: [number, number];
+  // Opt in to contracting the x-axis to the non-zero data extent when that
+  // data sparsely covers `xAxisDomain` (see [resolveXAxisDomain]). Off by
+  // default: an explicit window is honored as-is, so a header that commits to
+  // it (e.g. "requests this week") never disagrees with the axis. The
+  // deployment resource panels turn this on, where a brand-new deployment with
+  // minutes of data on a multi-day axis reads as broken.
+  contractOnSparseData?: boolean;
   hideAxes?: boolean;
   paleFill?: boolean;
   fillColors?: Record<string, string>;
@@ -104,6 +105,7 @@ export function AreaTimeseriesChart({
   formatYTick = formatYAxisCompactBytes,
   axisFloor = 1024,
   xAxisDomain,
+  contractOnSparseData,
   hideAxes,
   paleFill,
   fillColors,
@@ -151,16 +153,10 @@ export function AreaTimeseriesChart({
   const yTicks = [0, top / 3, (2 * top) / 3, top];
   const yDomain: [number, number] = [0, top];
 
-  // Use the caller's xAxisDomain only when non-zero data covers enough of
-  // it to read as a real trend ("Past week" with 5 days of non-zero data
-  // → anchor to the week). When non-zero coverage is too thin ("Past
-  // week" with 20 minutes of non-zero data on a new deployment) fall
-  // back to the non-zero extent so the handful of real points span the
-  // visible width instead of being swallowed by the WITH FILL padding.
-  //
-  // We specifically look at non-zero samples because ClickHouse's WITH
-  // FILL pads every bucket in the window; using total data extent here
-  // would always report 100% coverage.
+  // Bounds of the non-zero samples (not the raw data extent). resolveXAxisDomain
+  // needs these to decide whether the data sparsely covers the window; we scan
+  // for non-zero because ClickHouse's WITH FILL pads every bucket, so the raw
+  // extent would always look full.
   let firstNonZeroTs: number | undefined;
   let lastNonZeroTs: number | undefined;
   for (const p of data) {
@@ -169,29 +165,12 @@ export function AreaTimeseriesChart({
       lastNonZeroTs = p.originalTimestamp;
     }
   }
-  const nonZeroSpanMs =
-    firstNonZeroTs !== undefined && lastNonZeroTs !== undefined
-      ? Math.max(0, lastNonZeroTs - firstNonZeroTs)
-      : 0;
-  const windowSpanMs = xAxisDomain ? xAxisDomain[1] - xAxisDomain[0] : 0;
-  const coverage = windowSpanMs > 0 ? nonZeroSpanMs / windowSpanMs : 0;
-  // Stay anchored in two cases: genuine coverage above the threshold, or
-  // a degenerate non-zero span (single bucket, or no non-zero data) that
-  // would otherwise contract to a zero-width domain. Keeping the window
-  // axis in that case gives the single dot a full frame to sit in
-  // instead of disappearing.
-  const useAnchoredDomain =
-    xAxisDomain && (coverage >= SPARSE_COVERAGE_THRESHOLD || nonZeroSpanMs < 60_000);
-  // When we fall back to non-zero extent, we explicitly use the non-zero
-  // bounds rather than ["dataMin", "dataMax"] — otherwise recharts
-  // widens the axis to include the zero-filled padding rows and the
-  // sparse data collapses into the right-hand sliver again.
-  const effectiveDomain: [number, number] | undefined = useAnchoredDomain
-    ? xAxisDomain
-    : firstNonZeroTs !== undefined && lastNonZeroTs !== undefined
-      ? [firstNonZeroTs, lastNonZeroTs]
-      : undefined;
-  const spanMs = useAnchoredDomain ? windowSpanMs : nonZeroSpanMs;
+  const { effectiveDomain, spanMs } = resolveXAxisDomain({
+    xAxisDomain,
+    contractOnSparseData,
+    firstNonZeroTs,
+    lastNonZeroTs,
+  });
   const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs, xAxisUTC);
 
   // Explicit ticks at 0% / 33% / 66% / 100% of the anchored domain so the
@@ -513,20 +492,5 @@ function formatCompactInterval(
   }
   const idx = data.findIndex((p) => p.originalTimestamp === startTs);
   const nextTs = idx >= 0 ? data[idx + 1]?.originalTimestamp : undefined;
-  const start = new Date(startTs);
-  const end = typeof nextTs === "number" ? new Date(nextTs) : null;
-  const timeFmt: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
-  const dateFmt: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  const startStr = withDate
-    ? `${start.toLocaleDateString(undefined, dateFmt)}, ${start.toLocaleTimeString(undefined, timeFmt)}`
-    : start.toLocaleTimeString(undefined, timeFmt);
-  if (!end) {
-    return startStr;
-  }
-  const sameDay = start.toDateString() === end.toDateString();
-  const endStr =
-    withDate && !sameDay
-      ? `${end.toLocaleDateString(undefined, dateFmt)}, ${end.toLocaleTimeString(undefined, timeFmt)}`
-      : end.toLocaleTimeString(undefined, timeFmt);
-  return `${startStr} – ${endStr}`;
+  return formatBucketInterval(startTs, typeof nextTs === "number" ? nextTs : undefined, withDate);
 }

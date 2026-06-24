@@ -13,9 +13,10 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useId, useMemo } from "react";
 import { Bar, BarChart } from "recharts";
-import type { ValueParts } from "./area-timeseries-chart";
+import type { ValueParts } from "./area-timeseries";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
+import { formatBucketInterval } from "./format-interval";
 
 export type TooltipValueParts = ValueParts;
 
@@ -214,23 +215,7 @@ function formatCompactInterval(
   if (typeof startTs !== "number" || !Number.isFinite(startTs)) {
     return "";
   }
-  const start = new Date(startTs);
-  const nextTs = findNextTimestamp(startTs, data);
-  const end = typeof nextTs === "number" ? new Date(nextTs) : null;
-  const timeFmt: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
-  const dateFmt: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  const startStr = withDate
-    ? `${start.toLocaleDateString(undefined, dateFmt)}, ${start.toLocaleTimeString(undefined, timeFmt)}`
-    : start.toLocaleTimeString(undefined, timeFmt);
-  if (!end) {
-    return startStr;
-  }
-  const sameDay = start.toDateString() === end.toDateString();
-  const endStr =
-    withDate && !sameDay
-      ? `${end.toLocaleDateString(undefined, dateFmt)}, ${end.toLocaleTimeString(undefined, timeFmt)}`
-      : end.toLocaleTimeString(undefined, timeFmt);
-  return `${startStr} – ${endStr}`;
+  return formatBucketInterval(startTs, findNextTimestamp(startTs, data), withDate);
 }
 
 function findNextTimestamp(

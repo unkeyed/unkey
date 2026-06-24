@@ -1,14 +1,11 @@
 "use client";
 
+import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
 import type { ChartConfig } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { Loading, Skeleton } from "@unkey/ui";
 import { useMemo, useState } from "react";
-import {
-  type AreaChartPoint,
-  AreaTimeseriesChart,
-} from "../../deployments/[deploymentId]/network/unkey-flow/components/overlay/node-details-panel/components/chart/area-timeseries-chart";
 import { formatStamp } from "./g-pulse";
 import { useProductionCard } from "./production-card-context";
 

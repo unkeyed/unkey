@@ -45,56 +45,36 @@ describe("selectEnvironmentRequestsQuery", () => {
     });
   });
 
-  test("5m interval, range day, at one hour", () => {
-    expect(selectEnvironmentRequestsQuery(now - hourMs, now)).toMatchObject({
-      range: "day",
-      interval: "5m",
-      bucketMs: 5 * minuteMs,
-    });
-  });
-
-  test("5m interval, range day, at six hours", () => {
-    expect(selectEnvironmentRequestsQuery(now - 6 * hourMs, now)).toMatchObject({
-      range: "day",
-      interval: "5m",
-      bucketMs: 5 * minuteMs,
-    });
-  });
-
-  test("15m interval, range day, at twelve hours", () => {
-    expect(selectEnvironmentRequestsQuery(now - 12 * hourMs, now)).toMatchObject({
-      range: "day",
-      interval: "15m",
+  test("range day spans a full 24 hours from just over an hour through a day", () => {
+    // The day tier is a single 24h/15m window with no overlapping sub-tiers:
+    // every lifetime in (1h, 24h] resolves to the same range, interval, and grid.
+    const expected = {
+      range: "day" as const,
+      interval: "15m" as const,
       bucketMs: 15 * minuteMs,
-    });
+      startTimeMs: now - dayMs,
+      endTimeMs: now,
+    };
+    expect(selectEnvironmentRequestsQuery(now - hourMs, now)).toEqual(expected);
+    expect(selectEnvironmentRequestsQuery(now - 12 * hourMs, now)).toEqual(expected);
+    expect(selectEnvironmentRequestsQuery(now - dayMs, now)).toEqual(expected);
   });
 
-  test("15m interval, range day, at one day", () => {
-    expect(selectEnvironmentRequestsQuery(now - dayMs, now)).toMatchObject({
-      range: "day",
-      interval: "15m",
-      bucketMs: 15 * minuteMs,
-    });
-  });
-
-  test("15m interval, range week, just after one day", () => {
-    expect(selectEnvironmentRequestsQuery(now - dayMs - 1, now)).toMatchObject({
+  test("range week spans a full seven days once an app is older than a day", () => {
+    // Regression: an app aged just over a day showed the "this week" header
+    // over a 2-day window. The week tier must always span 7 days so the label
+    // and the data agree. Buckets before the app existed fill as zeros.
+    expect(selectEnvironmentRequestsQuery(now - dayMs - 1, now)).toEqual({
       range: "week",
-      interval: "15m",
-      bucketMs: 15 * minuteMs,
+      interval: "1h",
+      bucketMs: hourMs,
+      startTimeMs: now - 7 * dayMs,
+      endTimeMs: now,
     });
   });
 
-  test("15m interval, range week, at two days", () => {
+  test("1h interval, range week, at two days", () => {
     expect(selectEnvironmentRequestsQuery(now - 2 * dayMs, now)).toMatchObject({
-      range: "week",
-      interval: "15m",
-      bucketMs: 15 * minuteMs,
-    });
-  });
-
-  test("1h interval, range week, just after two days", () => {
-    expect(selectEnvironmentRequestsQuery(now - 2 * dayMs - 1, now)).toMatchObject({
       range: "week",
       interval: "1h",
       bucketMs: hourMs,
