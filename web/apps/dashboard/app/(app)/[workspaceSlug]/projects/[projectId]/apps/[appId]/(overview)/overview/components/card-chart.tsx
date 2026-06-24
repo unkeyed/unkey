@@ -118,10 +118,10 @@ export function ProductionCardChart() {
         onActiveChange={setActive}
       />
       <div className="flex items-center gap-4 text-[13px]">
-        <LegendStat color={BLUE} label="Requests" value={formatNumber(reqValue)} />
+        <LegendStat color={BLUE} label="Requests /s" value={formatNumber(reqValue)} />
         <LegendStat
           color={ERROR}
-          label="Errors"
+          label="Errors /s"
           value={formatNumber(errValue)}
           alert={errValue > 0}
         />
