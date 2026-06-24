@@ -1,14 +1,12 @@
 "use client";
 
+import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
 import type { ChartConfig } from "@/components/ui/chart";
+import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import { Loading, Skeleton } from "@unkey/ui";
 import { useMemo, useState } from "react";
-import {
-  type AreaChartPoint,
-  AreaTimeseriesChart,
-} from "../../deployments/[deploymentId]/network/unkey-flow/components/overlay/node-details-panel/components/chart/area-timeseries-chart";
-import { formatBucketCount, formatCount, formatStamp } from "./g-pulse";
+import { formatStamp } from "./g-pulse";
 import { useProductionCard } from "./production-card-context";
 
 const BLUE = "hsl(var(--activity))";
@@ -17,8 +15,8 @@ const ERROR = "hsl(var(--error-9))";
 const ERROR_FILL = "hsl(var(--error-3))";
 
 const CHART_CONFIG: ChartConfig = {
-  total: { label: "Requests", color: BLUE },
-  errors: { label: "Errors", color: ERROR },
+  total: { label: "Requests/s", color: BLUE },
+  errors: { label: "Errors/s", color: ERROR },
 };
 
 // Hoisted so its identity is stable: a fresh object each render resets recharts' cursor.
@@ -30,7 +28,7 @@ function formatCountYTick(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
     return "";
   }
-  return formatBucketCount(v);
+  return formatNumber(v);
 }
 
 function LegendStat({
@@ -92,7 +90,7 @@ export function ProductionCardChart() {
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
           <span className="text-2xl font-semibold text-accent-12 tabular-nums leading-tight">
-            {formatCount(pulse.cumulative)}
+            {formatNumber(pulse.cumulative)}
           </span>
           <span className="text-[13px] text-gray-9">requests {pulse.windowLabel}</span>
         </div>
@@ -117,11 +115,11 @@ export function ProductionCardChart() {
         onActiveChange={setActive}
       />
       <div className="flex items-center gap-4 text-[13px]">
-        <LegendStat color={BLUE} label="Requests" value={formatBucketCount(reqValue)} />
+        <LegendStat color={BLUE} label="Requests/s" value={formatNumber(reqValue)} />
         <LegendStat
           color={ERROR}
-          label="Errors"
-          value={formatBucketCount(errValue)}
+          label="Errors/s"
+          value={formatNumber(errValue)}
           alert={errValue > 0}
         />
       </div>

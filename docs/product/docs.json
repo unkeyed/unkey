@@ -162,33 +162,33 @@
                 ]
               },
               {
-                "group": "Sentinel",
+                "group": "Gateway",
                 "pages": [
-                  "platform/sentinel/overview",
+                  "platform/gateway/overview",
                   {
                     "group": "Authentication",
                     "pages": [
-                      "platform/sentinel/authentication",
-                      "platform/sentinel/principal/overview",
+                      "platform/gateway/authentication",
+                      "platform/gateway/principal/overview",
                       {
                         "group": "Sources",
                         "pages": [
-                          "platform/sentinel/principal/sources/api-key"
+                          "platform/gateway/principal/sources/api-key"
                         ]
                       },
-                      "platform/sentinel/principal/examples",
-                      "platform/sentinel/principal/local-development"
+                      "platform/gateway/principal/examples",
+                      "platform/gateway/principal/local-development"
                     ]
                   },
                   {
                     "group": "Policies",
                     "pages": [
-                      "platform/sentinel/policies/overview",
-                      "platform/sentinel/policies/api-key",
-                      "platform/sentinel/policies/logging",
-                      "platform/sentinel/policies/rate-limiting",
-                      "platform/sentinel/policies/firewall",
-                      "platform/sentinel/policies/openapi-validation"
+                      "platform/gateway/policies/overview",
+                      "platform/gateway/policies/api-key",
+                      "platform/gateway/policies/logging",
+                      "platform/gateway/policies/rate-limiting",
+                      "platform/gateway/policies/firewall",
+                      "platform/gateway/policies/openapi-validation"
                     ]
                   }
                 ]
@@ -690,6 +690,14 @@
     ]
   },
   "redirects": [
+    {
+      "destination": "/platform/gateway/:slug*",
+      "source": "/platform/sentinel/:slug*"
+    },
+    {
+      "destination": "/platform/gateway/overview",
+      "source": "/platform/sentinel"
+    },
     {
       "destination": "/quickstart/quickstart",
       "source": "/quickstart/onboarding/onboarding-api"

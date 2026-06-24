@@ -46,23 +46,23 @@ Each keyspace has two identifiers:
 | Identifier  | Format   | Used for                                                                      |
 | ----------- | -------- | ----------------------------------------------------------------------------- |
 | API ID      | `api_xxx` | Creating keys and most API calls — the identifier you'll use most often       |
-| KeySpace ID | `ks_xxx`  | Analytics queries (as `key_space_id`) and Sentinel configuration              |
+| KeySpace ID | `ks_xxx`  | Analytics queries (as `key_space_id`) and gateway configuration               |
 
 ## Storage and validation
 
-A keyspace is the storage and validation boundary for all of its keys (internally, it's backed by a `key_auth` record). When Sentinel or the verification endpoint receives a key, it resolves the keyspace by key prefix and validates the key against that keyspace's configuration.
+A keyspace is the storage and validation boundary for all of its keys (internally, it's backed by a `key_auth` record). When the gateway or the verification endpoint receives a key, it resolves the keyspace by key prefix and validates the key against that keyspace's configuration.
 
 The keyspace stores:
 
 | Property               | Description                                                                                            |
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| `id`                   | Unique identifier (`ks_xxx`), used in Sentinel policies and analytics queries                          |
+| `id`                   | Unique identifier (`ks_xxx`), used in gateway policies and analytics queries                           |
 | `default_prefix`       | Prefix for new keys (for example, `sk_live`). The prefix appears before the random portion of the key. |
 | `default_bytes`        | Number of random bytes per key (default: 16, producing a 24-character base58 string)                   |
 | `store_encrypted_keys` | Whether to store a recoverable encrypted copy of each key                                              |
 | `size_approx`          | Approximate number of live keys in this keyspace                                                       |
 
-KeySpace IDs appear in analytics queries as `key_space_id` and in Sentinel configuration when connecting a keyspace to a deployment.
+KeySpace IDs appear in analytics queries as `key_space_id` and in gateway configuration when connecting a keyspace to a deployment.
 
 ### Key format
 
@@ -101,4 +101,4 @@ Deleting a keyspace permanently removes it and all of its keys. This action cann
 | [Rate limiting](/platform/apis/features/ratelimiting/overview)      | Per-key rate limits                    |
 | [Authorization](/platform/apis/features/authorization/introduction) | Roles and permissions                  |
 | [Analytics](/platform/analytics/overview)                           | Query verification data by keyspace    |
-| [Sentinel authentication](/platform/sentinel/authentication)        | Connect keyspaces to Sentinel policies |
+| [Gateway authentication](/platform/gateway/authentication)         | Connect keyspaces to gateway policies  |

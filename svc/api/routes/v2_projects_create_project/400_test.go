@@ -34,11 +34,9 @@ func TestCreateProjectBadRequest(t *testing.T) {
 	}{
 		{name: "missing name", req: handler.Request{Slug: "payments-service"}},
 		{name: "missing slug", req: handler.Request{Name: "Payments Service"}},
-		{name: "slug with uppercase", req: handler.Request{Name: "Payments", Slug: "Payments-Service"}},
-		{name: "slug with invalid chars", req: handler.Request{Name: "Payments", Slug: "payments_service"}},
-		{name: "slug with leading hyphen", req: handler.Request{Name: "Payments", Slug: "-payments"}},
-		{name: "slug with trailing hyphen", req: handler.Request{Name: "Payments", Slug: "payments-"}},
-		{name: "slug with consecutive hyphens", req: handler.Request{Name: "Payments", Slug: "pay--ments"}},
+		{name: "slug with dot", req: handler.Request{Name: "Payments", Slug: "payments.service"}},
+		{name: "slug with space", req: handler.Request{Name: "Payments", Slug: "payments service"}},
+		{name: "slug too short", req: handler.Request{Name: "Payments", Slug: "ab"}},
 		{name: "slug too long", req: handler.Request{Name: "Payments", Slug: strings.Repeat("a", 257)}},
 	}
 

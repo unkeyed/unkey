@@ -1,4 +1,4 @@
-import type { AreaChartPoint } from "../../deployments/[deploymentId]/network/unkey-flow/components/overlay/node-details-panel/components/chart/area-timeseries-chart";
+import type { AreaChartPoint } from "@/components/charts/area-timeseries";
 
 export type WindowKey = "hour" | "day" | "week";
 
@@ -24,28 +24,13 @@ type AppRpsMetrics = {
   rps: { time: number; requests: number; errors: number }[];
 };
 
-const MAX_CHART_POINTS = 168;
-
-function downsample(points: AppRpsMetrics["rps"]): AppRpsMetrics["rps"] {
-  if (points.length <= MAX_CHART_POINTS) {
-    return points;
-  }
-  const groupSize = Math.ceil(points.length / MAX_CHART_POINTS);
-  const grouped: AppRpsMetrics["rps"] = [];
-  for (let i = 0; i < points.length; i += groupSize) {
-    const group = points.slice(i, i + groupSize);
-    grouped.push({
-      time: group[0].time,
-      requests: group.reduce((sum, p) => sum + p.requests, 0),
-      errors: group.reduce((sum, p) => sum + p.errors, 0),
-    });
-  }
-  return grouped;
+function formatWindowLabel(data: AppRpsMetrics | undefined): string {
+  return data ? WINDOW_LABEL[data.range] : "";
 }
 
 export function buildPulse(data: AppRpsMetrics | undefined): Pulse {
   const windowKey = data?.range ?? "week";
-  const series: AreaChartPoint[] = downsample(data?.rps ?? []).map((p) => ({
+  const series: AreaChartPoint[] = (data?.rps ?? []).map((p) => ({
     originalTimestamp: p.time,
     total: p.requests,
     errors: p.errors,
@@ -53,30 +38,13 @@ export function buildPulse(data: AppRpsMetrics | undefined): Pulse {
   const last = series.at(-1);
   return {
     windowKey,
-    windowLabel: WINDOW_LABEL[windowKey],
+    windowLabel: formatWindowLabel(data),
     series,
     cumulative: data?.totalRequests ?? 0,
     requestsCurrent: last ? Number(last.total) || 0 : 0,
     errorsCurrent: last ? Number(last.errors) || 0 : 0,
     latestTimestamp: last?.originalTimestamp,
   };
-}
-
-export function formatCount(n: number): string {
-  if (n >= 1_000_000) {
-    return `${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
-  }
-  if (n >= 1_000) {
-    return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-  }
-  return `${n}`;
-}
-
-export function formatBucketCount(v: number): string {
-  if (!Number.isFinite(v) || v <= 0) {
-    return "0";
-  }
-  return v >= 1000 ? `${(v / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${Math.round(v)}`;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

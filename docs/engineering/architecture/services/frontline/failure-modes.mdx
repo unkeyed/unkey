@@ -1,0 +1,190 @@
+---
+title: "Failure modes"
+description: "Failure scenarios, responses, and diagnosis"
+---
+
+Use this page to look up an error code or symptom you're seeing and find out what caused it and what to do.
+
+## Error code reference
+
+Find the error code from the response body, logs, or traces, then look it up here.
+
+### `Frontline.Routing.ConfigNotFound` (404)
+
+The request hostname does not resolve to a deployment. No `frontline_route` row matches the fully qualified domain name.
+
+**What to check:**
+1. Verify the hostname has a route in MySQL (custom domain verified, or a live deployment for the apex domain).
+2. The `frontline_route` cache is fresh for 5 seconds and stale for up to 5 minutes. A recently created route may not appear immediately.
+
+### `Frontline.Routing.DeploymentNotFound` (404)
+
+The resolved deployment does not exist, or it did not match the expected environment.
+
+Frontline returns 404 (not 403) for both cases to avoid leaking whether a deployment exists.
+
+**What to check:**
+1. Verify the deployment resolved from the hostname exists in MySQL.
+2. If the deployment was recently moved or recreated, the cache may be stale (fresh: 30s, stale: up to 5min). Wait for the entry to expire.
+
+### `Frontline.Routing.NoRunningInstances` (503)
+
+All instances for the deployment in this region are down, scaling to zero, or not yet ready, and no peer region has a healthy instance either.
+
+**What to check:**
+1. Frontline logs include the total instance count versus running count for this deployment.
+2. Check Krane logs for the deployment controller to see instance status.
+3. The instance cache has a 10s fresh TTL. A recently started instance may not appear for up to 10 seconds.
+
+### `Frontline.Routing.DeploymentSelectionFailed` (500)
+
+Frontline resolved the deployment but failed to select a target instance, for example because the routing data was malformed or a backing query failed.
+
+**What to check:**
+1. Check Frontline logs for the underlying error and deployment ID.
+2. Verify the deployment's instance records in MySQL.
+
+### `Frontline.Proxy.ServiceUnavailable` (503)
+
+The selected instance is not accepting connections (`ECONNREFUSED`), the host is unreachable (`EHOSTUNREACH`), or DNS resolution failed.
+
+**What to check:**
+1. Check the target instance pod logs (the instance address is included in the error context).
+2. Verify the instance container is running and listening on its port.
+3. For DNS failures, check cluster DNS health (`kube-dns` or `coredns` pods).
+
+### `Frontline.Proxy.BadGateway` (502)
+
+The instance accepted the connection but the request failed. Common causes: connection reset mid-request (`ECONNRESET`), application crash, OOM kill, or pod replacement during a rollout.
+
+**What to check:**
+1. Check the instance pod logs and events for OOM kills or restarts.
+2. If this correlates with a deployment rollout, it may be transient.
+
+### `Frontline.Proxy.GatewayTimeout` (504)
+
+The instance did not respond before the request deadline, or the transport dial timed out.
+
+**What to check:**
+1. Check instance latency in ClickHouse or Prometheus.
+2. Check whether the instance is under heavy load or blocked on a downstream dependency.
+
+<Note>
+Frontline enforces a request timeout through the `WithTimeout` middleware, set from the `request_timeout` config (default 15m). The server read and write timeouts are disabled (-1) so that streaming responses and long-lived upgrades are not cut off by the HTTP server itself; the request timeout is the ceiling instead.
+</Note>
+
+### `Frontline.Proxy.ProxyForwardFailed` (502)
+
+Generic proxy failure that did not match a more specific error category.
+
+**What to check:**
+1. Check Frontline logs for the full error message and instance address.
+2. Check cluster networking (CNI, CiliumNetworkPolicies).
+
+### `Frontline.Internal.InvalidConfiguration` (422)
+
+The deployment's `sentinel_config` column contains malformed JSON or invalid protobuf, or a KeyAuth policy has an unparseable permission query. This is the config author's fault rather than a Frontline fault, so it is a 422 in the config domain.
+
+**What to check:**
+1. Query the deployment record in MySQL and inspect `sentinel_config`.
+2. Validate it parses as a `frontline.v1.Config` protobuf.
+
+### `Frontline.Internal.ConfigLoadFailed` (500)
+
+Frontline failed to load the deployment's configuration, for example because a backing query failed.
+
+**What to check:**
+1. Check Frontline logs for the underlying error.
+2. Check MySQL primary and replica health.
+
+### `Frontline.Internal.InternalServerError` (500)
+
+Unexpected error in Frontline. Check Frontline logs for the full stack trace.
+
+### `Frontline.Auth.MissingCredentials` (401)
+
+No API key found in the request. The KeyAuth policy checked all configured extraction locations (Bearer token, header, query param) and found nothing.
+
+**What to check:**
+1. Verify the client is sending the key in the expected location.
+2. Check the KeyAuth policy's `locations` config on the deployment.
+
+### `Frontline.Auth.InvalidKey` (401)
+
+The API key was found but failed verification. Covers: key not in database, key disabled, key expired, workspace disabled, or key not in any of the configured `key_space_ids`.
+
+**What to check:**
+1. Verify the key exists and is enabled in the Unkey dashboard or database.
+2. Check the key's keyspace matches one of the policy's `key_space_ids`.
+
+### `Frontline.Auth.InsufficientPermissions` (403)
+
+The key is valid but does not satisfy the policy's `permission_query`.
+
+**What to check:**
+1. Check the key's assigned permissions against the RBAC query in the KeyAuth policy.
+
+### `Frontline.Auth.RateLimited` (429)
+
+The key exceeded its rate limit or usage limit. Rate limit headers are included in the response regardless of success or failure.
+
+**What to check:**
+1. Read `X-RateLimit-Remaining` and `X-RateLimit-Reset` from the response.
+2. Check if the limit is per-key or per-deployment in the policy config.
+
+### `Frontline.Firewall.Denied` (403)
+
+A Firewall policy with `action=DENY` matched the request. The request is rejected before reaching the instance.
+
+**What to check:**
+1. Review the deployment's Firewall policies and their match expressions.
+
+### `Frontline.OpenApi.InvalidRequest` (400)
+
+The request does not conform to the deployment's OpenAPI specification (unknown operation, or a path, query, header, or body that fails schema validation).
+
+**What to check:**
+1. Compare the request against the deployment's OpenAPI spec.
+2. Confirm the spec scraped from the running deployment is current.
+
+### `User.BadRequest.ClientClosedRequest` (499)
+
+The client disconnected before Frontline finished proxying the response. This is a client-side issue (categorized as `user` error type in metrics), not a platform problem.
+
+## Startup and degraded modes
+
+### Redis unavailable
+
+Redis is optional. When `redis.url` is empty or unset, the rate limit counter falls back to in-memory. In that mode rate limits are enforced per replica rather than globally across the fleet; distributed enforcement requires Redis.
+
+Authentication, firewall, and OpenAPI policies do not depend on Redis and are still enforced. A missing Redis degrades distributed rate limiting only, it does not disable policy evaluation.
+
+**What to check:**
+1. Verify the `redis.url` in the Frontline config if you expect distributed rate limiting.
+2. Check Redis pod health in the cluster.
+
+## Cache behavior
+
+When routing or policy changes are not taking effect, the cause is usually cache staleness. Each Frontline node maintains its own caches and refreshes them on their own TTLs.
+
+| Cache                     | Fresh      | Stale      | Max entries |
+| ------------------------- | ---------- | ---------- | ----------- |
+| `frontline_route`         | 5 seconds  | 5 minutes  | 10,000      |
+| `policies`                | 30 seconds | 5 minutes  | 10,000      |
+| `instances_by_deployment` | 10 seconds | 60 seconds | 10,000      |
+| `tls_certificate`         | 1 hour     | 12 hours   | 10,000      |
+
+During the stale window, Frontline serves old data while refreshing in the background. A routing or policy change can take up to its stale TTL to propagate to every node, because each node refreshes on its own schedule. When a node's working set exceeds 10,000 entries for a cache, eviction increases miss rates and database load.
+
+## Where to look
+
+| Signal                     | Where to find it                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| Error code                 | Response body JSON (`error.code`), trace span attributes                                    |
+| Error type                 | Prometheus `error_type` label (`none`, `user`, `customer`, `platform`)                      |
+| Request details            | ClickHouse `SentinelRequest` table (30-day TTL, Authorization header redacted)              |
+| Latency breakdown          | `Server-Timing` response header, ClickHouse `SentinelLatency` / `InstanceLatency` fields    |
+| Request rate and errors    | Prometheus `unkey_frontline_requests_total` (labels include status_code and error_type)     |
+| Distributed trace          | Span `frontline.proxy` with request_id, status_code, error_type attributes                  |
+| Instance-level failures    | Error context includes instance address, check pod logs for that address                    |
+| Frontline pod health       | Kubernetes pod status for the Frontline deployment                                           |

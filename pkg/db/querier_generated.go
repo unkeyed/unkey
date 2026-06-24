@@ -1117,6 +1117,28 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	//FindProjectByIdOrSlug
+	//
+	//  SELECT
+	//      p.id,
+	//      p.workspace_id,
+	//      p.name,
+	//      p.slug,
+	//      p.delete_protection,
+	//      p.created_at,
+	//      p.updated_at
+	//  FROM projects p
+	//  JOIN (
+	//      SELECT p1.id
+	//      FROM projects p1
+	//      WHERE p1.id = ? AND p1.workspace_id = ?
+	//      UNION ALL
+	//      SELECT p2.id
+	//      FROM projects p2
+	//      WHERE p2.slug = ? AND p2.workspace_id = ?
+	//  ) AS project_lookup ON p.id = project_lookup.id
+	//  LIMIT 1
+	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
@@ -1124,20 +1146,6 @@ type Querier interface {
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
-	//FindProjectByWorkspaceAndId
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      name,
-	//      slug,
-	//      delete_protection,
-	//      created_at,
-	//      updated_at
-	//  FROM projects
-	//  WHERE workspace_id = ? AND id = ?
-	//  LIMIT 1
-	FindProjectByWorkspaceAndId(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndIdParams) (FindProjectByWorkspaceAndIdRow, error)
 	//FindProjectByWorkspaceAndSlug
 	//
 	//  SELECT

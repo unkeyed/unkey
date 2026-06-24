@@ -23,16 +23,16 @@ post:
           "$ref": "./V2ProjectsUpdateProjectRequestBody.yaml"
         examples:
           rename:
-            summary: Rename a project
-            description: Update only the display name of a project
+            summary: Rename a project by ID
+            description: Update only the display name, locating the project by its ID
             value:
-              projectId: proj_1234abcd
+              project: proj_1234abcd
               name: Payments API
           changeSlug:
-            summary: Change a project slug
-            description: Update the URL-safe slug of a project
+            summary: Change a project slug by slug
+            description: Locate the project by its current slug and assign a new one
             value:
-              projectId: proj_1234abcd
+              project: payments-service
               slug: payments-api
     required: true
   responses:

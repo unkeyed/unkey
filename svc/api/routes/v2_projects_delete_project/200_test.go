@@ -34,32 +34,47 @@ func TestDeleteProjectSuccessfully(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
-	project := h.CreateProject(seed.CreateProjectRequest{
-		ID:          uid.New(uid.ProjectPrefix),
-		WorkspaceID: workspace.ID,
-		Name:        "Doomed",
-		Slug:        slug,
-	})
+	// The handler resolves a project by either its id or its slug, so run the
+	// same assertions against both identifiers.
+	testCases := []struct {
+		name       string
+		identifier func(db.Project) string
+	}{
+		{name: "deletes project by id", identifier: func(p db.Project) string { return p.ID }},
+		{name: "deletes project by slug", identifier: func(p db.Project) string { return p.Slug }},
+	}
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		ProjectId: project.ID,
-	})
-	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-	require.NotEmpty(t, res.Body.Meta.RequestId)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrlClient.DeleteProjectCalls = nil
 
-	// Deletion is delegated to the control plane, which also writes the audit
-	// log. Assert the RPC carried the resolved project id and the actor. The
-	// row is torn down asynchronously, so we do not assert it is gone here.
-	require.Len(t, ctrlClient.DeleteProjectCalls, 1)
-	require.Equal(t, project.ID, ctrlClient.DeleteProjectCalls[0].GetProjectId())
-	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, ctrlClient.DeleteProjectCalls[0].GetActor().GetType())
+			slug := strings.ToLower(strings.ReplaceAll(uid.New("kebap"), "_", "-"))
+			project := h.CreateProject(seed.CreateProjectRequest{
+				ID:               uid.New(uid.ProjectPrefix),
+				WorkspaceID:      workspace.ID,
+				Name:             "kebap-project",
+				Slug:             slug,
+				DeleteProtection: false,
+			})
 
-	// Sanity: the project still exists in our DB because the cascade runs in
-	// the (mocked) control plane, not in this handler.
-	_, err := db.Query.FindProjectByWorkspaceAndId(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndIdParams{
-		WorkspaceID: workspace.ID,
-		ID:          project.ID,
-	})
-	require.NoError(t, err)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+				Project: tc.identifier(project),
+			})
+			require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+			require.NotEmpty(t, res.Body.Meta.RequestId)
+
+			// Deletion is delegated to the control plane, which also writes the audit
+			// log. Assert the RPC carried the resolved project id and the actor. The
+			// row is torn down asynchronously, so we do not assert it is gone here.
+			require.Len(t, ctrlClient.DeleteProjectCalls, 1)
+			require.Equal(t, project.ID, ctrlClient.DeleteProjectCalls[0].GetProjectId())
+			require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, ctrlClient.DeleteProjectCalls[0].GetActor().GetType())
+
+			_, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
+				WorkspaceID: workspace.ID,
+				Project:     tc.identifier(project),
+			})
+			require.NoError(t, err)
+		})
+	}
 }

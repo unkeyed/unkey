@@ -14,41 +14,67 @@ describe("selectEnvironmentRequestsQuery", () => {
       range: "hour",
       interval: "1m",
       bucketMs: minuteMs,
-      startTimeMs: appCreatedAtMs,
+      // Full past hour, anchored at now rather than truncated to creation.
+      startTimeMs: now - hourMs,
+      endTimeMs: now,
+    });
+  });
+
+  test("spans the full tier window for a brand-new app, not just its lifetime", () => {
+    // Regression: an app created minutes ago still gets the full past-hour
+    // window. Buckets before it existed fill as zeros, so the chart shows a
+    // full-width axis instead of collapsing to two or three points.
+    expect(selectEnvironmentRequestsQuery(now - 5 * minuteMs, now)).toMatchObject({
+      range: "hour",
+      interval: "1m",
+      startTimeMs: now - hourMs,
       endTimeMs: now,
     });
   });
 
   test("floors both grid bounds to bucketMs", () => {
-    // now sits 37s into a minute, app created 22s into an earlier minute.
+    // offsetNow sits 37s into a minute; both the window start (now - 1h) and
+    // the end (now) floor down to the minute boundary.
     const offsetNow = now + 37_000;
-    const appCreatedAtMs = now - 40 * minuteMs + 22_000;
+    const appCreatedAtMs = now - 40 * minuteMs;
 
     expect(selectEnvironmentRequestsQuery(appCreatedAtMs, offsetNow)).toMatchObject({
       bucketMs: minuteMs,
-      startTimeMs: now - 40 * minuteMs,
+      startTimeMs: now - hourMs,
       endTimeMs: now,
     });
   });
 
-  test("5m interval, range day, at one hour", () => {
-    expect(selectEnvironmentRequestsQuery(now - hourMs, now)).toMatchObject({
-      range: "day",
-      interval: "5m",
-      bucketMs: 5 * minuteMs,
-    });
-  });
-
-  test("15m interval, range day, at six hours", () => {
-    expect(selectEnvironmentRequestsQuery(now - 6 * hourMs, now)).toMatchObject({
-      range: "day",
-      interval: "15m",
+  test("range day spans a full 24 hours from just over an hour through a day", () => {
+    // The day tier is a single 24h/15m window with no overlapping sub-tiers:
+    // every lifetime in (1h, 24h] resolves to the same range, interval, and grid.
+    const expected = {
+      range: "day" as const,
+      interval: "15m" as const,
       bucketMs: 15 * minuteMs,
+      startTimeMs: now - dayMs,
+      endTimeMs: now,
+    };
+    expect(selectEnvironmentRequestsQuery(now - hourMs, now)).toEqual(expected);
+    expect(selectEnvironmentRequestsQuery(now - 12 * hourMs, now)).toEqual(expected);
+    expect(selectEnvironmentRequestsQuery(now - dayMs, now)).toEqual(expected);
+  });
+
+  test("range week spans a full seven days once an app is older than a day", () => {
+    // Regression: an app aged just over a day showed the "this week" header
+    // over a 2-day window. The week tier must always span 7 days so the label
+    // and the data agree. Buckets before the app existed fill as zeros.
+    expect(selectEnvironmentRequestsQuery(now - dayMs - 1, now)).toEqual({
+      range: "week",
+      interval: "1h",
+      bucketMs: hourMs,
+      startTimeMs: now - 7 * dayMs,
+      endTimeMs: now,
     });
   });
 
-  test("1h interval, range week, at twelve hours", () => {
-    expect(selectEnvironmentRequestsQuery(now - 12 * hourMs, now)).toMatchObject({
+  test("1h interval, range week, at two days", () => {
+    expect(selectEnvironmentRequestsQuery(now - 2 * dayMs, now)).toMatchObject({
       range: "week",
       interval: "1h",
       bucketMs: hourMs,
