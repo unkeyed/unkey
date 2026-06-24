@@ -210,7 +210,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(engineDatabase.Close)
 
-	frontlineRequests := batch.NewNoop[schema.SentinelRequest]()
+	frontlineRequests := batch.NewNoop[schema.FrontlineRequest]()
 	keyVerifications := batch.NewNoop[schema.KeyVerification]()
 
 	var chClient *clickhouse.Client
@@ -222,8 +222,8 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
 		}
 
-		frontlineRequests = clickhouse.NewBuffer[schema.SentinelRequest](chClient, "default.sentinel_requests_raw_v1", clickhouse.BufferConfig{
-			Name:          "sentinel_requests",
+		frontlineRequests = clickhouse.NewBuffer[schema.FrontlineRequest](chClient, "default.frontline_requests_raw_v1", clickhouse.BufferConfig{
+			Name:          "frontline_requests",
 			BatchSize:     cfg.ClickHouse.BatchSize,
 			BufferSize:    cfg.ClickHouse.BufferSize,
 			FlushInterval: 5 * time.Second,

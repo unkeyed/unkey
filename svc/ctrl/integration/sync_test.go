@@ -40,7 +40,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -93,11 +95,13 @@ func newService(t *testing.T, database db.Database) *cluster.Service {
 		Clock:    clk,
 	})
 	require.NoError(t, err)
+
 	svc, err := cluster.New(cluster.Config{
-		Database:      database,
-		Bearer:        "test-bearer",
-		Clock:         clk,
-		TopologyCache: topologyCache,
+		Database:       database,
+		Bearer:         "test-bearer",
+		Clock:          clk,
+		TopologyCache:  topologyCache,
+		InstanceEvents: batch.NewNoop[schema.InstanceEventV1](),
 	})
 	require.NoError(t, err)
 	return svc
@@ -189,7 +193,7 @@ func countSentinelApplies(messages []*ctrlv1.State) int {
 // Guarantees tested:
 //   - All running deployments in the region are streamed
 //   - All running sentinels in the region are streamed
-//   - Archived/stopped resources are NOT streamed
+//   - Stopped resources are NOT streamed
 //   - Stream close signals completion
 // =============================================================================
 
@@ -336,16 +340,16 @@ func TestSync_BootstrapWithEmptyRegionSendsNothing(t *testing.T) {
 }
 
 // TestSync_BootstrapOnlyStreamsRunningResources verifies that bootstrap filters
-// out non-running resources (archived, stopped, etc.).
+// out non-running resources.
 //
-// Scenario: A region contains both a running and an archived deployment.
+// Scenario: A region contains both a running and a stopped deployment.
 //
 // Guarantees:
 //   - Running deployments ARE included in bootstrap
-//   - Archived deployments are NOT included in bootstrap
+//   - Stopped deployments are NOT included in bootstrap
 //
 // This test ensures the bootstrap phase only syncs resources that should actually
-// exist in Kubernetes. Archived resources should not be created in the cluster.
+// exist in Kubernetes. Stopped resources should not be created in the cluster.
 func TestSync_BootstrapOnlyStreamsRunningResources(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
@@ -357,9 +361,9 @@ func TestSync_BootstrapOnlyStreamsRunningResources(t *testing.T) {
 		DesiredState: db.DeploymentsDesiredStateRunning,
 	})
 
-	archivedDep := h.CreateDeployment(ctx, CreateDeploymentRequest{
+	stoppedDep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       region,
-		DesiredState: db.DeploymentsDesiredStateArchived,
+		DesiredState: db.DeploymentsDesiredStateStopped,
 	})
 
 	h.InsertStateChange(ctx, db.InsertStateChangeParams{
@@ -389,9 +393,9 @@ func TestSync_BootstrapOnlyStreamsRunningResources(t *testing.T) {
 	runningApply := findDeploymentApply(messages, runningDep.Deployment.ID)
 	require.NotNil(t, runningApply, "running deployment should be streamed")
 
-	// Archived deployment should NOT be streamed
-	archivedApply := findDeploymentApply(messages, archivedDep.Deployment.ID)
-	require.Nil(t, archivedApply, "archived deployment should not be streamed during bootstrap")
+	// Stopped deployment should NOT be streamed
+	stoppedApply := findDeploymentApply(messages, stoppedDep.Deployment.ID)
+	require.Nil(t, stoppedApply, "stopped deployment should not be streamed during bootstrap")
 }
 
 // =============================================================================
@@ -584,14 +588,14 @@ func TestSync_DeploymentDeleteWhenTopologyNotFound(t *testing.T) {
 // TestSync_DeploymentDeleteWhenDesiredStateNotRunning verifies that a Delete
 // message is sent when a deployment's desired_state is not "running".
 //
-// Scenario: A deployment exists with desired_state="archived". A state change
+// Scenario: A deployment exists with desired_state="stopped". A state change
 // is emitted for this deployment.
 //
 // Guarantees:
 //   - A DeleteDeployment message is sent
-//   - Archived/stopped deployments are removed from Kubernetes
+//   - Stopped deployments are removed from Kubernetes
 //
-// This handles graceful shutdown: when a user archives a deployment, krane
+// This handles graceful shutdown: when a user stops a deployment, krane
 // must remove it from the cluster.
 func TestSync_DeploymentDeleteWhenDesiredStateNotRunning(t *testing.T) {
 	h := New(t)
@@ -601,7 +605,7 @@ func TestSync_DeploymentDeleteWhenDesiredStateNotRunning(t *testing.T) {
 
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       region,
-		DesiredState: db.DeploymentsDesiredStateArchived,
+		DesiredState: db.DeploymentsDesiredStateStopped,
 	})
 
 	// Insert state change
@@ -642,7 +646,7 @@ func TestSync_DeploymentDeleteWhenDesiredStateNotRunning(t *testing.T) {
 //   - This is the primary delete path for permanent resource removal
 //
 // Explicit delete operations are emitted when a deployment is permanently deleted
-// (not just archived). The deployment row may still exist (soft delete) but
+// (not just stopped). The deployment row may still exist (soft delete) but
 // krane must remove the Kubernetes resources.
 func TestSync_DeploymentDeleteOnExplicitDeleteOp(t *testing.T) {
 	h := New(t)

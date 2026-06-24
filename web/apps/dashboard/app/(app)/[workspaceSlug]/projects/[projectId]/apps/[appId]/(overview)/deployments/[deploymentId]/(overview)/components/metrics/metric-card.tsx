@@ -1,12 +1,12 @@
-import type { IconProps } from "@unkey/icons";
-import { cn } from "@unkey/ui/src/lib/utils";
-import type { ComponentType } from "react";
-import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
 import {
   type AreaChartPoint,
   AreaTimeseriesChart,
   type ValueParts,
-} from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart/area-timeseries-chart";
+} from "@/components/charts/area-timeseries";
+import { LogsTimeseriesBarChart } from "@/components/charts/logs-timeseries-bar";
+import type { IconProps } from "@unkey/icons";
+import { cn } from "@unkey/ui/src/lib/utils";
+import type { ComponentType } from "react";
 import { MetricSelect } from "./metric-select";
 
 type MetricType = "latency" | "rps" | "cpu" | "memory";
@@ -74,6 +74,7 @@ type MetricCardProps = {
     chart: string;
   };
   xAxisDomain?: [number, number];
+  contractOnSparseData?: boolean;
   isLoading?: boolean;
   isError?: boolean;
   formatTooltipValue?: (value: number) => ValueParts;
@@ -88,6 +89,7 @@ export function MetricCard({
   percentile,
   onPercentileChange,
   xAxisDomain,
+  contractOnSparseData,
   timeWindow,
   isLoading = false,
   isError = false,
@@ -160,6 +162,7 @@ export function MetricCard({
             formatTooltipValue={formatTooltipValue}
             axisFloor={0}
             xAxisDomain={xAxisDomain}
+            contractOnSparseData={contractOnSparseData}
             hideAxes
           />
         ) : (

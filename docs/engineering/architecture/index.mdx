@@ -10,7 +10,6 @@ This section documents system architecture, service workflows, and RFCs. Content
 ```mermaid
 flowchart LR
   Frontline[Frontline]
-  Sentinel[Sentinel]
   API[API]
   Vault[Vault]
   ControlAPI[Control plane API]
@@ -18,8 +17,7 @@ flowchart LR
   Krane[Krane]
   Preflight[Preflight]
 
-  Frontline -->|A| Sentinel
-  Sentinel -->|A| API
+  Frontline -->|A| API
   API -->|B| Vault
   Frontline -->|B| Vault
 

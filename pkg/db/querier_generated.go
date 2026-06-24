@@ -156,6 +156,12 @@ type Querier interface {
 	//
 	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?
 	DeleteFrontlineRouteByFQDN(ctx context.Context, db DBTX, fqdn string) error
+	//DeleteFrontlineRouteByFQDNAndProject
+	//
+	//  DELETE FROM frontline_routes
+	//  WHERE fully_qualified_domain_name = ?
+	//    AND project_id = ?
+	DeleteFrontlineRouteByFQDNAndProject(ctx context.Context, db DBTX, arg DeleteFrontlineRouteByFQDNAndProjectParams) error
 	//DeleteFrontlineRoutesByEnvironmentId
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
@@ -536,8 +542,8 @@ type Querier interface {
 	//  LIMIT 1
 	FindDeploymentTopologyByDeploymentAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByDeploymentAndRegionParams) (FindDeploymentTopologyByDeploymentAndRegionRow, error)
 	// Returns the per-region minimum replica requirement for a deployment.
-	// Used by ReportDeploymentStatus to compute whether enough regions are
-	// healthy to call DeployService.NotifyInstancesReady.
+	// Used by deploy and wake workflows to compute whether enough regions are
+	// healthy before a deployment is considered ready.
 	//
 	//  SELECT region_id, autoscaling_replicas_min
 	//  FROM deployment_topology
@@ -1111,6 +1117,28 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	//FindProjectByIdOrSlug
+	//
+	//  SELECT
+	//      p.id,
+	//      p.workspace_id,
+	//      p.name,
+	//      p.slug,
+	//      p.delete_protection,
+	//      p.created_at,
+	//      p.updated_at
+	//  FROM projects p
+	//  JOIN (
+	//      SELECT p1.id
+	//      FROM projects p1
+	//      WHERE p1.id = ? AND p1.workspace_id = ?
+	//      UNION ALL
+	//      SELECT p2.id
+	//      FROM projects p2
+	//      WHERE p2.slug = ? AND p2.workspace_id = ?
+	//  ) AS project_lookup ON p.id = project_lookup.id
+	//  LIMIT 1
+	FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
 	//FindProjectBySlug
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
@@ -1118,20 +1146,6 @@ type Querier interface {
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
-	//FindProjectByWorkspaceAndId
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      name,
-	//      slug,
-	//      delete_protection,
-	//      created_at,
-	//      updated_at
-	//  FROM projects
-	//  WHERE workspace_id = ? AND id = ?
-	//  LIMIT 1
-	FindProjectByWorkspaceAndId(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndIdParams) (FindProjectByWorkspaceAndIdRow, error)
 	//FindProjectByWorkspaceAndSlug
 	//
 	//  SELECT
@@ -2769,6 +2783,22 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
+	// ListRunningDeploymentsByBranch returns deployments in the same app,
+	// environment, and branch whose desired state is running, excluding one
+	// deployment id. Used to find sibling running deployments without including
+	// the caller's own deployment or unrelated deployments from another scope.
+	//
+	//  SELECT id
+	//  FROM deployments
+	//  WHERE git_branch = ?
+	//    AND workspace_id = ?
+	//    AND project_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	//    AND desired_state = 'running'
+	//    AND id != ?
+	//  ORDER BY created_at ASC
+	ListRunningDeploymentsByBranch(ctx context.Context, db DBTX, arg ListRunningDeploymentsByBranchParams) ([]string, error)
 	// ListRunningSentinelIDsAndImages returns IDs, images, and regions of all
 	// running sentinels, paginated by id. Used by the rollout service to plan
 	// wave assignments without fetching full sentinel rows.
@@ -3002,13 +3032,15 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
-	//StopDeploymentIfNoInstances
+	// StopDeploymentIfNoInstances finalizes a requested stop only after krane has
+	// reported that no instances remain. The desired_state guard prevents stale
+	// delete reports from marking a deployment stopped after it has been woken.
 	//
 	//  UPDATE deployments d
 	//  LEFT JOIN instances i ON i.deployment_id = d.id
 	//  SET d.status = 'stopped', d.updated_at = ?
 	//  WHERE d.id = ?
-	//    AND d.desired_state IN ('standby', 'archived')
+	//    AND d.desired_state = 'stopped'
 	//    AND i.deployment_id IS NULL
 	StopDeploymentIfNoInstances(ctx context.Context, db DBTX, arg StopDeploymentIfNoInstancesParams) error
 	//SumAllocatedResourcesByWorkspaceID

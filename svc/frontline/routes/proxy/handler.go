@@ -64,8 +64,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	tracking.RequestID = sess.RequestID()
 	tracking.DeploymentID = decision.DeploymentID
 	tracking.WorkspaceID = decision.WorkspaceID
-	tracking.EnvironmentID = decision.EnvironmentID
 	tracking.ProjectID = decision.ProjectID
+	tracking.AppID = decision.AppID
+	tracking.EnvironmentID = decision.EnvironmentID
 
 	// Tell the ClickHouse logging middleware which header and query-parameter
 	// names carry an API key so it can redact them. KeyAuth supports custom

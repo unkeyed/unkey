@@ -130,7 +130,6 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	clk := clock.New()
-
 	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
 		Fresh:    5 * time.Minute,
 		Stale:    30 * time.Minute,

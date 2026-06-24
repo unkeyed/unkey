@@ -12,6 +12,8 @@ type DeploymentActionEligibility = {
   canPromote: boolean;
   canRedeploy: boolean;
   canCancel: boolean;
+  canStop: boolean;
+  canWake: boolean;
 };
 
 // Non-terminal statuses where a cancel is meaningful: the Restate workflow
@@ -53,6 +55,7 @@ export function getDeploymentActionEligibility(
   const status = ctx.selectedDeployment.status;
   const isActionable = status === "ready";
   const isProduction = ctx.environmentSlug === "production";
+  const isNonProduction = ctx.environmentSlug !== null && !isProduction;
   const hasCurrent = ctx.currentDeploymentId !== null;
   const isCurrent = hasCurrent && ctx.currentDeploymentId === ctx.selectedDeployment.id;
 
@@ -63,6 +66,8 @@ export function getDeploymentActionEligibility(
   const canRedeploy = isRedeployableDeploymentStatus(status);
   // Cancel: available for any in-flight deployment.
   const canCancel = isCancellableDeploymentStatus(status);
+  const canStop = isNonProduction && status === "ready";
+  const canWake = isNonProduction && status === "stopped";
 
-  return { canRollback, canPromote, canRedeploy, canCancel };
+  return { canRollback, canPromote, canRedeploy, canCancel, canStop, canWake };
 }

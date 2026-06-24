@@ -7,7 +7,7 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-Unkey takes your repository and gives you a running application with automatic domains, multi-region routing, rollbacks, and built-in API security through [Sentinel](/platform/sentinel/overview).
+Unkey takes your repository and gives you a running application with automatic domains, multi-region routing, rollbacks, and built-in API security through [the gateway](/platform/gateway/overview).
 
 ## What you get
 
@@ -21,7 +21,7 @@ Unkey takes your repository and gives you a running application with automatic d
   <Card title="Instant rollbacks" icon="clock-rotate-left">
     Previous deployments stay running so [rollbacks](/build-and-deploy/rollbacks) are instant. No rebuild required.
   </Card>
-  <Card title="Sentinel" icon="shield-halved">
+  <Card title="Gateway" icon="shield-halved">
     API key authentication, rate limiting, and IP rules run in front of your app before requests reach it.
   </Card>
   <Card title="Build logs" icon="terminal">
@@ -114,6 +114,6 @@ Unkey builds your image, deploys it to your configured regions, and assigns doma
     icon="gear"
     href="/platform/apps/settings"
   >
-    Build, runtime, and Sentinel configuration
+    Build, runtime, and gateway configuration
   </Card>
 </CardGroup>

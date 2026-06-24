@@ -27,6 +27,17 @@ type transition struct {
 // before the delay elapses, the new nonce overwrites the old one, causing the
 // previous delayed call to no-op on nonce mismatch.
 func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, req *hydrav1.ScheduleDesiredStateChangeRequest) (*hydrav1.ScheduleDesiredStateChangeResponse, error) {
+	if !req.Overwrite {
+		t, err := restate.Get[*transition](ctx, transitionKey)
+		if err != nil {
+			return nil, err
+		}
+		if t != nil {
+			// This is a noop, since we don't overwrite
+			return &hydrav1.ScheduleDesiredStateChangeResponse{}, nil
+		}
+	}
+
 	nonce := restate.UUID(ctx).String()
 
 	t := transition{
@@ -81,11 +92,8 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
 		desiredState = db.DeploymentsDesiredStateRunning
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
-	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY:
-		desiredState = db.DeploymentsDesiredStateStandby
-		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
-	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_ARCHIVED:
-		desiredState = db.DeploymentsDesiredStateArchived
+	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED:
+		desiredState = db.DeploymentsDesiredStateStopped
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
 		return nil, restate.TerminalErrorf("invalid state: %s", req.GetState())

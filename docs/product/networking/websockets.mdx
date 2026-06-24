@@ -1,6 +1,6 @@
 ---
 title: WebSockets
-description: "Deploy WebSocket servers on Unkey with long-lived connections, no request timeouts, and Sentinel auth and rate limits applied to the upgrade."
+description: "Deploy WebSocket servers on Unkey with long-lived connections, no request timeouts, and gateway auth and rate limits applied to the upgrade."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -38,7 +38,7 @@ ws.onmessage = (event) => console.log(event.data);
 
 The standard proxy headers documented in [Request lifecycle](/networking/public-networking#request-headers) are added to the upgrade request, so your app can identify the original client IP, host, and deployment ID before it accepts the WebSocket.
 
-Routing rules apply to the upgrade request the same way they apply to any HTTP request: the `Host` header determines which deployment receives the connection, and Sentinel policies run before the upgrade is forwarded. A request that fails [authentication](/platform/sentinel/authentication) or [rate limiting](/platform/sentinel/policies/rate-limiting) is rejected before it ever becomes a WebSocket.
+Routing rules apply to the upgrade request the same way they apply to any HTTP request: the `Host` header determines which deployment receives the connection, and gateway policies run before the upgrade is forwarded. A request that fails [authentication](/platform/gateway/authentication) or [rate limiting](/platform/gateway/policies/rate-limiting) is rejected before it ever becomes a WebSocket.
 
 ## Limits
 
