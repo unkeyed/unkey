@@ -55,6 +55,9 @@ const (
 	// DeployServiceWakeDeploymentProcedure is the fully-qualified name of the DeployService's
 	// WakeDeployment RPC.
 	DeployServiceWakeDeploymentProcedure = "/ctrl.v1.DeployService/WakeDeployment"
+	// DeployServiceDeprovisionComputeProcedure is the fully-qualified name of the DeployService's
+	// DeprovisionCompute RPC.
+	DeployServiceDeprovisionComputeProcedure = "/ctrl.v1.DeployService/DeprovisionCompute"
 )
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
@@ -79,6 +82,13 @@ type DeployServiceClient interface {
 	StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error)
 	// Wake a stopped deployment by scaling it back up.
 	WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error)
+	// DeprovisionCompute tears down a workspace's Compute: it stops all running
+	// compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
+	// deploy_plan entitlement so the workspace can no longer deploy. The dashboard
+	// calls this when a workspace cancels its Compute plan; the dashboard stops the
+	// Stripe renewal itself. Idempotent: succeeds if the workspace already has no
+	// Compute plan.
+	DeprovisionCompute(context.Context, *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error)
 }
 
 // NewDeployServiceClient constructs a client for the ctrl.v1.DeployService service. By default, it
@@ -140,6 +150,12 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deployServiceMethods.ByName("WakeDeployment")),
 			connect.WithClientOptions(opts...),
 		),
+		deprovisionCompute: connect.NewClient[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse](
+			httpClient,
+			baseURL+DeployServiceDeprovisionComputeProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("DeprovisionCompute")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -153,6 +169,7 @@ type deployServiceClient struct {
 	cancelDeployment    *connect.Client[v1.CancelDeploymentRequest, v1.CancelDeploymentResponse]
 	stopDeployment      *connect.Client[v1.StopDeploymentRequest, v1.StopDeploymentResponse]
 	wakeDeployment      *connect.Client[v1.WakeDeploymentRequest, v1.WakeDeploymentResponse]
+	deprovisionCompute  *connect.Client[v1.DeprovisionComputeRequest, v1.DeprovisionComputeResponse]
 }
 
 // CreateDeployment calls ctrl.v1.DeployService.CreateDeployment.
@@ -195,6 +212,11 @@ func (c *deployServiceClient) WakeDeployment(ctx context.Context, req *connect.R
 	return c.wakeDeployment.CallUnary(ctx, req)
 }
 
+// DeprovisionCompute calls ctrl.v1.DeployService.DeprovisionCompute.
+func (c *deployServiceClient) DeprovisionCompute(ctx context.Context, req *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error) {
+	return c.deprovisionCompute.CallUnary(ctx, req)
+}
+
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
 type DeployServiceHandler interface {
 	// Create a new deployment from a docker image or by auto-detecting
@@ -217,6 +239,13 @@ type DeployServiceHandler interface {
 	StopDeployment(context.Context, *connect.Request[v1.StopDeploymentRequest]) (*connect.Response[v1.StopDeploymentResponse], error)
 	// Wake a stopped deployment by scaling it back up.
 	WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error)
+	// DeprovisionCompute tears down a workspace's Compute: it stops all running
+	// compute via DeployTeardownService.Teardown(ARCHIVE) and clears the local
+	// deploy_plan entitlement so the workspace can no longer deploy. The dashboard
+	// calls this when a workspace cancels its Compute plan; the dashboard stops the
+	// Stripe renewal itself. Idempotent: succeeds if the workspace already has no
+	// Compute plan.
+	DeprovisionCompute(context.Context, *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error)
 }
 
 // NewDeployServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -274,6 +303,12 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("WakeDeployment")),
 		connect.WithHandlerOptions(opts...),
 	)
+	deployServiceDeprovisionComputeHandler := connect.NewUnaryHandler(
+		DeployServiceDeprovisionComputeProcedure,
+		svc.DeprovisionCompute,
+		connect.WithSchema(deployServiceMethods.ByName("DeprovisionCompute")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.DeployService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeployServiceCreateDeploymentProcedure:
@@ -292,6 +327,8 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 			deployServiceStopDeploymentHandler.ServeHTTP(w, r)
 		case DeployServiceWakeDeploymentProcedure:
 			deployServiceWakeDeploymentHandler.ServeHTTP(w, r)
+		case DeployServiceDeprovisionComputeProcedure:
+			deployServiceDeprovisionComputeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -331,4 +368,8 @@ func (UnimplementedDeployServiceHandler) StopDeployment(context.Context, *connec
 
 func (UnimplementedDeployServiceHandler) WakeDeployment(context.Context, *connect.Request[v1.WakeDeploymentRequest]) (*connect.Response[v1.WakeDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.WakeDeployment is not implemented"))
+}
+
+func (UnimplementedDeployServiceHandler) DeprovisionCompute(context.Context, *connect.Request[v1.DeprovisionComputeRequest]) (*connect.Response[v1.DeprovisionComputeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.DeprovisionCompute is not implemented"))
 }

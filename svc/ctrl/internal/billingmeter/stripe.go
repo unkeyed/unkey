@@ -171,5 +171,6 @@ func formatMeterValue(v float64) string {
 		s = strings.TrimRight(s, "0")
 		s = strings.TrimRight(s, ".")
 	}
+
 	return s
 }
