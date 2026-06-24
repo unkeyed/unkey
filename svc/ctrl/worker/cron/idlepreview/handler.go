@@ -103,6 +103,7 @@ func (h *Handler) Handle(
 					return h.clickhouse.GetDeploymentRequestCount(runCtx, clickhouse.GetDeploymentRequestCountRequest{
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
+						AppID:         deployment.AppID,
 						EnvironmentID: deployment.EnvironmentID,
 						DeploymentID:  deployment.ID,
 						Duration:      idleTime,

@@ -3,9 +3,9 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "seed",
     srcs = [
+        "frontline.go",
         "local.go",
         "run.go",
-        "frontline.go",
         "verifications.go",
     ],
     importpath = "github.com/unkeyed/unkey/cmd/dev/seed",

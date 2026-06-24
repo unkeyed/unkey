@@ -21,7 +21,7 @@ var idleTime = 6 * time.Hour
 // branches that are no longer actively used, so this workflow paginates through
 // all preview environments and transitions idle deployments to archived by
 // checking request counts in ClickHouse.
-func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, req *hydrav1.ScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.ScaleDownIdlePreviewDeploymentsResponse, error) {
+func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, req *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest) (*hydrav1.RunScaleDownIdlePreviewDeploymentsResponse, error) {
 	now, err := restateutil.Now(ctx)
 	if err != nil {
 		return nil, err
@@ -90,5 +90,5 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 
 	}
 
-	return &hydrav1.ScaleDownIdlePreviewDeploymentsResponse{}, nil
+	return &hydrav1.RunScaleDownIdlePreviewDeploymentsResponse{}, nil
 }

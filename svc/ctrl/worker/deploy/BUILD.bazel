@@ -15,6 +15,7 @@ go_library(
         "railpack.go",
         "readiness.go",
         "rollback_handler.go",
+        "scale_down_idle_preview_deployments.go",
         "service.go",
         "stop_deployment.go",
         "wake_deployment.go",
