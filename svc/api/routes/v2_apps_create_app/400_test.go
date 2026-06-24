@@ -35,8 +35,8 @@ func TestCreateAppValidationErrors(t *testing.T) {
 		req  handler.Request
 	}{
 		{name: "missing project", req: handler.Request{Name: "App", Slug: "app-slug"}},
-		{name: "project uppercase", req: handler.Request{Project: "Payments", Name: "App", Slug: "app-slug"}},
-		{name: "project underscore", req: handler.Request{Project: "pay_ments", Name: "App", Slug: "app-slug"}},
+		{name: "project invalid chars", req: handler.Request{Project: "pay.ments", Name: "App", Slug: "app-slug"}},
+		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), Name: "App", Slug: "app-slug"}},
 		{name: "missing name", req: handler.Request{Project: validProject, Slug: "app-slug"}},
 		{name: "missing slug", req: handler.Request{Project: validProject, Name: "App"}},
 		{name: "slug uppercase", req: handler.Request{Project: validProject, Name: "App", Slug: "App-Slug"}},

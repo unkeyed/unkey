@@ -1146,7 +1146,7 @@ type Querier interface {
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
-	//FindProjectByWorkspaceAndSlug
+	//FindProjectByWorkspaceAndId
 	//
 	//  SELECT
 	//      id,
@@ -1157,9 +1157,23 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  FROM projects
-	//  WHERE workspace_id = ? AND slug = ?
+	//  WHERE workspace_id = ? AND id = ?
 	//  LIMIT 1
-	FindProjectByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndSlugParams) (FindProjectByWorkspaceAndSlugRow, error)
+	FindProjectByWorkspaceAndId(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndIdParams) (FindProjectByWorkspaceAndIdRow, error)
+	//FindProjectByWorkspaceAndIdOrSlug
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
+	//  LIMIT 1
+	FindProjectByWorkspaceAndIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndIdOrSlugParams) (FindProjectByWorkspaceAndIdOrSlugRow, error)
 	//FindQuotaByWorkspaceID
 	//
 	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds

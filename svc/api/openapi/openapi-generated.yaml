@@ -351,9 +351,11 @@ components:
                 project:
                     type: string
                     minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-                    description: Slug of the parent project this app belongs to, unique within your workspace.
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_-]+$"
+                    description: |
+                        Identifies the parent project this app belongs to, by either its unique ID or its slug.
+                        Accepts a project ID that begins with 'proj_' or a project slug.
                     example: payments
                 name:
                     type: string

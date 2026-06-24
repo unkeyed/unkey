@@ -7,9 +7,11 @@ properties:
   project:
     type: string
     minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-    description: Slug of the parent project this app belongs to, unique within your workspace.
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_-]+$"
+    description: |
+      Identifies the parent project this app belongs to, by either its unique ID or its slug.
+      Accepts a project ID that begins with 'proj_' or a project slug.
     example: payments
   name:
     type: string
@@ -31,10 +33,17 @@ properties:
     example: payments-api
 additionalProperties: false
 examples:
-  basic:
-    summary: Basic app creation
-    description: Create an app within a project
+  byProjectSlug:
+    summary: Create within a project by slug
+    description: Create an app, locating the parent project by its slug
     value:
       project: payments
+      name: Payments API
+      slug: payments-api
+  byProjectId:
+    summary: Create within a project by ID
+    description: Create an app, locating the parent project by its ID
+    value:
+      project: proj_1234abcd
       name: Payments API
       slug: payments-api

@@ -66,3 +66,45 @@ func TestCreateAppSuccessfully(t *testing.T) {
 	require.Equal(t, "payments-api", call.GetSlug())
 	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, call.GetActor().GetType())
 }
+
+func TestCreateAppByProjectId(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	appID := uid.New(uid.AppPrefix)
+	ctrlClient := &testutil.MockAppClient{
+		CreateAppFunc: func(_ context.Context, _ *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error) {
+			return &ctrlv1.CreateAppResponse{Id: appID}, nil
+		},
+	}
+	route := &handler.Handler{
+		DB:         h.DB,
+		CtrlClient: ctrlClient,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	projectSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        projectSlug,
+	})
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Project: project.ID,
+		Name:    "Payments API",
+		Slug:    "payments-api",
+	})
+	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, appID, res.Body.Data.AppId)
+
+	require.Len(t, ctrlClient.CreateAppCalls, 1)
+	require.Equal(t, project.ID, ctrlClient.CreateAppCalls[0].GetProjectId())
+}
