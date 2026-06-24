@@ -6,6 +6,7 @@ properties:
     type: string
     minLength: 1
     maxLength: 255
+    pattern: "^[a-zA-Z0-9_-]+$"
     description: |
       Identifies which project to retrieve, by either its unique ID or its slug.
       Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
