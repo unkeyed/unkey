@@ -15,7 +15,7 @@ export function ProductionCardRollbackBanner() {
         />
         <span className="font-medium text-accent-12 shrink-0">Rolled back</span>
         <span className="text-gray-12 truncate">
-          — new production deploys are paused until you undo.
+          — live domains do not get reassigned until you undo
         </span>
       </div>
       <Button variant="outline" size="sm" onClick={openUndo} className="shrink-0 bg-gray-1">
