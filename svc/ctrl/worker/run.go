@@ -48,6 +48,7 @@ import (
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
@@ -275,6 +276,21 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
 		DB: database,
 	}), restate.WithIngressPrivate(true)))
+
+	// DeployTeardownService stops all of a workspace's running Deploy compute and
+	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,
+	// later, the spend-cap check (SUSPEND).
+	teardownSvc, err := deployteardown.New(deployteardown.Config{
+		DB: database,
+		// Zero selects the production drain poll cadence and grace timeout; only
+		// tests override these to keep the drain loop fast.
+		DrainPollInterval: 0,
+		DrainGraceTimeout: 0,
+	})
+	if err != nil {
+		return fmt.Errorf("create deploy teardown service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
 
 	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
 		GitHub: ghClient,
@@ -628,13 +644,16 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer(), deployBillingPushWorkspaceRetry))
 	logger.Info("DeployBillingPushService enabled")
 
-	// CheckWorkspaceSpend is awaited by the spend-check orchestrator, so it
-	// must terminate: without a cap a check that cannot succeed (one
-	// workspace's alert email rejected, a wedged suspend) retries forever and
-	// parks the awaiting period VO, stalling every later tick fleet-wide.
-	// Alert dedup is owned by the period-scoped high-water mark and the email
-	// idempotency key, so kill on exhaustion and let the next tick retry from
-	// a clean slate.
+	// DeploySpendCheckService is the per-workspace spend-cap VO fanned out from
+	// the RunDeploySpendCheck orchestrator.
+	//
+	// CheckWorkspaceSpend is awaited by the orchestrator, so it must
+	// terminate: without a cap a check that cannot succeed (one workspace's
+	// alert email rejected, a wedged suspend) retries forever and parks the
+	// awaiting period VO, stalling every later tick fleet-wide. Alert dedup is
+	// owned by the period-scoped high-water mark and the email idempotency
+	// key, so kill on exhaustion and let the next tick retry from a clean
+	// slate.
 	deploySpendCheckWorkspaceRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
