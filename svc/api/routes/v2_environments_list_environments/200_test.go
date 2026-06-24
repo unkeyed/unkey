@@ -71,6 +71,16 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 		seeded[env.ID] = envSlug
 	}
 
+	t.Run("lists seeded environments by ids", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID, App: app.ID})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.Len(t, res.Body.Data, len(seeded))
+		for _, e := range res.Body.Data {
+			_, ok := seeded[e.Id]
+			require.True(t, ok, "unexpected environment %s in response", e.Id)
+		}
+	})
+
 	t.Run("lists seeded environments with populated fields", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug, App: app.Slug})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
