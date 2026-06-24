@@ -31,6 +31,7 @@ go_library(
         "//pkg/uid",
         "//svc/ctrl/api/webhooks/github",
         "//svc/ctrl/api/webhooks/stripe",
+        "//svc/ctrl/internal/deploysub",
         "//svc/ctrl/services/acme",
         "//svc/ctrl/services/app",
         "//svc/ctrl/services/cluster",

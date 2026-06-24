@@ -58,6 +58,34 @@ type StripeConfig struct {
 	// SecretKey authenticates the auto_advance claim on draft invoices.
 	// Required when WebhookSecret is set.
 	SecretKey string `toml:"secret_key"`
+
+	// The fields below map Stripe price lookup_keys for Deploy cancel item
+	// classification. They let CancelDeploy tell plan-fee items from metered
+	// items so it removes only the plan fee on a mixed subscription.
+
+	// DeployStarterLookupKey is the plan-fee lookup_key for the Starter tier.
+	DeployStarterLookupKey string `toml:"deploy_starter_lookup_key"`
+
+	// DeployProLookupKey is the plan-fee lookup_key for the Pro tier.
+	DeployProLookupKey string `toml:"deploy_pro_lookup_key"`
+
+	// DeployBusinessLookupKey is the plan-fee lookup_key for the Business tier.
+	DeployBusinessLookupKey string `toml:"deploy_business_lookup_key"`
+
+	// DeployMeterCPULookupKey is the metered lookup_key for CPU usage.
+	DeployMeterCPULookupKey string `toml:"deploy_meter_cpu_lookup_key"`
+
+	// DeployMeterMemoryLookupKey is the metered lookup_key for memory usage.
+	DeployMeterMemoryLookupKey string `toml:"deploy_meter_memory_lookup_key"`
+
+	// DeployMeterEgressLookupKey is the metered lookup_key for egress usage.
+	DeployMeterEgressLookupKey string `toml:"deploy_meter_egress_lookup_key"`
+
+	// DeployMeterDiskLookupKey is the metered lookup_key for disk usage.
+	DeployMeterDiskLookupKey string `toml:"deploy_meter_disk_lookup_key"`
+
+	// DeployMeterActiveKeysLookupKey is the metered lookup_key for active keys usage.
+	DeployMeterActiveKeysLookupKey string `toml:"deploy_meter_active_keys_lookup_key"`
 }
 
 // DomainConnectConfig holds Domain Connect protocol configuration for

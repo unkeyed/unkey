@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "deploysub",
+    srcs = ["deploysub.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/deploysub",
+    visibility = ["//svc/ctrl:__subpackages__"],
+    deps = [
+        "//pkg/fault",
+        "@com_github_stripe_stripe_go_v86//:stripe-go",
+    ],
+)
+
+go_test(
+    name = "deploysub_test",
+    srcs = ["deploysub_test.go"],
+    embed = [":deploysub"],
+    deps = ["@com_github_stretchr_testify//require"],
+)
