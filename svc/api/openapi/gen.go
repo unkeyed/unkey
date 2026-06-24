@@ -362,6 +362,15 @@ type Project struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 }
 
+// ProjectIdentifier Identifies a project by either its unique ID or its slug.
+// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
+type ProjectIdentifier = string
+
+// ProjectSlug URL-safe handle for the project, unique within your workspace.
+// Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
+// Must contain only letters, numbers, hyphens, and underscores.
+type ProjectSlug = string
+
 // RatelimitOverride defines model for RatelimitOverride.
 type RatelimitOverride struct {
 	// Duration The duration in milliseconds for this override's rate limit window. This may differ from the default duration for the namespace, allowing custom time windows for specific entities. After this duration elapses, the rate limit counter for affected identifiers resets to zero.
@@ -2069,10 +2078,10 @@ type V2ProjectsCreateProjectRequestBody struct {
 	// Use a descriptive name like 'Payments Service' to identify its purpose.
 	Name string `json:"name"`
 
-	// Slug URL-safe handle you choose for this project, unique within your workspace.
+	// Slug URL-safe handle for the project, unique within your workspace.
 	// Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
-	// Must be lowercase letters, numbers, hyphens, and underscores, starting and ending with a letter or number (no leading, trailing, or consecutive separators).
-	Slug string `json:"slug"`
+	// Must contain only letters, numbers, hyphens, and underscores.
+	Slug ProjectSlug `json:"slug"`
 }
 
 // V2ProjectsCreateProjectResponseBody defines model for V2ProjectsCreateProjectResponseBody.
@@ -2092,9 +2101,9 @@ type V2ProjectsCreateProjectResponseData struct {
 
 // V2ProjectsDeleteProjectRequestBody defines model for V2ProjectsDeleteProjectRequestBody.
 type V2ProjectsDeleteProjectRequestBody struct {
-	// Project Identifies which project to delete, by either its unique ID or its slug.
+	// Project Identifies a project by either its unique ID or its slug.
 	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-	Project string `json:"project"`
+	Project ProjectIdentifier `json:"project"`
 }
 
 // V2ProjectsDeleteProjectResponseBody defines model for V2ProjectsDeleteProjectResponseBody.
@@ -2108,9 +2117,9 @@ type V2ProjectsDeleteProjectResponseBody struct {
 
 // V2ProjectsGetProjectRequestBody defines model for V2ProjectsGetProjectRequestBody.
 type V2ProjectsGetProjectRequestBody struct {
-	// Project Identifies which project to retrieve, by either its unique ID or its slug.
+	// Project Identifies a project by either its unique ID or its slug.
 	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-	Project string `json:"project"`
+	Project ProjectIdentifier `json:"project"`
 }
 
 // V2ProjectsGetProjectResponseBody defines model for V2ProjectsGetProjectResponseBody.
@@ -2154,15 +2163,14 @@ type V2ProjectsUpdateProjectRequestBody struct {
 	// Omit this field to leave the current name unchanged.
 	Name *string `json:"name,omitempty"`
 
-	// Project Identifies which project to update, by either its unique ID or its slug.
+	// Project Identifies a project by either its unique ID or its slug.
 	// Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-	// The project is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
-	Project string `json:"project"`
+	Project ProjectIdentifier `json:"project"`
 
-	// Slug New URL-safe slug for the project, unique within your workspace.
-	// Changing it affects the deployment domains generated for this project.
-	// Omit this field to leave the current slug unchanged.
-	Slug *string `json:"slug,omitempty"`
+	// Slug URL-safe handle for the project, unique within your workspace.
+	// Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
+	// Must contain only letters, numbers, hyphens, and underscores.
+	Slug *ProjectSlug `json:"slug,omitempty"`
 }
 
 // V2ProjectsUpdateProjectResponseBody defines model for V2ProjectsUpdateProjectResponseBody.

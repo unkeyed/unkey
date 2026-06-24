@@ -43,8 +43,8 @@ export const createProjectRequestSchema = z.object({
     .min(3, "Project slug must be at least 3 characters")
     .max(256, "Project slug too long")
     .regex(
-      /^[a-z0-9]+([_-][a-z0-9]+)*$/,
-      "Project slug must contain only lowercase letters, numbers, hyphens, and underscores",
+      /^[a-zA-Z0-9_-]+$/,
+      "Project slug must contain only letters, numbers, hyphens, and underscores",
     ),
 });
 

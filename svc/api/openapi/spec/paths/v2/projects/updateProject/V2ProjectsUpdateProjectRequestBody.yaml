@@ -3,25 +3,9 @@ required:
   - project
 properties:
   project:
-    type: string
-    minLength: 3
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_-]+$"
-    description: |
-      Identifies which project to update, by either its unique ID or its slug.
-      Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-      The project is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
-    example: proj_1234abcd
+    "$ref": "../../../../common/ProjectIdentifier.yaml"
   slug:
-    type: string
-    minLength: 3
-    maxLength: 256
-    pattern: "^[a-z0-9]+([_-][a-z0-9]+)*$"
-    description: |
-      New URL-safe slug for the project, unique within your workspace.
-      Changing it affects the deployment domains generated for this project.
-      Omit this field to leave the current slug unchanged.
-    example: payments-service
+    "$ref": "../../../../common/ProjectSlug.yaml"
   name:
     type: string
     minLength: 1

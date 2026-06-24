@@ -1911,15 +1911,7 @@ components:
                         Use a descriptive name like 'Payments Service' to identify its purpose.
                     example: Payments Service
                 slug:
-                    type: string
-                    minLength: 3
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+([_-][a-z0-9]+)*$"
-                    description: |
-                        URL-safe handle you choose for this project, unique within your workspace.
-                        Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
-                        Must be lowercase letters, numbers, hyphens, and underscores, starting and ending with a letter or number (no leading, trailing, or consecutive separators).
-                    example: payments-service
+                    "$ref": "#/components/schemas/ProjectSlug"
             additionalProperties: false
         V2ProjectsCreateProjectResponseBody:
             type: object
@@ -1938,14 +1930,7 @@ components:
                 - project
             properties:
                 project:
-                    type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        Identifies which project to delete, by either its unique ID or its slug.
-                        Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-                    example: proj_1234abcd
+                    "$ref": "#/components/schemas/ProjectIdentifier"
             additionalProperties: false
         V2ProjectsDeleteProjectResponseBody:
             type: object
@@ -1964,14 +1949,7 @@ components:
                 - project
             properties:
                 project:
-                    type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        Identifies which project to retrieve, by either its unique ID or its slug.
-                        Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-                    example: proj_1234abcd
+                    "$ref": "#/components/schemas/ProjectIdentifier"
             additionalProperties: false
         V2ProjectsGetProjectResponseBody:
             type: object
@@ -2027,25 +2005,9 @@ components:
                 - project
             properties:
                 project:
-                    type: string
-                    minLength: 3
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        Identifies which project to update, by either its unique ID or its slug.
-                        Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
-                        The project is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
-                    example: proj_1234abcd
+                    "$ref": "#/components/schemas/ProjectIdentifier"
                 slug:
-                    type: string
-                    minLength: 3
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+([_-][a-z0-9]+)*$"
-                    description: |
-                        New URL-safe slug for the project, unique within your workspace.
-                        Changing it affects the deployment domains generated for this project.
-                        Omit this field to leave the current slug unchanged.
-                    example: payments-service
+                    "$ref": "#/components/schemas/ProjectSlug"
                 name:
                     type: string
                     minLength: 1
@@ -3722,6 +3684,16 @@ components:
                         Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
                     example: 1711386400000
             additionalProperties: false
+        ProjectSlug:
+            type: string
+            minLength: 3
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_-]+$"
+            description: |
+                URL-safe handle for the project, unique within your workspace.
+                Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
+                Must contain only letters, numbers, hyphens, and underscores.
+            example: payments-service
         V2ProjectsCreateProjectResponseData:
             type: object
             required:
@@ -3737,6 +3709,15 @@ components:
                         Always begins with 'proj_' followed by a unique alphanumeric sequence.
                     example: proj_1234abcd
             additionalProperties: false
+        ProjectIdentifier:
+            type: string
+            minLength: 3
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_-]+$"
+            description: |
+                Identifies a project by either its unique ID or its slug.
+                Accepts a project ID that begins with 'proj_' or a project slug. The project must exist within your workspace.
+            example: proj_1234abcd
         Project:
             type: object
             required:
@@ -7090,11 +7071,11 @@ paths:
                                     summary: Invalid slug format
                                     value:
                                         error:
-                                            detail: The slug must match the pattern ^[a-z0-9]+([_-][a-z0-9]+)*$.
+                                            detail: The slug must match the pattern ^[a-zA-Z0-9_-]+$.
                                             errors:
-                                                - fix: Use lowercase letters, numbers, hyphens, and underscores, starting and ending with a letter or number (no leading, trailing, or consecutive separators)
+                                                - fix: Use only letters, numbers, hyphens, and underscores
                                                   location: body.slug
-                                                  message: must match ^[a-z0-9]+([_-][a-z0-9]+)*$
+                                                  message: must match ^[a-zA-Z0-9_-]+$
                                             status: 400
                                             title: Bad Request
                                             type: validation-error
