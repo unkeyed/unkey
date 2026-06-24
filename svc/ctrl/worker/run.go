@@ -53,6 +53,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
@@ -311,15 +312,35 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
-	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
-		DB: database,
-	})))
-	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
-		DB: database,
-	})))
+	// Deletion workflows write their audit logs as durable steps, so the audit
+	// record is tied to the retried deletion unit rather than the enqueueing RPC.
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	if err != nil {
+		return fmt.Errorf("failed to create audit log service: %w", err)
+	}
+
+	projectSvc, err := workerproject.New(workerproject.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create project worker service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewProjectServiceServer(projectSvc))
+
+	appSvc, err := workerapp.New(workerapp.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create app worker service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewAppServiceServer(appSvc))
+
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
-		DB:    database,
-		Admin: restateAdminClient,
+		DB:        database,
+		Admin:     restateAdminClient,
+		Auditlogs: auditlogSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create environment worker service: %w", err)

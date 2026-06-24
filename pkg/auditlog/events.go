@@ -77,4 +77,7 @@ const (
 	AppCreateEvent AuditLogEvent = "app.create"
 	AppUpdateEvent AuditLogEvent = "app.update"
 	AppDeleteEvent AuditLogEvent = "app.delete"
+
+	// Environment events
+	EnvironmentDeleteEvent AuditLogEvent = "environment.delete"
 )

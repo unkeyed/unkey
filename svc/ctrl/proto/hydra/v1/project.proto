@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package hydra.v1;
 
+import "ctrl/v1/actor.proto";
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
@@ -16,6 +17,15 @@ service ProjectService {
   rpc Delete(DeleteProjectRequest) returns (DeleteProjectResponse) {}
 }
 
-message DeleteProjectRequest {}
+// DeleteProjectRequest carries the caller identity and correlation ID into the
+// durable workflow so the project.delete audit log is written as part of the
+// retried deletion unit, and the same correlation ID can be threaded down to
+// each cascaded app and environment delete.
+message DeleteProjectRequest {
+  ctrl.v1.ActorInfo actor = 1;
+  // correlation_id groups this deletion with every cascaded app.delete and
+  // environment.delete audit event. Minted at the RPC entry point.
+  string correlation_id = 2;
+}
 
 message DeleteProjectResponse {}

@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
@@ -18,6 +17,13 @@ import (
 // the app's environments and cleans up all associated resources.
 // Returns immediately after the workflow is enqueued; actual deletion
 // is eventually consistent.
+//
+// The app.delete audit log is written inside the workflow, not here: a
+// Restate enqueue can't share a transaction with a DB write, so writing the
+// audit log after the enqueue would leave a deleting-but-unaudited window if
+// the insert failed. The workflow owns the audit write as part of its durable,
+// retried unit. The caller's identity and a correlation ID are threaded in so
+// the workflow can attribute the event and group it with any cascade siblings.
 func (s *Service) DeleteApp(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteAppRequest],
@@ -32,8 +38,7 @@ func (s *Service) DeleteApp(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	app, err := db.Query.FindAppById(ctx, s.db.RO(), req.Msg.GetAppId())
-	if err != nil {
+	if _, err := db.Query.FindAppById(ctx, s.db.RO(), req.Msg.GetAppId()); err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found: %s", req.Msg.GetAppId()))
 		}
@@ -41,37 +46,12 @@ func (s *Service) DeleteApp(
 	}
 
 	client := hydrav1.NewAppServiceIngressClient(s.restate, req.Msg.GetAppId())
-	_, err = client.Delete().Send(ctx, &hydrav1.DeleteAppRequest{})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger app deletion: %w", err))
-	}
-
-	a := req.Msg.GetActor()
-	err = s.auditlogs.Insert(ctx, nil, []auditlog.AuditLog{
-		{
-			WorkspaceID:   app.WorkspaceID,
-			Event:         auditlog.AppDeleteEvent,
-			Display:       fmt.Sprintf("Deleted app %s", app.ID),
-			ActorID:       a.GetId(),
-			ActorName:     a.GetName(),
-			ActorType:     actor.AuditType(a.GetType()),
-			ActorMeta:     actor.Meta(a.GetMeta()),
-			RemoteIP:      a.GetRemoteIp(),
-			UserAgent:     a.GetUserAgent(),
-			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          app.ID,
-					Type:        auditlog.AppResourceType,
-					Meta:        map[string]any{"name": app.Name, "slug": app.Slug, "projectId": app.ProjectID},
-					Name:        app.Name,
-					DisplayName: app.Name,
-				},
-			},
-		},
+	_, err := client.Delete().Send(ctx, &hydrav1.DeleteAppRequest{
+		Actor:         req.Msg.GetActor(),
+		CorrelationId: auditlog.NewCorrelationID(),
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to insert audit log: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger app deletion: %w", err))
 	}
 
 	return connect.NewResponse(&ctrlv1.DeleteAppResponse{}), nil

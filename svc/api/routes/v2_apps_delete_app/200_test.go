@@ -68,9 +68,6 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 
 	// Sanity: the app still exists in our DB because the cascade runs in the
 	// (mocked) control plane, not in this handler.
-	_, err := db.Query.FindAppByWorkspaceAndId(ctx, h.DB.RO(), db.FindAppByWorkspaceAndIdParams{
-		WorkspaceID: workspace.ID,
-		ID:          app.ID,
-	})
+	_, err := db.Query.FindAppById(ctx, h.DB.RO(), app.ID)
 	require.NoError(t, err)
 }
