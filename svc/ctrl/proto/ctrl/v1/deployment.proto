@@ -212,6 +212,13 @@ message WakeDeploymentRequest {
 
 message WakeDeploymentResponse {}
 
+message CancelDeployRequest {
+  // WorkspaceId is the workspace whose Unkey Deploy plan is being cancelled.
+  string workspace_id = 1;
+}
+
+message CancelDeployResponse {}
+
 service DeployService {
   // Create a new deployment from a docker image or by auto-detecting
   // the appropriate source for the project.
@@ -240,4 +247,12 @@ service DeployService {
 
   // Wake a stopped deployment by scaling it back up.
   rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
+
+  // CancelDeploy cancels a workspace's Unkey Deploy plan. It stops the Stripe
+  // renewal (cancel_at_period_end for a Deploy-only subscription, or removes the
+  // plan-fee item from a mixed subscription, never refunding), clears the local
+  // deploy_plan entitlement, and tears down the workspace's running compute via
+  // DeployTeardownService.Teardown(ARCHIVE). Idempotent: succeeds if the
+  // workspace already has no Deploy plan.
+  rpc CancelDeploy(CancelDeployRequest) returns (CancelDeployResponse) {}
 }

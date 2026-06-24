@@ -33,6 +33,7 @@ import (
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploysub"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -241,6 +242,24 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                       auditlogSvc,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		Bearer:                          cfg.AuthToken,
+		EnforceDeployGate:               cfg.DeployGate.Enforce,
+		// DeploySub powers CancelDeploy. Nil when Stripe is unconfigured, which
+		// makes CancelDeploy fail closed with FailedPrecondition.
+		DeploySub: func() *deploysub.Manager {
+			if cfg.Stripe.SecretKey == "" {
+				return nil
+			}
+			return deploysub.New(stripesdk.NewClient(cfg.Stripe.SecretKey), deploysub.Config{
+				StarterLookupKey:         cfg.Stripe.DeployStarterLookupKey,
+				ProLookupKey:             cfg.Stripe.DeployProLookupKey,
+				BusinessLookupKey:        cfg.Stripe.DeployBusinessLookupKey,
+				MeterCPULookupKey:        cfg.Stripe.DeployMeterCPULookupKey,
+				MeterMemoryLookupKey:     cfg.Stripe.DeployMeterMemoryLookupKey,
+				MeterEgressLookupKey:     cfg.Stripe.DeployMeterEgressLookupKey,
+				MeterDiskLookupKey:       cfg.Stripe.DeployMeterDiskLookupKey,
+				MeterActiveKeysLookupKey: cfg.Stripe.DeployMeterActiveKeysLookupKey,
+			})
+		}(),
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{

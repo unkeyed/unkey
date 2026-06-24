@@ -31,6 +31,7 @@ go_library(
         "//svc/ctrl/api/webhooks/stripe",
         "//svc/ctrl/internal/auditlogs",
         "//svc/ctrl/internal/db",
+        "//svc/ctrl/internal/deploysub",
         "//svc/ctrl/services/acme",
         "//svc/ctrl/services/app",
         "//svc/ctrl/services/cluster",
