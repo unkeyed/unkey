@@ -1,4 +1,4 @@
--- name: FindAppByWorkspaceProjectAndIdentifier :one
+-- name: FindAppByProjectAndIdOrSlug :one
 SELECT sqlc.embed(a)
 FROM apps a
 JOIN projects p ON p.id = a.project_id

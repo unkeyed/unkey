@@ -348,6 +348,15 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
+	//FindAppByProjectAndIdOrSlug
+	//
+	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  FROM apps a
+	//  JOIN projects p ON p.id = a.project_id
+	//  WHERE p.workspace_id = ?
+	//    AND (p.id = ? OR p.slug = ?)
+	//    AND (a.id = ? OR a.slug = ?)
+	FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (FindAppByProjectAndIdOrSlugRow, error)
 	//FindAppByProjectAndSlug
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
@@ -370,15 +379,6 @@ type Querier interface {
 	//    AND p.slug = ?
 	//    AND a.slug = ?
 	FindAppByWorkspaceAndSlugs(ctx context.Context, db DBTX, arg FindAppByWorkspaceAndSlugsParams) (FindAppByWorkspaceAndSlugsRow, error)
-	//FindAppByWorkspaceProjectAndIdentifier
-	//
-	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
-	//  FROM apps a
-	//  JOIN projects p ON p.id = a.project_id
-	//  WHERE p.workspace_id = ?
-	//    AND (p.id = ? OR p.slug = ?)
-	//    AND (a.id = ? OR a.slug = ?)
-	FindAppByWorkspaceProjectAndIdentifier(ctx context.Context, db DBTX, arg FindAppByWorkspaceProjectAndIdentifierParams) (FindAppByWorkspaceProjectAndIdentifierRow, error)
 	//FindAppEnvVarsByAppAndEnv
 	//
 	//  SELECT `key`, value

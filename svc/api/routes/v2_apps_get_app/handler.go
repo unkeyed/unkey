@@ -40,7 +40,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	row, err := db.Query.FindAppByWorkspaceProjectAndIdentifier(ctx, h.DB.RO(), db.FindAppByWorkspaceProjectAndIdentifierParams{
+	row, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RO(), db.FindAppByProjectAndIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
