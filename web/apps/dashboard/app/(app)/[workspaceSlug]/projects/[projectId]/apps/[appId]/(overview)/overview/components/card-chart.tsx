@@ -18,8 +18,8 @@ const ERROR = "hsl(var(--error-9))";
 const ERROR_FILL = "hsl(var(--error-3))";
 
 const CHART_CONFIG: ChartConfig = {
-  total: { label: "Requests /s", color: BLUE },
-  errors: { label: "Errors /s", color: ERROR },
+  total: { label: "Requests/s", color: BLUE },
+  errors: { label: "Errors/s", color: ERROR },
 };
 
 // Hoisted so its identity is stable: a fresh object each render resets recharts' cursor.
