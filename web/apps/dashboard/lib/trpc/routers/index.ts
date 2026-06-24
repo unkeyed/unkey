@@ -99,6 +99,7 @@ import { create as createRatelimitPolicy } from "./deploy/environment-settings/s
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
+import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -575,6 +576,7 @@ export const router = t.router({
       listInstances,
     }),
     metrics: t.router({
+      getAppRpsMetrics,
       getDeploymentRpsMetrics,
       getDeploymentLatencyMetrics,
       getDeploymentCpuTimeseries,

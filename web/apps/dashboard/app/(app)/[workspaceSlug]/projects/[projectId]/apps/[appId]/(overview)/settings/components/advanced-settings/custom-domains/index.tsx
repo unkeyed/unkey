@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
@@ -49,6 +50,13 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
   projectId,
   defaultEnvironmentId,
 }) => {
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    if (window.location.hash.slice(1) === "custom-domains") {
+      setExpanded(true);
+    }
+  }, []);
+
   const {
     handleSubmit,
     control,
@@ -119,6 +127,8 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       displayValue={displayValue}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
+      expanded={expanded}
+      onExpandedChange={setExpanded}
     >
       <SettingField>
         <div className="flex items-center gap-3">

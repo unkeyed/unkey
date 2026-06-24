@@ -101,6 +101,7 @@ import {
   getResourceSummary,
 } from "./resources";
 export { TIME_WINDOWS, type TimeWindow } from "./resources";
+import { getEnvironmentRequests } from "./frontline/environment-requests";
 import { getRuntimeLogs } from "./runtime-logs";
 import {
   getDeploymentLatencyWithTimeseries,
@@ -367,6 +368,11 @@ export class ClickHouse {
         egress: { timeseries: getResourceNetworkEgressTimeseries(this.querier) },
         ingress: { timeseries: getResourceNetworkIngressTimeseries(this.querier) },
       },
+    };
+  }
+  public get environment() {
+    return {
+      requests: getEnvironmentRequests(this.querier),
     };
   }
   public get sentinel() {
