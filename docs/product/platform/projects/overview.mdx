@@ -21,12 +21,12 @@ Workspace
               │     ├── Deployments
               │     ├── Variables
               │     └── Custom domains
-              └── Configuration (build, runtime, Sentinel)
+              └── Configuration (build, runtime, gateway)
 ```
 
 An [app](/platform/apps/overview) represents a single deployable service within your project. When you create a project, Unkey creates a default app automatically. A project can contain multiple apps, for example an API server and a background worker that share the same repository.
 
-Build settings, runtime configuration, and [Sentinel policies](/platform/sentinel/overview) are configured per app. [Variables](/platform/variables/overview) and [custom domains](/networking/domains) are scoped to an app's environment.
+Build settings, runtime configuration, and [gateway policies](/platform/gateway/overview) are configured per app. [Variables](/platform/variables/overview) and [custom domains](/networking/domains) are scoped to an app's environment.
 
 ## Create a project
 
@@ -50,7 +50,7 @@ After creation, the project dashboard gives you four tabs:
 | -------------- | ----------------------------------------------------------------------------------------------- |
 | **Deployments** | Active and past deployments across all environments, with commit info and status                 |
 | **Logs**        | Runtime logs from your running instances                                                        |
-| **Requests**    | HTTP request analytics processed by [the Sentinel](/platform/sentinel/overview)                  |
+| **Requests**    | HTTP request analytics processed by [the gateway](/platform/gateway/overview)                   |
 | **Settings**    | Build, runtime, and advanced configuration. See [Settings](/platform/projects/settings) for details |
 
 The deployments tab is the default view when you open a project.

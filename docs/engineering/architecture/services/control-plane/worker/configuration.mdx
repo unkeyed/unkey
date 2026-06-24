@@ -35,9 +35,8 @@ These fields must be set for production deployments.
 | `instance_id` | string | - | Instance identifier for logs and tracing.
 | `region` | string | - | Region label for logs and tracing.
 | `observability` | object | - | Observability config (logging, metrics, tracing).
-| `default_domain` | string | `unkey.app` | Used for sentinel bootstrapping.
+| `default_domain` | string | `unkey.app` | Fallback domain for system operations, including wildcard certificate bootstrapping.
 | `build_platform` | string | `linux/amd64` | Build platform, format `linux/{arch}`.
-| `sentinel_image` | string | `ghcr.io/unkeyed/unkey:local` | Sentinel image override.
 | `acme` | object | - | ACME config for cert issuance.
 | `depot` | object | - | Depot.dev config for builds.
 | `registry` | object | - | Registry credentials for builds.
@@ -106,7 +105,6 @@ GitHub configuration is optional and can be omitted for local development.
 | `heartbeat.quota_check_url` | string | Checkly heartbeat for quota checks.
 | `heartbeat.key_refill_url` | string | Checkly heartbeat for key refills.
 | `slack.quota_check_webhook_url` | string | Slack webhook for quota alerts.
-| `slack.sentinel_rollout_webhook_url` | string | Slack webhook used by `SentinelRolloutService` to post rollout progress.
 
 ## Example
 
@@ -125,7 +123,6 @@ region = "${UNKEY_REGION}"
 instance_id = "${POD_NAME}"
 default_domain = "${UNKEY_DEFAULT_DOMAIN}"
 build_platform = "linux/amd64"
-sentinel_image = "ghcr.io/unkeyed/unkey:v2.0.77"
 cname_domain = "${UNKEY_CNAME_DOMAIN}"
 
 [database]
@@ -174,5 +171,4 @@ key_refill_url = "${UNKEY_KEY_REFILL_HEARTBEAT_URL}"
 
 [slack]
 quota_check_webhook_url = "${UNKEY_QUOTA_CHECK_SLACK_WEBHOOK_URL}"
-sentinel_rollout_webhook_url = "${UNKEY_SENTINEL_ROLLOUT_SLACK_WEBHOOK_URL}"
 ```
