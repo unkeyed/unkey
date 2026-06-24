@@ -455,16 +455,27 @@ components:
         V2AppsUpdateAppRequestBody:
             type: object
             required:
-                - appId
+                - project
+                - app
             properties:
-                appId:
+                project:
                     type: string
-                    minLength: 8
+                    minLength: 1
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z0-9_-]+$"
                     description: |
-                        Specifies which app to update by its unique identifier.
-                        Must be a valid app ID that begins with 'app_' and exists within your workspace.
+                        Identifies the parent project, by either its unique ID or its slug.
+                        Required to resolve the app, since app slugs are only unique within a project.
+                    example: payments
+                app:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_-]+$"
+                    description: |
+                        Identifies which app to update, by either its unique ID or its slug.
+                        Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
+                        The app is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
                     example: app_1234abcd
                 name:
                     type: string
@@ -5099,17 +5110,19 @@ paths:
                     application/json:
                         examples:
                             changeSlug:
-                                description: Update the URL-safe slug of an app
-                                summary: Change an app slug
+                                description: Locate the app by its current slug and assign a new one
+                                summary: Change an app slug by slug
                                 value:
-                                    appId: app_1234abcd
+                                    app: payments-service
+                                    project: payments
                                     slug: payments-api
                             rename:
-                                description: Update only the display name of an app
-                                summary: Rename an app
+                                description: Update only the display name, locating the app by its ID
+                                summary: Rename an app by ID
                                 value:
-                                    appId: app_1234abcd
+                                    app: app_1234abcd
                                     name: Payments API
+                                    project: payments
                         schema:
                             $ref: '#/components/schemas/V2AppsUpdateAppRequestBody'
                 required: true

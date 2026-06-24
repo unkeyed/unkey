@@ -30,6 +30,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 	}
 
 	validID := "app_1234abcd"
+	validProject := "payments"
 	emptyName := ""
 	longName := strings.Repeat("a", 257)
 
@@ -37,17 +38,21 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing appId", req: handler.Request{}},
-		{name: "appId too short", req: handler.Request{AppId: "app_1"}},
-		{name: "appId with invalid chars", req: handler.Request{AppId: "app-1234abc"}},
-		{name: "slug with uppercase", req: handler.Request{AppId: validID, Slug: ptr.P("Payments-Api")}},
-		{name: "slug with invalid chars", req: handler.Request{AppId: validID, Slug: ptr.P("payments_api")}},
-		{name: "slug with leading hyphen", req: handler.Request{AppId: validID, Slug: ptr.P("-payments")}},
-		{name: "slug with consecutive hyphens", req: handler.Request{AppId: validID, Slug: ptr.P("payments--api")}},
-		{name: "slug too long", req: handler.Request{AppId: validID, Slug: ptr.P(strings.Repeat("a", 257))}},
-		{name: "empty name", req: handler.Request{AppId: validID, Name: &emptyName}},
-		{name: "name too long", req: handler.Request{AppId: validID, Name: &longName}},
-		{name: "default branch too long", req: handler.Request{AppId: validID, DefaultBranch: ptr.P(strings.Repeat("a", 257))}},
+		{name: "missing project and app", req: handler.Request{}},
+		{name: "missing app", req: handler.Request{Project: validProject}},
+		{name: "missing project", req: handler.Request{App: validID}},
+		{name: "app with invalid chars", req: handler.Request{Project: validProject, App: "app.1234"}},
+		{name: "app too long", req: handler.Request{Project: validProject, App: strings.Repeat("a", 256)}},
+		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: validID}},
+		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), App: validID}},
+		{name: "slug with uppercase", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("Payments-Api")}},
+		{name: "slug with invalid chars", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("payments_api")}},
+		{name: "slug with leading hyphen", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("-payments")}},
+		{name: "slug with consecutive hyphens", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("payments--api")}},
+		{name: "slug too long", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P(strings.Repeat("a", 257))}},
+		{name: "empty name", req: handler.Request{Project: validProject, App: validID, Name: &emptyName}},
+		{name: "name too long", req: handler.Request{Project: validProject, App: validID, Name: &longName}},
+		{name: "default branch too long", req: handler.Request{Project: validProject, App: validID, DefaultBranch: ptr.P(strings.Repeat("a", 257))}},
 	}
 
 	for _, tc := range testCases {

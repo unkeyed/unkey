@@ -47,9 +47,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.App, error) {
-		app, err := db.Query.FindAppByWorkspaceAndId(ctx, tx, db.FindAppByWorkspaceAndIdParams{
+		row, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, tx, db.FindAppByProjectAndIdOrSlugParams{
 			WorkspaceID: principal.WorkspaceID,
-			ID:          req.AppId,
+			Project:     req.Project,
+			App:         req.App,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -68,6 +69,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("Failed to retrieve app."),
 			)
 		}
+
+		app := row.App
 
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{

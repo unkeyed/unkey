@@ -1,15 +1,26 @@
 type: object
 required:
-  - appId
+  - project
+  - app
 properties:
-  appId:
+  project:
     type: string
-    minLength: 8
+    minLength: 1
     maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
+    pattern: "^[a-zA-Z0-9_-]+$"
     description: |
-      Specifies which app to update by its unique identifier.
-      Must be a valid app ID that begins with 'app_' and exists within your workspace.
+      Identifies the parent project, by either its unique ID or its slug.
+      Required to resolve the app, since app slugs are only unique within a project.
+    example: payments
+  app:
+    type: string
+    minLength: 1
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_-]+$"
+    description: |
+      Identifies which app to update, by either its unique ID or its slug.
+      Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
+      The app is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
     example: app_1234abcd
   name:
     type: string
@@ -46,20 +57,23 @@ properties:
 additionalProperties: false
 examples:
   rename:
-    summary: Rename an app
-    description: Update only the display name of an app
+    summary: Rename an app by ID
+    description: Update only the display name, locating the app by its ID
     value:
-      appId: app_1234abcd
+      project: payments
+      app: app_1234abcd
       name: Payments API
   changeSlug:
-    summary: Change an app slug
-    description: Update the URL-safe slug of an app
+    summary: Change an app slug by slug
+    description: Locate the app by its current slug and assign a new one
     value:
-      appId: app_1234abcd
+      project: payments
+      app: payments-service
       slug: payments-api
   protect:
     summary: Toggle delete protection
     description: Enable delete protection without changing the name
     value:
-      appId: app_1234abcd
+      project: payments
+      app: app_1234abcd
       deleteProtection: true

@@ -25,7 +25,7 @@ func TestUpdateAppUnauthorized(t *testing.T) {
 		}
 
 		name := "New Name"
-		req := handler.Request{AppId: "app_1234abcd", Name: &name}
+		req := handler.Request{Project: "payments", App: "app_1234abcd", Name: &name}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)

@@ -69,8 +69,9 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		newName := "New Name"
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			AppId: id,
-			Name:  &newName,
+			Project: project.ID,
+			App:     id,
+			Name:    &newName,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
@@ -106,8 +107,9 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		newSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			AppId: id,
-			Slug:  &newSlug,
+			Project: project.ID,
+			App:     id,
+			Slug:    &newSlug,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, newSlug, res.Body.Data.Slug)
@@ -123,7 +125,8 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 
 		newBranch := "develop"
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			AppId:         id,
+			Project:       project.ID,
+			App:           id,
 			DefaultBranch: &newBranch,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
@@ -140,7 +143,8 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		protect := true
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			AppId:            id,
+			Project:          project.ID,
+			App:              id,
 			DeleteProtection: &protect,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
@@ -159,7 +163,8 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		// subsequent name-only update has a non-default value to preserve.
 		protect := true
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			AppId:            id,
+			Project:          project.ID,
+			App:              id,
 			DeleteProtection: &protect,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
@@ -167,8 +172,9 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 
 		newName := "Renamed"
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			AppId: id,
-			Name:  &newName,
+			Project: project.ID,
+			App:     id,
+			Name:    &newName,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, newName, res.Body.Data.Name)
@@ -187,7 +193,8 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		protect := true
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			AppId:            id,
+			Project:          project.ID,
+			App:              id,
 			Name:             &newName,
 			Slug:             &newSlug,
 			DefaultBranch:    &newBranch,
@@ -210,7 +217,8 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		id, slug := createApp(t, "Unchanged", "main")
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			AppId: id,
+			Project: project.ID,
+			App:     id,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, "Unchanged", res.Body.Data.Name)

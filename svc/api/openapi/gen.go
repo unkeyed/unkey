@@ -830,9 +830,10 @@ type V2AppsListAppsResponseBody struct {
 
 // V2AppsUpdateAppRequestBody defines model for V2AppsUpdateAppRequestBody.
 type V2AppsUpdateAppRequestBody struct {
-	// AppId Specifies which app to update by its unique identifier.
-	// Must be a valid app ID that begins with 'app_' and exists within your workspace.
-	AppId string `json:"appId"`
+	// App Identifies which app to update, by either its unique ID or its slug.
+	// Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
+	// The app is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
+	App string `json:"app"`
 
 	// DefaultBranch New default git branch deployments track for this app.
 	// Omit this field to leave the current branch unchanged.
@@ -845,6 +846,10 @@ type V2AppsUpdateAppRequestBody struct {
 	// Name New human-readable name for the app.
 	// Omit this field to leave the current name unchanged.
 	Name *string `json:"name,omitempty"`
+
+	// Project Identifies the parent project, by either its unique ID or its slug.
+	// Required to resolve the app, since app slugs are only unique within a project.
+	Project string `json:"project"`
 
 	// Slug New URL-safe handle for the app, unique within its project.
 	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).

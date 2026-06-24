@@ -25,16 +25,18 @@ post:
           "$ref": "./V2AppsUpdateAppRequestBody.yaml"
         examples:
           rename:
-            summary: Rename an app
-            description: Update only the display name of an app
+            summary: Rename an app by ID
+            description: Update only the display name, locating the app by its ID
             value:
-              appId: app_1234abcd
+              project: payments
+              app: app_1234abcd
               name: Payments API
           changeSlug:
-            summary: Change an app slug
-            description: Update the URL-safe slug of an app
+            summary: Change an app slug by slug
+            description: Locate the app by its current slug and assign a new one
             value:
-              appId: app_1234abcd
+              project: payments
+              app: payments-service
               slug: payments-api
     required: true
   responses:
