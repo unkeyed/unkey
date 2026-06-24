@@ -70,6 +70,10 @@ export const identityActions = z.enum([
   "delete_identity",
 ]);
 export const projectActions = z.enum([
+  "create_project",
+  "read_project",
+  "update_project",
+  "delete_project",
   "create_deployment",
   "read_deployment",
   "generate_upload_url",

@@ -2,8 +2,7 @@
 
 import * as React from "react";
 
-import { TurnstileChallenge } from "@/components/auth/turnstile-challenge";
-import { AuthErrorCode, type PendingTurnstileResponse, errorMessages } from "@/lib/auth/types";
+import { AuthErrorCode, errorMessages } from "@/lib/auth/types";
 import { FormInput, Loading, toast } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useSignUp } from "../hooks/useSignUp";
@@ -13,12 +12,8 @@ interface Props {
 }
 
 export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
-  const { handleSignUpViaEmail, handleTurnstileVerification, isPendingTurnstileChallenge } =
-    useSignUp();
+  const { handleSignUpViaEmail } = useSignUp();
   const [isLoading, setIsLoading] = React.useState(false);
-  const [isTurnstileLoading, setIsTurnstileLoading] = React.useState(false);
-  const [turnstileChallenge, setTurnstileChallenge] =
-    React.useState<PendingTurnstileResponse | null>(null);
   const [validationError, setValidationError] = React.useState<string>("");
   const searchParams = useSearchParams();
   const emailFromParams = searchParams?.get("email") || "";
@@ -77,16 +72,11 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
         lastName: last as string,
       });
 
-      // Check if we got a Turnstile challenge
-      if (result && isPendingTurnstileChallenge(result)) {
-        setTurnstileChallenge(result);
-        setIsLoading(false);
-        return;
-      }
-
       // If successful, proceed to verification
       if (result?.success) {
         setVerification(true);
+      } else if (result && !result.success) {
+        toast.error(result.message || errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
       }
     } catch (err: unknown) {
       const errorCode =
@@ -101,51 +91,6 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
       setIsLoading(false);
     }
   };
-
-  const handleTurnstileSuccess = async (token: string) => {
-    if (!turnstileChallenge) {
-      return;
-    }
-    setIsTurnstileLoading(true);
-    try {
-      const result = await handleTurnstileVerification(token, turnstileChallenge);
-
-      if (result?.success) {
-        setTurnstileChallenge(null);
-        setVerification(true);
-      } else {
-        toast.error("Verification failed. Please try again.");
-      }
-    } catch (_error) {
-      toast.error("Verification failed. Please try again.");
-    } finally {
-      setIsTurnstileLoading(false);
-    }
-  };
-
-  const handleTurnstileError = () => {
-    setTurnstileChallenge(null);
-    toast.error("Verification failed. Please try again.");
-  };
-  if (turnstileChallenge) {
-    return (
-      <div className="grid gap-6">
-        <TurnstileChallenge
-          email={turnstileChallenge.email}
-          onSuccess={handleTurnstileSuccess}
-          onError={handleTurnstileError}
-          isLoading={isTurnstileLoading}
-        />
-        <button
-          type="button"
-          onClick={() => setTurnstileChallenge(null)}
-          className="text-sm text-gray-400 hover:text-white underline"
-        >
-          Try different information
-        </button>
-      </div>
-    );
-  }
 
   return (
     <form className="grid gap-16" onSubmit={signUpWithCode}>

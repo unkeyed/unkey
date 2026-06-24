@@ -34,6 +34,6 @@ jobs:
           AUTH_PROVIDER: "workos"
           WORKOS_CLIENT_ID: "client_"
           WORKOS_API_KEY: "sk_test_"
-          WORKOS_COOKIE_PASSWORD: "IAMACOOKIEPASSWORD"
+          WORKOS_COOKIE_PASSWORD: "ci-test-cookie-password-min-32-chars"
           NEXT_PUBLIC_WORKOS_REDIRECT_URI: "http://localhost:3000/auth/sso-callback"
         working-directory: web

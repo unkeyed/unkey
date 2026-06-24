@@ -192,7 +192,10 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				Password: "password",
 				Port:     0,
 			},
-			JWTSecrets:    nil,
+			Auth: api.AuthConfigs{
+				api.PortalSessionAuthConfig{},
+				api.RootKeyAuthConfig{Enabled: nil},
+			},
 			PortalBaseURL: "https://portal.test.local",
 		}
 

@@ -812,7 +812,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -910,7 +910,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -1118,7 +1118,21 @@ type Querier interface {
 	//  WHERE slug = ?
 	//  LIMIT 1
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
-	//FindProjectByWorkspaceSlug
+	//FindProjectByWorkspaceAndId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ? AND id = ?
+	//  LIMIT 1
+	FindProjectByWorkspaceAndId(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndIdParams) (FindProjectByWorkspaceAndIdRow, error)
+	//FindProjectByWorkspaceAndSlug
 	//
 	//  SELECT
 	//      id,
@@ -1131,7 +1145,7 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE workspace_id = ? AND slug = ?
 	//  LIMIT 1
-	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
+	FindProjectByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceAndSlugParams) (FindProjectByWorkspaceAndSlugRow, error)
 	//FindQuotaByWorkspaceID
 	//
 	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds
@@ -1300,9 +1314,28 @@ type Querier interface {
 	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, db DBTX, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
+	//FindWorkspaceByOrgID
+	//
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  WHERE org_id = ?
+	//  AND deleted_at_m IS NULL
+	FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error)
+	// Reads the Unkey Deploy entitlement signals for the project-creation gate:
+	// deploy_plan (mirrored from Stripe by the dashboard webhook) and
+	// deploy_plan_override (manual comp for internal workspaces). The gate treats
+	// either being set as entitled. Read by ctrl-api outside the billing hot path,
+	// so a single lookup by id is fine. Explicit columns (not SELECT *) so the read
+	// is insensitive to workspace column ordering.
+	//
+	//  SELECT
+	//     w.deploy_plan,
+	//     w.deploy_plan_override
+	//  FROM `workspaces` w
+	//  WHERE w.id = ?
+	FindWorkspaceDeployEntitlement(ctx context.Context, db DBTX, id string) (FindWorkspaceDeployEntitlementRow, error)
 	// FlipSentinelDeployStatusIfProgressing flips deploy_status from progressing
 	// to the target status, guarding against concurrent writers (e.g. the Deploy
 	// worker marking failed on timeout) by only updating rows whose current
@@ -2612,6 +2645,22 @@ type Querier interface {
 	//  WHERE environment_id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, db DBTX, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
+	//ListProjectsByWorkspaceId
+	//
+	//  SELECT
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      slug,
+	//      delete_protection,
+	//      created_at,
+	//      updated_at
+	//  FROM projects
+	//  WHERE workspace_id = ?
+	//    AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
@@ -2750,7 +2799,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
@@ -2906,6 +2955,18 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, db DBTX, arg ResetCustomDomainVerificationParams) error
+	// Clears every billing linkage on a workspace, returning it to the Free
+	// tier. Mirrors what the customer.subscription.deleted webhook writes, plus
+	// stripe_customer_id, which no webhook ever clears. Used by the
+	// `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
+	//
+	//  UPDATE `workspaces`
+	//  SET stripe_customer_id = NULL,
+	//      stripe_subscription_id = NULL,
+	//      deploy_plan = NULL,
+	//      tier = 'Free'
+	//  WHERE id = ?
+	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`
@@ -3248,6 +3309,26 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, db DBTX, arg UpdateKeysLastUsedParams) error
+	//UpdateProject
+	//
+	//  UPDATE projects p
+	//  SET
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.name
+	//      END,
+	//      slug = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.slug
+	//      END,
+	//      delete_protection = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE p.delete_protection
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) error
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects
@@ -3256,6 +3337,28 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateProjectDepotID(ctx context.Context, db DBTX, arg UpdateProjectDepotIDParams) error
+	// Overwrites every column of a workspace's quota row (team included, unlike
+	// UpsertQuota whose ON DUPLICATE KEY UPDATE leaves it untouched). Callers pass a
+	// full set of values, so it fits full resets like `unkey dev stripe reset`:
+	// resetting only the core quotas would leave a paid tier's elevated rate-limit
+	// and Deploy-resource allowances behind.
+	//
+	//  UPDATE quota
+	//  SET requests_per_month = ?,
+	//      audit_logs_retention_days = ?,
+	//      logs_retention_days = ?,
+	//      team = ?,
+	//      ratelimit_api_limit = ?,
+	//      ratelimit_api_duration = ?,
+	//      allocated_cpu_millicores_total = ?,
+	//      allocated_memory_mib_total = ?,
+	//      allocated_storage_mib_total = ?,
+	//      max_cpu_millicores_per_instance = ?,
+	//      max_memory_mib_per_instance = ?,
+	//      max_storage_mib_per_instance = ?,
+	//      max_concurrent_builds = ?
+	//  WHERE workspace_id = ?
+	UpdateQuota(ctx context.Context, db DBTX, arg UpdateQuotaParams) error
 	//UpdateRatelimit
 	//
 	//  UPDATE `ratelimits`

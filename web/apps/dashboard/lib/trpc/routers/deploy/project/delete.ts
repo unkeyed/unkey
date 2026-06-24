@@ -1,4 +1,4 @@
-import { insertAuditLogs } from "@/lib/audit";
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -37,6 +37,12 @@ export const deleteProject = workspaceProcedure
     try {
       await ctrl.project.deleteProject({
         projectId: input.projectId,
+        actor: {
+          id: ctx.user.id,
+          type: ActorType.USER,
+          remoteIp: ctx.audit.location,
+          userAgent: ctx.audit.userAgent ?? "",
+        },
       });
     } catch (err) {
       if (err instanceof TRPCError) {
@@ -48,24 +54,6 @@ export const deleteProject = workspaceProcedure
         message: "Failed to delete project",
       });
     }
-
-    await insertAuditLogs(db, {
-      workspaceId: ctx.workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "project.delete",
-      description: `Deleted ${project.id}`,
-      resources: [
-        {
-          type: "project",
-          id: project.id,
-          name: project.name,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return { success: true, projectId: input.projectId };
   });

@@ -1,5 +1,7 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { stripeEnv } from "@/lib/env";
+import { routes } from "@/lib/navigation/routes";
 import { getStripeClient } from "@/lib/stripe";
 import { getBaseUrl } from "@/lib/utils";
 import { Code, Empty } from "@unkey/ui";
@@ -9,10 +11,25 @@ import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
-export default async function StripeRedirect() {
+/**
+ * Intents the billing page can attach to a checkout round-trip, so /success
+ * knows what the user was actually trying to do. "compute" / "api" reopen
+ * that product's plan picker after the card is added; "payment" means the
+ * card itself was the goal. Their presence also tells /success to skip the
+ * legacy forced API plan modal.
+ */
+const CHECKOUT_INTENTS = ["compute", "api", "payment"] as const;
+
+export default async function StripeRedirect(props: {
+  searchParams: Promise<{ intent?: string }>;
+}) {
+  const { intent: rawIntent } = await props.searchParams;
+  const intent = CHECKOUT_INTENTS.find((known) => known === rawIntent);
+
   const { orgId, role } = await getAuth();
 
   if (!orgId) {
+    // route-guard-ignore: pre-existing unauthenticated redirect, left untouched
     return redirect("/sign-in");
   }
 
@@ -33,7 +50,7 @@ export default async function StripeRedirect() {
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
   if (!ws) {
-    return redirect("/new");
+    return redirect(routes.workspaces.create());
   }
 
   let stripe: Stripe;
@@ -54,13 +71,36 @@ export default async function StripeRedirect() {
   // VERCEL_BRANCH_URL rather than a deployment-specific VERCEL_URL.
   const baseUrl = getBaseUrl();
 
+  // Dev/test only: Checkout cannot create customers under a Stripe test
+  // clock, so when STRIPE_DEV_TEST_CLOCK is set we create a clocked customer
+  // up front and hand it to the session. That makes every workspace set up
+  // through the UI time-travelable: advance the clock and its invoices
+  // finalize for real (PDF included). One clock per customer, since a clock
+  // carries at most a handful of customers and advances them together.
+  let devClockedCustomerId: string | undefined;
+  if (stripeEnv()?.STRIPE_DEV_TEST_CLOCK === "true") {
+    const clock = await stripe.testHelpers.testClocks.create({
+      frozen_time: Math.floor(Date.now() / 1000),
+      name: ws.slug,
+    });
+    const customer = await stripe.customers.create({
+      test_clock: clock.id,
+      metadata: { workspace_id: ws.id },
+    });
+    devClockedCustomerId = customer.id;
+  }
+
   const session = await stripe.checkout.sessions.create({
     client_reference_id: ws.id,
     billing_address_collection: "auto",
     mode: "setup",
-    success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}${
+      intent ? `&intent=${intent}` : ""
+    }`,
     currency: "USD",
-    customer_creation: "always",
+    ...(devClockedCustomerId
+      ? { customer: devClockedCustomerId }
+      : { customer_creation: "always" as const }),
   });
 
   if (!session.url) {

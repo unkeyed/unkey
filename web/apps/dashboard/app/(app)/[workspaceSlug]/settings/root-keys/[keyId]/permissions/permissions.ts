@@ -154,6 +154,24 @@ export const workspacePermissions = {
       permission: "identity.*.delete_identity",
     },
   },
+  Projects: {
+    create_project: {
+      description: "Create new projects in this workspace",
+      permission: "project.*.create_project",
+    },
+    read_project: {
+      description: "Read and list projects in this workspace",
+      permission: "project.*.read_project",
+    },
+    update_project: {
+      description: "Update projects in this workspace",
+      permission: "project.*.update_project",
+    },
+    delete_project: {
+      description: "Delete projects in this workspace",
+      permission: "project.*.delete_project",
+    },
+  },
 } satisfies Record<string, UnkeyPermissions>;
 
 export function apiPermissions(apiId: string): {

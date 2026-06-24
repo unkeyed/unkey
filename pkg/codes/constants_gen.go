@@ -99,6 +99,8 @@ const (
 
 	// NotFound indicates the requested project was not found.
 	UnkeyDataErrorsProjectNotFound URN = "err:unkey:data:project_not_found"
+	// Duplicate indicates the requested project already exists.
+	UnkeyDataErrorsProjectDuplicate URN = "err:unkey:data:project_already_exists"
 
 	// Migration
 

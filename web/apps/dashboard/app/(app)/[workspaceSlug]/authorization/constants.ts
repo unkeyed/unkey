@@ -1,12 +1,14 @@
+import { routes } from "@/lib/navigation/routes";
+
 export const navigation = (workspaceSlug: string) => [
   {
     label: "Roles",
-    href: `/${workspaceSlug}/authorization/roles`,
+    href: routes.authorization.roles({ workspaceSlug }),
     segment: "roles",
   },
   {
     label: "Permissions",
-    href: `/${workspaceSlug}/authorization/permissions`,
+    href: routes.authorization.permissions({ workspaceSlug }),
     segment: "permissions",
   },
 ];

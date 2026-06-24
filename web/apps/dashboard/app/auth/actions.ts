@@ -1,28 +1,26 @@
 "use server";
 
-import {
-  deleteCookie,
-  getCookie,
-  setCookies,
-  setLastUsedOrgCookie,
-  setSessionCookie,
-} from "@/lib/auth/cookies";
+import { getCookie, setCookies, setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
+  AUTH_CHALLENGE_COOKIE,
+  type AuthChallengeCookieData,
+  type AuthChallengeType,
   AuthErrorCode,
   type AuthErrorResponse,
   type EmailAuthResult,
+  type Invitation,
   type NavigationResponse,
   type OAuthResult,
   PENDING_SESSION_COOKIE,
-  type PendingTurnstileResponse,
+  type PendingAuthChallengeResponse,
+  RADAR_ATTEMPT_COOKIE,
   type SignInViaOAuthOptions,
   UNKEY_LAST_ORG_COOKIE,
   type UserData,
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
-import { requireEmailMatch } from "@/lib/auth/utils";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
 import type { Route } from "next";
@@ -41,48 +39,45 @@ async function getRequestMetadata() {
   return { ipAddress, userAgent };
 }
 
-// Turnstile verification helper
-async function verifyTurnstileToken(token: string): Promise<boolean> {
-  const environment = env();
-  const secretKey = environment.CLOUDFLARE_TURNSTILE_SECRET_KEY;
-
-  if (!secretKey) {
-    return false;
+// Reads the in-flight challenge state set when an authentication attempt was
+// interrupted by an MFA or Radar challenge.
+async function getChallengeCookieData(): Promise<AuthChallengeCookieData | null> {
+  const raw = (await cookies()).get(AUTH_CHALLENGE_COOKIE)?.value;
+  if (!raw) {
+    return null;
   }
-
   try {
-    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        secret: secretKey,
-        response: token,
-      }),
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    const data = await response.json();
-
-    return data.success === true;
-  } catch (_error) {
-    return false;
+    return JSON.parse(raw) as AuthChallengeCookieData;
+  } catch {
+    return null;
   }
+}
+
+function pendingSessionExpired(): AuthErrorResponse {
+  return {
+    success: false,
+    code: AuthErrorCode.PENDING_SESSION_EXPIRED,
+    message: errorMessages[AuthErrorCode.PENDING_SESSION_EXPIRED],
+  };
 }
 
 // Authentication Actions
 export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
   const metadata = await getRequestMetadata();
-  return await auth.signUpViaEmail({ ...params, ...metadata });
+  const result = await auth.signUpViaEmail({ ...params, ...metadata });
+  if (result.success && result.cookies) {
+    await setCookies(result.cookies);
+  }
+  return result;
 }
 
 export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
   const metadata = await getRequestMetadata();
-  return await auth.signInViaEmail({ email, ...metadata });
+  const result = await auth.signInViaEmail({ email, ...metadata });
+  if (result.success && result.cookies) {
+    await setCookies(result.cookies);
+  }
+  return result;
 }
 
 export async function verifyAuthCode(params: {
@@ -92,11 +87,26 @@ export async function verifyAuthCode(params: {
 }): Promise<VerificationResult> {
   const { email, code, invitationToken } = params;
   try {
+    // Fetch the invitation once up front; it is reused by both the
+    // org-selection and the post-verification branches below.
+    let invitation: Invitation | null = null;
     if (invitationToken) {
-      await requireEmailMatch({ email, invitationToken });
+      invitation = await auth.getInvitation(invitationToken).catch(() => null);
+      if (invitation?.email !== email) {
+        throw new Error("Invalid invitation");
+      }
     }
 
-    const result = await auth.verifyAuthCode({ email, code, invitationToken });
+    const metadata = await getRequestMetadata();
+    const radarAuthAttemptId = (await cookies()).get(RADAR_ATTEMPT_COOKIE)?.value || undefined;
+
+    const result = await auth.verifyAuthCode({
+      email,
+      code,
+      invitationToken,
+      ...metadata,
+      radarAuthAttemptId,
+    });
 
     // If we have an invitation token and got organization_selection_required,
     // automatically select the invited organization
@@ -107,9 +117,6 @@ export async function verifyAuthCode(params: {
       "organizations" in result
     ) {
       try {
-        // Get the invitation details to find the organization ID
-        const invitation = await auth.getInvitation(invitationToken);
-
         if (invitation?.organizationId && result.cookies) {
           // Set the pending session cookies first
           await setCookies(result.cookies);
@@ -122,6 +129,14 @@ export async function verifyAuthCode(params: {
           if (invitedOrg) {
             // Automatically complete the organization selection
             const orgSelectionResult = await completeOrgSelection(invitation.organizationId);
+
+            // The invited org may enforce MFA. Hand the challenge back to the
+            // client so the user can enroll/verify — completeOrgSelection has
+            // already persisted the challenge cookies. Without this an invited
+            // user joining an MFA-required org could never finish signing in.
+            if (!orgSelectionResult.success && "challengeType" in orgSelectionResult) {
+              return orgSelectionResult;
+            }
 
             if (orgSelectionResult.success) {
               // Try to get organization name for better UX in success page
@@ -160,9 +175,6 @@ export async function verifyAuthCode(params: {
     // handle invitation acceptance and redirect to join success page
     if (invitationToken && result.success) {
       try {
-        // Get invitation details to show organization context
-        const invitation = await auth.getInvitation(invitationToken);
-
         if (invitation?.organizationId) {
           // For new users, we need to explicitly accept the invitation
           // as it might not be automatically accepted during verification
@@ -229,7 +241,8 @@ export async function verifyEmail(code: string): Promise<VerificationResult> {
       };
     }
 
-    const result = await auth.verifyEmail({ code, token });
+    const metadata = await getRequestMetadata();
+    const result = await auth.verifyEmail({ code, token, ...metadata });
 
     if (result.cookies) {
       await setCookies(result.cookies);
@@ -283,47 +296,14 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
       message: "Email address is required.",
     };
   }
-  return await auth.resendAuthCode(email);
-}
 
-export async function signIntoWorkspace(orgId: string): Promise<VerificationResult> {
-  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE)?.value;
-
-  if (!pendingToken) {
-    return {
-      success: false,
-      code: AuthErrorCode.UNKNOWN_ERROR,
-      message: "No pending authentication found",
-    };
+  const metadata = await getRequestMetadata();
+  const radarAuthAttemptId = (await cookies()).get(RADAR_ATTEMPT_COOKIE)?.value || undefined;
+  const result = await auth.resendAuthCode({ email, ...metadata, radarAuthAttemptId });
+  if (result.success && result.cookies) {
+    await setCookies(result.cookies);
   }
-
-  // `redirect()` works by throwing a NEXT_REDIRECT error that the framework
-  // catches at the boundary. Keep it OUTSIDE the try/catch — otherwise our
-  // catch swallows the redirect, leaves the user on the previous page with
-  // their session cookie set, and surfaces the framework's internal
-  // "NEXT_REDIRECT;..." digest as an error message.
-  let redirectTo: string | null = null;
-  try {
-    const result = await auth.completeOrgSelection({
-      orgId,
-      pendingAuthToken: pendingToken,
-    });
-
-    if (result.success) {
-      await setCookies(result.cookies);
-      await deleteCookie(PENDING_SESSION_COOKIE);
-      redirectTo = result.redirectTo;
-    } else {
-      return result;
-    }
-  } catch (error) {
-    return {
-      success: false,
-      code: AuthErrorCode.UNKNOWN_ERROR,
-      message: error instanceof Error ? error.message : "Unknown error occurred",
-    };
-  }
-  redirect(redirectTo as Route);
+  return result;
 }
 
 // OAuth
@@ -332,8 +312,10 @@ export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<st
 }
 
 export async function completeOAuthSignIn(request: Request): Promise<OAuthResult> {
-  // See note in signIntoWorkspace — keep redirect() outside the try/catch so
-  // the NEXT_REDIRECT error is not swallowed.
+  // `redirect()` works by throwing a NEXT_REDIRECT error that the framework
+  // catches at the boundary. Keep it OUTSIDE the try/catch — otherwise the
+  // catch swallows the redirect and surfaces the framework's internal
+  // "NEXT_REDIRECT;..." digest as an error message.
   let redirectTo: string | null = null;
   try {
     const result = await auth.completeOAuthSignIn(request);
@@ -359,7 +341,7 @@ export type OrgSelectionSuccess = NavigationResponse & { workspaceSlug?: string 
 
 export async function completeOrgSelection(
   orgId: string,
-): Promise<OrgSelectionSuccess | AuthErrorResponse> {
+): Promise<OrgSelectionSuccess | PendingAuthChallengeResponse | AuthErrorResponse> {
   const tempSession = (await cookies()).get(PENDING_SESSION_COOKIE);
   if (!tempSession) {
     return {
@@ -404,8 +386,18 @@ export async function completeOrgSelection(
 
     return { ...result, workspaceSlug };
   }
-  // Don't clear pending session on error - let user try again or close modal
 
+  // The selected organization may require MFA before it will issue a session
+  // (e.g. "Require non-SSO members to be enrolled in MFA"). WorkOS surfaces
+  // that as an mfa_challenge / mfa_enrollment during org selection. Persist
+  // the challenge cookies — the fresh pending token and challenge state — so
+  // the challenge/enrollment UI can finish the sign-in. Without this the new
+  // pending token is dropped and the user can never sign in to that org.
+  if ("challengeType" in result) {
+    await setCookies(result.cookies);
+  }
+
+  // Don't clear pending session on error - let user try again or close modal
   return result;
 }
 
@@ -472,53 +464,183 @@ export async function acceptInvitationAndJoin(
 }
 
 /**
- * Verify Turnstile token and retry original auth operation
+ * Returns the type of in-flight auth challenge (MFA or Radar), if any. The
+ * challenge cookies are HttpOnly, so the client uses this to decide which
+ * challenge UI to render.
  */
-export async function verifyTurnstileAndRetry(params: {
-  turnstileToken: string;
-  email: string;
-  challengeParams: PendingTurnstileResponse["challengeParams"];
-  userData?: { firstName: string; lastName: string }; // Only for sign-up
-}): Promise<EmailAuthResult> {
-  const { turnstileToken, email, challengeParams, userData } = params;
+export async function getPendingAuthChallenge(): Promise<AuthChallengeType | null> {
+  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE)?.value;
+  if (!pendingToken) {
+    return null;
+  }
+  const challenge = await getChallengeCookieData();
+  return challenge?.type ?? null;
+}
 
-  // Verify Turnstile token
-  const isValidToken = await verifyTurnstileToken(turnstileToken);
+/**
+ * Creates a TOTP factor for the user who is mid sign-in and must enroll in
+ * MFA. Returns the QR code and secret to render, plus the challenge ID the
+ * client passes back to completeAuthMfaChallenge with the user's first code.
+ */
+export async function beginAuthMfaEnrollment(): Promise<
+  | { success: true; qrCode: string; secret: string; uri: string; challengeId: string }
+  | AuthErrorResponse
+> {
+  const challenge = await getChallengeCookieData();
+  if (challenge?.type !== "mfa-enroll") {
+    return pendingSessionExpired();
+  }
 
-  if (!isValidToken) {
+  try {
+    const enrollment = await auth.beginMfaEnrollment({
+      userId: challenge.userId,
+      email: challenge.email,
+    });
+    return {
+      success: true,
+      qrCode: enrollment.qrCode,
+      secret: enrollment.secret,
+      uri: enrollment.uri,
+      challengeId: enrollment.challengeId,
+    };
+  } catch (_error) {
     return {
       success: false,
       code: AuthErrorCode.UNKNOWN_ERROR,
-      message: "Verification failed. Please try again.",
+      message: errorMessages[AuthErrorCode.UNKNOWN_ERROR],
     };
   }
+}
 
-  // Retry original auth operation based on action
+/**
+ * Completes a pending MFA TOTP challenge. The challenge ID comes from the
+ * challenge cookie (existing factor) or from beginAuthMfaEnrollment (new
+ * factor).
+ */
+export async function completeAuthMfaChallenge(params: {
+  code: string;
+  challengeId?: string;
+}): Promise<VerificationResult> {
+  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE)?.value;
+  if (!pendingToken) {
+    return pendingSessionExpired();
+  }
+
+  const challenge = await getChallengeCookieData();
+  const challengeId =
+    params.challengeId ?? (challenge?.type === "mfa" ? challenge.challengeId : undefined);
+  if (!challengeId) {
+    return pendingSessionExpired();
+  }
+
   const metadata = await getRequestMetadata();
+  const result = await auth.completeMfaChallenge({
+    code: params.code,
+    challengeId,
+    pendingAuthToken: pendingToken,
+    ...metadata,
+  });
 
-  if (challengeParams.action === "sign-up" && userData) {
-    // For sign-up, we need the user data
-    return await auth.signUpViaEmail({
-      ...userData,
-      email,
-      ...metadata,
-      bypassRadar: true,
-    });
+  if (result.cookies) {
+    await setCookies(result.cookies);
   }
-  if (challengeParams.action === "sign-in") {
-    // For sign-in, we just need the email
-    return await auth.signInViaEmail({
-      email,
-      ...metadata,
-      bypassRadar: true,
-    });
+  if (result.success) {
+    (await cookies()).delete(PENDING_SESSION_COOKIE);
+  }
+  return result;
+}
+
+/**
+ * Completes a pending Radar email challenge with the code WorkOS emailed to
+ * the user.
+ */
+export async function completeAuthRadarEmailChallenge(params: {
+  code: string;
+}): Promise<VerificationResult> {
+  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE)?.value;
+  const challenge = await getChallengeCookieData();
+  if (!pendingToken || challenge?.type !== "radar-email") {
+    return pendingSessionExpired();
   }
 
-  return {
-    success: false,
-    code: AuthErrorCode.UNKNOWN_ERROR,
-    message: "Invalid challenge parameters.",
-  };
+  const metadata = await getRequestMetadata();
+  const result = await auth.completeRadarEmailChallenge({
+    code: params.code,
+    radarChallengeId: challenge.radarChallengeId,
+    pendingAuthToken: pendingToken,
+    ...metadata,
+  });
+
+  if (result.cookies) {
+    await setCookies(result.cookies);
+  }
+  if (result.success) {
+    (await cookies()).delete(PENDING_SESSION_COOKIE);
+  }
+  return result;
+}
+
+/**
+ * Sends the SMS code for a pending Radar SMS challenge to the given phone
+ * number.
+ */
+export async function sendAuthRadarSmsCode(params: {
+  phoneNumber: string;
+}): Promise<{ success: true; verificationId: string; phoneNumber: string } | AuthErrorResponse> {
+  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE)?.value;
+  const challenge = await getChallengeCookieData();
+  if (!pendingToken || challenge?.type !== "radar-sms") {
+    return pendingSessionExpired();
+  }
+
+  try {
+    const metadata = await getRequestMetadata();
+    const response = await auth.sendRadarSmsCode({
+      userId: challenge.userId,
+      phoneNumber: params.phoneNumber,
+      pendingAuthToken: pendingToken,
+      ...metadata,
+    });
+    return { success: true, ...response };
+  } catch (_error) {
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: "Failed to send the SMS code. Please check the phone number and try again.",
+    };
+  }
+}
+
+/**
+ * Completes a pending Radar SMS challenge with the code the user received.
+ */
+export async function completeAuthRadarSmsChallenge(params: {
+  code: string;
+  verificationId: string;
+  phoneNumber: string;
+}): Promise<VerificationResult> {
+  const pendingToken = (await cookies()).get(PENDING_SESSION_COOKIE)?.value;
+  const challenge = await getChallengeCookieData();
+  if (!pendingToken || challenge?.type !== "radar-sms") {
+    return pendingSessionExpired();
+  }
+
+  const metadata = await getRequestMetadata();
+  const result = await auth.completeRadarSmsChallenge({
+    code: params.code,
+    verificationId: params.verificationId,
+    phoneNumber: params.phoneNumber,
+    pendingAuthToken: pendingToken,
+    ...metadata,
+  });
+
+  if (result.cookies) {
+    await setCookies(result.cookies);
+  }
+  if (result.success) {
+    (await cookies()).delete(PENDING_SESSION_COOKIE);
+  }
+  return result;
 }
 
 /**
@@ -527,6 +649,7 @@ export async function verifyTurnstileAndRetry(params: {
 export async function clearPendingAuth(): Promise<void> {
   (await cookies()).delete(PENDING_SESSION_COOKIE);
   (await cookies()).delete(UNKEY_LAST_ORG_COOKIE);
+  (await cookies()).delete(AUTH_CHALLENGE_COOKIE);
 }
 
 /**

@@ -14,6 +14,7 @@ export default async function StripeRedirect() {
   const { orgId, role } = await getAuth();
 
   if (!orgId) {
+    // route-guard-ignore: pre-existing unauthenticated redirect, left untouched
     return redirect("/sign-in");
   }
 
@@ -36,7 +37,7 @@ export default async function StripeRedirect() {
   });
 
   if (!ws) {
-    return redirect("/new");
+    return redirect(routes.workspaces.create());
   }
 
   let stripe: Stripe;

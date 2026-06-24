@@ -278,7 +278,8 @@ func WithErrorHandling() zen.Middleware {
 			// Duplicate errors
 			case codes.UnkeyDataErrorsIdentityDuplicate,
 				codes.UnkeyDataErrorsRoleDuplicate,
-				codes.UnkeyDataErrorsPermissionDuplicate:
+				codes.UnkeyDataErrorsPermissionDuplicate,
+				codes.UnkeyDataErrorsProjectDuplicate:
 				return s.ProblemJSON(http.StatusConflict, openapi.ConflictErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

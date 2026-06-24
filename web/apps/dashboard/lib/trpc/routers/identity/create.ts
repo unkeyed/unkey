@@ -1,6 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type InsertIdentity, db, schema } from "@/lib/db";
 import { ratelimitItemSchema } from "@/lib/schemas/ratelimit";
+import { isDuplicateKeyError } from "@/lib/utils/db-errors";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -23,25 +24,15 @@ export const createIdentity = workspaceProcedure
     const identityId = newId("identity");
 
     try {
-      // Check if identity with this externalId already exists
-      const existingIdentity = await db.query.identities.findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.externalId, input.externalId)),
-      });
-
-      if (existingIdentity) {
-        console.info({
-          message: "Attempted to create duplicate identity",
-          workspaceId: ctx.workspace.id,
-          externalId: input.externalId,
-          existingIdentityId: existingIdentity.id,
-        });
-
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "An identity with this external ID already exists in your workspace.",
-        });
-      }
+      // We intentionally do NOT pre-check for an existing identity. The unique
+      // index `workspace_id_external_id_deleted_idx` is on
+      // (workspaceId, externalId, deleted), so a soft-deleted row
+      // (deleted=true) never collides with a new active row (deleted=false) —
+      // the schema deliberately allows reusing a previously-deleted externalId.
+      // A read-then-insert pre-check would also be racy under concurrent
+      // creates. Instead we insert directly and translate the unique-constraint
+      // violation into a clean CONFLICT below, matching the public Go API
+      // handler (svc/api/routes/v2_identities_create_identity/handler.go).
 
       // Validate that meta is valid if provided
       if (input.meta) {
@@ -129,6 +120,22 @@ export const createIdentity = workspaceProcedure
           errorMessage: err.message,
         });
         throw err;
+      }
+
+      // The unique index covers (workspaceId, externalId, deleted=false), so a
+      // duplicate-key error means an *active* identity with this externalId
+      // already exists. Soft-deleted rows do not trigger this.
+      if (isDuplicateKeyError(err)) {
+        console.info({
+          message: "Attempted to create duplicate identity",
+          workspaceId: ctx.workspace.id,
+          externalId: input.externalId,
+        });
+
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `An identity with external ID "${input.externalId}" already exists in your workspace.`,
+        });
       }
 
       console.error({
