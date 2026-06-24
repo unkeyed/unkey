@@ -1,4 +1,4 @@
-import type { AreaChartPoint } from "../../deployments/[deploymentId]/network/unkey-flow/components/overlay/node-details-panel/components/chart/area-timeseries-chart";
+import type { AreaChartPoint } from "@/components/charts/area-timeseries";
 
 export type WindowKey = "hour" | "day" | "week";
 

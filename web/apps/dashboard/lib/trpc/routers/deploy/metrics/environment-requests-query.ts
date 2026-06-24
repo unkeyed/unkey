@@ -6,6 +6,18 @@ const dayMs = 24 * hourMs;
 
 const maxWindowMs = 7 * dayMs;
 
+// WINDOW_MS is the display window each interval covers, sized to land near the
+// ~168-bucket chart width. The lifetime tiers pick an interval and the window
+// follows from it, so the span a chart shows can never drift from its label.
+// 5m has no tier today but keeps its canonical window so the map stays a
+// complete interval-to-window spec.
+const WINDOW_MS = {
+  "1m": hourMs, // 60 buckets
+  "5m": 12 * hourMs, // 144 buckets
+  "15m": dayMs, // 96 buckets
+  "1h": maxWindowMs, // 168 buckets
+} satisfies Record<Interval, number>;
+
 // Range is the coarse label shown alongside the chart. It describes the
 // displayed window, while interval only controls the ClickHouse aggregate
 // resolution used to read that window.
@@ -46,8 +58,9 @@ export function selectEnvironmentRequestsQuery(
   // so the current in-flight bucket is excluded. bucketMs comes from the
   // ClickHouse package's INTERVAL_MS, so the grid and the query's WITH FILL STEP
   // share one definition of the interval.
-  const query = (range: Range, interval: Interval, windowMs: number): EnvironmentRequestsQuery => {
+  const query = (range: Range, interval: Interval): EnvironmentRequestsQuery => {
     const bucketMs = INTERVAL_MS[interval];
+    const windowMs = WINDOW_MS[interval];
     return {
       range,
       interval,
@@ -57,24 +70,20 @@ export function selectEnvironmentRequestsQuery(
     };
   };
 
-  // Tier is chosen by app lifetime: younger apps get a finer interval over a
-  // shorter window. The window per tier produces around ~168 points, the chart
-  // width, so the series renders one point per bucket with no client-side
-  // downsampling. The 15m tier runs through 48h (192 points, slightly over) so
-  // resolution stays fine across the first two days instead of dropping at 24h.
-  // Bucket counts: 1h@1m=60, 12h@5m=144, 24h@15m=96, 48h@15m=192, 7d@1h=168.
+  // Tier is chosen by app lifetime, with one range, one interval, and one
+  // window each: hour, day, and week never overlap. Each range's window matches
+  // its label, so a "this week" header is never shown over a shorter span; once
+  // an app is older than a day it reads as a full week of data (mostly
+  // zero-filled buckets at first). Each tier produces around ~168 points, the
+  // chart width, so the series renders one point per bucket with no client-side
+  // downsampling.
+  // Bucket counts: 1h@1m=60, 24h@15m=96, 7d@1h=168.
   // The window never exceeds 7 days, the retention of the aggregate tables.
   if (appLifetimeMs < hourMs) {
-    return query("hour", "1m", hourMs);
-  }
-  if (appLifetimeMs < 12 * hourMs) {
-    return query("day", "5m", 12 * hourMs);
+    return query("hour", "1m");
   }
   if (appLifetimeMs <= dayMs) {
-    return query("day", "15m", dayMs);
+    return query("day", "15m");
   }
-  if (appLifetimeMs <= 2 * dayMs) {
-    return query("week", "15m", 2 * dayMs);
-  }
-  return query("week", "1h", maxWindowMs);
+  return query("week", "1h");
 }
