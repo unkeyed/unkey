@@ -61,7 +61,9 @@ func New(cfg Config) (*Handler, error) {
 // fire-and-forget, with the priced gross carried in the request.
 //
 // Actionable means the net-of-credit overage has reached the lowest alert
-// threshold: below it there is nothing to email and nothing to enforce, so
+// threshold, or the workspace is spend-cap suspended (the check owns the
+// resume decision, so a suspended workspace is always dispatched). Below the
+// lowest threshold there is nothing to email and nothing to enforce, so
 // dispatching would journal an invocation just to conclude that. This is what
 // keeps the tick O(one scan + a handful of invocations) instead of O(budgeted
 // workspaces): the per-workspace VO still owns the alert high-water mark and
@@ -104,11 +106,19 @@ func (h *Handler) Handle(
 
 	var dispatched, skippedNoCredit, skippedBelowThreshold int32
 	for _, ws := range budgeted {
-		if !ws.DeploySpendBudgetCents.Valid {
-			continue // query filters these out; guard against a future query change
+		// The query returns budgeted workspaces and any that are spend-cap
+		// suspended even without a budget. A row that is neither should not appear,
+		// but guard against a future query change.
+		if !ws.DeploySpendBudgetCents.Valid && !ws.DeploySpendSuspended {
+			continue
 		}
 
-		if !ws.DeployIncludedCreditCents.Valid {
+		// A suspended workspace must always be dispatched so the check can resume
+		// it (a mid-period budget raise, a period reset, or a budget removal).
+		// Otherwise apply the budgeted-path guard: a workspace whose included
+		// credit is not yet known is skipped, because without it the overage can't
+		// be priced without counting the full gross, which would false-alarm.
+		if !ws.DeploySpendSuspended && !ws.DeployIncludedCreditCents.Valid {
 			skippedNoCredit++
 			// Error, not info: an unknown credit disables both budget alerts
 			// and the spend cap for this workspace for as long as it persists.
@@ -128,11 +138,16 @@ func (h *Handler) Handle(
 		if overage < 0 {
 			overage = 0
 		}
-		// Below the lowest alert threshold nothing can happen in the check;
-		// skip the invocation entirely. At or past it, the check owns the
-		// decision: its high-water mark decides whether an email is actually
-		// due, so re-dispatching an already-alerted workspace is a cheap no-op.
-		if crossedThreshold(overage, ws.DeploySpendBudgetCents.Int64*deploybilling.MicroCentsPerCent) == 0 {
+		// A suspended workspace bypasses the threshold skip: the check owns
+		// the resume decision (budget raise, period reset, budget removal),
+		// so it must run exactly when the overage is back UNDER the
+		// thresholds — and its budget may be gone entirely, which
+		// crossedThreshold cannot take. For everyone else, below the lowest
+		// alert threshold nothing can happen in the check; skip the
+		// invocation entirely. At or past it, the check owns the decision:
+		// its high-water mark decides whether an email is actually due, so
+		// re-dispatching an already-alerted workspace is a cheap no-op.
+		if !ws.DeploySpendSuspended && crossedThreshold(overage, ws.DeploySpendBudgetCents.Int64*deploybilling.MicroCentsPerCent) == 0 {
 			skippedBelowThreshold++
 			continue
 		}
@@ -150,6 +165,7 @@ func (h *Handler) Handle(
 				WorkspaceName:       ws.Name,
 				WorkspaceSlug:       ws.Slug,
 				GrossMicroCents:     gross,
+				CurrentlySuspended:  ws.DeploySpendSuspended,
 			})
 		dispatched++
 	}

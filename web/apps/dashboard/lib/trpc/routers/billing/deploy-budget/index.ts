@@ -22,6 +22,9 @@ export const getDeployBudget = workspaceProcedure
   .query(({ ctx }) => ({
     budgetCents: ctx.workspace.deploySpendBudgetCents ?? null,
     stopAtBudget: ctx.workspace.deploySpendBudgetStop,
+    // True while the spend cap has paused this workspace's compute; the
+    // dashboard surfaces it so an admin understands why compute is offline.
+    suspended: ctx.workspace.deploySpendSuspended,
   }));
 
 /**
