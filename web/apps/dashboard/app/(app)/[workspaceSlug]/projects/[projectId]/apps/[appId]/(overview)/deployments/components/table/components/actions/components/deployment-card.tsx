@@ -21,8 +21,11 @@ export const DeploymentCard = ({ deployment, isCurrent }: DeploymentCardProps) =
             {isCurrent ? "Current" : deployment.status}
           </Badge>
         </div>
-        <div className="text-xs text-grayA-9">
-          {deployment.gitCommitMessage || `${isCurrent ? "Current active" : "Target"} deployment`}
+        <div className="text-xs text-grayA-9 flex items-center gap-1.5">
+          <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
+          <span>
+            {deployment.gitCommitMessage || `${isCurrent ? "Current active" : "Target"} deployment`}
+          </span>
         </div>
       </div>
       <div className="flex gap-1.5">

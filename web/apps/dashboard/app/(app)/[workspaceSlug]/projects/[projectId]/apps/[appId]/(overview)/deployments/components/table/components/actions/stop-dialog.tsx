@@ -12,36 +12,22 @@ type StopDialogProps = {
 };
 
 export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => {
-  const utils = trpc.useUtils();
-
   const stop = trpc.deploy.deployment.stop.useMutation({
     onSuccess: () => {
-      utils.invalidate();
-      toast.success("Deployment stopping", {
-        description: `Stopping deployment ${deployment.id}`,
-      });
-      try {
-        collection.deployments.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
+      collection.deployments.utils.refetch();
       onClose();
-    },
-    onError: (error) => {
-      toast.error("Stop failed", {
-        description: error.message,
-      });
     },
   });
 
-  const handleStop = async () => {
-    await stop
-      .mutateAsync({
-        deploymentId: deployment.id,
-      })
-      .catch((error) => {
-        console.error("Stop error:", error);
-      });
+  const handleStop = () => {
+    toast.promise(stop.mutateAsync({ deploymentId: deployment.id }), {
+      loading: "Stopping deployment...",
+      success: "Deployment stopped",
+      error: (err) => ({
+        message: "Failed to stop deployment",
+        description: err.message,
+      }),
+    });
   };
 
   return (

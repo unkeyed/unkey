@@ -12,36 +12,22 @@ type WakeDialogProps = {
 };
 
 export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => {
-  const utils = trpc.useUtils();
-
   const wake = trpc.deploy.deployment.wake.useMutation({
     onSuccess: () => {
-      utils.invalidate();
-      toast.success("Deployment waking", {
-        description: `Waking deployment ${deployment.id}`,
-      });
-      try {
-        collection.deployments.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
+      collection.deployments.utils.refetch();
       onClose();
-    },
-    onError: (error) => {
-      toast.error("Wake failed", {
-        description: error.message,
-      });
     },
   });
 
-  const handleWake = async () => {
-    await wake
-      .mutateAsync({
-        deploymentId: deployment.id,
-      })
-      .catch((error) => {
-        console.error("Wake error:", error);
-      });
+  const handleWake = () => {
+    toast.promise(wake.mutateAsync({ deploymentId: deployment.id }), {
+      loading: "Waking deployment...",
+      success: "Deployment is ready",
+      error: (err) => ({
+        message: "Failed to wake deployment",
+        description: err.message,
+      }),
+    });
   };
 
   return (

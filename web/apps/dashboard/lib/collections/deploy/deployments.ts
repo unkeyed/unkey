@@ -69,6 +69,10 @@ export const deploymentSchema = z.object({
   triggerReason: z.string().nullable(),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
+  // When the build/deploy pipeline finished, from deployment_steps (the only
+  // timing stop/wake don't mutate). Null while a build is still in progress or
+  // when a deployment has no steps. Powers the row's duration display.
+  buildEndedAt: z.number().nullable(),
   // Most-recent exit info across the deployment's instances. Null when
   // no instance has reported a termination yet (healthy deployments).
   // Powers the header "OOMKilled · exit=137" badge — see
