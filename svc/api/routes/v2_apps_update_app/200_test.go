@@ -56,10 +56,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 
 	getApp := func(t *testing.T, id string) db.App {
 		t.Helper()
-		app, err := db.Query.FindAppByWorkspaceAndId(ctx, h.DB.RO(), db.FindAppByWorkspaceAndIdParams{
-			WorkspaceID: workspace.ID,
-			ID:          id,
-		})
+		app, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
 		require.NoError(t, err)
 		return app
 	}
