@@ -79,7 +79,9 @@ Since the previous deployment is no longer receiving traffic, it will scale down
 
 ## Preview idle scaling
 
-Preview deployments stay running as long as they receive traffic. A preview deployment only spins down after six consecutive hours with zero requests.
+Preview deployments stay running as long as they receive traffic. A preview deployment only spins down after 1 consecutive hour with zero requests.
+
+When a newer preview deployment becomes ready on the same branch, the previous deployment for that branch spins down after a short grace period. The idle check still cleans up preview deployments that are no longer receiving traffic.
 
 This keeps costs low for branches that are no longer being actively reviewed.
 

@@ -140,10 +140,36 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
+  appOverviewEnabled: boolean,
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
+  const overviewLink: ResolvedNavLink = {
+    key: "overview",
+    label: "Overview",
+    href: routes.projects.apps.overview(scope),
+    icon: Cube,
+    isActive: page === "overview",
+  };
+  const legacyLinks: ResolvedNavLink[] = [
+    {
+      key: "logs",
+      label: "Logs",
+      href: routes.projects.logs(scope),
+      icon: Layers3,
+      isActive: false,
+      separatorAbove: true,
+    },
+    {
+      key: "requests",
+      label: "Requests",
+      href: routes.projects.requests({ ...scope, since: "6h" }),
+      icon: ArrowOppositeDirectionY,
+      isActive: false,
+    },
+  ];
   return [
+    ...(appOverviewEnabled ? [overviewLink] : []),
     {
       key: "deployments",
       label: "Deployments",
@@ -172,23 +198,7 @@ export function buildAppLinks(
       icon: Gear,
       isActive: page === "settings",
     },
-    // Project-level views scoped to this app; separated since they navigate
-    // out of the app section.
-    {
-      key: "logs",
-      label: "Logs",
-      href: routes.projects.logs(scope),
-      icon: Layers3,
-      isActive: false,
-      separatorAbove: true,
-    },
-    {
-      key: "requests",
-      label: "Requests",
-      href: routes.projects.requests({ ...scope, since: "6h" }),
-      icon: ArrowOppositeDirectionY,
-      isActive: false,
-    },
+    ...(appOverviewEnabled ? [] : legacyLinks),
     // Will be polished and added back in the future iterations
     // {
     //   key: "openapi-diff",

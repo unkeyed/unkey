@@ -200,6 +200,18 @@ message CancelDeploymentRequest {
 
 message CancelDeploymentResponse {}
 
+message StopDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message StopDeploymentResponse {}
+
+message WakeDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message WakeDeploymentResponse {}
+
 service DeployService {
   // Create a new deployment from a docker image or by auto-detecting
   // the appropriate source for the project.
@@ -222,4 +234,10 @@ service DeployService {
   // transition the deployment to failed and release any held build slot.
   // Idempotent: returns success if the deployment is already terminal.
   rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
+
+  // Stop a ready non-production deployment by scaling it down.
+  rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
+
+  // Wake a stopped deployment by scaling it back up.
+  rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
 }
