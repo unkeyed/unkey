@@ -1912,7 +1912,7 @@ components:
                     example: Payments Service
                 slug:
                     type: string
-                    minLength: 1
+                    minLength: 3
                     maxLength: 256
                     pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
                     description: |
@@ -1939,7 +1939,7 @@ components:
             properties:
                 project:
                     type: string
-                    minLength: 1
+                    minLength: 3
                     maxLength: 255
                     pattern: "^[a-zA-Z0-9_-]+$"
                     description: |
@@ -1965,7 +1965,7 @@ components:
             properties:
                 project:
                     type: string
-                    minLength: 1
+                    minLength: 3
                     maxLength: 255
                     pattern: "^[a-zA-Z0-9_-]+$"
                     description: |
@@ -2028,7 +2028,7 @@ components:
             properties:
                 project:
                     type: string
-                    minLength: 1
+                    minLength: 3
                     maxLength: 255
                     pattern: "^[a-zA-Z0-9_-]+$"
                     description: |
@@ -2038,7 +2038,7 @@ components:
                     example: proj_1234abcd
                 slug:
                     type: string
-                    minLength: 1
+                    minLength: 3
                     maxLength: 256
                     pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
                     description: |

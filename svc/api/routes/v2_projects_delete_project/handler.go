@@ -44,10 +44,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
-		WorkspaceID: principal.WorkspaceID,
-		Project:     req.Project,
-	})
+	project, err := db.ResolveProject(ctx, h.DB.RO(), principal.WorkspaceID, req.Project)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New(

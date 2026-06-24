@@ -4,7 +4,7 @@ required:
 properties:
   project:
     type: string
-    minLength: 1
+    minLength: 3
     maxLength: 255
     pattern: "^[a-zA-Z0-9_-]+$"
     description: |
@@ -14,7 +14,7 @@ properties:
     example: proj_1234abcd
   slug:
     type: string
-    minLength: 1
+    minLength: 3
     maxLength: 256
     pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
     description: |
