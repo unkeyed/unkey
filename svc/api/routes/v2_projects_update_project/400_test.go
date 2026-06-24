@@ -39,7 +39,7 @@ func TestUpdateProjectBadRequest(t *testing.T) {
 	}{
 		{name: "missing project", req: handler.Request{}},
 		{name: "slug with uppercase", req: handler.Request{Project: validID, Slug: ptr.P("Payments-Service")}},
-		{name: "slug with invalid chars", req: handler.Request{Project: validID, Slug: ptr.P("payments_service")}},
+		{name: "slug with invalid chars", req: handler.Request{Project: validID, Slug: ptr.P("payments.service")}},
 		{name: "slug too long", req: handler.Request{Project: validID, Slug: ptr.P(strings.Repeat("a", 257))}},
 		{name: "empty name", req: handler.Request{Project: validID, Name: &emptyName}},
 		{name: "name too long", req: handler.Request{Project: validID, Name: &longName}},

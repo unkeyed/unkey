@@ -16,7 +16,7 @@ properties:
     type: string
     minLength: 3
     maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    pattern: "^[a-z0-9]+([_-][a-z0-9]+)*$"
     description: |
       New URL-safe slug for the project, unique within your workspace.
       Changing it affects the deployment domains generated for this project.

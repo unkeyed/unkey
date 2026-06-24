@@ -47,7 +47,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.Project, error) {
-		project, err := db.ResolveProject(ctx, tx, principal.WorkspaceID, req.Project)
+		project, err := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
+			WorkspaceID: principal.WorkspaceID,
+			Project:     req.Project,
+		})
 		if err != nil {
 			if db.IsNotFound(err) {
 				return openapi.Project{}, fault.New(

@@ -2071,7 +2071,7 @@ type V2ProjectsCreateProjectRequestBody struct {
 
 	// Slug URL-safe handle you choose for this project, unique within your workspace.
 	// Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
-	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
+	// Must be lowercase letters, numbers, hyphens, and underscores, starting and ending with a letter or number (no leading, trailing, or consecutive separators).
 	Slug string `json:"slug"`
 }
 

@@ -70,7 +70,10 @@ func TestDeleteProjectSuccessfully(t *testing.T) {
 			require.Equal(t, project.ID, ctrlClient.DeleteProjectCalls[0].GetProjectId())
 			require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, ctrlClient.DeleteProjectCalls[0].GetActor().GetType())
 
-			_, err := db.ResolveProject(ctx, h.DB.RO(), workspace.ID, tc.identifier(project))
+			_, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
+				WorkspaceID: workspace.ID,
+				Project:     tc.identifier(project),
+			})
 			require.NoError(t, err)
 		})
 	}
