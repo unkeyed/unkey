@@ -1911,7 +1911,7 @@ components:
                         Use a descriptive name like 'Payments Service' to identify its purpose.
                     example: Payments Service
                 slug:
-                    "$ref": "#/components/schemas/ProjectSlug"
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsCreateProjectResponseBody:
             type: object
@@ -2007,7 +2007,7 @@ components:
                 project:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 slug:
-                    "$ref": "#/components/schemas/ProjectSlug"
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 name:
                     type: string
                     minLength: 1
@@ -3684,16 +3684,15 @@ components:
                         Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
                     example: 1711386400000
             additionalProperties: false
-        ProjectSlug:
+        ResourceIdentifier:
             type: string
             minLength: 3
             maxLength: 255
             pattern: "^[a-zA-Z0-9_-]+$"
             description: |
-                URL-safe handle for the project, unique within your workspace.
-                Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
-                Must contain only letters, numbers, hyphens, and underscores.
-            example: payments-service
+                Identifies a resource by either its unique ID or its slug.
+                Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+            example: proj_1234abcd
         V2ProjectsCreateProjectResponseData:
             type: object
             required:
@@ -3709,15 +3708,6 @@ components:
                         Always begins with 'proj_' followed by a unique alphanumeric sequence.
                     example: proj_1234abcd
             additionalProperties: false
-        ResourceIdentifier:
-            type: string
-            minLength: 3
-            maxLength: 255
-            pattern: "^[a-zA-Z0-9_-]+$"
-            description: |
-                Identifies a resource by either its unique ID or its slug.
-                Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug. The resource must exist within your workspace.
-            example: proj_1234abcd
         Project:
             type: object
             required:

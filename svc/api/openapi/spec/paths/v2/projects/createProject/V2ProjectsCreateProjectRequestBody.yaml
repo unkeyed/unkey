@@ -12,7 +12,7 @@ properties:
       Use a descriptive name like 'Payments Service' to identify its purpose.
     example: Payments Service
   slug:
-    "$ref": "../../../../common/ProjectSlug.yaml"
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
 additionalProperties: false
 examples:
   basic:

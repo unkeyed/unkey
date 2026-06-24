@@ -1,9 +1,0 @@
-type: string
-minLength: 3
-maxLength: 255
-pattern: "^[a-zA-Z0-9_-]+$"
-description: |
-  URL-safe handle for the project, unique within your workspace.
-  Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
-  Must contain only letters, numbers, hyphens, and underscores.
-example: payments-service
