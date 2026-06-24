@@ -7,12 +7,10 @@ export type Pulse = {
   windowLabel: string;
   series: AreaChartPoint[];
   cumulative: number;
-  rpsCurrent: number;
+  requestsCurrent: number;
   errorsCurrent: number;
   latestTimestamp: number | undefined;
 };
-
-const BUCKET_SECONDS = 15 * 60;
 
 const WINDOW_LABEL: Record<WindowKey, string> = {
   hour: "this hour",
@@ -26,12 +24,31 @@ type AppRpsMetrics = {
   rps: { time: number; requests: number; errors: number }[];
 };
 
+const MAX_CHART_POINTS = 168;
+
+function downsample(points: AppRpsMetrics["rps"]): AppRpsMetrics["rps"] {
+  if (points.length <= MAX_CHART_POINTS) {
+    return points;
+  }
+  const groupSize = Math.ceil(points.length / MAX_CHART_POINTS);
+  const grouped: AppRpsMetrics["rps"] = [];
+  for (let i = 0; i < points.length; i += groupSize) {
+    const group = points.slice(i, i + groupSize);
+    grouped.push({
+      time: group[0].time,
+      requests: group.reduce((sum, p) => sum + p.requests, 0),
+      errors: group.reduce((sum, p) => sum + p.errors, 0),
+    });
+  }
+  return grouped;
+}
+
 export function buildPulse(data: AppRpsMetrics | undefined): Pulse {
   const windowKey = data?.range ?? "week";
-  const series: AreaChartPoint[] = (data?.rps ?? []).map((p) => ({
+  const series: AreaChartPoint[] = downsample(data?.rps ?? []).map((p) => ({
     originalTimestamp: p.time,
-    total: p.requests / BUCKET_SECONDS,
-    errors: p.errors / BUCKET_SECONDS,
+    total: p.requests,
+    errors: p.errors,
   }));
   const last = series.at(-1);
   return {
@@ -39,7 +56,7 @@ export function buildPulse(data: AppRpsMetrics | undefined): Pulse {
     windowLabel: WINDOW_LABEL[windowKey],
     series,
     cumulative: data?.totalRequests ?? 0,
-    rpsCurrent: last ? Number(last.total) || 0 : 0,
+    requestsCurrent: last ? Number(last.total) || 0 : 0,
     errorsCurrent: last ? Number(last.errors) || 0 : 0,
     latestTimestamp: last?.originalTimestamp,
   };
@@ -55,8 +72,11 @@ export function formatCount(n: number): string {
   return `${n}`;
 }
 
-export function formatRps(v: number): string {
-  return `${v >= 10 ? Math.round(v) : Math.round(v * 10) / 10}/s`;
+export function formatBucketCount(v: number): string {
+  if (!Number.isFinite(v) || v <= 0) {
+    return "0";
+  }
+  return v >= 1000 ? `${(v / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${Math.round(v)}`;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

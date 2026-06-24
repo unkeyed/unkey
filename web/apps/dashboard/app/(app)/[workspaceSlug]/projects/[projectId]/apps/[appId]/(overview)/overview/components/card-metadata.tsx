@@ -5,6 +5,7 @@ import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
+import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { DottedLink } from "../../../components/dotted-link";
 import { Avatar } from "../../../components/git-avatar";
 import { RegionFlag } from "../../../components/region-flag";
@@ -23,7 +24,10 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
 }
 
 function StatusCell() {
-  const { status, isRolledBack } = useProductionCard();
+  const { deployment, status, isCurrent, isRolledBack } = useProductionCard();
+  if (!isCurrent) {
+    return <DeploymentStatusBadge status={deployment.status} />;
+  }
   if (isRolledBack) {
     return (
       <span className="flex items-center gap-2 text-[13px] text-accent-12">

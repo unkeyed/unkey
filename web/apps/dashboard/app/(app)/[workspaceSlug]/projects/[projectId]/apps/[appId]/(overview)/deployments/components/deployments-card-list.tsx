@@ -1,11 +1,13 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import type { ReactNode } from "react";
-import { useProjectData } from "../../data-provider";
+import { useAppId, useProjectData } from "../../data-provider";
 import { useDeployments } from "../hooks/use-deployments";
 import { DeploymentRow } from "./deployment-row";
 import { DeploymentsSkeleton } from "./deployments-skeleton";
@@ -27,8 +29,17 @@ type DeploymentsCardListProps = {
 
 export function DeploymentsCardList({ limit, title, headerAction }: DeploymentsCardListProps = {}) {
   const { deployments } = useDeployments();
-  const { project, projectId } = useProjectData();
-  const currentDeploymentId = project?.currentDeploymentId;
+  const { projectId } = useProjectData();
+  const appId = useAppId();
+  const appsQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
+  );
+  const app = appsQuery.data?.[0];
+  const currentDeploymentId = app?.currentDeploymentId;
   const workspace = useWorkspaceNavigation();
 
   if (deployments.isLoading) {
@@ -79,7 +90,7 @@ export function DeploymentsCardList({ limit, title, headerAction }: DeploymentsC
               deployment={deployment}
               environment={environment}
               isCurrent={isCurrent}
-              isRolledBack={isCurrent && (project?.isRolledBack ?? false)}
+              isRolledBack={isCurrent && (app?.isRolledBack ?? false)}
               href={routes.projects.apps.deployment({
                 workspaceSlug: workspace.slug,
                 projectId,
