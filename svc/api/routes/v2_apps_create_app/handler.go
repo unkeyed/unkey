@@ -46,7 +46,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	project, err := db.Query.FindProjectByWorkspaceAndIdOrSlug(ctx, h.DB.RO(), db.FindProjectByWorkspaceAndIdOrSlugParams{
+	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
 	})

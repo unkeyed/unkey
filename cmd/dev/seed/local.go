@@ -131,7 +131,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			if !db.IsDuplicateKeyError(err) {
 				return fmt.Errorf("failed to create project: %w", err)
 			}
-			existing, err := db.Query.FindProjectByWorkspaceAndIdOrSlug(ctx, tx, db.FindProjectByWorkspaceAndIdOrSlugParams{
+			existing, err := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
 				WorkspaceID: workspaceID,
 				Project:     projectSlug,
 			})
