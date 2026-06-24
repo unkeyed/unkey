@@ -7,16 +7,16 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-An environment is an isolated deployment target within an [app](/platform/apps/overview). Each environment has its own deployments, [variables](/platform/variables/overview), [custom domains](/networking/domains), and [Sentinel policies](/platform/sentinel/overview).
+An environment is an isolated deployment target within an [app](/platform/apps/overview). Each environment has its own deployments, [variables](/platform/variables/overview), [custom domains](/networking/domains), and [gateway policies](/platform/gateway/overview).
 
 ## Production and preview
 
 Every app gets two environments:
 
-| Environment    | Purpose                                                                  |
-| -------------- | ------------------------------------------------------------------------ |
-| **Production** | Serves live traffic. Runs three Sentinel replicas for high availability. |
-| **Preview**    | For testing branches before merging. Runs one Sentinel replica.          |
+| Environment    | Purpose                                  |
+| -------------- | ---------------------------------------- |
+| **Production** | Serves live traffic.                     |
+| **Preview**    | For testing branches before merging.     |
 
 Unkey creates both environments automatically when you create a project. You don't need to set them up manually.
 
@@ -40,7 +40,7 @@ Configuration is scoped per environment, so production and preview can differ:
 - **Variables**: Different database URLs, API keys, and feature flags for each environment
 - **Custom domains**: Production might use `api.acme.com` while preview uses auto-generated domains
 - **Regions and instances**: Run production in multiple regions with higher instance counts, and preview in a single region
-- **Sentinel policies**: Apply stricter rate limits or authentication rules in production
+- **Gateway policies**: Apply stricter rate limits or authentication rules in production
 
 ## Sticky domains
 

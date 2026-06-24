@@ -6,7 +6,7 @@ description: "JWT authentication policy (schema only)"
 JWTAuth validates Bearer JSON Web Tokens using JWKS, an OIDC issuer, or a static public key, and produces a principal on success.
 
 <Note>
-JWTAuth is defined in the policy schema but is not executed by the sentinel engine yet.
+JWTAuth is defined in the policy schema but is not executed by the policy engine yet.
 </Note>
 
 ## Fields
@@ -16,7 +16,7 @@ JWTAuth is defined in the policy schema but is not executed by the sentinel engi
 </ResponseField>
 
 <ResponseField name="oidc_issuer" type="string">
-  OIDC issuer URL. Sentinel discovers the JWKS URI from the issuer's `.well-known/openid-configuration`.
+  OIDC issuer URL. Frontline discovers the JWKS URI from the issuer's `.well-known/openid-configuration`.
 </ResponseField>
 
 <ResponseField name="public_key_pem" type="bytes">

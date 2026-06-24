@@ -1,31 +1,32 @@
 ---
 title: "Frontline ingress"
-description: "How frontline routes traffic to sentinel"
+description: "How Frontline terminates TLS, resolves hostnames, and proxies to deployment instances"
 ---
 
 Frontline is the shared ingress tier for Unkey. It is the first Unkey-owned hop
-for inbound traffic, and it sits in front of all per-environment sentinel
-services. Its job is to convert a public hostname into a concrete environment
-route and move the request to the correct regional sentinel with minimal
-latency.
+for inbound traffic. Its job is to convert a public hostname into a concrete
+deployment, evaluate that deployment's policies, and proxy the request to a
+running instance with minimal latency.
 
 ## Role in the stack
 
-Frontline runs as a regional, multi-tenant edge service. It terminates TLS for
-custom domains, looks up the target environment in the control plane database,
-and forwards traffic to the sentinel that owns that environment. When the local
-region does not have a healthy sentinel, it forwards to another region's
-frontline to keep routing consistent and to preserve TLS termination.
+Frontline runs as a regional, multi-tenant edge service. A single fleet per
+region serves every workspace and environment. It terminates TLS for custom
+domains, looks up the target deployment in the control plane database, runs the
+deployment's policies inline, and proxies directly to a running instance in the
+same region. When the local region has no healthy instance, it forwards to
+another region's Frontline, which redoes the full hostname to instance chain
+while preserving TLS termination and routing consistency.
 
-Sentinel is single-tenant per environment. Frontline is the layer that keeps
-those sentinels hidden behind a single, stable ingress and makes cross-region
-failover transparent.
+There is no separate per-environment proxy. Frontline owns the request path end
+to end.
 
 ## Responsibilities
 
 - Terminate TLS using SNI and custom domain certificates.
-- Resolve hostnames to deployments and sentinel instances.
-- Forward requests to a local sentinel or a remote region.
+- Resolve hostnames to deployments and their running instances.
+- Evaluate the deployment's policies (KeyAuth, RateLimit, Firewall, OpenAPI) before proxying.
+- Proxy to a local instance, or forward to a peer region when none is healthy locally.
 - Enforce hop limits to prevent routing loops.
 - Render HTML error pages when clients prefer HTML.
 - Serve ACME HTTP-01 challenges for certificate issuance.
@@ -37,40 +38,41 @@ sequenceDiagram
   actor Client
   participant Frontline
   participant Router
-  participant Proxy
-  participant Sentinel
+  participant Engine as Policy Engine
+  participant Instance
   participant RemoteFrontline
 
   Client->>Frontline: HTTPS request
-  Frontline->>Router: LookupByHostname(host)
-  Router->>Router: SelectSentinel(route, sentinels)
-  alt local sentinel available
-    Frontline->>Proxy: ForwardToSentinel
-    Proxy->>Sentinel: HTTP/2 cleartext (h2c)
-  else no local sentinel
-    Frontline->>Proxy: ForwardToRegion
-    Proxy->>RemoteFrontline: HTTPS to frontline.<region>.<apexDomain>
+  Frontline->>Router: Route(hostname)
+  Router-->>Frontline: RouteDecision (instances + policies)
+  alt local instance available
+    Frontline->>Engine: Evaluate policies
+    Engine-->>Frontline: Principal or rejection
+    Frontline->>Instance: Proxy request (HTTP)
+  else no local instance
+    Frontline->>RemoteFrontline: Forward to frontline.<region>.<apexDomain> (HTTPS)
   end
 ```
 
 ## Routing model
 
 Frontline reads routing data from MySQL and caches it with stale-while-revalidate
-semantics. The cache stores hostname to route mappings and environment to
-sentinel lists. Each node maintains its own local cache; entries refresh on
-their fresh/stale schedule.
+semantics. The cache stores hostname to route mappings, the deployment's parsed
+policies, and the deployment's running instances. Each node maintains its own
+local cache; entries refresh on their fresh/stale schedule.
 
-Sentinel selection is based on health and region proximity. If a healthy
-sentinel is available in the current region, frontline forwards to it directly.
-Otherwise frontline chooses the nearest region that has a healthy sentinel. If
-no healthy sentinel exists, frontline returns a service unavailable error.
+Instance selection is based on health and region proximity. If the deployment
+has a running instance in the current region, Frontline proxies to it directly,
+trying candidates in shuffled order and advancing on dial failures. Otherwise
+Frontline forwards to the nearest region that has a running instance. If no
+region has one, Frontline returns a service unavailable error.
 
 ## Proxying model
 
-Frontline uses a shared HTTP transport for cross-region forwarding and a
-dedicated HTTP/2 cleartext transport for local sentinel connections. Requests
-carry routing and trace headers that sentinel uses to pick the deployment and to
-track the forwarding chain.
+Frontline proxies directly to the deployment instance for local routes and uses
+a shared HTTP transport for cross-region forwarding to a peer Frontline. Requests
+carry routing and trace headers that the receiving instance or peer Frontline
+uses to identify the deployment and to track the forwarding chain.
 
 Key headers:
 
@@ -107,10 +109,8 @@ response to the ACME client.
 ## Observability and error handling
 
 Every request is wrapped in a middleware that emits tracing spans, Prometheus
-metrics, and structured logs. Frontline also captures errors from proxying and
-maps them to typed error codes. When a client prefers HTML, frontline renders a
-styled error page; otherwise it returns JSON error payloads.
-
-Sentinel errors are treated as upstream responses. Frontline rewrites 4xx JSON
-errors into HTML when the client accepts HTML, and maps sentinel 5xx responses
-to frontline gateway errors for consistent observability.
+metrics, and structured logs. Frontline also captures errors from policy
+evaluation and proxying and maps them to typed error codes. When a client
+prefers HTML, Frontline renders a styled error page; otherwise it returns JSON
+error payloads. Errors from the upstream instance are categorized and mapped to
+Frontline gateway errors for consistent observability.

@@ -3,12 +3,12 @@ title: "Routing and failover"
 description: "Frontline routing decisions and cross-region forwarding"
 ---
 
-Frontline routes requests to the correct environment by looking up the hostname, selecting a healthy sentinel, and forwarding the request locally or to another region.
+Frontline routes a request by looking up its hostname, selecting a healthy instance of the target deployment, and proxying locally or forwarding to another region.
 
 Key components:
 
-- Router service ([`svc/frontline/services/router`](https://github.com/unkeyed/unkey/blob/main/svc/frontline/services/router)).
-- Proxy service ([`svc/frontline/services/proxy`](https://github.com/unkeyed/unkey/blob/main/svc/frontline/services/proxy)).
+- Router ([`svc/frontline/internal/router`](https://github.com/unkeyed/unkey/blob/main/svc/frontline/internal/router)).
+- Proxy handler ([`svc/frontline/routes/proxy`](https://github.com/unkeyed/unkey/blob/main/svc/frontline/routes/proxy)).
 
 ## Flow: route request
 
@@ -17,34 +17,34 @@ sequenceDiagram
   actor Client
   participant Frontline as Frontline
   participant Router as Router
-  participant Proxy as Proxy
-  participant Sentinel as Sentinel
+  participant Instance as Instance
+  participant Remote as Remote Frontline
 
   Client->>Frontline: HTTPS request
-  Frontline->>Router: LookupByHostname(host)
-  Router->>Proxy: SelectSentinel(route, sentinels)
-  alt local sentinel available
-    Proxy->>Sentinel: ForwardToSentinel (HTTP, h2c)
-  else no local sentinel
-    Proxy->>Frontline: ForwardToRegion (HTTPS)
+  Frontline->>Router: Route(hostname)
+  Router-->>Frontline: RouteDecision
+  alt local instance available
+    Frontline->>Instance: Evaluate policies, then proxy (HTTP)
+  else no local instance
+    Frontline->>Remote: Forward to region (HTTPS)
   end
 ```
 
 ## Routing decisions
 
-- Frontline looks up the route by FQDN in the database.
-- If there is a healthy sentinel in the current region, it forwards locally.
-- If not, it selects the nearest region using the region proximity list.
+- Frontline looks up the route by FQDN in the database and parses the deployment's policies.
+- If the deployment has a running instance in the current region, it proxies locally, trying instances in shuffled order.
+- If not, it selects the nearest region with a running instance using the region proximity list.
 
 ## Cross-region forwarding
 
-When forwarding to another region, frontline targets:
+When forwarding to another region, Frontline targets:
 
 ```
 https://frontline.<region>.<apexDomain>
 ```
 
-The original hostname is preserved so the remote frontline can perform TLS termination and routing.
+The original hostname is preserved so the remote Frontline can perform TLS termination, policy evaluation, and instance selection.
 
 ## Hop limits
 
@@ -54,4 +54,4 @@ Hop header: `X-Unkey-Frontline-Hops`.
 
 ## TLS certificate selection
 
-Frontline selects TLS certificates per SNI. It attempts exact hostname match first, then falls back to the immediate wildcard (for example `*.example.com`). If no certificate is found, the TLS handshake falls back to a default certificate.
+Frontline selects TLS certificates per SNI. It attempts an exact hostname match first, then falls back to the immediate wildcard (for example `*.example.com`). If no certificate is found, the TLS handshake falls back to a default certificate.

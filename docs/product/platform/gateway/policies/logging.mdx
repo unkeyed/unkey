@@ -1,6 +1,6 @@
 ---
 title: Logging
-description: "Enable request and response logging through the Sentinel for debugging and observability. Record full HTTP headers, bodies, and metadata."
+description: "Enable request and response logging through the gateway for debugging and observability. Record full HTTP headers, bodies, and metadata."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -11,7 +11,7 @@ The logging policy records the full HTTP request and response for every matched 
 
 ## What gets logged
 
-The Sentinel captures the following for each request:
+The gateway captures the following for each request:
 
 **Request data**
 
@@ -37,9 +37,9 @@ The Sentinel captures the following for each request:
 
 | Metric             | Description                                                  |
 | ------------------ | ------------------------------------------------------------ |
-| Total latency      | End-to-end time from when the Sentinel received the request   |
+| Total latency      | End-to-end time from when the gateway received the request   |
 | Instance latency   | Time your app spent processing the request                |
-| Sentinel latency   | Overhead added by the Sentinel (policy evaluation, routing)   |
+| Gateway latency    | Overhead added by the gateway (policy evaluation, routing)   |
 
 ## View logs
 
