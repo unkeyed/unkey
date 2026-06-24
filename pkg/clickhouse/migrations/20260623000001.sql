@@ -1,0 +1,63 @@
+-- Backfill historical sentinel request rows into the new frontline request
+-- raw table. The legacy table did not store app_id, so historical rows use
+-- the empty string for that dimension. Materialized views on
+-- frontline_requests_raw_v1 populate the new aggregate tables from this insert.
+
+INSERT INTO `default`.`frontline_requests_raw_v1` (
+  `request_id`,
+  `time`,
+  `workspace_id`,
+  `project_id`,
+  `app_id`,
+  `environment_id`,
+  `frontline_id`,
+  `deployment_id`,
+  `instance_id`,
+  `instance_address`,
+  `region`,
+  `platform`,
+  `method`,
+  `host`,
+  `path`,
+  `query_string`,
+  `query_params`,
+  `request_headers`,
+  `request_body`,
+  `response_status`,
+  `response_headers`,
+  `response_body`,
+  `user_agent`,
+  `ip_address`,
+  `total_latency`,
+  `instance_latency`,
+  `frontline_latency`
+)
+SELECT
+  `request_id`,
+  `time`,
+  `workspace_id`,
+  `project_id`,
+  '' AS `app_id`,
+  `environment_id`,
+  `sentinel_id` AS `frontline_id`,
+  `deployment_id`,
+  `instance_id`,
+  `instance_address`,
+  `region`,
+  `platform`,
+  `method`,
+  `host`,
+  `path`,
+  `query_string`,
+  `query_params`,
+  `request_headers`,
+  `request_body`,
+  `response_status`,
+  `response_headers`,
+  `response_body`,
+  `user_agent`,
+  `ip_address`,
+  `total_latency`,
+  `instance_latency`,
+  `sentinel_latency` AS `frontline_latency`
+FROM `default`.`sentinel_requests_raw_v1`;

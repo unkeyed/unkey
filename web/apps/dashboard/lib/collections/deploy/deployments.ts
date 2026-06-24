@@ -24,6 +24,7 @@ export const deploymentSchema = z.object({
   image: z.string().nullable(),
   hasOpenApiSpec: z.boolean(),
   status: z.enum(DEPLOYMENT_STATUSES),
+  desiredState: z.enum(["running", "stopped"]),
   instances: z.array(
     z.object({
       id: z.string(),

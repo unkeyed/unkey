@@ -57,6 +57,8 @@ import { promote } from "./deploy/deployment/promote";
 import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
+import { stopDeployment } from "./deploy/deployment/stop";
+import { wakeDeployment } from "./deploy/deployment/wake";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
 import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
@@ -560,6 +562,8 @@ export const router = t.router({
       create: createDeploy,
       authorize: authorizeDeployment,
       cancel: cancelDeployment,
+      stop: stopDeployment,
+      wake: wakeDeployment,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,

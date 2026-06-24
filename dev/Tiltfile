@@ -268,6 +268,7 @@ k8s_resource('restate-quota-check', resource_deps=['restate', 'ctrl-worker'], la
 k8s_resource('restate-ratelimit-global-counters-cleanup', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-audit-log-export', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 k8s_resource('restate-deploy-billing-push', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-idle-preview-deployments', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
 # Service images are built by Bazel via the //build/<svc>:load target, the
