@@ -47,10 +47,7 @@ type FindProjectByIdOrSlugRow struct {
 	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
-// Resolves a project by either its ID or its slug, treating the input as an
-// opaque string. The two single-column lookups are UNIONed (not OR'd) so each
-// uses its own index, and the ID branch comes first so an ID match wins over a
-// slug that happens to collide with it. Mirrors FindIdentity.
+// FindProjectByIdOrSlug
 //
 //	SELECT
 //	    p.id,
