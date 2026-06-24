@@ -56,6 +56,13 @@ export const projectRoutes = {
       });
     },
 
+    overview(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/overview",
+        appParams(scope),
+      );
+    },
+
     settings(scope: AppScope): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/settings",
