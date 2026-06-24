@@ -41,10 +41,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	app, err := db.Query.FindAppByWorkspaceAndSlugs(ctx, h.DB.RO(), db.FindAppByWorkspaceAndSlugsParams{
+	app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RO(), db.FindAppByProjectAndIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
-		ProjectSlug: req.Project,
-		AppSlug:     req.App,
+		Project:     req.Project,
+		App:         req.App,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -71,7 +71,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
-			ResourceID:   app.Project.ID,
+			ResourceID:   app.App.ProjectID,
 			Action:       rbac.ReadEnvironment,
 		}),
 	))

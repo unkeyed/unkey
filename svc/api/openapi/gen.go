@@ -1171,8 +1171,8 @@ type V2EnvironmentsGetEnvironmentResponseBody struct {
 
 // V2EnvironmentsListEnvironmentsRequestBody defines model for V2EnvironmentsListEnvironmentsRequestBody.
 type V2EnvironmentsListEnvironmentsRequestBody struct {
-	// App URL-safe handle of the app whose environments you want to list, unique within the project.
-	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+	// App Identifies the app whose environments to list, by either its unique ID or its slug.
+	// Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
 	App string `json:"app"`
 
 	// Cursor Pagination cursor from a previous response to fetch the next page.
@@ -1183,8 +1183,8 @@ type V2EnvironmentsListEnvironmentsRequestBody struct {
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
 
-	// Project URL-safe handle of the project that owns the app whose environments you want to list.
-	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+	// Project Identifies the parent project, by either its unique ID or its slug.
+	// Required to resolve the app, since app slugs are only unique within a project.
 	Project string `json:"project"`
 }
 

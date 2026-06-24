@@ -32,8 +32,9 @@ func TestListEnvironmentsValidationErrors(t *testing.T) {
 	}{
 		{name: "missing project", req: handler.Request{App: "payments-api"}},
 		{name: "missing app", req: handler.Request{Project: "payments-service"}},
-		{name: "project invalid chars", req: handler.Request{Project: "Payments_Service", App: "payments-api"}},
-		{name: "app invalid chars", req: handler.Request{Project: "payments-service", App: "Payments_API"}},
+		{name: "project invalid chars", req: handler.Request{Project: "payments.service", App: "payments-api"}},
+		{name: "app invalid chars", req: handler.Request{Project: "payments-service", App: "payments.api"}},
+		{name: "app too long", req: handler.Request{Project: "payments-service", App: strings.Repeat("a", 256)}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 257), App: "payments-api"}},
 		{name: "limit below minimum", req: handler.Request{Project: "payments-service", App: "payments-api", Limit: ptr.P(0)}},
 		{name: "limit above maximum", req: handler.Request{Project: "payments-service", App: "payments-api", Limit: ptr.P(101)}},
