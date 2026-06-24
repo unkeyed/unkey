@@ -39,16 +39,48 @@ describe("selectEnvironmentRequestsQuery", () => {
     });
   });
 
-  test("15m interval, range day, at six hours", () => {
+  test("5m interval, range day, at six hours", () => {
     expect(selectEnvironmentRequestsQuery(now - 6 * hourMs, now)).toMatchObject({
+      range: "day",
+      interval: "5m",
+      bucketMs: 5 * minuteMs,
+    });
+  });
+
+  test("15m interval, range day, at twelve hours", () => {
+    expect(selectEnvironmentRequestsQuery(now - 12 * hourMs, now)).toMatchObject({
       range: "day",
       interval: "15m",
       bucketMs: 15 * minuteMs,
     });
   });
 
-  test("1h interval, range week, at twelve hours", () => {
-    expect(selectEnvironmentRequestsQuery(now - 12 * hourMs, now)).toMatchObject({
+  test("15m interval, range day, at one day", () => {
+    expect(selectEnvironmentRequestsQuery(now - dayMs, now)).toMatchObject({
+      range: "day",
+      interval: "15m",
+      bucketMs: 15 * minuteMs,
+    });
+  });
+
+  test("15m interval, range week, just after one day", () => {
+    expect(selectEnvironmentRequestsQuery(now - dayMs - 1, now)).toMatchObject({
+      range: "week",
+      interval: "15m",
+      bucketMs: 15 * minuteMs,
+    });
+  });
+
+  test("15m interval, range week, at two days", () => {
+    expect(selectEnvironmentRequestsQuery(now - 2 * dayMs, now)).toMatchObject({
+      range: "week",
+      interval: "15m",
+      bucketMs: 15 * minuteMs,
+    });
+  });
+
+  test("1h interval, range week, just after two days", () => {
+    expect(selectEnvironmentRequestsQuery(now - 2 * dayMs - 1, now)).toMatchObject({
       range: "week",
       interval: "1h",
       bucketMs: hourMs,
