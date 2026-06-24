@@ -233,6 +233,8 @@ func schemaPath() string {
 	if !ok {
 		return ""
 	}
-	root := filepath.Dir(filepath.Dir(currentFile))
-	return filepath.Join(root, "mysql", "schema")
+	// currentFile is pkg/testutil/containers/mysql.go; the schema lives at
+	// pkg/mysql/schema, so walk up three dirs to pkg/ before joining.
+	pkgDir := filepath.Dir(filepath.Dir(filepath.Dir(currentFile)))
+	return filepath.Join(pkgDir, "mysql", "schema")
 }

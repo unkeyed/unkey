@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// DeployTeardownService stops all of a workspace's running Deploy compute and
+// confirms it drained. Keyed by workspace id so a workspace's teardowns
+// serialize and one workspace's stuck drain can't block another's.
+//
+// One primitive, two callers: cancel tears down with ARCHIVE (permanent), the
+// spend cap (ENG-2923) with SUSPEND (resumable). They differ only in the
+// desired state the stopped deployments land in; the stop-and-drain is
+// identical.
+//
+// Stopping compute is enough on its own: once it drains, usage freezes and the
+// existing hourly deploybilling push bills the final total. No bespoke final
+// invoice — the whole operation is sequencing, not billing.
+service DeployTeardownService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Teardown stops every running deployment in the workspace and polls until
+  // they drain, forcing completion after a grace timeout so billing is never
+  // blocked on a stuck pod. For each app whose current deployment is being
+  // stopped it first clears apps.current_deployment_id, so the deployment is no
+  // longer "current" and the DeploymentService guard permits the state change.
+  // Idempotent: re-running on an already-drained workspace is a no-op.
+  rpc Teardown(TeardownRequest) returns (TeardownResponse) {}
+}
+
+// TeardownMode selects the desired state the stopped deployments land in. Both
+// modes drain compute; they differ only in resumability.
+enum TeardownMode {
+  TEARDOWN_MODE_UNSPECIFIED = 0;
+
+  // ARCHIVE permanently decommissions the deployments (cancel). The cleared
+  // current_deployment_id stays cleared.
+  TEARDOWN_MODE_ARCHIVE = 1;
+
+  // SUSPEND scales the deployments down but leaves them resumable (spend cap).
+  TEARDOWN_MODE_SUSPEND = 2;
+}
+
+message TeardownRequest {
+  // Mode selects archived (cancel) vs standby (spend cap) for the stopped
+  // deployments.
+  TeardownMode mode = 1;
+}
+
+message TeardownResponse {
+  // DeploymentsStopped is how many running deployments this teardown scheduled
+  // a stop for.
+  int32 deployments_stopped = 1;
+
+  // Drained is true when every stopped deployment reached a terminal state
+  // before the grace timeout. False means the grace timeout forced completion
+  // with compute still draining (an alert was logged).
+  bool drained = 2;
+}

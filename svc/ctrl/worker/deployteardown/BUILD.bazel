@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "deployteardown",
+    srcs = [
+        "doc.go",
+        "service.go",
+        "teardown.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/db",
+        "//pkg/logger",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

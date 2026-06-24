@@ -16,6 +16,18 @@ type Querier interface {
 	//  SET token = ?, authorization = ?, updated_at = ?
 	//  WHERE domain_id = ?
 	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
+	// Clears apps.current_deployment_id when it still points at the given
+	// deployment. Teardown calls this before stopping an app's current deployment so
+	// the DeploymentService current-deployment guard permits the change; gating on
+	// the deployment id makes it a safe no-op if a concurrent deploy already
+	// re-pointed current_deployment_id at something else.
+	//
+	//  UPDATE apps
+	//  SET current_deployment_id = NULL,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND current_deployment_id = ?
+	ClearAppCurrentDeployment(ctx context.Context, db DBTX, arg ClearAppCurrentDeploymentParams) error
 	//CompareAndSwapDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -23,6 +35,16 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND status = ?
 	CompareAndSwapDeploymentStatus(ctx context.Context, db DBTX, arg CompareAndSwapDeploymentStatusParams) (sql.Result, error)
+	// Counts how many of the given deployments are still draining: not yet in a
+	// drained/terminal status. Teardown polls this until it returns 0. A deployment
+	// counts as drained once krane's StopDeploymentIfNoInstances flips its status to
+	// 'stopped' (or it reached another terminal status on its own).
+	//
+	//  SELECT COUNT(*) AS count
+	//  FROM deployments
+	//  WHERE id IN (/*SLICE:ids*/?)
+	//    AND status NOT IN ('stopped', 'failed', 'cancelled', 'superseded', 'skipped')
+	CountActiveDeploymentsByIds(ctx context.Context, db DBTX, ids []string) (int64, error)
 	//CountInstancesByAppId
 	//
 	//  SELECT COUNT(*) as count
@@ -2828,6 +2850,22 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, db DBTX, arg ListRunningDeploymentsByBranchParams) ([]string, error)
+	// Running deployments for a workspace that still have (or will soon have) live
+	// compute: desired_state 'running' and not already drained/terminal. Joins apps
+	// so the caller knows, per deployment, whether it is its app's current
+	// deployment and therefore must have current_deployment_id cleared before its
+	// desired state can change.
+	//
+	//  SELECT
+	//    d.id,
+	//    d.app_id,
+	//    a.current_deployment_id
+	//  FROM deployments d
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.workspace_id = ?
+	//    AND d.desired_state = 'running'
+	//    AND d.status NOT IN ('stopped', 'failed', 'cancelled', 'superseded', 'skipped')
+	ListRunningDeploymentsByWorkspaceId(ctx context.Context, db DBTX, workspaceID string) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
 	// ListRunningSentinelIDsAndImages returns IDs, images, and regions of all
 	// running sentinels, paginated by id. Used by the rollout service to plan
 	// wave assignments without fetching full sentinel rows.

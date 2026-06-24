@@ -21,6 +21,8 @@ go_library(
         "deploy_restate.pb.go",
         "deploy_spend_check.pb.go",
         "deploy_spend_check_restate.pb.go",
+        "deploy_teardown.pb.go",
+        "deploy_teardown_restate.pb.go",
         "deployment.pb.go",
         "deployment_restate.pb.go",
         "environment.pb.go",
