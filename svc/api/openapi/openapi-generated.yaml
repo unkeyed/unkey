@@ -1911,15 +1911,7 @@ components:
                         Use a descriptive name like 'Payments Service' to identify its purpose.
                     example: Payments Service
                 slug:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-                    description: |
-                        URL-safe handle you choose for this project, unique within your workspace.
-                        Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
-                        Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
-                    example: payments-service
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsCreateProjectResponseBody:
             type: object
@@ -1935,17 +1927,10 @@ components:
         V2ProjectsDeleteProjectRequestBody:
             type: object
             required:
-                - projectId
+                - project
             properties:
-                projectId:
-                    type: string
-                    minLength: 8
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
-                    description: |
-                        Specifies which project to delete by its unique identifier.
-                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-                    example: proj_1234abcd
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsDeleteProjectResponseBody:
             type: object
@@ -1961,17 +1946,10 @@ components:
         V2ProjectsGetProjectRequestBody:
             type: object
             required:
-                - projectId
+                - project
             properties:
-                projectId:
-                    type: string
-                    minLength: 8
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
-                    description: |
-                        Specifies which project to retrieve by its unique identifier.
-                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-                    example: proj_1234abcd
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsGetProjectResponseBody:
             type: object
@@ -2024,27 +2002,12 @@ components:
         V2ProjectsUpdateProjectRequestBody:
             type: object
             required:
-                - projectId
+                - project
             properties:
-                projectId:
-                    type: string
-                    minLength: 8
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
-                    description: |
-                        Specifies which project to update by its unique identifier.
-                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-                    example: proj_1234abcd
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 slug:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-                    description: |
-                        New URL-safe slug for the project, unique within your workspace.
-                        Changing it affects the deployment domains generated for this project.
-                        Omit this field to leave the current slug unchanged.
-                    example: payments-service
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 name:
                     type: string
                     minLength: 1
@@ -3721,6 +3684,15 @@ components:
                         Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
                     example: 1711386400000
             additionalProperties: false
+        ResourceIdentifier:
+            type: string
+            minLength: 3
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_-]+$"
+            description: |
+                Identifies a resource by either its unique ID or its slug.
+                Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+            example: proj_1234abcd
         V2ProjectsCreateProjectResponseData:
             type: object
             required:
@@ -7089,11 +7061,11 @@ paths:
                                     summary: Invalid slug format
                                     value:
                                         error:
-                                            detail: The slug must match the pattern ^[a-z0-9]+(-[a-z0-9]+)*$.
+                                            detail: The slug must match the pattern ^[a-zA-Z0-9_-]+$.
                                             errors:
-                                                - fix: Use lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens)
+                                                - fix: Use only letters, numbers, hyphens, and underscores
                                                   location: body.slug
-                                                  message: must match ^[a-z0-9]+(-[a-z0-9]+)*$
+                                                  message: must match ^[a-zA-Z0-9_-]+$
                                             status: 400
                                             title: Bad Request
                                             type: validation-error
@@ -7180,11 +7152,16 @@ paths:
                 content:
                     application/json:
                         examples:
-                            delete:
-                                description: Delete a project by its unique identifier
-                                summary: Delete a project
+                            deleteById:
+                                description: Delete a project using its unique identifier
+                                summary: Delete by project ID
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
+                            deleteBySlug:
+                                description: Delete a project using its slug
+                                summary: Delete by project slug
+                                value:
+                                    project: payment-service
                         schema:
                             $ref: '#/components/schemas/V2ProjectsDeleteProjectRequestBody'
                 required: true
@@ -7291,11 +7268,16 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Fetch a single project using its unique identifier
-                                summary: Retrieve a project by ID
+                            getById:
+                                description: Fetch a project using its unique identifier
+                                summary: Retrieve by project ID
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
+                            getBySlug:
+                                description: Fetch a project using its slug
+                                summary: Retrieve by project slug
+                                value:
+                                    project: payment-service
                         schema:
                             $ref: '#/components/schemas/V2ProjectsGetProjectRequestBody'
                 required: true
@@ -7526,17 +7508,17 @@ paths:
                     application/json:
                         examples:
                             changeSlug:
-                                description: Update the URL-safe slug of a project
-                                summary: Change a project slug
+                                description: Locate the project by its current slug and assign a new one
+                                summary: Change a project slug by slug
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: payments-service
                                     slug: payments-api
                             rename:
-                                description: Update only the display name of a project
-                                summary: Rename a project
+                                description: Update only the display name, locating the project by its ID
+                                summary: Rename a project by ID
                                 value:
                                     name: Payments API
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
                         schema:
                             $ref: '#/components/schemas/V2ProjectsUpdateProjectRequestBody'
                 required: true

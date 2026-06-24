@@ -35,7 +35,7 @@ func TestGetProjectSuccessfully(t *testing.T) {
 			Slug:        slug,
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 		require.Equal(t, project.ID, res.Body.Data.Id)
@@ -57,7 +57,7 @@ func TestGetProjectSuccessfully(t *testing.T) {
 			DeleteProtection: true,
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.True(t, res.Body.Data.DeleteProtection)
 	})

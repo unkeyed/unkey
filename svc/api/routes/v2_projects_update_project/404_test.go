@@ -32,7 +32,7 @@ func TestUpdateProjectNotFound(t *testing.T) {
 	newName := "New Name"
 
 	t.Run("unknown id returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: uid.New(uid.ProjectPrefix), Name: &newName})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: uid.New(uid.ProjectPrefix), Name: &newName})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -46,7 +46,7 @@ func TestUpdateProjectNotFound(t *testing.T) {
 			Slug:        slug,
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID, Name: &newName})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID, Name: &newName})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace project, received: %s", res.RawBody)
 	})
 }
