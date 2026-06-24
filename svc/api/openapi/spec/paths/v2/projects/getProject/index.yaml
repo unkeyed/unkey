@@ -22,11 +22,16 @@ post:
         schema:
           "$ref": "./V2ProjectsGetProjectRequestBody.yaml"
         examples:
-          basic:
-            summary: Retrieve a project by ID
-            description: Fetch a single project using its unique identifier
+          getById:
+            summary: Retrieve by project ID
+            description: Fetch a project using its unique identifier
             value:
-              projectId: proj_1234abcd
+              project: proj_1234abcd
+          getBySlug:
+            summary: Retrieve by project slug
+            description: Fetch a project using its slug
+            value:
+              project: payment-service
     required: true
   responses:
     "200":

@@ -51,7 +51,7 @@ func TestDeleteProjectForbidden(t *testing.T) {
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: project.ID})
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
 			} else {
