@@ -20,6 +20,8 @@ type DeployServiceClient interface {
 	Promote(ctx context.Context, req *v1.PromoteRequest) (*v1.PromoteResponse, error)
 	AuthorizeDeployment(ctx context.Context, req *v1.AuthorizeDeploymentRequest) (*v1.AuthorizeDeploymentResponse, error)
 	CancelDeployment(ctx context.Context, req *v1.CancelDeploymentRequest) (*v1.CancelDeploymentResponse, error)
+	StopDeployment(ctx context.Context, req *v1.StopDeploymentRequest) (*v1.StopDeploymentResponse, error)
+	WakeDeployment(ctx context.Context, req *v1.WakeDeploymentRequest) (*v1.WakeDeploymentResponse, error)
 }
 
 var _ DeployServiceClient = (*ConnectDeployServiceClient)(nil)
@@ -103,6 +105,32 @@ func (c *ConnectDeployServiceClient) CancelDeployment(ctx context.Context, req *
 	ctx, span := tracing.Start(ctx, "DeployService.CancelDeployment")
 	defer span.End()
 	resp, err := c.inner.CancelDeployment(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectDeployServiceClient) StopDeployment(ctx context.Context, req *v1.StopDeploymentRequest) (*v1.StopDeploymentResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.StopDeployment")
+	defer span.End()
+	resp, err := c.inner.StopDeployment(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectDeployServiceClient) WakeDeployment(ctx context.Context, req *v1.WakeDeploymentRequest) (*v1.WakeDeploymentResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.WakeDeployment")
+	defer span.End()
+	resp, err := c.inner.WakeDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

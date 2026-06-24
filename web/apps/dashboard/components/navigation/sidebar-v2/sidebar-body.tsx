@@ -3,6 +3,7 @@
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import {
   buildApiLinks,
   buildAppLinks,
@@ -23,6 +24,7 @@ export function SidebarBody() {
     .filter((segment) => !segment.startsWith("("));
   const { slug } = useWorkspaceNavigation();
   const keyAuthId = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
+  const appOverview = useFlag("appOverview");
 
   const links = (() => {
     switch (context.type) {
@@ -36,7 +38,7 @@ export function SidebarBody() {
         return buildAuthorizationLinks(slug, segments);
       case "project":
         return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments)
+          ? buildAppLinks(slug, context.projectId, context.appId, segments, appOverview)
           : buildProjectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(slug, context.apiId, keyAuthId, segments);
