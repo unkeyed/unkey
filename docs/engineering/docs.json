@@ -134,8 +134,24 @@
                 "pages": [
                   "architecture/services/frontline/overview",
                   "architecture/services/frontline/ingress",
+                  "architecture/services/frontline/routing",
+                  "architecture/services/frontline/request-flow",
                   "architecture/services/frontline/configuration",
-                  "architecture/services/frontline/routing"
+                  "architecture/services/frontline/failure-modes",
+                  {
+                    "group": "Policies",
+                    "pages": [
+                      "architecture/services/frontline/policies/index",
+                      "architecture/services/frontline/policies/policy",
+                      "architecture/services/frontline/policies/match-expressions",
+                      "architecture/services/frontline/policies/principal",
+                      "architecture/services/frontline/policies/keyauth",
+                      "architecture/services/frontline/policies/jwtauth",
+                      "architecture/services/frontline/policies/ratelimit",
+                      "architecture/services/frontline/policies/firewall",
+                      "architecture/services/frontline/policies/openapi"
+                    ]
+                  }
                 ]
               },
               {
@@ -144,31 +160,6 @@
                   "architecture/services/krane/overview",
                   "architecture/services/krane/secrets",
                   "architecture/services/krane/configuration"
-                ]
-              },
-              {
-                "group": "Sentinel",
-                "pages": [
-                  "architecture/services/sentinel/overview",
-                  "architecture/services/sentinel/request-flow",
-                  "architecture/services/sentinel/configuration",
-                  "architecture/services/sentinel/deployment",
-                  "architecture/services/sentinel/failure-modes",
-
-                  {
-                    "group": "Policies",
-                    "pages": [
-                      "architecture/services/sentinel/policies/index",
-                      "architecture/services/sentinel/policies/policy",
-                      "architecture/services/sentinel/policies/match-expressions",
-                      "architecture/services/sentinel/policies/principal",
-                      "architecture/services/sentinel/policies/keyauth",
-                      "architecture/services/sentinel/policies/jwtauth",
-                      "architecture/services/sentinel/policies/ratelimit",
-                      "architecture/services/sentinel/policies/firewall",
-                      "architecture/services/sentinel/policies/openapi"
-                    ]
-                  }
                 ]
               },
               {
@@ -238,7 +229,7 @@
                   "infra/clickhouse/users/apiv2",
                   "infra/clickhouse/users/github",
                   "infra/clickhouse/users/grafana",
-                  "infra/clickhouse/users/sentinel",
+                  "infra/clickhouse/users/frontline",
                   "infra/clickhouse/users/unkey-admin",
                   "infra/clickhouse/users/vector",
                   "infra/clickhouse/users/vercel-dashboard"

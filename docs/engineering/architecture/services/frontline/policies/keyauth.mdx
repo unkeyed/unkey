@@ -3,20 +3,20 @@ title: "KeyAuth"
 description: "API key authentication policy"
 ---
 
-KeyAuth authenticates requests using Unkey API keys. It is the only policy type executed by the sentinel engine.
+KeyAuth authenticates requests using Unkey API keys. It is the only authentication policy the engine executes today; JWTAuth is defined in the schema but not yet active.
 
 ## Fields
 
 <ResponseField name="key_space_ids" type="string[]">
-  List of keyspace IDs the key must belong to. If the key belongs to a keyspace not in this list, authentication fails with `Sentinel.Auth.InvalidKey`.
+  List of keyspace IDs the key must belong to. If the key belongs to a keyspace not in this list, authentication fails with `Frontline.Auth.InvalidKey`.
 </ResponseField>
 
 <ResponseField name="locations" type="KeyLocation[]">
-  Ordered list of locations to extract the API key from. Sentinel tries each location in order and uses the first non-empty key. If omitted, defaults to extracting a Bearer token from the `Authorization` header.
+  Ordered list of locations to extract the API key from. Frontline tries each location in order and uses the first non-empty key. If omitted, defaults to extracting a Bearer token from the `Authorization` header.
 </ResponseField>
 
 <ResponseField name="permission_query" type="string">
-  Optional RBAC query evaluated against the key's permissions. If the key does not satisfy the query, authentication fails with `Sentinel.Auth.InsufficientPermissions`.
+  Optional RBAC query evaluated against the key's permissions. If the key does not satisfy the query, authentication fails with `Frontline.Auth.InsufficientPermissions`.
 </ResponseField>
 
 ## Examples
@@ -129,7 +129,7 @@ KeyAuth authenticates requests using Unkey API keys. It is the only policy type 
 
 ## Key extraction
 
-Sentinel supports three key extraction locations:
+Frontline supports three key extraction locations:
 
 | Location        | Behavior                                                                    |
 | --------------- | --------------------------------------------------------------------------- |
@@ -137,7 +137,7 @@ Sentinel supports three key extraction locations:
 | Header          | Reads a named header. Optionally strips a prefix (case-insensitive)         |
 | Query parameter | Reads a named query parameter. **Security risk:** query strings are recorded in server logs, proxy logs, CDN logs, browser history, and `Referer` headers. Use only as a last resort for trusted-internal traffic; prefer `bearer` or `header` locations. |
 
-When multiple locations are configured, sentinel tries each in order and uses the first non-empty result.
+When multiple locations are configured, Frontline tries each in order and uses the first non-empty result.
 
 ## Verification flow
 
@@ -167,13 +167,13 @@ KeyAuth writes rate limit headers on every response, including rejected requests
 
 | Scenario                       | Status | Code                                     |
 | ------------------------------ | ------ | ---------------------------------------- |
-| No key found in request        | 401    | `Sentinel.Auth.MissingCredentials`       |
-| Key not found in database      | 401    | `Sentinel.Auth.InvalidKey`               |
-| Key disabled                   | 401    | `Sentinel.Auth.InvalidKey`               |
-| Key expired                    | 401    | `Sentinel.Auth.InvalidKey`               |
-| Key not in allowed keyspace    | 401    | `Sentinel.Auth.InvalidKey`               |
-| Workspace disabled             | 401    | `Sentinel.Auth.InvalidKey`               |
-| Permission query not satisfied | 403    | `Sentinel.Auth.InsufficientPermissions`  |
-| Rate limit exceeded            | 429    | `Sentinel.Auth.RateLimited`             |
-| Usage limit exceeded           | 429    | `Sentinel.Auth.RateLimited`             |
-| Invalid permission query syntax| 500    | `Sentinel.Internal.InvalidConfiguration` |
+| No key found in request        | 401    | `Frontline.Auth.MissingCredentials`       |
+| Key not found in database      | 401    | `Frontline.Auth.InvalidKey`               |
+| Key disabled                   | 401    | `Frontline.Auth.InvalidKey`               |
+| Key expired                    | 401    | `Frontline.Auth.InvalidKey`               |
+| Key not in allowed keyspace    | 401    | `Frontline.Auth.InvalidKey`               |
+| Workspace disabled             | 401    | `Frontline.Auth.InvalidKey`               |
+| Permission query not satisfied | 403    | `Frontline.Auth.InsufficientPermissions`  |
+| Rate limit exceeded            | 429    | `Frontline.Auth.RateLimited`             |
+| Usage limit exceeded           | 429    | `Frontline.Auth.RateLimited`             |
+| Invalid permission query syntax| 500    | `Frontline.Internal.InvalidConfiguration` |

@@ -1,6 +1,6 @@
 ---
 title: OpenAPI validation
-description: "Validate incoming HTTP requests against your OpenAPI specification using the Sentinel. Reject malformed requests before they reach your app."
+description: "Validate incoming HTTP requests against your OpenAPI specification using the gateway. Reject malformed requests before they reach your app."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -19,26 +19,26 @@ Add an OpenAPI validation policy when you want to:
 
 ## What gets validated
 
-The Sentinel validates the following parts of each request against your spec:
+The gateway validates the following parts of each request against your spec:
 
 - Path parameters
 - Query parameters
 - Request headers
 - Request body (content type and schema)
 
-Requests that don't match any defined operation in the spec are rejected. Response validation is not performed by the Sentinel.
+Requests that don't match any defined operation in the spec are rejected. Response validation is not performed by the gateway.
 
 ## Configuration
 
 The OpenAPI validation policy uses your application's auto-scraped OpenAPI specification — there is no separate spec input on the policy itself.
 
 1. Configure the **OpenAPI spec path** in your app's [networking settings](/platform/apps/settings#openapi-spec-path) (for example, `/openapi.yaml` or `/api/spec.json`). Unkey scrapes the spec from your running deployment.
-2. Navigate to your project's **Sentinel Policies** page.
+2. Open your project's policy settings in the dashboard.
 3. Create a new policy and select **OpenAPI Validation** as the policy type.
-4. Optionally configure [match conditions](/platform/sentinel/policies/overview#match-expressions) to scope validation to specific routes.
+4. Optionally configure [match conditions](/platform/gateway/policies/overview#match-expressions) to scope validation to specific routes.
 5. Save the policy.
 
-The Sentinel uses the deployment's most recently scraped spec, keyed by deployment ID, and refreshes its cache as your spec changes between deploys.
+The gateway uses the deployment's most recently scraped spec, keyed by deployment ID, and refreshes its cache as your spec changes between deploys.
 
 <Note>
   If your app doesn't expose an OpenAPI spec at the configured path, the policy has no spec to validate against. Set the **OpenAPI spec path** in your app settings before enabling the policy.
@@ -46,7 +46,7 @@ The Sentinel uses the deployment's most recently scraped spec, keyed by deployme
 
 ## Error response
 
-When a request fails validation, the Sentinel returns a structured error following [the standard error format](/platform/sentinel/policies/overview#error-response-format):
+When a request fails validation, the gateway returns a structured error following [the standard error format](/platform/gateway/policies/overview#error-response-format):
 
 ```json
 {
@@ -55,7 +55,7 @@ When a request fails validation, the Sentinel returns a structured error followi
     "title": "Bad Request",
     "detail": "request body does not match schema for /users",
     "status": 400,
-    "type": "https://unkey.com/docs/errors/sentinel/openapi-validation-failed"
+    "type": "https://unkey.com/docs/errors/frontline/client/openapi_validation_failed"
   }
 }
 ```

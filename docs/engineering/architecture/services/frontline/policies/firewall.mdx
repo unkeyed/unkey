@@ -3,7 +3,7 @@ title: "Firewall"
 description: "Policy that denies matched requests"
 ---
 
-Firewall denies any request that matches the policy's [match expressions](/architecture/services/sentinel/policies/match-expressions) (path, method, header, or query parameter). The MVP has a single action and no other configuration — when a match hits, sentinel rejects the request with HTTP 403 and a fixed `Forbidden` body. The action enum exists so additional outcomes (allow, log, challenge) can be added later without restructuring the message.
+Firewall denies any request that matches the policy's [match expressions](/architecture/services/frontline/policies/match-expressions) (path, method, header, or query parameter). The MVP has a single action and no other configuration — when a match hits, Frontline rejects the request with HTTP 403 and a fixed `Forbidden` body. The action enum exists so additional outcomes (allow, log, challenge) can be added later without restructuring the message.
 
 ## Fields
 
@@ -39,4 +39,4 @@ Block everything below `/admin`:
 
 ## Observability
 
-Every Firewall match increments `sentinel_firewall_matches_total{policy_id, action}`. Denied requests do not currently produce a ClickHouse request log row — they never reach an instance, and the existing request-log pipeline gates on instance presence. Dedicated observability for firewall matches is deferred.
+Every Firewall match increments `frontline_firewall_matches_total{policy_id, action}`. Denied requests do not currently produce a ClickHouse request log row — they never reach an instance, and the existing request-log pipeline gates on instance presence. Dedicated observability for firewall matches is deferred.
