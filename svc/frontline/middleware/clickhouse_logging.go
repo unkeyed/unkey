@@ -52,8 +52,8 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.SentinelRequest], cl
 			// Redact API keys delivered via custom header or query parameter.
 			// The handler records the configured KeyAuth locations on tracking;
 			// without this, keys would be persisted verbatim in the request log.
-			secretHeaders := toSet(tracking.SecretHeaders)
-			secretParams := toSet(tracking.SecretQueryParams)
+			secretHeaders := toSet(tracking.RedactedHeaders)
+			secretParams := toSet(tracking.RedactedQueryParams)
 
 			queryString := req.URL.RawQuery
 			queryParams := req.URL.Query()

@@ -30,11 +30,11 @@ type RequestTracking struct {
 
 	// Credential locations derived from the route's KeyAuth policies, set by
 	// the handler. The ClickHouse logging middleware redacts the value of any
-	// request header named in SecretHeaders (lowercased) and any query
-	// parameter named in SecretQueryParams, so API keys delivered via custom
+	// request header named in RedactedHeaders (lowercased) and any query
+	// parameter named in RedactedQueryParams, so API keys delivered via custom
 	// header or query parameter are not persisted in cleartext.
-	SecretHeaders     []string
-	SecretQueryParams []string
+	RedactedHeaders     []string
+	RedactedQueryParams []string
 
 	// (Re)set by handler before each ForwardToInstance attempt
 	InstanceID string

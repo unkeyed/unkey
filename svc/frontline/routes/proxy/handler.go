@@ -71,7 +71,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// names carry an API key so it can redact them. KeyAuth supports custom
 	// header and query-parameter key delivery; without this the raw key would
 	// be persisted verbatim in the request log.
-	tracking.SecretHeaders, tracking.SecretQueryParams = policies.SecretLocations(decision.Policies)
+	tracking.RedactedHeaders, tracking.RedactedQueryParams = policies.SecretLocations(decision.Policies)
 
 	// Evaluate policies before forwarding. The edge middleware has already
 	// stripped any client-supplied X-Unkey-Principal header; if KeyAuth
