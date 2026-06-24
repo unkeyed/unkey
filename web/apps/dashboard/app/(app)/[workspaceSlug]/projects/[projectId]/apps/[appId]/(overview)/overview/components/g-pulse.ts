@@ -13,9 +13,9 @@ export type Pulse = {
 };
 
 const WINDOW_LABEL: Record<WindowKey, string> = {
-  hour: "last hour",
-  day: "last day",
-  week: "last week",
+  hour: "this hour",
+  day: "today",
+  week: "this week",
 };
 
 type AppRpsMetrics = {
