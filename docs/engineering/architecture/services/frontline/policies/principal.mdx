@@ -5,9 +5,9 @@ description: "Authenticated identity from auth policies"
 
 `engine.Principal` is the shared identity shape produced by authentication policies. It decouples the authentication mechanism from downstream authorization decisions and from upstream applications, which receive it as a JSON payload on the `X-Unkey-Principal` header.
 
-The struct is hand-written with `encoding/json` rather than generated from protobuf. The Principal is output-only (sentinel produces it, apps consume the JSON), so proto-as-IDL buys nothing while fighting the JSON contract we want to expose.
+The struct is hand-written with `encoding/json` rather than generated from protobuf. The Principal is output-only (Frontline produces it, apps consume the JSON), so proto-as-IDL buys nothing while fighting the JSON contract we want to expose.
 
-The wire format is authoritative. For the full public reference, see the [product docs](/platform/sentinel/principal/overview).
+The wire format is authoritative. For the full public reference, see the [product docs](/platform/gateway/principal/overview).
 
 ## Fields
 
@@ -99,6 +99,6 @@ When produced by a KeyAuth policy, `source.key` carries the verified key detail.
 
 ## Header propagation
 
-Sentinel serializes the principal to JSON and sets it on the `X-Unkey-Principal` header before forwarding to the instance. The instance reads this header to make authorization decisions without re-verifying the credential.
+Frontline serializes the principal to JSON and sets it on the `X-Unkey-Principal` header before forwarding to the instance. The instance reads this header to make authorization decisions without re-verifying the credential.
 
 The proxy handler strips any incoming `X-Unkey-Principal` header before policy evaluation to prevent clients from spoofing an authenticated identity.
