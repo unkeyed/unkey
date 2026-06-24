@@ -6,20 +6,20 @@ properties:
   project:
     type: string
     minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_-]+$"
     description: |
-      URL-safe handle of the project that owns the app whose environments you want to list.
-      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+      Identifies the parent project, by either its unique ID or its slug.
+      Required to resolve the app, since app slugs are only unique within a project.
     example: payments-service
   app:
     type: string
     minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9_-]+$"
     description: |
-      URL-safe handle of the app whose environments you want to list, unique within the project.
-      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number.
+      Identifies the app whose environments to list, by either its unique ID or its slug.
+      Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
     example: payments-api
   limit:
     type: integer
@@ -37,12 +37,18 @@ properties:
     example: env_1234abcd
 additionalProperties: false
 examples:
-  basic:
-    summary: List an app's environments
-    description: List the first page of environments in the given app
+  bySlugs:
+    summary: List an app's environments by slugs
+    description: List the first page of environments, locating project and app by slug
     value:
       project: payments-service
       app: payments-api
+  byIds:
+    summary: List an app's environments by IDs
+    description: List the first page of environments, locating project and app by ID
+    value:
+      project: proj_1234abcd
+      app: app_1234abcd
   paginated:
     summary: Paginate with a smaller page size
     description: Fetch a smaller page and continue from a cursor
