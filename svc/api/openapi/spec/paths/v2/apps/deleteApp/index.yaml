@@ -24,11 +24,18 @@ post:
         schema:
           "$ref": "./V2AppsDeleteAppRequestBody.yaml"
         examples:
-          delete:
-            summary: Delete an app
-            description: Delete an app by its unique identifier
+          deleteById:
+            summary: Delete by app ID
+            description: Delete an app using its unique identifier
             value:
-              appId: app_1234abcd
+              project: payments
+              app: app_1234abcd
+          deleteBySlug:
+            summary: Delete by app slug
+            description: Delete an app using its slug
+            value:
+              project: payments
+              app: payments-service
     required: true
   responses:
     "200":

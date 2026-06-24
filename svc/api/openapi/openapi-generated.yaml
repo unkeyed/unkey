@@ -392,16 +392,26 @@ components:
         V2AppsDeleteAppRequestBody:
             type: object
             required:
-                - appId
+                - project
+                - app
             properties:
-                appId:
+                project:
                     type: string
-                    minLength: 8
+                    minLength: 1
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z0-9_-]+$"
                     description: |
-                        Specifies which app to delete by its unique identifier.
-                        Must be a valid app ID that begins with 'app_' and exists within your workspace.
+                        Identifies the parent project, by either its unique ID or its slug.
+                        Required to resolve the app, since app slugs are only unique within a project.
+                    example: payments
+                app:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_-]+$"
+                    description: |
+                        Identifies which app to delete, by either its unique ID or its slug.
+                        Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
                     example: app_1234abcd
             additionalProperties: false
         V2AppsDeleteAppResponseBody:
@@ -4843,11 +4853,18 @@ paths:
                 content:
                     application/json:
                         examples:
-                            delete:
-                                description: Delete an app by its unique identifier
-                                summary: Delete an app
+                            deleteById:
+                                description: Delete an app using its unique identifier
+                                summary: Delete by app ID
                                 value:
-                                    appId: app_1234abcd
+                                    app: app_1234abcd
+                                    project: payments
+                            deleteBySlug:
+                                description: Delete an app using its slug
+                                summary: Delete by app slug
+                                value:
+                                    app: payments-service
+                                    project: payments
                         schema:
                             $ref: '#/components/schemas/V2AppsDeleteAppRequestBody'
                 required: true

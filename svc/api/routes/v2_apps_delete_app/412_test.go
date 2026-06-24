@@ -51,7 +51,8 @@ func TestDeleteAppDeleteProtection(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, headers, handler.Request{
-		AppId: app.ID,
+		Project: project.ID,
+		App:     app.ID,
 	})
 	require.Equal(t, 412, res.Status, "expected 412, received: %s", res.RawBody)
 	require.NotNil(t, res.Body.Error)

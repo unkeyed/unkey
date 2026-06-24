@@ -30,7 +30,7 @@ func TestDeleteAppNotFound(t *testing.T) {
 	}
 
 	t.Run("unknown app id returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{AppId: uid.New(uid.AppPrefix)})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: uid.New(uid.ProjectPrefix), App: uid.New(uid.AppPrefix)})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -53,7 +53,7 @@ func TestDeleteAppNotFound(t *testing.T) {
 			DefaultBranch: "main",
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{AppId: otherApp.ID})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: otherProject.ID, App: otherApp.ID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace app, received: %s", res.RawBody)
 	})
 }

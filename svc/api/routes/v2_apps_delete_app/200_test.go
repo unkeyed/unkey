@@ -53,7 +53,8 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		AppId: app.ID,
+		Project: project.ID,
+		App:     app.ID,
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
