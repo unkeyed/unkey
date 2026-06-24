@@ -101,9 +101,9 @@ import {
   getResourceSummary,
 } from "./resources";
 export { TIME_WINDOWS, type TimeWindow } from "./resources";
+import { getEnvironmentRequests } from "./frontline/environment-requests";
 import { getRuntimeLogs } from "./runtime-logs";
 import {
-  getAppRequestsTimeseries,
   getDeploymentLatencyWithTimeseries,
   getDeploymentRpsTimeseries,
   getInstanceRps,
@@ -370,6 +370,11 @@ export class ClickHouse {
       },
     };
   }
+  public get environment() {
+    return {
+      requests: getEnvironmentRequests(this.querier),
+    };
+  }
   public get sentinel() {
     return {
       logs: getSentinelLogs(this.querier),
@@ -377,9 +382,6 @@ export class ClickHouse {
         byInstance: getInstanceRps(this.querier),
         byRegion: getRegionRps(this.querier),
         timeseries: getDeploymentRpsTimeseries(this.querier),
-      },
-      requests: {
-        appTimeseries: getAppRequestsTimeseries(this.querier),
       },
       latency: {
         withTimeseries: getDeploymentLatencyWithTimeseries(this.querier),
