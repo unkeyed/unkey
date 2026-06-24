@@ -29,10 +29,13 @@ func TestGetAppValidationErrors(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing appId", req: handler.Request{}},
-		{name: "appId too short", req: handler.Request{AppId: "app_1"}},
-		{name: "appId invalid chars", req: handler.Request{AppId: "app-1234abc"}},
-		{name: "appId too long", req: handler.Request{AppId: strings.Repeat("a", 256)}},
+		{name: "missing project and app", req: handler.Request{}},
+		{name: "missing app", req: handler.Request{Project: "payments"}},
+		{name: "missing project", req: handler.Request{App: "app_1234abcd"}},
+		{name: "app invalid chars", req: handler.Request{Project: "payments", App: "app.1234"}},
+		{name: "app too long", req: handler.Request{Project: "payments", App: strings.Repeat("a", 256)}},
+		{name: "project invalid chars", req: handler.Request{Project: "pay.ments", App: "app_1234abcd"}},
+		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), App: "app_1234abcd"}},
 	}
 
 	for _, tc := range testCases {

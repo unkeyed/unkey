@@ -392,16 +392,26 @@ components:
         V2AppsGetAppRequestBody:
             type: object
             required:
-                - appId
+                - project
+                - app
             properties:
-                appId:
+                project:
                     type: string
-                    minLength: 8
+                    minLength: 1
                     maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
+                    pattern: "^[a-zA-Z0-9_-]+$"
                     description: |
-                        Specifies which app to retrieve by its unique identifier.
-                        Must be a valid app ID that begins with 'app_' and exists within your workspace.
+                        Identifies the parent project, by either its unique ID or its slug.
+                        Required to resolve the app, since app slugs are only unique within a project.
+                    example: payments
+                app:
+                    type: string
+                    minLength: 1
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_-]+$"
+                    description: |
+                        Identifies which app to retrieve, by either its unique ID or its slug.
+                        Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
                     example: app_1234abcd
             additionalProperties: false
         V2AppsGetAppResponseBody:
@@ -4718,7 +4728,7 @@ paths:
     /v2/apps.getApp:
         post:
             description: |
-                Retrieve a single app by its id.
+                Retrieve a single app by its id or slug within a project.
 
                 Use this to fetch app details after creation or to verify an app exists before performing operations.
 
@@ -4732,11 +4742,18 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Fetch a single app using its unique identifier
-                                summary: Retrieve an app by ID
+                            getById:
+                                description: Fetch an app using its unique identifier
+                                summary: Retrieve by app ID
                                 value:
-                                    appId: app_1234abcd
+                                    app: app_1234abcd
+                                    project: payments
+                            getBySlug:
+                                description: Fetch an app using its slug
+                                summary: Retrieve by app slug
+                                value:
+                                    app: payments-api
+                                    project: payments
                         schema:
                             $ref: '#/components/schemas/V2AppsGetAppRequestBody'
                 required: true

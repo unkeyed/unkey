@@ -44,20 +44,34 @@ func TestGetAppSuccessfully(t *testing.T) {
 		DefaultBranch: "main",
 	})
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		AppId: app.ID,
-	})
-	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-	require.NotEmpty(t, res.Body.Meta.RequestId)
-	require.Equal(t, app.ID, res.Body.Data.Id)
-	require.True(t, strings.HasPrefix(res.Body.Data.Id, "app_"), "id should have app_ prefix: %s", res.Body.Data.Id)
-	require.Equal(t, "Payments API", res.Body.Data.Name)
-	require.Equal(t, appSlug, res.Body.Data.Slug)
-	require.Equal(t, project.ID, res.Body.Data.ProjectId)
-	require.Equal(t, "main", res.Body.Data.DefaultBranch)
-	require.Empty(t, res.Body.Data.CurrentDeploymentId, "freshly seeded app has no active deployment")
-	require.False(t, res.Body.Data.IsRolledBack)
-	require.False(t, res.Body.Data.DeleteProtection)
-	require.Greater(t, res.Body.Data.CreatedAt, int64(0))
-	require.Zero(t, res.Body.Data.UpdatedAt, "never-updated app should have zero (omitted) updatedAt")
+	for _, tc := range []struct {
+		name    string
+		project string
+		app     string
+	}{
+		{name: "by ids", project: project.ID, app: app.ID},
+		{name: "by slugs", project: projectSlug, app: appSlug},
+		{name: "project id and app slug", project: project.ID, app: appSlug},
+		{name: "project slug and app id", project: projectSlug, app: app.ID},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+				Project: tc.project,
+				App:     tc.app,
+			})
+			require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+			require.NotEmpty(t, res.Body.Meta.RequestId)
+			require.Equal(t, app.ID, res.Body.Data.Id)
+			require.True(t, strings.HasPrefix(res.Body.Data.Id, "app_"), "id should have app_ prefix: %s", res.Body.Data.Id)
+			require.Equal(t, "Payments API", res.Body.Data.Name)
+			require.Equal(t, appSlug, res.Body.Data.Slug)
+			require.Equal(t, project.ID, res.Body.Data.ProjectId)
+			require.Equal(t, "main", res.Body.Data.DefaultBranch)
+			require.Empty(t, res.Body.Data.CurrentDeploymentId, "freshly seeded app has no active deployment")
+			require.False(t, res.Body.Data.IsRolledBack)
+			require.False(t, res.Body.Data.DeleteProtection)
+			require.Greater(t, res.Body.Data.CreatedAt, int64(0))
+			require.Zero(t, res.Body.Data.UpdatedAt, "never-updated app should have zero (omitted) updatedAt")
+		})
+	}
 }

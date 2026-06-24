@@ -63,7 +63,8 @@ func TestGetAppForbidden(t *testing.T) {
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				AppId: app.ID,
+				Project: project.ID,
+				App:     app.ID,
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
@@ -117,8 +118,8 @@ func TestGetAppExistenceNotLeaked(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{AppId: app.ID})
-	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{AppId: missingID})
+	realRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Project: project.ID, App: app.ID})
+	missingRes := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Project: project.ID, App: missingID})
 
 	require.Equal(t, http.StatusNotFound, realRes.Status, "real app should look not-found, got: %s", realRes.RawBody)
 	require.Equal(t, http.StatusNotFound, missingRes.Status, "missing app should be not-found, got: %s", missingRes.RawBody)

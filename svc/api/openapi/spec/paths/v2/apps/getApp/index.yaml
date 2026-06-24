@@ -3,7 +3,7 @@ post:
     - apps
   summary: Get app
   description: |
-    Retrieve a single app by its id.
+    Retrieve a single app by its id or slug within a project.
 
     Use this to fetch app details after creation or to verify an app exists before performing operations.
 
@@ -22,11 +22,18 @@ post:
         schema:
           "$ref": "./V2AppsGetAppRequestBody.yaml"
         examples:
-          basic:
-            summary: Retrieve an app by ID
-            description: Fetch a single app using its unique identifier
+          getById:
+            summary: Retrieve by app ID
+            description: Fetch an app using its unique identifier
             value:
-              appId: app_1234abcd
+              project: payments
+              app: app_1234abcd
+          getBySlug:
+            summary: Retrieve by app slug
+            description: Fetch an app using its slug
+            value:
+              project: payments
+              app: payments-api
     required: true
   responses:
     "200":

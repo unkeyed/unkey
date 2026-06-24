@@ -40,9 +40,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	app, err := db.Query.FindAppByWorkspaceAndId(ctx, h.DB.RO(), db.FindAppByWorkspaceAndIdParams{
+	row, err := db.Query.FindAppByWorkspaceProjectAndIdentifier(ctx, h.DB.RO(), db.FindAppByWorkspaceProjectAndIdentifierParams{
 		WorkspaceID: principal.WorkspaceID,
-		ID:          req.AppId,
+		Project:     req.Project,
+		App:         req.App,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -60,6 +61,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve app."),
 		)
 	}
+
+	app := row.App
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{

@@ -27,7 +27,10 @@ func TestGetAppNotFound(t *testing.T) {
 	}
 
 	t.Run("unknown app id returns 404", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{AppId: uid.New(uid.AppPrefix)})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Project: uid.New(uid.ProjectPrefix),
+			App:     uid.New(uid.AppPrefix),
+		})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	})
 
@@ -50,7 +53,35 @@ func TestGetAppNotFound(t *testing.T) {
 			DefaultBranch: "main",
 		})
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{AppId: otherApp.ID})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Project: otherProject.ID,
+			App:     otherApp.ID,
+		})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 for cross-workspace app, received: %s", res.RawBody)
+	})
+
+	t.Run("app id with mismatched project returns 404", func(t *testing.T) {
+		projectSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
+		project := h.CreateProject(seed.CreateProjectRequest{
+			ID:          uid.New(uid.ProjectPrefix),
+			WorkspaceID: workspace.ID,
+			Name:        "Mine",
+			Slug:        projectSlug,
+		})
+		appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
+		app := h.CreateApp(seed.CreateAppRequest{
+			ID:            uid.New(uid.AppPrefix),
+			WorkspaceID:   workspace.ID,
+			ProjectID:     project.ID,
+			Name:          "Mine",
+			Slug:          appSlug,
+			DefaultBranch: "main",
+		})
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Project: uid.New(uid.ProjectPrefix),
+			App:     app.ID,
+		})
+		require.Equal(t, http.StatusNotFound, res.Status, "expected 404 when app does not belong to project, received: %s", res.RawBody)
 	})
 }

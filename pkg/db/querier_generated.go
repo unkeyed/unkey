@@ -370,6 +370,15 @@ type Querier interface {
 	//    AND p.slug = ?
 	//    AND a.slug = ?
 	FindAppByWorkspaceAndSlugs(ctx context.Context, db DBTX, arg FindAppByWorkspaceAndSlugsParams) (FindAppByWorkspaceAndSlugsRow, error)
+	//FindAppByWorkspaceProjectAndIdentifier
+	//
+	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  FROM apps a
+	//  JOIN projects p ON p.id = a.project_id
+	//  WHERE p.workspace_id = ?
+	//    AND (p.id = ? OR p.slug = ?)
+	//    AND (a.id = ? OR a.slug = ?)
+	FindAppByWorkspaceProjectAndIdentifier(ctx context.Context, db DBTX, arg FindAppByWorkspaceProjectAndIdentifierParams) (FindAppByWorkspaceProjectAndIdentifierRow, error)
 	//FindAppEnvVarsByAppAndEnv
 	//
 	//  SELECT `key`, value
