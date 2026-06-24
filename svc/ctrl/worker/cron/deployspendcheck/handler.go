@@ -129,7 +129,15 @@ func (h *Handler) Handle(
 	checkFutures := make([]checkFuture, 0, len(budgeted))
 	checkWorkspaceIDs := make([]string, 0, len(budgeted))
 	for _, ws := range budgeted {
-		if !ws.DeploySpendBudgetCents.Valid {
+		// A currently-suspended workspace must always reach the check so it can
+		// resume, even with no budget (removed while suspended) or with gross
+		// below the lowest alert threshold (spend fell or the budget was raised
+		// past it). Only the check decides resume; the guards below just gate
+		// which quiet workspaces are worth an invocation, and a suspended one
+		// never is quiet.
+		suspended := ws.DeploySpendSuspended
+
+		if !ws.DeploySpendBudgetCents.Valid && !suspended {
 			continue // query filters these out; guard against a future query change
 		}
 
@@ -142,7 +150,7 @@ func (h *Handler) Handle(
 		// skip the invocation entirely. At or past it, the check owns the
 		// decision: its high-water mark decides whether an email is actually
 		// due, so re-dispatching an already-alerted workspace is a cheap no-op.
-		if crossedThreshold(gross, ws.DeploySpendBudgetCents.Int64*deploybilling.MicroCentsPerCent) == 0 {
+		if !suspended && crossedThreshold(gross, ws.DeploySpendBudgetCents.Int64*deploybilling.MicroCentsPerCent) == 0 {
 			skippedBelowThreshold++
 			continue
 		}
@@ -155,13 +163,14 @@ func (h *Handler) Handle(
 		checkFutures = append(checkFutures, hydrav1.NewDeploySpendCheckServiceClient(ctx, ws.ID).
 			CheckWorkspaceSpend().
 			RequestFuture(&hydrav1.CheckWorkspaceSpendRequest{
-				Period:          period,
-				BudgetCents:     ws.DeploySpendBudgetCents.Int64,
-				Stop:            ws.DeploySpendBudgetStop,
-				OrgId:           ws.OrgID,
-				WorkspaceName:   ws.Name,
-				WorkspaceSlug:   ws.Slug,
-				SpendMicroCents: gross,
+				Period:             period,
+				BudgetCents:        ws.DeploySpendBudgetCents.Int64,
+				Stop:               ws.DeploySpendBudgetStop,
+				OrgId:              ws.OrgID,
+				WorkspaceName:      ws.Name,
+				WorkspaceSlug:      ws.Slug,
+				SpendMicroCents:    gross,
+				CurrentlySuspended: ws.DeploySpendSuspended,
 			}))
 		checkWorkspaceIDs = append(checkWorkspaceIDs, ws.ID)
 		dispatched++

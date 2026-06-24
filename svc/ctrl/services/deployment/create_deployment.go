@@ -124,14 +124,15 @@ func (s *Service) CreateDeployment(
 	}
 
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
-		context:       ctxLoad,
-		dockerImage:   req.Msg.GetDockerImage(),
-		gitCommit:     req.Msg.GetGitCommit(),
-		keyAuthID:     keyAuthID,
-		command:       req.Msg.GetCommand(),
-		trigger:       triggerFromProto(req.Msg.GetTrigger()),
-		triggeredBy:   req.Msg.GetTriggeredBy(),
-		triggerReason: req.Msg.GetTriggerReason(),
+		context:        ctxLoad,
+		dockerImage:    req.Msg.GetDockerImage(),
+		gitCommit:      req.Msg.GetGitCommit(),
+		keyAuthID:      keyAuthID,
+		command:        req.Msg.GetCommand(),
+		trigger:        triggerFromProto(req.Msg.GetTrigger()),
+		triggeredBy:    req.Msg.GetTriggeredBy(),
+		triggerReason:  req.Msg.GetTriggerReason(),
+		spendSuspended: entitlement.DeploySpendSuspended,
 	})
 	if err != nil {
 		return nil, err
@@ -316,6 +317,12 @@ type createParams struct {
 	trigger       db.DeploymentsTrigger
 	triggeredBy   string
 	triggerReason string
+
+	// spendSuspended blocks starting compute when the workspace hit its
+	// Compute spend cap. Gated here rather than at each RPC because both
+	// CreateDeployment and the ops Rebuild path start compute through
+	// createAndDeploy, and Rebuild must not resurrect suspended compute.
+	spendSuspended bool
 }
 
 // createAndDeploy is the shared path used by both CreateDeployment and
@@ -327,6 +334,17 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	now := time.Now().UnixMilli()
 
 	c := p.context
+
+	// Spend-cap gate, unconditional (no observe mode): the workspace opted
+	// into stopping at its budget and the spend check tore its compute down.
+	// Starting compute now would restart what the suspension deliberately
+	// stopped and keep accruing spend past the cap.
+	if p.spendSuspended {
+		return "", connect.NewError(
+			connect.CodeFailedPrecondition,
+			fmt.Errorf("workspace %q is suspended by its Compute spend cap; raise the budget to resume", c.workspaceID),
+		)
+	}
 
 	// Per-request command override (CLI/API) wins over the app's stored
 	// default. Persisting only the default would mean the row disagrees with
