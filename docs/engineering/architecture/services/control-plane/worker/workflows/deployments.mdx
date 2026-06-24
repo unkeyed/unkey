@@ -96,7 +96,7 @@ sequenceDiagram
   Restate->>Worker: Execute promote workflow
   Worker->>Routing: SwapLiveDeployment(target, routes, set_rollback_flag=false)
   Routing-->>Worker: previous_deployment_id (atomically swapped)
-  Worker->>Worker: Schedule previous for standby
+  Worker->>Worker: Schedule previous to stop
 ```
 
 ## Flow: rollback
@@ -163,11 +163,10 @@ After `createTopologies`, the Deploy handler enters `waitForDeployments`, which 
 
 `waitForDeployments` flow:
 
-1. Create `restate.Awakeable[restate.Void]`.
-2. Store the `awakeable_id` in VO state under `"instances_ready_awakeable"`. (Since `DeployService` is keyed by `deployment_id`, each VO instance owns the awakeable for exactly one deployment — no cross-deployment guard needed.)
-3. Do an initial DB check — if instances are already healthy (e.g. a redeploy against already-running pods), resolve the awakeable immediately.
-4. `WaitFirst(awakeable, After(regionReadyTimeout))` — races ready-notification vs 15-minute timeout.
-5. On any failure path the compensation stack clears the state key.
+1. Load per-region min replicas via `FindDeploymentTopologyMinReplicas`.
+2. Count running instances per region.
+3. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage).
+4. Repeat the DB check until the threshold is met or `regionReadyTimeout` elapses.
 
 The awakeable is resolved by `DeployService.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended Deploy.
 

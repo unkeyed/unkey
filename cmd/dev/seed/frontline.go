@@ -16,10 +16,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-var sentinelCmd = &cli.Command{
-	Name:        "sentinel",
-	Usage:       "Seed sentinel request events for last 12 hours",
-	Description: "Generates realistic sentinel request data for testing RPS and latency charts",
+var frontlineCmd = &cli.Command{
+	Name:        "frontline",
+	Usage:       "Seed frontline request events for last 12 hours",
+	Description: "Generates realistic frontline request data for testing RPS and latency charts",
 	Flags: []cli.Flag{
 		cli.String("deployment-id", "Deployment ID to seed data for (if not provided, uses first available deployment)", cli.Default("")),
 		cli.Int("num-requests", "Number of requests to generate", cli.Default(100_000_000)),
@@ -29,10 +29,10 @@ var sentinelCmd = &cli.Command{
 		cli.String("clickhouse-url", "ClickHouse URL", cli.Default("clickhouse://default:password@127.0.0.1:9000")),
 		cli.String("database-primary", "MySQL database DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 	},
-	Action: seedSentinel,
+	Action: seedFrontline,
 }
 
-func seedSentinel(ctx context.Context, cmd *cli.Command) error {
+func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
@@ -54,8 +54,8 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 
 	log.Printf("Buffer config: batch-size=%d, buffer-size=%d, consumers=%d", batchSize, bufferSize, consumers)
 
-	sentinelRequests := clickhouse.NewBuffer[schema.SentinelRequest](ch, "default.sentinel_requests_raw_v1", clickhouse.BufferConfig{
-		Name:          "seed-sentinel-requests",
+	frontlineRequests := clickhouse.NewBuffer[schema.FrontlineRequest](ch, "default.frontline_requests_raw_v1", clickhouse.BufferConfig{
+		Name:          "seed-frontline-requests",
 		BatchSize:     batchSize,
 		BufferSize:    bufferSize,
 		FlushInterval: 5 * time.Second,
@@ -73,25 +73,25 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 		log.Printf("Using deployment: %s", deploymentID)
 	}
 
-	seeder := &SentinelSeeder{
-		deploymentID:     deploymentID,
-		numRequests:      cmd.RequireInt("num-requests"),
-		db:               database,
-		sentinelRequests: sentinelRequests,
+	seeder := &FrontlineSeeder{
+		deploymentID:      deploymentID,
+		numRequests:       cmd.RequireInt("num-requests"),
+		db:                database,
+		frontlineRequests: frontlineRequests,
 	}
 
 	return seeder.Seed(ctx)
 }
 
-type SentinelSeeder struct {
-	deploymentID     string
-	numRequests      int
-	db               db.Database
-	sentinelRequests *batch.BatchProcessor[schema.SentinelRequest]
+type FrontlineSeeder struct {
+	deploymentID      string
+	numRequests       int
+	db                db.Database
+	frontlineRequests *batch.BatchProcessor[schema.FrontlineRequest]
 }
 
-func (s *SentinelSeeder) Seed(ctx context.Context) error {
-	log.Printf("Starting sentinel seed for deployment: %s", s.deploymentID)
+func (s *FrontlineSeeder) Seed(ctx context.Context) error {
+	log.Printf("Starting frontline seed for deployment: %s", s.deploymentID)
 
 	// 1. Get deployment details
 	deployment, domain, err := s.getDeploymentDetails(ctx)
@@ -99,15 +99,15 @@ func (s *SentinelSeeder) Seed(ctx context.Context) error {
 		return fmt.Errorf("failed to get deployment: %w", err)
 	}
 
-	// 2. Generate placeholder instance/sentinel IDs
-	instanceIDs, sentinelIDs := s.generatePlaceholderIDs()
+	// 2. Generate placeholder instance/frontline IDs
+	instanceIDs, frontlineIDs := s.generatePlaceholderIDs()
 
 	// 3. Generate and buffer requests (like verifications.go does)
-	if err := s.generateRequests(ctx, deployment, domain, instanceIDs, sentinelIDs); err != nil {
+	if err := s.generateRequests(ctx, deployment, domain, instanceIDs, frontlineIDs); err != nil {
 		return fmt.Errorf("failed to generate requests: %w", err)
 	}
 
-	log.Printf("Successfully seeded %d sentinel requests", s.numRequests)
+	log.Printf("Successfully seeded %d frontline requests", s.numRequests)
 	return nil
 }
 
@@ -122,7 +122,7 @@ func findFirstDeployment(ctx context.Context, database db.Database) (string, err
 	return deploymentID, nil
 }
 
-func (s *SentinelSeeder) getDeploymentDetails(ctx context.Context) (db.Deployment, string, error) {
+func (s *FrontlineSeeder) getDeploymentDetails(ctx context.Context) (db.Deployment, string, error) {
 	log.Printf("Fetching deployment details...")
 
 	// Fetch deployment (like verifications.go line 183)
@@ -149,19 +149,19 @@ func (s *SentinelSeeder) getDeploymentDetails(ctx context.Context) (db.Deploymen
 	return deployment, domain, nil
 }
 
-func (s *SentinelSeeder) generatePlaceholderIDs() ([]string, []string) {
+func (s *FrontlineSeeder) generatePlaceholderIDs() ([]string, []string) {
 	instanceIDs := []string{uid.New("inst"), uid.New("inst"), uid.New("inst"), uid.New("inst")}
-	sentinelIDs := []string{uid.New("sent"), uid.New("sent"), uid.New("sent")}
+	frontlineIDs := []string{uid.New(uid.FrontlinePrefix), uid.New(uid.FrontlinePrefix), uid.New(uid.FrontlinePrefix)}
 
-	log.Printf("  Using %d instances and %d sentinels", len(instanceIDs), len(sentinelIDs))
-	return instanceIDs, sentinelIDs
+	log.Printf("  Using %d instances and %d frontlines", len(instanceIDs), len(frontlineIDs))
+	return instanceIDs, frontlineIDs
 }
 
-func (s *SentinelSeeder) generateRequests(
+func (s *FrontlineSeeder) generateRequests(
 	_ context.Context,
 	deployment db.Deployment,
 	domain string,
-	instanceIDs, sentinelIDs []string,
+	instanceIDs, frontlineIDs []string,
 ) error {
 	endTime := time.Now()
 	startTime := endTime.Add(-12 * time.Hour)
@@ -239,36 +239,37 @@ func (s *SentinelSeeder) generateRequests(
 		}
 
 		instanceLatency := generateLatency()
-		sentinelLatency := rand.Float64()*3 + 1
-		totalLatency := instanceLatency + sentinelLatency
+		frontlineLatency := rand.Float64()*3 + 1
+		totalLatency := instanceLatency + frontlineLatency
 
-		s.sentinelRequests.Buffer(schema.SentinelRequest{
-			RequestID:       uid.New("req"),
-			Time:            timestamp.UnixMilli(),
-			WorkspaceID:     deployment.WorkspaceID,
-			ProjectID:       deployment.ProjectID,
-			DeploymentID:    deployment.ID,
-			EnvironmentID:   deployment.EnvironmentID,
-			SentinelID:      sentinelIDs[rand.IntN(len(sentinelIDs))],
-			InstanceID:      instanceIDs[rand.IntN(len(instanceIDs))],
-			InstanceAddress: generateIP(),
-			Region:          weightedSelectString(regions),
-			Platform:        "dev",
-			Method:          weightedSelectString(methods),
-			Host:            domain,
-			Path:            paths[rand.IntN(len(paths))],
-			ResponseStatus:  weightedSelectInt32(statuses),
-			UserAgent:       userAgents[rand.IntN(len(userAgents))],
-			IPAddress:       generateIP(),
-			TotalLatency:    int64(totalLatency),
-			InstanceLatency: int64(instanceLatency),
-			SentinelLatency: int64(sentinelLatency),
-			QueryString:     "",
-			QueryParams:     make(map[string][]string),
-			RequestHeaders:  []string{},
-			RequestBody:     "",
-			ResponseHeaders: []string{},
-			ResponseBody:    "",
+		s.frontlineRequests.Buffer(schema.FrontlineRequest{
+			RequestID:        uid.New("req"),
+			Time:             timestamp.UnixMilli(),
+			WorkspaceID:      deployment.WorkspaceID,
+			ProjectID:        deployment.ProjectID,
+			AppID:            deployment.AppID,
+			DeploymentID:     deployment.ID,
+			EnvironmentID:    deployment.EnvironmentID,
+			FrontlineID:      frontlineIDs[rand.IntN(len(frontlineIDs))],
+			InstanceID:       instanceIDs[rand.IntN(len(instanceIDs))],
+			InstanceAddress:  generateIP(),
+			Region:           weightedSelectString(regions),
+			Platform:         "dev",
+			Method:           weightedSelectString(methods),
+			Host:             domain,
+			Path:             paths[rand.IntN(len(paths))],
+			ResponseStatus:   weightedSelectInt32(statuses),
+			UserAgent:        userAgents[rand.IntN(len(userAgents))],
+			IPAddress:        generateIP(),
+			TotalLatency:     int64(totalLatency),
+			InstanceLatency:  int64(instanceLatency),
+			FrontlineLatency: int64(frontlineLatency),
+			QueryString:      "",
+			QueryParams:      make(map[string][]string),
+			RequestHeaders:   []string{},
+			RequestBody:      "",
+			ResponseHeaders:  []string{},
+			ResponseBody:     "",
 		})
 
 		if (i+1)%10000 == 0 {
@@ -277,7 +278,7 @@ func (s *SentinelSeeder) generateRequests(
 	}
 
 	log.Printf("  Buffered all %d requests, waiting for flush...", s.numRequests)
-	s.sentinelRequests.Close()
+	s.frontlineRequests.Close()
 	log.Printf("  All requests sent to ClickHouse")
 	return nil
 }

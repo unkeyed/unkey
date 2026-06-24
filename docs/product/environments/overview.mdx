@@ -64,9 +64,9 @@ See [Wildcard domains](/networking/wildcard-domains) for the full domain naming 
 
 An environment can have many deployments, but only one is active at a time.
 
-In production, when a new deployment goes live, the previous one transitions to standby after 30 minutes. Standby deployments are available for [rollbacks](/build-and-deploy/rollbacks).
+In production, when a new deployment goes live, the previous one stops after 30 minutes. Stopped deployments are available for [rollbacks](/build-and-deploy/rollbacks), but take longer to serve traffic because their containers need to start again.
 
-In preview environments, deployments stay running as long as they receive traffic. Idle preview deployments (zero requests for six hours) are automatically archived to free up resources.
+In preview environments, deployments stay running as long as they receive traffic. Idle preview deployments (zero requests for 1 hour) automatically stop to free up resources.
 
 ## Next steps
 
