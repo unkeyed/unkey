@@ -1,12 +1,45 @@
 ---
 title: "Overview"
-description: "Ingress service for TLS termination and routing"
+description: "Multi-tenant ingress and gateway: TLS termination, policy enforcement, and routing to deployment instances"
 ---
 
-Frontline is the multi-tenant ingress service. It terminates TLS, routes requests to per-environment sentinels, and forwards cross-region traffic when needed.
+Frontline is Unkey's multi-tenant ingress and gateway. It is the first Unkey-owned hop for inbound traffic and the boundary where every request is authenticated, rate limited, and routed before it reaches a customer's deployment.
 
-Frontline is the first Unkey-owned hop for inbound traffic. It owns certificate selection and SNI routing and keeps short-lived routing and certificate caches to avoid round trips on every request.
+Frontline runs as a regional, multi-tenant edge service. A single fleet serves all workspaces and environments in a region. There is no per-environment proxy: Frontline owns the request path end to end, from TLS termination to the deployment instance.
 
-Routing decisions come from the control plane data stored in MySQL. Frontline uses that data to select the correct sentinel for the target environment and to fail over when a region is unavailable.
+## Responsibilities
 
-Frontline also embeds runtime subsystems when policy execution needs them. Rate limit policies use [rate limiting](/architecture/ratelimiting/overview) rather than a Frontline-owned counter implementation.
+- Terminate TLS for apex and custom domains using SNI, and redirect plain HTTP to HTTPS.
+- Resolve the request hostname to a deployment using control-plane data in MySQL, with short-lived routing and certificate caches to avoid a round trip on every request.
+- Evaluate the deployment's policies (KeyAuth, rate limiting, firewall, OpenAPI validation) before proxying. A request that fails a policy receives a structured error and never reaches the instance.
+- Select a healthy instance of the deployment in the same region and proxy the request directly, streaming the response back. When no local instance exists, forward to a peer Frontline in another region.
+- Strip any client-supplied `X-Unkey-Principal` header and set the verified principal after authentication, so downstream code can trust it.
+- Record request telemetry to ClickHouse and expose Prometheus metrics.
+
+## Architecture position
+
+```
+Client (HTTPS)
+     │
+     ▼
+Frontline (regional, multi-tenant)
+  TLS termination, hostname routing,
+  policy evaluation, instance selection
+     │
+     ▼
+Instance (customer workload)
+```
+
+Routing decisions come from control-plane data stored in MySQL. When the local region has no healthy instance for the target deployment, Frontline forwards the request to a peer Frontline in a region that does, preserving TLS termination and routing consistency.
+
+## Runtime subsystems
+
+Frontline embeds the subsystems policy execution needs. Rate limit policies use Unkey's [rate limiting](/architecture/ratelimiting/overview) service rather than a Frontline-owned counter implementation.
+
+## Related pages
+
+- [Ingress](/architecture/services/frontline/ingress) for TLS termination, hostname resolution, and cross-region routing
+- [Routing](/architecture/services/frontline/routing) for instance selection and failover
+- [Request flow](/architecture/services/frontline/request-flow) for the full lifecycle of a proxied request
+- [Policies](/architecture/services/frontline/policies/index) for the policy engine
+- [Configuration](/architecture/services/frontline/configuration) for config fields and defaults

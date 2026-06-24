@@ -2,7 +2,7 @@
 // mutations targeting a single deployment.
 //
 // Multiple actors may need to mutate a deployment concurrently — the deploy
-// workflow scheduling a standby transition, a cron job scaling down idle
+// workflow scheduling a stop transition, a cron job scaling down idle
 // previews, an operator intervening manually, or future operations yet to be
 // added. Without coordination these requests would race, potentially
 // overwriting each other or applying changes in the wrong order.
@@ -20,7 +20,7 @@
 // # Last-Writer-Wins for Scheduled State Changes
 //
 // Sequential execution alone is not enough for delayed operations. Consider a
-// deployment that is scheduled for standby in 30 minutes, but five minutes
+// deployment that is scheduled to stop in 30 minutes, but five minutes
 // later someone requests it to stay running. The delayed call is already
 // enqueued in Restate and will fire regardless. Cancelling Restate timers is
 // not possible, so the package uses a nonce-based last-writer-wins mechanism

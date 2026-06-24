@@ -17,6 +17,7 @@ go_library(
         "//svc/ctrl/worker/cron/auditlogcleanup",
         "//svc/ctrl/worker/cron/auditlogexport",
         "//svc/ctrl/worker/cron/deploybilling",
+        "//svc/ctrl/worker/cron/idlepreview",
         "//svc/ctrl/worker/cron/keylastusedsync",
         "//svc/ctrl/worker/cron/keyrefill",
         "//svc/ctrl/worker/cron/quotacheck",
@@ -32,6 +33,7 @@ go_test(
         "key_last_used_sync_integration_test.go",
         "key_refill_integration_test.go",
         "quota_check_integration_test.go",
+        "scale_down_idle_preview_deployments_test.go",
     ],
     deps = [
         "//gen/proto/hydra/v1:hydra",

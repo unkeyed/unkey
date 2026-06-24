@@ -20,7 +20,16 @@ GRANT SELECT, INSERT ON default.key_verifications_raw_v2 TO frontline;
 -- (the MV trigger runs in the inserting user's context and writes here)
 GRANT SELECT ON default.key_last_used_v1 TO frontline;
 
--- Write access to sentinel requests (legacy table name, still written by frontline)
-GRANT SELECT, INSERT ON default.sentinel_requests_raw_v1 TO frontline;
-GRANT SELECT ON default.sentinel_requests_per_15m_v1 TO frontline;
+
+-- Read + write access to raw frontline requests
+GRANT SELECT, INSERT ON default.frontline_requests_raw_v1 TO frontline;
+
+-- Frontline request rollup cascade: raw -> per_minute -> per_5m -> per_15m -> per_hour -> per_day.
+-- The MVs trigger in the inserting user's context, and each one reads its source table
+-- (SELECT) and writes its target table, so frontline needs SELECT on every level.
+GRANT SELECT ON default.frontline_requests_per_minute_v1 TO frontline;
+GRANT SELECT ON default.frontline_requests_per_5m_v1 TO frontline;
+GRANT SELECT ON default.frontline_requests_per_15m_v1 TO frontline;
+GRANT SELECT ON default.frontline_requests_per_hour_v1 TO frontline;
+GRANT SELECT ON default.frontline_requests_per_day_v1 TO frontline;
 ```

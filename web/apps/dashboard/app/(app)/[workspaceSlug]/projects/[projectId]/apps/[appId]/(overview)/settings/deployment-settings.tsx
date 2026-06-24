@@ -69,7 +69,9 @@ export const DeploymentSettings = ({
         defaultExpanded={Boolean(sections.advanced)}
       >
         <SettingCardGroup>
-          <CustomDomains />
+          <div id="custom-domains" className="scroll-mt-24">
+            <CustomDomains />
+          </div>
           <OpenapiSpecPath />
           <UpstreamProtocol />
         </SettingCardGroup>

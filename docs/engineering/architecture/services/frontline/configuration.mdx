@@ -16,6 +16,7 @@ Minimal config example:
 ```toml
 http_port = 7070
 https_port = 7443
+platform = "aws"
 region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
@@ -41,7 +42,11 @@ token = "${UNKEY_VAULT_TOKEN}"
 </ResponseField>
 
 <ResponseField name="https_port" type="int" default="7443">
-  HTTPS listener port. Terminates TLS and forwards customer traffic to the sentinel.
+  HTTPS listener port. Terminates TLS, runs the policy engine, and forwards customer traffic to a deployment instance (or to a peer frontline in another region).
+</ResponseField>
+
+<ResponseField name="platform" type="string" required>
+  Cloud provider identifier (for example, `aws`, `gcp`, or `local`).
 </ResponseField>
 
 <ResponseField name="region" type="string" required>
@@ -62,6 +67,10 @@ token = "${UNKEY_VAULT_TOKEN}"
 
 <ResponseField name="prometheus_port" type="int">
   Prometheus metrics port. Set to 0 to disable.
+</ResponseField>
+
+<ResponseField name="request_timeout" type="duration" default="15m">
+  Maximum duration for a proxied request before the context is cancelled and a `504` is returned.
 </ResponseField>
 
 <ResponseField name="tls" type="object">
@@ -91,6 +100,33 @@ token = "${UNKEY_VAULT_TOKEN}"
   </Expandable>
 </ResponseField>
 
+<ResponseField name="clickhouse" type="object">
+  ClickHouse analytics storage for request-level events. When the URL is empty, a no-op backend is used and no request telemetry is recorded.
+  <Expandable title="Fields">
+    <ResponseField name="clickhouse.url" type="string">
+      ClickHouse connection string.
+    </ResponseField>
+    <ResponseField name="clickhouse.batch_size" type="int" default="5000">
+      Maximum number of items to collect before flushing a buffer to ClickHouse. Applies to all event buffers (frontline requests, key verifications).
+    </ResponseField>
+    <ResponseField name="clickhouse.buffer_size" type="int" default="10000">
+      Capacity of the channel buffer holding incoming items. When full, new items are dropped.
+    </ResponseField>
+    <ResponseField name="clickhouse.consumers" type="int" default="1">
+      Number of goroutines that drain each buffer.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="redis" type="object">
+  Redis connection for distributed rate limiting and usage limiting in the policy engine. When the URL is empty, an in-memory counter is used as a fallback and rate limits are not shared across replicas.
+  <Expandable title="Fields">
+    <ResponseField name="redis.url" type="string">
+      Redis connection string.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
 <ResponseField name="vault" type="object">
   Vault connection.
   <Expandable title="Fields">
@@ -114,6 +150,21 @@ token = "${UNKEY_VAULT_TOKEN}"
     </ResponseField>
     <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
       Slow log threshold.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="pprof" type="object">
+  Go pprof profiling endpoints on a loopback-only listener. Disabled when omitted or when credentials are empty.
+  <Expandable title="Fields">
+    <ResponseField name="pprof.username" type="string">
+      Basic Auth username for the pprof endpoints.
+    </ResponseField>
+    <ResponseField name="pprof.password" type="string">
+      Basic Auth password for the pprof endpoints.
+    </ResponseField>
+    <ResponseField name="pprof.port" type="int" default="6060">
+      TCP port for the loopback-only (127.0.0.1) pprof server.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -150,21 +201,37 @@ The Helm chart provides these variables for the default config template:
   MySQL read replica DSN.
 </ResponseField>
 
+<ResponseField name="UNKEY_CLICKHOUSE_URL" type="env">
+  ClickHouse connection string for request telemetry. Optional.
+</ResponseField>
+
+<ResponseField name="UNKEY_REDIS_URL" type="env">
+  Redis connection string for distributed rate limiting. Optional.
+</ResponseField>
+
 ## Example configuration
 
 ```toml
 http_port = 7070
 https_port = 7443
+platform = "aws"
 region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
 ctrl_addr = "${UNKEY_CTRL_ADDR}"
 prometheus_port = 9090
+request_timeout = "15m"
 
 [database]
 primary = "${UNKEY_DATABASE_PRIMARY}"
 readonly_replica = "${UNKEY_DATABASE_REPLICA}"
+
+[clickhouse]
+url = "${UNKEY_CLICKHOUSE_URL}"
+
+[redis]
+url = "${UNKEY_REDIS_URL}"
 
 [vault]
 url = "${UNKEY_VAULT_URL}"
