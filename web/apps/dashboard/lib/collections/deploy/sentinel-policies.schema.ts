@@ -22,6 +22,7 @@ export const SENTINEL_LIMITS = {
   // Documented in svc/sentinel/proto/policies/v1/keyauth.proto:60
   // ("Limits: maximum 1000 characters, maximum 100 permission terms").
   permissionQueryMaxLength: 1000,
+  maxRatelimitsPerKeyauth: 10,
 } as const;
 
 // ── String match (protojson oneof: exact | prefix | regex) ──────────────
@@ -104,6 +105,25 @@ const policyBase = {
 
 // ── KeyAuth policy ──────────────────────────────────────────────────────
 
+// Mirrors frontline.v1.KeyRatelimit. `name` references a rate limit configured
+// on the key (or its identity). `limit` + `duration` (ms) together define an
+// inline override that need not exist on the key; the Go service only honors an
+// override when BOTH are present, so we enforce both-or-neither here to avoid a
+// silently-ignored partial override. `cost` defaults to 1 on the wire.
+export const keyauthRatelimitSchema = z
+  .object({
+    name: z.string().min(1),
+    limit: z.number().int().min(1).optional(),
+    duration: z.number().int().min(1).optional(),
+    cost: z.number().int().min(1).optional(),
+  })
+  .strict()
+  .refine((r) => (r.limit === undefined) === (r.duration === undefined), {
+    message: "Limit and duration must be set together",
+    path: ["limit"],
+  });
+export type KeyauthRatelimit = z.infer<typeof keyauthRatelimitSchema>;
+
 export const keyauthPolicySchema = z
   .object({
     ...policyBase,
@@ -113,6 +133,10 @@ export const keyauthPolicySchema = z
         keySpaceIds: z.array(z.string().min(1)).min(1).max(SENTINEL_LIMITS.maxKeyspacesPerPolicy),
         locations: z.array(keyLocationSchema).optional(),
         permissionQuery: z.string().max(SENTINEL_LIMITS.permissionQueryMaxLength).optional(),
+        ratelimits: z
+          .array(keyauthRatelimitSchema)
+          .max(SENTINEL_LIMITS.maxRatelimitsPerKeyauth)
+          .optional(),
       })
       .strict(),
   })

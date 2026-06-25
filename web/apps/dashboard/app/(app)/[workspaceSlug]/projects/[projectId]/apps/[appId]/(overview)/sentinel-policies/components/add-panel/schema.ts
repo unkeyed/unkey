@@ -117,6 +117,34 @@ const basePolicyFields = {
   matchConditions: z.array(matchConditionSchema),
 };
 
+// Mirrors keyauthRatelimitSchema with a client-only `id` for React keying and a
+// client-only `override` toggle. The common case is referencing a named limit on
+// the key (override off); overriding the limit/duration/cost is opt-in and rare.
+// When override is on, both limit and duration are required (the Go service only
+// honors a fully-specified inline override).
+const keyauthRatelimitFormSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().min(1, "Name is required"),
+    override: z.boolean(),
+    limit: z.number().int().min(1, "Limit must be at least 1").optional(),
+    duration: z.number().int().min(1, "Duration must be at least 1ms").optional(),
+    cost: z.number().int().min(1, "Cost must be at least 1").optional(),
+  })
+  .superRefine((r, ctx) => {
+    if (!r.override) {
+      return;
+    }
+    if (r.limit === undefined) {
+      ctx.addIssue({ code: "custom", message: "Limit is required", path: ["limit"] });
+    }
+    if (r.duration === undefined) {
+      ctx.addIssue({ code: "custom", message: "Duration is required", path: ["duration"] });
+    }
+  });
+
+export type KeyauthRatelimitFormValues = z.infer<typeof keyauthRatelimitFormSchema>;
+
 const keyauthFormSchema = z.object({
   ...basePolicyFields,
   type: z.literal("keyauth"),
@@ -126,6 +154,7 @@ const keyauthFormSchema = z.object({
     .max(SENTINEL_LIMITS.maxKeyspacesPerPolicy),
   locations: z.array(keyLocationFormSchema),
   permissionQuery: z.string().max(SENTINEL_LIMITS.permissionQueryMaxLength),
+  ratelimits: z.array(keyauthRatelimitFormSchema).max(SENTINEL_LIMITS.maxRatelimitsPerKeyauth),
 });
 
 export const rateLimitIdentifierSourceSchema = z.enum([
@@ -221,6 +250,7 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       keySpaceIds: [],
       locations: [],
       permissionQuery: "",
+      ratelimits: [],
     }))
     .with("ratelimit", () => ({
       ...base,
@@ -327,6 +357,13 @@ export function toSentinelPolicy(
           .exhaustive(),
       );
 
+      const ratelimits = v.ratelimits.map((r) => ({
+        name: r.name,
+        ...(r.override && r.limit !== undefined ? { limit: r.limit } : {}),
+        ...(r.override && r.duration !== undefined ? { duration: r.duration } : {}),
+        ...(r.override && r.cost !== undefined ? { cost: r.cost } : {}),
+      }));
+
       return {
         id,
         name: v.name,
@@ -336,6 +373,7 @@ export function toSentinelPolicy(
           keySpaceIds: v.keySpaceIds,
           locations,
           permissionQuery: v.permissionQuery,
+          ...(ratelimits.length > 0 ? { ratelimits } : {}),
         },
         match: matchExprs,
       };
@@ -470,6 +508,15 @@ export function fromSentinelPolicy(
           .exhaustive();
       });
 
+      const ratelimits: KeyauthRatelimitFormValues[] = (p.keyauth.ratelimits ?? []).map((r) => ({
+        id: crypto.randomUUID(),
+        name: r.name,
+        override: r.limit !== undefined || r.duration !== undefined || r.cost !== undefined,
+        limit: r.limit,
+        duration: r.duration,
+        cost: r.cost,
+      }));
+
       return {
         type: "keyauth" as const,
         name: p.name,
@@ -478,6 +525,7 @@ export function fromSentinelPolicy(
         keySpaceIds: p.keyauth.keySpaceIds,
         locations,
         permissionQuery: p.keyauth.permissionQuery ?? "",
+        ratelimits,
       };
     })
     .with({ type: "ratelimit" }, (p) => {

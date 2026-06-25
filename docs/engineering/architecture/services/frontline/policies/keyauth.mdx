@@ -19,6 +19,10 @@ KeyAuth authenticates requests using Unkey API keys. It is the only authenticati
   Optional RBAC query evaluated against the key's permissions. If the key does not satisfy the query, authentication fails with `Frontline.Auth.InsufficientPermissions`.
 </ResponseField>
 
+<ResponseField name="ratelimits" type="KeyRatelimit[]">
+  Optional list of rate limits to enforce on the verified key, mirroring the `ratelimits` field of the verifyKey API. Each entry references a rate limit by `name`. This is in addition to any auto-applied limits on the key or its identity, which are always enforced. Each entry may optionally override the `limit`, `duration` (milliseconds), and `cost`. Supplying both `limit` and `duration` defines an inline limit that does not need to exist on the key. If a named limit does not exist and no inline `limit`/`duration` is provided, the request is rejected.
+</ResponseField>
+
 ## Examples
 
 <Tabs>
@@ -125,6 +129,28 @@ KeyAuth authenticates requests using Unkey API keys. It is the only authenticati
 }
 ```
 </Tab>
+<Tab title="With key rate limits">
+```json
+{
+  "policies": [
+    {
+      "id": "api-auth",
+      "name": "Authenticate and enforce key rate limits",
+      "enabled": true,
+      "match": [{ "path": { "exact": "/api/v2/getAll" } }],
+      "keyauth": {
+        "key_space_ids": ["ks_abc123"],
+        "locations": [{ "bearer": {} }],
+        "ratelimits": [
+          { "name": "expensive" },
+          { "name": "burst", "limit": 10, "duration": 1000 }
+        ]
+      }
+    }
+  ]
+}
+```
+</Tab>
 </Tabs>
 
 ## Key extraction
@@ -146,8 +172,8 @@ When multiple locations are configured, Frontline tries each in order and uses t
 3. Look up the hash in the key cache (fresh: 10s, stale: 10min, max: 100k entries).
 4. Validate key status. Keys that are not found, disabled, expired, or belong to a disabled workspace are rejected.
 5. Verify the key belongs to one of the configured `key_space_ids`.
-6. Parse the permission query (if configured) and build verify options.
-7. Call `verifier.Verify()` with 1 credit deduction per request.
+6. Parse the permission query (if configured) and build verify options, including any configured key `ratelimits`.
+7. Call `verifier.Verify()` with 1 credit deduction per request. Auto-applied key/identity limits and any policy-configured `ratelimits` are enforced here, using the same path as the verifyKey API.
 8. Write rate limit headers (regardless of success or failure).
 9. Check post-verification status (rate limit, usage exceeded, permissions).
 10. Build and return the principal on success.
@@ -176,4 +202,5 @@ KeyAuth writes rate limit headers on every response, including rejected requests
 | Permission query not satisfied | 403    | `Frontline.Auth.InsufficientPermissions`  |
 | Rate limit exceeded            | 429    | `Frontline.Auth.RateLimited`             |
 | Usage limit exceeded           | 429    | `Frontline.Auth.RateLimited`             |
+| Configured `ratelimits` name missing on key | 500 | `Frontline.Internal.InternalServerError` |
 | Invalid permission query syntax| 500    | `Frontline.Internal.InvalidConfiguration` |
