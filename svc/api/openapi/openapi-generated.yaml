@@ -5935,9 +5935,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `project.*.read_environment` (to read environments in any project)
-                - `project.<project_id>.read_environment` (to read environments in a specific project)
+                Your root key must have the following permission:
+                - `environment.*.read_environment` (to read environments in any app)
             operationId: environments.listEnvironments
             requestBody:
                 content:
@@ -6020,7 +6019,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'project.*.read_environment' permission to perform this operation
+                                            detail: Your root key requires the 'environment.*.read_environment' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -6028,7 +6027,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `project.*.read_environment`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_environment`)
                 "404":
                     content:
                         application/json:
