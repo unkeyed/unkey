@@ -24,17 +24,12 @@ func TestUpdateSettingsBadRequest(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
 	headers := authHeaders(rootKey)
 
-	// Seed a schedulable region and a non-schedulable one.
-	schedulableID := uid.New(uid.RegionPrefix)
 	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID: schedulableID, Name: "us-east-1", Platform: "aws",
+		ID: uid.New(uid.RegionPrefix), Name: "us-east-1", Platform: "aws",
 	}))
-	blockedID := uid.New(uid.RegionPrefix)
 	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID: blockedID, Name: "eu-west-1", Platform: "aws",
+		ID: uid.New(uid.RegionPrefix), Name: "us-west-2", Platform: "aws",
 	}))
-	_, err := h.DB.RW().ExecContext(ctx, "UPDATE regions SET can_schedule = ? WHERE id = ?", false, blockedID)
-	require.NoError(t, err)
 
 	testCases := []struct {
 		name    string
@@ -45,18 +40,51 @@ func TestUpdateSettingsBadRequest(t *testing.T) {
 		{name: "min below one", regions: []openapi.RegionSetting{regionSetting("us-east-1", 0, 2)}},
 		{name: "unknown region", regions: []openapi.RegionSetting{regionSetting("ap-south-1", 1, 2)}},
 		{name: "duplicate region", regions: []openapi.RegionSetting{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)}},
-		{name: "non-schedulable region", regions: []openapi.RegionSetting{regionSetting("eu-west-1", 1, 2)}},
+		{name: "mismatched replica bounds", regions: []openapi.RegionSetting{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)}},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			regions := tc.regions
 			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, handler.Request{
 				Project:     env.projectID,
 				App:         env.appID,
 				Environment: env.environmentID,
-				Regions:     &regions,
+				Regions:     &tc.regions,
 			})
+			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400 for %q, got: %s", tc.name, res.RawBody)
+		})
+	}
+}
+
+// The test seeder creates a quota row whose per-instance columns use the schema
+// defaults (cpu 2000, memory 4096, storage 10240), so requests above those are 400.
+func TestUpdateSettingsResourceQuotaExceeded(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
+	headers := authHeaders(rootKey)
+
+	testCases := []struct {
+		name string
+		req  handler.Request
+	}{
+		{name: "cpu over quota", req: handler.Request{CpuMillicores: ptr(5000)}},
+		{name: "memory over quota", req: handler.Request{MemoryMib: ptr(9000)}},
+		{name: "storage over quota", req: handler.Request{StorageMib: ptr(20480)}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := tc.req
+			req.Project = env.projectID
+			req.App = env.appID
+			req.Environment = env.environmentID
+
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400 for %q, got: %s", tc.name, res.RawBody)
 		})
 	}
