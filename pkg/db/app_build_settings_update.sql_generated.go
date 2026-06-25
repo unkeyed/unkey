@@ -53,7 +53,6 @@ type UpdateAppBuildSettingsParams struct {
 }
 
 // Updates only the columns whose *_specified flag is 1, preserving all others.
-// Avoids the read-modify-write clobber race: concurrent updates to different
 // columns cannot overwrite each other. dockerfile is clearable (narg -> NULL).
 //
 //	UPDATE app_build_settings t
