@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -78,6 +79,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("key belongs to different workspace"),
 			fault.Public("The specified key was not found."),
 		)
+	}
+
+	// Portal sessions are scoped to a single external identity and may only
+	// delete keys that belong to that identity. Fail closed: if the session's
+	// externalId is empty, or the key has no identity, or the identity does not
+	// match, return a 404 so the session cannot probe for keys it does not own.
+	//
+	// Identity scoping is intentionally separate from the RBAC permission system.
+	// Permissions gate what operations a principal can perform; identity scoping
+	// gates which keys are visible to a portal session.
+	switch src := principal.Source.(type) {
+	case authprincipal.PortalSessionSource:
+		if src.ExternalID == "" || !key.IdentityExternalID.Valid || key.IdentityExternalID.String != src.ExternalID {
+			return fault.New("key not found",
+				fault.Code(codes.Data.Key.NotFound.URN()),
+				fault.Internal("key identity does not match portal session externalId"),
+				fault.Public("The specified key was not found."),
+			)
+		}
 	}
 
 	// Permission check
