@@ -26,7 +26,7 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_environment")
+	rootKey := h.CreateRootKey(workspace.ID, "environment.*.read_environment")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -177,7 +177,7 @@ func TestListEnvironmentsPagination(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_environment")
+	rootKey := h.CreateRootKey(workspace.ID, "environment.*.read_environment")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

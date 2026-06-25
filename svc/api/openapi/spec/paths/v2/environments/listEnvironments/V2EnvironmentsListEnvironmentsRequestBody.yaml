@@ -4,23 +4,9 @@ required:
   - app
 properties:
   project:
-    type: string
-    minLength: 1
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_-]+$"
-    description: |
-      Identifies the parent project, by either its unique ID or its slug.
-      Required to resolve the app, since app slugs are only unique within a project.
-    example: payments-service
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
   app:
-    type: string
-    minLength: 1
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_-]+$"
-    description: |
-      Identifies the app whose environments to list, by either its unique ID or its slug.
-      Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
-    example: payments-api
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
   limit:
     type: integer
     description: |
