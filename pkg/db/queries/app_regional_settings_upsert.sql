@@ -5,6 +5,7 @@ INSERT INTO app_regional_settings (
     environment_id,
     region_id,
     replicas,
+    horizontal_autoscaling_policy_id,
     created_at,
     updated_at
 ) VALUES (
@@ -13,9 +14,11 @@ INSERT INTO app_regional_settings (
     sqlc.arg(environment_id),
     sqlc.arg(region_id),
     sqlc.arg(replicas),
+    sqlc.narg(horizontal_autoscaling_policy_id),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 )
 ON DUPLICATE KEY UPDATE
     replicas = VALUES(replicas),
+    horizontal_autoscaling_policy_id = VALUES(horizontal_autoscaling_policy_id),
     updated_at = VALUES(updated_at);
