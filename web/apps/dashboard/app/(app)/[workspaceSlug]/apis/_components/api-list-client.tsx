@@ -60,12 +60,12 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-4">
       <ApiListControls apiList={allApis} onApiListChange={setApiList} onSearch={setIsSearching} />
       <ApiListControlCloud />
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
           {Array.from({ length: DEFAULT_LIMIT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
             <ApiCardSkeleton key={i} />
@@ -73,18 +73,18 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
         </div>
       ) : apiList.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
             {apiList.map((api) => (
               <ApiListCard api={api} key={api.id} />
             ))}
           </div>
 
-          <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
-            <div className="text-center text-sm text-accent-11">
-              Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
-            </div>
+          {!isSearching && hasNextPage && (
+            <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
+              <div className="text-center text-sm text-accent-11">
+                Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
+              </div>
 
-            {!isSearching && hasNextPage && (
               <Button onClick={loadMore} disabled={isFetchingNextPage} size="md">
                 {isFetchingNextPage ? (
                   <div className="flex flex-row items-center gap-2">
@@ -97,8 +97,8 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
                   </div>
                 )}
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </>
       ) : (
         <EmptyComponentSpacer>

@@ -73,13 +73,13 @@ export const CreateApiButton = ({
   return (
     <>
       <NavbarActionButton
-        title="Create new keyspace"
+        title="New keyspace"
         {...rest}
         color="default"
         onClick={() => setIsOpen(true)}
       >
         <Plus />
-        Create new keyspace
+        New keyspace
       </NavbarActionButton>
 
       <DynamicDialogContainer

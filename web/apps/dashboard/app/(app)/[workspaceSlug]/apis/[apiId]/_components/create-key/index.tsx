@@ -1,7 +1,6 @@
 "use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
-import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
@@ -147,13 +146,11 @@ export const CreateKeyDialog = ({
 
   return (
     <>
-      <Navbar.Actions>
-        <NavbarActionButton title="Create new key" onClick={() => setIsSettingsOpen(true)}>
-          <Plus />
-          Create new key
-        </NavbarActionButton>
-        <CopyableIDButton value={copyIdValue ?? apiId} />
-      </Navbar.Actions>
+      <NavbarActionButton title="Create new key" onClick={() => setIsSettingsOpen(true)}>
+        <Plus />
+        Create new key
+      </NavbarActionButton>
+      <CopyableIDButton value={copyIdValue ?? apiId} />
 
       <FormProvider {...methods}>
         <form id="new-key-form" onSubmit={handleSubmit(onSubmit)}>
