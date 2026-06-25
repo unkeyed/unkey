@@ -1,5 +1,5 @@
 -- name: FindEnvironmentByAppAndIdOrSlug :one
-SELECT sqlc.embed(e)
+SELECT e.*
 FROM environments e
 JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
