@@ -27,11 +27,11 @@ function collectPermissions(
   build: (id: string) => {
     [category: string]: { [action: string]: { permission: UnkeyPermission } };
   },
-  skipId?: string,
+  skipIds?: Set<string>,
 ): Set<UnkeyPermission> {
   const set = new Set<UnkeyPermission>();
   for (const item of list) {
-    if (skipId !== undefined && item.id === skipId) {
+    if (skipIds?.has(item.id)) {
       continue;
     }
     for (const category of Object.values(build(item.id))) {
@@ -80,25 +80,37 @@ export function usePermissionSheet({
         apiSkipId?: string;
         projectSkipId?: string;
         appSkipId?: string;
-        environmentSkipId?: string;
+        environmentSkipIds?: string[];
       },
       newPerms: UnkeyPermission[],
     ): UnkeyPermission[] => {
       const workspacePerms = selectedPermissions.filter((p) => workspacePermsSet.has(p));
 
-      const apisSet = collectPermissions(apis, apiPermissions, opts.apiSkipId);
+      const apisSet = collectPermissions(
+        apis,
+        apiPermissions,
+        opts.apiSkipId ? new Set([opts.apiSkipId]) : undefined,
+      );
       const apiPerms = selectedPermissions.filter((p) => apisSet.has(p));
 
-      const projectsSet = collectPermissions(projects, projectPermissions, opts.projectSkipId);
+      const projectsSet = collectPermissions(
+        projects,
+        projectPermissions,
+        opts.projectSkipId ? new Set([opts.projectSkipId]) : undefined,
+      );
       const projectPerms = selectedPermissions.filter((p) => projectsSet.has(p));
 
-      const appsSet = collectPermissions(apps, appPermissions, opts.appSkipId);
+      const appsSet = collectPermissions(
+        apps,
+        appPermissions,
+        opts.appSkipId ? new Set([opts.appSkipId]) : undefined,
+      );
       const appPerms = selectedPermissions.filter((p) => appsSet.has(p));
 
       const environmentsSet = collectPermissions(
         environments,
         environmentPermissions,
-        opts.environmentSkipId,
+        opts.environmentSkipIds ? new Set(opts.environmentSkipIds) : undefined,
       );
       const environmentPerms = selectedPermissions.filter((p) => environmentsSet.has(p));
 
@@ -137,11 +149,13 @@ export function usePermissionSheet({
   );
 
   const handleAppPermissionChange = useCallback(
-    (appId: string, permissions: UnkeyPermission[]) => {
+    (appId: string, environmentIds: string[], permissions: UnkeyPermission[]) => {
       if (!onChange) {
         return;
       }
-      onChange(rebuildScopedPerms({ appSkipId: appId }, permissions));
+      onChange(
+        rebuildScopedPerms({ appSkipId: appId, environmentSkipIds: environmentIds }, permissions),
+      );
     },
     [onChange, rebuildScopedPerms],
   );
@@ -151,7 +165,7 @@ export function usePermissionSheet({
       if (!onChange) {
         return;
       }
-      onChange(rebuildScopedPerms({ environmentSkipId: environmentId }, permissions));
+      onChange(rebuildScopedPerms({ environmentSkipIds: [environmentId] }, permissions));
     },
     [onChange, rebuildScopedPerms],
   );

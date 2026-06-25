@@ -132,6 +132,7 @@ export function useRootKeyDialog({
     return environmentsData.map((environment) => ({
       id: environment.id,
       name: environment.name,
+      appId: environment.appId,
     }));
   }, [environmentsData]);
 
