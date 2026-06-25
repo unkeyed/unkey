@@ -16,7 +16,7 @@ export function CreatePermissionButton() {
     <div className="relative">
       <Button variant="primary" size="md" onClick={() => setIsOpen(true)}>
         <Plus iconSize="sm-regular" />
-        Create new permission
+        New permission
       </Button>
       <UpsertPermissionDialog isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>

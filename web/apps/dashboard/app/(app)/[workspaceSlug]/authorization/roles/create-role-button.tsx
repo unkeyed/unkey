@@ -16,7 +16,7 @@ export function CreateRoleButton() {
     <div className="relative">
       <Button variant="primary" size="md" onClick={() => setIsOpen(true)}>
         <Plus iconSize="sm-regular" />
-        Create new role
+        New role
       </Button>
       <UpsertRoleDialog isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
