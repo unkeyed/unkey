@@ -66,18 +66,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   "*",
-			Action:       rbac.ReadApp,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   project.ID,
-			Action:       rbac.ReadApp,
-		}),
-	))
+	err = principal.Authorize(rbac.T(rbac.Tuple{
+		ResourceType: rbac.App,
+		ResourceID:   "*",
+		Action:       rbac.ReadApp,
+	}))
 	if err != nil {
 		return fault.New(
 			"project not found",

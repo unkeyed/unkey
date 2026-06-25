@@ -417,14 +417,7 @@ components:
                 - project
             properties:
                 project:
-                    type: string
-                    minLength: 1
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        Identifies the parent project whose apps to list, by either its unique ID or its slug.
-                        Accepts a project ID that begins with 'proj_' or a project slug.
-                    example: payments-service
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 limit:
                     type: integer
                     description: |
@@ -4890,9 +4883,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `project.*.read_app` (to read apps in any project)
-                - `project.<project_id>.read_app` (to read apps in a specific project)
+                Your root key must have the following permission:
+                - `app.*.read_app` (to read apps in any project)
             operationId: apps.listApps
             requestBody:
                 content:
@@ -4977,7 +4969,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'project.*.read_app' permission to perform this operation
+                                            detail: Your root key requires the 'app.*.read_app' permission to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -4985,7 +4977,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `project.*.read_app`)
+                    description: Forbidden - Insufficient permissions (requires `app.*.read_app`)
                 "404":
                     content:
                         application/json:

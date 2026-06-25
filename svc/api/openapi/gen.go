@@ -811,9 +811,9 @@ type V2AppsListAppsRequestBody struct {
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
 
-	// Project Identifies the parent project whose apps to list, by either its unique ID or its slug.
-	// Accepts a project ID that begins with 'proj_' or a project slug.
-	Project string `json:"project"`
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
 }
 
 // V2AppsListAppsResponseBody defines model for V2AppsListAppsResponseBody.

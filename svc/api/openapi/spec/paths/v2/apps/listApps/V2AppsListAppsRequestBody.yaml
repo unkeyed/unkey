@@ -3,14 +3,7 @@ required:
   - project
 properties:
   project:
-    type: string
-    minLength: 1
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_-]+$"
-    description: |
-      Identifies the parent project whose apps to list, by either its unique ID or its slug.
-      Accepts a project ID that begins with 'proj_' or a project slug.
-    example: payments-service
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
   limit:
     type: integer
     description: |
