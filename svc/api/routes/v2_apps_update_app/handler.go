@@ -47,7 +47,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.App, error) {
-		row, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, tx, db.FindAppByProjectAndIdOrSlugParams{
+		app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, tx, db.FindAppByProjectAndIdOrSlugParams{
 			WorkspaceID: principal.WorkspaceID,
 			Project:     req.Project,
 			App:         req.App,
@@ -69,8 +69,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("Failed to retrieve app."),
 			)
 		}
-
-		app := row.App
 
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
