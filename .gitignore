@@ -52,3 +52,6 @@ bazel-unkey
 bazel-*
 
 .claude/worktrees/
+
+# Personal Claude Code config
+CLAUDE.local.md
