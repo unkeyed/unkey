@@ -4,6 +4,7 @@ import type { ChangeEvent } from "react";
 import {
   apiPermissions,
   appPermissions,
+  environmentPermissions,
   projectPermissions,
   workspacePermissions,
 } from "../permissions";
@@ -15,6 +16,7 @@ type UsePermissionSheetProps = {
   apis: ScopedItem[];
   projects: ScopedItem[];
   apps: ScopedItem[];
+  environments: ScopedItem[];
   selectedPermissions: UnkeyPermission[];
   onChange?: (permissions: UnkeyPermission[]) => void;
   editMode?: boolean;
@@ -45,6 +47,7 @@ export function usePermissionSheet({
   apis,
   projects,
   apps,
+  environments,
   selectedPermissions,
   onChange,
 }: UsePermissionSheetProps) {
@@ -73,7 +76,12 @@ export function usePermissionSheet({
 
   const rebuildScopedPerms = useCallback(
     (
-      opts: { apiSkipId?: string; projectSkipId?: string; appSkipId?: string },
+      opts: {
+        apiSkipId?: string;
+        projectSkipId?: string;
+        appSkipId?: string;
+        environmentSkipId?: string;
+      },
       newPerms: UnkeyPermission[],
     ): UnkeyPermission[] => {
       const workspacePerms = selectedPermissions.filter((p) => workspacePermsSet.has(p));
@@ -87,17 +95,25 @@ export function usePermissionSheet({
       const appsSet = collectPermissions(apps, appPermissions, opts.appSkipId);
       const appPerms = selectedPermissions.filter((p) => appsSet.has(p));
 
+      const environmentsSet = collectPermissions(
+        environments,
+        environmentPermissions,
+        opts.environmentSkipId,
+      );
+      const environmentPerms = selectedPermissions.filter((p) => environmentsSet.has(p));
+
       return Array.from(
         new Set<UnkeyPermission>([
           ...workspacePerms,
           ...apiPerms,
           ...projectPerms,
           ...appPerms,
+          ...environmentPerms,
           ...newPerms,
         ]),
       );
     },
-    [selectedPermissions, apis, projects, apps, workspacePermsSet],
+    [selectedPermissions, apis, projects, apps, environments, workspacePermsSet],
   );
 
   const handleApiPermissionChange = useCallback(
@@ -130,6 +146,16 @@ export function usePermissionSheet({
     [onChange, rebuildScopedPerms],
   );
 
+  const handleEnvironmentPermissionChange = useCallback(
+    (environmentId: string, permissions: UnkeyPermission[]) => {
+      if (!onChange) {
+        return;
+      }
+      onChange(rebuildScopedPerms({ environmentSkipId: environmentId }, permissions));
+    },
+    [onChange, rebuildScopedPerms],
+  );
+
   const handleWorkspacePermissionChange = useCallback(
     (permissions: UnkeyPermission[]) => {
       if (!onChange) {
@@ -153,9 +179,18 @@ export function usePermissionSheet({
     const anyAppHasResults = apps.some((app) =>
       hasPermissionResults(appPermissions(app.id), searchValue),
     );
+    const anyEnvironmentHasResults = environments.some((environment) =>
+      hasPermissionResults(environmentPermissions(environment.id), searchValue),
+    );
 
-    return !workspaceHasResults && !anyApiHasResults && !anyProjectHasResults && !anyAppHasResults;
-  }, [searchValue, apis, projects, apps]);
+    return (
+      !workspaceHasResults &&
+      !anyApiHasResults &&
+      !anyProjectHasResults &&
+      !anyAppHasResults &&
+      !anyEnvironmentHasResults
+    );
+  }, [searchValue, apis, projects, apps, environments]);
 
   return {
     searchValue,
@@ -165,6 +200,7 @@ export function usePermissionSheet({
     handleApiPermissionChange,
     handleProjectPermissionChange,
     handleAppPermissionChange,
+    handleEnvironmentPermissionChange,
     handleWorkspacePermissionChange,
   };
 }
