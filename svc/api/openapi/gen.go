@@ -830,10 +830,9 @@ type V2AppsListAppsResponseBody struct {
 
 // V2AppsUpdateAppRequestBody defines model for V2AppsUpdateAppRequestBody.
 type V2AppsUpdateAppRequestBody struct {
-	// App Identifies which app to update, by either its unique ID or its slug.
-	// Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
-	// The app is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
-	App string `json:"app"`
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
 
 	// DefaultBranch New default git branch deployments track for this app.
 	// Omit this field to leave the current branch unchanged.
@@ -847,14 +846,13 @@ type V2AppsUpdateAppRequestBody struct {
 	// Omit this field to leave the current name unchanged.
 	Name *string `json:"name,omitempty"`
 
-	// Project Identifies the parent project, by either its unique ID or its slug.
-	// Required to resolve the app, since app slugs are only unique within a project.
-	Project string `json:"project"`
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
 
-	// Slug New URL-safe handle for the app, unique within its project.
-	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
-	// Omit this field to leave the current slug unchanged.
-	Slug *string `json:"slug,omitempty"`
+	// Slug Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Slug *ResourceIdentifier `json:"slug,omitempty"`
 }
 
 // V2AppsUpdateAppResponseBody defines model for V2AppsUpdateAppResponseBody.

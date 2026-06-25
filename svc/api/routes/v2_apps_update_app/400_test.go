@@ -23,7 +23,7 @@ func TestUpdateAppBadRequest(t *testing.T) {
 	}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "project.*.update_app")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "app.*.update_app")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -45,11 +45,9 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "app too long", req: handler.Request{Project: validProject, App: strings.Repeat("a", 256)}},
 		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: validID}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), App: validID}},
-		{name: "slug with uppercase", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("Payments-Api")}},
-		{name: "slug with invalid chars", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("payments_api")}},
-		{name: "slug with leading hyphen", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("-payments")}},
-		{name: "slug with consecutive hyphens", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("payments--api")}},
-		{name: "slug too long", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P(strings.Repeat("a", 257))}},
+		{name: "slug too short", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("ab")}},
+		{name: "slug with invalid chars", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("payments api")}},
+		{name: "slug too long", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P(strings.Repeat("a", 256))}},
 		{name: "empty name", req: handler.Request{Project: validProject, App: validID, Name: &emptyName}},
 		{name: "name too long", req: handler.Request{Project: validProject, App: validID, Name: &longName}},
 		{name: "default branch too long", req: handler.Request{Project: validProject, App: validID, DefaultBranch: ptr.P(strings.Repeat("a", 257))}},

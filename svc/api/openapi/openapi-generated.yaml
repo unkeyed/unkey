@@ -459,24 +459,9 @@ components:
                 - app
             properties:
                 project:
-                    type: string
-                    minLength: 1
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        Identifies the parent project, by either its unique ID or its slug.
-                        Required to resolve the app, since app slugs are only unique within a project.
-                    example: payments
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 app:
-                    type: string
-                    minLength: 1
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        Identifies which app to update, by either its unique ID or its slug.
-                        Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
-                        The app is resolved by its immutable ID, so you can pass the current slug here while also changing it via the slug field.
-                    example: app_1234abcd
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 name:
                     type: string
                     minLength: 1
@@ -486,15 +471,7 @@ components:
                         Omit this field to leave the current name unchanged.
                     example: Payments API
                 slug:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-                    description: |
-                        New URL-safe handle for the app, unique within its project.
-                        Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
-                        Omit this field to leave the current slug unchanged.
-                    example: payments-api
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 defaultBranch:
                     type: string
                     minLength: 1
@@ -5102,8 +5079,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `project.*.update_app` (to update apps in any project)
-                - `project.<project_id>.update_app` (to update apps in a specific project)
+                - `app.*.update_app` (to update any app)
+                - `app.<app_id>.update_app` (to update a specific app)
             operationId: apps.updateApp
             requestBody:
                 content:
@@ -5171,7 +5148,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'update_app' permission on the target project to perform this operation
+                                            detail: Your root key requires the 'update_app' permission on the target app to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -5179,7 +5156,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `project.*.update_app`)
+                    description: Forbidden - Insufficient permissions (requires `app.*.update_app`)
                 "404":
                     content:
                         application/json:

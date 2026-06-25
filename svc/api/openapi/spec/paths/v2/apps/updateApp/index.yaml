@@ -12,8 +12,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `project.*.update_app` (to update apps in any project)
-    - `project.<project_id>.update_app` (to update apps in a specific project)
+    - `app.*.update_app` (to update any app)
+    - `app.<app_id>.update_app` (to update a specific app)
   operationId: apps.updateApp
   x-speakeasy-name-override: updateApp
   security:
@@ -77,7 +77,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `project.*.update_app`)
+      description: Forbidden - Insufficient permissions (requires `app.*.update_app`)
       content:
         application/json:
           schema:
@@ -90,7 +90,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'update_app' permission on the target project to perform this operation
+                  detail: Your root key requires the 'update_app' permission on the target app to perform this operation
                   status: 403
                   type: forbidden
     "404":

@@ -23,7 +23,7 @@ func TestUpdateAppNotFound(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.update_app")
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.update_app")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
