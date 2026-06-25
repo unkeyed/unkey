@@ -191,10 +191,6 @@ export const workspacePermissions = {
       description: "Delete projects in this workspace",
       permission: "project.*.delete_project",
     },
-    create_app: {
-      description: "Create new apps in any project in this workspace",
-      permission: "project.*.create_app",
-    },
     create_deployment: {
       description: "Create new deployments in this workspace",
       permission: "project.*.create_deployment",
@@ -206,6 +202,12 @@ export const workspacePermissions = {
     generate_upload_url: {
       description: "Generate S3 upload URLs for build contexts",
       permission: "project.*.generate_upload_url",
+    },
+  },
+  Apps: {
+    create_app: {
+      description: "Create new apps in any project in this workspace",
+      permission: "project.*.create_app",
     },
   },
 } satisfies Record<string, UnkeyPermissions>;
@@ -271,11 +273,13 @@ export function projectPermissions(projectId: string): {
   [category: string]: UnkeyPermissions;
 } {
   return {
-    Projects: {
+    Apps: {
       create_app: {
         description: "Create new apps in this project.",
         permission: `project.${projectId}.create_app`,
       },
+    },
+    Projects: {
       create_deployment: {
         description: "Create new deployments for this project.",
         permission: `project.${projectId}.create_deployment`,
