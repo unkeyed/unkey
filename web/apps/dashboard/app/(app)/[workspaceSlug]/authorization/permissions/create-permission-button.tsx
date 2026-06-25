@@ -13,12 +13,12 @@ export function CreatePermissionButton() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <>
+    <div className="relative">
       <Button variant="primary" size="md" onClick={() => setIsOpen(true)}>
         <Plus iconSize="sm-regular" />
         Create new permission
       </Button>
       <UpsertPermissionDialog isOpen={isOpen} onClose={() => setIsOpen(false)} />
-    </>
+    </div>
   );
 }

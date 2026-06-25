@@ -13,12 +13,12 @@ export function CreateRoleButton() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <>
+    <div className="relative">
       <Button variant="primary" size="md" onClick={() => setIsOpen(true)}>
         <Plus iconSize="sm-regular" />
         Create new role
       </Button>
       <UpsertRoleDialog isOpen={isOpen} onClose={() => setIsOpen(false)} />
-    </>
+    </div>
   );
 }
