@@ -46,6 +46,11 @@ const getScopeHeader = (scope: PermissionScope): ScopeHeader =>
       description: `${ROOT_KEY_MESSAGES.DESCRIPTIONS.APP} ${name}`,
       key: id,
     }))
+    .with({ kind: "environment" }, ({ name, id }) => ({
+      name,
+      description: `${ROOT_KEY_MESSAGES.DESCRIPTIONS.ENVIRONMENT} ${name}`,
+      key: id,
+    }))
     .exhaustive();
 
 export const PermissionContentList = ({

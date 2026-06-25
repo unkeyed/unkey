@@ -22,6 +22,7 @@ type PermissionSheetProps = {
   apis: { id: string; name: string }[];
   projects: { id: string; name: string }[];
   apps: { id: string; name: string }[];
+  environments: { id: string; name: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;
   loadMore?: () => void;
@@ -36,6 +37,7 @@ export const PermissionSheet = ({
   apis,
   projects,
   apps,
+  environments,
   selectedPermissions,
   onChange,
   loadMore,
@@ -55,11 +57,13 @@ export const PermissionSheet = ({
     handleApiPermissionChange,
     handleProjectPermissionChange,
     handleAppPermissionChange,
+    handleEnvironmentPermissionChange,
     handleWorkspacePermissionChange,
   } = usePermissionSheet({
     apis,
     projects,
     apps,
+    environments,
     selectedPermissions,
     onChange,
     editMode,
@@ -88,6 +92,14 @@ export const PermissionSheet = ({
         scope: { kind: "app" as const, id: app.id, name: app.name },
       })),
     [apps],
+  );
+  const environmentScopes = useMemo(
+    () =>
+      environments.map((environment) => ({
+        id: environment.id,
+        scope: { kind: "environment" as const, id: environment.id, name: environment.name },
+      })),
+    [environments],
   );
 
   return (
@@ -169,6 +181,22 @@ export const PermissionSheet = ({
                       scope={scope}
                       onPermissionChange={(permissions) =>
                         handleAppPermissionChange(id, permissions)
+                      }
+                    />
+                  ))}
+                  {environmentScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_ENVIRONMENTS}
+                    </p>
+                  )}
+                  {environmentScopes.map(({ id, scope }) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      key={id}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleEnvironmentPermissionChange(id, permissions)
                       }
                     />
                   ))}
