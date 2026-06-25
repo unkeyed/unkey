@@ -25,10 +25,6 @@ type FindAppByProjectAndIdOrSlugParams struct {
 	App         string `db:"app"`
 }
 
-type FindAppByProjectAndIdOrSlugRow struct {
-	App App `db:"app"`
-}
-
 // FindAppByProjectAndIdOrSlug
 //
 //	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
@@ -38,7 +34,7 @@ type FindAppByProjectAndIdOrSlugRow struct {
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)
 //	LIMIT 1
-func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (FindAppByProjectAndIdOrSlugRow, error) {
+func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (App, error) {
 	row := db.QueryRowContext(ctx, findAppByProjectAndIdOrSlug,
 		arg.WorkspaceID,
 		arg.Project,
@@ -46,20 +42,20 @@ func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg 
 		arg.App,
 		arg.App,
 	)
-	var i FindAppByProjectAndIdOrSlugRow
+	var i App
 	err := row.Scan(
-		&i.App.Pk,
-		&i.App.ID,
-		&i.App.WorkspaceID,
-		&i.App.ProjectID,
-		&i.App.Name,
-		&i.App.Slug,
-		&i.App.DefaultBranch,
-		&i.App.CurrentDeploymentID,
-		&i.App.IsRolledBack,
-		&i.App.DeleteProtection,
-		&i.App.CreatedAt,
-		&i.App.UpdatedAt,
+		&i.Pk,
+		&i.ID,
+		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.Name,
+		&i.Slug,
+		&i.DefaultBranch,
+		&i.CurrentDeploymentID,
+		&i.IsRolledBack,
+		&i.DeleteProtection,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

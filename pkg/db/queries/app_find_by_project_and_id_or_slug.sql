@@ -1,5 +1,5 @@
 -- name: FindAppByProjectAndIdOrSlug :one
-SELECT sqlc.embed(a)
+SELECT a.*
 FROM apps a
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 WHERE a.workspace_id = sqlc.arg(workspace_id)
