@@ -563,12 +563,13 @@ type Querier interface {
 	//
 	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
 	//  FROM environments e
-	//  JOIN apps a ON a.id = e.app_id
-	//  JOIN projects p ON p.id = a.project_id
-	//  WHERE p.workspace_id = ?
+	//  JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  WHERE e.workspace_id = ?
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
 	//    AND (e.id = ? OR e.slug = ?)
+	//  LIMIT 1
 	FindEnvironmentByAppAndIdOrSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppAndIdOrSlugParams) (FindEnvironmentByAppAndIdOrSlugRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//

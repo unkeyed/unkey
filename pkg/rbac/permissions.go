@@ -34,6 +34,9 @@ const (
 
 	// App represents app resources within a project
 	App ResourceType = "app"
+
+	// Environment represents environment resources within an app
+	Environment ResourceType = "environment"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -208,8 +211,12 @@ const (
 
 	// DeleteApp permits deleting apps within a project
 	DeleteApp ActionType = "delete_app"
+)
 
-	// ReadEnvironment permits reading environments within a project
+// Predefined environment actions. These constants define operations that can
+// be performed on environment resources within an app.
+const (
+	// ReadEnvironment permits reading a specific environment
 	ReadEnvironment ActionType = "read_environment"
 )
 
