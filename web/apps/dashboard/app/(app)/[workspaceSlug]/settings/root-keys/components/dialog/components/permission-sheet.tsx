@@ -22,7 +22,7 @@ type PermissionSheetProps = {
   apis: { id: string; name: string }[];
   projects: { id: string; name: string }[];
   apps: { id: string; name: string }[];
-  environments: { id: string; name: string }[];
+  environments: { id: string; name: string; appId: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;
   loadMore?: () => void;
@@ -85,22 +85,46 @@ export const PermissionSheet = ({
       })),
     [projects],
   );
+  const environmentsByApp = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }[]>();
+    for (const environment of environments) {
+      const existing = map.get(environment.appId);
+      if (existing) {
+        existing.push({ id: environment.id, name: environment.name });
+      } else {
+        map.set(environment.appId, [{ id: environment.id, name: environment.name }]);
+      }
+    }
+    return map;
+  }, [environments]);
+
   const appScopes = useMemo(
     () =>
-      apps.map((app) => ({
-        id: app.id,
-        scope: { kind: "app" as const, id: app.id, name: app.name },
-      })),
-    [apps],
+      apps.map((app) => {
+        const appEnvironments = environmentsByApp.get(app.id) ?? [];
+        return {
+          id: app.id,
+          environmentIds: appEnvironments.map((environment) => environment.id),
+          scope: {
+            kind: "app" as const,
+            id: app.id,
+            name: app.name,
+            environments: appEnvironments,
+          },
+        };
+      }),
+    [apps, environmentsByApp],
   );
-  const environmentScopes = useMemo(
-    () =>
-      environments.map((environment) => ({
+
+  const orphanEnvironmentScopes = useMemo(() => {
+    const appIds = new Set(apps.map((app) => app.id));
+    return environments
+      .filter((environment) => !appIds.has(environment.appId))
+      .map((environment) => ({
         id: environment.id,
         scope: { kind: "environment" as const, id: environment.id, name: environment.name },
-      })),
-    [environments],
-  );
+      }));
+  }, [environments, apps]);
 
   return (
     <Sheet modal={true} open={open} onOpenChange={onOpenChange}>
@@ -173,23 +197,23 @@ export const PermissionSheet = ({
                       {ROOT_KEY_MESSAGES.UI.FROM_APPS}
                     </p>
                   )}
-                  {appScopes.map(({ id, scope }) => (
+                  {appScopes.map(({ id, environmentIds, scope }) => (
                     <PermissionContentList
                       selected={selectedPermissions}
                       searchValue={searchValue}
                       key={id}
                       scope={scope}
                       onPermissionChange={(permissions) =>
-                        handleAppPermissionChange(id, permissions)
+                        handleAppPermissionChange(id, environmentIds, permissions)
                       }
                     />
                   ))}
-                  {environmentScopes.length > 0 && (
+                  {orphanEnvironmentScopes.length > 0 && (
                     <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
                       {ROOT_KEY_MESSAGES.UI.FROM_ENVIRONMENTS}
                     </p>
                   )}
-                  {environmentScopes.map(({ id, scope }) => (
+                  {orphanEnvironmentScopes.map(({ id, scope }) => (
                     <PermissionContentList
                       selected={selectedPermissions}
                       searchValue={searchValue}

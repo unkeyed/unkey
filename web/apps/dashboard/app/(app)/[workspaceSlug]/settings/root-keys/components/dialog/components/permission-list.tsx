@@ -6,7 +6,7 @@ import type { UnkeyPermission } from "@unkey/rbac";
 import { useCallback, useEffect, useState } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissions } from "../hooks/use-permissions";
-import type { PermissionScope } from "../permissions";
+import type { PermissionScope, UnkeyPermissions } from "../permissions";
 import { ExpandableCategory } from "./expandable-category";
 import { HighlightedText } from "./highlighted-text";
 import { PermissionToggle } from "./permission-toggle";
@@ -107,6 +107,21 @@ export const PermissionContentList = ({
   }
 
   const header = getScopeHeader(scope);
+  const categories = Object.entries(filteredPermissionList);
+  const isSingleCategory = categories.length === 1;
+
+  const renderPermissionToggles = (category: string, allPermissions: UnkeyPermissions) =>
+    Object.entries(allPermissions).map(([action, { description, permission }]) => (
+      <PermissionToggle
+        key={action}
+        category={<HighlightedText text={category} searchValue={searchValue} />}
+        className="pr-2"
+        label={<HighlightedText text={action} searchValue={searchValue} />}
+        description={description}
+        checked={state.selectedPermissions.includes(permission)}
+        setChecked={() => handlePermissionToggle(permission)}
+      />
+    ));
 
   return (
     <div className="flex flex-col w-full grow-0 max-w-[380px] px-2">
@@ -127,45 +142,37 @@ export const PermissionContentList = ({
           <div className="flex">
             <div className="flex flex-col min-h-full border-r border-grayA-5 mb-2 ml-5" />
             <div className="flex flex-col h-full ml-2 w-full min-w-0">
-              {Object.entries(filteredPermissionList).map(([category, allPermissions]) => (
-                <Collapsible
-                  key={`${header.key}-${category}`}
-                  className="rounded-lg hover:bg-grayA-3 p-0 m-0 w-full min-w-0"
-                  open={expandedCategories.has(category)}
-                  onOpenChange={(open) => handleCategoryToggleExpanded(category, open)}
-                >
-                  <div className="flex-1 justify-start items-start w-full min-w-0">
-                    <ExpandableCategory
-                      category={category}
-                      checked={state.categoryChecked[category]}
-                      setChecked={() => handleCategoryToggle(category)}
-                      count={Object.keys(allPermissions).length}
-                    />
-                    <CollapsibleContent>
-                      <div className="flex w-full">
-                        <div className="flex-1 border-r border-grayA-5 max-h-full w-4 mb-2 ml-[20px]" />
-                        <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start ">
-                          {Object.entries(allPermissions).map(
-                            ([action, { description, permission }]) => (
-                              <PermissionToggle
-                                key={action}
-                                category={
-                                  <HighlightedText text={category} searchValue={searchValue} />
-                                }
-                                className="pr-2"
-                                label={<HighlightedText text={action} searchValue={searchValue} />}
-                                description={description}
-                                checked={state.selectedPermissions.includes(permission)}
-                                setChecked={() => handlePermissionToggle(permission)}
-                              />
-                            ),
-                          )}
+              {isSingleCategory ? (
+                <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start">
+                  {renderPermissionToggles(categories[0][0], categories[0][1])}
+                </div>
+              ) : (
+                categories.map(([category, allPermissions]) => (
+                  <Collapsible
+                    key={`${header.key}-${category}`}
+                    className="rounded-lg hover:bg-grayA-3 p-0 m-0 w-full min-w-0"
+                    open={expandedCategories.has(category)}
+                    onOpenChange={(open) => handleCategoryToggleExpanded(category, open)}
+                  >
+                    <div className="flex-1 justify-start items-start w-full min-w-0">
+                      <ExpandableCategory
+                        category={category}
+                        checked={state.categoryChecked[category]}
+                        setChecked={() => handleCategoryToggle(category)}
+                        count={Object.keys(allPermissions).length}
+                      />
+                      <CollapsibleContent>
+                        <div className="flex w-full">
+                          <div className="flex-1 border-r border-grayA-5 max-h-full w-4 mb-2 ml-[20px]" />
+                          <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start ">
+                            {renderPermissionToggles(category, allPermissions)}
+                          </div>
                         </div>
-                      </div>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-              ))}
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                ))
+              )}
             </div>
           </div>
         </CollapsibleContent>
