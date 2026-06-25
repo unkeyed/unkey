@@ -11,7 +11,8 @@ export type PermissionScope =
   | { kind: "workspace" }
   | { kind: "api"; id: string; name: string }
   | { kind: "project"; id: string; name: string }
-  | { kind: "app"; id: string; name: string };
+  | { kind: "app"; id: string; name: string }
+  | { kind: "environment"; id: string; name: string };
 
 export const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
 
@@ -27,6 +28,8 @@ export function getScopedPermissions(scope: PermissionScope): {
       return projectPermissions(scope.id);
     case "app":
       return appPermissions(scope.id);
+    case "environment":
+      return environmentPermissions(scope.id);
   }
 }
 
@@ -225,6 +228,12 @@ export const workspacePermissions = {
       permission: "app.*.delete_app",
     },
   },
+  Environments: {
+    read_environment: {
+      description: "Read any environment in this workspace",
+      permission: "environment.*.read_environment",
+    },
+  },
 } satisfies Record<string, UnkeyPermissions>;
 
 export function apiPermissions(apiId: string): {
@@ -327,6 +336,19 @@ export function appPermissions(appId: string): {
       delete_app: {
         description: "Delete apps in this project.",
         permission: `app.${appId}.delete_app`,
+      },
+    },
+  };
+}
+
+export function environmentPermissions(environmentId: string): {
+  [category: string]: UnkeyPermissions;
+} {
+  return {
+    Environments: {
+      read_environment: {
+        description: "Read this environment.",
+        permission: `environment.${environmentId}.read_environment`,
       },
     },
   };
