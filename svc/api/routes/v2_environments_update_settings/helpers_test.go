@@ -12,15 +12,13 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// seededEnv holds the ids and slugs of a freshly seeded project/app/environment.
+// seededEnv holds the ids of a freshly seeded project/app/environment.
 // CreateEnvironment also seeds default build and runtime settings rows, so the
 // handler's UPDATE statements always have a row to target.
 type seededEnv struct {
 	workspaceID   string
 	projectID     string
-	projectSlug   string
 	appID         string
-	appSlug       string
 	environmentID string
 }
 
@@ -29,21 +27,19 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 
 	workspace := h.Resources().UserWorkspace
 
-	projectSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
 		Name:        "Payments Service",
-		Slug:        projectSlug,
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
-	appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	app := h.CreateApp(seed.CreateAppRequest{
 		ID:            uid.New(uid.AppPrefix),
 		WorkspaceID:   workspace.ID,
 		ProjectID:     project.ID,
 		Name:          "Payments API",
-		Slug:          appSlug,
+		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 		DefaultBranch: "main",
 	})
 
@@ -59,9 +55,7 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	return seededEnv{
 		workspaceID:   workspace.ID,
 		projectID:     project.ID,
-		projectSlug:   projectSlug,
 		appID:         app.ID,
-		appSlug:       appSlug,
 		environmentID: environment.ID,
 	}
 }

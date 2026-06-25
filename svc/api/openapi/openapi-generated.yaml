@@ -673,6 +673,7 @@ components:
                     example: .
                 watchPaths:
                     type: array
+                    maxItems: 100
                     items:
                         type: string
                         maxLength: 500
@@ -698,6 +699,7 @@ components:
                     minimum: 1
                     description: |
                         CPU allocation in millicores.
+                        The upper bound is your workspace's per-instance quota; exceeding it returns 400.
                         Omit to leave unchanged.
                     example: 1000
                 memoryMib:
@@ -705,6 +707,7 @@ components:
                     minimum: 1
                     description: |
                         Memory allocation in MiB.
+                        The upper bound is your workspace's per-instance quota; exceeding it returns 400.
                         Omit to leave unchanged.
                     example: 512
                 storageMib:
@@ -712,12 +715,15 @@ components:
                     minimum: 0
                     description: |
                         Ephemeral storage allocation in MiB.
+                        The upper bound is your workspace's per-instance quota; exceeding it returns 400.
                         Omit to leave unchanged.
                     example: 1024
                 command:
                     type: array
+                    maxItems: 100
                     items:
                         type: string
+                        maxLength: 4096
                     description: |
                         Override container entrypoint command.
                         Omit to leave unchanged.
@@ -3554,27 +3560,38 @@ components:
                 intervalSeconds:
                     type: integer
                     minimum: 1
+                    maximum: 3600
                     description: Seconds between probes. Defaults to 10 when omitted.
                     example: 10
                 timeoutSeconds:
                     type: integer
                     minimum: 1
+                    maximum: 3600
                     description: Seconds before a probe is considered failed. Defaults to 5 when omitted.
                     example: 5
                 failureThreshold:
                     type: integer
                     minimum: 1
+                    maximum: 100
                     description: Consecutive failures before the instance is marked unhealthy. Defaults to 3 when omitted.
                     example: 3
                 initialDelaySeconds:
                     type: integer
                     minimum: 0
+                    maximum: 3600
                     description: Seconds to wait after start before the first probe. Defaults to 0 when omitted.
                     example: 0
             required:
                 - method
                 - path
             additionalProperties: false
+            example:
+                path: /v1/liveness
+                method: GET
+                intervalSeconds: 5
+                timeoutSeconds: 5
+                failureThreshold: 3
+                initialDelaySeconds: 0
         RegionSetting:
             type: object
             description: Desired replica bounds for a single region.

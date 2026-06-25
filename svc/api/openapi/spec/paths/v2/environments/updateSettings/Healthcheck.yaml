@@ -21,24 +21,35 @@ properties:
   intervalSeconds:
     type: integer
     minimum: 1
+    maximum: 3600
     description: Seconds between probes. Defaults to 10 when omitted.
     example: 10
   timeoutSeconds:
     type: integer
     minimum: 1
+    maximum: 3600
     description: Seconds before a probe is considered failed. Defaults to 5 when omitted.
     example: 5
   failureThreshold:
     type: integer
     minimum: 1
+    maximum: 100
     description: Consecutive failures before the instance is marked unhealthy. Defaults to 3 when omitted.
     example: 3
   initialDelaySeconds:
     type: integer
     minimum: 0
+    maximum: 3600
     description: Seconds to wait after start before the first probe. Defaults to 0 when omitted.
     example: 0
 required:
   - method
   - path
 additionalProperties: false
+example:
+  path: /v1/liveness
+  method: GET
+  intervalSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3
+  initialDelaySeconds: 0

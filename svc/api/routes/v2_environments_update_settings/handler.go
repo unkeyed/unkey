@@ -24,9 +24,6 @@ type (
 	Response = openapi.V2EnvironmentsUpdateSettingsResponseBody
 )
 
-// maxReplicas mirrors REPLICAS_MAX_BETA in the dashboard.
-const maxReplicas = 4
-
 // cpuThreshold is the fixed autoscaling CPU threshold; the API does not expose it.
 const cpuThreshold = 80
 
@@ -108,7 +105,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		req.StorageMib != nil || req.Command != nil || req.Healthcheck.IsSpecified() ||
 		req.ShutdownSignal != nil || req.UpstreamProtocol != nil || req.OpenapiSpecPath.IsSpecified()
 
-	// Nothing to do: skip the write transaction and audit log entirely.
 	if !hasBuild && !hasRuntime && req.Regions == nil {
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{RequestId: s.RequestID()},
@@ -116,8 +112,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	// Resolve and validate regions before opening the write transaction so we
-	// never leave a partial write behind on bad input.
+	// Validate runtime resource requests against the workspace's per-instance
+	// quota, and resolve regions, before opening the write transaction so bad
+	// input never leaves a partial write behind.
+	if hasRuntime {
+		if err := h.validateResourceQuota(ctx, principal.WorkspaceID, req); err != nil {
+			return err
+		}
+	}
+
 	var desired []resolvedRegion
 	if req.Regions != nil {
 		desired, err = h.resolveRegions(ctx, *req.Regions)
@@ -126,21 +129,45 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	now := time.Now().UnixMilli()
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		// Region reconciliation reads-then-replaces the regional set, so lock the
+		// environment row to serialize concurrent updates and prevent a merged set.
+		// Build/runtime use specified-flag UPDATEs and need no lock.
+		if req.Regions != nil {
+			if _, err := db.Query.LockEnvironmentForUpdate(ctx, tx, environment.ID); err != nil {
+				if db.IsNotFound(err) {
+					// Deleted between the read above and acquiring the lock.
+					return fault.New(
+						"environment not found",
+						fault.Code(codes.Data.Environment.NotFound.URN()),
+						fault.Internal("environment deleted before lock"),
+						fault.Public("The requested environment does not exist."),
+					)
+				}
+				return fault.Wrap(
+					err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("unable to lock environment"),
+					fault.Public("We're unable to update the environment settings."),
+				)
+			}
+		}
+
 		if hasBuild {
-			if err := h.applyBuildSettings(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, req); err != nil {
+			if err := h.applyBuildSettings(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, req, now); err != nil {
 				return err
 			}
 		}
 
 		if hasRuntime {
-			if err := h.applyRuntimeSettings(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, req); err != nil {
+			if err := h.applyRuntimeSettings(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, req, now); err != nil {
 				return err
 			}
 		}
 
 		if req.Regions != nil {
-			if err := h.applyRegions(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, desired); err != nil {
+			if err := h.applyRegions(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, desired, now); err != nil {
 				return err
 			}
 		}
@@ -179,12 +206,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, req Request) error {
+func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, req Request, now int64) error {
 	params := db.UpdateAppBuildSettingsParams{
 		WorkspaceID:            workspaceID,
 		AppID:                  appID,
 		EnvironmentID:          environmentID,
-		UpdatedAt:              sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		UpdatedAt:              sql.NullInt64{Valid: true, Int64: now},
 		DockerfileSpecified:    0,
 		Dockerfile:             sql.NullString{Valid: false, String: ""},
 		DockerContextSpecified: 0,
@@ -198,8 +225,7 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 	if req.Dockerfile.IsSpecified() {
 		params.DockerfileSpecified = 1
 		if !req.Dockerfile.IsNull() {
-			v, _ := req.Dockerfile.Get()
-			params.Dockerfile = sql.NullString{Valid: true, String: v}
+			params.Dockerfile = sql.NullString{Valid: true, String: req.Dockerfile.MustGet()}
 		}
 	}
 	if req.DockerContext != nil {
@@ -226,12 +252,12 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 	return nil
 }
 
-func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, req Request) error {
+func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, req Request, now int64) error {
 	params := db.UpdateAppRuntimeSettingsParams{
 		WorkspaceID:               workspaceID,
 		AppID:                     appID,
 		EnvironmentID:             environmentID,
-		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
 		PortSpecified:             0,
 		Port:                      0,
 		CpuMillicoresSpecified:    0,
@@ -275,8 +301,7 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 	if req.Healthcheck.IsSpecified() {
 		params.HealthcheckSpecified = 1
 		if !req.Healthcheck.IsNull() {
-			hc, _ := req.Healthcheck.Get()
-			params.Healthcheck = dbtype.NullHealthcheck{Valid: true, Healthcheck: buildHealthcheck(hc)}
+			params.Healthcheck = dbtype.NullHealthcheck{Valid: true, Healthcheck: buildHealthcheck(req.Healthcheck.MustGet())}
 		}
 	}
 	if req.ShutdownSignal != nil {
@@ -290,8 +315,7 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 	if req.OpenapiSpecPath.IsSpecified() {
 		params.OpenapiSpecPathSpecified = 1
 		if !req.OpenapiSpecPath.IsNull() {
-			v, _ := req.OpenapiSpecPath.Get()
-			params.OpenapiSpecPath = sql.NullString{Valid: true, String: v}
+			params.OpenapiSpecPath = sql.NullString{Valid: true, String: req.OpenapiSpecPath.MustGet()}
 		}
 	}
 
@@ -306,85 +330,140 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 	return nil
 }
 
+// Per-instance resource ceilings applied when a workspace has no quota row.
+// These mirror the dashboard fallbacks and the quota column defaults.
+const (
+	defaultMaxCPUMillicores = 2000
+	defaultMaxMemoryMib     = 4096
+	defaultMaxStorageMib    = 10240
+)
+
+// validateResourceQuota rejects cpu/memory/storage requests that exceed the
+// workspace's per-instance quota, mirroring the dashboard.
+func (h *Handler) validateResourceQuota(ctx context.Context, workspaceID string, req Request) error {
+	maxCPU := uint32(defaultMaxCPUMillicores)
+	maxMemory := uint32(defaultMaxMemoryMib)
+	maxStorage := uint32(defaultMaxStorageMib)
+
+	quota, err := db.Query.FindQuotaByWorkspaceID(ctx, h.DB.RO(), workspaceID)
+	if err != nil {
+		if !db.IsNotFound(err) {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to validate resource limits."),
+			)
+		}
+	} else {
+		maxCPU = quota.MaxCpuMillicoresPerInstance
+		maxMemory = quota.MaxMemoryMibPerInstance
+		maxStorage = quota.MaxStorageMibPerInstance
+	}
+
+	if req.CpuMillicores != nil && *req.CpuMillicores > int(maxCPU) {
+		return quotaExceeded(fmt.Sprintf("CPU per instance cannot exceed %d millicores. Contact support@unkey.com to increase it.", maxCPU))
+	}
+	if req.MemoryMib != nil && *req.MemoryMib > int(maxMemory) {
+		return quotaExceeded(fmt.Sprintf("Memory per instance cannot exceed %d MiB. Contact support@unkey.com to increase it.", maxMemory))
+	}
+	if req.StorageMib != nil && *req.StorageMib > int(maxStorage) {
+		return quotaExceeded(fmt.Sprintf("Storage per instance cannot exceed %d MiB. Contact support@unkey.com to increase it.", maxStorage))
+	}
+	return nil
+}
+
+func quotaExceeded(public string) error {
+	return fault.New(
+		"quota exceeded",
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal("resource request exceeds workspace per-instance quota"),
+		fault.Public(public),
+	)
+}
+
+// invalidRegion builds a 400 fault for a bad regions entry. The regions table is
+// small reference data, so all the region validations share this shape.
+func invalidRegion(public string) error {
+	return fault.New(
+		"invalid region",
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal("invalid regions input"),
+		fault.Public(public),
+	)
+}
+
 // resolveRegions validates the desired region list against the regions table and
 // the replica bounds, returning the resolved region ids. Validation happens before
-// the write transaction so bad input never leaves a partial write.
+// the write transaction so bad input never leaves a partial write. Regions are a
+// small reference table, so we load them once and resolve in memory rather than
+// issuing a lookup per requested region.
 func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSetting) ([]resolvedRegion, error) {
+	all, err := db.Query.ListRegions(ctx, h.DB.RO())
+	if err != nil {
+		return nil, fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to resolve regions."),
+		)
+	}
+	byKey := make(map[string]db.ListRegionsRow, len(all))
+	for _, region := range all {
+		byKey[region.Platform+"/"+region.Name] = region
+	}
+
 	seen := make(map[string]struct{}, len(regions))
 	resolved := make([]resolvedRegion, 0, len(regions))
 
 	for _, r := range regions {
 		platform := "aws"
-		if r.Platform != nil && *r.Platform != "" {
+		if r.Platform != nil {
 			platform = *r.Platform
 		}
-
 		key := platform + "/" + r.Name
+
 		if _, dup := seen[key]; dup {
-			return nil, fault.New(
-				"duplicate region",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("duplicate region in request"),
-				fault.Public(fmt.Sprintf("Region '%s' on platform '%s' is listed more than once.", r.Name, platform)),
-			)
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' is listed more than once.", r.Name, platform))
 		}
 		seen[key] = struct{}{}
 
-		minReplicas := int32(r.Replicas.Min)
-		maxReplicasReq := int32(r.Replicas.Max)
-		if minReplicas < 1 || maxReplicasReq > maxReplicas || minReplicas > maxReplicasReq {
-			return nil, fault.New(
-				"invalid replicas",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("invalid replica bounds"),
-				fault.Public(fmt.Sprintf("Region '%s' replicas must satisfy 1 <= min <= max <= %d.", r.Name, maxReplicas)),
-			)
+		if r.Replicas.Min > r.Replicas.Max {
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' min replicas cannot exceed max replicas.", r.Name))
 		}
 
-		region, err := db.Query.FindRegionByPlatformAndName(ctx, h.DB.RO(), db.FindRegionByPlatformAndNameParams{
-			Platform: platform,
-			Name:     r.Name,
-		})
-		if err != nil {
-			if db.IsNotFound(err) {
-				return nil, fault.New(
-					"region not found",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("region not found"),
-					fault.Public(fmt.Sprintf("Region '%s' on platform '%s' does not exist.", r.Name, platform)),
-				)
-			}
-			return nil, fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to resolve regions."),
-			)
-		}
-
-		if !region.CanSchedule {
-			return nil, fault.New(
-				"region not schedulable",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("region cannot be scheduled to"),
-				fault.Public(fmt.Sprintf("Region '%s' on platform '%s' is not available for scheduling.", r.Name, platform)),
-			)
+		region, ok := byKey[key]
+		if !ok {
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' does not exist.", r.Name, platform))
 		}
 
 		resolved = append(resolved, resolvedRegion{
 			regionID: region.ID,
-			min:      minReplicas,
-			max:      maxReplicasReq,
+			min:      int32(r.Replicas.Min),
+			max:      int32(r.Replicas.Max),
 		})
+	}
+
+	// All of an environment's regions share one autoscaling policy, so the
+	// per-region replica bounds must be identical. Reject mismatches rather than
+	// silently applying one region's bounds to the whole environment.
+	for _, d := range resolved[1:] {
+		if d.min != resolved[0].min || d.max != resolved[0].max {
+			return nil, invalidRegion("All regions must specify the same replica bounds; per-region autoscaling is not supported yet.")
+		}
 	}
 
 	return resolved, nil
 }
 
-// applyRegions reconciles the desired regions against the current rows: it updates
-// or creates one autoscaling policy per region, sets replicas to max, and removes
-// regions (and their orphaned policies) no longer desired.
-func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, desired []resolvedRegion) error {
+// applyRegions reconciles the desired region set, mirroring the dashboard's
+// model: a single autoscaling policy is shared by all of an environment's
+// regions. We reuse the env's existing policy if it has one (else create it),
+// point every desired region at it with replicas = max, and delete rows for
+// regions no longer desired. Policies are never deleted (matching the dashboard),
+// so a region another row still references can never be orphaned. desired is
+// validated to carry uniform replica bounds, so desired[0] represents them all.
+func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, desired []resolvedRegion, now int64) error {
 	current, err := db.Query.ListAppRegionalSettingsByAppEnv(ctx, tx, db.ListAppRegionalSettingsByAppEnvParams{
 		AppID:         appID,
 		EnvironmentID: environmentID,
@@ -398,36 +477,35 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 		)
 	}
 
-	currentByRegion := make(map[string]db.ListAppRegionalSettingsByAppEnvRow, len(current))
+	// The environment shares one policy across its regions; reuse it if present.
+	sharedPolicyID := ""
 	for _, row := range current {
-		currentByRegion[row.RegionID] = row
+		if row.HorizontalAutoscalingPolicyID.Valid {
+			sharedPolicyID = row.HorizontalAutoscalingPolicyID.String
+			break
+		}
 	}
-	desiredByRegion := make(map[string]struct{}, len(desired))
 
-	now := time.Now().UnixMilli()
+	if len(desired) > 0 {
+		minReplicas, maxReplicas := desired[0].min, desired[0].max
 
-	for _, d := range desired {
-		desiredByRegion[d.regionID] = struct{}{}
-
-		policyID := ""
-		if existing, ok := currentByRegion[d.regionID]; ok && existing.HorizontalAutoscalingPolicyID.Valid {
-			policyID = existing.HorizontalAutoscalingPolicyID.String
+		if sharedPolicyID != "" {
 			if err := db.Query.UpdateHorizontalAutoscalingPolicy(ctx, tx, db.UpdateHorizontalAutoscalingPolicyParams{
-				ID:          policyID,
+				ID:          sharedPolicyID,
 				WorkspaceID: workspaceID,
-				ReplicasMin: d.min,
-				ReplicasMax: d.max,
+				ReplicasMin: minReplicas,
+				ReplicasMax: maxReplicas,
 				UpdatedAt:   sql.NullInt64{Valid: true, Int64: now},
 			}); err != nil {
 				return wrapRegionWriteErr(err)
 			}
 		} else {
-			policyID = uid.New(uid.AutoscalingPolicyPrefix)
+			sharedPolicyID = uid.New(uid.AutoscalingPolicyPrefix)
 			if err := db.Query.InsertHorizontalAutoscalingPolicy(ctx, tx, db.InsertHorizontalAutoscalingPolicyParams{
-				ID:           policyID,
+				ID:           sharedPolicyID,
 				WorkspaceID:  workspaceID,
-				ReplicasMin:  d.min,
-				ReplicasMax:  d.max,
+				ReplicasMin:  minReplicas,
+				ReplicasMax:  maxReplicas,
 				CpuThreshold: sql.NullInt16{Valid: true, Int16: cpuThreshold},
 				CreatedAt:    now,
 			}); err != nil {
@@ -435,40 +513,40 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 			}
 		}
 
-		if err := db.Query.UpsertAppRegionalSettings(ctx, tx, db.UpsertAppRegionalSettingsParams{
-			WorkspaceID:                   workspaceID,
-			AppID:                         appID,
-			EnvironmentID:                 environmentID,
-			RegionID:                      d.regionID,
-			Replicas:                      d.max,
-			HorizontalAutoscalingPolicyID: sql.NullString{Valid: true, String: policyID},
-			CreatedAt:                     now,
-			UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
-		}); err != nil {
-			return wrapRegionWriteErr(err)
+		for _, d := range desired {
+			if err := db.Query.UpsertAppRegionalSettings(ctx, tx, db.UpsertAppRegionalSettingsParams{
+				WorkspaceID:                   workspaceID,
+				AppID:                         appID,
+				EnvironmentID:                 environmentID,
+				RegionID:                      d.regionID,
+				Replicas:                      maxReplicas,
+				HorizontalAutoscalingPolicyID: sql.NullString{Valid: true, String: sharedPolicyID},
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
+			}); err != nil {
+				return wrapRegionWriteErr(err)
+			}
 		}
 	}
 
+	desiredByRegion := make(map[string]struct{}, len(desired))
+	for _, d := range desired {
+		desiredByRegion[d.regionID] = struct{}{}
+	}
+
+	// Remove rows for regions no longer desired. The shared policy is left in
+	// place (dashboard parity); it is never deleted, so no surviving row can be
+	// left pointing at a missing policy.
 	for _, row := range current {
 		if _, ok := desiredByRegion[row.RegionID]; ok {
 			continue
 		}
-
 		if err := db.Query.DeleteAppRegionalSettingByAppEnvRegion(ctx, tx, db.DeleteAppRegionalSettingByAppEnvRegionParams{
 			AppID:         appID,
 			EnvironmentID: environmentID,
 			RegionID:      row.RegionID,
 		}); err != nil {
 			return wrapRegionWriteErr(err)
-		}
-
-		if row.HorizontalAutoscalingPolicyID.Valid {
-			if err := db.Query.DeleteHorizontalAutoscalingPolicy(ctx, tx, db.DeleteHorizontalAutoscalingPolicyParams{
-				ID:          row.HorizontalAutoscalingPolicyID.String,
-				WorkspaceID: workspaceID,
-			}); err != nil {
-				return wrapRegionWriteErr(err)
-			}
 		}
 	}
 

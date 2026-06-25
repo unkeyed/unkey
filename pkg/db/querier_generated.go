@@ -185,12 +185,6 @@ type Querier interface {
 	//
 	//  DELETE FROM github_repo_connections WHERE project_id = ?
 	DeleteGithubRepoConnectionsByProjectId(ctx context.Context, db DBTX, projectID string) error
-	//DeleteHorizontalAutoscalingPolicy
-	//
-	//  DELETE FROM horizontal_autoscaling_policies
-	//  WHERE id = ?
-	//    AND workspace_id = ?
-	DeleteHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg DeleteHorizontalAutoscalingPolicyParams) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
@@ -2932,6 +2926,13 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
+	// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
+	// This serializes region reconciliation, which reads the current set then replaces it.
+	//
+	//  SELECT id FROM environments
+	//  WHERE id = ?
+	//  FOR UPDATE
+	LockEnvironmentForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.
 	// This should be called at the start of a transaction before modifying identity-related data.
 	//
