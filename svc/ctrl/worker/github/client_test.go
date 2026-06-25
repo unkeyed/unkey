@@ -1,6 +1,9 @@
 package github
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -139,4 +142,75 @@ func TestProbeRepoVisibility(t *testing.T) {
 			require.Equal(t, tt.wantPublic, public)
 		})
 	}
+}
+
+// TestVerifyWebhookSignature_RejectsTampering protects the GitHub webhook
+// authentication boundary. It guarantees that only a sha256 HMAC generated from
+// the exact received payload and shared secret is accepted, so replaying a
+// valid signature with a changed body or wrong secret cannot enqueue deploys.
+func TestVerifyWebhookSignature_RejectsTampering(t *testing.T) {
+	payload := []byte(`{"repository":{"full_name":"unkeyed/unkey"},"after":"abc123"}`)
+	secret := "webhook-secret"
+	signature := signWebhookPayload(t, payload, secret)
+
+	tests := []struct {
+		name      string
+		payload   []byte
+		signature string
+		secret    string
+		want      bool
+	}{
+		{
+			name:      "accepts exact payload signature",
+			payload:   payload,
+			signature: signature,
+			secret:    secret,
+			want:      true,
+		},
+		{
+			name:      "rejects payload changed after signing",
+			payload:   []byte(`{"repository":{"full_name":"unkeyed/unkey"},"after":"def456"}`),
+			signature: signature,
+			secret:    secret,
+			want:      false,
+		},
+		{
+			name:      "rejects wrong secret",
+			payload:   payload,
+			signature: signature,
+			secret:    "different-secret",
+			want:      false,
+		},
+		{
+			name:      "rejects non sha256 signature prefix",
+			payload:   payload,
+			signature: "sha1=" + signature[len("sha256="):],
+			secret:    secret,
+			want:      false,
+		},
+		{
+			name:      "rejects malformed signature",
+			payload:   payload,
+			signature: "sha256=not-a-valid-signature",
+			secret:    secret,
+			want:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := VerifyWebhookSignature(tt.payload, tt.signature, tt.secret)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func signWebhookPayload(t *testing.T, payload []byte, secret string) string {
+	t.Helper()
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, err := mac.Write(payload)
+	require.NoError(t, err)
+
+	return fmt.Sprintf("sha256=%x", mac.Sum(nil))
 }
