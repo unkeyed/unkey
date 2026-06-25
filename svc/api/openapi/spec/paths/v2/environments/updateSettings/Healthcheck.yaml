@@ -1,0 +1,44 @@
+type:
+  - object
+  - "null"
+description: |
+  HTTP healthcheck configuration for the environment.
+  Set null to remove the healthcheck entirely.
+properties:
+  method:
+    type: string
+    enum:
+      - GET
+      - POST
+    description: HTTP method used for the healthcheck probe.
+    example: GET
+  path:
+    type: string
+    minLength: 1
+    maxLength: 512
+    description: HTTP path probed for health.
+    example: /health
+  intervalSeconds:
+    type: integer
+    minimum: 1
+    description: Seconds between probes. Defaults to 10 when omitted.
+    example: 10
+  timeoutSeconds:
+    type: integer
+    minimum: 1
+    description: Seconds before a probe is considered failed. Defaults to 5 when omitted.
+    example: 5
+  failureThreshold:
+    type: integer
+    minimum: 1
+    description: Consecutive failures before the instance is marked unhealthy. Defaults to 3 when omitted.
+    example: 3
+  initialDelaySeconds:
+    type: integer
+    minimum: 0
+    description: Seconds to wait after start before the first probe. Defaults to 0 when omitted.
+    example: 0
+required:
+  - method
+  - path
+additionalProperties: false

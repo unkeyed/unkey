@@ -51,3 +51,18 @@ actions:
   - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["Healthcheck"]["type"]
+    update: object
+  - target: $["components"]["schemas"]["Healthcheck"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["dockerfile"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["dockerfile"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["openapiSpecPath"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["openapiSpecPath"]
+    update:
+      nullable: true

@@ -1,0 +1,156 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+
+  dockerfile:
+    type:
+      - string
+      - "null"
+    maxLength: 500
+    description: |
+      Path to the Dockerfile used for builds.
+      Omit to leave unchanged; set null to clear and fall back to Railpack.
+    example: ./Dockerfile
+  dockerContext:
+    type: string
+    maxLength: 500
+    description: |
+      Build context directory.
+      Omit to leave unchanged.
+    example: .
+  watchPaths:
+    type: array
+    items:
+      type: string
+      maxLength: 500
+    description: |
+      Glob paths that trigger auto-deploys when changed.
+      Omit to leave unchanged.
+  autoDeploy:
+    type: boolean
+    description: |
+      Whether pushes auto-deploy.
+      Omit to leave unchanged.
+    example: true
+
+  port:
+    type: integer
+    minimum: 1
+    maximum: 65535
+    description: |
+      Container port the app listens on.
+      Omit to leave unchanged.
+    example: 8080
+  cpuMillicores:
+    type: integer
+    minimum: 1
+    description: |
+      CPU allocation in millicores.
+      Omit to leave unchanged.
+    example: 1000
+  memoryMib:
+    type: integer
+    minimum: 1
+    description: |
+      Memory allocation in MiB.
+      Omit to leave unchanged.
+    example: 512
+  storageMib:
+    type: integer
+    minimum: 0
+    description: |
+      Ephemeral storage allocation in MiB.
+      Omit to leave unchanged.
+    example: 1024
+  command:
+    type: array
+    items:
+      type: string
+    description: |
+      Override container entrypoint command.
+      Omit to leave unchanged.
+  healthcheck:
+    "$ref": "./Healthcheck.yaml"
+    description: |
+      HTTP healthcheck configuration.
+      Omit to leave unchanged; set null to remove.
+  shutdownSignal:
+    type: string
+    enum:
+      - SIGTERM
+      - SIGINT
+      - SIGQUIT
+      - SIGKILL
+    description: |
+      Signal sent to the container on shutdown.
+      Omit to leave unchanged.
+    example: SIGTERM
+  upstreamProtocol:
+    type: string
+    enum:
+      - http1
+      - h2c
+    description: |
+      Protocol used to reach the upstream container.
+      Omit to leave unchanged.
+    example: http1
+  openapiSpecPath:
+    type:
+      - string
+      - "null"
+    maxLength: 512
+    description: |
+      Path to the OpenAPI spec file within the build.
+      Omit to leave unchanged; set null to clear.
+    example: ./openapi.yaml
+
+  regions:
+    type: array
+    maxItems: 50
+    items:
+      "$ref": "./RegionSetting.yaml"
+    description: |
+      Desired set of regions with per-region replica bounds.
+      Omit to leave regions unchanged; when present, this replaces the full set
+      (regions absent from the list are removed).
+additionalProperties: false
+examples:
+  setRuntime:
+    summary: Update runtime resources
+    description: Adjust CPU and memory, locating the environment by slug
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      cpuMillicores: 2000
+      memoryMib: 1024
+  clearDockerfile:
+    summary: Clear the Dockerfile
+    description: Fall back to Railpack by setting dockerfile to null
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      dockerfile: null
+  setRegions:
+    summary: Replace the region set
+    description: Deploy to a single region with replica bounds
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      regions:
+        - platform: aws
+          name: us-east-1
+          replicas:
+            min: 1
+            max: 3
