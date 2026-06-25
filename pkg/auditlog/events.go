@@ -72,4 +72,7 @@ const (
 	ProjectCreateEvent AuditLogEvent = "project.create"
 	ProjectUpdateEvent AuditLogEvent = "project.update"
 	ProjectDeleteEvent AuditLogEvent = "project.delete"
+
+	// App events
+	AppCreateEvent AuditLogEvent = "app.create"
 )
