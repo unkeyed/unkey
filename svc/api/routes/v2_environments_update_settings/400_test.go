@@ -32,6 +32,7 @@ func TestUpdateSettingsBadRequest(t *testing.T) {
 		{name: "unknown region", regions: []openapi.RegionSetting{regionSetting("ap-south-1", 1, 2)}},
 		{name: "duplicate region", regions: []openapi.RegionSetting{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)}},
 		{name: "mismatched replica bounds", regions: []openapi.RegionSetting{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)}},
+		{name: "empty regions list", regions: []openapi.RegionSetting{}},
 	}
 
 	for _, tc := range testCases {
