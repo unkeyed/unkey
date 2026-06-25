@@ -189,7 +189,11 @@ const (
 
 	// DeleteProject permits deleting projects
 	DeleteProject ActionType = "delete_project"
+)
 
+// Predefined app actions. These constants define operations that can be
+// performed on app resources within a project.
+const (
 	// CreateApp permits creating new apps within a project
 	CreateApp ActionType = "create_app"
 )
