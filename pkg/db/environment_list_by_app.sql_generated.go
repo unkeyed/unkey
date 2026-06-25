@@ -24,10 +24,6 @@ type ListEnvironmentsByAppParams struct {
 	Limit    int32  `db:"limit"`
 }
 
-type ListEnvironmentsByAppRow struct {
-	Environment Environment `db:"environment"`
-}
-
 // ListEnvironmentsByApp
 //
 //	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
@@ -36,26 +32,26 @@ type ListEnvironmentsByAppRow struct {
 //	  AND id >= ?
 //	ORDER BY id ASC
 //	LIMIT ?
-func (q *Queries) ListEnvironmentsByApp(ctx context.Context, db DBTX, arg ListEnvironmentsByAppParams) ([]ListEnvironmentsByAppRow, error) {
+func (q *Queries) ListEnvironmentsByApp(ctx context.Context, db DBTX, arg ListEnvironmentsByAppParams) ([]Environment, error) {
 	rows, err := db.QueryContext(ctx, listEnvironmentsByApp, arg.AppID, arg.IDCursor, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListEnvironmentsByAppRow
+	var items []Environment
 	for rows.Next() {
-		var i ListEnvironmentsByAppRow
+		var i Environment
 		if err := rows.Scan(
-			&i.Environment.Pk,
-			&i.Environment.ID,
-			&i.Environment.WorkspaceID,
-			&i.Environment.ProjectID,
-			&i.Environment.AppID,
-			&i.Environment.Slug,
-			&i.Environment.Description,
-			&i.Environment.DeleteProtection,
-			&i.Environment.CreatedAt,
-			&i.Environment.UpdatedAt,
+			&i.Pk,
+			&i.ID,
+			&i.WorkspaceID,
+			&i.ProjectID,
+			&i.AppID,
+			&i.Slug,
+			&i.Description,
+			&i.DeleteProtection,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
