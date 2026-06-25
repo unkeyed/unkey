@@ -97,21 +97,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	hasMore := len(rows) > limit
 	var nextCursor *string
 	if hasMore {
-		nextCursor = ptr.P(rows[limit].Environment.ID)
+		nextCursor = ptr.P(rows[limit].ID)
 		rows = rows[:limit]
 	}
 
 	data := make([]openapi.Environment, len(rows))
 	for i, row := range rows {
 		data[i] = openapi.Environment{
-			Id:               row.Environment.ID,
-			ProjectId:        row.Environment.ProjectID,
-			AppId:            row.Environment.AppID,
-			Slug:             row.Environment.Slug,
-			Description:      row.Environment.Description,
-			DeleteProtection: row.Environment.DeleteProtection.Bool,
-			CreatedAt:        row.Environment.CreatedAt,
-			UpdatedAt:        row.Environment.UpdatedAt.Int64,
+			Id:               row.ID,
+			ProjectId:        row.ProjectID,
+			AppId:            row.AppID,
+			Slug:             row.Slug,
+			Description:      row.Description,
+			DeleteProtection: row.DeleteProtection.Bool,
+			CreatedAt:        row.CreatedAt,
+			UpdatedAt:        row.UpdatedAt.Int64,
 		}
 	}
 

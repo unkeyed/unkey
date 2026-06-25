@@ -2288,7 +2288,7 @@ type Querier interface {
 	//    AND id >= ?
 	//  ORDER BY id ASC
 	//  LIMIT ?
-	ListEnvironmentsByApp(ctx context.Context, db DBTX, arg ListEnvironmentsByAppParams) ([]ListEnvironmentsByAppRow, error)
+	ListEnvironmentsByApp(ctx context.Context, db DBTX, arg ListEnvironmentsByAppParams) ([]Environment, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
