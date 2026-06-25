@@ -53,11 +53,11 @@ func TestGetEnvironmentForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard environment permission", permissions: []string{"project.*.read_environment"}, shouldPass: true},
-		{name: "specific project permission", permissions: []string{fmt.Sprintf("project.%s.read_environment", project.ID)}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.read_environment"}, shouldPass: true},
-		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
-		{name: "read_app does not match read_environment", permissions: []string{"project.*.read_app"}, shouldPass: false},
+		{name: "wildcard environment permission", permissions: []string{"environment.*.read_environment"}, shouldPass: true},
+		{name: "specific environment permission", permissions: []string{fmt.Sprintf("environment.%s.read_environment", environment.ID)}, shouldPass: true},
+		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.read_environment"}, shouldPass: true},
+		{name: "wrong action", permissions: []string{"environment.*.read_app"}, shouldPass: false},
+		{name: "app scope does not match environment scope", permissions: []string{"app.*.read_environment"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
