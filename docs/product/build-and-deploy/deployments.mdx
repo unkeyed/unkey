@@ -85,6 +85,28 @@ When a newer preview deployment becomes ready on the same branch, the previous d
 
 This keeps costs low for branches that are no longer being actively reviewed.
 
+## Stop and wake a deployment
+
+You can stop a non-production deployment when you want to pause a preview or testing environment without deleting its deployment record. Stopping scales the deployment down and changes its status to **Stopped**. You can wake it later without creating another deployment.
+
+Stop is available for ready deployments outside production. Wake is available for stopped deployments outside production.
+
+To stop a deployment:
+
+1. Open the app's **Deployments** tab.
+2. Click the three-dot menu on a ready non-production deployment.
+3. Select **Stop deployment**.
+4. Confirm the action.
+
+To wake a deployment:
+
+1. Open the app's **Deployments** tab.
+2. Click the three-dot menu on a stopped non-production deployment.
+3. Select **Wake deployment**.
+4. Wait for the deployment to return to **Ready**.
+
+Use stop for review apps, branch previews, and test environments that don't need to run continuously. Use redeploy instead when you need a fresh build from the same source.
+
 ## Build concurrency
 
 Each workspace has a maximum number of deployments that can build at the same time (`max_concurrent_builds`, defaults to 1). When the workspace is at capacity, new deployments queue in the **Pending** state until a running build finishes.

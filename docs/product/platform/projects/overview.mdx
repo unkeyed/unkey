@@ -38,9 +38,62 @@ Build settings, runtime configuration, and [gateway policies](/platform/gateway/
 6. Configure initial [build and runtime settings](/platform/projects/settings). You can change these later.
 7. Click **Deploy** to trigger your first deployment.
 
-The slug must be unique within your workspace and can only contain lowercase letters, numbers, and hyphens.
+The slug must be unique within your workspace. Dashboard-created slugs use lowercase letters, numbers, and hyphens.
 
 If you skipped the repository step, the project is created without a connected repo. You can connect one later from the project's **Settings** tab and trigger your first deployment from there.
+
+## Manage projects with the API
+
+Use the Projects API when you need to provision, audit, or clean up projects from your own tooling. This is useful for internal developer platforms, customer onboarding flows, and scripts that keep Unkey projects in sync with another system.
+
+The Projects API supports these operations:
+
+| Operation | Endpoint | Required root key permission |
+| --------- | -------- | ---------------------------- |
+| Create a project | `POST /v2/projects.createProject` | `project.*.create_project` |
+| List projects | `POST /v2/projects.listProjects` | `project.*.read_project` |
+| Get a project | `POST /v2/projects.getProject` | `project.*.read_project` or `project.{projectId}.read_project` |
+| Update a project | `POST /v2/projects.updateProject` | `project.*.update_project` or `project.{projectId}.update_project` |
+| Delete a project | `POST /v2/projects.deleteProject` | `project.*.delete_project` or `project.{projectId}.delete_project` |
+
+Project slugs are workspace-scoped handles that you choose. API-created slugs must be unique within the workspace and can contain letters, numbers, hyphens, and underscores. Get, update, and delete requests accept either the project ID or slug in the `project` field.
+
+```bash
+curl -X POST https://api.unkey.com/v2/projects.createProject \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Payments Service",
+    "slug": "payments-service"
+  }'
+```
+
+The response returns the generated project ID:
+
+```json
+{
+  "meta": {
+    "requestId": "req_1234abcd"
+  },
+  "data": {
+    "id": "proj_1234abcd"
+  }
+}
+```
+
+Use delete protection when an automation can update project settings but must not delete the project without a separate step:
+
+```bash
+curl -X POST https://api.unkey.com/v2/projects.updateProject \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project": "payments-service",
+    "deleteProtection": true
+  }'
+```
+
+Projects with delete protection enabled reject delete requests until you disable protection.
 
 ## Project dashboard
 

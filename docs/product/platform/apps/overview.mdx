@@ -30,6 +30,20 @@ A project can contain multiple apps. Each app has its own pair of default enviro
 
 When you create a project, Unkey creates a default app automatically. For projects with a single service, this is all you need. The dashboard manages the default app transparently, so you interact with it through your project's **Settings** and **Deployments** tabs without selecting an app.
 
+## App overview
+
+The app overview is the dashboard landing page for an app. It summarizes the live production deployment, recent deployment activity, request volume, error volume, domains, regions, resources, and instance counts in one place.
+
+Use the overview when you need to answer operational questions quickly:
+
+- Which deployment is serving production traffic
+- Whether the app is live, deploying, stopped, failed, or crashing
+- How many requests and errors the app received over the selected window
+- Which domains route to the app
+- Which recent deployments may need a rollback, promotion, redeploy, stop, or wake action
+
+The overview links directly to logs, requests, deployment details, and custom domain settings. For production apps, the overview also exposes rollback and undo-rollback actions when a previous ready deployment is available.
+
 ## Multiple apps
 
 A project can contain multiple apps when your codebase produces more than one deployable service. For example, a monorepo might have an API server and a background worker that share the same repository but build and deploy independently.

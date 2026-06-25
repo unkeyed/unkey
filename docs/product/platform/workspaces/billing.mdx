@@ -4,9 +4,15 @@ description: "Manage your Unkey workspace billing, subscription plans, payment m
 ---
 
 Unkey uses Stripe for all billing. Each workspace has its own subscription, payment method, and invoices. You manage billing from **Settings > Billing** in the dashboard.
+
 ## Plans
 
-Unkey offers multiple plan tiers. Every workspace starts on the Free plan. Paid plans unlock higher [limits](/platform/workspaces/quotas), longer data retention, and [team collaboration](/platform/workspaces/team-members).
+Unkey separates billing into two products:
+
+- **Compute**: running and scaling deployed apps
+- **API Management**: key verifications, rate limits, and API platform usage
+
+Every workspace starts on the Free plan for API Management. Paid API Management plans unlock higher [limits](/platform/workspaces/quotas), longer data retention, and [team collaboration](/platform/workspaces/team-members). Compute plans include usage credits equal to the plan fee. Usage beyond the included credits is billed on top.
 
 | Capability              | Free plan      | Paid plans                  |
 | ----------------------- | -------------- | --------------------------- |
@@ -14,6 +20,7 @@ Unkey offers multiple plan tiers. Every workspace starts on the Free plan. Paid 
 | Log retention           | 7 days         | Varies by plan              |
 | Audit log retention     | 30 days        | Varies by plan              |
 | Team members            | Not available  | Included                    |
+| Compute usage credits   | Not included   | Varies by plan              |
 
 <Tip>
   Visit [unkey.com/pricing](https://unkey.com/pricing) for the latest plan details and pricing.
@@ -37,28 +44,33 @@ Before upgrading, you must add a payment method.
 ## Upgrade your plan
 
 1. Navigate to **Settings > Billing**.
-2. Click **Change plan** on the current plan card.
-3. Select a plan from the available options. Each plan shows its monthly price and included request quota.
+2. On the **Compute** or **API Management** card, click **Choose a plan**, **Upgrade**, or **Change plan**.
+3. Select a plan from the available options. Compute plans show included usage credits. API Management plans show the included request quota.
 4. Confirm the selection.
+
 <Frame>
   <img className="block dark:hidden" src="/platform/workspaces/billing-plans-light.png" alt="Plan selection modal" />
   <img className="hidden dark:block" src="/platform/workspaces/billing-plans-dark.png" alt="Plan selection modal" />
 </Frame>
 
 
-Unkey prorates charges when you upgrade mid-cycle. The difference is applied to your next invoice.
+Compute plan changes take effect immediately. Upgrades charge the difference now and add the difference as usage credits for the current period. Downgrades keep the current period's credits, and the lower fee starts next period.
+
+API Management upgrades update your request quota immediately. API Management downgrades or cancellations take effect at the end of the current billing period.
 
 ## Downgrade or cancel
 
 1. Navigate to **Settings > Billing**.
-2. Click **Cancel plan** at the bottom of the billing page.
+2. On the **Compute** or **API Management** card, click **Change plan** to downgrade or **Cancel plan** to cancel.
 3. Confirm the cancellation.
 
-Cancellation takes effect at the end of your current billing period. Your workspace continues to operate with paid plan limits until that date. After the period ends, the workspace reverts to Free plan [defaults](/platform/workspaces/quotas#free-plan-defaults).
+Compute cancellation stops Compute immediately. Your deployments stop, no further Compute usage is billed, and usage up to cancellation is still charged.
+
+API Management cancellation takes effect at the end of your current billing period. Your workspace continues to operate with paid plan limits until that date. After the period ends, the workspace reverts to Free plan [defaults](/platform/workspaces/quotas#free-plan-defaults).
 
 If you cancel by mistake, you can resume your subscription from the same billing page before the period ends.
 
-Once subscribed, the billing page shows your current plan, usage, and options to change your plan, open the Stripe billing portal, or cancel.
+Once subscribed, the billing page shows your current Compute plan, API Management plan, usage, and options to change your plan, open the Stripe billing portal, or cancel.
 
 <Frame>
   <img className="block dark:hidden" src="/platform/workspaces/billing-paid-light.png" alt="Billing page on paid plan" />
@@ -80,6 +92,10 @@ The portal opens in a new page hosted by Stripe. From there you can:
 
 ## Usage tracking
 
-The billing page and sidebar display your workspace's usage as a percentage of your monthly request quota. This combines key verifications and rate limit operations for the current billing month.
+The billing page displays usage for each product.
+
+API Management usage combines key verifications and rate limit operations for the current billing month. The billing page and sidebar display this usage as a percentage of your monthly request quota.
+
+Compute usage tracks CPU time, memory allocation over time, public egress, and reserved disk over time. The Compute card shows usage for the current period against the credits included in your plan.
 
 Unkey sends email notifications when your workspace approaches or exceeds its quota.

@@ -167,6 +167,23 @@ Examples:
 
 The API requires at least one permission. An empty permissions array is rejected with HTTP 400.
 
+## Key ownership in portal sessions
+
+Portal sessions are scoped to the `externalId` you provide when creating the session. When the browser creates a key through the portal session, Unkey links the key to that session identity.
+
+This means a portal-authenticated `keys.createKey` request doesn't need an `externalId` in the request body. If the browser sends one anyway, Unkey ignores it and uses the session's `externalId`.
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Cookie: portal_session=ps_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_1234"
+  }'
+```
+
+Use this behavior when you let end users create their own keys from the portal. Create one portal session per signed-in user, set `externalId` to that user's identifier in your system, and avoid exposing identity selection in the browser.
+
 ## Session lifecycle
 
 | Token | Lifetime | Usage |

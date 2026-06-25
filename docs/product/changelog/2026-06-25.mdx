@@ -1,0 +1,37 @@
+---
+title: "June 25, 2026"
+description: "Project API endpoints, app overview, non-production deployment stop and wake controls, Compute billing, two-factor authentication, and portal key ownership."
+noindex: true
+---
+
+## New features
+
+### Project management API
+
+You can create, list, read, update, and delete projects through the Unkey API. Use these endpoints for internal developer platforms, onboarding automation, and workspace administration. See [Projects](/platform/projects/overview#manage-projects-with-the-api).
+
+### App overview
+
+App pages now open to an overview that summarizes the live production deployment, recent deployments, request and error volume, domains, regions, resources, and instance counts. The overview links to logs, requests, deployment details, custom domains, and rollback actions. See [Apps](/platform/apps/overview#app-overview).
+
+### Stop and wake non-production deployments
+
+Ready deployments outside production can be stopped from the dashboard and woken later without creating a new deployment. Use this for branch previews, review apps, and test environments that don't need to run continuously. See [Deployment lifecycle](/build-and-deploy/deployments#stop-and-wake-a-deployment).
+
+### Compute billing
+
+Billing now separates **Compute** from **API Management**. Compute plans include usage credits equal to the plan fee, with usage beyond those credits billed on top. The billing page shows CPU, memory, egress, and disk usage for the current period. See [Billing](/platform/workspaces/billing).
+
+### Two-factor authentication
+
+Dashboard users can add an authenticator app from **Settings > Security** and require a 6 digit code at sign-in. See [Workspace settings](/platform/workspaces/settings#two-factor-authentication).
+
+## Updates
+
+### Portal-created keys use the session identity
+
+Keys created from a Customer Portal session are linked to the `externalId` on that session. If the browser sends a different `externalId`, Unkey ignores it and uses the session identity. See [Customer Portal](/quickstart/portal#key-ownership-in-portal-sessions).
+
+### Root key permissions for project automation
+
+Root keys support project management permissions such as `project.*.create_project`, `project.*.read_project`, `project.*.update_project`, and `project.*.delete_project`. See [Permissions](/platform/root-keys/permissions#project-and-deployment-permissions).
