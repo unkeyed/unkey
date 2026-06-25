@@ -10,9 +10,12 @@
 //
 // Tests using this package MUST be run via Bazel:
 //
-//	bazel test //pkg/testutil/containers:containers_test
+//	UNKEY_TEST_CONTAINER_SCOPE=$PWD mise exec -- bazel test //pkg/testutil/containers:containers_test --test_env=UNKEY_TEST_CONTAINER_SCOPE
 //
-// Running via `go test` directly is not supported and will fail with an error.
+// Prefer `mise run test` for full-suite runs. It sets the worktree scope that
+// lets Bazel test processes share containers and removes scoped containers when
+// the suite exits. Running via `go test` directly is not supported and will fail
+// with an error.
 //
 // # Key Types
 //

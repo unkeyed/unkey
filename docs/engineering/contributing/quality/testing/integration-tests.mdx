@@ -27,6 +27,11 @@ need. `mise run test` removes the shared containers for that worktree after the
 Bazel suite exits. Run tests that use these helpers through Bazel so schema
 runfiles are available.
 
+For full-suite runs, use `mise run test`. Direct `bazel test //...` does not run
+the cleanup trap from the mise task, and it must be passed
+`--test_env=UNKEY_TEST_CONTAINER_SCOPE` if you want multiple Bazel test targets
+to share the same worktree-scoped containers.
+
 ```go
 redisURL := containers.Redis(t)
 ```

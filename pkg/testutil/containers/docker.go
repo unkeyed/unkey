@@ -293,7 +293,9 @@ func startContainer(t testing.TB, cfg containerConfig) *Container {
 // attach, and leaked dedicated containers can still be removed by mise test.
 func containerLabels(cfg containerConfig) map[string]string {
 	labels := map[string]string{
-		containerOwnerLabel: containerOwnerValue,
+		containerOwnerLabel:     containerOwnerValue,
+		containerScopeLabel:     testContainerScope(),
+		containerScopeHashLabel: testContainerScopeHash(),
 	}
 	if cfg.Dedicated {
 		return labels
@@ -301,8 +303,6 @@ func containerLabels(cfg containerConfig) map[string]string {
 
 	labels[containerReusableLabel] = "true"
 	labels[containerImageLabel] = cfg.Image
-	labels[containerScopeLabel] = testContainerScope()
-	labels[containerScopeHashLabel] = testContainerScopeHash()
 	labels[containerConfigHashLabel] = containerConfigHash(cfg)
 	return labels
 }
@@ -319,11 +319,12 @@ func findReusableContainerAfterConflict(
 
 	containerName := reusableContainerName(cfg)
 	var ctr *Container
+	var lastErr error
 	require.Eventually(t, func() bool {
 		var ok bool
-		ctr, ok = findReusableContainer(t, ctx, cli, cfg)
-		return ok
-	}, 5*time.Second, 100*time.Millisecond, "container %q already exists but could not be inspected after retry", containerName)
+		ctr, ok, lastErr = inspectReusableContainer(ctx, cli, cfg)
+		return ok && lastErr == nil
+	}, 5*time.Second, 100*time.Millisecond, "container %q already exists but could not be inspected after retry: %v", containerName, lastErr)
 
 	return ctr
 }
@@ -341,40 +342,61 @@ func findReusableContainer(
 ) (*Container, bool) {
 	t.Helper()
 
+	ctr, ok, err := inspectReusableContainer(ctx, cli, cfg)
+	require.NoError(t, err)
+	return ctr, ok
+}
+
+func inspectReusableContainer(
+	ctx context.Context,
+	cli *client.Client,
+	cfg containerConfig,
+) (*Container, bool, error) {
 	containerName := reusableContainerName(cfg)
 	inspect, err := cli.ContainerInspect(ctx, containerName)
 	if err != nil {
 		if errdefs.IsNotFound(err) {
-			return nil, false
+			return nil, false, nil
 		}
-		require.NoError(t, err, "failed to inspect reusable container %q", containerName)
+		return nil, false, fmt.Errorf("failed to inspect reusable container %q: %w", containerName, err)
 	}
 
 	labels := map[string]string{}
 	if inspect.Config != nil && inspect.Config.Labels != nil {
 		labels = inspect.Config.Labels
 	}
-	require.Equal(t, containerOwnerValue, labels[containerOwnerLabel],
-		"container %q exists but is not owned by testutil containers", containerName)
-	require.Equal(t, "true", labels[containerReusableLabel],
-		"container %q exists but is not marked reusable", containerName)
-	require.Equal(t, cfg.Image, labels[containerImageLabel],
-		"container %q exists for a different image", containerName)
-	require.Equal(t, testContainerScopeHash(), labels[containerScopeHashLabel],
-		"container %q exists for a different test scope", containerName)
-	require.Equal(t, containerConfigHash(cfg), labels[containerConfigHashLabel],
-		"container %q exists for a different test container config", containerName)
+	if labels[containerOwnerLabel] != containerOwnerValue {
+		return nil, true, fmt.Errorf("container %q exists but is not owned by testutil containers", containerName)
+	}
+	if labels[containerReusableLabel] != "true" {
+		return nil, true, fmt.Errorf("container %q exists but is not marked reusable", containerName)
+	}
+	if labels[containerImageLabel] != cfg.Image {
+		return nil, true, fmt.Errorf("container %q exists for a different image", containerName)
+	}
+	if labels[containerScopeHashLabel] != testContainerScopeHash() {
+		return nil, true, fmt.Errorf("container %q exists for a different test scope", containerName)
+	}
+	if labels[containerConfigHashLabel] != containerConfigHash(cfg) {
+		return nil, true, fmt.Errorf("container %q exists for a different test container config", containerName)
+	}
 
 	if inspect.State == nil || !inspect.State.Running {
 		err = cli.ContainerStart(ctx, inspect.ID, container.StartOptions{})
 		if err != nil && !errdefs.IsNotModified(err) {
-			require.NoError(t, err, "failed to start reusable container %q", containerName)
+			return nil, true, fmt.Errorf("failed to start reusable container %q: %w", containerName, err)
 		}
 		inspect, err = cli.ContainerInspect(ctx, inspect.ID)
-		require.NoError(t, err, "failed to inspect reusable container %q after start", containerName)
+		if err != nil {
+			return nil, true, fmt.Errorf("failed to inspect reusable container %q after start: %w", containerName, err)
+		}
 	}
 
-	return containerFromInspect(t, inspect), true
+	ctr, err := containerFromInspectRaw(inspect)
+	if err != nil {
+		return nil, true, err
+	}
+	return ctr, true, nil
 }
 
 // containerFromInspect converts Docker inspect output into the package's
@@ -382,7 +404,15 @@ func findReusableContainer(
 func containerFromInspect(t testing.TB, inspect container.InspectResponse) *Container {
 	t.Helper()
 
-	require.NotNil(t, inspect.NetworkSettings, "container %s has no network settings", inspect.ID)
+	ctr, err := containerFromInspectRaw(inspect)
+	require.NoError(t, err)
+	return ctr
+}
+
+func containerFromInspectRaw(inspect container.InspectResponse) (*Container, error) {
+	if inspect.NetworkSettings == nil {
+		return nil, fmt.Errorf("container %s has no network settings", inspect.ID)
+	}
 
 	ports := make(map[string]string)
 	for port, bindings := range inspect.NetworkSettings.Ports {
@@ -395,7 +425,7 @@ func containerFromInspect(t testing.TB, inspect container.InspectResponse) *Cont
 		ID:    inspect.ID,
 		Host:  "localhost",
 		Ports: ports,
-	}
+	}, nil
 }
 
 // waitForContainer applies the configured readiness check.

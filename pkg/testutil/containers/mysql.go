@@ -24,6 +24,11 @@ const (
 	mysqlSchemaMarkerTable = "_unkey_test_schema"
 )
 
+type mysqlSchemaDB interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
 // MySQLConfig holds connection information for a MySQL test container.
 type MySQLConfig struct {
 	// DSN is the host DSN for connecting from the test runner.
@@ -129,23 +134,29 @@ func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
 	schemaStart := time.Now()
 	ctx := context.Background()
 
+	conn, err := hostDB.Conn(ctx)
+	require.NoError(t, err, "failed to pin MySQL schema connection")
+	defer func() { require.NoError(t, conn.Close()) }()
+
 	var lockAcquired int
-	err := hostDB.QueryRowContext(ctx, "SELECT GET_LOCK(?, 60)", mysqlSchemaLockName).Scan(&lockAcquired)
+	err = conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 60)", mysqlSchemaLockName).Scan(&lockAcquired)
 	require.NoError(t, err, "failed to acquire MySQL schema lock")
 	require.Equal(t, 1, lockAcquired, "timed out acquiring MySQL schema lock")
 	defer func() {
 		var lockReleased sql.NullInt64
-		releaseErr := hostDB.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", mysqlSchemaLockName).Scan(&lockReleased)
+		releaseErr := conn.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", mysqlSchemaLockName).Scan(&lockReleased)
 		require.NoError(t, releaseErr, "failed to release MySQL schema lock")
+		require.True(t, lockReleased.Valid, "MySQL schema lock release returned NULL")
+		require.Equal(t, int64(1), lockReleased.Int64, "MySQL schema lock was not held by this connection")
 	}()
 
-	if mysqlTableExists(t, ctx, hostDB, mysqlSchemaMarkerTable) {
+	if mysqlTableExists(t, ctx, conn, mysqlSchemaMarkerTable) {
 		t.Logf("  MySQL schema already loaded in %s", time.Since(schemaStart))
 		return
 	}
 
-	if mysqlTableExists(t, ctx, hostDB, "workspaces") {
-		markMySQLSchema(t, ctx, hostDB)
+	if mysqlTableExists(t, ctx, conn, "workspaces") {
+		markMySQLSchema(t, ctx, conn)
 		t.Logf("  MySQL schema marker created for existing schema in %s", time.Since(schemaStart))
 		return
 	}
@@ -159,15 +170,15 @@ func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
 		}
 		data, readErr := os.ReadFile(filepath.Join(schemaDir, entry.Name()))
 		require.NoError(t, readErr)
-		_, execErr := hostDB.ExecContext(ctx, string(data))
+		_, execErr := conn.ExecContext(ctx, string(data))
 		require.NoError(t, execErr, "failed to apply %s", entry.Name())
 	}
-	markMySQLSchema(t, ctx, hostDB)
+	markMySQLSchema(t, ctx, conn)
 	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
 }
 
 // mysqlTableExists reports whether a table exists in the current database.
-func mysqlTableExists(t testing.TB, ctx context.Context, hostDB *sql.DB, tableName string) bool {
+func mysqlTableExists(t testing.TB, ctx context.Context, hostDB mysqlSchemaDB, tableName string) bool {
 	t.Helper()
 
 	var count int
@@ -182,7 +193,7 @@ func mysqlTableExists(t testing.TB, ctx context.Context, hostDB *sql.DB, tableNa
 }
 
 // markMySQLSchema records that the shared schema has been applied.
-func markMySQLSchema(t testing.TB, ctx context.Context, hostDB *sql.DB) {
+func markMySQLSchema(t testing.TB, ctx context.Context, hostDB mysqlSchemaDB) {
 	t.Helper()
 
 	_, err := hostDB.ExecContext(ctx, fmt.Sprintf(`
