@@ -1,0 +1,142 @@
+post:
+  tags:
+    - apps
+  summary: Create app
+  description: |
+    Create an app within a project. The app is created with default `production` and `preview` environments.
+
+    The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
+
+    **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `project.*.create_app` (to create apps in any project)
+    - `project.<project_id>.create_app` (to create apps in a specific project)
+  operationId: apps.createApp
+  x-speakeasy-name-override: createApp
+  x-unkey-idempotency: conditionally-idempotent
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AppsCreateAppRequestBody.yaml"
+        examples:
+          basic:
+            summary: Basic app creation
+            description: Create an app within a project
+            value:
+              project: payments
+              name: Payments API
+              slug: payments-api
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AppsCreateAppResponseBody.yaml"
+          examples:
+            success:
+              summary: App created successfully
+              description: Successfully created an app, returning its id
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  appId: app_1234abcd
+      description: |
+        App created successfully. The response contains the app id used to reference it in subsequent operations.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidSlug:
+              summary: Invalid slug format
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The slug must match the pattern ^[a-z0-9]+(-[a-z0-9]+)*$.
+                  status: 400
+                  type: validation-error
+                  errors:
+                    - location: body.slug
+                      message: must match ^[a-z0-9]+(-[a-z0-9]+)*$
+                      fix: Use lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens)
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `project.*.create_app`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'project.*.create_app' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - The requested project does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            projectNotFound:
+              summary: Project not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested project does not exist.
+                  status: 404
+                  type: not-found
+    "409":
+      description: Conflict - App with this slug already exists in the project
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
+          examples:
+            appExists:
+              summary: App already exists
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Conflict
+                  detail: An app with slug 'payments-api' already exists in this project.
+                  status: 409
+                  type: conflict
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
