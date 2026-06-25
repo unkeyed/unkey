@@ -63,18 +63,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   "*",
-			Action:       rbac.ReadEnvironment,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   app.App.ProjectID,
-			Action:       rbac.ReadEnvironment,
-		}),
-	))
+	err = principal.Authorize(rbac.T(rbac.Tuple{
+		ResourceType: rbac.Environment,
+		ResourceID:   "*",
+		Action:       rbac.ReadEnvironment,
+	}))
 	if err != nil {
 		return fault.New(
 			"app not found",
