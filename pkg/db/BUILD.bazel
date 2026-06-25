@@ -314,7 +314,6 @@ go_library(
         "project_find_by_id.sql_generated.go",
         "project_find_by_slug.sql_generated.go",
         "project_find_by_slug_or_id.sql_generated.go",
-        "project_find_by_workspace_and_slug.sql_generated.go",
         "project_insert.sql_generated.go",
         "project_list_by_workspace.sql_generated.go",
         "project_update.sql_generated.go",

@@ -6,6 +6,7 @@ go_library(
         "audit.go",
         "doc.go",
         "http.go",
+        "mock_app_client.go",
         "mock_deployment_client.go",
         "mock_project_client.go",
     ],
