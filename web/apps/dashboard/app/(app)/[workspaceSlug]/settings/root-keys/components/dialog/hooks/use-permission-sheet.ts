@@ -154,9 +154,7 @@ export function usePermissionSheet({
       hasPermissionResults(appPermissions(app.id), searchValue),
     );
 
-    return (
-      !workspaceHasResults && !anyApiHasResults && !anyProjectHasResults && !anyAppHasResults
-    );
+    return !workspaceHasResults && !anyApiHasResults && !anyProjectHasResults && !anyAppHasResults;
   }, [searchValue, apis, projects, apps]);
 
   return {
