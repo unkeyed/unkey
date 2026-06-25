@@ -5,14 +5,7 @@ required:
   - slug
 properties:
   project:
-    type: string
-    minLength: 1
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_-]+$"
-    description: |
-      Identifies the parent project this app belongs to, by either its unique ID or its slug.
-      Accepts a project ID that begins with 'proj_' or a project slug.
-    example: payments
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
   name:
     type: string
     minLength: 1
@@ -22,15 +15,7 @@ properties:
       Use a descriptive name like 'Payments API' to identify its purpose.
     example: Payments API
   slug:
-    type: string
-    minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-    description: |
-      URL-safe handle you choose for this app, unique within the project.
-      Pick a short identifier like 'payments-api'.
-      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
-    example: payments-api
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
 additionalProperties: false
 examples:
   byProjectSlug:

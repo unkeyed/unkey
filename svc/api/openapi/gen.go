@@ -721,14 +721,13 @@ type V2AppsCreateAppRequestBody struct {
 	// Use a descriptive name like 'Payments API' to identify its purpose.
 	Name string `json:"name"`
 
-	// Project Identifies the parent project this app belongs to, by either its unique ID or its slug.
-	// Accepts a project ID that begins with 'proj_' or a project slug.
-	Project string `json:"project"`
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
 
-	// Slug URL-safe handle you choose for this app, unique within the project.
-	// Pick a short identifier like 'payments-api'.
-	// Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
-	Slug string `json:"slug"`
+	// Slug Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Slug ResourceIdentifier `json:"slug"`
 }
 
 // V2AppsCreateAppResponseBody defines model for V2AppsCreateAppResponseBody.
