@@ -99,6 +99,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	container := corev1.Container{
 		Image:           req.GetImage(),
 		Name:            "deployment",
+		Command:         req.GetCommand(),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: &corev1.SecurityContext{},
 		Env: []corev1.EnvVar{
