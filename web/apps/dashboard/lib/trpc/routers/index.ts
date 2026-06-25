@@ -66,6 +66,7 @@ import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
+import { renameEnvVars } from "./deploy/env-vars/rename";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
@@ -535,6 +536,7 @@ export const router = t.router({
       create: createEnvVars,
       createBulk: createBulkEnvVars,
       update: updateEnvVar,
+      rename: renameEnvVars,
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
       makeSensitive,
