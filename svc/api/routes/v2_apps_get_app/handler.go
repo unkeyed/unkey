@@ -66,13 +66,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
+			ResourceType: rbac.App,
 			ResourceID:   "*",
 			Action:       rbac.ReadApp,
 		}),
 		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   app.ProjectID,
+			ResourceType: rbac.App,
+			ResourceID:   app.ID,
 			Action:       rbac.ReadApp,
 		}),
 	))

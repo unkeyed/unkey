@@ -31,6 +31,9 @@ const (
 
 	// Deploy represents deployment resources and operations
 	Project ResourceType = "project"
+
+	// App represents app resources within a project
+	App ResourceType = "app"
 )
 
 // Predefined API actions. These constants define operations that can be

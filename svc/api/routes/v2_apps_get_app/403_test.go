@@ -45,13 +45,14 @@ func TestGetAppForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard app permission", permissions: []string{"project.*.read_app"}, shouldPass: true},
-		{name: "specific project permission", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.read_app"}, shouldPass: true},
+		{name: "wildcard app permission", permissions: []string{"app.*.read_app"}, shouldPass: true},
+		{name: "specific app permission", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: true},
+		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
+		{name: "project scoped read does not match", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: false},
 		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
 		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*/apps/*#read_app"}, shouldPass: false},
+		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read_app"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 

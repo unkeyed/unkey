@@ -784,13 +784,13 @@ type V2AppsCreateAppResponseData struct {
 
 // V2AppsGetAppRequestBody defines model for V2AppsGetAppRequestBody.
 type V2AppsGetAppRequestBody struct {
-	// App Identifies which app to retrieve, by either its unique ID or its slug.
-	// Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
-	App string `json:"app"`
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
 
-	// Project Identifies the parent project, by either its unique ID or its slug.
-	// Required to resolve the app, since app slugs are only unique within a project.
-	Project string `json:"project"`
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
 }
 
 // V2AppsGetAppResponseBody defines model for V2AppsGetAppResponseBody.
