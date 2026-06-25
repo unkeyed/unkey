@@ -18,12 +18,13 @@ import (
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	ctrlconfig "github.com/unkeyed/unkey/svc/ctrl/internal/config"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -76,10 +77,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	require.NoError(t, registration.register(ctx))
 
 	mysqlCfg := containers.MySQL(t)
-	database, err := db.New(db.Config{
-		PrimaryDSN:  mysqlCfg.DSN,
-		ReadOnlyDSN: "",
-	})
+	database, err := db.New(mysqlCfg.DSN)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
@@ -104,11 +102,8 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 
 		DefaultDomain:  "",
 		RegionalDomain: "",
-		Database: config.DatabaseConfig{
-			Primary:         mysqlCfg.DSN,
-			ReadonlyReplica: "",
-		},
-		Observability: config.Observability{},
+		Database:       ctrlconfig.DatabaseConfig{Primary: mysqlCfg.DSN},
+		Observability:  config.Observability{},
 		Restate: RestateConfig{
 			URL:    restateCfg.IngressURL,
 			APIKey: "",

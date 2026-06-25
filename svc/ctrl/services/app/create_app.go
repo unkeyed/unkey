@@ -9,10 +9,10 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // envSpec defines the slug and human-readable description for a default environment.
@@ -51,7 +51,7 @@ func (s *Service) CreateApp(
 	now := time.Now().UnixMilli()
 
 	err := db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.Query.InsertApp(txCtx, tx, db.InsertAppParams{
+		if txErr := db.NewQueries(tx).InsertApp(txCtx, db.InsertAppParams{
 			ID:               appID,
 			WorkspaceID:      workspaceID,
 			ProjectID:        projectID,
@@ -68,7 +68,7 @@ func (s *Service) CreateApp(
 		for _, env := range defaultEnvironments {
 			envID := uid.New(uid.EnvironmentPrefix)
 
-			if txErr := db.Query.InsertEnvironment(txCtx, tx, db.InsertEnvironmentParams{
+			if txErr := db.NewQueries(tx).InsertEnvironment(txCtx, db.InsertEnvironmentParams{
 				ID:          envID,
 				WorkspaceID: workspaceID,
 				ProjectID:   projectID,
@@ -81,7 +81,7 @@ func (s *Service) CreateApp(
 				return fmt.Errorf("insert %s environment: %w", env.slug, txErr)
 			}
 
-			if txErr := db.Query.UpsertAppBuildSettings(txCtx, tx, db.UpsertAppBuildSettingsParams{
+			if txErr := db.NewQueries(tx).UpsertAppBuildSettings(txCtx, db.UpsertAppBuildSettingsParams{
 				WorkspaceID:   workspaceID,
 				AppID:         appID,
 				EnvironmentID: envID,
@@ -95,7 +95,7 @@ func (s *Service) CreateApp(
 				return fmt.Errorf("upsert %s build settings: %w", env.slug, txErr)
 			}
 
-			if txErr := db.Query.UpsertAppRuntimeSettings(txCtx, tx, db.UpsertAppRuntimeSettingsParams{
+			if txErr := db.NewQueries(tx).UpsertAppRuntimeSettings(txCtx, db.UpsertAppRuntimeSettingsParams{
 				WorkspaceID:      workspaceID,
 				AppID:            appID,
 				EnvironmentID:    envID,

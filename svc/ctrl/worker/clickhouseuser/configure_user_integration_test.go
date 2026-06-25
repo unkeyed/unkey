@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -26,7 +25,7 @@ func TestConfigureUser_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the user was created in MySQL
-		settings, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, h.DB.RO(), ws.ID)
+		settings, err := h.DB.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, ws.ID)
 		require.NoError(t, err)
 		require.Equal(t, ws.ID, settings.ClickhouseWorkspaceSetting.WorkspaceID)
 		require.Equal(t, ws.ID, settings.ClickhouseWorkspaceSetting.Username)
@@ -66,7 +65,7 @@ func TestConfigureUser_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get the initial settings
-		initial, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, h.DB.RO(), ws.ID)
+		initial, err := h.DB.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, ws.ID)
 		require.NoError(t, err)
 		initialPassword := initial.ClickhouseWorkspaceSetting.PasswordEncrypted
 
@@ -77,7 +76,7 @@ func TestConfigureUser_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify password was preserved (not regenerated)
-		updated, err := db.Query.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, h.DB.RO(), ws.ID)
+		updated, err := h.DB.FindClickhouseWorkspaceSettingsByWorkspaceID(h.Ctx, ws.ID)
 		require.NoError(t, err)
 		require.Equal(t, initialPassword, updated.ClickhouseWorkspaceSetting.PasswordEncrypted)
 

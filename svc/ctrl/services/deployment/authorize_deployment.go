@@ -9,9 +9,9 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // AuthorizeDeployment authorizes a deployment that is awaiting approval.
@@ -28,7 +28,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("deployment_id is required"))
 	}
 
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
+	deployment, err := s.db.FindDeploymentById(ctx, deploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment %s not found", deploymentID))
@@ -43,7 +43,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 
 	// Look up build settings and repo connection before changing status,
 	// so a lookup failure doesn't leave the deployment stuck as pending.
-	buildSetting, err := db.Query.FindAppBuildSettingByAppEnv(ctx, s.db.RO(), db.FindAppBuildSettingByAppEnvParams{
+	buildSetting, err := s.db.FindAppBuildSettingByAppEnv(ctx, db.FindAppBuildSettingByAppEnvParams{
 		AppID:         deployment.AppID,
 		EnvironmentID: deployment.EnvironmentID,
 	})
@@ -51,14 +51,14 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find build settings: %w", err))
 	}
 
-	repoConn, err := db.Query.FindGithubRepoConnectionByProjectId(ctx, s.db.RO(), deployment.ProjectID)
+	repoConn, err := s.db.FindGithubRepoConnectionByProjectId(ctx, deployment.ProjectID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", err))
 	}
 
 	// Atomically transition from awaiting_approval → pending to prevent
 	// concurrent authorization requests from triggering duplicate deploys.
-	casResult, err := db.Query.CompareAndSwapDeploymentStatus(ctx, s.db.RW(), db.CompareAndSwapDeploymentStatusParams{
+	casResult, err := s.db.CompareAndSwapDeploymentStatus(ctx, db.CompareAndSwapDeploymentStatusParams{
 		ID:             deploymentID,
 		ExpectedStatus: db.DeploymentsStatusAwaitingApproval,
 		NewStatus:      db.DeploymentsStatusPending,
@@ -123,7 +123,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	invocation, sendErr := s.deploymentClient(deploymentID).Deploy().Send(ctx, deployReq)
 	if sendErr != nil {
 		// Revert status back to awaiting_approval since the deploy failed.
-		if _, revertErr := db.Query.CompareAndSwapDeploymentStatus(ctx, s.db.RW(), db.CompareAndSwapDeploymentStatusParams{
+		if _, revertErr := s.db.CompareAndSwapDeploymentStatus(ctx, db.CompareAndSwapDeploymentStatusParams{
 			ID:             deploymentID,
 			ExpectedStatus: db.DeploymentsStatusPending,
 			NewStatus:      db.DeploymentsStatusAwaitingApproval,
@@ -143,7 +143,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 
 	// Persist the invocation ID so the deployment can be cancelled later.
 	invocationID := invocation.Id()
-	if updateErr := db.Query.UpdateDeploymentInvocationID(ctx, s.db.RW(), db.UpdateDeploymentInvocationIDParams{
+	if updateErr := s.db.UpdateDeploymentInvocationID(ctx, db.UpdateDeploymentInvocationIDParams{
 		ID:           deploymentID,
 		InvocationID: sql.NullString{Valid: true, String: invocationID},
 		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

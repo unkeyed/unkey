@@ -10,9 +10,9 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 type mockDeployService struct {
@@ -91,7 +91,7 @@ func TestDeployment_Create_TriggersWorkflow(t *testing.T) {
 		t.Fatal("expected deployment workflow invocation")
 	}
 
-	deployment, err := db.Query.FindDeploymentById(ctx, harness.DB.RO(), resp.Msg.GetDeploymentId())
+	deployment, err := harness.DB.FindDeploymentById(ctx, resp.Msg.GetDeploymentId())
 	require.NoError(t, err)
 	require.Equal(t, project.ID, deployment.ProjectID)
 	require.Equal(t, db.DeploymentsStatusPending, deployment.Status)

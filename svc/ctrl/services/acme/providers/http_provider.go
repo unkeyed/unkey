@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-acme/lego/v4/challenge"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 var _ challenge.Provider = (*HTTPProvider)(nil)

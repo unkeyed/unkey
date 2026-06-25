@@ -15,11 +15,11 @@ go_library(
         "//pkg/assert",
         "//pkg/billingperiod",
         "//pkg/clickhouse",
-        "//pkg/db",
         "//pkg/healthcheck",
         "//pkg/logger",
         "//pkg/restate/restateutil",
         "//svc/ctrl/internal/billingmeter",
+        "//svc/ctrl/internal/db",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )

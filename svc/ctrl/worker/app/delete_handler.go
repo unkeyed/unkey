@@ -5,7 +5,6 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -22,7 +21,7 @@ func (s *Service) Delete(
 	logger.Info("starting app deletion", "app_id", appID)
 
 	envIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
-		return db.Query.ListEnvironmentIdsByApp(runCtx, s.db.RO(), appID)
+		return s.db.ListEnvironmentIdsByApp(runCtx, appID)
 	}, restate.WithName("list environments"))
 	if err != nil {
 		return nil, fmt.Errorf("list environments: %w", err)
@@ -36,13 +35,13 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.DeleteGithubRepoConnectionsByAppId(runCtx, s.db.RW(), appID)
+		return s.db.DeleteGithubRepoConnectionsByAppId(runCtx, appID)
 	}, restate.WithName("delete github repo connections")); err != nil {
 		return nil, fmt.Errorf("delete github repo connections: %w", err)
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.DeleteAppById(runCtx, s.db.RW(), appID)
+		return s.db.DeleteAppById(runCtx, appID)
 	}, restate.WithName("delete app")); err != nil {
 		return nil, fmt.Errorf("delete app: %w", err)
 	}

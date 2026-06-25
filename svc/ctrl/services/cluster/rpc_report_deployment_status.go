@@ -8,10 +8,10 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
@@ -77,13 +77,13 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		switch msg := req.Msg.GetChange().(type) {
 		case *ctrlv1.ReportDeploymentStatusRequest_Update_:
 			{
-				deployment, err := db.Query.FindDeploymentByK8sName(ctx, tx, msg.Update.GetK8SName())
+				deployment, err := db.NewQueries(tx).FindDeploymentByK8sName(ctx, msg.Update.GetK8SName())
 				if err != nil {
 					return err
 				}
 				updatedDeployment = &deployment
 
-				staleInstances, err := db.Query.FindInstancesByDeploymentIdAndRegionID(ctx, tx, db.FindInstancesByDeploymentIdAndRegionIDParams{
+				staleInstances, err := db.NewQueries(tx).FindInstancesByDeploymentIdAndRegionID(ctx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 					DeploymentID: deployment.ID,
 					RegionID:     region.ID,
 				})
@@ -98,7 +98,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				for _, staleInstance := range staleInstances {
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
-						err = db.Query.DeleteInstance(ctx, tx, db.DeleteInstanceParams{
+						err = db.NewQueries(tx).DeleteInstance(ctx, db.DeleteInstanceParams{
 							K8sName:  staleInstance.K8sName,
 							RegionID: region.ID,
 						})
@@ -109,7 +109,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				}
 
 				for _, instance := range msg.Update.GetInstances() {
-					err = db.Query.UpsertInstance(ctx, tx, db.UpsertInstanceParams{
+					err = db.NewQueries(tx).UpsertInstance(ctx, db.UpsertInstanceParams{
 						ID:            uid.New(uid.InstancePrefix),
 						DeploymentID:  deployment.ID,
 						WorkspaceID:   deployment.WorkspaceID,
@@ -130,12 +130,12 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 		case *ctrlv1.ReportDeploymentStatusRequest_Delete_:
 			{
-				deployment, err := db.Query.FindDeploymentByK8sName(ctx, tx, msg.Delete.GetK8SName())
+				deployment, err := db.NewQueries(tx).FindDeploymentByK8sName(ctx, msg.Delete.GetK8SName())
 				if err != nil {
 					return err
 				}
 
-				if err := db.Query.DeleteDeploymentInstances(ctx, tx, db.DeleteDeploymentInstancesParams{
+				if err := db.NewQueries(tx).DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
 					RegionID:     region.ID,
 				}); err != nil {
@@ -143,7 +143,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				}
 
 				if deployment.DesiredState == db.DeploymentsDesiredStateStopped {
-					if err := db.Query.StopDeploymentIfNoInstances(ctx, tx, db.StopDeploymentIfNoInstancesParams{
+					if err := db.NewQueries(tx).StopDeploymentIfNoInstances(ctx, db.StopDeploymentIfNoInstancesParams{
 						ID:        deployment.ID,
 						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 					}); err != nil {
@@ -215,7 +215,7 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 	// minimum 1. Tolerates one full regional outage.
 	requiredRegions := max(len(regionMinReplicas)-1, 1)
 
-	instances, err := db.Query.FindInstancesByDeploymentId(ctx, s.db.RO(), deployment.ID)
+	instances, err := s.db.FindInstancesByDeploymentId(ctx, deployment.ID)
 	if err != nil {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("instances_error").Inc()
 		logger.Error("failed to load deployment instances for readiness check",

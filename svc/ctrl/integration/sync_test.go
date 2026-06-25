@@ -44,7 +44,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 )
 
@@ -893,7 +893,7 @@ func TestSync_StateChangeQueries(t *testing.T) {
 	require.Less(t, seq2, seq3)
 
 	// Query state changes after seq1
-	changes, err := db.Query.ListStateChanges(ctx, h.DB.RO(), db.ListStateChangesParams{
+	changes, err := h.DB.ListStateChanges(ctx, db.ListStateChangesParams{
 		Region:        region,
 		AfterSequence: uint64(seq1),
 		Limit:         100,
@@ -934,7 +934,7 @@ func TestSync_MaxSequenceQuery(t *testing.T) {
 		CreatedAt:    uint64(h.Now() - 2000),
 	})
 
-	maxSeq, err := db.Query.GetMaxStateChangeSequence(ctx, h.DB.RO(), region)
+	maxSeq, err := h.DB.GetMaxStateChangeSequence(ctx, region)
 	require.NoError(t, err)
 	require.Equal(t, seq2, maxSeq)
 }
@@ -969,7 +969,7 @@ func TestSync_MinSequenceQuery(t *testing.T) {
 		CreatedAt:    uint64(h.Now() - 2000),
 	})
 
-	minSeq, err := db.Query.GetMinStateChangeSequence(ctx, h.DB.RO(), region)
+	minSeq, err := h.DB.GetMinStateChangeSequence(ctx, region)
 	require.NoError(t, err)
 	require.Equal(t, seq1, minSeq)
 }
@@ -1009,7 +1009,7 @@ func TestSync_StateChangeRegionFiltering(t *testing.T) {
 		CreatedAt:    uint64(h.Now() - 2000),
 	})
 
-	changes, err := db.Query.ListStateChanges(ctx, h.DB.RO(), db.ListStateChangesParams{
+	changes, err := h.DB.ListStateChanges(ctx, db.ListStateChangesParams{
 		Region:        region1,
 		AfterSequence: 0,
 		Limit:         100,

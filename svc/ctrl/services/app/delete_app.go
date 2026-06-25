@@ -8,8 +8,8 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // DeleteApp enqueues a durable Restate workflow that cascades through
@@ -27,7 +27,7 @@ func (s *Service) DeleteApp(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	_, err := db.Query.FindAppById(ctx, s.db.RW(), req.Msg.GetAppId())
+	_, err := s.db.FindAppById(ctx, req.Msg.GetAppId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found: %s", req.Msg.GetAppId()))

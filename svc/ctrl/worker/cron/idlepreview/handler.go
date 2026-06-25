@@ -11,8 +11,8 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 const (
@@ -71,7 +71,7 @@ func (h *Handler) Handle(
 	cursor := uint64(0)
 	for {
 		environments, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Environment, error) {
-			return db.Query.ListPreviewEnvironments(runCtx, h.db.RO(), db.ListPreviewEnvironmentsParams{
+			return h.db.ListPreviewEnvironments(runCtx, db.ListPreviewEnvironmentsParams{
 				PaginationCursor: cursor,
 				Limit:            100,
 			})
@@ -87,7 +87,7 @@ func (h *Handler) Handle(
 
 		for _, environment := range environments {
 			deployments, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Deployment, error) {
-				return db.Query.ListDeploymentsByEnvironmentIdAndStatus(runCtx, h.db.RO(), db.ListDeploymentsByEnvironmentIdAndStatusParams{
+				return h.db.ListDeploymentsByEnvironmentIdAndStatus(runCtx, db.ListDeploymentsByEnvironmentIdAndStatusParams{
 					EnvironmentID: environment.ID,
 					Status:        db.DeploymentsStatusReady,
 					CreatedBefore: cutoff,

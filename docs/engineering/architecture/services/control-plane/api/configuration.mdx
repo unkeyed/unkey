@@ -55,13 +55,11 @@ TODO: Replace with JWT-based auth once `auth.unkey.cloud` is in place.
 </ResponseField>
 
 <ResponseField name="database" type="object" required>
-  MySQL configuration.
+  MySQL configuration. The control plane API uses one read-write connection for
+  all queries.
   <Expandable title="Fields">
     <ResponseField name="database.primary" type="string" required>
-      Primary MySQL DSN.
-    </ResponseField>
-    <ResponseField name="database.readonly_replica" type="string">
-      Optional read replica DSN.
+      Read-write MySQL DSN.
     </ResponseField>
   </Expandable>
 </ResponseField>

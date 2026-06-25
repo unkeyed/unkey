@@ -11,12 +11,12 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -138,7 +138,7 @@ func (s *Service) loadDeploymentContext(
 	ctx context.Context,
 	projectID, appID, envSlug string,
 ) (deploymentContext, error) {
-	project, err := db.Query.FindProjectById(ctx, s.db.RO(), projectID)
+	project, err := s.db.FindProjectById(ctx, projectID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return deploymentContext{}, connect.NewError(connect.CodeNotFound,
@@ -147,7 +147,7 @@ func (s *Service) loadDeploymentContext(
 		return deploymentContext{}, connect.NewError(connect.CodeInternal, err)
 	}
 
-	env, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByAppIdAndSlugParams{
+	env, err := s.db.FindEnvironmentByAppIdAndSlug(ctx, db.FindEnvironmentByAppIdAndSlugParams{
 		AppID: appID,
 		Slug:  envSlug,
 	})
@@ -160,7 +160,7 @@ func (s *Service) loadDeploymentContext(
 			fmt.Errorf("failed to lookup environment: %w", err))
 	}
 
-	appWithSettings, err := db.Query.FindAppWithSettings(ctx, s.db.RO(), db.FindAppWithSettingsParams{
+	appWithSettings, err := s.db.FindAppWithSettings(ctx, db.FindAppWithSettingsParams{
 		ID:            appID,
 		EnvironmentID: env.Environment.ID,
 	})
@@ -187,7 +187,7 @@ func (s *Service) loadDeploymentContext(
 			fmt.Errorf("environment %q does not belong to project %q", envSlug, project.ID))
 	}
 
-	appEnvVars, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, s.db.RO(), db.FindAppEnvVarsByAppAndEnvParams{
+	appEnvVars, err := s.db.FindAppEnvVarsByAppAndEnv(ctx, db.FindAppEnvVarsByAppAndEnvParams{
 		AppID:         appWithSettings.App.ID,
 		EnvironmentID: env.Environment.ID,
 	})
@@ -283,7 +283,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 
 	// Look up the GitHub repo connection once. Used both to decide source type
 	// (git vs docker) and to resolve missing commit metadata synchronously.
-	repoConn, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, s.db.RO(), c.app.ID)
+	repoConn, repoErr := s.db.FindGithubRepoConnectionByAppId(ctx, c.app.ID)
 	hasRepoConnection := repoErr == nil
 	if repoErr != nil && !db.IsNotFound(repoErr) {
 		return "", connect.NewError(connect.CodeInternal,
@@ -383,7 +383,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	// note doesn't bubble up as a 500 from MySQL.
 	triggerReason := trimLength(p.triggerReason, maxTriggerReasonLength)
 
-	err := db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
+	err := s.db.InsertDeployment(ctx, db.InsertDeploymentParams{
 		ID:                            deploymentID,
 		K8sName:                       uid.DNS1035(12),
 		WorkspaceID:                   c.workspaceID,
@@ -437,7 +437,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	if err != nil {
 		logger.Error("failed to start deployment workflow", "error", err)
 
-		updateErr := db.Query.UpdateDeploymentStatus(ctx, s.db.RW(), db.UpdateDeploymentStatusParams{
+		updateErr := s.db.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
 			Status:    db.DeploymentsStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -450,7 +450,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	}
 
 	invocationID := invocation.Id()
-	if updateErr := db.Query.UpdateDeploymentInvocationID(ctx, s.db.RW(), db.UpdateDeploymentInvocationIDParams{
+	if updateErr := s.db.UpdateDeploymentInvocationID(ctx, db.UpdateDeploymentInvocationIDParams{
 		ID:           deploymentID,
 		InvocationID: sql.NullString{Valid: true, String: invocationID},
 		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -526,7 +526,7 @@ func buildDockerSource(
 			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", app.ID))
 	}
 
-	currentDeployment, err := db.Query.FindDeploymentById(ctx, database.RO(), app.CurrentDeploymentID.String)
+	currentDeployment, err := database.FindDeploymentById(ctx, app.CurrentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,

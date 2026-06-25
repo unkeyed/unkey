@@ -16,9 +16,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // batchLimit caps the number of outbox rows read per batch. Each row
@@ -146,7 +146,7 @@ func (h *Handler) Handle(
 //     collapses it to a noop, then commits.
 func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
 	return db.TxWithResult(ctx, h.db.RW(), func(txCtx context.Context, tx db.DBTX) (batchResult, error) {
-		rows, err := db.Query.FindClickhouseOutboxBatch(txCtx, tx, db.FindClickhouseOutboxBatchParams{
+		rows, err := db.NewQueries(tx).FindClickhouseOutboxBatch(txCtx, db.FindClickhouseOutboxBatchParams{
 			Versions: knownVersions,
 			Limit:    batchLimit,
 		})
@@ -175,7 +175,7 @@ func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
 			return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
 		}
 
-		if err := db.Query.MarkClickhouseOutboxBatchDeleted(txCtx, tx, db.MarkClickhouseOutboxBatchDeletedParams{
+		if err := db.NewQueries(tx).MarkClickhouseOutboxBatchDeleted(txCtx, db.MarkClickhouseOutboxBatchDeletedParams{
 			DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 			Pks:       pks,
 		}); err != nil {

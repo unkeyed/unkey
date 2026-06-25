@@ -13,11 +13,11 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -106,7 +106,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		// Use the conditional update so we don't overwrite a status that was
 		// set intentionally by the dedup path (superseded) or by a successful
 		// completion (ready). Only transitions from active statuses to failed.
-		return db.Query.UpdateDeploymentStatusIfActive(runCtx, w.db.RW(), db.UpdateDeploymentStatusIfActiveParams{
+		return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
 			ID:               req.GetDeploymentId(),
 			Status:           db.DeploymentsStatusFailed,
 			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -115,7 +115,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(runCtx, w.db.RW(), req.GetDeploymentId())
+		return w.db.FindDeploymentById(runCtx, req.GetDeploymentId())
 	}, restate.WithName("finding deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -142,7 +142,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// gate should be bypassed. The Starting step below re-fetches the environment so
 	// we don't need to plumb it through — this extra read is cheap compared to a build.
 	gateEnvironment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-		return db.Query.FindEnvironmentById(runCtx, w.db.RO(), deployment.EnvironmentID)
+		return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 	}, restate.WithName("find environment for concurrency gate"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read environment for build gate."))
@@ -167,7 +167,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Dequeue ---
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.EndDeploymentStep(runCtx, w.db.RW(), db.EndDeploymentStepParams{
+		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
 			DeploymentID: req.GetDeploymentId(),
 			Step:         db.DeploymentStepsStepQueued,
 			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -202,7 +202,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		workspace, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 			var ws db.Workspace
 			err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				found, err := db.Query.FindWorkspaceByID(txCtx, tx, deployment.WorkspaceID)
+				found, err := db.NewQueries(tx).FindWorkspaceByID(txCtx, deployment.WorkspaceID)
 				if err != nil {
 					if db.IsNotFound(err) {
 						return fault.Wrap(
@@ -217,7 +217,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				if !found.K8sNamespace.Valid {
 					ws.K8sNamespace.Valid = true
 					ws.K8sNamespace.String = uid.DNS1035()
-					return db.Query.SetWorkspaceK8sNamespace(txCtx, tx, db.SetWorkspaceK8sNamespaceParams{
+					return db.NewQueries(tx).SetWorkspaceK8sNamespace(txCtx, db.SetWorkspaceK8sNamespaceParams{
 						ID:           ws.ID,
 						K8sNamespace: ws.K8sNamespace,
 					})
@@ -233,21 +233,21 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 
 		project, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
-			return db.Query.FindProjectById(runCtx, w.db.RW(), deployment.ProjectID)
+			return w.db.FindProjectById(runCtx, deployment.ProjectID)
 		}, restate.WithName("finding project"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		app, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
-			return db.Query.FindAppById(runCtx, w.db.RW(), deployment.AppID)
+			return w.db.FindAppById(runCtx, deployment.AppID)
 		}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		environment, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-			return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
+			return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 		}, restate.WithName("finding environment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -316,7 +316,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// --- Finalize ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentStatus(stepCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+			return w.db.UpdateDeploymentStatus(stepCtx, db.UpdateDeploymentStatusParams{
 				ID:        deployment.ID,
 				Status:    db.DeploymentsStatusReady,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -453,7 +453,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		dockerImage = build.ImageName
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentBuildID(runCtx, w.db.RW(), db.UpdateDeploymentBuildIDParams{
+			return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
 				ID:        deployment.ID,
 				BuildID:   sql.NullString{Valid: true, String: build.DepotBuildID},
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -474,7 +474,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 	}
 
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.UpdateDeploymentImage(runCtx, w.db.RW(), db.UpdateDeploymentImageParams{
+		return w.db.UpdateDeploymentImage(runCtx, db.UpdateDeploymentImageParams{
 			ID:        deployment.ID,
 			Image:     sql.NullString{Valid: true, String: dockerImage},
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -507,7 +507,7 @@ func (w *Workflow) createTopologies(
 	// Read regional settings to determine per-region replica counts.
 	// If no regional settings exist, fail with a terminal error.
 	regionalSettings, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindAppRegionalSettingsByAppAndEnvRow, error) {
-		return db.Query.FindAppRegionalSettingsByAppAndEnv(runCtx, w.db.RO(), db.FindAppRegionalSettingsByAppAndEnvParams{
+		return w.db.FindAppRegionalSettingsByAppAndEnv(runCtx, db.FindAppRegionalSettingsByAppAndEnvParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
 		})
@@ -545,14 +545,14 @@ func (w *Workflow) createTopologies(
 
 	// --- Quota check ---
 	quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
-		return db.Query.FindQuotaByWorkspaceID(runCtx, w.db.RW(), deployment.WorkspaceID)
+		return w.db.FindQuotaByWorkspaceID(runCtx, deployment.WorkspaceID)
 	}, restate.WithName("find workspace quota"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
 	allocatedResources, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.SumAllocatedResourcesByWorkspaceIDRow, error) {
-		return db.Query.SumAllocatedResourcesByWorkspaceID(runCtx, w.db.RW(), workspace.ID)
+		return w.db.SumAllocatedResourcesByWorkspaceID(runCtx, workspace.ID)
 	}, restate.WithName("sum allocated resources by workspace"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -631,12 +631,12 @@ func (w *Workflow) createTopologies(
 			for i := range topologies {
 				topologies[i].CreatedAt = now
 			}
-			err := db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies)
+			err := db.NewBulkQueries(tx).InsertDeploymentTopologies(txCtx, topologies)
 			if err != nil {
 				return err
 			}
 			for _, topo := range topologies {
-				err := db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+				err := db.NewQueries(tx).InsertDeploymentChange(txCtx, db.InsertDeploymentChangeParams{
 					ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
 					ResourceID:   topo.DeploymentID,
 					RegionID:     topo.RegionID,
@@ -667,7 +667,7 @@ func (w *Workflow) createTopologies(
 			func(runCtx restate.RunContext) error {
 				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 					now := time.Now().UnixMilli()
-					err := db.Query.UpdateDeploymentTopologyDesiredStatus(txCtx, tx, db.UpdateDeploymentTopologyDesiredStatusParams{
+					err := db.NewQueries(tx).UpdateDeploymentTopologyDesiredStatus(txCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
 						DeploymentID:  topo.DeploymentID,
 						RegionID:      topo.RegionID,
 						DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
@@ -676,7 +676,7 @@ func (w *Workflow) createTopologies(
 					if err != nil {
 						return err
 					}
-					return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+					return db.NewQueries(tx).InsertDeploymentChange(txCtx, db.InsertDeploymentChangeParams{
 						ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
 						ResourceID:   topo.DeploymentID,
 						RegionID:     topo.RegionID,
@@ -740,10 +740,10 @@ func (w *Workflow) configureRouting(
 	for _, domain := range allDomains {
 		frontlineRouteID, getFrontlineRouteErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 			return db.TxWithResultRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (string, error) {
-				found, err := db.Query.FindFrontlineRouteByFQDN(txCtx, tx, domain.domain)
+				found, err := db.NewQueries(tx).FindFrontlineRouteByFQDN(txCtx, domain.domain)
 				if err != nil {
 					if db.IsNotFound(err) {
-						err = db.Query.InsertFrontlineRoute(runCtx, tx, db.InsertFrontlineRouteParams{
+						err = db.NewQueries(tx).InsertFrontlineRoute(runCtx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
 							ProjectID:                project.ID,
 							AppID:                    app.ID,
@@ -772,7 +772,7 @@ func (w *Workflow) configureRouting(
 
 	// refresh app, cause it might have changed since we read it at the beginning of the workflow (e.g. another deployment promoted to live and updated current_deployment_id)
 	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
-		return db.Query.FindAppById(runCtx, w.db.RO(), app.ID)
+		return w.db.FindAppById(runCtx, app.ID)
 	}, restate.WithName("refresh app before promotion"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -787,7 +787,7 @@ func (w *Workflow) configureRouting(
 			if !app.IsRolledBack {
 				stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 			}
-			app, err := db.Query.FindAppById(txCtx, tx, app.ID)
+			app, err := db.NewQueries(tx).FindAppById(txCtx, app.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -797,7 +797,7 @@ func (w *Workflow) configureRouting(
 				stickyTypes = []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
 			}
 
-			routes, err := db.Query.FindFrontlineRouteForPromotion(txCtx, tx, db.FindFrontlineRouteForPromotionParams{
+			routes, err := db.NewQueries(tx).FindFrontlineRouteForPromotion(txCtx, db.FindFrontlineRouteForPromotionParams{
 				EnvironmentID: deployment.EnvironmentID,
 				Sticky:        stickyTypes,
 			})
@@ -841,7 +841,7 @@ func (w *Workflow) spinDownPreviousDeployments(
 	deployment db.Deployment,
 ) error {
 	previousDeploymentIDs, err := restate.Run(ctx, func(ctx restate.RunContext) ([]string, error) {
-		return db.Query.ListRunningDeploymentsByBranch(ctx, w.db.RO(), db.ListRunningDeploymentsByBranchParams{
+		return w.db.ListRunningDeploymentsByBranch(ctx, db.ListRunningDeploymentsByBranchParams{
 			GitBranch:       deployment.GitBranch,
 			WorkspaceID:     deployment.WorkspaceID,
 			ProjectID:       deployment.ProjectID,
@@ -948,7 +948,7 @@ func (w *Workflow) initGitHubStatus(
 	}
 
 	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
-		found, findErr := db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+		found, findErr := w.db.FindGithubRepoConnectionByAppId(runCtx, deployment.AppID)
 		if findErr != nil {
 			if db.IsNotFound(findErr) {
 				// No connection — return zero value, not an error.

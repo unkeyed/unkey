@@ -5,7 +5,6 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -25,7 +24,7 @@ func (s *Service) Delete(
 	logger.Info("starting project deletion", "project_id", projectID)
 
 	apps, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
-		return db.Query.ListAppIdsByProject(runCtx, s.db.RO(), projectID)
+		return s.db.ListAppIdsByProject(runCtx, projectID)
 	}, restate.WithName("list apps"))
 	if err != nil {
 		return nil, fmt.Errorf("list apps: %w", err)
@@ -39,7 +38,7 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.DeleteProjectById(runCtx, s.db.RW(), projectID)
+		return s.db.DeleteProjectById(runCtx, projectID)
 	}, restate.WithName("delete project")); err != nil {
 		return nil, fmt.Errorf("delete project: %w", err)
 	}

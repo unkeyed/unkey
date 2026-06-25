@@ -3,10 +3,15 @@
 #MISE depends=["generate-sql"]
 set -euo pipefail
 
+GO_ROOT="$(mise where go)"
+GO_BIN="${GO_ROOT}/bin/go"
+export GOROOT="${GO_ROOT}"
+export PATH="${GO_ROOT}/bin:${PATH}"
+
 rm -rf ./gen || true
 rm ./pkg/db/*_generated.go || true
-go generate ./...
-go run ./tools/exportoneof ./gen/proto
+"${GO_BIN}" generate ./...
+"${GO_BIN}" run ./tools/exportoneof ./gen/proto
 bazel run //:gazelle
-go fmt ./...
+"${GO_BIN}" fmt ./...
 pnpm --dir=web fmt

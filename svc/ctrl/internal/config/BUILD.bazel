@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "config",
+    srcs = ["database.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/config",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "config_test",
+    srcs = ["database_test.go"],
+    embed = [":config"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

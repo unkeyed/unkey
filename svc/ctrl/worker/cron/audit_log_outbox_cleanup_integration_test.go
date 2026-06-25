@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // The cron handler keeps exported rows for 30 days before sweeping them, so
@@ -50,7 +50,7 @@ func TestRunAuditLogOutboxCleanup_Integration(t *testing.T) {
 func seedPendingRow(t *testing.T, h *harness.Harness) seededRow {
 	t.Helper()
 	row := seededRow{workspaceID: uid.New("ws"), eventID: uid.New("evt")}
-	err := db.Query.InsertClickhouseOutbox(h.Ctx, h.DB.RW(), db.InsertClickhouseOutboxParams{
+	err := h.DB.InsertClickhouseOutbox(h.Ctx, db.InsertClickhouseOutboxParams{
 		Version:     "audit_log.v1",
 		WorkspaceID: row.workspaceID,
 		EventID:     row.eventID,
@@ -67,11 +67,11 @@ func seedExportedRow(t *testing.T, h *harness.Harness, deletedAtMs int64) seeded
 	t.Helper()
 	row := seedPendingRow(t, h)
 
-	rows, err := db.Query.ListClickhouseOutboxByWorkspace(h.Ctx, h.DB.RW(), row.workspaceID)
+	rows, err := h.DB.ListClickhouseOutboxByWorkspace(h.Ctx, row.workspaceID)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
-	err = db.Query.MarkClickhouseOutboxBatchDeleted(h.Ctx, h.DB.RW(), db.MarkClickhouseOutboxBatchDeletedParams{
+	err = h.DB.MarkClickhouseOutboxBatchDeleted(h.Ctx, db.MarkClickhouseOutboxBatchDeletedParams{
 		DeletedAt: sql.NullInt64{Int64: deletedAtMs, Valid: true},
 		Pks:       []uint64{rows[0].Pk},
 	})
@@ -81,7 +81,7 @@ func seedExportedRow(t *testing.T, h *harness.Harness, deletedAtMs int64) seeded
 
 func outboxRowExists(t *testing.T, h *harness.Harness, row seededRow) bool {
 	t.Helper()
-	rows, err := db.Query.ListClickhouseOutboxByWorkspace(h.Ctx, h.DB.RW(), row.workspaceID)
+	rows, err := h.DB.ListClickhouseOutboxByWorkspace(h.Ctx, row.workspaceID)
 	require.NoError(t, err)
 	for _, r := range rows {
 		if r.EventID == row.eventID {

@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/unkeyed/unkey/pkg/config"
+	ctrlconfig "github.com/unkeyed/unkey/svc/ctrl/internal/config"
 )
 
 // RestateConfig holds configuration for Restate workflow engine integration.
@@ -110,8 +111,8 @@ type Config struct {
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain"`
 
-	// Database configures MySQL connections. See [config.DatabaseConfig].
-	Database config.DatabaseConfig `toml:"database"`
+	// Database configures the single read-write MySQL connection.
+	Database ctrlconfig.DatabaseConfig `toml:"database"`
 
 	// Observability configures tracing, logging, and metrics. See [config.Observability].
 	Observability config.Observability `toml:"observability"`
