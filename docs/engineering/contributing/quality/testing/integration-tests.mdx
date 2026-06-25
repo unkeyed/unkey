@@ -20,11 +20,24 @@ func TestCreateKeyRollsBackAuditLogOnDatabaseFailure(t *testing.T) {
 
 ## Container patterns
 
-Use `pkg/testutil/containers` for isolated, per-test containers. Helpers register cleanup with `t.Cleanup` immediately after creating a container, so failed readiness checks don't leak resources. Run tests that use these helpers through Bazel so schema runfiles are available.
+Use `pkg/testutil/containers` for shared test containers. Helpers lazily create
+containers with stable Docker names scoped to the current worktree and reuse
+them across Bazel test processes, so tests only start the services they actually
+need. `mise run test` removes the shared containers for that worktree after the
+Bazel suite exits. Run tests that use these helpers through Bazel so schema
+runfiles are available.
+
+For full-suite runs, use `mise run test`. Direct `bazel test //...` does not run
+the cleanup trap from the mise task, and it must be passed
+`--test_env=UNKEY_TEST_CONTAINER_SCOPE` if you want multiple Bazel test targets
+to share the same worktree-scoped containers.
 
 ```go
 redisURL := containers.Redis(t)
 ```
+
+Pass `containers.WithDedicatedContainer()` only when a test needs an isolated
+container instance.
 
 ## Test harness
 

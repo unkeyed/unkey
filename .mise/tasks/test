@@ -1,6 +1,46 @@
 #!/usr/bin/env bash
 #MISE description="Run the Bazel test suite"
+set -euo pipefail
 
-bazel test //...
+# Docker container names are global on a developer machine, while Bazel may run
+# this task from different worktrees. The scope keeps reusable test containers
+# shared within one worktree without letting another checkout attach to them.
+export UNKEY_TEST_CONTAINER_SCOPE="${UNKEY_TEST_CONTAINER_SCOPE:-$PWD}"
 
-docker rm -vf $(docker ps -q -f label="owner=testutil-containers") >/dev/null 2>&1 || true
+# This hash must stay in sync with pkg/testutil/containers. The Go helpers put
+# the hash in container labels, and this task uses the same value to remove only
+# the containers created for this worktree.
+test_container_scope_hash() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf "%s" "${UNKEY_TEST_CONTAINER_SCOPE}" | sha256sum | awk '{print substr($1, 1, 12)}'
+    return
+  fi
+  printf "%s" "${UNKEY_TEST_CONTAINER_SCOPE}" | shasum -a 256 | awk '{print substr($1, 1, 12)}'
+}
+
+cleanup_test_containers() {
+  local status=$?
+  local containers
+  local scope_hash
+
+  # The test helpers intentionally reuse containers across Bazel test processes
+  # so integration tests do not pay Docker startup cost for every test target.
+  # The shared containers should live for the duration of this mise task only.
+  # Preserve Bazel's exit status and ignore Docker cleanup failures so a teardown
+  # problem does not hide the original test result.
+  scope_hash="$(test_container_scope_hash)"
+  containers="$(docker ps --all --quiet \
+    --filter "label=owner=testutil-containers" \
+    --filter "label=unkey.test.scope_hash=${scope_hash}" \
+    2>/dev/null || true)"
+  if [[ -n "${containers}" ]]; then
+    docker rm --force --volumes ${containers} >/dev/null 2>&1 || true
+  fi
+  exit "${status}"
+}
+trap cleanup_test_containers EXIT
+
+# Bazel does not forward arbitrary host environment variables into tests. Pass
+# the scope explicitly so every test target computes the same reusable container
+# names and labels that the cleanup trap expects.
+bazel test --test_env=UNKEY_TEST_CONTAINER_SCOPE //...
