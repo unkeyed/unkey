@@ -111,6 +111,37 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.Equal(t, []byte("{}"), rt.SentinelConfig)
 	})
 
+	t.Run("fully specified healthcheck stores verbatim", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{
+				Method:              openapi.GET,
+				Path:                "/v1/liveness",
+				IntervalSeconds:     ptr(5),
+				TimeoutSeconds:      ptr(5),
+				FailureThreshold:    ptr(3),
+				InitialDelaySeconds: ptr(0),
+			}),
+		})
+
+		got, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		hc := got.AppRuntimeSetting.Healthcheck
+		require.True(t, hc.Valid)
+		require.NotNil(t, hc.Healthcheck)
+		require.Equal(t, "GET", hc.Healthcheck.Method)
+		require.Equal(t, "/v1/liveness", hc.Healthcheck.Path)
+		require.Equal(t, 5, hc.Healthcheck.IntervalSeconds)
+		require.Equal(t, 5, hc.Healthcheck.TimeoutSeconds)
+		require.Equal(t, 3, hc.Healthcheck.FailureThreshold)
+		require.Equal(t, 0, hc.Healthcheck.InitialDelaySeconds)
+	})
+
 	t.Run("clear nullable fields", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		// Seed has dockerfile set; clearing it must null the column.
@@ -196,6 +227,33 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Empty(t, rows, "all regions removed")
+	})
+
+	t.Run("multiple regions share one policy", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+
+		regions := []openapi.RegionSetting{
+			regionSetting("us-east-1", 1, 3),
+			regionSetting("us-west-2", 1, 3),
+		}
+		call(t, handler.Request{
+			Project: env.projectID, App: env.appID, Environment: env.environmentID,
+			Regions: &regions,
+		})
+
+		rows, err := db.Query.ListAppRegionalSettingsByAppEnv(ctx, h.DB.RO(), db.ListAppRegionalSettingsByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Len(t, rows, 2)
+		require.True(t, rows[0].HorizontalAutoscalingPolicyID.Valid)
+		require.Equal(t,
+			rows[0].HorizontalAutoscalingPolicyID.String,
+			rows[1].HorizontalAutoscalingPolicyID.String,
+			"all regions in an environment share one autoscaling policy",
+		)
+		require.Equal(t, int32(3), rows[0].Replicas)
+		require.Equal(t, int32(3), rows[1].Replicas)
 	})
 
 	t.Run("noop when no fields provided", func(t *testing.T) {

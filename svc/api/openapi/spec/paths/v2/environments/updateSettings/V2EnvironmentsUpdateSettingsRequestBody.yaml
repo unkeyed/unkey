@@ -29,6 +29,7 @@ properties:
     example: .
   watchPaths:
     type: array
+    maxItems: 100
     items:
       type: string
       maxLength: 500
@@ -55,6 +56,7 @@ properties:
     minimum: 1
     description: |
       CPU allocation in millicores.
+      The upper bound is your workspace's per-instance quota; exceeding it returns 400.
       Omit to leave unchanged.
     example: 1000
   memoryMib:
@@ -62,6 +64,7 @@ properties:
     minimum: 1
     description: |
       Memory allocation in MiB.
+      The upper bound is your workspace's per-instance quota; exceeding it returns 400.
       Omit to leave unchanged.
     example: 512
   storageMib:
@@ -69,12 +72,15 @@ properties:
     minimum: 0
     description: |
       Ephemeral storage allocation in MiB.
+      The upper bound is your workspace's per-instance quota; exceeding it returns 400.
       Omit to leave unchanged.
     example: 1024
   command:
     type: array
+    maxItems: 100
     items:
       type: string
+      maxLength: 4096
     description: |
       Override container entrypoint command.
       Omit to leave unchanged.
