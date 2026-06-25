@@ -1257,7 +1257,8 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 
 	// Regions Desired set of regions with per-region replica bounds.
 	// Omit to leave regions unchanged; when present, this replaces the full set
-	// (regions absent from the list are removed).
+	// (regions absent from the list are removed). At least one region is required;
+	// an empty list is rejected because an environment cannot have zero regions.
 	Regions *[]RegionSetting `json:"regions,omitempty"`
 
 	// ShutdownSignal Signal sent to the container on shutdown.

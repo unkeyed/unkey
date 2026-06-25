@@ -763,13 +763,15 @@ components:
                     example: ./openapi.yaml
                 regions:
                     type: array
+                    minItems: 1
                     maxItems: 50
                     items:
                         "$ref": "#/components/schemas/RegionSetting"
                     description: |
                         Desired set of regions with per-region replica bounds.
                         Omit to leave regions unchanged; when present, this replaces the full set
-                        (regions absent from the list are removed).
+                        (regions absent from the list are removed). At least one region is required;
+                        an empty list is rejected because an environment cannot have zero regions.
             additionalProperties: false
         V2EnvironmentsUpdateSettingsResponseBody:
             type: object

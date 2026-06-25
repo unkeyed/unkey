@@ -81,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	environment := env.Environment
+	environment := env
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -447,8 +447,8 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 	// All of an environment's regions share one autoscaling policy, so the
 	// per-region replica bounds must be identical. Reject mismatches rather than
 	// silently applying one region's bounds to the whole environment.
-	for _, d := range resolved[1:] {
-		if d.min != resolved[0].min || d.max != resolved[0].max {
+	for i := 1; i < len(resolved); i++ {
+		if resolved[i].min != resolved[0].min || resolved[i].max != resolved[0].max {
 			return nil, invalidRegion("All regions must specify the same replica bounds; per-region autoscaling is not supported yet.")
 		}
 	}

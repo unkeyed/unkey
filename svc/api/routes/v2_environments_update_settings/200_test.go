@@ -178,7 +178,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.Equal(t, int32(8080), rt.AppRuntimeSetting.Port, "port untouched, keeps seed default")
 	})
 
-	t.Run("regions create, update, and remove", func(t *testing.T) {
+	t.Run("regions create and update", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 
 		// Create: one region with bounds 1..3.
@@ -209,18 +209,6 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.Len(t, rows, 1)
 		require.Equal(t, int32(2), rows[0].Replicas)
 		require.Equal(t, firstPolicyID, rows[0].HorizontalAutoscalingPolicyID.String, "policy reused on update")
-
-		// Remove: empty list clears all regions.
-		empty := []openapi.RegionSetting{}
-		call(t, handler.Request{
-			Project: env.projectID, App: env.appID, Environment: env.environmentID,
-			Regions: &empty,
-		})
-		rows, err = db.Query.ListAppRegionalSettingsByAppEnv(ctx, h.DB.RO(), db.ListAppRegionalSettingsByAppEnvParams{
-			AppID: env.appID, EnvironmentID: env.environmentID,
-		})
-		require.NoError(t, err)
-		require.Empty(t, rows, "all regions removed")
 	})
 
 	t.Run("multiple regions share one policy", func(t *testing.T) {

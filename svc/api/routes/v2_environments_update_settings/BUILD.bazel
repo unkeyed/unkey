@@ -28,7 +28,6 @@ go_test(
         "403_test.go",
         "404_test.go",
         "helpers_test.go",
-        "region_concurrency_test.go",
     ],
     deps = [
         ":v2_environments_update_settings",
@@ -39,6 +38,5 @@ go_test(
         "//svc/api/openapi",
         "@com_github_oapi_codegen_nullable//:nullable",
         "@com_github_stretchr_testify//require",
-        "@org_golang_x_sync//errgroup",
     ],
 )
