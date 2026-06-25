@@ -100,23 +100,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	hasMore := len(rows) > limit
 	var nextCursor *string
 	if hasMore {
-		nextCursor = ptr.P(rows[limit].App.ID)
+		nextCursor = ptr.P(rows[limit].ID)
 		rows = rows[:limit]
 	}
 
 	data := make([]openapi.App, len(rows))
 	for i, row := range rows {
 		data[i] = openapi.App{
-			Id:                  row.App.ID,
-			Name:                row.App.Name,
-			Slug:                row.App.Slug,
-			ProjectId:           row.App.ProjectID,
-			DefaultBranch:       row.App.DefaultBranch,
-			CurrentDeploymentId: row.App.CurrentDeploymentID.String,
-			IsRolledBack:        row.App.IsRolledBack,
-			DeleteProtection:    row.App.DeleteProtection.Bool,
-			CreatedAt:           row.App.CreatedAt,
-			UpdatedAt:           row.App.UpdatedAt.Int64,
+			Id:                  row.ID,
+			Name:                row.Name,
+			Slug:                row.Slug,
+			ProjectId:           row.ProjectID,
+			DefaultBranch:       row.DefaultBranch,
+			CurrentDeploymentId: row.CurrentDeploymentID.String,
+			IsRolledBack:        row.IsRolledBack,
+			DeleteProtection:    row.DeleteProtection.Bool,
+			CreatedAt:           row.CreatedAt,
+			UpdatedAt:           row.UpdatedAt.Int64,
 		}
 	}
 

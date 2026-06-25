@@ -2272,7 +2272,7 @@ type Querier interface {
 	//    AND id >= ?
 	//  ORDER BY id ASC
 	//  LIMIT ?
-	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]ListAppsByProjectRow, error)
+	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks

@@ -24,10 +24,6 @@ type ListAppsByProjectParams struct {
 	Limit     int32  `db:"limit"`
 }
 
-type ListAppsByProjectRow struct {
-	App App `db:"app"`
-}
-
 // ListAppsByProject
 //
 //	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
@@ -36,28 +32,28 @@ type ListAppsByProjectRow struct {
 //	  AND id >= ?
 //	ORDER BY id ASC
 //	LIMIT ?
-func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]ListAppsByProjectRow, error) {
+func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error) {
 	rows, err := db.QueryContext(ctx, listAppsByProject, arg.ProjectID, arg.IDCursor, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListAppsByProjectRow
+	var items []App
 	for rows.Next() {
-		var i ListAppsByProjectRow
+		var i App
 		if err := rows.Scan(
-			&i.App.Pk,
-			&i.App.ID,
-			&i.App.WorkspaceID,
-			&i.App.ProjectID,
-			&i.App.Name,
-			&i.App.Slug,
-			&i.App.DefaultBranch,
-			&i.App.CurrentDeploymentID,
-			&i.App.IsRolledBack,
-			&i.App.DeleteProtection,
-			&i.App.CreatedAt,
-			&i.App.UpdatedAt,
+			&i.Pk,
+			&i.ID,
+			&i.WorkspaceID,
+			&i.ProjectID,
+			&i.Name,
+			&i.Slug,
+			&i.DefaultBranch,
+			&i.CurrentDeploymentID,
+			&i.IsRolledBack,
+			&i.DeleteProtection,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
