@@ -191,6 +191,13 @@ const (
 	DeleteProject ActionType = "delete_project"
 )
 
+// Predefined app actions. These constants define operations that can be
+// performed on app resources within a project.
+const (
+	// CreateApp permits creating new apps within a project
+	CreateApp ActionType = "create_app"
+)
+
 // Tuple represents a specific permission as a combination of resource type,
 // resource ID, and action. It forms the basic unit of permission definition
 // in the RBAC system.
