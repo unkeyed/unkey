@@ -127,6 +127,7 @@ import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
 import { llmSearch as sentinelLogsLlmSearch } from "./deploy/sentinel-logs/llm-search";
 import { querySentinelLogs } from "./deploy/sentinel-logs/query";
 import { listEnvironments } from "./environment/list";
+import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
 import { createIdentity } from "./identity/create";
 import { deleteIdentity } from "./identity/delete";
@@ -532,6 +533,7 @@ export const router = t.router({
     }),
     environment: t.router({
       list: listEnvironments,
+      listAll: listAllEnvironments,
     }),
     envVar: t.router({
       list: listEnvVars,

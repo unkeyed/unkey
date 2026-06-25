@@ -110,7 +110,9 @@ export type Resources = {
 } & {
   [resourceId in `app.${z.infer<typeof appId>}`]: z.infer<typeof appActions>;
 } & {
-  [resourceId in `environment.${z.infer<typeof environmentId>}`]: z.infer<typeof environmentActions>;
+  [resourceId in `environment.${z.infer<typeof environmentId>}`]: z.infer<
+    typeof environmentActions
+  >;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";

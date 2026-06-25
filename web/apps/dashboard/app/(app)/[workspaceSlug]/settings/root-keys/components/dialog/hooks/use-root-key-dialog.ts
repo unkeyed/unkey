@@ -122,6 +122,19 @@ export function useRootKeyDialog({
     );
   }, [projectsData]);
 
+  const { data: environmentsData, isLoading: environmentsLoading } =
+    trpc.deploy.environment.listAll.useQuery(undefined, { enabled: isOpen });
+
+  const allEnvironments = useMemo(() => {
+    if (!environmentsData) {
+      return [];
+    }
+    return environmentsData.map((environment) => ({
+      id: environment.id,
+      name: environment.name,
+    }));
+  }, [environmentsData]);
+
   // Mutations
   const key = trpc.rootKey.create.useMutation({
     onSuccess() {
@@ -166,12 +179,12 @@ export function useRootKeyDialog({
 
   const handlePermissionChange = useCallback(
     (permissions: UnkeyPermission[]) => {
-      const canUpdate = (!apisLoading && !projectsLoading) || editMode;
+      const canUpdate = (!apisLoading && !projectsLoading && !environmentsLoading) || editMode;
       if (canUpdate) {
         setSelectedPermissions(permissions);
       }
     },
-    [apisLoading, projectsLoading, editMode],
+    [apisLoading, projectsLoading, environmentsLoading, editMode],
   );
 
   const handleCreateKey = useCallback(async () => {
@@ -248,6 +261,8 @@ export function useRootKeyDialog({
     allProjects,
     projectsLoading,
     allApps,
+    allEnvironments,
+    environmentsLoading,
     hasNextPage,
     isFetchingNextPage,
     key,
