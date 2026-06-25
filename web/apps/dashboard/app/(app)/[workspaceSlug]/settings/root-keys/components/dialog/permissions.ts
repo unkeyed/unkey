@@ -218,7 +218,7 @@ export const workspacePermissions = {
     },
     update_app: {
       description: "Update apps in any project in this workspace",
-      permission: `app.*.update_app`,
+      permission: "app.*.update_app",
     },
   },
 } satisfies Record<string, UnkeyPermissions>;
