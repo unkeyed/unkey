@@ -31,6 +31,9 @@ const (
 
 	// Deploy represents deployment resources and operations
 	Project ResourceType = "project"
+
+	// App represents app resources within a project
+	App ResourceType = "app"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -189,6 +192,16 @@ const (
 
 	// DeleteProject permits deleting projects
 	DeleteProject ActionType = "delete_project"
+)
+
+// Predefined app actions. These constants define operations that can be
+// performed on app resources within a project.
+const (
+	// CreateApp permits creating new apps within a project
+	CreateApp ActionType = "create_app"
+
+	// ReadApp permits reading apps within a project
+	ReadApp ActionType = "read_app"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

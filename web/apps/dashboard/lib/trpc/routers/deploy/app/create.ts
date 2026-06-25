@@ -1,3 +1,4 @@
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
 import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -44,6 +45,12 @@ export const createApp = workspaceProcedure
         projectId: input.projectId,
         name: input.name,
         slug: input.slug,
+        actor: {
+          id: ctx.user.id,
+          type: ActorType.USER,
+          remoteIp: ctx.audit.location,
+          userAgent: ctx.audit.userAgent ?? "",
+        },
       });
 
       return {
