@@ -570,7 +570,7 @@ type Querier interface {
 	//    AND (a.id = ? OR a.slug = ?)
 	//    AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
-	FindEnvironmentByAppAndIdOrSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppAndIdOrSlugParams) (FindEnvironmentByAppAndIdOrSlugRow, error)
+	FindEnvironmentByAppAndIdOrSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppAndIdOrSlugParams) (Environment, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
@@ -590,12 +590,6 @@ type Querier interface {
 	//    AND project_id = ?
 	//    AND slug = ?
 	FindEnvironmentByProjectIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
-	//FindEnvironmentByWorkspaceAndId
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
-	//  FROM environments
-	//  WHERE workspace_id = ? AND id = ?
-	FindEnvironmentByWorkspaceAndId(ctx context.Context, db DBTX, arg FindEnvironmentByWorkspaceAndIdParams) (Environment, error)
 	//FindFrontlineRouteByDeploymentIDAndSticky
 	//
 	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?

@@ -28,10 +28,6 @@ type FindEnvironmentByAppAndIdOrSlugParams struct {
 	Environment string `db:"environment"`
 }
 
-type FindEnvironmentByAppAndIdOrSlugRow struct {
-	Environment Environment `db:"environment"`
-}
-
 // FindEnvironmentByAppAndIdOrSlug
 //
 //	SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
@@ -43,7 +39,7 @@ type FindEnvironmentByAppAndIdOrSlugRow struct {
 //	  AND (a.id = ? OR a.slug = ?)
 //	  AND (e.id = ? OR e.slug = ?)
 //	LIMIT 1
-func (q *Queries) FindEnvironmentByAppAndIdOrSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppAndIdOrSlugParams) (FindEnvironmentByAppAndIdOrSlugRow, error) {
+func (q *Queries) FindEnvironmentByAppAndIdOrSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppAndIdOrSlugParams) (Environment, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByAppAndIdOrSlug,
 		arg.WorkspaceID,
 		arg.Project,
@@ -53,18 +49,18 @@ func (q *Queries) FindEnvironmentByAppAndIdOrSlug(ctx context.Context, db DBTX, 
 		arg.Environment,
 		arg.Environment,
 	)
-	var i FindEnvironmentByAppAndIdOrSlugRow
+	var i Environment
 	err := row.Scan(
-		&i.Environment.Pk,
-		&i.Environment.ID,
-		&i.Environment.WorkspaceID,
-		&i.Environment.ProjectID,
-		&i.Environment.AppID,
-		&i.Environment.Slug,
-		&i.Environment.Description,
-		&i.Environment.DeleteProtection,
-		&i.Environment.CreatedAt,
-		&i.Environment.UpdatedAt,
+		&i.Pk,
+		&i.ID,
+		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.AppID,
+		&i.Slug,
+		&i.Description,
+		&i.DeleteProtection,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
