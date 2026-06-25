@@ -1,11 +1,14 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -57,6 +60,18 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 		projectID:     project.ID,
 		appID:         app.ID,
 		environmentID: environment.ID,
+	}
+}
+
+// seedRegions inserts schedulable aws regions by name for tests.
+func seedRegions(t *testing.T, h *testutil.Harness, names ...string) {
+	t.Helper()
+	for _, name := range names {
+		require.NoError(t, db.Query.UpsertRegion(context.Background(), h.DB.RW(), db.UpsertRegionParams{
+			ID:       uid.New(uid.RegionPrefix),
+			Name:     name,
+			Platform: "aws",
+		}))
 	}
 }
 

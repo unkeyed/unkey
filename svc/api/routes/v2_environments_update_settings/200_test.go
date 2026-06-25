@@ -7,7 +7,6 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
@@ -25,12 +24,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 	headers := authHeaders(rootKey)
 
 	// Seed regions used by the region reconciliation subtests.
-	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID: uid.New(uid.RegionPrefix), Name: "us-east-1", Platform: "aws",
-	}))
-	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID: uid.New(uid.RegionPrefix), Name: "us-west-2", Platform: "aws",
-	}))
+	seedRegions(t, h, "us-east-1", "us-west-2")
 
 	call := func(t *testing.T, req handler.Request) {
 		t.Helper()

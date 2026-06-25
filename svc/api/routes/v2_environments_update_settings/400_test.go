@@ -1,13 +1,10 @@
 package handler_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
@@ -19,17 +16,11 @@ func TestUpdateSettingsBadRequest(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 
-	ctx := context.Background()
 	env := seedEnvironment(t, h)
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
 	headers := authHeaders(rootKey)
 
-	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID: uid.New(uid.RegionPrefix), Name: "us-east-1", Platform: "aws",
-	}))
-	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID: uid.New(uid.RegionPrefix), Name: "us-west-2", Platform: "aws",
-	}))
+	seedRegions(t, h, "us-east-1", "us-west-2")
 
 	testCases := []struct {
 		name    string

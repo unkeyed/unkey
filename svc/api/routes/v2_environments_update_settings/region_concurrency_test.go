@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
@@ -34,12 +33,7 @@ func TestUpdateSettingsConcurrentRegions(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_environment")
 	headers := authHeaders(rootKey)
 
-	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID: uid.New(uid.RegionPrefix), Name: "us-east-1", Platform: "aws",
-	}))
-	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID: uid.New(uid.RegionPrefix), Name: "eu-west-1", Platform: "aws",
-	}))
+	seedRegions(t, h, "us-east-1", "eu-west-1")
 
 	// Competing requests: half want only us-east-1, half want only eu-west-1.
 	// Each is a full "replace the set" with a single, different region.
