@@ -31,6 +31,9 @@ const (
 	containerConfigHashLabel = "unkey.test.config_hash"
 
 	containerScopeEnv = "UNKEY_TEST_CONTAINER_SCOPE"
+
+	reusableCreateConflictTimeout  = 30 * time.Second
+	reusableCreateConflictInterval = 100 * time.Millisecond
 )
 
 var (
@@ -223,38 +226,55 @@ func startContainer(t testing.TB, cfg containerConfig) *Container {
 
 	labels := containerLabels(cfg)
 
-	resp, err := cli.ContainerCreate(
-		ctx,
-		&container.Config{
-			Image:        cfg.Image,
-			ExposedPorts: exposedPorts,
-			Env:          envSlice,
-			Cmd:          cfg.Cmd,
-			Labels:       labels,
-		},
-		&container.HostConfig{
-			PortBindings: portBindings,
-			AutoRemove:   false,
-			Tmpfs:        cfg.Tmpfs,
-			// Ensure host.docker.internal resolves inside containers.
-			// Docker Desktop adds this automatically, but alternative runtimes
-			// like OrbStack do not. Without it, containers that need to call
-			// back to host-bound test servers (e.g. Restate → worker handler)
-			// fail with DNS resolution errors.
-			ExtraHosts: []string{"host.docker.internal:host-gateway"},
-		},
-		nil, // NetworkingConfig
-		nil, // Platform
-		containerName,
-	)
+	create := func() (container.CreateResponse, error) {
+		return cli.ContainerCreate(
+			ctx,
+			&container.Config{
+				Image:        cfg.Image,
+				ExposedPorts: exposedPorts,
+				Env:          envSlice,
+				Cmd:          cfg.Cmd,
+				Labels:       labels,
+			},
+			&container.HostConfig{
+				PortBindings: portBindings,
+				AutoRemove:   false,
+				Tmpfs:        cfg.Tmpfs,
+				// Ensure host.docker.internal resolves inside containers.
+				// Docker Desktop adds this automatically, but alternative runtimes
+				// like OrbStack do not. Without it, containers that need to call
+				// back to host-bound test servers (e.g. Restate -> worker handler)
+				// fail with DNS resolution errors.
+				ExtraHosts: []string{"host.docker.internal:host-gateway"},
+			},
+			nil, // NetworkingConfig
+			nil, // Platform
+			containerName,
+		)
+	}
+
+	resp, err := create()
 	if err != nil {
 		if cfg.Dedicated {
 			require.NoError(t, err, "failed to create container")
 		}
 		if errdefs.IsConflict(err) {
-			ctr := findReusableContainerAfterConflict(t, ctx, cli, cfg)
-			waitForContainer(t, cfg, ctr)
-			return ctr
+			retryResp, ctr, created, createErr := createOrAttachReusableContainer(
+				ctx,
+				reusableCreateConflictTimeout,
+				reusableCreateConflictInterval,
+				create,
+				func() (*Container, bool, error) {
+					return inspectReusableContainer(ctx, cli, cfg)
+				},
+			)
+			require.NoError(t, createErr, "container %q already exists but could not be reused", containerName)
+			if !created {
+				waitForContainer(t, cfg, ctr)
+				return ctr
+			}
+			resp = retryResp
+			err = nil
 		}
 		require.NoError(t, err, "failed to create container")
 	}
@@ -307,26 +327,50 @@ func containerLabels(cfg containerConfig) map[string]string {
 	return labels
 }
 
-// findReusableContainerAfterConflict waits for the process that won the Docker
-// name race to make the container inspectable.
-func findReusableContainerAfterConflict(
-	t testing.TB,
+// createOrAttachReusableContainer retries reusable container creation after a
+// Docker conflict. Docker can briefly reserve a container name before the
+// winning container is visible through inspect, or keep a stale reservation
+// while removal finishes. Retrying only inspect cannot recover when the name
+// later becomes available again, so this helper retries create and inspect.
+func createOrAttachReusableContainer(
 	ctx context.Context,
-	cli *client.Client,
-	cfg containerConfig,
-) *Container {
-	t.Helper()
-
-	containerName := reusableContainerName(cfg)
-	var ctr *Container
+	timeout time.Duration,
+	interval time.Duration,
+	create func() (container.CreateResponse, error),
+	inspect func() (*Container, bool, error),
+) (container.CreateResponse, *Container, bool, error) {
+	deadline := time.Now().Add(timeout)
 	var lastErr error
-	require.Eventually(t, func() bool {
-		var ok bool
-		ctr, ok, lastErr = inspectReusableContainer(ctx, cli, cfg)
-		return ok && lastErr == nil
-	}, 5*time.Second, 100*time.Millisecond, "container %q already exists but could not be inspected after retry: %v", containerName, lastErr)
+	var empty container.CreateResponse
 
-	return ctr
+	for {
+		resp, err := create()
+		if err == nil {
+			return resp, nil, true, nil
+		}
+		if !errdefs.IsConflict(err) {
+			return empty, nil, false, err
+		}
+		lastErr = err
+
+		ctr, ok, inspectErr := inspect()
+		if inspectErr != nil {
+			return empty, nil, false, fmt.Errorf("inspect reusable container after create conflict: %w", inspectErr)
+		}
+		if ok {
+			return empty, ctr, false, nil
+		}
+
+		if time.Now().After(deadline) {
+			return empty, nil, false, fmt.Errorf("reusable container was not inspectable before retry timeout after create conflict: %w", lastErr)
+		}
+
+		select {
+		case <-ctx.Done():
+			return empty, nil, false, fmt.Errorf("wait for reusable container after create conflict: %w", ctx.Err())
+		case <-time.After(interval):
+		}
+	}
 }
 
 // findReusableContainer returns a stable test container by name.

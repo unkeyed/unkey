@@ -1,5 +1,7 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
+# gazelle:exclude docker_test.go
+
 go_library(
     name = "containers",
     srcs = [
@@ -26,6 +28,18 @@ go_library(
         "@com_github_docker_docker//errdefs",
         "@com_github_docker_go_connections//nat",
         "@com_github_go_sql_driver_mysql//:mysql",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+
+go_test(
+    name = "docker_test",
+    size = "small",
+    srcs = ["docker_test.go"],
+    embed = [":containers"],
+    deps = [
+        "@com_github_docker_docker//api/types/container",
+        "@com_github_docker_docker//errdefs",
         "@com_github_stretchr_testify//require",
     ],
 )
