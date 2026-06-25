@@ -67,6 +67,13 @@ type Querier interface {
 	//
 	//  DELETE FROM app_environment_variables WHERE environment_id = ?
 	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteAppRegionalSettingByAppEnvRegion
+	//
+	//  DELETE FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND region_id = ?
+	DeleteAppRegionalSettingByAppEnvRegion(ctx context.Context, db DBTX, arg DeleteAppRegionalSettingByAppEnvRegionParams) error
 	//DeleteAppRegionalSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
@@ -178,6 +185,12 @@ type Querier interface {
 	//
 	//  DELETE FROM github_repo_connections WHERE project_id = ?
 	DeleteGithubRepoConnectionsByProjectId(ctx context.Context, db DBTX, projectID string) error
+	//DeleteHorizontalAutoscalingPolicy
+	//
+	//  DELETE FROM horizontal_autoscaling_policies
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	DeleteHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg DeleteHorizontalAutoscalingPolicyParams) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
@@ -1802,6 +1815,24 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertGithubRepoConnection(ctx context.Context, db DBTX, arg InsertGithubRepoConnectionParams) error
+	//InsertHorizontalAutoscalingPolicy
+	//
+	//  INSERT INTO horizontal_autoscaling_policies (
+	//      id,
+	//      workspace_id,
+	//      replicas_min,
+	//      replicas_max,
+	//      cpu_threshold,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg InsertHorizontalAutoscalingPolicyParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -3162,6 +3193,33 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateApp(ctx context.Context, db DBTX, arg UpdateAppParams) error
+	// Updates only the columns whose *_specified flag is 1, preserving all others.
+	// Avoids the read-modify-write clobber race: concurrent updates to different
+	// columns cannot overwrite each other. dockerfile is clearable (narg -> NULL).
+	//
+	//  UPDATE app_build_settings t
+	//  SET
+	//      dockerfile = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.dockerfile
+	//      END,
+	//      docker_context = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.docker_context
+	//      END,
+	//      watch_paths = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.watch_paths
+	//      END,
+	//      auto_deploy = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.auto_deploy
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -3171,6 +3229,53 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, db DBTX, arg UpdateAppDeploymentsParams) error
+	// Updates only the columns whose *_specified flag is 1, preserving all others.
+	// sentinel_config is intentionally absent from the SET list so it is preserved
+	// without a prior read. healthcheck and openapi_spec_path are clearable (narg).
+	//
+	//  UPDATE app_runtime_settings t
+	//  SET
+	//      port = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.port
+	//      END,
+	//      cpu_millicores = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.cpu_millicores
+	//      END,
+	//      memory_mib = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.memory_mib
+	//      END,
+	//      storage_mib = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.storage_mib
+	//      END,
+	//      command = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.command
+	//      END,
+	//      healthcheck = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.healthcheck
+	//      END,
+	//      shutdown_signal = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.shutdown_signal
+	//      END,
+	//      upstream_protocol = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.upstream_protocol
+	//      END,
+	//      openapi_spec_path = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.openapi_spec_path
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
 	//UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
 	//
 	//  UPDATE cilium_network_policies
@@ -3314,6 +3419,16 @@ type Querier interface {
 	//  SET deployment_id = ?
 	//  WHERE id = ?
 	UpdateFrontlineRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateFrontlineRouteDeploymentIdParams) error
+	//UpdateHorizontalAutoscalingPolicy
+	//
+	//  UPDATE horizontal_autoscaling_policies
+	//  SET
+	//      replicas_min = ?,
+	//      replicas_max = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	UpdateHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg UpdateHorizontalAutoscalingPolicyParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -3548,9 +3663,11 @@ type Querier interface {
 	//      environment_id,
 	//      region_id,
 	//      replicas,
+	//      horizontal_autoscaling_policy_id,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3561,6 +3678,7 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      replicas = VALUES(replicas),
+	//      horizontal_autoscaling_policy_id = VALUES(horizontal_autoscaling_policy_id),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, arg UpsertAppRegionalSettingsParams) error
 	//UpsertAppRuntimeSettings

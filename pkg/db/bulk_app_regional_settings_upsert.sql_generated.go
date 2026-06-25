@@ -9,8 +9,9 @@ import (
 )
 
 // bulkUpsertAppRegionalSettings is the base query for bulk insert
-const bulkUpsertAppRegionalSettings = `INSERT INTO app_regional_settings ( workspace_id, app_id, environment_id, region_id, replicas, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertAppRegionalSettings = `INSERT INTO app_regional_settings ( workspace_id, app_id, environment_id, region_id, replicas, horizontal_autoscaling_policy_id, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     replicas = VALUES(replicas),
+    horizontal_autoscaling_policy_id = VALUES(horizontal_autoscaling_policy_id),
     updated_at = VALUES(updated_at)`
 
 // UpsertAppRegionalSettings performs bulk insert in a single query
@@ -23,7 +24,7 @@ func (q *BulkQueries) UpsertAppRegionalSettings(ctx context.Context, db DBTX, ar
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertAppRegionalSettings, strings.Join(valueClauses, ", "))
@@ -36,6 +37,7 @@ func (q *BulkQueries) UpsertAppRegionalSettings(ctx context.Context, db DBTX, ar
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.RegionID)
 		allArgs = append(allArgs, arg.Replicas)
+		allArgs = append(allArgs, arg.HorizontalAutoscalingPolicyID)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}
