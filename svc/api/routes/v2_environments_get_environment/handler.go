@@ -40,7 +40,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	row, err := db.Query.FindEnvironmentByAppAndIdOrSlug(ctx, h.DB.RO(), db.FindEnvironmentByAppAndIdOrSlugParams{
+	environment, err := db.Query.FindEnvironmentByAppAndIdOrSlug(ctx, h.DB.RO(), db.FindEnvironmentByAppAndIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
@@ -62,8 +62,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve environment."),
 		)
 	}
-
-	environment := row.Environment
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
