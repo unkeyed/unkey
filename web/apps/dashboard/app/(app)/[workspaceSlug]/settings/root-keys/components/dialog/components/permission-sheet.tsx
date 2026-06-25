@@ -21,6 +21,7 @@ import { SearchPermissions } from "./search-permissions";
 type PermissionSheetProps = {
   apis: { id: string; name: string }[];
   projects: { id: string; name: string }[];
+  apps: { id: string; name: string }[];
   selectedPermissions: UnkeyPermission[];
   onChange: (permissions: UnkeyPermission[]) => void;
   loadMore?: () => void;
@@ -34,6 +35,7 @@ type PermissionSheetProps = {
 export const PermissionSheet = ({
   apis,
   projects,
+  apps,
   selectedPermissions,
   onChange,
   loadMore,
@@ -52,10 +54,12 @@ export const PermissionSheet = ({
     handleSearchChange,
     handleApiPermissionChange,
     handleProjectPermissionChange,
+    handleAppPermissionChange,
     handleWorkspacePermissionChange,
   } = usePermissionSheet({
     apis,
     projects,
+    apps,
     selectedPermissions,
     onChange,
     editMode,
@@ -76,6 +80,14 @@ export const PermissionSheet = ({
         scope: { kind: "project" as const, id: project.id, name: project.name },
       })),
     [projects],
+  );
+  const appScopes = useMemo(
+    () =>
+      apps.map((app) => ({
+        id: app.id,
+        scope: { kind: "app" as const, id: app.id, name: app.name },
+      })),
+    [apps],
   );
 
   return (
@@ -141,6 +153,22 @@ export const PermissionSheet = ({
                       scope={scope}
                       onPermissionChange={(permissions) =>
                         handleProjectPermissionChange(id, permissions)
+                      }
+                    />
+                  ))}
+                  {appScopes.length > 0 && (
+                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                      {ROOT_KEY_MESSAGES.UI.FROM_APPS}
+                    </p>
+                  )}
+                  {appScopes.map(({ id, scope }) => (
+                    <PermissionContentList
+                      selected={selectedPermissions}
+                      searchValue={searchValue}
+                      key={id}
+                      scope={scope}
+                      onPermissionChange={(permissions) =>
+                        handleAppPermissionChange(id, permissions)
                       }
                     />
                   ))}
