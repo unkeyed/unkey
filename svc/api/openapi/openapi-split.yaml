@@ -240,6 +240,8 @@ paths:
     $ref: "./spec/paths/v2/environments/getEnvironment/index.yaml"
   /v2/environments.listEnvironments:
     $ref: "./spec/paths/v2/environments/listEnvironments/index.yaml"
+  /v2/environments.updateSettings:
+    $ref: "./spec/paths/v2/environments/updateSettings/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:

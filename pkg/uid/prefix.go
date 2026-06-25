@@ -39,4 +39,7 @@ const (
 	DeploymentPrefix     Prefix = "d"
 	FrontlineRoutePrefix Prefix = "flr"
 	CertificatePrefix    Prefix = "cert"
+
+	// AutoscalingPolicyPrefix matches the web id generator (autoscalingPolicy: "asp").
+	AutoscalingPolicyPrefix Prefix = "asp"
 )

@@ -642,6 +642,140 @@ components:
                         "$ref": "#/components/schemas/Environment"
                     description: Array of environments in the app, ordered by environment id.
             additionalProperties: false
+        V2EnvironmentsUpdateSettingsRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                dockerfile:
+                    type:
+                        - string
+                        - "null"
+                    maxLength: 500
+                    description: |
+                        Path to the Dockerfile used for builds.
+                        Omit to leave unchanged; set null to clear and fall back to Railpack.
+                    example: ./Dockerfile
+                dockerContext:
+                    type: string
+                    maxLength: 500
+                    description: |
+                        Build context directory.
+                        Omit to leave unchanged.
+                    example: .
+                watchPaths:
+                    type: array
+                    items:
+                        type: string
+                        maxLength: 500
+                    description: |
+                        Glob paths that trigger auto-deploys when changed.
+                        Omit to leave unchanged.
+                autoDeploy:
+                    type: boolean
+                    description: |
+                        Whether pushes auto-deploy.
+                        Omit to leave unchanged.
+                    example: true
+                port:
+                    type: integer
+                    minimum: 1
+                    maximum: 65535
+                    description: |
+                        Container port the app listens on.
+                        Omit to leave unchanged.
+                    example: 8080
+                cpuMillicores:
+                    type: integer
+                    minimum: 1
+                    description: |
+                        CPU allocation in millicores.
+                        Omit to leave unchanged.
+                    example: 1000
+                memoryMib:
+                    type: integer
+                    minimum: 1
+                    description: |
+                        Memory allocation in MiB.
+                        Omit to leave unchanged.
+                    example: 512
+                storageMib:
+                    type: integer
+                    minimum: 0
+                    description: |
+                        Ephemeral storage allocation in MiB.
+                        Omit to leave unchanged.
+                    example: 1024
+                command:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Override container entrypoint command.
+                        Omit to leave unchanged.
+                healthcheck:
+                    "$ref": "#/components/schemas/Healthcheck"
+                    description: |
+                        HTTP healthcheck configuration.
+                        Omit to leave unchanged; set null to remove.
+                shutdownSignal:
+                    type: string
+                    enum:
+                        - SIGTERM
+                        - SIGINT
+                        - SIGQUIT
+                        - SIGKILL
+                    description: |
+                        Signal sent to the container on shutdown.
+                        Omit to leave unchanged.
+                    example: SIGTERM
+                upstreamProtocol:
+                    type: string
+                    enum:
+                        - http1
+                        - h2c
+                    description: |
+                        Protocol used to reach the upstream container.
+                        Omit to leave unchanged.
+                    example: http1
+                openapiSpecPath:
+                    type:
+                        - string
+                        - "null"
+                    maxLength: 512
+                    description: |
+                        Path to the OpenAPI spec file within the build.
+                        Omit to leave unchanged; set null to clear.
+                    example: ./openapi.yaml
+                regions:
+                    type: array
+                    maxItems: 50
+                    items:
+                        "$ref": "#/components/schemas/RegionSetting"
+                    description: |
+                        Desired set of regions with per-region replica bounds.
+                        Omit to leave regions unchanged; when present, this replaces the full set
+                        (regions absent from the list are removed).
+            additionalProperties: false
+        V2EnvironmentsUpdateSettingsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2IdentitiesCreateIdentityRequestBody:
             type: object
             required:
@@ -3395,6 +3529,94 @@ components:
                     type: integer
                     description: Maximum number of replicas.
                     example: 3
+            additionalProperties: false
+        Healthcheck:
+            type:
+                - object
+                - "null"
+            description: |
+                HTTP healthcheck configuration for the environment.
+                Set null to remove the healthcheck entirely.
+            properties:
+                method:
+                    type: string
+                    enum:
+                        - GET
+                        - POST
+                    description: HTTP method used for the healthcheck probe.
+                    example: GET
+                path:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    description: HTTP path probed for health.
+                    example: /health
+                intervalSeconds:
+                    type: integer
+                    minimum: 1
+                    description: Seconds between probes. Defaults to 10 when omitted.
+                    example: 10
+                timeoutSeconds:
+                    type: integer
+                    minimum: 1
+                    description: Seconds before a probe is considered failed. Defaults to 5 when omitted.
+                    example: 5
+                failureThreshold:
+                    type: integer
+                    minimum: 1
+                    description: Consecutive failures before the instance is marked unhealthy. Defaults to 3 when omitted.
+                    example: 3
+                initialDelaySeconds:
+                    type: integer
+                    minimum: 0
+                    description: Seconds to wait after start before the first probe. Defaults to 0 when omitted.
+                    example: 0
+            required:
+                - method
+                - path
+            additionalProperties: false
+        RegionSetting:
+            type: object
+            description: Desired replica bounds for a single region.
+            properties:
+                platform:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                    default: aws
+                    description: |
+                        Cloud platform the region belongs to (e.g. aws, gcp).
+                        Region names are unique only per platform; omit to default to aws.
+                    example: aws
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                    description: Region name, such as us-east-1.
+                    example: us-east-1
+                replicas:
+                    type: object
+                    description: Min and max replica bounds for autoscaling in this region.
+                    properties:
+                        min:
+                            type: integer
+                            minimum: 1
+                            maximum: 4
+                            description: Minimum replicas (1-4).
+                            example: 1
+                        max:
+                            type: integer
+                            minimum: 1
+                            maximum: 4
+                            description: Maximum replicas (1-4), must be >= min.
+                            example: 3
+                    required:
+                        - min
+                        - max
+                    additionalProperties: false
+            required:
+                - name
+                - replicas
             additionalProperties: false
         RatelimitRequest:
             type: object

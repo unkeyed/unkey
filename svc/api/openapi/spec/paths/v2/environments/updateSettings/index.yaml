@@ -1,0 +1,124 @@
+post:
+  tags:
+    - environments
+  summary: Update environment settings
+  description: |
+    Update the build, runtime, and regional settings for an environment.
+
+    All settings fields are optional. Omit a field to leave it unchanged. For
+    nullable fields (`dockerfile`, `healthcheck`, `openapiSpecPath`), send null
+    to clear the value. When `regions` is present it replaces the full set of
+    regions for the environment.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.update_environment` (to update any environment)
+    - `environment.<environment_id>.update_environment` (to update a specific environment)
+  operationId: environments.updateSettings
+  x-speakeasy-name-override: updateSettings
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2EnvironmentsUpdateSettingsRequestBody.yaml"
+        examples:
+          setRuntime:
+            summary: Update runtime resources
+            description: Adjust CPU and memory, locating the environment by slug
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              cpuMillicores: 2000
+              memoryMib: 1024
+          setRegions:
+            summary: Replace the region set
+            description: Deploy to a single region with replica bounds
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              regions:
+                - platform: aws
+                  name: us-east-1
+                  replicas:
+                    min: 1
+                    max: 3
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully updated the environment settings.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2EnvironmentsUpdateSettingsResponseBody.yaml"
+          examples:
+            success:
+              summary: Settings updated
+              description: Environment settings were successfully updated
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.update_environment`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'environment.*.update_environment' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - The requested environment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            environmentNotFound:
+              summary: Environment not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested environment does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

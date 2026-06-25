@@ -1,0 +1,42 @@
+type: object
+description: Desired replica bounds for a single region.
+properties:
+  platform:
+    type: string
+    minLength: 1
+    maxLength: 64
+    default: aws
+    description: |
+      Cloud platform the region belongs to (e.g. aws, gcp).
+      Region names are unique only per platform; omit to default to aws.
+    example: aws
+  name:
+    type: string
+    minLength: 1
+    maxLength: 64
+    description: Region name, such as us-east-1.
+    example: us-east-1
+  replicas:
+    type: object
+    description: Min and max replica bounds for autoscaling in this region.
+    properties:
+      min:
+        type: integer
+        minimum: 1
+        maximum: 4
+        description: Minimum replicas (1-4).
+        example: 1
+      max:
+        type: integer
+        minimum: 1
+        maximum: 4
+        description: Maximum replicas (1-4), must be >= min.
+        example: 3
+    required:
+      - min
+      - max
+    additionalProperties: false
+required:
+  - name
+  - replicas
+additionalProperties: false
