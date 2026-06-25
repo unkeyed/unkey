@@ -71,13 +71,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
+			ResourceType: rbac.App,
 			ResourceID:   "*",
 			Action:       rbac.DeleteApp,
 		}),
 		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   app.ProjectID,
+			ResourceType: rbac.App,
+			ResourceID:   app.ID,
 			Action:       rbac.DeleteApp,
 		}),
 	))
@@ -110,7 +110,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return ctrlclient.HandleError(err, "delete app")
 	}
 
-	return s.JSON(http.StatusOK, Response{
+	return s.JSON(http.StatusAccepted, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},

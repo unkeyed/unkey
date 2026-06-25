@@ -22,7 +22,7 @@ func TestDeleteAppBadRequest(t *testing.T) {
 	}
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "project.*.delete_app")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "app.*.delete_app")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

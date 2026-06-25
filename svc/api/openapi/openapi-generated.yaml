@@ -396,23 +396,9 @@ components:
                 - app
             properties:
                 project:
-                    type: string
-                    minLength: 1
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        Identifies the parent project, by either its unique ID or its slug.
-                        Required to resolve the app, since app slugs are only unique within a project.
-                    example: payments
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 app:
-                    type: string
-                    minLength: 1
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_-]+$"
-                    description: |
-                        Identifies which app to delete, by either its unique ID or its slug.
-                        Accepts an app ID that begins with 'app_' or an app slug. The app must exist within the specified project.
-                    example: app_1234abcd
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2AppsDeleteAppResponseBody:
             type: object
@@ -4846,8 +4832,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `project.*.delete_app` (to delete apps in any project)
-                - `project.<project_id>.delete_app` (to delete apps in a specific project)
+                - `app.*.delete_app` (to delete any app)
+                - `app.<app_id>.delete_app` (to delete a specific app)
             operationId: apps.deleteApp
             requestBody:
                 content:
@@ -4869,7 +4855,7 @@ paths:
                             $ref: '#/components/schemas/V2AppsDeleteAppRequestBody'
                 required: true
             responses:
-                "200":
+                "202":
                     content:
                         application/json:
                             examples:
@@ -4904,7 +4890,7 @@ paths:
                                     summary: Missing required permission
                                     value:
                                         error:
-                                            detail: Your root key requires the 'delete_app' permission on the target project to perform this operation
+                                            detail: Your root key requires the 'delete_app' permission on the target app to perform this operation
                                             status: 403
                                             title: Forbidden
                                             type: forbidden
@@ -4912,7 +4898,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `project.*.delete_app`)
+                    description: Forbidden - Insufficient permissions (requires `app.*.delete_app`)
                 "404":
                     content:
                         application/json:
@@ -8108,7 +8094,7 @@ paths:
                             $ref: '#/components/schemas/V2ProjectsDeleteProjectRequestBody'
                 required: true
             responses:
-                "200":
+                "202":
                     content:
                         application/json:
                             examples:

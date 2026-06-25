@@ -28,7 +28,7 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.delete_app")
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.delete_app")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -56,7 +56,7 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 		Project: project.ID,
 		App:     app.ID,
 	})
-	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, 202, res.Status, "expected 202, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Meta.RequestId)
 
 	// Deletion is delegated to the control plane, which also writes the audit

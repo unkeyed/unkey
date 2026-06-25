@@ -23,7 +23,7 @@ func TestDeleteAppNotFound(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.delete_app")
+	rootKey := h.CreateRootKey(workspace.ID, "app.*.delete_app")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

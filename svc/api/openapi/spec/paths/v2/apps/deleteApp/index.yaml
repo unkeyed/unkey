@@ -12,8 +12,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `project.*.delete_app` (to delete apps in any project)
-    - `project.<project_id>.delete_app` (to delete apps in a specific project)
+    - `app.*.delete_app` (to delete any app)
+    - `app.<app_id>.delete_app` (to delete a specific app)
   operationId: apps.deleteApp
   x-speakeasy-name-override: deleteApp
   security:
@@ -38,7 +38,7 @@ post:
               app: payments-service
     required: true
   responses:
-    "200":
+    "202":
       description: |
         Successfully enqueued deletion of the app.
       content:
@@ -66,7 +66,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `project.*.delete_app`)
+      description: Forbidden - Insufficient permissions (requires `app.*.delete_app`)
       content:
         application/json:
           schema:
@@ -79,7 +79,7 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'delete_app' permission on the target project to perform this operation
+                  detail: Your root key requires the 'delete_app' permission on the target app to perform this operation
                   status: 403
                   type: forbidden
     "404":

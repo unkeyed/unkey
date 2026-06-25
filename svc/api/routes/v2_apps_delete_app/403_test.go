@@ -26,14 +26,16 @@ func TestDeleteAppForbidden(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		permissions func(projectID string) []string
+		permissions func(projectID, appID string) []string
 		shouldPass  bool
 	}{
-		{name: "wildcard permission", permissions: func(_ string) []string { return []string{"project.*.delete_app"} }, shouldPass: true},
-		{name: "scoped permission", permissions: func(p string) []string { return []string{fmt.Sprintf("project.%s.delete_app", p)} }, shouldPass: true},
-		{name: "wildcard and more", permissions: func(_ string) []string { return []string{"some.other.permission", "project.*.delete_app"} }, shouldPass: true},
-		{name: "wrong action", permissions: func(_ string) []string { return []string{"project.*.read_app"} }, shouldPass: false},
-		{name: "unrelated permission", permissions: func(_ string) []string { return []string{"api.*.create_api"} }, shouldPass: false},
+		{name: "wildcard app permission", permissions: func(_, _ string) []string { return []string{"app.*.delete_app"} }, shouldPass: true},
+		{name: "specific app permission", permissions: func(_, a string) []string { return []string{fmt.Sprintf("app.%s.delete_app", a)} }, shouldPass: true},
+		{name: "wildcard and more", permissions: func(_, _ string) []string { return []string{"some.other.permission", "app.*.delete_app"} }, shouldPass: true},
+		{name: "project scoped delete does not match", permissions: func(p, _ string) []string { return []string{fmt.Sprintf("project.%s.delete_app", p)} }, shouldPass: false},
+		{name: "wrong action", permissions: func(_, _ string) []string { return []string{"app.*.read_app"} }, shouldPass: false},
+		{name: "create does not match delete", permissions: func(_, _ string) []string { return []string{"app.*.create_app"} }, shouldPass: false},
+		{name: "unrelated permission", permissions: func(_, _ string) []string { return []string{"api.*.create_api"} }, shouldPass: false},
 	}
 
 	for _, tc := range testCases {
@@ -55,7 +57,7 @@ func TestDeleteAppForbidden(t *testing.T) {
 				DefaultBranch: "main",
 			})
 
-			rootKey := h.CreateRootKey(workspace.ID, tc.permissions(project.ID)...)
+			rootKey := h.CreateRootKey(workspace.ID, tc.permissions(project.ID, app.ID)...)
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -63,7 +65,7 @@ func TestDeleteAppForbidden(t *testing.T) {
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID, App: app.ID})
 			if tc.shouldPass {
-				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.name, res.RawBody)
+				require.Equal(t, 202, res.Status, "expected 202 for %v, got: %s", tc.name, res.RawBody)
 			} else {
 				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for %v, got: %s", tc.name, res.RawBody)
 			}

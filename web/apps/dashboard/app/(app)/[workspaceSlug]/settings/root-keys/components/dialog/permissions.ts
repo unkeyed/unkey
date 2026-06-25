@@ -324,7 +324,7 @@ export function appPermissions(appId: string): {
         description: "Update apps in this project.",
         permission: `app.${appId}.update_app`,
       },
-         delete_app: {
+      delete_app: {
         description: "Delete apps in this project.",
         permission: `app.${appId}.delete_app`,
       },
