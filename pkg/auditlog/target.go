@@ -18,4 +18,5 @@ const (
 	PortalSessionResourceType      AuditLogResourceType = "portalSession"
 	DeploymentResourceType         AuditLogResourceType = "deployment"
 	ProjectResourceType            AuditLogResourceType = "project"
+	AppResourceType                AuditLogResourceType = "app"
 )
