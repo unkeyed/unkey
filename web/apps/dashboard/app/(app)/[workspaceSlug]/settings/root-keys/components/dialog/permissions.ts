@@ -11,7 +11,7 @@ export type PermissionScope =
   | { kind: "workspace" }
   | { kind: "api"; id: string; name: string }
   | { kind: "project"; id: string; name: string }
-  | { kind: "app"; id: string; name: string }
+  | { kind: "app"; id: string; name: string; environments?: { id: string; name: string }[] }
   | { kind: "environment"; id: string; name: string };
 
 export const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
@@ -27,10 +27,31 @@ export function getScopedPermissions(scope: PermissionScope): {
     case "project":
       return projectPermissions(scope.id);
     case "app":
-      return appPermissions(scope.id);
+      return appWithEnvironmentPermissions(scope.id, scope.environments ?? []);
     case "environment":
       return environmentPermissions(scope.id);
   }
+}
+
+export function appWithEnvironmentPermissions(
+  appId: string,
+  environments: { id: string; name: string }[],
+): { [category: string]: UnkeyPermissions } {
+  const base = appPermissions(appId);
+  if (environments.length === 0) {
+    return base;
+  }
+
+  // Environments share the same action name (read_environment), so key each
+  // entry by the environment name to keep them distinct within the category.
+  const environmentCategory: UnkeyPermissions = {};
+  for (const environment of environments) {
+    for (const entry of Object.values(environmentPermissions(environment.id).Environments)) {
+      environmentCategory[environment.name] = entry;
+    }
+  }
+
+  return { ...base, Environments: environmentCategory };
 }
 
 export const workspacePermissions = {
