@@ -81,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
 	rows, err := db.Query.ListEnvironmentsByApp(ctx, h.DB.RO(), db.ListEnvironmentsByAppParams{
-		AppID:    app.App.ID,
+		AppID:    app.ID,
 		IDCursor: cursor,
 		Limit:    int32(limit + 1), // nolint:gosec
 	})
