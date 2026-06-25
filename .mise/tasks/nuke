@@ -22,8 +22,8 @@ read -r -p "Delete Bazel, Next.js, and Turborepo caches? [Y/n] " delete_caches
 if [[ ! "${delete_caches}" =~ ^[Nn]$ ]]; then
   bazel shutdown || true
   rm -rf ./.cache
-  rm -rf "${HOME}/.cache/bazel-repo"
-  rm -rf "${HOME}/.cache/bazel-disk"
+  rm -rf "${HOME}/.cache/unkey/bazel-repo"
+  rm -rf "${HOME}/.cache/unkey/bazel-disk"
   bazel clean --expunge || true
 
   rm -rf ./**/.turbo
