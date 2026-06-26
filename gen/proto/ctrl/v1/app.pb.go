@@ -27,6 +27,7 @@ type CreateAppRequest struct {
 	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	Slug          string                 `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	Actor         *ActorInfo             `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -87,6 +88,13 @@ func (x *CreateAppRequest) GetSlug() string {
 		return x.Slug
 	}
 	return ""
+}
+
+func (x *CreateAppRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
 }
 
 type CreateAppResponse struct {
@@ -217,13 +225,14 @@ var File_ctrl_v1_app_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x11ctrl/v1/app.proto\x12\actrl.v1\"|\n" +
+	"\x11ctrl/v1/app.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xa6\x01\n" +
 	"\x10CreateAppRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
-	"\x04slug\x18\x04 \x01(\tR\x04slug\"#\n" +
+	"\x04slug\x18\x04 \x01(\tR\x04slug\x12(\n" +
+	"\x05actor\x18\x05 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"#\n" +
 	"\x11CreateAppResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\")\n" +
 	"\x10DeleteAppRequest\x12\x15\n" +
@@ -253,17 +262,19 @@ var file_ctrl_v1_app_proto_goTypes = []any{
 	(*CreateAppResponse)(nil), // 1: ctrl.v1.CreateAppResponse
 	(*DeleteAppRequest)(nil),  // 2: ctrl.v1.DeleteAppRequest
 	(*DeleteAppResponse)(nil), // 3: ctrl.v1.DeleteAppResponse
+	(*ActorInfo)(nil),         // 4: ctrl.v1.ActorInfo
 }
 var file_ctrl_v1_app_proto_depIdxs = []int32{
-	0, // 0: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
-	2, // 1: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
-	1, // 2: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
-	3, // 3: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	4, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 1: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
+	2, // 2: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
+	1, // 3: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
+	3, // 4: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_app_proto_init() }
@@ -271,6 +282,7 @@ func file_ctrl_v1_app_proto_init() {
 	if File_ctrl_v1_app_proto != nil {
 		return
 	}
+	file_ctrl_v1_actor_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

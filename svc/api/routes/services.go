@@ -72,6 +72,10 @@ type Services struct {
 	// lifecycle operations (delete cascades resources via a Restate workflow).
 	CtrlProjectClient ctrl.ProjectServiceClient
 
+	// CtrlAppClient communicates with the control plane for app lifecycle
+	// operations (create seeds default environments and settings).
+	CtrlAppClient ctrl.AppServiceClient
+
 	// PprofEnabled controls whether pprof profiling endpoints are registered.
 	PprofEnabled bool
 

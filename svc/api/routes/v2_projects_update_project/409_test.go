@@ -47,8 +47,8 @@ func TestUpdateProjectDuplicateSlug(t *testing.T) {
 		id, _ := createProject(t)
 
 		res := testutil.CallRoute[handler.Request, openapi.ConflictErrorResponse](h, route, headers, handler.Request{
-			ProjectId: id,
-			Slug:      &existingSlug,
+			Project: id,
+			Slug:    &existingSlug,
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/project_already_exists", res.Body.Error.Type)

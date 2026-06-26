@@ -5,13 +5,13 @@ description: "Unkey is a globally distributed API platform that ships your repo 
 
 **Ship APIs, not infrastructure.**
 
-Push your repo, get a production API. Unkey builds the image, runs it across your chosen regions, and routes every request through Sentinel for API key authentication, rate limiting, and IP rules before it hits your code. Domains, rollbacks, and analytics are handled. You write the application; we run it.
+Push your repo, get a production API. Unkey builds the image, runs it across your chosen regions, and routes every request through the gateway for API key authentication, rate limiting, and IP rules before it hits your code. Domains, rollbacks, and analytics are handled. You write the application; we run it.
 
 <CardGroup cols={2}>
   <Card title="Deploy" icon="rocket" href="/build-and-deploy/overview">
     Push to GitHub or run `unkey deploy`. Multi-region, instant rollbacks, automatic domains, preview environments.
   </Card>
-  <Card title="Sentinel" icon="shield-halved" href="/platform/sentinel/overview">
+  <Card title="Gateway" icon="shield-halved" href="/platform/gateway/overview">
     API key authentication, rate limiting, and IP policies running in front of your app. No middleware to write.
   </Card>
   <Card title="API keys" icon="key" href="/platform/apis/introduction">
@@ -51,7 +51,7 @@ Shipping an API used to mean stitching together a runtime, a CDN, a key store, a
   </Accordion>
 
   <Accordion title="Authenticate every request before it hits your app" icon="shield-halved">
-    Sentinel sits in front of your deployment and enforces API key checks, rate limits, and IP rules. No SDK call required from inside your app: invalid requests are rejected before they reach your code.
+    The gateway sits in front of your deployment and enforces API key checks, rate limits, and IP rules. No SDK call required from inside your app: invalid requests are rejected before they reach your code.
 
     ```ts
     // Inside your app, the request is already authenticated.
@@ -119,7 +119,7 @@ Shipping an API used to mean stitching together a runtime, a CDN, a key store, a
 
 <CardGroup cols={2}>
   <Card title="I want to ship an API" icon="rocket" href="/build-and-deploy/overview">
-    Deploy from GitHub or CLI. Multi-region, rollbacks, preview environments, Sentinel in front.
+    Deploy from GitHub or CLI. Multi-region, rollbacks, preview environments, the gateway in front.
   </Card>
   <Card title="I just need API keys or rate limits" icon="key" href="/platform/apis/introduction">
     Use the SDK directly from any backend, no deployment required.

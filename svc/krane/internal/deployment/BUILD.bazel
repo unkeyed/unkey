@@ -62,6 +62,7 @@ go_library(
 go_test(
     name = "deployment_test",
     srcs = [
+        "apply_test.go",
         "controller_test.go",
         "instance_events_test.go",
         "state_test.go",
@@ -70,6 +71,8 @@ go_test(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//pkg/cache",
+        "//pkg/db/types",
+        "//pkg/ptr",
         "//svc/krane/internal/testutil",
         "//svc/krane/pkg/labels",
         "@com_github_stretchr_testify//require",

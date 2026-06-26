@@ -20,25 +20,26 @@ import (
 // Cross-region requests do not populate tracking — the peer frontline writes
 // its own ClickHouse row.
 type RequestTracking struct {
-	// Set by handler before proxy
+	// Set by the handler before proxying.
 	RequestID     string
 	StartTime     time.Time
 	DeploymentID  string
 	WorkspaceID   string
-	EnvironmentID string
 	ProjectID     string
+	AppID         string
+	EnvironmentID string
 
-	// (Re)set by handler before each ForwardToInstance attempt
+	// Reset by the handler before each ForwardToInstance attempt.
 	InstanceID string
 	Address    string
 
 	// Populated by a handler-side TeeReader as the upstream drains the body.
 	RequestBody []byte
 
-	// Set by proxy on dispatch (Director callback)
+	// Set by proxy on dispatch through the Director callback.
 	InstanceStart time.Time
 
-	// Set by proxy once the upstream response stream completes
+	// Set by proxy once the upstream response stream completes.
 	InstanceEnd  time.Time
 	ResponseBody []byte
 }

@@ -157,7 +157,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 	if oldDeploymentID != "" {
 		hydrav1.NewDeploymentServiceClient(ctx, oldDeploymentID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
-			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
+			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
 			DelayMillis: (30 * time.Minute).Milliseconds(),
 		})
 		logger.Info("scheduled old deployment for standby", "old_deployment_id", oldDeploymentID)

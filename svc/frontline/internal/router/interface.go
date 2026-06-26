@@ -36,6 +36,7 @@ type RouteDecision struct {
 	EnvironmentID       string
 	WorkspaceID         string
 	ProjectID           string
+	AppID               string
 	LocalInstances      []db.FindInstancesByDeploymentIDRow
 	RemoteRegionAddress string
 	UpstreamProtocol    db.DeploymentsUpstreamProtocol

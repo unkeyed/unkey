@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  type AreaChartPoint,
+  AreaTimeseriesChart,
+  formatYAxisCompactBytesPerSecond,
+} from "@/components/charts/area-timeseries";
 import { trpc } from "@/lib/trpc/client";
 import {
   bytesToMib,
@@ -21,11 +26,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { useDeployment } from "../../../../../../layout-provider";
-import {
-  type AreaChartPoint,
-  AreaTimeseriesChart,
-  formatYAxisCompactBytesPerSecond,
-} from "./chart/area-timeseries-chart";
 
 // Dashboard panel refreshes every 3s. The chart's live tip reads from raw
 // FINAL so new checkpoints (5s heimdall cadence) show up at most one
@@ -363,6 +363,7 @@ function NetworkSection({
         isError={isError}
         showDateInTooltip={showDateInTooltip}
         xAxisDomain={xAxisDomain}
+        contractOnSparseData
         formatYTick={formatYAxisCompactBytesPerSecond}
       />
     </div>
@@ -426,6 +427,7 @@ function InstancesSection({
         // instead of collapsing everything onto the 0 line.
         axisFloor={3}
         xAxisDomain={xAxisDomain}
+        contractOnSparseData
       />
     </div>
   );
@@ -507,6 +509,7 @@ function CpuSection({
           return `${Math.round((v / allocatedMilli) * 100)}%`;
         }}
         xAxisDomain={xAxisDomain}
+        contractOnSparseData
       />
     </div>
   );
@@ -575,6 +578,7 @@ function MemorySection({
         }}
         axisFloor={1024 * 1024}
         xAxisDomain={xAxisDomain}
+        contractOnSparseData
       />
     </div>
   );
@@ -646,6 +650,7 @@ function DiskSection({
         }}
         axisFloor={1024 * 1024}
         xAxisDomain={xAxisDomain}
+        contractOnSparseData
       />
     </div>
   );

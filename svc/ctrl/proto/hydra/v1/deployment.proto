@@ -61,12 +61,9 @@ enum DeploymentDesiredState {
   // RUNNING means the deployment should have active containers serving traffic.
   DEPLOYMENT_DESIRED_STATE_RUNNING = 1;
 
-  // STANDBY means the deployment's containers are scaled down but the
+  // STOPPED means the deployment's containers are scaled down but the
   // deployment can be resumed without a full rebuild.
-  DEPLOYMENT_DESIRED_STATE_STANDBY = 2;
-
-  // ARCHIVED means the deployment is permanently decommissioned.
-  DEPLOYMENT_DESIRED_STATE_ARCHIVED = 3;
+  DEPLOYMENT_DESIRED_STATE_STOPPED = 2;
 }
 
 message ScheduleDesiredStateChangeRequest {
@@ -75,6 +72,10 @@ message ScheduleDesiredStateChangeRequest {
   int64 delay_millis = 1;
 
   DeploymentDesiredState state = 2;
+
+  // if true, existing schedules get overwritten
+  // if false and a statechange is scheduled, this is a noop
+  bool overwrite = 3;
 }
 
 message ScheduleDesiredStateChangeResponse {}

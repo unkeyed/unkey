@@ -1,6 +1,6 @@
 ---
 title: Request lifecycle
-description: "Trace the full request lifecycle from when a request hits your URL through Sentinel policies, routing, and load balancing to your app."
+description: "Trace the full request lifecycle from when a request hits your URL through the gateway, routing, and load balancing to your app."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -23,21 +23,21 @@ Certificates are provisioned and renewed automatically for both wildcard and cus
 
 After terminating TLS, Frontline resolves the requested domain to a deployment. It consults a globally replicated metadata store that maps every domain to a deployment ID. If the target deployment runs in a different region, Frontline forwards the request to that region automatically.
 
-## Sentinel
+## Gateway
 
-Frontline forwards the request to Sentinel, the application gateway. Sentinel runs the policies configured for the deployment before the request reaches your code:
+Once it resolves the deployment, Frontline runs the gateway, which evaluates the policies configured for that deployment before the request reaches your code:
 
-- [Authentication](/platform/sentinel/authentication) verifies the caller's identity
-- [Rate limiting](/platform/sentinel/policies/rate-limiting) enforces request quotas
-- [Custom policies](/platform/sentinel/policies) apply additional rules
+- [Authentication](/platform/gateway/authentication) verifies the caller's identity
+- [Rate limiting](/platform/gateway/policies/rate-limiting) enforces request quotas
+- [Custom policies](/platform/gateway/policies/overview) apply additional rules
 
-Requests that fail a policy receive an error response from Sentinel without reaching your app.
+Requests that fail a policy receive an error response and never reach your app.
 
-After policies pass, Sentinel selects a healthy instance of your deployment and proxies the request to your app. The response flows back through Sentinel and Frontline to the client.
+After every policy passes, the gateway forwards the request to a healthy instance of your deployment in the same region. The response flows back through Frontline to the client.
 
 ### Request headers
 
-Sentinel adds headers to every proxied request so your app can identify the original client and request context:
+Frontline adds headers to every proxied request so your app can identify the original client and request context:
 
 | Header | Description |
 | --- | --- |
@@ -45,4 +45,4 @@ Sentinel adds headers to every proxied request so your app can identify the orig
 | `X-Forwarded-Host` | The original `Host` header from the client request |
 | `X-Forwarded-Proto` | The protocol used by the client (`https`) |
 | `X-Deployment-Id` | The deployment ID that Frontline resolved from the domain |
-| `X-Unkey-Principal` | The authenticated principal, populated by Sentinel's authentication policy |
+| `X-Unkey-Principal` | The authenticated principal, populated by the gateway's authentication policy |

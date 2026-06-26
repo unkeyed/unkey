@@ -2,6 +2,7 @@ package containers_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -20,7 +21,7 @@ func TestRedis(t *testing.T) {
 	require.NoError(t, err)
 
 	client := redis.NewClient(opts)
-	defer func() { require.NoError(t, client.Close()) }()
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -30,49 +31,45 @@ func TestRedis(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify we can set and get a value
-	err = client.Set(ctx, "test-key", "test-value", 0).Err()
+	testKey := fmt.Sprintf("test-key-%d", time.Now().UnixNano())
+	err = client.Set(ctx, testKey, "test-value", 0).Err()
 	require.NoError(t, err)
 
-	val, err := client.Get(ctx, "test-key").Result()
+	val, err := client.Get(ctx, testKey).Result()
 	require.NoError(t, err)
 	require.Equal(t, "test-value", val)
 }
 
-func TestRedis_MultipleContainers(t *testing.T) {
-	// This test verifies that multiple Redis containers can run in parallel
-	// with isolated data.
+func TestRedis_ReusesContainer(t *testing.T) {
 	url1 := containers.Redis(t)
 	url2 := containers.Redis(t)
 
-	// The URLs should be different (different ports)
-	require.NotEqual(t, url1, url2)
+	require.Equal(t, url1, url2)
 
-	// Create clients for both
 	opts1, err := redis.ParseURL(url1)
 	require.NoError(t, err)
 	client1 := redis.NewClient(opts1)
-	defer func() { require.NoError(t, client1.Close()) }()
+	t.Cleanup(func() { require.NoError(t, client1.Close()) })
 
 	opts2, err := redis.ParseURL(url2)
 	require.NoError(t, err)
 	client2 := redis.NewClient(opts2)
-	defer func() { require.NoError(t, client2.Close()) }()
+	t.Cleanup(func() { require.NoError(t, client2.Close()) })
 
 	ctx := context.Background()
+	key := fmt.Sprintf("key-%d", time.Now().UnixNano())
 
-	// Set different values in each container
-	err = client1.Set(ctx, "key", "value1", 0).Err()
+	err = client1.Set(ctx, key, "shared-value", 0).Err()
 	require.NoError(t, err)
 
-	err = client2.Set(ctx, "key", "value2", 0).Err()
+	val2, err := client2.Get(ctx, key).Result()
 	require.NoError(t, err)
+	require.Equal(t, "shared-value", val2)
+}
 
-	// Verify isolation - each container has its own value
-	val1, err := client1.Get(ctx, "key").Result()
-	require.NoError(t, err)
-	require.Equal(t, "value1", val1)
+func TestRedis_DedicatedContainer(t *testing.T) {
+	sharedURL := containers.Redis(t)
+	dedicatedURL := containers.Redis(t, containers.WithDedicatedContainer())
 
-	val2, err := client2.Get(ctx, "key").Result()
-	require.NoError(t, err)
-	require.Equal(t, "value2", val2)
+	require.NotEqual(t, sharedURL, dedicatedURL)
 }
