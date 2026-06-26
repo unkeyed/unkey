@@ -95,6 +95,7 @@ export function DeploymentNetworkSection() {
               dataKey: "y",
             }}
             xAxisDomain={sixHourDomain}
+            contractOnSparseData
             timeWindow={{
               chart: "Last 6h",
             }}
@@ -114,6 +115,7 @@ export function DeploymentNetworkSection() {
               dataKey: "y",
             }}
             xAxisDomain={sixHourDomain}
+            contractOnSparseData
             timeWindow={{
               chart: "Last 6h",
             }}
@@ -140,6 +142,7 @@ export function DeploymentNetworkSection() {
               dataKey: "y",
             }}
             xAxisDomain={sixHourDomain}
+            contractOnSparseData
             timeWindow={{
               chart: "Last 6h",
             }}

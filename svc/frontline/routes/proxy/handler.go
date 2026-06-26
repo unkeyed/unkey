@@ -64,8 +64,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	tracking.RequestID = sess.RequestID()
 	tracking.DeploymentID = decision.DeploymentID
 	tracking.WorkspaceID = decision.WorkspaceID
-	tracking.EnvironmentID = decision.EnvironmentID
 	tracking.ProjectID = decision.ProjectID
+	tracking.AppID = decision.AppID
+	tracking.EnvironmentID = decision.EnvironmentID
 
 	// Evaluate policies before forwarding. The edge middleware has already
 	// stripped any client-supplied X-Unkey-Principal header; if KeyAuth

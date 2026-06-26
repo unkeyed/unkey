@@ -18,7 +18,7 @@ CREATE TABLE `deployments` (
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
 	`storage_mib` int unsigned NOT NULL DEFAULT 0,
-	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
+	`desired_state` enum('running','stopped') NOT NULL DEFAULT 'running',
 	`encrypted_environment_variables` longblob NOT NULL,
 	`command` json NOT NULL DEFAULT ('[]'),
 	`port` int NOT NULL DEFAULT 8080,

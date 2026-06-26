@@ -1,0 +1,32 @@
+---
+title: "OpenAPI validation"
+description: "OpenAPI request validation"
+---
+
+OpenAPI validation rejects requests that do not conform to an OpenAPI 3.0 or 3.1 specification before they reach the upstream instance. The policy engine compiles the spec into a validator and validates each matched request against it.
+
+## Fields
+
+<ResponseField name="spec_yaml" type="bytes">
+  The OpenAPI specification as raw YAML bytes. Frontline parses the spec at evaluation time and validates the request path, method, parameters, and request body against it.
+</ResponseField>
+
+## Example
+
+```json
+{
+  "policies": [
+    {
+      "id": "schema-validation",
+      "name": "Validate requests against OpenAPI spec",
+      "enabled": true,
+      "match": [
+        { "path": { "path": { "prefix": "/v1/" } } }
+      ],
+      "openapi": {
+        "spec_yaml": "openapi: '3.0.3'\ninfo:\n  title: My API\n  version: '1.0'\npaths:\n  /v1/keys:\n    post:\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              type: object\n              required: [name]\n              properties:\n                name:\n                  type: string\n"
+      }
+    }
+  ]
+}
+```

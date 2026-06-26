@@ -112,9 +112,12 @@ mise run down
 
 ## Environment configuration
 
+Dashboard environment variables live in `web/apps/dashboard/.env`. The
+bootstrap task creates the file from `web/apps/dashboard/.env.example`.
+
 ### Local authentication
 
-Set local auth mode in your `.env` file:
+Set local auth mode in `web/apps/dashboard/.env`:
 
 ```plaintext
 AUTH_PROVIDER="local"
@@ -123,6 +126,8 @@ AUTH_PROVIDER="local"
 ### Optional services
 
 WorkOS authentication:
+
+Add WorkOS credentials to `web/apps/dashboard/.env`:
 
 ```plaintext
 AUTH_PROVIDER="workos"
@@ -202,7 +207,7 @@ If you receive an error message similar to the example below, authenticate your 
 Failure: resource_exhausted: too many requestssh
 
 Please see https://buf.build/docs/bsr/rate-limits/ for details about BSR rate limiting.
-svc/sentinel/proto/generate.go:4: running "go": exit status 1
+svc/frontline/proto/generate.go:4: running "go": exit status 1
 Failure: resource_exhausted: too many requests
 
 Please see https://buf.build/docs/bsr/rate-limits/ for details about BSR rate limiting.

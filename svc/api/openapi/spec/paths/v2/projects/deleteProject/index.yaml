@@ -24,11 +24,16 @@ post:
         schema:
           "$ref": "./V2ProjectsDeleteProjectRequestBody.yaml"
         examples:
-          delete:
-            summary: Delete a project
-            description: Delete a project by its unique identifier
+          deleteById:
+            summary: Delete by project ID
+            description: Delete a project using its unique identifier
             value:
-              projectId: proj_1234abcd
+              project: proj_1234abcd
+          deleteBySlug:
+            summary: Delete by project slug
+            description: Delete a project using its slug
+            value:
+              project: payment-service
     required: true
   responses:
     "200":

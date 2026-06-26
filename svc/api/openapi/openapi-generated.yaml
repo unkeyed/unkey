@@ -341,6 +341,76 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
+        V2AppsCreateAppRequestBody:
+            type: object
+            required:
+                - project
+                - name
+                - slug
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        Human-readable name for this app.
+                        Use a descriptive name like 'Payments API' to identify its purpose.
+                    example: Payments API
+                slug:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2AppsCreateAppResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2AppsCreateAppResponseData"
+            additionalProperties: false
+        ConflictErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the request conflicts with the current state of the resource. This occurs when:
+                - Attempting to create a resource that already exists
+                - Modifying a resource that has been changed by another operation
+                - Violating unique constraints or business rules
+
+                To resolve this error, check the current state of the resource and adjust your request accordingly.
+        V2AppsGetAppRequestBody:
+            type: object
+            required:
+                - project
+                - app
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2AppsGetAppResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/App"
+            additionalProperties: false
         V2DeployCreateDeploymentRequestBody:
             type: object
             required:
@@ -471,23 +541,6 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2IdentitiesCreateIdentityResponseData"
-        ConflictErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when the request conflicts with the current state of the resource. This occurs when:
-                - Attempting to create a resource that already exists
-                - Modifying a resource that has been changed by another operation
-                - Violating unique constraints or business rules
-
-                To resolve this error, check the current state of the resource and adjust your request accordingly.
         V2IdentitiesDeleteIdentityRequestBody:
             type: object
             properties:
@@ -1911,15 +1964,7 @@ components:
                         Use a descriptive name like 'Payments Service' to identify its purpose.
                     example: Payments Service
                 slug:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-                    description: |
-                        URL-safe handle you choose for this project, unique within your workspace.
-                        Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
-                        Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
-                    example: payments-service
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsCreateProjectResponseBody:
             type: object
@@ -1935,17 +1980,10 @@ components:
         V2ProjectsDeleteProjectRequestBody:
             type: object
             required:
-                - projectId
+                - project
             properties:
-                projectId:
-                    type: string
-                    minLength: 8
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
-                    description: |
-                        Specifies which project to delete by its unique identifier.
-                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-                    example: proj_1234abcd
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsDeleteProjectResponseBody:
             type: object
@@ -1961,17 +1999,10 @@ components:
         V2ProjectsGetProjectRequestBody:
             type: object
             required:
-                - projectId
+                - project
             properties:
-                projectId:
-                    type: string
-                    minLength: 8
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
-                    description: |
-                        Specifies which project to retrieve by its unique identifier.
-                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-                    example: proj_1234abcd
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
             additionalProperties: false
         V2ProjectsGetProjectResponseBody:
             type: object
@@ -2024,27 +2055,12 @@ components:
         V2ProjectsUpdateProjectRequestBody:
             type: object
             required:
-                - projectId
+                - project
             properties:
-                projectId:
-                    type: string
-                    minLength: 8
-                    maxLength: 255
-                    pattern: "^[a-zA-Z0-9_]+$"
-                    description: |
-                        Specifies which project to update by its unique identifier.
-                        Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-                    example: proj_1234abcd
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 slug:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-                    description: |
-                        New URL-safe slug for the project, unique within your workspace.
-                        Changing it affects the deployment domains generated for this project.
-                        Omit this field to leave the current slug unchanged.
-                    example: payments-service
+                    "$ref": "#/components/schemas/ResourceIdentifier"
                 name:
                     type: string
                     minLength: 1
@@ -2788,6 +2804,107 @@ components:
             required:
                 - interval
                 - amount
+            additionalProperties: false
+        ResourceIdentifier:
+            type: string
+            minLength: 3
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9_-]+$"
+            description: |
+                Identifies a resource by either its unique ID or its slug.
+                Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+            example: proj_1234abcd
+        V2AppsCreateAppResponseData:
+            type: object
+            required:
+                - appId
+            properties:
+                appId:
+                    type: string
+                    minLength: 8
+                    maxLength: 255
+                    pattern: "^[a-zA-Z0-9_]+$"
+                    description: |
+                        The unique identifier of the newly created app, generated by Unkey.
+                        Always begins with 'app_' followed by a unique alphanumeric sequence.
+                    example: app_1234abcd
+            additionalProperties: false
+        App:
+            type: object
+            required:
+                - id
+                - name
+                - slug
+                - projectId
+                - defaultBranch
+                - isRolledBack
+                - deleteProtection
+                - createdAt
+            properties:
+                id:
+                    type: string
+                    description: |
+                        The unique identifier of the app, generated by Unkey.
+                    example: app_1234abcd
+                name:
+                    type: string
+                    description: |
+                        Human-readable name for this app.
+                    example: Payments API
+                slug:
+                    type: string
+                    description: |
+                        URL-safe handle for this app, unique within its project.
+                        Chosen at creation time.
+                    example: payments-api
+                projectId:
+                    type: string
+                    description: |
+                        The unique identifier of the project this app belongs to.
+                    example: proj_1234abcd
+                defaultBranch:
+                    type: string
+                    description: |
+                        The default git branch deployments track for this app.
+                    example: main
+                currentDeploymentId:
+                    type: string
+                    description: |
+                        The identifier of the deployment currently serving this app.
+                        Omitted if the app has no active deployment yet.
+                    example: dep_1234abcd
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+                isRolledBack:
+                    type: boolean
+                    description: |
+                        Whether the app is currently serving a rolled-back deployment rather than its latest one.
+                    example: false
+                deleteProtection:
+                    type: boolean
+                    description: |
+                        Whether delete protection is enabled for this app.
+                        When true, the app cannot be deleted until protection is disabled.
+                    example: false
+                createdAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: |
+                        Unix timestamp in milliseconds when the app was created.
+                    example: 1704067200000
+                updatedAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: |
+                        Unix timestamp in milliseconds when the app was last updated.
+                        Omitted if the app has never been updated.
+                    example: 1704153600000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2DeployGitCommit:
             type: object
@@ -4451,6 +4568,271 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+    /v2/apps.createApp:
+        post:
+            description: |
+                Create an app within a project. The app is created with default `production` and `preview` environments.
+
+                The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
+
+                **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `project.*.create_app` (to create apps in any project)
+                - `project.<project_id>.create_app` (to create apps in a specific project)
+            operationId: apps.createApp
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            basic:
+                                description: Create an app within a project
+                                summary: Basic app creation
+                                value:
+                                    name: Payments API
+                                    project: payments
+                                    slug: payments-api
+                        schema:
+                            $ref: '#/components/schemas/V2AppsCreateAppRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: Successfully created an app, returning its id
+                                    summary: App created successfully
+                                    value:
+                                        data:
+                                            appId: app_1234abcd
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2AppsCreateAppResponseBody'
+                    description: |
+                        App created successfully. The response contains the app id used to reference it in subsequent operations.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidSlug:
+                                    summary: Invalid slug format
+                                    value:
+                                        error:
+                                            detail: The slug must match the pattern ^[a-z0-9]+(-[a-z0-9]+)*$.
+                                            errors:
+                                                - fix: Use lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens)
+                                                  location: body.slug
+                                                  message: must match ^[a-z0-9]+(-[a-z0-9]+)*$
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'project.*.create_app' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `project.*.create_app`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                projectNotFound:
+                                    summary: Project not found
+                                    value:
+                                        error:
+                                            detail: The requested project does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested project does not exist in your workspace
+                "409":
+                    content:
+                        application/json:
+                            examples:
+                                appExists:
+                                    summary: App already exists
+                                    value:
+                                        error:
+                                            detail: An app with slug 'payments-api' already exists in this project.
+                                            status: 409
+                                            title: Conflict
+                                            type: conflict
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - App with this slug already exists in the project
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Create app
+            tags:
+                - apps
+            x-speakeasy-name-override: createApp
+            x-unkey-idempotency: conditionally-idempotent
+    /v2/apps.getApp:
+        post:
+            description: |
+                Retrieve a single app by its id or slug within a project.
+
+                Use this to fetch app details after creation or to verify an app exists before performing operations.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `app.*.read_app` (to read any app)
+                - `app.<app_id>.read_app` (to read a specific app)
+            operationId: apps.getApp
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            getById:
+                                description: Fetch an app using its unique identifier
+                                summary: Retrieve by app ID
+                                value:
+                                    app: app_1234abcd
+                                    project: payments
+                            getBySlug:
+                                description: Fetch an app using its slug
+                                summary: Retrieve by app slug
+                                value:
+                                    app: payments-api
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2AppsGetAppRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                app:
+                                    description: Successfully retrieved an app
+                                    summary: App details
+                                    value:
+                                        data:
+                                            createdAt: 1704067200000
+                                            currentDeploymentId: dep_1234abcd
+                                            defaultBranch: main
+                                            deleteProtection: false
+                                            id: app_1234abcd
+                                            isRolledBack: false
+                                            name: Payments API
+                                            projectId: proj_1234abcd
+                                            slug: payments-api
+                                            updatedAt: 1704153600000
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2AppsGetAppResponseBody'
+                    description: |
+                        Successfully retrieved the app.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'app.*.read_app' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `app.*.read_app`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                appNotFound:
+                                    summary: App not found
+                                    value:
+                                        error:
+                                            detail: The requested app does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested app does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Get app
+            tags:
+                - apps
+            x-speakeasy-name-override: getApp
     /v2/deploy.createDeployment:
         post:
             description: |
@@ -7089,11 +7471,11 @@ paths:
                                     summary: Invalid slug format
                                     value:
                                         error:
-                                            detail: The slug must match the pattern ^[a-z0-9]+(-[a-z0-9]+)*$.
+                                            detail: The slug must match the pattern ^[a-zA-Z0-9_-]+$.
                                             errors:
-                                                - fix: Use lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens)
+                                                - fix: Use only letters, numbers, hyphens, and underscores
                                                   location: body.slug
-                                                  message: must match ^[a-z0-9]+(-[a-z0-9]+)*$
+                                                  message: must match ^[a-zA-Z0-9_-]+$
                                             status: 400
                                             title: Bad Request
                                             type: validation-error
@@ -7180,11 +7562,16 @@ paths:
                 content:
                     application/json:
                         examples:
-                            delete:
-                                description: Delete a project by its unique identifier
-                                summary: Delete a project
+                            deleteById:
+                                description: Delete a project using its unique identifier
+                                summary: Delete by project ID
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
+                            deleteBySlug:
+                                description: Delete a project using its slug
+                                summary: Delete by project slug
+                                value:
+                                    project: payment-service
                         schema:
                             $ref: '#/components/schemas/V2ProjectsDeleteProjectRequestBody'
                 required: true
@@ -7291,11 +7678,16 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Fetch a single project using its unique identifier
-                                summary: Retrieve a project by ID
+                            getById:
+                                description: Fetch a project using its unique identifier
+                                summary: Retrieve by project ID
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
+                            getBySlug:
+                                description: Fetch a project using its slug
+                                summary: Retrieve by project slug
+                                value:
+                                    project: payment-service
                         schema:
                             $ref: '#/components/schemas/V2ProjectsGetProjectRequestBody'
                 required: true
@@ -7526,17 +7918,17 @@ paths:
                     application/json:
                         examples:
                             changeSlug:
-                                description: Update the URL-safe slug of a project
-                                summary: Change a project slug
+                                description: Locate the project by its current slug and assign a new one
+                                summary: Change a project slug by slug
                                 value:
-                                    projectId: proj_1234abcd
+                                    project: payments-service
                                     slug: payments-api
                             rename:
-                                description: Update only the display name of a project
-                                summary: Rename a project
+                                description: Update only the display name, locating the project by its ID
+                                summary: Rename a project by ID
                                 value:
                                     name: Payments API
-                                    projectId: proj_1234abcd
+                                    project: proj_1234abcd
                         schema:
                             $ref: '#/components/schemas/V2ProjectsUpdateProjectRequestBody'
                 required: true
@@ -8356,6 +8748,8 @@ tags:
       name: analytics
     - description: API management operations
       name: apis
+    - description: App management operations
+      name: apps
     - description: Deployment operations
       name: deploy
     - description: Identity management operations

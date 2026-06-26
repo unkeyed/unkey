@@ -2,8 +2,12 @@ package containers
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"os"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -12,8 +16,24 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/errdefs"
 	"github.com/docker/go-connections/nat"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	containerOwnerLabel      = "owner"
+	containerOwnerValue      = "testutil-containers"
+	containerReusableLabel   = "unkey.test.reusable"
+	containerImageLabel      = "unkey.test.image"
+	containerScopeLabel      = "unkey.test.scope"
+	containerScopeHashLabel  = "unkey.test.scope_hash"
+	containerConfigHashLabel = "unkey.test.config_hash"
+
+	containerScopeEnv = "UNKEY_TEST_CONTAINER_SCOPE"
+
+	reusableCreateConflictTimeout  = 30 * time.Second
+	reusableCreateConflictInterval = 100 * time.Millisecond
 )
 
 var (
@@ -82,6 +102,21 @@ type containerConfig struct {
 	// WaitTimeout is the maximum time to wait for container readiness.
 	// Defaults to 30 seconds if zero.
 	WaitTimeout time.Duration
+
+	// Dedicated disables default container reuse and creates a per-test
+	// container that is removed with t.Cleanup.
+	Dedicated bool
+}
+
+// Opt configures a test container.
+type Opt func(*containerConfig)
+
+// WithDedicatedContainer creates a per-test container instead of reusing the
+// stable shared container for the image.
+func WithDedicatedContainer() Opt {
+	return func(cfg *containerConfig) {
+		cfg.Dedicated = true
+	}
 }
 
 // getClient returns a shared Docker client instance.
@@ -143,8 +178,9 @@ func pullImage(t testing.TB, cli *client.Client, imageName string) {
 // startContainer creates and starts a Docker container with the given configuration.
 //
 // Returns the container metadata including mapped ports. The container is
-// automatically removed when the test completes via t.Cleanup, ensuring no
-// orphaned containers remain even if the test fails.
+// automatically removed when the test completes via t.Cleanup if Dedicated is
+// set. Reusable containers intentionally remain after the test so later Bazel
+// test processes can attach to the same Docker service.
 //
 // If WaitStrategy is provided, this function blocks until the container is
 // ready or the WaitTimeout is exceeded. If WaitTimeout is zero, defaults to
@@ -171,66 +207,257 @@ func startContainer(t testing.TB, cfg containerConfig) *Container {
 	}
 
 	ctx := context.Background()
-
-	// Create the container
-	containerName := strings.NewReplacer(
-		":", "-",
-		"/", "-",
-	).Replace(fmt.Sprintf("%s_%s_%d", cfg.Image, t.Name(), time.Now().UnixNano()))
+	containerName := reusableContainerName(cfg)
+	if cfg.Dedicated {
+		containerName = disposableContainerName(t, cfg.Image)
+	} else {
+		if ctr, ok := findReusableContainer(t, ctx, cli, cfg); ok {
+			waitForContainer(t, cfg, ctr)
+			return ctr
+		}
+	}
 
 	// Convert environment map to slice format ("KEY=VALUE")
 	var envSlice []string
 	for k, v := range cfg.Env {
 		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
 	}
+	sort.Strings(envSlice)
 
-	resp, err := cli.ContainerCreate(
-		ctx,
-		&container.Config{
-			Image:        cfg.Image,
-			ExposedPorts: exposedPorts,
-			Env:          envSlice,
-			Cmd:          cfg.Cmd,
-			Labels: map[string]string{
-				"owner": "testutil-containers",
+	labels := containerLabels(cfg)
+
+	create := func() (container.CreateResponse, error) {
+		return cli.ContainerCreate(
+			ctx,
+			&container.Config{
+				Image:        cfg.Image,
+				ExposedPorts: exposedPorts,
+				Env:          envSlice,
+				Cmd:          cfg.Cmd,
+				Labels:       labels,
 			},
-		},
-		&container.HostConfig{
-			PortBindings: portBindings,
-			AutoRemove:   false, // We handle removal in t.Cleanup
-			Tmpfs:        cfg.Tmpfs,
-			// Ensure host.docker.internal resolves inside containers.
-			// Docker Desktop adds this automatically, but alternative runtimes
-			// like OrbStack do not. Without it, containers that need to call
-			// back to host-bound test servers (e.g. Restate → worker handler)
-			// fail with DNS resolution errors.
-			ExtraHosts: []string{"host.docker.internal:host-gateway"},
-		},
-		nil, // NetworkingConfig
-		nil, // Platform
-		containerName,
-	)
-	require.NoError(t, err, "failed to create container")
+			&container.HostConfig{
+				PortBindings: portBindings,
+				AutoRemove:   false,
+				Tmpfs:        cfg.Tmpfs,
+				// Ensure host.docker.internal resolves inside containers.
+				// Docker Desktop adds this automatically, but alternative runtimes
+				// like OrbStack do not. Without it, containers that need to call
+				// back to host-bound test servers (e.g. Restate -> worker handler)
+				// fail with DNS resolution errors.
+				ExtraHosts: []string{"host.docker.internal:host-gateway"},
+			},
+			nil, // NetworkingConfig
+			nil, // Platform
+			containerName,
+		)
+	}
+
+	resp, err := create()
+	if err != nil {
+		if cfg.Dedicated {
+			require.NoError(t, err, "failed to create container")
+		}
+		if errdefs.IsConflict(err) {
+			retryResp, ctr, created, createErr := createOrAttachReusableContainer(
+				ctx,
+				reusableCreateConflictTimeout,
+				reusableCreateConflictInterval,
+				create,
+				func() (*Container, bool, error) {
+					return inspectReusableContainer(ctx, cli, cfg)
+				},
+			)
+			require.NoError(t, createErr, "container %q already exists but could not be reused", containerName)
+			if !created {
+				waitForContainer(t, cfg, ctr)
+				return ctr
+			}
+			resp = retryResp
+			err = nil
+		}
+		require.NoError(t, err, "failed to create container")
+	}
 
 	containerID := resp.ID
 
 	// Register cleanup before the container starts so failed readiness checks do
-	// not leak containers. Every test container is owned by the test that
-	// requested it.
-	t.Cleanup(func() {
-		require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
-			Force: true,
-		}))
-	})
+	// not leak disposable containers.
+	if cfg.Dedicated {
+		t.Cleanup(func() {
+			require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
+				Force: true,
+			}))
+		})
+	}
 
 	// Start the container
-	require.NoError(t, cli.ContainerStart(ctx, containerID, container.StartOptions{}))
+	err = cli.ContainerStart(ctx, containerID, container.StartOptions{})
+	if err != nil {
+		if cfg.Dedicated || !errdefs.IsNotModified(err) {
+			require.NoError(t, err, "failed to start container")
+		}
+	}
 
 	// Inspect to get the mapped ports
 	inspect, err := cli.ContainerInspect(ctx, containerID)
 	require.NoError(t, err, "failed to inspect container")
 
-	// Extract port mappings
+	ctr := containerFromInspect(t, inspect)
+	waitForContainer(t, cfg, ctr)
+
+	return ctr
+}
+
+// containerLabels marks containers so reusable ones can be validated before
+// attach, and leaked dedicated containers can still be removed by mise test.
+func containerLabels(cfg containerConfig) map[string]string {
+	labels := map[string]string{
+		containerOwnerLabel:     containerOwnerValue,
+		containerScopeLabel:     testContainerScope(),
+		containerScopeHashLabel: testContainerScopeHash(),
+	}
+	if cfg.Dedicated {
+		return labels
+	}
+
+	labels[containerReusableLabel] = "true"
+	labels[containerImageLabel] = cfg.Image
+	labels[containerConfigHashLabel] = containerConfigHash(cfg)
+	return labels
+}
+
+// createOrAttachReusableContainer retries reusable container creation after a
+// Docker conflict. Docker can briefly reserve a container name before the
+// winning container is visible through inspect, or keep a stale reservation
+// while removal finishes. Retrying only inspect cannot recover when the name
+// later becomes available again, so this helper retries create and inspect.
+func createOrAttachReusableContainer(
+	ctx context.Context,
+	timeout time.Duration,
+	interval time.Duration,
+	create func() (container.CreateResponse, error),
+	inspect func() (*Container, bool, error),
+) (container.CreateResponse, *Container, bool, error) {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+	var empty container.CreateResponse
+
+	for {
+		resp, err := create()
+		if err == nil {
+			return resp, nil, true, nil
+		}
+		if !errdefs.IsConflict(err) {
+			return empty, nil, false, err
+		}
+		lastErr = err
+
+		ctr, ok, inspectErr := inspect()
+		if inspectErr != nil {
+			return empty, nil, false, fmt.Errorf("inspect reusable container after create conflict: %w", inspectErr)
+		}
+		if ok {
+			return empty, ctr, false, nil
+		}
+
+		if time.Now().After(deadline) {
+			return empty, nil, false, fmt.Errorf("reusable container was not inspectable before retry timeout after create conflict: %w", lastErr)
+		}
+
+		select {
+		case <-ctx.Done():
+			return empty, nil, false, fmt.Errorf("wait for reusable container after create conflict: %w", ctx.Err())
+		case <-time.After(interval):
+		}
+	}
+}
+
+// findReusableContainer returns a stable test container by name.
+//
+// Reusable names are shared across Bazel test processes, so the labels guard
+// against accidentally attaching to a developer-owned container with the same
+// name.
+func findReusableContainer(
+	t testing.TB,
+	ctx context.Context,
+	cli *client.Client,
+	cfg containerConfig,
+) (*Container, bool) {
+	t.Helper()
+
+	ctr, ok, err := inspectReusableContainer(ctx, cli, cfg)
+	require.NoError(t, err)
+	return ctr, ok
+}
+
+func inspectReusableContainer(
+	ctx context.Context,
+	cli *client.Client,
+	cfg containerConfig,
+) (*Container, bool, error) {
+	containerName := reusableContainerName(cfg)
+	inspect, err := cli.ContainerInspect(ctx, containerName)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("failed to inspect reusable container %q: %w", containerName, err)
+	}
+
+	labels := map[string]string{}
+	if inspect.Config != nil && inspect.Config.Labels != nil {
+		labels = inspect.Config.Labels
+	}
+	if labels[containerOwnerLabel] != containerOwnerValue {
+		return nil, true, fmt.Errorf("container %q exists but is not owned by testutil containers", containerName)
+	}
+	if labels[containerReusableLabel] != "true" {
+		return nil, true, fmt.Errorf("container %q exists but is not marked reusable", containerName)
+	}
+	if labels[containerImageLabel] != cfg.Image {
+		return nil, true, fmt.Errorf("container %q exists for a different image", containerName)
+	}
+	if labels[containerScopeHashLabel] != testContainerScopeHash() {
+		return nil, true, fmt.Errorf("container %q exists for a different test scope", containerName)
+	}
+	if labels[containerConfigHashLabel] != containerConfigHash(cfg) {
+		return nil, true, fmt.Errorf("container %q exists for a different test container config", containerName)
+	}
+
+	if inspect.State == nil || !inspect.State.Running {
+		err = cli.ContainerStart(ctx, inspect.ID, container.StartOptions{})
+		if err != nil && !errdefs.IsNotModified(err) {
+			return nil, true, fmt.Errorf("failed to start reusable container %q: %w", containerName, err)
+		}
+		inspect, err = cli.ContainerInspect(ctx, inspect.ID)
+		if err != nil {
+			return nil, true, fmt.Errorf("failed to inspect reusable container %q after start: %w", containerName, err)
+		}
+	}
+
+	ctr, err := containerFromInspectRaw(inspect)
+	if err != nil {
+		return nil, true, err
+	}
+	return ctr, true, nil
+}
+
+// containerFromInspect converts Docker inspect output into the package's
+// connection metadata.
+func containerFromInspect(t testing.TB, inspect container.InspectResponse) *Container {
+	t.Helper()
+
+	ctr, err := containerFromInspectRaw(inspect)
+	require.NoError(t, err)
+	return ctr
+}
+
+func containerFromInspectRaw(inspect container.InspectResponse) (*Container, error) {
+	if inspect.NetworkSettings == nil {
+		return nil, fmt.Errorf("container %s has no network settings", inspect.ID)
+	}
+
 	ports := make(map[string]string)
 	for port, bindings := range inspect.NetworkSettings.Ports {
 		if len(bindings) > 0 {
@@ -238,21 +465,144 @@ func startContainer(t testing.TB, cfg containerConfig) *Container {
 		}
 	}
 
-	ctr := &Container{
-		ID:    containerID,
+	return &Container{
+		ID:    inspect.ID,
 		Host:  "localhost",
 		Ports: ports,
+	}, nil
+}
+
+// waitForContainer applies the configured readiness check.
+func waitForContainer(t testing.TB, cfg containerConfig, ctr *Container) {
+	t.Helper()
+
+	if cfg.WaitStrategy == nil {
+		return
 	}
 
-	// Wait for the container to be ready
-	if cfg.WaitStrategy != nil {
-		waitTimeout := cfg.WaitTimeout
-		if waitTimeout == 0 {
-			waitTimeout = 30 * time.Second
+	waitTimeout := cfg.WaitTimeout
+	if waitTimeout == 0 {
+		waitTimeout = 30 * time.Second
+	}
+
+	cfg.WaitStrategy.Wait(t, ctr, waitTimeout)
+}
+
+// reusableContainerName returns the stable Docker name for a shared test config.
+func reusableContainerName(cfg containerConfig) string {
+	return fmt.Sprintf("unkey-test-%s-%s-%s", testContainerScopeHash(), imageSlug(cfg.Image), containerConfigHash(cfg))
+}
+
+// imageSlug returns a Docker-safe slug for image names.
+func imageSlug(imageName string) string {
+	var b strings.Builder
+	lastHyphen := false
+	for _, r := range strings.ToLower(imageName) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+			lastHyphen = false
+			continue
 		}
-
-		cfg.WaitStrategy.Wait(t, ctr, waitTimeout)
+		if !lastHyphen {
+			b.WriteByte('-')
+			lastHyphen = true
+		}
 	}
 
-	return ctr
+	suffix := strings.Trim(b.String(), "-")
+	if suffix == "" {
+		suffix = "container"
+	}
+	return suffix
+}
+
+// containerConfigHash returns a short fingerprint for settings that affect the
+// running container.
+func containerConfigHash(cfg containerConfig) string {
+	var b strings.Builder
+	b.WriteString("image=")
+	b.WriteString(cfg.Image)
+	b.WriteString("\nports=")
+	for _, port := range sortedStrings(cfg.ExposedPorts) {
+		b.WriteString(port)
+		b.WriteByte(',')
+	}
+	b.WriteString("\nenv=")
+	for _, key := range sortedMapKeys(cfg.Env) {
+		b.WriteString(key)
+		b.WriteByte('=')
+		b.WriteString(cfg.Env[key])
+		b.WriteByte(',')
+	}
+	b.WriteString("\ncmd=")
+	for _, arg := range cfg.Cmd {
+		b.WriteString(arg)
+		b.WriteByte('\x00')
+	}
+	b.WriteString("\ntmpfs=")
+	for _, key := range sortedMapKeys(cfg.Tmpfs) {
+		b.WriteString(key)
+		b.WriteByte('=')
+		b.WriteString(cfg.Tmpfs[key])
+		b.WriteByte(',')
+	}
+
+	sum := sha256.Sum256([]byte(b.String()))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
+// sortedStrings returns a sorted copy of values.
+func sortedStrings(values []string) []string {
+	sorted := append([]string(nil), values...)
+	sort.Strings(sorted)
+	return sorted
+}
+
+// sortedMapKeys returns sorted keys for a string map.
+func sortedMapKeys(values map[string]string) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// testContainerScope returns the logical owner for reusable containers.
+//
+// mise sets this to the worktree root. Direct Bazel invocations fall back to
+// Bazel's runfiles root, whose output-base component is derived from the
+// workspace path.
+func testContainerScope() string {
+	if scope := os.Getenv(containerScopeEnv); scope != "" {
+		return scope
+	}
+	if scope := os.Getenv("BUILD_WORKSPACE_DIRECTORY"); scope != "" {
+		return scope
+	}
+	if scope := os.Getenv("TEST_SRCDIR"); scope != "" {
+		return scope
+	}
+	wd, err := os.Getwd()
+	if err == nil {
+		return wd
+	}
+	return "unknown"
+}
+
+// testContainerScopeHash returns a compact Docker-safe scope identifier.
+func testContainerScopeHash() string {
+	sum := sha256.Sum256([]byte(testContainerScope()))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
+// disposableContainerName returns a unique Docker name for a non-shared test
+// container.
+func disposableContainerName(t testing.TB, imageName string) string {
+	t.Helper()
+
+	return strings.NewReplacer(
+		":", "-",
+		"/", "-",
+	).Replace(fmt.Sprintf("%s_%s_%d", imageName, t.Name(), time.Now().UnixNano()))
 }

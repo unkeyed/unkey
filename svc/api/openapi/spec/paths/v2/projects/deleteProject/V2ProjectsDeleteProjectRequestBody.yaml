@@ -1,20 +1,18 @@
 type: object
 required:
-  - projectId
+  - project
 properties:
-  projectId:
-    type: string
-    minLength: 8
-    maxLength: 255
-    pattern: "^[a-zA-Z0-9_]+$"
-    description: |
-      Specifies which project to delete by its unique identifier.
-      Must be a valid project ID that begins with 'proj_' and exists within your workspace.
-    example: proj_1234abcd
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
 additionalProperties: false
 examples:
-  delete:
-    summary: Delete a project
-    description: Delete a project by its unique identifier
+  deleteById:
+    summary: Delete by project ID
+    description: Delete a project using its unique identifier
     value:
-      projectId: proj_1234abcd
+      project: proj_1234abcd
+  deleteBySlug:
+    summary: Delete by project slug
+    description: Delete a project using its slug
+    value:
+      project: payment-service

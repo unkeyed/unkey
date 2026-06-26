@@ -241,12 +241,11 @@ Every row carries both "what was reserved" and "what was used":
 | `disk_used_bytes` | `statfs` on the ephemeral mount | bytes written to disk |
 | `disk_allocated_bytes` | PVC request size | provisioned disk capacity |
 
-Four reasons we store both, on every row:
+Three reasons we store both, on every row:
 
 1. **No spec-history join required.** "How over-provisioned was this container yesterday?" becomes one SELECT, not a join against a pod-spec table that we'd otherwise have to maintain.
 2. **Allocation changes over time.** Customers scale up and down. The spec today isn't the spec during the window we're querying. Per-row allocation gives us time-series of *both* dimensions for free.
-3. **Sentinels have allocation but not really "usage".** Sentinel pods bill by reservation, not by CPU cycles they burn. Without `allocated_*` per row, there'd be nothing meaningful to store for them. With it, they fit the same schema.
-4. **Consumers can pick either column.** CPU/memory aggregates today tend to lean on allocated (reservation-based); network/disk lean on used (counter-based). The schema is agnostic either way.
+3. **Consumers can pick either column.** CPU/memory aggregates today tend to lean on allocated (reservation-based); network/disk lean on used (counter-based). The schema is agnostic either way.
 
 Mental model: every row is a *snapshot of the container's state at this moment*, with both desired (allocated) and actual (used) side by side.
 

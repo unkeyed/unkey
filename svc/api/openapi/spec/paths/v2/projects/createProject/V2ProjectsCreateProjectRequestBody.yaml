@@ -12,15 +12,7 @@ properties:
       Use a descriptive name like 'Payments Service' to identify its purpose.
     example: Payments Service
   slug:
-    type: string
-    minLength: 1
-    maxLength: 256
-    pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-    description: |
-      URL-safe handle you choose for this project, unique within your workspace.
-      Pick a short identifier like 'payments-service'. It identifies the project when you deploy and is embedded in the generated deployment domains.
-      Must be lowercase letters, numbers, and hyphens, starting and ending with a letter or number (no leading, trailing, or consecutive hyphens).
-    example: payments-service
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
 additionalProperties: false
 examples:
   basic:

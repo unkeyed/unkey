@@ -235,44 +235,45 @@ func (s *ClickHouseSeeder) insertVerificationsForKeyChunk(
 	return nil
 }
 
-// InsertSentinelRequests inserts sentinel request records for a workspace.
-func (s *ClickHouseSeeder) InsertSentinelRequests(ctx context.Context, workspaceID, projectID, environmentID, deploymentID string, count int, timestamp time.Time) {
+// InsertFrontlineRequests inserts frontline request records for a workspace.
+func (s *ClickHouseSeeder) InsertFrontlineRequests(ctx context.Context, workspaceID, projectID, appID, environmentID, deploymentID string, count int, timestamp time.Time) {
 	const batchSize = 10_000
 	for i := 0; i < count; i += batchSize {
 		batchCount := min(batchSize, count-i)
-		requests := make([]schema.SentinelRequest, batchCount)
+		requests := make([]schema.FrontlineRequest, batchCount)
 		for j := range batchCount {
-			requests[j] = schema.SentinelRequest{
-				RequestID:       uid.New(uid.RequestPrefix),
-				Time:            timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
-				WorkspaceID:     workspaceID,
-				ProjectID:       projectID,
-				EnvironmentID:   environmentID,
-				DeploymentID:    deploymentID,
-				SentinelID:      uid.New(uid.SentinelPrefix),
-				InstanceID:      uid.New(uid.InstancePrefix),
-				InstanceAddress: "10.0.0.1:8080",
-				Region:          "local",
-				Platform:        "dev",
-				Method:          "GET",
-				Host:            "test.example.com",
-				Path:            "/",
-				QueryString:     "",
-				QueryParams:     map[string][]string{},
-				RequestHeaders:  []string{},
-				RequestBody:     "",
-				ResponseStatus:  200,
-				ResponseHeaders: []string{},
-				ResponseBody:    "",
-				UserAgent:       "test-agent",
-				IPAddress:       "127.0.0.1",
-				TotalLatency:    10,
-				InstanceLatency: 8,
-				SentinelLatency: 2,
+			requests[j] = schema.FrontlineRequest{
+				RequestID:        uid.New(uid.RequestPrefix),
+				Time:             timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
+				WorkspaceID:      workspaceID,
+				ProjectID:        projectID,
+				AppID:            appID,
+				EnvironmentID:    environmentID,
+				DeploymentID:     deploymentID,
+				FrontlineID:      uid.New(uid.FrontlinePrefix),
+				InstanceID:       uid.New(uid.InstancePrefix),
+				InstanceAddress:  "10.0.0.1:8080",
+				Region:           "local",
+				Platform:         "dev",
+				Method:           "GET",
+				Host:             "test.example.com",
+				Path:             "/",
+				QueryString:      "",
+				QueryParams:      map[string][]string{},
+				RequestHeaders:   []string{},
+				RequestBody:      "",
+				ResponseStatus:   200,
+				ResponseHeaders:  []string{},
+				ResponseBody:     "",
+				UserAgent:        "test-agent",
+				IPAddress:        "127.0.0.1",
+				TotalLatency:     10,
+				InstanceLatency:  8,
+				FrontlineLatency: 2,
 			}
 		}
 
-		batch, err := s.conn.PrepareBatch(ctx, "INSERT INTO default.sentinel_requests_raw_v1")
+		batch, err := s.conn.PrepareBatch(ctx, "INSERT INTO default.frontline_requests_raw_v1")
 		require.NoError(s.t, err)
 
 		for _, r := range requests {

@@ -10,7 +10,8 @@ export type UnkeyPermissions = {
 export type PermissionScope =
   | { kind: "workspace" }
   | { kind: "api"; id: string; name: string }
-  | { kind: "project"; id: string; name: string };
+  | { kind: "project"; id: string; name: string }
+  | { kind: "app"; id: string; name: string };
 
 export const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
 
@@ -24,6 +25,8 @@ export function getScopedPermissions(scope: PermissionScope): {
       return apiPermissions(scope.id);
     case "project":
       return projectPermissions(scope.id);
+    case "app":
+      return appPermissions(scope.id);
   }
 }
 
@@ -204,6 +207,16 @@ export const workspacePermissions = {
       permission: "project.*.generate_upload_url",
     },
   },
+  Apps: {
+    create_app: {
+      description: "Create new apps in any project in this workspace",
+      permission: "project.*.create_app",
+    },
+    read_app: {
+      description: "Read and list any app in this workspace",
+      permission: "app.*.read_app",
+    },
+  },
 } satisfies Record<string, UnkeyPermissions>;
 
 export function apiPermissions(apiId: string): {
@@ -267,6 +280,12 @@ export function projectPermissions(projectId: string): {
   [category: string]: UnkeyPermissions;
 } {
   return {
+    Apps: {
+      create_app: {
+        description: "Create new apps in this project.",
+        permission: `project.${projectId}.create_app`,
+      },
+    },
     Projects: {
       create_deployment: {
         description: "Create new deployments for this project.",
@@ -279,6 +298,19 @@ export function projectPermissions(projectId: string): {
       generate_upload_url: {
         description: "Generate S3 upload URLs for this project's build contexts.",
         permission: `project.${projectId}.generate_upload_url`,
+      },
+    },
+  };
+}
+
+export function appPermissions(appId: string): {
+  [category: string]: UnkeyPermissions;
+} {
+  return {
+    Apps: {
+      read_app: {
+        description: "Read this app.",
+        permission: `app.${appId}.read_app`,
       },
     },
   };

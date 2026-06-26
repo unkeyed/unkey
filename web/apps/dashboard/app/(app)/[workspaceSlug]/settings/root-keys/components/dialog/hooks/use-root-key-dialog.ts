@@ -113,6 +113,15 @@ export function useRootKeyDialog({
     }));
   }, [projectsData]);
 
+  const allApps = useMemo(() => {
+    if (!projectsData) {
+      return [];
+    }
+    return projectsData.flatMap((project) =>
+      project.apps.map((app) => ({ id: app.id, name: app.name })),
+    );
+  }, [projectsData]);
+
   // Mutations
   const key = trpc.rootKey.create.useMutation({
     onSuccess() {
@@ -238,6 +247,7 @@ export function useRootKeyDialog({
     apisLoading,
     allProjects,
     projectsLoading,
+    allApps,
     hasNextPage,
     isFetchingNextPage,
     key,

@@ -31,11 +31,9 @@ const (
 	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED DeploymentDesiredState = 0
 	// RUNNING means the deployment should have active containers serving traffic.
 	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING DeploymentDesiredState = 1
-	// STANDBY means the deployment's containers are scaled down but the
+	// STOPPED means the deployment's containers are scaled down but the
 	// deployment can be resumed without a full rebuild.
-	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY DeploymentDesiredState = 2
-	// ARCHIVED means the deployment is permanently decommissioned.
-	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_ARCHIVED DeploymentDesiredState = 3
+	DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED DeploymentDesiredState = 2
 )
 
 // Enum value maps for DeploymentDesiredState.
@@ -43,14 +41,12 @@ var (
 	DeploymentDesiredState_name = map[int32]string{
 		0: "DEPLOYMENT_DESIRED_STATE_UNSPECIFIED",
 		1: "DEPLOYMENT_DESIRED_STATE_RUNNING",
-		2: "DEPLOYMENT_DESIRED_STATE_STANDBY",
-		3: "DEPLOYMENT_DESIRED_STATE_ARCHIVED",
+		2: "DEPLOYMENT_DESIRED_STATE_STOPPED",
 	}
 	DeploymentDesiredState_value = map[string]int32{
 		"DEPLOYMENT_DESIRED_STATE_UNSPECIFIED": 0,
 		"DEPLOYMENT_DESIRED_STATE_RUNNING":     1,
-		"DEPLOYMENT_DESIRED_STATE_STANDBY":     2,
-		"DEPLOYMENT_DESIRED_STATE_ARCHIVED":    3,
+		"DEPLOYMENT_DESIRED_STATE_STOPPED":     2,
 	}
 )
 
@@ -157,8 +153,11 @@ type ScheduleDesiredStateChangeRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Relative delay in milliseconds before the state change should take effect.
 	// Set to 0 to execute immediately.
-	DelayMillis   int64                  `protobuf:"varint,1,opt,name=delay_millis,json=delayMillis,proto3" json:"delay_millis,omitempty"`
-	State         DeploymentDesiredState `protobuf:"varint,2,opt,name=state,proto3,enum=hydra.v1.DeploymentDesiredState" json:"state,omitempty"`
+	DelayMillis int64                  `protobuf:"varint,1,opt,name=delay_millis,json=delayMillis,proto3" json:"delay_millis,omitempty"`
+	State       DeploymentDesiredState `protobuf:"varint,2,opt,name=state,proto3,enum=hydra.v1.DeploymentDesiredState" json:"state,omitempty"`
+	// if true, existing schedules get overwritten
+	// if false and a statechange is scheduled, this is a noop
+	Overwrite     bool `protobuf:"varint,3,opt,name=overwrite,proto3" json:"overwrite,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -205,6 +204,13 @@ func (x *ScheduleDesiredStateChangeRequest) GetState() DeploymentDesiredState {
 		return x.State
 	}
 	return DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED
+}
+
+func (x *ScheduleDesiredStateChangeRequest) GetOverwrite() bool {
+	if x != nil {
+		return x.Overwrite
+	}
+	return false
 }
 
 type ScheduleDesiredStateChangeResponse struct {
@@ -342,20 +348,20 @@ const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\n" +
 	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"#\n" +
 	"!ClearScheduledStateChangesRequest\"$\n" +
-	"\"ClearScheduledStateChangesResponse\"~\n" +
+	"\"ClearScheduledStateChangesResponse\"\x9c\x01\n" +
 	"!ScheduleDesiredStateChangeRequest\x12!\n" +
 	"\fdelay_millis\x18\x01 \x01(\x03R\vdelayMillis\x126\n" +
-	"\x05state\x18\x02 \x01(\x0e2 .hydra.v1.DeploymentDesiredStateR\x05state\"$\n" +
+	"\x05state\x18\x02 \x01(\x0e2 .hydra.v1.DeploymentDesiredStateR\x05state\x12\x1c\n" +
+	"\toverwrite\x18\x03 \x01(\bR\toverwrite\"$\n" +
 	"\"ScheduleDesiredStateChangeResponse\"i\n" +
 	"\x19ChangeDesiredStateRequest\x12\x14\n" +
 	"\x05nonce\x18\x01 \x01(\tR\x05nonce\x126\n" +
 	"\x05state\x18\x02 \x01(\x0e2 .hydra.v1.DeploymentDesiredStateR\x05state\"\x1c\n" +
-	"\x1aChangeDesiredStateResponse*\xb5\x01\n" +
+	"\x1aChangeDesiredStateResponse*\x8e\x01\n" +
 	"\x16DeploymentDesiredState\x12(\n" +
 	"$DEPLOYMENT_DESIRED_STATE_UNSPECIFIED\x10\x00\x12$\n" +
 	" DEPLOYMENT_DESIRED_STATE_RUNNING\x10\x01\x12$\n" +
-	" DEPLOYMENT_DESIRED_STATE_STANDBY\x10\x02\x12%\n" +
-	"!DEPLOYMENT_DESIRED_STATE_ARCHIVED\x10\x032\xf2\x02\n" +
+	" DEPLOYMENT_DESIRED_STATE_STOPPED\x10\x022\xf2\x02\n" +
 	"\x11DeploymentService\x12y\n" +
 	"\x1aScheduleDesiredStateChange\x12+.hydra.v1.ScheduleDesiredStateChangeRequest\x1a,.hydra.v1.ScheduleDesiredStateChangeResponse\"\x00\x12a\n" +
 	"\x12ChangeDesiredState\x12#.hydra.v1.ChangeDesiredStateRequest\x1a$.hydra.v1.ChangeDesiredStateResponse\"\x00\x12y\n" +

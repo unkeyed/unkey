@@ -24,7 +24,7 @@ func TestDeleteProjectUnauthorized(t *testing.T) {
 			"Authorization": {"Bearer invalid_token"},
 		}
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ProjectId: "proj_1234abcd"})
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: "proj_1234abcd"})
 		require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
 	})
 }
