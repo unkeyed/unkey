@@ -13,11 +13,11 @@ const (
 
 // Redis starts a Redis container and returns the connection URL.
 //
-// The container is owned by t and removed automatically with t.Cleanup.
-func Redis(t testing.TB) string {
+// The container is reused by stable Docker name across Bazel test processes.
+func Redis(t testing.TB, opts ...Opt) string {
 	t.Helper()
 
-	ctr := startContainer(t, containerConfig{
+	cfg := containerConfig{
 		Image:        redisImage,
 		ExposedPorts: []string{redisPort},
 		WaitStrategy: NewTCPWait(redisPort),
@@ -25,7 +25,13 @@ func Redis(t testing.TB) string {
 		Env:          map[string]string{},
 		Cmd:          []string{},
 		Tmpfs:        nil,
-	})
+		Dedicated:    false,
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	ctr := startContainer(t, cfg)
 
 	port := ctr.Port(redisPort)
 	return fmt.Sprintf("redis://127.0.0.1:%s", port)

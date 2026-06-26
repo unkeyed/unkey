@@ -36,7 +36,7 @@ type S3Config struct {
 // with default credentials (minioadmin/minioadmin) and a single server instance
 // suitable for testing.
 //
-// The container is automatically removed when the test completes via t.Cleanup.
+// The container is reused by stable Docker name across Bazel test processes.
 // This function blocks until MinIO's health endpoint responds (up to 30s).
 // Fails the test if Docker is unavailable or the container fails to start.
 //
@@ -50,10 +50,10 @@ type S3Config struct {
 //	    require.NoError(t, err)
 //	    // Use client...
 //	}
-func S3(t *testing.T) S3Config {
+func S3(t *testing.T, opts ...Opt) S3Config {
 	t.Helper()
 
-	ctr := startContainer(t, containerConfig{
+	cfg := containerConfig{
 		Image:        minioImage,
 		ExposedPorts: []string{minioPort},
 		Env: map[string]string{
@@ -64,7 +64,13 @@ func S3(t *testing.T) S3Config {
 		WaitStrategy: NewHTTPWait(minioPort, "/minio/health/live"),
 		WaitTimeout:  30 * time.Second,
 		Tmpfs:        nil,
-	})
+		Dedicated:    false,
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	ctr := startContainer(t, cfg)
 
 	port := ctr.Port(minioPort)
 	return S3Config{

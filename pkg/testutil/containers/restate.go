@@ -21,13 +21,13 @@ type RestateConfig struct {
 
 // Restate starts a Restate container and returns ingress/admin URLs.
 //
-// The container is automatically removed when the test completes via t.Cleanup.
+// The container is reused by stable Docker name across Bazel test processes.
 // This function blocks until the admin health endpoint responds (up to 30s).
 // Fails the test if Docker is unavailable or the container fails to start.
-func Restate(t *testing.T) RestateConfig {
+func Restate(t *testing.T, opts ...Opt) RestateConfig {
 	t.Helper()
 
-	ctr := startContainer(t, containerConfig{
+	cfg := containerConfig{
 		Image:        restateImage,
 		ExposedPorts: []string{restatePort, restateAdminPort},
 		WaitStrategy: NewHTTPWait(restateAdminPort, "/health"),
@@ -35,7 +35,13 @@ func Restate(t *testing.T) RestateConfig {
 		Env:          map[string]string{},
 		Cmd:          []string{},
 		Tmpfs:        nil,
-	})
+		Dedicated:    false,
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	ctr := startContainer(t, cfg)
 
 	return RestateConfig{
 		IngressURL: ctr.HostURL("http", restatePort),

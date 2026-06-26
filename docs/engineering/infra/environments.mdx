@@ -11,7 +11,7 @@ Unkey runs two primary environments. Staging auto-deploys from `main` and is use
 | ------- | --- |
 | API | `https://api.unkey-staging.com` |
 
-Staging tracks the `main` branch — every merge to main deploys to staging automatically via ArgoCD. See [promotions](/infra/infra-work#promotions) for details on how changes flow from staging to production.
+Staging tracks the `main` branch — every merge to main deploys to staging automatically via ArgoCD. See [releases](/contributing/tooling/releases) for details on how changes flow from staging to production.
 
 ### When to use staging
 
@@ -30,4 +30,4 @@ Staging data is not persistent. Do not rely on staging for long-term storage or 
 | ------- | --- |
 | API | `https://api.unkey.com` |
 
-Production is pinned to a specific commit SHA. Deploying to production requires explicitly updating this SHA through a reviewed promotion PR. See [deploying to production](/infra/infra-work#deploying-to-production) for the step-by-step process.
+Production is pinned to a specific commit SHA. Deploying to production requires explicitly updating this SHA through a reviewed promotion PR. See [the release workflow](/contributing/tooling/releases) for the step-by-step process.
