@@ -6,6 +6,7 @@ go_library(
         "engine.go",
         "match.go",
         "metrics.go",
+        "redaction.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/internal/policies",
     visibility = ["//svc/frontline:__subpackages__"],
@@ -37,6 +38,7 @@ go_test(
         "engine_test.go",
         "integration_test.go",
         "match_test.go",
+        "redaction_test.go",
     ],
     embed = [":policies"],
     deps = [
