@@ -85,6 +85,83 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	hasSecrets := len(plaintext) > 0
 
+	desired := c.buildReplicaSet(req, hasSecrets)
+
+	// Create the Secret and ServiceAccount before the ReplicaSet so they
+	// exist by the time pods are scheduled. This prevents the
+	// "serviceaccount not found" race condition. We patch ownerReferences
+	// onto them after the RS is created so K8s still garbage-collects them.
+	if hasSecrets {
+		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
+			return fmt.Errorf("failed to ensure deployment secret: %w", err)
+		}
+
+		if err := c.ensureDeploymentServiceAccount(ctx, req.GetK8SNamespace(), req.GetDeploymentId()); err != nil {
+			return fmt.Errorf("failed to ensure deployment service account: %w", err)
+		}
+	}
+
+	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
+
+	patch, err := json.Marshal(desired)
+	if err != nil {
+		return fmt.Errorf("failed to marshal replicaset: %w", err)
+	}
+
+	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerKrane,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to apply replicaset: %w", err)
+	}
+
+	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
+	// them when the ReplicaSet is deleted.
+	if hasSecrets {
+		ownerRef := metav1.OwnerReference{
+			APIVersion:         "apps/v1",
+			Kind:               "ReplicaSet",
+			Name:               applied.Name,
+			UID:                applied.UID,
+			Controller:         ptr.P(true),
+			BlockOwnerDeletion: ptr.P(true),
+		}
+
+		resName := deploymentResourcePrefix(req.GetDeploymentId())
+		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, ownerRef); err != nil {
+			return fmt.Errorf("failed to patch owner references: %w", err)
+		}
+	}
+
+	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
+		return fmt.Errorf("failed to ensure HPA: %w", err)
+	}
+
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, applied); err != nil {
+		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
+	}
+
+	status, err := c.buildDeploymentStatus(ctx, applied)
+	if err != nil {
+		return err
+	}
+
+	err = c.reportDeploymentStatus(ctx, status)
+	if err != nil {
+		logger.Error("failed to report deployment status", "deployment_id", req.GetDeploymentId(), "error", err)
+		return err
+	}
+
+	return nil
+}
+
+// buildReplicaSet renders the desired ReplicaSet for a deployment request.
+//
+// It performs no I/O so the mapping from every ApplyDeployment proto field to
+// the Kubernetes object is unit-testable without a cluster (see apply_test.go).
+// hasSecrets indicates whether a per-deployment K8s Secret will be mounted via
+// envFrom; the caller computes it from the decrypted environment variables.
+func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets bool) *appsv1.ReplicaSet {
 	usedLabels := labels.New().
 		WorkspaceID(req.GetWorkspaceId()).
 		ProjectID(req.GetProjectId()).
@@ -232,7 +309,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	podSpec.ImagePullSecrets = c.imagePullSecrets
 
-	desired := &appsv1.ReplicaSet{
+	return &appsv1.ReplicaSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
 			Kind:       "ReplicaSet",
@@ -255,73 +332,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			},
 		},
 	}
-
-	// Create the Secret and ServiceAccount before the ReplicaSet so they
-	// exist by the time pods are scheduled. This prevents the
-	// "serviceaccount not found" race condition. We patch ownerReferences
-	// onto them after the RS is created so K8s still garbage-collects them.
-	if hasSecrets {
-		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
-			return fmt.Errorf("failed to ensure deployment secret: %w", err)
-		}
-
-		if err := c.ensureDeploymentServiceAccount(ctx, req.GetK8SNamespace(), req.GetDeploymentId()); err != nil {
-			return fmt.Errorf("failed to ensure deployment service account: %w", err)
-		}
-	}
-
-	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
-
-	patch, err := json.Marshal(desired)
-	if err != nil {
-		return fmt.Errorf("failed to marshal replicaset: %w", err)
-	}
-
-	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
-		FieldManager: fieldManagerKrane,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to apply replicaset: %w", err)
-	}
-
-	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
-	// them when the ReplicaSet is deleted.
-	if hasSecrets {
-		ownerRef := metav1.OwnerReference{
-			APIVersion:         "apps/v1",
-			Kind:               "ReplicaSet",
-			Name:               applied.Name,
-			UID:                applied.UID,
-			Controller:         ptr.P(true),
-			BlockOwnerDeletion: ptr.P(true),
-		}
-
-		resName := deploymentResourcePrefix(req.GetDeploymentId())
-		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, ownerRef); err != nil {
-			return fmt.Errorf("failed to patch owner references: %w", err)
-		}
-	}
-
-	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
-		return fmt.Errorf("failed to ensure HPA: %w", err)
-	}
-
-	if err := c.ensureCiliumNetworkPolicy(ctx, req, applied); err != nil {
-		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
-	}
-
-	status, err := c.buildDeploymentStatus(ctx, applied)
-	if err != nil {
-		return err
-	}
-
-	err = c.reportDeploymentStatus(ctx, status)
-	if err != nil {
-		logger.Error("failed to report deployment status", "deployment_id", req.GetDeploymentId(), "error", err)
-		return err
-	}
-
-	return nil
 }
 
 // buildProbeHandler creates the K8s probe handler based on the healthcheck method.
