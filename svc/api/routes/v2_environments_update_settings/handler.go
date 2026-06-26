@@ -24,6 +24,14 @@ type (
 	Response = openapi.V2EnvironmentsUpdateSettingsResponseBody
 )
 
+// Per-instance resource ceilings applied when a workspace has no quota row.
+// These mirror the dashboard fallbacks and the quota column defaults.
+const (
+	defaultMaxCPUMillicores = 2000
+	defaultMaxMemoryMib     = 4096
+	defaultMaxStorageMib    = 10240
+)
+
 // cpuThreshold is the fixed autoscaling CPU threshold; the API does not expose it.
 const cpuThreshold = 80
 
@@ -112,9 +120,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	// Validate runtime resource requests against the workspace's per-instance
-	// quota, and resolve regions, before opening the write transaction so bad
-	// input never leaves a partial write behind.
 	if hasRuntime {
 		if err := h.validateResourceQuota(ctx, principal.WorkspaceID, req); err != nil {
 			return err
@@ -131,9 +136,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	now := time.Now().UnixMilli()
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// Region reconciliation reads-then-replaces the regional set, so lock the
-		// environment row to serialize concurrent updates and prevent a merged set.
-		// Build/runtime use specified-flag UPDATEs and need no lock.
+		// Lock the environment row before region reconciliation, which reads then
+		// replaces the regional set. Build/runtime UPDATEs skip the lock.
 		if req.Regions != nil {
 			if _, err := db.Query.LockEnvironmentForUpdate(ctx, tx, environment.ID); err != nil {
 				if db.IsNotFound(err) {
@@ -330,14 +334,6 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 	return nil
 }
 
-// Per-instance resource ceilings applied when a workspace has no quota row.
-// These mirror the dashboard fallbacks and the quota column defaults.
-const (
-	defaultMaxCPUMillicores = 2000
-	defaultMaxMemoryMib     = 4096
-	defaultMaxStorageMib    = 10240
-)
-
 // validateResourceQuota rejects cpu/memory/storage requests that exceed the
 // workspace's per-instance quota, mirroring the dashboard.
 func (h *Handler) validateResourceQuota(ctx context.Context, workspaceID string, req Request) error {
@@ -382,22 +378,9 @@ func quotaExceeded(public string) error {
 	)
 }
 
-// invalidRegion builds a 400 fault for a bad regions entry. The regions table is
-// small reference data, so all the region validations share this shape.
-func invalidRegion(public string) error {
-	return fault.New(
-		"invalid region",
-		fault.Code(codes.App.Validation.InvalidInput.URN()),
-		fault.Internal("invalid regions input"),
-		fault.Public(public),
-	)
-}
-
-// resolveRegions validates the desired region list against the regions table and
-// the replica bounds, returning the resolved region ids. Validation happens before
-// the write transaction so bad input never leaves a partial write. Regions are a
-// small reference table, so we load them once and resolve in memory rather than
-// issuing a lookup per requested region.
+// resolveRegions validates the desired regions against the regions table and
+// replica bounds, returning the resolved region ids. The regions table is loaded
+// once and matched in memory.
 func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSetting) ([]resolvedRegion, error) {
 	all, err := db.Query.ListRegions(ctx, h.DB.RO())
 	if err != nil {
@@ -438,9 +421,9 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' does not exist.", r.Name, platform))
 		}
 
-		// All of an environment's regions share one autoscaling policy, so the
-		// per-region replica bounds must be identical. Reject mismatches rather
-		// than silently applying one region's bounds to the whole environment.
+		// applyRegions writes one shared policy from desired[0], so per-region
+		// bounds must match. Infra supports per-region; this is a product choice
+		// mirroring the dashboard's single env-level replica range.
 		if len(resolved) > 0 && (rmin != resolved[0].min || rmax != resolved[0].max) {
 			return nil, invalidRegion("All regions must specify the same replica bounds; per-region autoscaling is not supported yet.")
 		}
@@ -455,13 +438,9 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 	return resolved, nil
 }
 
-// applyRegions reconciles the desired region set, mirroring the dashboard's
-// model: a single autoscaling policy is shared by all of an environment's
-// regions. We reuse the env's existing policy if it has one (else create it),
-// point every desired region at it with replicas = max, and delete rows for
-// regions no longer desired. Policies are never deleted (matching the dashboard),
-// so a region another row still references can never be orphaned. desired is
-// validated to carry uniform replica bounds, so desired[0] represents them all.
+// applyRegions reconciles the desired region set: reuse or create the env's
+// shared autoscaling policy, point every desired region at it with replicas =
+// max, and delete rows for regions no longer desired. The policy is never deleted.
 func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, desired []resolvedRegion, now int64) error {
 	current, err := db.Query.ListAppRegionalSettingsByAppEnv(ctx, tx, db.ListAppRegionalSettingsByAppEnvParams{
 		AppID:         appID,
@@ -476,40 +455,14 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 		)
 	}
 
-	// The environment shares one policy across its regions; reuse it if present.
-	sharedPolicyID := ""
-	for _, row := range current {
-		if row.HorizontalAutoscalingPolicyID.Valid {
-			sharedPolicyID = row.HorizontalAutoscalingPolicyID.String
-			break
-		}
-	}
+	sharedPolicyID := existingPolicyID(current)
 
 	if len(desired) > 0 {
 		minReplicas, maxReplicas := desired[0].min, desired[0].max
 
-		if sharedPolicyID != "" {
-			if err := db.Query.UpdateHorizontalAutoscalingPolicy(ctx, tx, db.UpdateHorizontalAutoscalingPolicyParams{
-				ID:          sharedPolicyID,
-				WorkspaceID: workspaceID,
-				ReplicasMin: minReplicas,
-				ReplicasMax: maxReplicas,
-				UpdatedAt:   sql.NullInt64{Valid: true, Int64: now},
-			}); err != nil {
-				return wrapRegionWriteErr(err)
-			}
-		} else {
-			sharedPolicyID = uid.New(uid.AutoscalingPolicyPrefix)
-			if err := db.Query.InsertHorizontalAutoscalingPolicy(ctx, tx, db.InsertHorizontalAutoscalingPolicyParams{
-				ID:           sharedPolicyID,
-				WorkspaceID:  workspaceID,
-				ReplicasMin:  minReplicas,
-				ReplicasMax:  maxReplicas,
-				CpuThreshold: sql.NullInt16{Valid: true, Int16: cpuThreshold},
-				CreatedAt:    now,
-			}); err != nil {
-				return wrapRegionWriteErr(err)
-			}
+		sharedPolicyID, err = h.ensureSharedPolicy(ctx, tx, workspaceID, sharedPolicyID, minReplicas, maxReplicas, now)
+		if err != nil {
+			return wrapRegionWriteErr(err)
 		}
 
 		for _, d := range desired {
@@ -533,9 +486,7 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 		desiredByRegion[d.regionID] = struct{}{}
 	}
 
-	// Remove rows for regions no longer desired. The shared policy is left in
-	// place (dashboard parity); it is never deleted, so no surviving row can be
-	// left pointing at a missing policy.
+	// Remove rows for regions no longer desired. The shared policy is left in place.
 	for _, row := range current {
 		if _, ok := desiredByRegion[row.RegionID]; ok {
 			continue
@@ -552,6 +503,41 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 	return nil
 }
 
+// existingPolicyID returns the shared autoscaling policy id from the current
+// regional rows, or "" if none reference one.
+func existingPolicyID(current []db.ListAppRegionalSettingsByAppEnvRow) string {
+	for _, row := range current {
+		if row.HorizontalAutoscalingPolicyID.Valid {
+			return row.HorizontalAutoscalingPolicyID.String
+		}
+	}
+	return ""
+}
+
+// ensureSharedPolicy updates the policy at policyID to the given bounds, or
+// creates one when policyID is empty, returning the id to point regional rows at.
+func (h *Handler) ensureSharedPolicy(ctx context.Context, tx db.DBTX, workspaceID, policyID string, minReplicas, maxReplicas int32, now int64) (string, error) {
+	if policyID != "" {
+		return policyID, db.Query.UpdateHorizontalAutoscalingPolicy(ctx, tx, db.UpdateHorizontalAutoscalingPolicyParams{
+			ID:          policyID,
+			WorkspaceID: workspaceID,
+			ReplicasMin: minReplicas,
+			ReplicasMax: maxReplicas,
+			UpdatedAt:   sql.NullInt64{Valid: true, Int64: now},
+		})
+	}
+
+	policyID = uid.New(uid.AutoscalingPolicyPrefix)
+	return policyID, db.Query.InsertHorizontalAutoscalingPolicy(ctx, tx, db.InsertHorizontalAutoscalingPolicyParams{
+		ID:           policyID,
+		WorkspaceID:  workspaceID,
+		ReplicasMin:  minReplicas,
+		ReplicasMax:  maxReplicas,
+		CpuThreshold: sql.NullInt16{Valid: true, Int16: cpuThreshold},
+		CreatedAt:    now,
+	})
+}
+
 func wrapRegionWriteErr(err error) error {
 	return fault.Wrap(
 		err,
@@ -561,8 +547,17 @@ func wrapRegionWriteErr(err error) error {
 	)
 }
 
+func invalidRegion(public string) error {
+	return fault.New(
+		"invalid region",
+		fault.Code(codes.App.Validation.InvalidInput.URN()),
+		fault.Internal("invalid regions input"),
+		fault.Public(public),
+	)
+}
+
 // buildHealthcheck maps the request healthcheck to the stored type, applying the
-// same field defaults the dashboard zod schema uses (OpenAPI ints carry no default).
+// dashboard's default field values.
 func buildHealthcheck(hc openapi.Healthcheck) *dbtype.Healthcheck {
 	intervalSeconds := 10
 	if hc.IntervalSeconds != nil {
