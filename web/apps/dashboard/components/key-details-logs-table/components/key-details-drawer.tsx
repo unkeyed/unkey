@@ -13,35 +13,46 @@ type Props = {
 };
 
 export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
-  const { log, error } = useFetchRequestDetails({
+  const { log, error, isLoading } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
   });
 
-  const errorShownRef = useRef(false);
+  // Track which request we have already toasted for so we surface at most one
+  // toast per selected log, while still re-toasting when the user picks a
+  // different row (selecting another row swaps request_id without closing).
+  const toastedRequestIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!errorShownRef.current && selectedLog) {
-      if (error) {
-        toast.error("Error Loading Log Details", {
-          description: `${
-            error.message ||
-            "An unexpected error occurred while fetching log data. Please try again."
-          }`,
-        });
-        errorShownRef.current = true;
-      } else if (!log) {
-        toast.error("Log Data Unavailable", {
-          description:
-            "Could not retrieve log information for this key. The log may have been deleted or is still processing.",
-        });
-        errorShownRef.current = true;
-      }
+    const requestId = selectedLog?.request_id;
+
+    // Drawer closed: clear so reopening the same log can toast again, since the
+    // drawer renders nothing on failure and the toast is the only feedback.
+    if (!requestId) {
+      toastedRequestIdRef.current = null;
+      return;
     }
 
-    if (!selectedLog) {
-      errorShownRef.current = false;
+    // Wait for the fetch to settle before judging the result, otherwise the
+    // in-flight state (no log, no error yet) looks like a failure.
+    if (isLoading || toastedRequestIdRef.current === requestId) {
+      return;
     }
-  }, [error, log, selectedLog]);
+
+    if (error) {
+      toast.error("Error Loading Log Details", {
+        description: `${
+          error.message || "An unexpected error occurred while fetching log data. Please try again."
+        }`,
+      });
+      toastedRequestIdRef.current = requestId;
+    } else if (!log) {
+      toast.error("Log Data Unavailable", {
+        description:
+          "Could not retrieve log information for this key. The log may have been deleted or is still processing.",
+      });
+      toastedRequestIdRef.current = requestId;
+    }
+  }, [error, log, selectedLog?.request_id, isLoading]);
 
   const handleClose = () => {
     onLogSelect(null);
