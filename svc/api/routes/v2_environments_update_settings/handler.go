@@ -421,6 +421,12 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' does not exist.", r.Name, platform))
 		}
 
+		// The deploy worker silently skips regions with can_schedule=false, so
+		// reject them here rather than store a set that never schedules.
+		if !region.CanSchedule {
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' is not available for scheduling.", r.Name, platform))
+		}
+
 		// applyRegions writes one shared policy from desired[0], so per-region
 		// bounds must match. Infra supports per-region; this is a product choice
 		// mirroring the dashboard's single env-level replica range.

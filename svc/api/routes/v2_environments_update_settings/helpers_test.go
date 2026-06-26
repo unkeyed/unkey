@@ -75,6 +75,16 @@ func seedRegions(t *testing.T, h *testutil.Harness, names ...string) {
 	}
 }
 
+// seedUnschedulableRegion inserts an aws region with can_schedule=false. The
+// UpsertRegion query has no can_schedule arg, so write it directly.
+func seedUnschedulableRegion(t *testing.T, h *testutil.Harness, name string) {
+	t.Helper()
+	_, err := h.DB.RW().ExecContext(context.Background(),
+		"INSERT INTO regions (id, name, platform, can_schedule) VALUES (?, ?, 'aws', false)",
+		uid.New(uid.RegionPrefix), name)
+	require.NoError(t, err)
+}
+
 func authHeaders(rootKey string) http.Header {
 	return http.Header{
 		"Content-Type":  {"application/json"},

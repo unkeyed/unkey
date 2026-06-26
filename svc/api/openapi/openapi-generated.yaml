@@ -659,16 +659,16 @@ components:
                     type:
                         - string
                         - "null"
+                    minLength: 1
                     maxLength: 500
-                    pattern: '^[\w\-./]+$'
                     description: |
                         Path to the Dockerfile used for builds.
                         Omit to leave unchanged; set null to clear and fall back to Railpack.
                     example: ./Dockerfile
                 dockerContext:
                     type: string
+                    minLength: 1
                     maxLength: 500
-                    pattern: '^[\w\-./]+$'
                     description: |
                         Build context directory.
                         Omit to leave unchanged.
@@ -761,12 +761,13 @@ components:
                     type:
                         - string
                         - "null"
+                    minLength: 1
                     maxLength: 512
-                    pattern: '^[\w\-./]+$'
+                    pattern: '^(/[\w\-]+)*(\.[\w]+)?/?$'
                     description: |
-                        Path to the OpenAPI spec file within the build.
+                        Path to the OpenAPI spec file within the build. Must start with a slash.
                         Omit to leave unchanged; set null to clear.
-                    example: ./openapi.yaml
+                    example: /openapi.yaml
                 regions:
                     type: array
                     minItems: 1
@@ -3563,7 +3564,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
-                    pattern: '^/[\w\-./]*$'
+                    pattern: '^(/[\w\-]+)*(\.[\w]+)?/?$'
                     description: HTTP path probed for health. Must start with a slash.
                     example: /health
                 intervalSeconds:

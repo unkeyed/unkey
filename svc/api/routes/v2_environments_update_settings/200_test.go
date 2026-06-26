@@ -69,7 +69,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Command:          ptr([]string{"./server", "--prod"}),
 			ShutdownSignal:   ptr(openapi.SIGINT),
 			UpstreamProtocol: ptr(openapi.H2c),
-			OpenapiSpecPath:  nullable.NewNullableWithValue("./openapi.yaml"),
+			OpenapiSpecPath:  nullable.NewNullableWithValue("/openapi.yaml"),
 			Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{
 				Method:          openapi.GET,
 				Path:            "/health",
@@ -90,7 +90,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.Equal(t, db.AppRuntimeSettingsShutdownSignalSIGINT, rt.ShutdownSignal)
 		require.Equal(t, db.AppRuntimeSettingsUpstreamProtocolH2c, rt.UpstreamProtocol)
 		require.True(t, rt.OpenapiSpecPath.Valid)
-		require.Equal(t, "./openapi.yaml", rt.OpenapiSpecPath.String)
+		require.Equal(t, "/openapi.yaml", rt.OpenapiSpecPath.String)
 
 		require.True(t, rt.Healthcheck.Valid)
 		require.NotNil(t, rt.Healthcheck.Healthcheck)

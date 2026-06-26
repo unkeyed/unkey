@@ -1243,7 +1243,7 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	MemoryMib *int `json:"memoryMib,omitempty"`
 
-	// OpenapiSpecPath Path to the OpenAPI spec file within the build.
+	// OpenapiSpecPath Path to the OpenAPI spec file within the build. Must start with a slash.
 	// Omit to leave unchanged; set null to clear.
 	OpenapiSpecPath nullable.Nullable[string] `json:"openapiSpecPath,omitempty"`
 

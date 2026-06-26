@@ -26,6 +26,7 @@ func TestUpdateSettings400(t *testing.T) {
 	headers := authHeaders(rootKey)
 
 	seedRegions(t, h, "us-east-1", "us-west-2")
+	seedUnschedulableRegion(t, h, "eu-west-1")
 
 	overLimit := func(n int) []string {
 		s := make([]string, n)
@@ -51,12 +52,16 @@ func TestUpdateSettings400(t *testing.T) {
 		{name: "memory off step", req: handler.Request{MemoryMib: ptr(1000)}},
 		{name: "storage off step", req: handler.Request{StorageMib: ptr(1000)}},
 
-		// Path patterns (spec).
-		{name: "dockerfile shell chars", req: handler.Request{Dockerfile: nullable.NewNullableWithValue("Dockerfile; rm -rf /")}},
-		{name: "dockerContext space", req: handler.Request{DockerContext: ptr("./my app")}},
-		{name: "openapiSpecPath space", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("./open api.yaml")}},
+		// Path patterns (spec). dockerfile/dockerContext are unconstrained strings;
+		// only openapiSpecPath and the healthcheck path are guarded.
+		{name: "dockerfile empty", req: handler.Request{Dockerfile: nullable.NewNullableWithValue("")}},
+		{name: "dockerContext empty", req: handler.Request{DockerContext: ptr("")}},
+		{name: "openapiSpecPath no slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("openapi.yaml")}},
+		{name: "openapiSpecPath space", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/open api.yaml")}},
+		{name: "openapiSpecPath traversal", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/../openapi.yaml")}},
 		{name: "healthcheck path no slash", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{Method: "GET", Path: "health"})}},
 		{name: "healthcheck path bad chars", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{Method: "GET", Path: "/health check"})}},
+		{name: "healthcheck path traversal", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{Method: "GET", Path: "/../etc/passwd"})}},
 
 		// Array caps (spec).
 		{name: "watchPaths over limit", req: handler.Request{WatchPaths: ptr(overLimit(11))}},
@@ -74,6 +79,7 @@ func TestUpdateSettings400(t *testing.T) {
 		// Region logic (handler).
 		{name: "replicas min greater than max", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 3, 1)})}},
 		{name: "unknown region", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("ap-south-1", 1, 2)})}},
+		{name: "unschedulable region", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("eu-west-1", 1, 2)})}},
 		{name: "duplicate region", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)})}},
 		{name: "mismatched replica bounds", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)})}},
 	}
