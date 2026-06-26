@@ -307,22 +307,24 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		// Create regional settings so deployments work without manually saving each environment
 		err = db.BulkQuery.UpsertAppRegionalSettings(ctx, tx, []db.UpsertAppRegionalSettingsParams{
 			{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: previewEnvID,
-				RegionID:      regionID,
-				Replicas:      1,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:                   workspaceID,
+				AppID:                         appID,
+				EnvironmentID:                 previewEnvID,
+				RegionID:                      regionID,
+				Replicas:                      1,
+				HorizontalAutoscalingPolicyID: sql.NullString{Valid: false, String: ""},
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
 			},
 			{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: productionEnvID,
-				RegionID:      regionID,
-				Replicas:      1,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:                   workspaceID,
+				AppID:                         appID,
+				EnvironmentID:                 productionEnvID,
+				RegionID:                      regionID,
+				Replicas:                      1,
+				HorizontalAutoscalingPolicyID: sql.NullString{Valid: false, String: ""},
+				CreatedAt:                     now,
+				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
 			},
 		})
 		if err != nil {
