@@ -3,6 +3,7 @@ package containers_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -26,7 +27,7 @@ func TestS3(t *testing.T) {
 	defer cancel()
 
 	// Create a test bucket
-	bucketName := "test-bucket"
+	bucketName := fmt.Sprintf("test-bucket-%d", time.Now().UnixNano())
 	_, err := client.CreateBucket(ctx, &awsS3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
 	})
@@ -48,75 +49,47 @@ func TestS3(t *testing.T) {
 		Key:    aws.String(testKey),
 	})
 	require.NoError(t, err)
-	defer func() { require.NoError(t, resp.Body.Close()) }()
+	t.Cleanup(func() { require.NoError(t, resp.Body.Close()) })
 
 	retrievedData, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	require.Equal(t, testData, retrievedData)
 }
 
-// TestS3_MultipleContainers verifies that multiple MinIO containers can run
-// in parallel with isolated data.
-func TestS3_MultipleContainers(t *testing.T) {
+func TestS3_ReusesContainer(t *testing.T) {
 	s3Cfg1 := containers.S3(t)
 	s3Cfg2 := containers.S3(t)
 
-	// The URLs should be different (different ports)
-	require.NotEqual(t, s3Cfg1.URL, s3Cfg2.URL)
+	require.Equal(t, s3Cfg1.URL, s3Cfg2.URL)
 
 	client1 := newS3Client(t, s3Cfg1)
 	client2 := newS3Client(t, s3Cfg2)
 
 	ctx := context.Background()
 
-	// Create bucket with same name in both containers
-	bucketName := "shared-bucket-name"
+	bucketName := fmt.Sprintf("shared-bucket-%d", time.Now().UnixNano())
 	_, err := client1.CreateBucket(ctx, &awsS3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 	require.NoError(t, err)
 
-	_, err = client2.CreateBucket(ctx, &awsS3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
-	})
-	require.NoError(t, err)
-
-	// Put different data with same key in each container
 	testKey := "test-key"
 	_, err = client1.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(testKey),
-		Body:   bytes.NewReader([]byte("data from container 1")),
+		Body:   bytes.NewReader([]byte("shared data")),
 	})
 	require.NoError(t, err)
-
-	_, err = client2.PutObject(ctx, &awsS3.PutObjectInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(testKey),
-		Body:   bytes.NewReader([]byte("data from container 2")),
-	})
-	require.NoError(t, err)
-
-	// Verify isolation - each container has its own data
-	resp1, err := client1.GetObject(ctx, &awsS3.GetObjectInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(testKey),
-	})
-	require.NoError(t, err)
-	defer func() { require.NoError(t, resp1.Body.Close()) }()
-	data1, err := io.ReadAll(resp1.Body)
-	require.NoError(t, err)
-	require.Equal(t, []byte("data from container 1"), data1)
 
 	resp2, err := client2.GetObject(ctx, &awsS3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(testKey),
 	})
 	require.NoError(t, err)
-	defer func() { require.NoError(t, resp2.Body.Close()) }()
+	t.Cleanup(func() { require.NoError(t, resp2.Body.Close()) })
 	data2, err := io.ReadAll(resp2.Body)
 	require.NoError(t, err)
-	require.Equal(t, []byte("data from container 2"), data2)
+	require.Equal(t, []byte("shared data"), data2)
 }
 
 // newS3Client creates an S3 client configured for the given MinIO container.
