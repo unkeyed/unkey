@@ -422,13 +422,14 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 			platform = *r.Platform
 		}
 		key := platform + "/" + r.Name
+		rmin, rmax := int32(r.Replicas.Min), int32(r.Replicas.Max)
 
 		if _, dup := seen[key]; dup {
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' is listed more than once.", r.Name, platform))
 		}
 		seen[key] = struct{}{}
 
-		if r.Replicas.Min > r.Replicas.Max {
+		if rmin > rmax {
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' min replicas cannot exceed max replicas.", r.Name))
 		}
 
@@ -437,20 +438,18 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' does not exist.", r.Name, platform))
 		}
 
-		resolved = append(resolved, resolvedRegion{
-			regionID: region.ID,
-			min:      int32(r.Replicas.Min),
-			max:      int32(r.Replicas.Max),
-		})
-	}
-
-	// All of an environment's regions share one autoscaling policy, so the
-	// per-region replica bounds must be identical. Reject mismatches rather than
-	// silently applying one region's bounds to the whole environment.
-	for i := 1; i < len(resolved); i++ {
-		if resolved[i].min != resolved[0].min || resolved[i].max != resolved[0].max {
+		// All of an environment's regions share one autoscaling policy, so the
+		// per-region replica bounds must be identical. Reject mismatches rather
+		// than silently applying one region's bounds to the whole environment.
+		if len(resolved) > 0 && (rmin != resolved[0].min || rmax != resolved[0].max) {
 			return nil, invalidRegion("All regions must specify the same replica bounds; per-region autoscaling is not supported yet.")
 		}
+
+		resolved = append(resolved, resolvedRegion{
+			regionID: region.ID,
+			min:      rmin,
+			max:      rmax,
+		})
 	}
 
 	return resolved, nil

@@ -53,25 +53,28 @@ properties:
     example: 8080
   cpuMillicores:
     type: integer
-    minimum: 1
+    minimum: 250
+    multipleOf: 250
     description: |
-      CPU allocation in millicores.
+      CPU allocation in millicores. Minimum 250 (1/4 vCPU), in steps of 250.
       The upper bound is your workspace's per-instance quota; exceeding it returns 400.
       Omit to leave unchanged.
     example: 1000
   memoryMib:
     type: integer
-    minimum: 1
+    minimum: 256
+    multipleOf: 256
     description: |
-      Memory allocation in MiB.
+      Memory allocation in MiB. Minimum 256, in steps of 256.
       The upper bound is your workspace's per-instance quota; exceeding it returns 400.
       Omit to leave unchanged.
     example: 512
   storageMib:
     type: integer
     minimum: 0
+    multipleOf: 512
     description: |
-      Ephemeral storage allocation in MiB.
+      Ephemeral storage allocation in MiB, in steps of 512 (0 for none).
       The upper bound is your workspace's per-instance quota; exceeding it returns 400.
       Omit to leave unchanged.
     example: 1024
