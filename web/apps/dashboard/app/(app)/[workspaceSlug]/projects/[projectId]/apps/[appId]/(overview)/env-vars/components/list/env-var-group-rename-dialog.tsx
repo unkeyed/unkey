@@ -2,6 +2,7 @@
 
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
+import { trackSave } from "@/lib/collections/deploy/environment-settings";
 import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,10 +48,14 @@ export function EnvVarGroupRenameDialog({
       return;
     }
     try {
-      await renameMutation.mutateAsync({
-        envVarIds: items.map((i) => i.id),
-        key: values.key,
-      });
+      // Route through trackSave so the pending-redeploy banner reacts to the
+      // rename, the same way create/update/delete do via the collection.
+      await trackSave(
+        renameMutation.mutateAsync({
+          envVarIds: items.map((i) => i.id),
+          key: values.key,
+        }),
+      );
       await collection.envVars.utils.refetch();
       toast.success(`Renamed variable to "${values.key}" across ${items.length} environments`);
       onClose();
