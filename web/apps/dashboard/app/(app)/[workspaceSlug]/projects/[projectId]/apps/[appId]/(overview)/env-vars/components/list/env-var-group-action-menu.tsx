@@ -53,17 +53,21 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
         </Button>
       </TableActionPopover>
 
-      <ConfirmPopover
-        isOpen={isDeleteConfirmOpen}
-        onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => collection.envVars.delete(items.map((i) => i.id))}
-        triggerRef={deleteButtonRef}
-        title="Confirm deletion"
-        description={`This will permanently delete "${groupKey}" from ${items.length} environments (${environmentNames}). This action cannot be undone.`}
-        confirmButtonText="Delete variable"
-        cancelButtonText="Cancel"
-        variant="danger"
-      />
+      {/* Stop clicks inside the popover (e.g. Cancel) from bubbling up to the
+          row, which would otherwise toggle the group accordion. */}
+      <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+        <ConfirmPopover
+          isOpen={isDeleteConfirmOpen}
+          onOpenChange={setIsDeleteConfirmOpen}
+          onConfirm={() => collection.envVars.delete(items.map((i) => i.id))}
+          triggerRef={deleteButtonRef}
+          title="Confirm deletion"
+          description={`This will permanently delete "${groupKey}" from ${items.length} environments (${environmentNames}). This action cannot be undone.`}
+          confirmButtonText="Delete variable"
+          cancelButtonText="Cancel"
+          variant="danger"
+        />
+      </div>
     </>
   );
 }
