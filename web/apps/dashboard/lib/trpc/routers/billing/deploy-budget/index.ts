@@ -25,6 +25,13 @@ export const getDeployBudget = workspaceProcedure
     // True while the spend cap has paused this workspace's compute; the
     // dashboard surfaces it so an admin understands why compute is offline.
     suspended: ctx.workspace.deploySpendSuspended,
+    // The period's included usage credit, in cents. The spend cap measures
+    // net-of-credit overage (max(0, gross usage - this)), so the dashboard
+    // subtracts it too and the meter matches what the backend enforces. NULL
+    // means not yet known (no invoice event has persisted it); the checker
+    // skips alerts and enforcement then, so the dashboard must render that
+    // state rather than pretend the credit is zero and show gross as net.
+    includedCreditCents: ctx.workspace.deployIncludedCreditCents ?? null,
   }));
 
 /**
