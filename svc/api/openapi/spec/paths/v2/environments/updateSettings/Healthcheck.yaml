@@ -16,7 +16,8 @@ properties:
     type: string
     minLength: 1
     maxLength: 512
-    description: HTTP path probed for health.
+    pattern: '^/[\w\-./]*$'
+    description: HTTP path probed for health. Must start with a slash.
     example: /health
   intervalSeconds:
     type: integer
