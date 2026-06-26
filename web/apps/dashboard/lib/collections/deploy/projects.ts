@@ -56,7 +56,8 @@ export const projects = createCollection<Project, string>(
     queryClient,
     queryKey: ["projects"],
     retry: 3,
-    refetchInterval: 5000,
+    // No live status field to gate polling on; 30s safety net. See ENG-2978.
+    refetchInterval: 30_000,
     queryFn: async () => {
       return await trpcClient.deploy.project.list.query();
     },

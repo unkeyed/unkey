@@ -95,6 +95,21 @@ export type Deployment = z.infer<typeof deploymentSchema>;
 
 export const DEPLOYMENTS_DEFAULT_LIMIT = 100;
 
+// Non-terminal statuses; the list polls fast (5s) while any deployment is in
+// one of these, and falls back to 30s once all are terminal. See ENG-2978.
+const ACTIVE_DEPLOYMENT_STATUSES = new Set<Deployment["status"]>([
+  "pending",
+  "starting",
+  "building",
+  "deploying",
+  "network",
+  "finalizing",
+  "awaiting_approval",
+]);
+
+const hasActiveDeployment = (data: Deployment[] | undefined): boolean =>
+  Array.isArray(data) && data.some((d) => ACTIVE_DEPLOYMENT_STATUSES.has(d.status));
+
 type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
 
 function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
@@ -128,7 +143,7 @@ export const deployments = createCollection<Deployment, string>(
     },
     retry: 3,
     syncMode: "on-demand",
-    refetchInterval: 5000,
+    refetchInterval: (query) => (hasActiveDeployment(query.state.data) ? 5000 : 30_000),
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 

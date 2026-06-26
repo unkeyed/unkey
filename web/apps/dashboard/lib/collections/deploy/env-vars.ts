@@ -44,7 +44,8 @@ export const envVars = createCollection<EnvVar, string>(
     },
     retry: 3,
     syncMode: "on-demand",
-    refetchInterval: 5000,
+    // Only changes on user edit (mutations refetch); 30s safety net. See ENG-2978.
+    refetchInterval: 30_000,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 

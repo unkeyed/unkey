@@ -63,7 +63,8 @@ export const apps = createCollection<App, string>(
     },
     retry: 3,
     syncMode: "on-demand",
-    refetchInterval: 5000,
+    // No live status field to gate polling on; 30s safety net. See ENG-2978.
+    refetchInterval: 30_000,
     queryFn: async (ctx) => {
       const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
       const projectId = extractStringFilter(filters, "projectId", "eq");

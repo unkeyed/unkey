@@ -33,6 +33,12 @@ const schema = z.object({
 export type CustomDomain = z.infer<typeof schema>;
 export type VerificationStatus = z.infer<typeof verificationStatusSchema>;
 
+// Poll only while a verification is in flight; stop once all are settled. See ENG-2978.
+const PENDING_VERIFICATION_STATUSES = new Set<VerificationStatus>(["pending", "verifying"]);
+
+const hasPendingVerification = (data: CustomDomain[] | undefined): boolean =>
+  Array.isArray(data) && data.some((d) => PENDING_VERIFICATION_STATUSES.has(d.verificationStatus));
+
 /**
  * Custom domains collection.
  *
@@ -43,7 +49,7 @@ export const customDomains = createCollection<CustomDomain, string>(
   queryCollectionOptions({
     queryClient,
     syncMode: "on-demand",
-    refetchInterval: 5000,
+    refetchInterval: (query) => (hasPendingVerification(query.state.data) ? 5000 : false),
     queryKey: (opts) => {
       const projectId = parseProjectIdFromWhere(opts.where);
       return projectId ? ["customDomains", projectId] : ["customDomains"];
