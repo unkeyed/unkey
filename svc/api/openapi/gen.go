@@ -1212,7 +1212,7 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	Command *[]string `json:"command,omitempty"`
 
-	// CpuMillicores CPU allocation in millicores.
+	// CpuMillicores CPU allocation in millicores. Minimum 250 (1/4 vCPU), in steps of 250.
 	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
 	// Omit to leave unchanged.
 	CpuMillicores *int `json:"cpuMillicores,omitempty"`
@@ -1233,7 +1233,7 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Set null to remove the healthcheck entirely.
 	Healthcheck nullable.Nullable[Healthcheck] `json:"healthcheck,omitempty"`
 
-	// MemoryMib Memory allocation in MiB.
+	// MemoryMib Memory allocation in MiB. Minimum 256, in steps of 256.
 	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
 	// Omit to leave unchanged.
 	MemoryMib *int `json:"memoryMib,omitempty"`
@@ -1260,7 +1260,7 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	ShutdownSignal *V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal `json:"shutdownSignal,omitempty"`
 
-	// StorageMib Ephemeral storage allocation in MiB.
+	// StorageMib Ephemeral storage allocation in MiB, in steps of 512 (0 for none).
 	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
 	// Omit to leave unchanged.
 	StorageMib *int `json:"storageMib,omitempty"`
