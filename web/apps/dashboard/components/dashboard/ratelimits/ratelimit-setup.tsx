@@ -2,12 +2,25 @@
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import { parseDuration } from "@/lib/duration";
 import { formatMs } from "@/lib/ms";
-import type { RatelimitFormValues, RatelimitItem } from "@/lib/schemas/ratelimit";
+import type { RatelimitItem } from "@/lib/schemas/ratelimit";
 import { Gauge, Trash } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useState } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
+
+// The form's `ratelimit` field is a Zod discriminated union (enabled false/true),
+// which makes react-hook-form collapse the `ratelimit.data` field-array element
+// type and reject `RatelimitItem`. Typing the form context against the concrete
+// runtime shape lets the field-array helpers infer `RatelimitItem` directly,
+// avoiding `any` casts. The disabled branch still carries `data` at runtime
+// (set via the schema's prefault), so `boolean` is accurate here.
+type RatelimitFieldValues = {
+  ratelimit: {
+    enabled: boolean;
+    data: RatelimitItem[];
+  };
+};
 
 function RefillIntervalField({
   value,
@@ -81,7 +94,8 @@ export const RatelimitSetup = ({
     control,
     setValue,
     trigger,
-  } = useFormContext<RatelimitFormValues>();
+    clearErrors,
+  } = useFormContext<RatelimitFieldValues>();
 
   // Helper to safely access error messages from conditional schema
   const getFieldError = (index: number, field: keyof RatelimitItem): string | undefined => {
@@ -113,8 +127,7 @@ export const RatelimitSetup = ({
   // Ensure there's always at least one ratelimit item
   useEffect(() => {
     if (fields.length === 0) {
-      // biome-ignore lint/suspicious/noExplicitAny: useFieldArray with discriminated unions requires type assertion
-      (append as any)({
+      append({
         id: undefined,
         name: "Default",
         limit: 10,
@@ -129,15 +142,21 @@ export const RatelimitSetup = ({
     trigger("ratelimit");
   };
 
-  const handleAddRatelimit = () => {
-    // biome-ignore lint/suspicious/noExplicitAny: useFieldArray with discriminated unions requires type assertion
-    (append as any)({
+  const handleAddRatelimit = async () => {
+    const newIndex = fields.length;
+    append({
       id: undefined,
       name: "",
       limit: 10,
       refillInterval: 1000,
       autoApply: false,
     });
+    // Re-run validation so the form/step validity reflects the newly added
+    // (incomplete) rule and the submit button disables. Then clear the new
+    // rule's errors so we don't flag fields the user hasn't filled in yet.
+    // clearErrors only mutates the errors object, leaving isValid untouched.
+    await trigger("ratelimit");
+    clearErrors(`ratelimit.data.${newIndex}`);
   };
 
   const description =
@@ -177,8 +196,7 @@ export const RatelimitSetup = ({
       </div>
 
       <div>
-        {/* biome-ignore lint/suspicious/noExplicitAny: useFieldArray with discriminated unions requires type assertion */}
-        {(fields as any[]).map((field: any, index: number) => (
+        {fields.map((field, index) => (
           <div key={field.id} className="flex flex-col gap-4 w-full border-t border-grayA-3 py-6">
             <div className="flex items-center gap-3.5 w-full">
               <FormInput
