@@ -98,13 +98,6 @@
                 ]
               },
               {
-                "group": "Apps",
-                "pages": [
-                  "platform/apps/overview",
-                  "platform/apps/settings"
-                ]
-              },
-              {
                 "group": "Identities",
                 "pages": [
                   "platform/identities/overview",
