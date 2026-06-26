@@ -1,0 +1,52 @@
+---
+title: "June 26, 2026"
+description: "App overview as the default app landing, stop/start for apps with auto-sleep previews, project and app HTTP API endpoints, MFA with passkeys, and a batch of security fixes."
+noindex: true
+---
+
+## New features
+
+### App overview is the new app landing
+
+Opening an [app](/platform/apps/overview) now lands on a redesigned overview page: a hero card for the live production deployment with its custom domain, a weekly requests/errors chart, regions, resources, and instance count, plus quick links to Logs and Requests. A recent-deployments list sits below. Instant rollback, undo, redeploy, copy deployment ID, and view-commit-on-GitHub are one click from the card's actions.
+
+### Stop and start apps, and auto-sleep previews
+
+Apps can now be stopped and started, and preview environments automatically scale to zero when idle so you don't pay for traffic that isn't there. See [Deployments](/build-and-deploy/deployments).
+
+### HTTP API for projects and apps
+
+The Unkey HTTP API now covers projects and apps end to end. New endpoints let you create, get, list, update, and delete [projects](/platform/projects/overview), and create and get [apps](/platform/apps/overview) — so you can script workspace setup the same way you script keys and identities.
+
+### MFA with passkeys
+
+You can now enroll in multi-factor authentication using a passkey when signing in to the [dashboard](/platform/workspaces/overview), with a unified enrollment flow and a 6-digit code fallback.
+
+### Scope portal-created keys by external ID
+
+Keys created through a [portal](/platform/identities/overview) session are now automatically scoped to the session's external ID, so portal users can only mint keys against their own identity.
+
+## Updates
+
+### Prorated Deploy credits on mid-cycle upgrades
+
+Upgrading your [Deploy plan](/platform/workspaces/billing) mid-period now grants a prorated credit top-up immediately, matching the prorated fee you pay. Previously the included usage credits stayed flat until the next renewal, so an upgrade meant to add headroom didn't add any until the next cycle. Downgrades keep the period as bought — no clawback — and the lower plan's credits start at the next renewal.
+
+### Domain Connect returns you to the app
+
+After completing a [Domain Connect](/networking/domains) DNS setup, you now land back on the app settings page where you added the domain instead of project settings.
+
+### Build logs focus on the failing step
+
+When a deployment fails, the [build logs](/build-and-deploy/deployments) viewer now auto-scrolls to the step that errored so you don't have to hunt for it.
+
+## Bug fixes
+
+- Patched two SSRF paths — one through HTTP redirects and one through the proxy to the API.
+- Blocked a cross-tenant deletion path on shared resources.
+- Identity creation no longer permanently blocks reusing an external ID after the previous identity was deleted; soft-deleted rows are now ignored by the duplicate check.
+- Fixed the ratelimit origin circuit breaker so transient origin errors no longer wedge it open.
+- The app overview "requests this week" chart now spans the full labeled time window instead of contracting to ~24h, and its request rate is no longer inflated by an over-eager client-side downsample.
+- List search inputs are debounced and filter IDs are stable, so typing no longer thrashes the URL or re-runs queries on every keystroke.
+- Cleaned up several visual rough edges in the new sleep/stop UI components.
+- Improved Sentry error capture so dashboard exceptions carry more useful context.
