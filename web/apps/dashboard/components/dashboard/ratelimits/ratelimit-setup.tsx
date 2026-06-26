@@ -138,6 +138,7 @@ export const RatelimitSetup = ({
       refillInterval: 1000,
       autoApply: false,
     });
+    trigger("ratelimit");
   };
 
   const description =
