@@ -40,7 +40,6 @@ export function ProductionDeploymentCard() {
     deployments,
     environments,
     customDomains,
-    getDeploymentById,
     getDomainsForDeployment,
     isDeploymentsLoading,
   } = useProjectData();
@@ -60,9 +59,20 @@ export function ProductionDeploymentCard() {
   const repoFullName = app?.repositoryFullName ?? null;
 
   const currentDeploymentId = app?.currentDeploymentId ?? null;
-  const currentDeployment = currentDeploymentId
-    ? getDeploymentById(currentDeploymentId)
-    : undefined;
+  const currentDeploymentQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) =>
+          and(
+            eq(deployment.projectId, projectId),
+            eq(deployment.appId, appId),
+            eq(deployment.id, currentDeploymentId ?? ""),
+          ),
+        ),
+    [projectId, appId, currentDeploymentId],
+  );
+  const currentDeployment = currentDeploymentId ? currentDeploymentQuery.data?.[0] : undefined;
 
   const productionEnvironmentId = environments.find((e) => e.slug === "production")?.id;
   const latestProductionDeployment = productionEnvironmentId
@@ -77,7 +87,10 @@ export function ProductionDeploymentCard() {
     { refetchInterval: 30_000 },
   );
 
-  if (isDeploymentsLoading || appsQuery.isLoading) {
+  const isResolvingCurrentDeployment =
+    currentDeploymentId != null && currentDeploymentQuery.isLoading;
+
+  if (isDeploymentsLoading || appsQuery.isLoading || isResolvingCurrentDeployment) {
     return <ProductionDeploymentCardSkeleton />;
   }
 

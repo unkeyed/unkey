@@ -74,8 +74,9 @@ User workloads are represented as ReplicaSets with the following characteristics
 - Pods tolerate the `karpenter.sh/nodepool=untrusted` taint
 - Topology spread keeps replicas balanced across zones
 - Pod affinity prefers zones already running pods with the environment's sentinel component label (`ComponentSentinel`). This is a soft preference inherited from the sentinel proxy layer; since that layer merged into Frontline and no pods carry the label, the affinity currently matches nothing
-- Env vars include `UNKEY_WORKSPACE_ID`, `UNKEY_PROJECT_ID`, `UNKEY_ENVIRONMENT_ID`, and `UNKEY_DEPLOYMENT_ID`
-- `UNKEY_ENCRYPTED_ENV` contains a base64-encoded secrets blob when present
+- Env vars include `PORT`, `UNKEY_DEPLOYMENT_ID`, `UNKEY_ENVIRONMENT_SLUG`, `UNKEY_REGION`, `UNKEY_INSTANCE_ID`, and the `UNKEY_GIT_*` set (commit SHA, branch, repo, commit message)
+- A `command` override from the deployment spec replaces the image entrypoint when set; otherwise the image's `ENTRYPOINT`/`CMD` runs
+- Decrypted environment variables are mounted from a per-deployment K8s Secret via `envFrom.secretRef`
 - Healthchecks map to HTTP probes, and POST uses an exec probe with `wget`
 - Optional preStop hook sends non-SIGTERM shutdown signals
 
