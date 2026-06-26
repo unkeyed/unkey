@@ -145,7 +145,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize database
-	database, err := db.New(cfg.Database.Primary)
+	database, err := db.New(cfg.Database)
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}

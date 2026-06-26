@@ -24,7 +24,7 @@ These fields must be set for production deployments.
 | Field | Type | Notes |
 | --- | --- | --- |
 | `cname_domain` | string | Base domain for custom domain CNAME targets. Required.
-| `database` | object | Single read-write MySQL connection settings. Required.
+| `database` | string | Single read-write MySQL DSN. Required.
 | `vault` | object | Vault connection settings. Required.
 | `restate` | object | Restate admin URL and worker HTTP port. Required.
 
@@ -124,9 +124,7 @@ instance_id = "${POD_NAME}"
 default_domain = "${UNKEY_DEFAULT_DOMAIN}"
 build_platform = "linux/amd64"
 cname_domain = "${UNKEY_CNAME_DOMAIN}"
-
-[database]
-primary = "${UNKEY_DATABASE_PRIMARY}"
+database = "${UNKEY_DATABASE_PRIMARY}"
 
 [vault]
 url = "${UNKEY_VAULT_URL}"

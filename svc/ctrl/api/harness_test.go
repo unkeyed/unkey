@@ -23,7 +23,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
-	ctrlconfig "github.com/unkeyed/unkey/svc/ctrl/internal/config"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -102,7 +101,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 
 		DefaultDomain:  "",
 		RegionalDomain: "",
-		Database:       ctrlconfig.DatabaseConfig{Primary: mysqlCfg.DSN},
+		Database:       mysqlCfg.DSN,
 		Observability:  config.Observability{},
 		Restate: RestateConfig{
 			URL:    restateCfg.IngressURL,

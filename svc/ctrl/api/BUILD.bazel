@@ -31,7 +31,6 @@ go_library(
         "//pkg/runner",
         "//pkg/uid",
         "//svc/ctrl/internal/auditlogs",
-        "//svc/ctrl/internal/config",
         "//svc/ctrl/internal/db",
         "//svc/ctrl/services/acme",
         "//svc/ctrl/services/app",
@@ -55,6 +54,7 @@ go_library(
 go_test(
     name = "api_test",
     srcs = [
+        "config_test.go",
         "deployment_integration_test.go",
         "github_webhook_integration_test.go",
         "harness_test.go",
@@ -70,7 +70,6 @@ go_test(
         "//pkg/testutil/containers",
         "//pkg/uid",
         "//svc/ctrl/integration/seed",
-        "//svc/ctrl/internal/config",
         "//svc/ctrl/internal/db",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//:sdk-go",

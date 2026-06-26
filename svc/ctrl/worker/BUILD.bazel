@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "worker",
@@ -32,7 +32,6 @@ go_library(
         "//pkg/rpc/interceptor",
         "//pkg/runner",
         "//pkg/uid",
-        "//svc/ctrl/internal/config",
         "//svc/ctrl/internal/db",
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/app",
@@ -60,5 +59,15 @@ go_library(
         "@com_github_restatedev_sdk_go//server",
         "@org_golang_x_net//http2",
         "@org_golang_x_net//http2/h2c",
+    ],
+)
+
+go_test(
+    name = "worker_test",
+    srcs = ["config_test.go"],
+    embed = [":worker"],
+    deps = [
+        "//pkg/config",
+        "@com_github_stretchr_testify//require",
     ],
 )

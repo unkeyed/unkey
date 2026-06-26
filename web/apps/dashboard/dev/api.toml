@@ -13,9 +13,7 @@ type = "portal_session"
 
 [[auth]]
 type = "root_key"
-
-[database]
-primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
+database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
 
 [clickhouse]
 url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"

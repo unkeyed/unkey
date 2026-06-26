@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
-	ctrlconfig "github.com/unkeyed/unkey/svc/ctrl/internal/config"
 )
 
 // Route53Config holds AWS Route53 configuration for ACME DNS-01 challenges.
@@ -256,8 +255,8 @@ type Config struct {
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain" config:"required,nonempty"`
 
-	// Database configures the single read-write MySQL connection.
-	Database ctrlconfig.DatabaseConfig `toml:"database"`
+	// Database is the MySQL DSN used for all control plane reads and writes.
+	Database string `toml:"database" config:"required,nonempty"`
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
