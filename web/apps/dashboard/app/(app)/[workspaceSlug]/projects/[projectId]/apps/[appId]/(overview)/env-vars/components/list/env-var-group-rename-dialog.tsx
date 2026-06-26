@@ -1,5 +1,6 @@
 "use client";
 
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
 import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
@@ -15,16 +16,14 @@ const renameSchema = z.object({
 
 type RenameFormValues = z.infer<typeof renameSchema>;
 
-type EnvVarGroupRenameDialogProps = {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+type EnvVarGroupRenameDialogProps = ActionComponentProps & {
   groupKey: string;
   items: EnvVarItem[];
 };
 
 export function EnvVarGroupRenameDialog({
   isOpen,
-  onOpenChange,
+  onClose,
   groupKey,
   items,
 }: EnvVarGroupRenameDialogProps) {
@@ -35,7 +34,6 @@ export function EnvVarGroupRenameDialog({
   const {
     register,
     handleSubmit,
-    reset,
     formState: { isSubmitting, errors },
   } = useForm<RenameFormValues>({
     mode: "onChange",
@@ -43,14 +41,9 @@ export function EnvVarGroupRenameDialog({
     defaultValues: { key: groupKey },
   });
 
-  const close = () => {
-    reset({ key: groupKey });
-    onOpenChange(false);
-  };
-
   const onSubmit = async (values: RenameFormValues) => {
     if (values.key === groupKey) {
-      close();
+      onClose();
       return;
     }
     try {
@@ -60,7 +53,7 @@ export function EnvVarGroupRenameDialog({
       });
       await collection.envVars.utils.refetch();
       toast.success(`Renamed variable to "${values.key}" across ${items.length} environments`);
-      close();
+      onClose();
     } catch (err) {
       toast.error("Failed to rename variable", {
         description: err instanceof Error ? err.message : undefined,
@@ -71,12 +64,16 @@ export function EnvVarGroupRenameDialog({
   return (
     <DialogContainer
       isOpen={isOpen}
-      onOpenChange={(open) => (open ? onOpenChange(true) : close())}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
       title="Rename variable"
       subTitle={`Renames "${groupKey}" in all environments (${environmentNames}) so they stay in sync.`}
       footer={
         <div className="flex items-center justify-end gap-2 w-full">
-          <Button type="button" variant="outline" size="md" onClick={close} className="px-3">
+          <Button type="button" variant="outline" size="md" onClick={onClose} className="px-3">
             Cancel
           </Button>
           <Button

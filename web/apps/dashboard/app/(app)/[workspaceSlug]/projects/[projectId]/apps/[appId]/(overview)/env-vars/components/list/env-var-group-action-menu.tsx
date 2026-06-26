@@ -15,8 +15,7 @@ type EnvVarGroupActionMenuProps = {
 
 export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenuProps) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   const environmentNames = items.map((i) => i.environmentName).join(", ");
 
@@ -25,10 +24,9 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
       id: "rename",
       label: "Rename in all environments",
       icon: <PenWriting3 iconSize="md-regular" />,
-      onClick: (e) => {
-        e.stopPropagation();
-        setIsRenameOpen(true);
-      },
+      ActionComponent: (props) => (
+        <EnvVarGroupRenameDialog {...props} groupKey={groupKey} items={items} />
+      ),
     },
     {
       id: "delete",
@@ -46,7 +44,7 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
     <>
       <TableActionPopover items={menuItems}>
         <Button
-          ref={triggerRef}
+          ref={deleteButtonRef}
           variant="outline"
           className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-grayA-6"
           onClick={(e) => e.stopPropagation()}
@@ -59,19 +57,12 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
         onConfirm={() => collection.envVars.delete(items.map((i) => i.id))}
-        triggerRef={triggerRef}
+        triggerRef={deleteButtonRef}
         title="Confirm deletion"
         description={`This will permanently delete "${groupKey}" from ${items.length} environments (${environmentNames}). This action cannot be undone.`}
-        confirmButtonText="Delete from all environments"
+        confirmButtonText="Delete variable"
         cancelButtonText="Cancel"
         variant="danger"
-      />
-
-      <EnvVarGroupRenameDialog
-        isOpen={isRenameOpen}
-        onOpenChange={setIsRenameOpen}
-        groupKey={groupKey}
-        items={items}
       />
     </>
   );
