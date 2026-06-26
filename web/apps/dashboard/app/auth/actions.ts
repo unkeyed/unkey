@@ -62,18 +62,21 @@ function pendingSessionExpired(): AuthErrorResponse {
 }
 
 // Authentication Actions
-export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
+export async function signUpViaEmail(
+  params: UserData,
+  signalsId?: string,
+): Promise<EmailAuthResult> {
   const metadata = await getRequestMetadata();
-  const result = await auth.signUpViaEmail({ ...params, ...metadata });
+  const result = await auth.signUpViaEmail({ ...params, ...metadata, signalsId });
   if (result.success && result.cookies) {
     await setCookies(result.cookies);
   }
   return result;
 }
 
-export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
+export async function signInViaEmail(email: string, signalsId?: string): Promise<EmailAuthResult> {
   const metadata = await getRequestMetadata();
-  const result = await auth.signInViaEmail({ email, ...metadata });
+  const result = await auth.signInViaEmail({ email, ...metadata, signalsId });
   if (result.success && result.cookies) {
     await setCookies(result.cookies);
   }
@@ -84,8 +87,9 @@ export async function verifyAuthCode(params: {
   email: string;
   code: string;
   invitationToken?: string;
+  signalsId?: string;
 }): Promise<VerificationResult> {
-  const { email, code, invitationToken } = params;
+  const { email, code, invitationToken, signalsId } = params;
   try {
     // Fetch the invitation once up front; it is reused by both the
     // org-selection and the post-verification branches below.
@@ -106,6 +110,7 @@ export async function verifyAuthCode(params: {
       invitationToken,
       ...metadata,
       radarAuthAttemptId,
+      signalsId,
     });
 
     // If we have an invitation token and got organization_selection_required,
@@ -258,7 +263,10 @@ export async function verifyEmail(code: string): Promise<VerificationResult> {
   }
 }
 
-export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
+export async function resendAuthCode(
+  email: string,
+  signalsId?: string,
+): Promise<EmailAuthResult> {
   const envVars = env();
   const unkeyRootKey = envVars.UNKEY_ROOT_KEY;
   if (!unkeyRootKey) {
@@ -299,7 +307,7 @@ export async function resendAuthCode(email: string): Promise<EmailAuthResult> {
 
   const metadata = await getRequestMetadata();
   const radarAuthAttemptId = (await cookies()).get(RADAR_ATTEMPT_COOKIE)?.value || undefined;
-  const result = await auth.resendAuthCode({ email, ...metadata, radarAuthAttemptId });
+  const result = await auth.resendAuthCode({ email, ...metadata, radarAuthAttemptId, signalsId });
   if (result.success && result.cookies) {
     await setCookies(result.cookies);
   }
