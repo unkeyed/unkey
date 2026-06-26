@@ -106,6 +106,8 @@ const (
 
 	// Duplicate indicates the requested app already exists.
 	UnkeyDataErrorsAppDuplicate URN = "err:unkey:data:app_already_exists"
+	// NotFound indicates the requested app does not exist.
+	UnkeyDataErrorsAppNotFound URN = "err:unkey:data:app_not_found"
 
 	// Migration
 

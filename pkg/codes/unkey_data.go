@@ -45,6 +45,8 @@ type dataProject struct {
 type dataApp struct {
 	// Duplicate indicates the requested app already exists.
 	Duplicate Code
+	// NotFound indicates the requested app does not exist.
+	NotFound Code
 }
 
 // dataPermission defines errors related to permission operations.
@@ -168,6 +170,7 @@ var Data = UnkeyDataErrors{
 
 	App: dataApp{
 		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "app_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "app_not_found"},
 	},
 
 	Permission: dataPermission{

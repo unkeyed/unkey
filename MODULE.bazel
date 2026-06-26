@@ -85,7 +85,6 @@ use_repo(
     "io_opentelemetry_go_otel_exporters_otlp_otlplog_otlploghttp",
     "io_opentelemetry_go_otel_exporters_otlp_otlpmetric_otlpmetrichttp",
     "io_opentelemetry_go_otel_exporters_otlp_otlptrace_otlptracehttp",
-    "io_opentelemetry_go_otel_metric",
     "io_opentelemetry_go_otel_sdk",
     "io_opentelemetry_go_otel_sdk_log",
     "io_opentelemetry_go_otel_sdk_metric",

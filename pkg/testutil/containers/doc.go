@@ -2,15 +2,20 @@
 //
 // This package uses the Docker SDK directly to spin up containers dynamically,
 // avoiding the overhead of external tools like docker-compose or testcontainers.
-// Containers are automatically cleaned up when tests complete via t.Cleanup.
+// Service containers are reused by stable Docker names scoped to the current
+// worktree, so separate Bazel test processes can share the same backing
+// services without colliding with other worktrees.
 //
 // # Requirements
 //
 // Tests using this package MUST be run via Bazel:
 //
-//	bazel test //pkg/testutil/containers:containers_test
+//	UNKEY_TEST_CONTAINER_SCOPE=$PWD mise exec -- bazel test //pkg/testutil/containers:containers_test --test_env=UNKEY_TEST_CONTAINER_SCOPE
 //
-// Running via `go test` directly is not supported and will fail with an error.
+// Prefer `mise run test` for full-suite runs. It sets the worktree scope that
+// lets Bazel test processes share containers and removes scoped containers when
+// the suite exits. Running via `go test` directly is not supported and will fail
+// with an error.
 //
 // # Key Types
 //
@@ -28,15 +33,18 @@
 //	func TestRedisIntegration(t *testing.T) {
 //	    redisURL := containers.Redis(t)
 //	    // redisURL is "redis://localhost:{randomPort}"
-//	    // Container is automatically removed when test completes
+//	    // Later tests attach to the same Redis container.
 //	}
+//
+// Pass [WithDedicatedContainer] when a test must own an isolated container.
 //
 // # Design
 //
-// Containers are created per test request for isolation. Each container:
+// Service containers are created on demand and reused by later test requests in
+// the same worktree. Each container:
+//   - Uses a stable Docker name derived from its worktree scope and image
 //   - Uses a random host port to avoid conflicts
 //   - Waits for the service to be ready before returning
-//   - Is automatically removed via t.Cleanup
 //
 // # Available Services
 //
