@@ -168,14 +168,15 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	require.NoError(t, err)
 
 	// App regional settings
-	err = h.DB.UpsertAppRegionalSettings(ctx, db.UpsertAppRegionalSettingsParams{
-		WorkspaceID:   workspaceID,
-		AppID:         app.ID,
-		EnvironmentID: env.ID,
-		RegionID:      region.ID,
-		Replicas:      2,
-		CreatedAt:     now,
-		UpdatedAt:     sql.NullInt64{Valid: false},
+	err = db.Query.UpsertAppRegionalSettings(ctx, h.DB.RW(), db.UpsertAppRegionalSettingsParams{
+		WorkspaceID:                   workspaceID,
+		AppID:                         app.ID,
+		EnvironmentID:                 env.ID,
+		RegionID:                      region.ID,
+		Replicas:                      2,
+		HorizontalAutoscalingPolicyID: sql.NullString{Valid: false, String: ""},
+		CreatedAt:                     now,
+		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})
 	require.NoError(t, err)
 
