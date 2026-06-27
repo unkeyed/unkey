@@ -42,12 +42,14 @@ go_library(
 go_test(
     name = "cluster_test",
     srcs = [
+        "apply_deployment_coverage_test.go",
         "region_key_test.go",
         "state_converters_test.go",
     ],
     embed = [":cluster"],
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
+        "//pkg/mysql/types",
         "//svc/ctrl/internal/db",
         "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",

@@ -27,37 +27,25 @@ type BulkQuerier interface {
 	InsertDeploymentSteps(ctx context.Context, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, args []InsertDeploymentTopologyParams) error
 	InsertEnvironments(ctx context.Context, args []InsertEnvironmentParams) error
-	UpsertEnvironment(ctx context.Context, args []UpsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, args []InsertGithubRepoConnectionParams) error
 	InsertIdentities(ctx context.Context, args []InsertIdentityParams) error
 	InsertIdentityRatelimits(ctx context.Context, args []InsertIdentityRatelimitParams) error
-	UpsertIdentity(ctx context.Context, args []UpsertIdentityParams) error
 	InsertFrontlineRoutes(ctx context.Context, args []InsertFrontlineRouteParams) error
 	UpsertInstance(ctx context.Context, args []UpsertInstanceParams) error
-	InsertKeyAuths(ctx context.Context, args []InsertKeyAuthParams) error
 	InsertKeyEncryptions(ctx context.Context, args []InsertKeyEncryptionParams) error
 	InsertKeys(ctx context.Context, args []InsertKeyParams) error
 	InsertKeyRatelimits(ctx context.Context, args []InsertKeyRatelimitParams) error
-	InsertKeyMigrations(ctx context.Context, args []InsertKeyMigrationParams) error
 	InsertKeyPermissions(ctx context.Context, args []InsertKeyPermissionParams) error
 	InsertKeyRoles(ctx context.Context, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, args []InsertKeySpaceParams) error
-	UpsertKeySpace(ctx context.Context, args []UpsertKeySpaceParams) error
 	UpsertOpenApiSpec(ctx context.Context, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, args []InsertPermissionParams) error
-	UpsertPortalBranding(ctx context.Context, args []UpsertPortalBrandingParams) error
-	InsertPortalConfigs(ctx context.Context, args []InsertPortalConfigParams) error
-	InsertPortalSessions(ctx context.Context, args []InsertPortalSessionParams) error
-	InsertPortalSessionTokens(ctx context.Context, args []InsertPortalSessionTokenParams) error
 	InsertProjects(ctx context.Context, args []InsertProjectParams) error
 	UpsertQuota(ctx context.Context, args []UpsertQuotaParams) error
-	InsertRatelimitNamespaces(ctx context.Context, args []InsertRatelimitNamespaceParams) error
-	InsertRatelimitOverrides(ctx context.Context, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, args []InsertRolePermissionParams) error
 	InsertSentinels(ctx context.Context, args []InsertSentinelParams) error
 	InsertWorkspaces(ctx context.Context, args []InsertWorkspaceParams) error
-	UpsertWorkspace(ctx context.Context, args []UpsertWorkspaceParams) error
 }
 
 // Ensure BulkQueries implements BulkQuerier

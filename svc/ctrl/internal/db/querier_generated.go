@@ -10,12 +10,6 @@ import (
 )
 
 type Querier interface {
-	//ClearAcmeChallengeTokens
-	//
-	//  UPDATE acme_challenges
-	//  SET token = ?, authorization = ?, updated_at = ?
-	//  WHERE domain_id = ?
-	ClearAcmeChallengeTokens(ctx context.Context, arg ClearAcmeChallengeTokensParams) error
 	//CompareAndSwapDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -23,38 +17,10 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND status = ?
 	CompareAndSwapDeploymentStatus(ctx context.Context, arg CompareAndSwapDeploymentStatusParams) (sql.Result, error)
-	//CountInstancesByAppId
-	//
-	//  SELECT COUNT(*) as count
-	//  FROM instances i
-	//  JOIN deployments d ON i.deployment_id = d.id
-	//  WHERE d.app_id = ?
-	CountInstancesByAppId(ctx context.Context, appID string) (int64, error)
-	//CountSentinelsByAppId
-	//
-	//  SELECT COUNT(*) as count
-	//  FROM sentinels s
-	//  JOIN environments e ON s.environment_id = e.id
-	//  WHERE e.app_id = ?
-	CountSentinelsByAppId(ctx context.Context, appID string) (int64, error)
-	//CountSentinelsByProjectId
-	//
-	//  SELECT COUNT(*) as count FROM sentinels WHERE project_id = ?
-	CountSentinelsByProjectId(ctx context.Context, projectID string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
 	DeleteAcmeChallengeByDomainID(ctx context.Context, domainID string) error
-	//DeleteAllKeyPermissionsByKeyID
-	//
-	//  DELETE FROM keys_permissions
-	//  WHERE key_id = ?
-	DeleteAllKeyPermissionsByKeyID(ctx context.Context, keyID string) error
-	//DeleteAllKeyRolesByKeyID
-	//
-	//  DELETE FROM keys_roles
-	//  WHERE key_id = ?
-	DeleteAllKeyRolesByKeyID(ctx context.Context, keyID string) error
 	//DeleteAppBuildSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_build_settings WHERE environment_id = ?
@@ -87,16 +53,6 @@ type Querier interface {
 	//
 	//  DELETE FROM custom_domains WHERE environment_id = ?
 	DeleteCustomDomainsByEnvironmentId(ctx context.Context, environmentID string) error
-	//DeleteCustomDomainsByProjectId
-	//
-	//  DELETE FROM custom_domains WHERE project_id = ?
-	DeleteCustomDomainsByProjectId(ctx context.Context, projectID string) error
-	// DeleteDeploymentChangesBefore removes old deployment_changes entries for TTL-based cleanup.
-	//
-	//  DELETE FROM `deployment_changes`
-	//  WHERE created_at < ?
-	//  LIMIT 10000
-	DeleteDeploymentChangesBefore(ctx context.Context, before int64) error
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
@@ -114,17 +70,6 @@ type Querier interface {
 	//  JOIN deployments d ON dt.deployment_id = d.id
 	//  WHERE d.environment_id = ?
 	DeleteDeploymentTopologiesByEnvironmentId(ctx context.Context, environmentID string) error
-	//DeleteDeploymentTopologyByDeploymentId
-	//
-	//  DELETE FROM `deployment_topology`
-	//  WHERE deployment_id = ?
-	DeleteDeploymentTopologyByDeploymentId(ctx context.Context, deploymentID string) error
-	//DeleteDeploymentTopologyByDeploymentRegion
-	//
-	//  DELETE FROM `deployment_topology`
-	//  WHERE deployment_id = ?
-	//    AND region_id = ?
-	DeleteDeploymentTopologyByDeploymentRegion(ctx context.Context, arg DeleteDeploymentTopologyByDeploymentRegionParams) error
 	//DeleteDeploymentsByEnvironmentId
 	//
 	//  DELETE FROM deployments WHERE environment_id = ?
@@ -166,137 +111,22 @@ type Querier interface {
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
 	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, environmentID string) error
-	//DeleteFrontlineRoutesByProjectId
-	//
-	//  DELETE FROM frontline_routes WHERE project_id = ?
-	DeleteFrontlineRoutesByProjectId(ctx context.Context, projectID string) error
 	//DeleteGithubRepoConnectionsByAppId
 	//
 	//  DELETE FROM github_repo_connections WHERE app_id = ?
 	DeleteGithubRepoConnectionsByAppId(ctx context.Context, appID string) error
-	//DeleteGithubRepoConnectionsByProjectId
-	//
-	//  DELETE FROM github_repo_connections WHERE project_id = ?
-	DeleteGithubRepoConnectionsByProjectId(ctx context.Context, projectID string) error
-	//DeleteIdentity
-	//
-	//  DELETE FROM identities
-	//  WHERE id = ?
-	//    AND workspace_id = ?
-	DeleteIdentity(ctx context.Context, arg DeleteIdentityParams) error
 	//DeleteInstance
 	//
 	//  DELETE FROM instances WHERE k8s_name = ? AND region_id = ?
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
-	//DeleteKeyByID
-	//
-	//  DELETE k, kp, kr, rl, ek
-	//  FROM `keys` k
-	//  LEFT JOIN keys_permissions kp ON k.id = kp.key_id
-	//  LEFT JOIN keys_roles kr ON k.id = kr.key_id
-	//  LEFT JOIN ratelimits rl ON k.id = rl.key_id
-	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-	//  WHERE k.id = ?
-	DeleteKeyByID(ctx context.Context, id string) error
-	//DeleteKeyPermissionByKeyAndPermissionID
-	//
-	//  DELETE FROM keys_permissions
-	//  WHERE key_id = ? AND permission_id = ?
-	DeleteKeyPermissionByKeyAndPermissionID(ctx context.Context, arg DeleteKeyPermissionByKeyAndPermissionIDParams) error
-	//DeleteManyKeyPermissionByKeyAndPermissionIDs
-	//
-	//  DELETE FROM keys_permissions
-	//  WHERE key_id = ? AND permission_id IN (/*SLICE:ids*/?)
-	DeleteManyKeyPermissionByKeyAndPermissionIDs(ctx context.Context, arg DeleteManyKeyPermissionByKeyAndPermissionIDsParams) error
-	//DeleteManyKeyPermissionsByPermissionID
-	//
-	//  DELETE FROM keys_permissions
-	//  WHERE permission_id = ?
-	DeleteManyKeyPermissionsByPermissionID(ctx context.Context, permissionID string) error
-	//DeleteManyKeyRolesByKeyAndRoleIDs
-	//
-	//  DELETE FROM keys_roles
-	//  WHERE key_id = ? AND role_id IN(/*SLICE:role_ids*/?)
-	DeleteManyKeyRolesByKeyAndRoleIDs(ctx context.Context, arg DeleteManyKeyRolesByKeyAndRoleIDsParams) error
-	//DeleteManyKeyRolesByKeyID
-	//
-	//  DELETE FROM keys_roles
-	//  WHERE key_id = ? AND role_id = ?
-	DeleteManyKeyRolesByKeyID(ctx context.Context, arg DeleteManyKeyRolesByKeyIDParams) error
-	//DeleteManyKeyRolesByRoleID
-	//
-	//  DELETE FROM keys_roles
-	//  WHERE role_id = ?
-	DeleteManyKeyRolesByRoleID(ctx context.Context, roleID string) error
-	//DeleteManyRatelimitsByIDs
-	//
-	//  DELETE FROM ratelimits WHERE id IN (/*SLICE:ids*/?)
-	DeleteManyRatelimitsByIDs(ctx context.Context, ids []string) error
-	//DeleteManyRatelimitsByIdentityID
-	//
-	//  DELETE FROM ratelimits WHERE identity_id = ?
-	DeleteManyRatelimitsByIdentityID(ctx context.Context, identityID sql.NullString) error
-	//DeleteManyRolePermissionsByPermissionID
-	//
-	//  DELETE FROM roles_permissions
-	//  WHERE permission_id = ?
-	DeleteManyRolePermissionsByPermissionID(ctx context.Context, permissionID string) error
-	//DeleteManyRolePermissionsByRoleID
-	//
-	//  DELETE FROM roles_permissions
-	//  WHERE role_id = ?
-	DeleteManyRolePermissionsByRoleID(ctx context.Context, roleID string) error
-	//DeleteOldIdentityByExternalID
-	//
-	//  DELETE i, rl
-	//  FROM identities i
-	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
-	//  WHERE i.workspace_id = ?
-	//    AND i.external_id = ?
-	//    AND i.id != ?
-	//    AND i.deleted = true
-	DeleteOldIdentityByExternalID(ctx context.Context, arg DeleteOldIdentityByExternalIDParams) error
-	//DeleteOldIdentityWithRatelimits
-	//
-	//  DELETE i, rl
-	//  FROM identities i
-	//  LEFT JOIN ratelimits rl ON rl.identity_id = i.id
-	//  WHERE i.workspace_id = ?
-	//    AND (i.id = ? OR i.external_id = ?)
-	//    AND i.deleted = true
-	DeleteOldIdentityWithRatelimits(ctx context.Context, arg DeleteOldIdentityWithRatelimitsParams) error
-	//DeletePermission
-	//
-	//  DELETE FROM permissions
-	//  WHERE id = ?
-	DeletePermission(ctx context.Context, permissionID string) error
 	//DeleteProjectById
 	//
 	//  DELETE FROM projects WHERE id = ?
 	DeleteProjectById(ctx context.Context, id string) error
-	//DeleteRatelimit
-	//
-	//  DELETE FROM `ratelimits` WHERE id = ?
-	DeleteRatelimit(ctx context.Context, id string) error
-	//DeleteRatelimitNamespace
-	//
-	//  UPDATE `ratelimit_namespaces`
-	//  SET deleted_at_m = ?
-	//  WHERE id = ?
-	DeleteRatelimitNamespace(ctx context.Context, arg DeleteRatelimitNamespaceParams) (sql.Result, error)
-	//DeleteRoleByID
-	//
-	//  DELETE FROM roles
-	//  WHERE id = ?
-	DeleteRoleByID(ctx context.Context, roleID string) error
 	//DeleteSentinelsByEnvironmentId
 	//
 	//  DELETE FROM sentinels WHERE environment_id = ?
 	DeleteSentinelsByEnvironmentId(ctx context.Context, environmentID string) error
-	//DeleteSentinelsByProjectId
-	//
-	//  DELETE FROM sentinels WHERE project_id = ?
-	DeleteSentinelsByProjectId(ctx context.Context, projectID string) error
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -315,14 +145,6 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
-	//ExchangePortalSessionToken
-	//
-	//  UPDATE portal_session_tokens
-	//  SET exchanged_at = ?
-	//  WHERE id = ?
-	//    AND exchanged_at IS NULL
-	//    AND expires_at > ?
-	ExchangePortalSessionToken(ctx context.Context, arg ExchangePortalSessionTokenParams) (sql.Result, error)
 	//FindAcmeChallengeByToken
 	//
 	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
@@ -348,32 +170,6 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, id string) (App, error)
-	//FindAppByProjectAndIdOrSlug
-	//
-	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
-	//  FROM apps a
-	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
-	//  WHERE a.workspace_id = ?
-	//    AND (p.id = ? OR p.slug = ?)
-	//    AND (a.id = ? OR a.slug = ?)
-	//  LIMIT 1
-	FindAppByProjectAndIdOrSlug(ctx context.Context, arg FindAppByProjectAndIdOrSlugParams) (App, error)
-	//FindAppByProjectAndSlug
-	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
-	//  FROM apps
-	//  WHERE apps.project_id = ?
-	//    AND apps.slug = ?
-	FindAppByProjectAndSlug(ctx context.Context, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error)
-	//FindAppByWorkspaceAndSlugs
-	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at, a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
-	//  FROM apps a
-	//  INNER JOIN projects p ON p.id = a.project_id
-	//  WHERE p.workspace_id = ?
-	//    AND p.slug = ?
-	//    AND a.slug = ?
-	FindAppByWorkspaceAndSlugs(ctx context.Context, arg FindAppByWorkspaceAndSlugsParams) (FindAppByWorkspaceAndSlugsRow, error)
 	//FindAppEnvVarsByAppAndEnv
 	//
 	//  SELECT `key`, value
@@ -422,32 +218,6 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, hostname string) (Certificate, error)
-	//FindCertificatesByHostnames
-	//
-	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname IN (/*SLICE:hostnames*/?)
-	FindCertificatesByHostnames(ctx context.Context, hostnames []string) ([]Certificate, error)
-	//FindCiliumNetworkPoliciesByDeploymentID
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at FROM cilium_network_policies WHERE deployment_id = ?
-	FindCiliumNetworkPoliciesByDeploymentID(ctx context.Context, deploymentID string) ([]CiliumNetworkPolicy, error)
-	//FindCiliumNetworkPoliciesByEnvironmentID
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
-	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, environmentID string) ([]CiliumNetworkPolicy, error)
-	//FindCiliumNetworkPolicyByEnvironmentRegionAndName
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at
-	//  FROM `cilium_network_policies`
-	//  WHERE environment_id = ? AND region_id = ? AND k8s_name = ?
-	//  LIMIT 1
-	FindCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, arg FindCiliumNetworkPolicyByEnvironmentRegionAndNameParams) (CiliumNetworkPolicy, error)
-	//FindCiliumNetworkPolicyByIDAndRegion
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at
-	//  FROM `cilium_network_policies`
-	//  WHERE region_id = ? AND id = ?
-	//  LIMIT 1
-	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, arg FindCiliumNetworkPolicyByIDAndRegionParams) (CiliumNetworkPolicy, error)
 	// FindClickhouseOutboxBatch returns the next batch of unprocessed outbox
 	// rows for a known set of payload versions. Must be called inside a
 	// transaction. FOR UPDATE SKIP LOCKED locks the batch so a second cron tick
@@ -570,14 +340,6 @@ type Querier interface {
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, id string) (Environment, error)
-	//FindEnvironmentByProjectIdAndSlug
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
-	//  FROM environments
-	//  WHERE workspace_id = ?
-	//    AND project_id = ?
-	//    AND slug = ?
-	FindEnvironmentByProjectIdAndSlug(ctx context.Context, arg FindEnvironmentByProjectIdAndSlugParams) (Environment, error)
 	//FindFrontlineRouteByDeploymentIDAndSticky
 	//
 	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
@@ -653,76 +415,6 @@ type Querier interface {
 	//  FROM github_repo_connections
 	//  WHERE project_id = ?
 	FindGithubRepoConnectionByProjectId(ctx context.Context, projectID string) (FindGithubRepoConnectionByProjectIdRow, error)
-	//FindIdentities
-	//
-	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//   AND deleted = ?
-	//   AND (external_id IN(/*SLICE:identities*/?) OR id IN (/*SLICE:identities*/?))
-	FindIdentities(ctx context.Context, arg FindIdentitiesParams) ([]Identity, error)
-	//FindIdentitiesByExternalId
-	//
-	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
-	FindIdentitiesByExternalId(ctx context.Context, arg FindIdentitiesByExternalIdParams) ([]Identity, error)
-	//FindIdentity
-	//
-	//  SELECT
-	//      i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
-	//              )
-	//          )
-	//          FROM ratelimits rl WHERE rl.identity_id = i.id),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
-	//  FROM identities i
-	//  JOIN (
-	//      SELECT id1.id FROM identities id1
-	//      WHERE id1.id = ?
-	//        AND id1.workspace_id = ?
-	//        AND id1.deleted = ?
-	//      UNION ALL
-	//      SELECT id2.id FROM identities id2
-	//      WHERE id2.workspace_id = ?
-	//        AND id2.external_id = ?
-	//        AND id2.deleted = ?
-	//  ) AS identity_lookup ON i.id = identity_lookup.id
-	//  LIMIT 1
-	FindIdentity(ctx context.Context, arg FindIdentityParams) (FindIdentityRow, error)
-	//FindIdentityByExternalID
-	//
-	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//    AND external_id = ?
-	//    AND deleted = ?
-	FindIdentityByExternalID(ctx context.Context, arg FindIdentityByExternalIDParams) (Identity, error)
-	//FindIdentityByID
-	//
-	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
-	//  FROM identities
-	//  WHERE workspace_id = ?
-	//    AND id = ?
-	//    AND deleted = ?
-	FindIdentityByID(ctx context.Context, arg FindIdentityByIDParams) (Identity, error)
-	//FindInstanceByPodName
-	//
-	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status, container_status
-	//  FROM instances
-	//    WHERE k8s_name = ? AND region_id = ?
-	FindInstanceByPodName(ctx context.Context, arg FindInstanceByPodNameParams) (Instance, error)
 	//FindInstancesByDeploymentId
 	//
 	//  SELECT
@@ -737,70 +429,21 @@ type Querier interface {
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region_id = ?
 	FindInstancesByDeploymentIdAndRegionID(ctx context.Context, arg FindInstancesByDeploymentIdAndRegionIDParams) ([]Instance, error)
-	//FindKeyAuthsByIds
-	//
-	//  SELECT ka.id as key_auth_id, a.id as api_id
-	//  FROM apis a
-	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
-	//  WHERE a.workspace_id = ?
-	//      AND a.id IN (/*SLICE:api_ids*/?)
-	//      AND ka.deleted_at_m IS NULL
-	//      AND a.deleted_at_m IS NULL
-	FindKeyAuthsByIds(ctx context.Context, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
-	//FindKeyAuthsByKeyAuthIds
-	//
-	//  SELECT ka.id as key_auth_id, a.id as api_id
-	//  FROM key_auth as ka
-	//  JOIN apis a ON a.key_auth_id = ka.id
-	//  WHERE a.workspace_id = ?
-	//      AND ka.id IN (/*SLICE:key_auth_ids*/?)
-	//      AND ka.deleted_at_m IS NULL
-	//      AND a.deleted_at_m IS NULL
-	FindKeyAuthsByKeyAuthIds(ctx context.Context, arg FindKeyAuthsByKeyAuthIdsParams) ([]FindKeyAuthsByKeyAuthIdsRow, error)
 	//FindKeyByID
 	//
 	//  SELECT pk, id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, owner_id, identity_id, meta, expires, created_at_m, updated_at_m, deleted_at_m, refill_day, refill_amount, last_refill_at, enabled, remaining_requests, environment, last_used_at, pending_migration_id FROM `keys` k
 	//  WHERE k.id = ?
 	FindKeyByID(ctx context.Context, id string) (Key, error)
-	//FindKeyCredits
-	//
-	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
-	FindKeyCredits(ctx context.Context, id string) (sql.NullInt64, error)
-	//FindKeyEncryptionByKeyID
-	//
-	//  SELECT pk, workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
-	FindKeyEncryptionByKeyID(ctx context.Context, keyID string) (EncryptedKey, error)
 	// FindKeyIDByHash returns just the key ID for a given hash. Use this when
 	// you only need the ID for a subsequent mutation and do not need the full
 	// verification payload with roles, permissions, and rate limits.
 	//
 	//  SELECT id FROM `keys` WHERE hash = ? AND deleted_at_m IS NULL
 	FindKeyIDByHash(ctx context.Context, hash string) (string, error)
-	//FindKeyMigrationByID
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      algorithm
-	//  FROM key_migrations
-	//  WHERE id = ?
-	//  and workspace_id = ?
-	FindKeyMigrationByID(ctx context.Context, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error)
-	//FindKeyRoleByKeyAndRoleID
-	//
-	//  SELECT pk, key_id, role_id, workspace_id, created_at_m, updated_at_m
-	//  FROM keys_roles
-	//  WHERE key_id = ?
-	//    AND role_id = ?
-	FindKeyRoleByKeyAndRoleID(ctx context.Context, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
 	//FindKeySpaceByID
 	//
 	//  SELECT pk, id, workspace_id, created_at_m, updated_at_m, deleted_at_m, store_encrypted_keys, default_prefix, default_bytes, size_approx, size_last_updated_at FROM `key_auth` WHERE id = ?
 	FindKeySpaceByID(ctx context.Context, id string) (KeyAuth, error)
-	//FindKeysByHash
-	//
-	//  SELECT id, hash FROM `keys` WHERE hash IN (/*SLICE:hashes*/?)
-	FindKeysByHash(ctx context.Context, hashes []string) ([]FindKeysByHashRow, error)
 	//FindLatestReadyDeploymentByAppAndEnv
 	//
 	//  SELECT id
@@ -812,286 +455,10 @@ type Querier interface {
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
-	//FindLiveApiByID
-	//
-	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
-	//  FROM apis
-	//  JOIN key_auth as ka ON ka.id = apis.key_auth_id
-	//  WHERE apis.id = ?
-	//      AND ka.deleted_at_m IS NULL
-	//      AND apis.deleted_at_m IS NULL
-	//  LIMIT 1
-	FindLiveApiByID(ctx context.Context, id string) (FindLiveApiByIDRow, error)
-	//FindLiveKeyByHash
-	//
-	//  SELECT
-	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
-	//      i.id as identity_table_id,
-	//      i.external_id as identity_external_id,
-	//      i.meta as identity_meta,
-	//      ek.encrypted as encrypted_key,
-	//      ek.encryption_key_id as encryption_key_id,
-	//
-	//      -- Roles with both IDs and names
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', r.id,
-	//                  'name', r.name,
-	//                  'description', r.description
-	//              )
-	//          )
-	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
-	//          WHERE kr.key_id = k.id),
-	//          JSON_ARRAY()
-	//      ) as roles,
-	//
-	//      -- Direct permissions attached to the key
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', p.id,
-	//                  'name', p.name,
-	//                  'slug', p.slug,
-	//                  'description', p.description
-	//              )
-	//          )
-	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
-	//          WHERE kp.key_id = k.id),
-	//          JSON_ARRAY()
-	//      ) as permissions,
-	//
-	//      -- Permissions from roles
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', p.id,
-	//                  'name', p.name,
-	//                  'slug', p.slug,
-	//                  'description', p.description
-	//              )
-	//          )
-	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
-	//          WHERE kr.key_id = k.id),
-	//          JSON_ARRAY()
-	//      ) as role_permissions,
-	//
-	//      -- Rate limits
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', id,
-	//                  'name', name,
-	//                  'key_id', key_id,
-	//                  'identity_id', identity_id,
-	//                  'limit', `limit`,
-	//                  'duration', duration,
-	//                  'auto_apply', auto_apply = 1
-	//              )
-	//          )
-	//          FROM (
-	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
-	//              FROM ratelimits rl
-	//              WHERE rl.key_id = k.id
-	//              UNION ALL
-	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
-	//              FROM ratelimits rl
-	//              WHERE rl.identity_id = i.id
-	//          ) AS combined_rl),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
-	//
-	//  FROM `keys` k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
-	//  JOIN workspaces ws ON ws.id = k.workspace_id
-	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
-	//  WHERE k.hash = ?
-	//      AND k.deleted_at_m IS NULL
-	//      AND a.deleted_at_m IS NULL
-	//      AND ka.deleted_at_m IS NULL
-	//      AND ws.deleted_at_m IS NULL
-	FindLiveKeyByHash(ctx context.Context, hash string) (FindLiveKeyByHashRow, error)
-	//FindLiveKeyByID
-	//
-	//  SELECT
-	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
-	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
-	//      i.id as identity_table_id,
-	//      i.external_id as identity_external_id,
-	//      i.meta as identity_meta,
-	//      ek.encrypted as encrypted_key,
-	//      ek.encryption_key_id as encryption_key_id,
-	//
-	//      -- Roles with both IDs and names
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', r.id,
-	//                  'name', r.name,
-	//                  'description', r.description
-	//              )
-	//          )
-	//          FROM keys_roles kr
-	//          JOIN roles r ON r.id = kr.role_id
-	//          WHERE kr.key_id = k.id),
-	//          JSON_ARRAY()
-	//      ) as roles,
-	//
-	//      -- Direct permissions attached to the key
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', p.id,
-	//                  'name', p.name,
-	//                  'slug', p.slug,
-	//                  'description', p.description
-	//              )
-	//          )
-	//          FROM keys_permissions kp
-	//          JOIN permissions p ON kp.permission_id = p.id
-	//          WHERE kp.key_id = k.id),
-	//          JSON_ARRAY()
-	//      ) as permissions,
-	//
-	//      -- Permissions from roles
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', p.id,
-	//                  'name', p.name,
-	//                  'slug', p.slug,
-	//                  'description', p.description
-	//              )
-	//          )
-	//          FROM keys_roles kr
-	//          JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//          JOIN permissions p ON rp.permission_id = p.id
-	//          WHERE kr.key_id = k.id),
-	//          JSON_ARRAY()
-	//      ) as role_permissions,
-	//
-	//      -- Rate limits
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
-	//              )
-	//          )
-	//          FROM ratelimits rl
-	//          WHERE rl.key_id = k.id
-	//              OR rl.identity_id = i.id),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
-	//
-	//  FROM `keys` k
-	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
-	//  JOIN key_auth ka ON ka.id = k.key_auth_id
-	//  JOIN workspaces ws ON ws.id = k.workspace_id
-	//  LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//  LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
-	//  WHERE k.id = ?
-	//      AND k.deleted_at_m IS NULL
-	//      AND a.deleted_at_m IS NULL
-	//      AND ka.deleted_at_m IS NULL
-	//      AND ws.deleted_at_m IS NULL
-	FindLiveKeyByID(ctx context.Context, id string) (FindLiveKeyByIDRow, error)
-	//FindManyRatelimitNamespaces
-	//
-	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
-	//         coalesce(
-	//                 (select json_arrayagg(
-	//                                 json_object(
-	//                                         'id', ro.id,
-	//                                         'identifier', ro.identifier,
-	//                                         'limit', ro.limit,
-	//                                         'duration', ro.duration
-	//                                 )
-	//                         )
-	//                  from ratelimit_overrides ro where ro.namespace_id = ns.id AND ro.deleted_at_m IS NULL),
-	//                 json_array()
-	//         ) as overrides
-	//  FROM `ratelimit_namespaces` ns
-	//  WHERE ns.workspace_id = ?
-	//    AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
-	FindManyRatelimitNamespaces(ctx context.Context, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
-	//FindManyRolesByIdOrNameWithPerms
-	//
-	//  SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              json_object(
-	//                  'id', permission.id,
-	//                  'name', permission.name,
-	//                  'slug', permission.slug,
-	//                  'description', permission.description
-	//             )
-	//          )
-	//           FROM (SELECT name, id, slug, description
-	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
-	//          JSON_ARRAY()
-	//  ) as permissions
-	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND (
-	//      r.id IN (/*SLICE:search*/?)
-	//      OR r.name IN (/*SLICE:search*/?)
-	//  )
-	FindManyRolesByIdOrNameWithPerms(ctx context.Context, arg FindManyRolesByIdOrNameWithPermsParams) ([]FindManyRolesByIdOrNameWithPermsRow, error)
-	//FindManyRolesByNamesWithPerms
-	//
-	//  SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              json_object(
-	//                  'id', permission.id,
-	//                  'name', permission.name,
-	//                  'slug', permission.slug,
-	//                  'description', permission.description
-	//             )
-	//          )
-	//           FROM (SELECT name, id, slug, description
-	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
-	//          JSON_ARRAY()
-	//  ) as permissions
-	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
-	FindManyRolesByNamesWithPerms(ctx context.Context, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	//FindOpenApiSpecByDeploymentID
 	//
 	//  SELECT pk, id, workspace_id, deployment_id, portal_config_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
-	// Finds a permission record by its ID
-	// Returns: The permission record if found
-	//
-	//  SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
-	//  FROM permissions
-	//  WHERE id = ?
-	//  LIMIT 1
-	FindPermissionByID(ctx context.Context, permissionID string) (Permission, error)
-	//FindPermissionByIdOrSlug
-	//
-	//  SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
-	//  FROM permissions
-	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
-	FindPermissionByIdOrSlug(ctx context.Context, arg FindPermissionByIdOrSlugParams) (Permission, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
 	//  SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
@@ -1100,76 +467,12 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionByNameAndWorkspaceID(ctx context.Context, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error)
-	//FindPermissionBySlugAndWorkspaceID
-	//
-	//  SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m
-	//  FROM permissions
-	//  WHERE slug = ?
-	//  AND workspace_id = ?
-	//  LIMIT 1
-	FindPermissionBySlugAndWorkspaceID(ctx context.Context, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
-	//FindPermissionsBySlugs
-	//
-	//  SELECT pk, id, workspace_id, name, slug, description, created_at_m, updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
-	FindPermissionsBySlugs(ctx context.Context, arg FindPermissionsBySlugsParams) ([]Permission, error)
-	//FindPortalBrandingByConfigID
-	//
-	//  SELECT pk, portal_config_id, logo_url, primary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
-	FindPortalBrandingByConfigID(ctx context.Context, portalConfigID string) (PortalBranding, error)
-	//FindPortalConfigByWorkspaceAndSlug
-	//
-	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
-	//  WHERE workspace_id = ? AND slug = ?
-	FindPortalConfigByWorkspaceAndSlug(ctx context.Context, arg FindPortalConfigByWorkspaceAndSlugParams) (PortalConfiguration, error)
 	//FindProjectById
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, id string) (Project, error)
-	//FindProjectByIdOrSlug
-	//
-	//  SELECT
-	//      p.id,
-	//      p.workspace_id,
-	//      p.name,
-	//      p.slug,
-	//      p.delete_protection,
-	//      p.created_at,
-	//      p.updated_at
-	//  FROM projects p
-	//  JOIN (
-	//      SELECT p1.id
-	//      FROM projects p1
-	//      WHERE p1.id = ? AND p1.workspace_id = ?
-	//      UNION ALL
-	//      SELECT p2.id
-	//      FROM projects p2
-	//      WHERE p2.slug = ? AND p2.workspace_id = ?
-	//  ) AS project_lookup ON p.id = project_lookup.id
-	//  LIMIT 1
-	FindProjectByIdOrSlug(ctx context.Context, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error)
-	//FindProjectBySlug
-	//
-	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
-	//  FROM projects
-	//  WHERE slug = ?
-	//  LIMIT 1
-	FindProjectBySlug(ctx context.Context, slug string) (Project, error)
-	//FindProjectByWorkspaceAndSlug
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      name,
-	//      slug,
-	//      delete_protection,
-	//      created_at,
-	//      updated_at
-	//  FROM projects
-	//  WHERE workspace_id = ? AND slug = ?
-	//  LIMIT 1
-	FindProjectByWorkspaceAndSlug(ctx context.Context, arg FindProjectByWorkspaceAndSlugParams) (FindProjectByWorkspaceAndSlugRow, error)
 	//FindQuotaByWorkspaceID
 	//
 	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds
@@ -1195,39 +498,6 @@ type Querier interface {
 	//  WHERE ns.workspace_id = ?
 	//  AND (ns.id = ? OR ns.name = ?)
 	FindRatelimitNamespace(ctx context.Context, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error)
-	//FindRatelimitNamespaceByID
-	//
-	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
-	//  WHERE id = ?
-	FindRatelimitNamespaceByID(ctx context.Context, id string) (RatelimitNamespace, error)
-	//FindRatelimitNamespaceByName
-	//
-	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m FROM `ratelimit_namespaces`
-	//  WHERE name = ?
-	//  AND workspace_id = ?
-	FindRatelimitNamespaceByName(ctx context.Context, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
-	//FindRatelimitOverrideByID
-	//
-	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
-	//  WHERE
-	//      workspace_id = ?
-	//      AND id = ?
-	FindRatelimitOverrideByID(ctx context.Context, arg FindRatelimitOverrideByIDParams) (RatelimitOverride, error)
-	//FindRatelimitOverrideByIdentifier
-	//
-	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
-	//  WHERE
-	//      workspace_id = ?
-	//      AND namespace_id = ?
-	//      AND identifier = ?
-	FindRatelimitOverrideByIdentifier(ctx context.Context, arg FindRatelimitOverrideByIdentifierParams) (RatelimitOverride, error)
-	//FindRegionById
-	//
-	//  SELECT
-	//   pk, id, name, platform, can_schedule
-	//  FROM regions
-	//  WHERE id = ? LIMIT 1
-	FindRegionById(ctx context.Context, regionID string) (Region, error)
 	//FindRegionByPlatformAndName
 	//
 	//  SELECT
@@ -1235,99 +505,11 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE platform = ? AND name = ? LIMIT 1
 	FindRegionByPlatformAndName(ctx context.Context, arg FindRegionByPlatformAndNameParams) (Region, error)
-	// Finds a role record by its ID
-	// Returns: The role record if found
-	//
-	//  SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m
-	//  FROM roles
-	//  WHERE id = ?
-	//  LIMIT 1
-	FindRoleByID(ctx context.Context, roleID string) (Role, error)
-	//FindRoleByIdOrNameWithPerms
-	//
-	//  SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m, COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              json_object(
-	//                  'id', permission.id,
-	//                  'name', permission.name,
-	//                  'slug', permission.slug,
-	//                  'description', permission.description
-	//             )
-	//          )
-	//           FROM (SELECT name, id, slug, description
-	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
-	//          JSON_ARRAY()
-	//  ) as permissions
-	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND (
-	//      r.id = ?
-	//      OR r.name = ?
-	//  )
-	FindRoleByIdOrNameWithPerms(ctx context.Context, arg FindRoleByIdOrNameWithPermsParams) (FindRoleByIdOrNameWithPermsRow, error)
-	// Finds a role record by its name within a specific workspace
-	// Returns: The role record if found
-	//
-	//  SELECT pk, id, workspace_id, name, description, created_at_m, updated_at_m
-	//  FROM roles
-	//  WHERE name = ?
-	//  AND workspace_id = ?
-	//  LIMIT 1
-	FindRoleByNameAndWorkspaceID(ctx context.Context, arg FindRoleByNameAndWorkspaceIDParams) (Role, error)
-	//FindRolePermissionByRoleAndPermissionID
-	//
-	//  SELECT pk, role_id, permission_id, workspace_id, created_at_m, updated_at_m
-	//  FROM roles_permissions
-	//  WHERE role_id = ?
-	//    AND permission_id = ?
-	FindRolePermissionByRoleAndPermissionID(ctx context.Context, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
-	//FindRolesByNames
-	//
-	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
-	FindRolesByNames(ctx context.Context, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
 	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, id string) (Sentinel, error)
-	// Returns the sentinel fields ReportSentinelStatus needs to decide whether
-	// a rollout has converged: deploy_status (gates), image comparison, and
-	// desired replica count.
-	//
-	//  SELECT
-	//      id,
-	//      deploy_status,
-	//      image AS desired_image,
-	//      running_image,
-	//      desired_replicas
-	//  FROM sentinels
-	//  WHERE k8s_name = ? LIMIT 1
-	FindSentinelDeployContextByK8sName(ctx context.Context, k8sName string) (FindSentinelDeployContextByK8sNameRow, error)
-	//FindSentinelsByEnvironmentID
-	//
-	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
-	FindSentinelsByEnvironmentID(ctx context.Context, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
-	//FindValidPortalSession
-	//
-	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
-	//  WHERE id = ?
-	//    AND expires_at > ?
-	FindValidPortalSession(ctx context.Context, arg FindValidPortalSessionParams) (PortalSession, error)
-	//FindValidPortalSessionToken
-	//
-	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
-	//  WHERE id = ?
-	//    AND exchanged_at IS NULL
-	//    AND expires_at > ?
-	FindValidPortalSessionToken(ctx context.Context, arg FindValidPortalSessionTokenParams) (PortalSessionToken, error)
-	//FindVerifiedCustomDomainByAppID
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
-	//  WHERE app_id = ? AND verification_status = 'verified'
-	//  ORDER BY created_at ASC, id ASC
-	//  LIMIT 1
-	FindVerifiedCustomDomainByAppID(ctx context.Context, appID string) (CustomDomain, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
@@ -1341,12 +523,6 @@ type Querier interface {
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, id string) (Workspace, error)
-	//FindWorkspaceByOrgID
-	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
-	//  WHERE org_id = ?
-	//  AND deleted_at_m IS NULL
-	FindWorkspaceByOrgID(ctx context.Context, orgID string) (Workspace, error)
 	// Reads the Unkey Deploy entitlement signals for the project-creation gate:
 	// deploy_plan (mirrored from Stripe by the dashboard webhook) and
 	// deploy_plan_override (manual comp for internal workspaces). The gate treats
@@ -1360,19 +536,6 @@ type Querier interface {
 	//  FROM `workspaces` w
 	//  WHERE w.id = ?
 	FindWorkspaceDeployEntitlement(ctx context.Context, id string) (FindWorkspaceDeployEntitlementRow, error)
-	// FlipSentinelDeployStatusIfProgressing flips deploy_status from progressing
-	// to the target status, guarding against concurrent writers (e.g. the Deploy
-	// worker marking failed on timeout) by only updating rows whose current
-	// status is still 'progressing'. Returns the number of rows affected; the
-	// caller should treat 0 as "someone else already moved this sentinel out of
-	// progressing" and skip follow-up side effects (NotifyReady, etc.).
-	//
-	//  UPDATE sentinels SET
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	//    AND deploy_status = 'progressing'
-	FlipSentinelDeployStatusIfProgressing(ctx context.Context, arg FlipSentinelDeployStatusIfProgressingParams) (int64, error)
 	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
 	// Used during full sync to establish the starting version for incremental polling.
 	//
@@ -1380,19 +543,6 @@ type Querier interface {
 	//  FROM `deployment_changes`
 	//  WHERE region_id = ?
 	GetDeploymentChangesMaxVersion(ctx context.Context, regionID string) (int64, error)
-	//GetKeyAuthByID
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      created_at_m,
-	//      default_prefix,
-	//      default_bytes,
-	//      store_encrypted_keys
-	//  FROM key_auth
-	//  WHERE id = ?
-	//    AND deleted_at_m IS NULL
-	GetKeyAuthByID(ctx context.Context, id string) (GetKeyAuthByIDRow, error)
 	//GetWorkspacesForQuotaCheckByIDs
 	//
 	//  SELECT
@@ -1407,12 +557,6 @@ type Querier interface {
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
 	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
 	GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error)
-	//HardDeleteWorkspace
-	//
-	//  DELETE FROM `workspaces`
-	//  WHERE id = ?
-	//  AND delete_protection = false
-	HardDeleteWorkspace(ctx context.Context, id string) (sql.Result, error)
 	// Check whether a newer deployment exists for the same (app, env, branch) that
 	// makes building this one pointless. Matches any non-terminal status including
 	// 'ready' — if a newer commit is already deployed there is no reason to build
@@ -1889,42 +1033,12 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertKey(ctx context.Context, arg InsertKeyParams) error
-	//InsertKeyAuth
-	//
-	//  INSERT INTO key_auth (
-	//      id,
-	//      workspace_id,
-	//      created_at_m,
-	//      default_prefix,
-	//      default_bytes,
-	//      store_encrypted_keys
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      false
-	//  )
-	InsertKeyAuth(ctx context.Context, arg InsertKeyAuthParams) error
 	//InsertKeyEncryption
 	//
 	//  INSERT INTO encrypted_keys
 	//  (workspace_id, key_id, encrypted, encryption_key_id, created_at)
 	//  VALUES (?, ?, ?, ?, ?)
 	InsertKeyEncryption(ctx context.Context, arg InsertKeyEncryptionParams) error
-	//InsertKeyMigration
-	//
-	//  INSERT INTO key_migrations (
-	//      id,
-	//      workspace_id,
-	//      algorithm
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertKeyMigration(ctx context.Context, arg InsertKeyMigrationParams) error
 	//InsertKeyPermission
 	//
 	//  INSERT INTO `keys_permissions` (
@@ -2021,74 +1135,6 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, arg InsertPermissionParams) error
-	//InsertPortalConfig
-	//
-	//  INSERT INTO portal_configurations (
-	//      id,
-	//      workspace_id,
-	//      slug,
-	//      app_id,
-	//      key_auth_id,
-	//      enabled,
-	//      return_url,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertPortalConfig(ctx context.Context, arg InsertPortalConfigParams) error
-	//InsertPortalSession
-	//
-	//  INSERT INTO portal_sessions (
-	//      id,
-	//      workspace_id,
-	//      portal_config_id,
-	//      external_id,
-	//      permissions,
-	//      preview,
-	//      expires_at,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertPortalSession(ctx context.Context, arg InsertPortalSessionParams) error
-	//InsertPortalSessionToken
-	//
-	//  INSERT INTO portal_session_tokens (
-	//      id,
-	//      workspace_id,
-	//      portal_config_id,
-	//      external_id,
-	//      permissions,
-	//      preview,
-	//      expires_at,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertPortalSessionToken(ctx context.Context, arg InsertPortalSessionTokenParams) error
 	//InsertProject
 	//
 	//  INSERT INTO projects (
@@ -2103,52 +1149,6 @@ type Querier interface {
 	//      ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertProject(ctx context.Context, arg InsertProjectParams) error
-	//InsertRatelimitNamespace
-	//
-	//  INSERT INTO
-	//      `ratelimit_namespaces` (
-	//          id,
-	//          workspace_id,
-	//          name,
-	//          created_at_m,
-	//          updated_at_m,
-	//          deleted_at_m
-	//          )
-	//  VALUES
-	//      (
-	//          ?,
-	//          ?,
-	//          ?,
-	//           ?,
-	//          NULL,
-	//          NULL
-	//      )
-	InsertRatelimitNamespace(ctx context.Context, arg InsertRatelimitNamespaceParams) error
-	//InsertRatelimitOverride
-	//
-	//  INSERT INTO ratelimit_overrides (
-	//      id,
-	//      workspace_id,
-	//      namespace_id,
-	//      identifier,
-	//      `limit`,
-	//      duration,
-	//      created_at_m
-	//  )
-	//  VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//      `limit` = VALUES(`limit`),
-	//      duration = VALUES(duration),
-	//      updated_at_m = ?
-	InsertRatelimitOverride(ctx context.Context, arg InsertRatelimitOverrideParams) error
 	//InsertRole
 	//
 	//  INSERT INTO roles (
@@ -2238,14 +1238,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, arg InsertWorkspaceParams) error
-	// ListAllCiliumNetworkPoliciesByRegion returns cilium network policies for a region, paginated by pk.
-	// Used during full sync (version=0) to bootstrap krane agents with current state.
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at FROM `cilium_network_policies`
-	//  WHERE region_id = ? AND pk > ?
-	//  ORDER BY pk ASC
-	//  LIMIT ?
-	ListAllCiliumNetworkPoliciesByRegion(ctx context.Context, arg ListAllCiliumNetworkPoliciesByRegionParams) ([]CiliumNetworkPolicy, error)
 	// ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
 	// Used by SyncDesiredState to reconcile krane agents with current desired state.
 	//
@@ -2266,25 +1258,10 @@ type Querier interface {
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
-	// ListAllSentinelsByRegion returns sentinels for a region, paginated by pk.
-	// Used during full sync (version=0) to bootstrap krane agents with current state.
-	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
-	//  WHERE region_id = ? AND pk > ?
-	//  ORDER BY pk ASC
-	//  LIMIT ?
-	ListAllSentinelsByRegion(ctx context.Context, arg ListAllSentinelsByRegionParams) ([]Sentinel, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
 	ListAppIdsByProject(ctx context.Context, projectID string) ([]string, error)
-	//ListAppsByProject
-	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
-	//  FROM apps
-	//  WHERE project_id = ?
-	//  ORDER BY created_at ASC
-	ListAppsByProject(ctx context.Context, projectID string) ([]ListAppsByProjectRow, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
@@ -2295,13 +1272,6 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
-	//ListCustomDomainsByProjectID
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
-	//  FROM custom_domains
-	//  WHERE project_id = ?
-	//  ORDER BY created_at DESC
-	ListCustomDomainsByProjectID(ctx context.Context, projectID string) ([]CustomDomain, error)
 	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
 	// Used by the unified WatchDeploymentChanges stream. Does not filter by resource_type.
 	//
@@ -2319,50 +1289,6 @@ type Querier interface {
 	//    AND created_at < ?
 	//    AND (updated_at IS null OR updated_at < ? )
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
-	// ListDesiredDeploymentTopology returns all deployment topologies matching the desired state for a region.
-	// Used during bootstrap to stream all running deployments to krane.
-	//
-	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
-	//      w.k8s_namespace
-	//  FROM `deployment_topology` dt
-	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
-	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  WHERE (? = '' OR r.name = ?)
-	//      AND d.desired_state = ?
-	//      AND dt.deployment_id > ?
-	//  ORDER BY dt.deployment_id ASC
-	//  LIMIT ?
-	ListDesiredDeploymentTopology(ctx context.Context, arg ListDesiredDeploymentTopologyParams) ([]ListDesiredDeploymentTopologyRow, error)
-	//ListDesiredNetworkPolicies
-	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at
-	//  FROM `cilium_network_policies`
-	//  WHERE (? = '' OR region_id = ?) AND id > ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListDesiredNetworkPolicies(ctx context.Context, arg ListDesiredNetworkPoliciesParams) ([]CiliumNetworkPolicy, error)
-	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
-	// Used during bootstrap to stream all running sentinels to krane.
-	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at
-	//  FROM `sentinels`
-	//  WHERE (? = '' OR region_id = ?)
-	//      AND desired_state = ?
-	//      AND id > ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListDesiredSentinels(ctx context.Context, arg ListDesiredSentinelsParams) ([]Sentinel, error)
-	//ListDirectPermissionsByKeyID
-	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
-	//  FROM keys_permissions kp
-	//  JOIN permissions p ON kp.permission_id = p.id
-	//  WHERE kp.key_id = ?
-	//  ORDER BY p.slug
-	ListDirectPermissionsByKeyID(ctx context.Context, keyID string) ([]Permission, error)
 	//ListEnvVarsForRepoConnections
 	//
 	//  SELECT aev.app_id, aev.`key`, aev.value
@@ -2391,89 +1317,6 @@ type Querier interface {
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
-	//ListGithubRepoConnections
-	//
-	//  SELECT
-	//      pk,
-	//      workspace_id,
-	//      project_id,
-	//      app_id,
-	//      installation_id,
-	//      repository_id,
-	//      repository_full_name,
-	//      created_at,
-	//      updated_at
-	//  FROM github_repo_connections
-	//  WHERE installation_id = ?
-	//    AND repository_id = ?
-	ListGithubRepoConnections(ctx context.Context, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
-	//ListIdentities
-	//
-	//  SELECT
-	//      i.id,
-	//      i.external_id,
-	//      i.workspace_id,
-	//      i.environment,
-	//      i.meta,
-	//      i.deleted,
-	//      i.created_at,
-	//      i.updated_at,
-	//      COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              JSON_OBJECT(
-	//                  'id', r.id,
-	//                  'name', r.name,
-	//                  'limit', r.`limit`,
-	//                  'duration', r.duration,
-	//                  'auto_apply', r.auto_apply = 1
-	//              )
-	//          )
-	//          FROM ratelimits r
-	//          WHERE r.identity_id = i.id),
-	//          JSON_ARRAY()
-	//      ) as ratelimits
-	//  FROM identities i
-	//  WHERE i.workspace_id = ?
-	//  AND i.deleted = ?
-	//  AND i.id >= ?
-	//  ORDER BY i.id ASC
-	//  LIMIT ?
-	ListIdentities(ctx context.Context, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
-	//ListIdentityRatelimits
-	//
-	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply
-	//  FROM ratelimits
-	//  WHERE identity_id = ?
-	//  ORDER BY id ASC
-	ListIdentityRatelimits(ctx context.Context, identityID sql.NullString) ([]Ratelimit, error)
-	//ListIdentityRatelimitsByID
-	//
-	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id = ?
-	ListIdentityRatelimitsByID(ctx context.Context, identityID sql.NullString) ([]Ratelimit, error)
-	//ListIdentityRatelimitsByIDs
-	//
-	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
-	ListIdentityRatelimitsByIDs(ctx context.Context, ids []sql.NullString) ([]Ratelimit, error)
-	//ListKeysByKeySpaceID
-	//
-	//  SELECT
-	//    k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-	//    i.id as identity_id,
-	//    i.external_id as external_id,
-	//    i.meta as identity_meta,
-	//    ek.encrypted as encrypted_key,
-	//    ek.encryption_key_id as encryption_key_id
-	//
-	//  FROM `keys` k
-	//  LEFT JOIN `identities` i ON k.identity_id = i.id
-	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
-	//  WHERE k.key_auth_id = ?
-	//  AND k.id >= ?
-	//  AND (? IS NULL OR k.identity_id = ?)
-	//  AND k.deleted_at_m IS NULL
-	//  ORDER BY k.id ASC
-	//  LIMIT ?
-	ListKeysByKeySpaceID(ctx context.Context, arg ListKeysByKeySpaceIDParams) ([]ListKeysByKeySpaceIDRow, error)
 	// ListKeysForRefill returns keys that need their remaining_requests refilled.
 	// Uses a deferred join on pk for stable cursor-based pagination that avoids
 	// OFFSET drift when rows are mutated between batches.
@@ -2501,98 +1344,6 @@ type Querier interface {
 	//      LIMIT ?
 	//  ) AS batch ON batch.pk = k.pk
 	ListKeysForRefill(ctx context.Context, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
-	//ListLiveKeysByKeySpaceID
-	//
-	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
-	//         i.id                 as identity_table_id,
-	//         i.external_id        as identity_external_id,
-	//         i.meta               as identity_meta,
-	//         ek.encrypted         as encrypted_key,
-	//         ek.encryption_key_id as encryption_key_id,
-	//         -- Roles with both IDs and names (sorted by name)
-	//         COALESCE(
-	//                 (SELECT JSON_ARRAYAGG(
-	//                                 JSON_OBJECT(
-	//                                         'id', r.id,
-	//                                         'name', r.name,
-	//                                         'description', r.description
-	//                                 )
-	//                         )
-	//                  FROM keys_roles kr
-	//                           JOIN roles r ON r.id = kr.role_id
-	//                  WHERE kr.key_id = k.id
-	//                  ORDER BY r.name),
-	//                 JSON_ARRAY()
-	//         )                    as roles,
-	//         -- Direct permissions attached to the key (sorted by slug)
-	//         COALESCE(
-	//                 (SELECT JSON_ARRAYAGG(
-	//                                 JSON_OBJECT(
-	//                                         'id', p.id,
-	//                                         'name', p.name,
-	//                                         'slug', p.slug,
-	//                                         'description', p.description
-	//                                 )
-	//                         )
-	//                  FROM keys_permissions kp
-	//                           JOIN permissions p ON kp.permission_id = p.id
-	//                  WHERE kp.key_id = k.id
-	//                  ORDER BY p.slug),
-	//                 JSON_ARRAY()
-	//         )                    as permissions,
-	//         -- Permissions from roles (sorted by slug)
-	//         COALESCE(
-	//                 (SELECT JSON_ARRAYAGG(
-	//                                 JSON_OBJECT(
-	//                                         'id', p.id,
-	//                                         'name', p.name,
-	//                                         'slug', p.slug,
-	//                                         'description', p.description
-	//                                 )
-	//                         )
-	//                  FROM keys_roles kr
-	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//                           JOIN permissions p ON rp.permission_id = p.id
-	//                  WHERE kr.key_id = k.id
-	//                  ORDER BY p.slug),
-	//                 JSON_ARRAY()
-	//         )                    as role_permissions,
-	//         -- Rate limits
-	//         COALESCE(
-	//                 (SELECT JSON_ARRAYAGG(
-	//                                 JSON_OBJECT(
-	//                                         'id', id,
-	//                                         'name', name,
-	//                                         'key_id', key_id,
-	//                                         'identity_id', identity_id,
-	//                                         'limit', `limit`,
-	//                                         'duration', duration,
-	//                                         'auto_apply', auto_apply = 1
-	//                                 )
-	//                         )
-	//                  FROM (
-	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
-	//                      FROM ratelimits rl
-	//                      WHERE rl.key_id = k.id
-	//                      UNION ALL
-	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
-	//                      FROM ratelimits rl
-	//                      WHERE rl.identity_id = i.id
-	//                  ) AS combined_rl),
-	//                 JSON_ARRAY()
-	//         )                    AS ratelimits
-	//  FROM `keys` k
-	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
-	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
-	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
-	//  WHERE k.key_auth_id = ?
-	//    AND k.id >= ?
-	//    AND (? IS NULL OR k.identity_id = ?)
-	//    AND k.deleted_at_m IS NULL
-	//    AND ka.deleted_at_m IS NULL
-	//  ORDER BY k.id ASC
-	//  LIMIT ?
-	ListLiveKeysByKeySpaceID(ctx context.Context, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	// Only deployments still in the queue (haven't acquired a build slot yet)
 	// are eligible for supersession. Once a deployment transitions to `starting`
 	// (after slot acquisition) it's committed — we don't cancel work that's
@@ -2608,45 +1359,6 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
-	//ListPermissions
-	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
-	//  FROM permissions p
-	//  WHERE p.workspace_id = ?
-	//    AND p.id >= ?
-	//  ORDER BY p.id
-	//  LIMIT ?
-	ListPermissions(ctx context.Context, arg ListPermissionsParams) ([]Permission, error)
-	//ListPermissionsByKeyID
-	//
-	//  WITH direct_permissions AS (
-	//      SELECT p.slug as permission_slug
-	//      FROM keys_permissions kp
-	//      JOIN permissions p ON kp.permission_id = p.id
-	//      WHERE kp.key_id = ?
-	//  ),
-	//  role_permissions AS (
-	//      SELECT p.slug as permission_slug
-	//      FROM keys_roles kr
-	//      JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//      JOIN permissions p ON rp.permission_id = p.id
-	//      WHERE kr.key_id = ?
-	//  )
-	//  SELECT DISTINCT permission_slug
-	//  FROM (
-	//      SELECT permission_slug FROM direct_permissions
-	//      UNION ALL
-	//      SELECT permission_slug FROM role_permissions
-	//  ) all_permissions
-	ListPermissionsByKeyID(ctx context.Context, arg ListPermissionsByKeyIDParams) ([]string, error)
-	//ListPermissionsByRoleID
-	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
-	//  FROM permissions p
-	//  JOIN roles_permissions rp ON p.id = rp.permission_id
-	//  WHERE rp.role_id = ?
-	//  ORDER BY p.slug
-	ListPermissionsByRoleID(ctx context.Context, roleID string) ([]Permission, error)
 	//ListPreviewEnvironments
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
@@ -2669,57 +1381,6 @@ type Querier interface {
 	//  WHERE environment_id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	ListProgressingDeploymentsByEnvironmentId(ctx context.Context, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error)
-	//ListProjectsByWorkspaceId
-	//
-	//  SELECT
-	//      id,
-	//      workspace_id,
-	//      name,
-	//      slug,
-	//      delete_protection,
-	//      created_at,
-	//      updated_at
-	//  FROM projects
-	//  WHERE workspace_id = ?
-	//    AND id >= ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListProjectsByWorkspaceId(ctx context.Context, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
-	//ListRatelimitOverridesByNamespaceID
-	//
-	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
-	//  WHERE
-	//  workspace_id = ?
-	//  AND namespace_id = ?
-	//  AND deleted_at_m IS NULL
-	//  AND id >= ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListRatelimitOverridesByNamespaceID(ctx context.Context, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error)
-	//ListRatelimitsByKeyID
-	//
-	//  SELECT
-	//    id,
-	//    name,
-	//    `limit`,
-	//    duration,
-	//    auto_apply
-	//  FROM ratelimits
-	//  WHERE key_id = ?
-	ListRatelimitsByKeyID(ctx context.Context, keyID sql.NullString) ([]ListRatelimitsByKeyIDRow, error)
-	//ListRatelimitsByKeyIDs
-	//
-	//  SELECT
-	//    id,
-	//    key_id,
-	//    name,
-	//    `limit`,
-	//    duration,
-	//    auto_apply
-	//  FROM ratelimits
-	//  WHERE key_id IN (/*SLICE:key_ids*/?)
-	//  ORDER BY key_id, id
-	ListRatelimitsByKeyIDs(ctx context.Context, keyIds []sql.NullString) ([]ListRatelimitsByKeyIDsRow, error)
 	//ListRegions
 	//
 	//  SELECT id, name, platform, can_schedule FROM regions
@@ -2748,51 +1409,6 @@ type Querier interface {
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
 	ListRepoConnectionDeployContexts(ctx context.Context, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
-	//ListRoles
-	//
-	//  SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              json_object(
-	//                  'id', permission.id,
-	//                  'name', permission.name,
-	//                  'slug', permission.slug,
-	//                  'description', permission.description
-	//             )
-	//          )
-	//           FROM (SELECT name, id, slug, description
-	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
-	//          JSON_ARRAY()
-	//  ) as permissions
-	//  FROM roles r
-	//  WHERE r.workspace_id = ?
-	//  AND r.id >= ?
-	//  ORDER BY r.id
-	//  LIMIT ?
-	ListRoles(ctx context.Context, arg ListRolesParams) ([]ListRolesRow, error)
-	//ListRolesByKeyID
-	//
-	//  SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
-	//          (SELECT JSON_ARRAYAGG(
-	//              json_object(
-	//                  'id', permission.id,
-	//                  'name', permission.name,
-	//                  'slug', permission.slug,
-	//                  'description', permission.description
-	//             )
-	//          )
-	//           FROM (SELECT name, id, slug, description
-	//                 FROM roles_permissions rp
-	//                          JOIN permissions p ON p.id = rp.permission_id
-	//                 WHERE rp.role_id = r.id) as permission),
-	//          JSON_ARRAY()
-	//  ) as permissions
-	//  FROM keys_roles kr
-	//  JOIN roles r ON kr.role_id = r.id
-	//  WHERE kr.key_id = ?
-	//  ORDER BY r.name
-	ListRolesByKeyID(ctx context.Context, keyID string) ([]ListRolesByKeyIDRow, error)
 	// ListRunningDeploymentsByBranch returns deployments in the same app,
 	// environment, and branch whose desired state is running, excluding one
 	// deployment id. Used to find sibling running deployments without including
@@ -2809,28 +1425,6 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error)
-	// ListRunningSentinelIDsAndImages returns IDs, images, and regions of all
-	// running sentinels, paginated by id. Used by the rollout service to plan
-	// wave assignments without fetching full sentinel rows.
-	//
-	//  SELECT id, image, region_id
-	//  FROM sentinels
-	//  WHERE desired_state = 'running'
-	//    AND id > ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListRunningSentinelIDsAndImages(ctx context.Context, arg ListRunningSentinelIDsAndImagesParams) ([]ListRunningSentinelIDsAndImagesRow, error)
-	//ListWorkspaces
-	//
-	//  SELECT
-	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
-	//  FROM `workspaces` w
-	//  LEFT JOIN quota q ON w.id = q.workspace_id
-	//  WHERE w.id > ?
-	//  ORDER BY w.id ASC
-	//  LIMIT 100
-	ListWorkspaces(ctx context.Context, cursor string) ([]ListWorkspacesRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -2861,20 +1455,6 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
-	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.
-	// This should be called at the start of a transaction before modifying identity-related data.
-	//
-	//  SELECT id FROM identities
-	//  WHERE id = ?
-	//  FOR UPDATE
-	LockIdentityForUpdate(ctx context.Context, id string) (string, error)
-	// Acquires an exclusive lock on the key row to prevent concurrent modifications.
-	// This is used to prevent deadlocks when updating key ratelimits concurrently.
-	//
-	//  SELECT id FROM `keys`
-	//  WHERE id = ?
-	//  FOR UPDATE
-	LockKeyForUpdate(ctx context.Context, id string) (string, error)
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
 	// insert is confirmed. Called inside the same transaction that selected
 	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
@@ -2979,69 +1559,16 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
-	// Clears every billing linkage on a workspace, returning it to the Free
-	// tier. Mirrors what the customer.subscription.deleted webhook writes, plus
-	// stripe_customer_id, which no webhook ever clears. Used by the
-	// `unkey dev stripe reset` tooling; quota is reset separately via UpdateQuota.
-	//
-	//  UPDATE `workspaces`
-	//  SET stripe_customer_id = NULL,
-	//      stripe_subscription_id = NULL,
-	//      deploy_plan = NULL,
-	//      tier = 'Free'
-	//  WHERE id = ?
-	ResetWorkspaceBilling(ctx context.Context, id string) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`
 	//  SET k8s_namespace = ?
 	//  WHERE id = ? AND k8s_namespace IS NULL
 	SetWorkspaceK8sNamespace(ctx context.Context, arg SetWorkspaceK8sNamespaceParams) error
-	//SoftDeleteApi
-	//
-	//  UPDATE apis
-	//  SET deleted_at_m = ?
-	//  WHERE id = ?
-	SoftDeleteApi(ctx context.Context, arg SoftDeleteApiParams) error
-	//SoftDeleteIdentity
-	//
-	//  UPDATE identities
-	//  SET deleted = 1
-	//  WHERE id = ?
-	//    AND workspace_id = ?
-	SoftDeleteIdentity(ctx context.Context, arg SoftDeleteIdentityParams) error
 	//SoftDeleteKeyByID
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
 	SoftDeleteKeyByID(ctx context.Context, arg SoftDeleteKeyByIDParams) error
-	//SoftDeleteManyKeysByKeySpaceID
-	//
-	//  UPDATE `keys`
-	//  SET deleted_at_m = ?
-	//  WHERE key_auth_id = ?
-	//  AND deleted_at_m IS NULL
-	SoftDeleteManyKeysByKeySpaceID(ctx context.Context, arg SoftDeleteManyKeysByKeySpaceIDParams) error
-	//SoftDeleteRatelimitNamespace
-	//
-	//  UPDATE `ratelimit_namespaces`
-	//  SET
-	//      deleted_at_m =  ?
-	//  WHERE id = ?
-	SoftDeleteRatelimitNamespace(ctx context.Context, arg SoftDeleteRatelimitNamespaceParams) error
-	//SoftDeleteRatelimitOverride
-	//
-	//  UPDATE `ratelimit_overrides`
-	//  SET
-	//      deleted_at_m =  ?
-	//  WHERE id = ?
-	SoftDeleteRatelimitOverride(ctx context.Context, arg SoftDeleteRatelimitOverrideParams) error
-	//SoftDeleteWorkspace
-	//
-	//  UPDATE `workspaces`
-	//  SET deleted_at_m = ?
-	//  WHERE id = ?
-	//  AND delete_protection = false
-	SoftDeleteWorkspace(ctx context.Context, arg SoftDeleteWorkspaceParams) (sql.Result, error)
 	// StopDeploymentIfNoInstances finalizes a requested stop only after krane has
 	// reported that no instances remain. The desired_state guard prevents stale
 	// delete reports from marking a deployment stopped after it has been woken.
@@ -3092,12 +1619,6 @@ type Querier interface {
 	//
 	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?
 	UpdateAcmeUserRegistrationURI(ctx context.Context, arg UpdateAcmeUserRegistrationURIParams) error
-	//UpdateApiDeleteProtection
-	//
-	//  UPDATE apis
-	//  SET delete_protection = ?
-	//  WHERE id = ?
-	UpdateApiDeleteProtection(ctx context.Context, arg UpdateApiDeleteProtectionParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -3107,15 +1628,6 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, arg UpdateAppDeploymentsParams) error
-	//UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
-	//
-	//  UPDATE cilium_network_policies
-	//  SET policy = ?,
-	//      updated_at = ?
-	//  WHERE environment_id = ?
-	//    AND region_id = ?
-	//    AND k8s_name = ?
-	UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, arg UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams) error
 	//UpdateClickhouseWorkspaceSettingsLimits
 	//
 	//  UPDATE `clickhouse_workspace_settings`
@@ -3177,25 +1689,6 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, arg UpdateDeploymentDesiredStateParams) error
-	//UpdateDeploymentForkRepository
-	//
-	//  UPDATE deployments
-	//  SET fork_repository_full_name = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentForkRepository(ctx context.Context, arg UpdateDeploymentForkRepositoryParams) error
-	//UpdateDeploymentGitMetadata
-	//
-	//  UPDATE deployments
-	//  SET
-	//      git_commit_sha = ?,
-	//      git_branch = ?,
-	//      git_commit_message = ?,
-	//      git_commit_author_handle = ?,
-	//      git_commit_author_avatar_url = ?,
-	//      git_commit_timestamp = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentGitMetadata(ctx context.Context, arg UpdateDeploymentGitMetadataParams) error
 	//UpdateDeploymentGithubDeploymentId
 	//
 	//  UPDATE deployments
@@ -3244,88 +1737,6 @@ type Querier interface {
 	//  SET desired_status = ?, updated_at = ?
 	//  WHERE deployment_id = ? AND region_id = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error
-	//UpdateFrontlineRouteDeploymentId
-	//
-	//  UPDATE frontline_routes
-	//  SET deployment_id = ?
-	//  WHERE id = ?
-	UpdateFrontlineRouteDeploymentId(ctx context.Context, arg UpdateFrontlineRouteDeploymentIdParams) error
-	//UpdateIdentity
-	//
-	//  UPDATE `identities`
-	//  SET
-	//      meta = CAST(? AS JSON),
-	//      updated_at = NOW()
-	//  WHERE
-	//      id = ?
-	UpdateIdentity(ctx context.Context, arg UpdateIdentityParams) error
-	//UpdateKey
-	//
-	//  UPDATE `keys` k SET
-	//      name = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE k.name
-	//      END,
-	//      identity_id = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE k.identity_id
-	//      END,
-	//      enabled = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE k.enabled
-	//      END,
-	//      meta = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE k.meta
-	//      END,
-	//      expires = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE k.expires
-	//      END,
-	//      remaining_requests = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE k.remaining_requests
-	//      END,
-	//      refill_amount = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE k.refill_amount
-	//      END,
-	//      refill_day = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE k.refill_day
-	//      END,
-	//      updated_at_m = ?
-	//  WHERE id = ?
-	UpdateKey(ctx context.Context, arg UpdateKeyParams) error
-	//UpdateKeyCreditsDecrement
-	//
-	//  UPDATE `keys`
-	//  SET remaining_requests = CASE
-	//      WHEN remaining_requests >= ? THEN remaining_requests - ?
-	//      ELSE 0
-	//  END
-	//  WHERE id = ?
-	UpdateKeyCreditsDecrement(ctx context.Context, arg UpdateKeyCreditsDecrementParams) error
-	//UpdateKeyCreditsIncrement
-	//
-	//  UPDATE `keys`
-	//  SET remaining_requests = remaining_requests + ?
-	//  WHERE id = ?
-	UpdateKeyCreditsIncrement(ctx context.Context, arg UpdateKeyCreditsIncrementParams) error
-	//UpdateKeyCreditsRefill
-	//
-	//  UPDATE `keys` SET refill_amount = ?, refill_day = ? WHERE id = ?
-	UpdateKeyCreditsRefill(ctx context.Context, arg UpdateKeyCreditsRefillParams) error
-	//UpdateKeyCreditsSet
-	//
-	//  UPDATE `keys`
-	//  SET remaining_requests = ?
-	//  WHERE id = ?
-	UpdateKeyCreditsSet(ctx context.Context, arg UpdateKeyCreditsSetParams) error
-	//UpdateKeySpaceKeyEncryption
-	//
-	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
-	UpdateKeySpaceKeyEncryption(ctx context.Context, arg UpdateKeySpaceKeyEncryptionParams) error
 	//UpdateKeysLastUsed
 	//
 	//  UPDATE `keys`
@@ -3333,26 +1744,6 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, arg UpdateKeysLastUsedParams) error
-	//UpdateProject
-	//
-	//  UPDATE projects p
-	//  SET
-	//      name = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE p.name
-	//      END,
-	//      slug = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE p.slug
-	//      END,
-	//      delete_protection = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE p.delete_protection
-	//      END,
-	//      updated_at = ?
-	//  WHERE workspace_id = ?
-	//    AND id = ?
-	UpdateProject(ctx context.Context, arg UpdateProjectParams) error
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects
@@ -3361,69 +1752,6 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateProjectDepotID(ctx context.Context, arg UpdateProjectDepotIDParams) error
-	// Overwrites every column of a workspace's quota row (team included, unlike
-	// UpsertQuota whose ON DUPLICATE KEY UPDATE leaves it untouched). Callers pass a
-	// full set of values, so it fits full resets like `unkey dev stripe reset`:
-	// resetting only the core quotas would leave a paid tier's elevated rate-limit
-	// and Deploy-resource allowances behind.
-	//
-	//  UPDATE quota
-	//  SET requests_per_month = ?,
-	//      audit_logs_retention_days = ?,
-	//      logs_retention_days = ?,
-	//      team = ?,
-	//      ratelimit_api_limit = ?,
-	//      ratelimit_api_duration = ?,
-	//      allocated_cpu_millicores_total = ?,
-	//      allocated_memory_mib_total = ?,
-	//      allocated_storage_mib_total = ?,
-	//      max_cpu_millicores_per_instance = ?,
-	//      max_memory_mib_per_instance = ?,
-	//      max_storage_mib_per_instance = ?,
-	//      max_concurrent_builds = ?
-	//  WHERE workspace_id = ?
-	UpdateQuota(ctx context.Context, arg UpdateQuotaParams) error
-	//UpdateRatelimit
-	//
-	//  UPDATE `ratelimits`
-	//  SET
-	//      name = ?,
-	//      `limit` = ?,
-	//      duration = ?,
-	//      auto_apply = ?,
-	//      updated_at = NOW()
-	//  WHERE
-	//      id = ?
-	UpdateRatelimit(ctx context.Context, arg UpdateRatelimitParams) error
-	//UpdateRatelimitOverride
-	//
-	//  UPDATE `ratelimit_overrides`
-	//  SET
-	//      `limit` = ?,
-	//      duration = ?,
-	//      updated_at_m= ?
-	//  WHERE id = ?
-	UpdateRatelimitOverride(ctx context.Context, arg UpdateRatelimitOverrideParams) (sql.Result, error)
-	// UpdateSentinelConfig updates a sentinel's configuration and deploy status.
-	// Used by SentinelService.Deploy() to apply new config before triggering krane.
-	//
-	//  UPDATE sentinels SET
-	//    image = ?,
-	//    cpu_millicores = ?,
-	//    memory_mib = ?,
-	//    desired_replicas = ?,
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateSentinelConfig(ctx context.Context, arg UpdateSentinelConfigParams) error
-	// UpdateSentinelDeployStatus updates only the deploy status field.
-	// Used after convergence check or rollback completes.
-	//
-	//  UPDATE sentinels SET
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateSentinelDeployStatus(ctx context.Context, arg UpdateSentinelDeployStatusParams) error
 	// UpdateSentinelObservedState writes observed state from a krane agent:
 	// the current health, available replica count, and the image that is
 	// actually running on the pods. The running image is used to detect
@@ -3576,38 +1904,6 @@ type Querier interface {
 	//      target_cname = VALUES(target_cname),
 	//      updated_at = ?
 	UpsertCustomDomain(ctx context.Context, arg UpsertCustomDomainParams) error
-	//UpsertEnvironment
-	//
-	//  INSERT INTO environments (
-	//      id,
-	//      workspace_id,
-	//      project_id,
-	//      app_id,
-	//      slug,
-	//      created_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE slug = VALUES(slug)
-	UpsertEnvironment(ctx context.Context, arg UpsertEnvironmentParams) error
-	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
-	// Use FindIdentityByExternalID after this to get the actual ID.
-	//
-	//  INSERT INTO `identities` (
-	//      id,
-	//      external_id,
-	//      workspace_id,
-	//      environment,
-	//      created_at,
-	//      meta
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      CAST(? AS JSON)
-	//  )
-	//  ON DUPLICATE KEY UPDATE external_id = external_id
-	UpsertIdentity(ctx context.Context, arg UpsertIdentityParams) error
 	//UpsertInstance
 	//
 	//  INSERT INTO instances (
@@ -3642,20 +1938,6 @@ type Querier interface {
 	//  	memory_mib = ?,
 	//  	status = ?
 	UpsertInstance(ctx context.Context, arg UpsertInstanceParams) error
-	//UpsertKeySpace
-	//
-	//  INSERT INTO key_auth (
-	//      id,
-	//      workspace_id,
-	//      created_at_m,
-	//      default_prefix,
-	//      default_bytes,
-	//      store_encrypted_keys
-	//  ) VALUES (?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//      workspace_id = VALUES(workspace_id),
-	//      store_encrypted_keys = VALUES(store_encrypted_keys)
-	UpsertKeySpace(ctx context.Context, arg UpsertKeySpaceParams) error
 	//UpsertOpenApiSpec
 	//
 	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
@@ -3665,26 +1947,6 @@ type Querier interface {
 	//      content = VALUES(content),
 	//      updated_at = VALUES(updated_at)
 	UpsertOpenApiSpec(ctx context.Context, arg UpsertOpenApiSpecParams) error
-	//UpsertPortalBranding
-	//
-	//  INSERT INTO portal_branding (
-	//      portal_config_id,
-	//      logo_url,
-	//      primary_color,
-	//      created_at,
-	//      updated_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	//  ON DUPLICATE KEY UPDATE
-	//      logo_url = VALUES(logo_url),
-	//      primary_color = VALUES(primary_color),
-	//      updated_at = VALUES(updated_at)
-	UpsertPortalBranding(ctx context.Context, arg UpsertPortalBrandingParams) error
 	//UpsertQuota
 	//
 	//  INSERT INTO quota (
@@ -3717,23 +1979,6 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE name = name
 	UpsertRegion(ctx context.Context, arg UpsertRegionParams) error
-	//UpsertWorkspace
-	//
-	//  INSERT INTO workspaces (
-	//      id,
-	//      org_id,
-	//      name,
-	//      slug,
-	//      created_at_m,
-	//      tier,
-	//      beta_features,
-	//      enabled,
-	//      delete_protection
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
-	//  ON DUPLICATE KEY UPDATE
-	//      beta_features = VALUES(beta_features),
-	//      name = VALUES(name)
-	UpsertWorkspace(ctx context.Context, arg UpsertWorkspaceParams) error
 }
 
 var _ Querier = (*Queries)(nil)

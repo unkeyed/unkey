@@ -7,7 +7,6 @@ import { useFlag } from "@/lib/flags/provider";
 import {
   buildApiLinks,
   buildAppLinks,
-  buildAuthorizationLinks,
   buildNamespaceLinks,
   buildProjectLinks,
   buildWorkspaceSections,
@@ -30,12 +29,12 @@ export function SidebarBody() {
     switch (context.type) {
       case "workspace":
       case "identity":
-      // Settings keeps the top-level workspace nav in the global sidebar; the
-      // settings sub-pages live in the SecondaryNav rail (see settings/layout).
+      // Settings and Authorization keep the top-level workspace nav in the
+      // global sidebar; their sub-pages live in a SecondaryNav rail (see the
+      // settings/authorization layouts).
       case "settings":
-        return buildWorkspaceSections(slug, segments);
       case "authorization":
-        return buildAuthorizationLinks(slug, segments);
+        return buildWorkspaceSections(slug, segments);
       case "project":
         return context.appId
           ? buildAppLinks(slug, context.projectId, context.appId, segments, appOverview)

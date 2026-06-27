@@ -55,7 +55,7 @@ export function transformFilters(
     region,
     environmentId,
     message: params.message,
-    cursorTime: params.cursor ?? null,
+    page: params.page,
   };
 }
 
