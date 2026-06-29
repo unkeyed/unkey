@@ -16,6 +16,7 @@ Workspace users (`ws_*`) are also excluded, cuz we create them ourselves.
 | [`ctrl`](./users/ctrl) | Control plane data writer/reader (ctrl-api + ctrl-worker) | direct grants (see script) |
 | [`frontline`](./users/frontline) | Frontline service | direct grants (see script) |
 | [`vector`](./users/vector) | Runtime logs | INSERT on `runtime_logs_raw_v1` |
+| [`eve`](./users/eve) | Ad-hoc analytics exploration (human) | direct grants (see script) |
 | [`github`](./users/github) | GitHub integrations | `readonly_role` |
 | [`vercel_dashboard`](./users/vercel-dashboard) | Vercel dashboard | `readonly_role` |
 | [`unkey_admin`](./users/unkey-admin) | Admin access | all roles |
