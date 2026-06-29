@@ -2440,6 +2440,16 @@ type Querier interface {
 	//
 	//  SELECT pk, id, name, workspace_id, created_at, updated_at, key_id, identity_id, `limit`, duration, auto_apply FROM ratelimits WHERE identity_id IN (/*SLICE:ids*/?)
 	ListIdentityRatelimitsByIDs(ctx context.Context, db DBTX, ids []sql.NullString) ([]Ratelimit, error)
+	//ListKeyIDsByIdentityExternalID
+	//
+	//  SELECT k.id
+	//  FROM `keys` k
+	//  JOIN identities i ON k.identity_id = i.id
+	//  WHERE i.workspace_id = ?
+	//    AND i.external_id = ?
+	//    AND i.deleted = false
+	//    AND k.deleted_at_m IS NULL
+	ListKeyIDsByIdentityExternalID(ctx context.Context, db DBTX, arg ListKeyIDsByIdentityExternalIDParams) ([]string, error)
 	//ListKeysByKeySpaceID
 	//
 	//  SELECT

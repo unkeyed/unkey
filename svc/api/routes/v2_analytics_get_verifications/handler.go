@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/array"
-	"github.com/unkeyed/unkey/pkg/auth/principal"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
@@ -86,6 +86,58 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Portal sessions are scoped to a single external identity and may only see
+	// verification events for keys that belong to that identity.
+	//
+	// Identity scoping is intentionally separate from the RBAC permission system.
+	// Permissions gate what operations a principal can perform; identity scoping
+	// gates which keys' analytics are visible to a portal session. We inject a
+	// key_id security filter so the scoping cannot be bypassed by the request
+	// query, mirroring the key_space_id filter applied for root keys.
+	switch src := principal.Source.(type) {
+	case authprincipal.PortalSessionSource:
+		// An empty externalId is a broken invariant: a portal session should
+		// always carry an identity. Surface it as an internal error to match the
+		// sibling key handlers, rather than silently returning unscoped data.
+		if src.ExternalID == "" {
+			return fault.New("portal session missing identity",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("portal session externalId is empty"),
+				fault.Public("An internal error occurred."),
+			)
+		}
+
+		keyIDs, keyErr := db.Query.ListKeyIDsByIdentityExternalID(ctx, h.DB.RO(), db.ListKeyIDsByIdentityExternalIDParams{
+			WorkspaceID: principal.WorkspaceID,
+			ExternalID:  src.ExternalID,
+		})
+		if keyErr != nil {
+			return fault.Wrap(keyErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve key information."),
+			)
+		}
+
+		// A session with no keys can have no verification events. Return empty
+		// analytics instead of running an unfiltered query: an empty IN list is
+		// dropped by the security filter injector, which would otherwise leak the
+		// whole workspace's data.
+		if len(keyIDs) == 0 {
+			return s.JSON(http.StatusOK, Response{
+				Meta: openapi.Meta{
+					RequestId: s.RequestID(),
+				},
+				Data: ResponseData{},
+			})
+		}
+
+		securityFilters = append(securityFilters, chquery.SecurityFilter{
+			Column:        "key_id",
+			AllowedValues: keyIDs,
+		})
+	}
+
 	parser := chquery.NewParser(chquery.Config{
 		WorkspaceID:       principal.WorkspaceID,
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
@@ -144,7 +196,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.
 // Returns filters that restrict queries to only the key_space_ids the user has access to.
-func (h *Handler) buildSecurityFilters(ctx context.Context, principal *principal.Principal) ([]chquery.SecurityFilter, error) {
+func (h *Handler) buildSecurityFilters(ctx context.Context, principal *authprincipal.Principal) ([]chquery.SecurityFilter, error) {
 	allowedAPIIds := extractAllowedAPIIds(principal.Permissions)
 	if len(allowedAPIIds) == 0 {
 		return []chquery.SecurityFilter{}, nil
@@ -208,7 +260,7 @@ func (h *Handler) fetchKeyAuthsByAPIIds(ctx context.Context, workspaceID string,
 
 // buildAPIPermissionsFromKeySpaces fetches key spaces and builds RBAC permissions for them.
 // Returns an error if any key space is not found.
-func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *principal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
+func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *authprincipal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
 	keySpaces, keySpaceHits, err := h.fetchKeyAuthsByKeyAuthIds(ctx, principal.WorkspaceID, keySpaceIds)
 	if err != nil {
 		return nil, err
