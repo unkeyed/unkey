@@ -204,6 +204,12 @@ export type OAuthStrategy = "google" | "github";
 export interface SignInViaOAuthOptions {
   redirectUrlComplete: string;
   provider: OAuthStrategy;
+  /**
+   * Browser-signal token collected by WorkOS Radar before the OAuth redirect.
+   * Carried through the OAuth `state` round-trip and handed to
+   * `authenticateWithCode` on the callback so the attempt is linked to Radar.
+   */
+  signalsId?: string;
 }
 
 // Invitation Types
