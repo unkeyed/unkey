@@ -16,7 +16,6 @@ go_library(
         "//pkg/fault",
         "//pkg/rbac",
         "//pkg/uid",
-        "//pkg/validation",
         "//pkg/zen",
         "//svc/api/openapi",
     ],
