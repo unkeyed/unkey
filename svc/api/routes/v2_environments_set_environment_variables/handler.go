@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -103,17 +102,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			keys = append(keys, v.Key)
 		}
 		deduped[v.Key] = v
-	}
-
-	for _, key := range keys {
-		if !validation.IsValidEnvVarKey(key) {
-			return fault.New(
-				"invalid variable key",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("invalid variable key"),
-				fault.Public(fmt.Sprintf("Variable name %q is invalid: %s", key, validation.ErrMsgInvalidEnvVarKey)),
-			)
-		}
 	}
 
 	encrypted, err := h.encryptValues(ctx, env.ID, keys, deduped)
