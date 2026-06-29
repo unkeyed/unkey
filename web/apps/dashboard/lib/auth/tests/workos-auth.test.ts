@@ -128,6 +128,28 @@ describe("WorkOSAuthProvider", () => {
       }
     });
 
+    it("forwards the browser-signal token to createUser and createMagicAuth", async () => {
+      workos.userManagement.createUser.mockResolvedValue({
+        id: "user_123",
+        radarAuthAttemptId: "radar_attempt_1",
+      });
+      workos.userManagement.createMagicAuth.mockResolvedValue({ id: "magic_auth_1" });
+
+      await provider.signUpViaEmail({
+        email: "test@example.com",
+        firstName: "Test",
+        lastName: "User",
+        signalsId: "signals_123",
+      });
+
+      expect(workos.userManagement.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({ signalsId: "signals_123" }),
+      );
+      expect(workos.userManagement.createMagicAuth).toHaveBeenCalledWith(
+        expect.objectContaining({ signalsId: "signals_123" }),
+      );
+    });
+
     it("resends the code when the email belongs to an unverified user", async () => {
       workos.userManagement.createUser.mockRejectedValue({
         errors: [{ code: "email_not_available" }],
@@ -238,6 +260,22 @@ describe("WorkOSAuthProvider", () => {
         expect(names).toContain(AUTH_CHALLENGE_COOKIE);
         expect(names).toContain(RADAR_ATTEMPT_COOKIE);
       }
+    });
+
+    it("forwards the browser-signal token to authenticateWithMagicAuth", async () => {
+      workos.userManagement.authenticateWithMagicAuth.mockResolvedValue({
+        sealedSession: "sealed_123",
+      });
+
+      await provider.verifyAuthCode({
+        email: "test@example.com",
+        code: "123456",
+        signalsId: "signals_123",
+      });
+
+      expect(workos.userManagement.authenticateWithMagicAuth).toHaveBeenCalledWith(
+        expect.objectContaining({ signalsId: "signals_123" }),
+      );
     });
 
     it("maps a radar_email_challenge error to a pending challenge response", async () => {
