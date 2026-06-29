@@ -475,49 +475,46 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 		)
 	}
 
-	envPolicyID := existingPolicyID(current)
+	// Empty region sets are rejected in resolveRegions, so desired always
+	// has at least one entry here.
+	if len(desired) == 0 {
+		return nil
+	}
 
-	if len(desired) > 0 {
-		minReplicas, maxReplicas := desired[0].min, desired[0].max
+	minReplicas, maxReplicas := desired[0].min, desired[0].max
 
-		envPolicyID, err = h.ensureEnvAutoscalingPolicy(ctx, tx, workspaceID, envPolicyID, minReplicas, maxReplicas, now)
-		if err != nil {
-			return wrapRegionWriteErr(err)
-		}
+	envPolicyID, err := h.ensureEnvAutoscalingPolicy(ctx, tx, workspaceID, existingPolicyID(current), minReplicas, maxReplicas, now)
+	if err != nil {
+		return wrapRegionWriteErr(err)
+	}
 
-		for _, d := range desired {
-			if err := db.Query.UpsertAppRegionalSettings(ctx, tx, db.UpsertAppRegionalSettingsParams{
-				WorkspaceID:                   workspaceID,
-				AppID:                         appID,
-				EnvironmentID:                 environmentID,
-				RegionID:                      d.regionID,
-				Replicas:                      maxReplicas,
-				HorizontalAutoscalingPolicyID: sql.NullString{Valid: true, String: envPolicyID},
-				CreatedAt:                     now,
-				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
-			}); err != nil {
-				return wrapRegionWriteErr(err)
-			}
+	upserts := make([]db.UpsertAppRegionalSettingsParams, len(desired))
+	regionIDs := make([]string, len(desired))
+	for i, d := range desired {
+		regionIDs[i] = d.regionID
+		upserts[i] = db.UpsertAppRegionalSettingsParams{
+			WorkspaceID:                   workspaceID,
+			AppID:                         appID,
+			EnvironmentID:                 environmentID,
+			RegionID:                      d.regionID,
+			Replicas:                      maxReplicas,
+			HorizontalAutoscalingPolicyID: sql.NullString{Valid: true, String: envPolicyID},
+			CreatedAt:                     now,
+			UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
 		}
 	}
 
-	desiredByRegion := make(map[string]struct{}, len(desired))
-	for _, d := range desired {
-		desiredByRegion[d.regionID] = struct{}{}
+	if err := db.BulkQuery.UpsertAppRegionalSettings(ctx, tx, upserts); err != nil {
+		return wrapRegionWriteErr(err)
 	}
 
 	// Remove rows for regions no longer desired. The env policy is left in place.
-	for _, row := range current {
-		if _, ok := desiredByRegion[row.RegionID]; ok {
-			continue
-		}
-		if err := db.Query.DeleteAppRegionalSettingByAppEnvRegion(ctx, tx, db.DeleteAppRegionalSettingByAppEnvRegionParams{
-			AppID:         appID,
-			EnvironmentID: environmentID,
-			RegionID:      row.RegionID,
-		}); err != nil {
-			return wrapRegionWriteErr(err)
-		}
+	if err := db.Query.DeleteAppRegionalSettingsNotInRegions(ctx, tx, db.DeleteAppRegionalSettingsNotInRegionsParams{
+		AppID:         appID,
+		EnvironmentID: environmentID,
+		RegionIds:     regionIDs,
+	}); err != nil {
+		return wrapRegionWriteErr(err)
 	}
 
 	return nil
