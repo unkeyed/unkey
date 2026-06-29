@@ -42,6 +42,7 @@ go_library(
         "//svc/api/routes/v2_deploy_get_deployment",
         "//svc/api/routes/v2_environments_get_environment",
         "//svc/api/routes/v2_environments_list_environments",
+        "//svc/api/routes/v2_environments_set_environment_variables",
         "//svc/api/routes/v2_environments_update_settings",
         "//svc/api/routes/v2_identities_create_identity",
         "//svc/api/routes/v2_identities_delete_identity",

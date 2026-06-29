@@ -242,6 +242,8 @@ paths:
     $ref: "./spec/paths/v2/environments/listEnvironments/index.yaml"
   /v2/environments.updateSettings:
     $ref: "./spec/paths/v2/environments/updateSettings/index.yaml"
+  /v2/environments.setEnvironmentVariables:
+    $ref: "./spec/paths/v2/environments/setEnvironmentVariables/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:
