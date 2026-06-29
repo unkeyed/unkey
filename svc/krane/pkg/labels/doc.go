@@ -19,11 +19,10 @@
 //   - unkey.com/project.id - Project identifier
 //   - unkey.com/environment.id - Environment identifier
 //   - unkey.com/deployment.id - Deployment identifier
-//   - unkey.com/sentinel.id - Sentinel identifier
 //
 // Component and management labels:
 //   - app.kubernetes.io/managed-by - Always "krane" for managed resources
-//   - app.kubernetes.io/component - Either "deployment" or "sentinel"
+//   - app.kubernetes.io/component - Either "deployment" or "ciliumnetworkpolicy"
 //
 // # Key Types
 //

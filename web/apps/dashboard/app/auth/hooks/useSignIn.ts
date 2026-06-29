@@ -15,6 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { resendAuthCode, signInViaEmail, verifyAuthCode } from "../actions";
 import { SignInContext } from "../context/signin-context";
+import { useRadarSignals } from "../radar/radar-signals";
 import { consumeRedirectUrl, isSafeRedirectPath } from "../sign-in/redirect-utils";
 
 function isAuthErrorResponse(result: VerificationResult): result is AuthErrorResponse {
@@ -43,6 +44,7 @@ export function useSignIn() {
   }
 
   const searchParams = useSearchParams();
+  const { getToken } = useRadarSignals();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [hasPendingAuth, setHasPendingAuth] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
@@ -102,7 +104,8 @@ export function useSignIn() {
     try {
       setEmail(email);
       setError(null);
-      const result = await signInViaEmail(email);
+      const signalsId = await getToken();
+      const result = await signInViaEmail(email, signalsId);
 
       // Check if the operation was successful
       if (result.success) {
@@ -137,10 +140,12 @@ export function useSignIn() {
    */
   const handleVerification = async (code: string, invitationToken?: string): Promise<boolean> => {
     try {
+      const signalsId = await getToken();
       const result = await verifyAuthCode({
         email: context.email,
         code,
         invitationToken,
+        signalsId,
       });
 
       // Preserve the redirect param for deep link support, validated to prevent open redirects
@@ -208,7 +213,8 @@ export function useSignIn() {
 
   const handleResendCode = async (): Promise<void> => {
     try {
-      const result = await resendAuthCode(context.email);
+      const signalsId = await getToken();
+      const result = await resendAuthCode(context.email, signalsId);
       if (!result.success) {
         setError(errorMessages[AuthErrorCode.UNKNOWN_ERROR]);
         return;

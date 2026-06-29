@@ -386,6 +386,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     _params: UserData & {
       ipAddress?: string;
       userAgent?: string;
+      signalsId?: string;
     },
   ): Promise<EmailAuthResult> {
     // always successful
@@ -396,6 +397,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
@@ -406,6 +408,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
@@ -418,6 +421,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<VerificationResult> {
     // always successful
     return {

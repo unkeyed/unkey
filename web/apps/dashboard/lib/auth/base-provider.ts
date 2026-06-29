@@ -59,6 +59,7 @@ export abstract class BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult>;
 
   /**
@@ -74,6 +75,7 @@ export abstract class BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<VerificationResult>;
 
   /**
@@ -100,6 +102,7 @@ export abstract class BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult>;
 
   /**
@@ -112,6 +115,7 @@ export abstract class BaseAuthProvider {
     params: UserData & {
       ipAddress?: string;
       userAgent?: string;
+      signalsId?: string;
     },
   ): Promise<EmailAuthResult>;
 

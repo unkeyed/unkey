@@ -833,6 +833,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     const magicAuth = await this.provider.userManagement.createMagicAuth(params);
 
@@ -856,26 +857,29 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     params: UserData & {
       ipAddress?: string;
       userAgent?: string;
+      signalsId?: string;
     },
   ): Promise<EmailAuthResult> {
-    const { email, firstName, lastName, ipAddress, userAgent } = params;
+    const { email, firstName, lastName, ipAddress, userAgent, signalsId } = params;
 
     try {
-      // Create the user with WorkOS. Passing the request metadata enrolls
-      // this request with Radar, which links the attempt to the
-      // authentication that follows.
+      // Create the user with WorkOS. Passing the request metadata plus the
+      // browser-signal token enrolls this request with Radar, which links the
+      // attempt to the authentication that follows.
       const createUserResponse = await this.provider.userManagement.createUser({
         firstName,
         lastName,
         email,
         ipAddress,
         userAgent,
+        signalsId,
       });
 
       return await this.sendMagicAuthCode({
         email,
         ipAddress,
         userAgent,
+        signalsId,
         radarAuthAttemptId: createUserResponse.radarAuthAttemptId,
       });
     } catch (error: unknown) {
@@ -899,7 +903,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           const { data } = await this.provider.userManagement.listUsers({ email });
           const existingUser = data[0];
           if (existingUser && !existingUser.emailVerified) {
-            return await this.sendMagicAuthCode({ email, ipAddress, userAgent });
+            return await this.sendMagicAuthCode({ email, ipAddress, userAgent, signalsId });
           }
         } catch (_lookupError) {
           // Fall through to the duplicate-email error below
@@ -931,8 +935,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
-    const { email, ipAddress, userAgent } = params;
+    const { email, ipAddress, userAgent, signalsId } = params;
 
     try {
       const { data } = await this.provider.userManagement.listUsers({ email });
@@ -941,7 +946,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         return this.handleError(new Error(AuthErrorCode.ACCOUNT_NOT_FOUND));
       }
 
-      return await this.sendMagicAuthCode({ email, ipAddress, userAgent });
+      return await this.sendMagicAuthCode({ email, ipAddress, userAgent, signalsId });
     } catch (error) {
       if (this.isRadarBlock(error)) {
         return this.radarBlockedResponse();
@@ -955,6 +960,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     try {
       return await this.sendMagicAuthCode(params);
@@ -970,8 +976,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<VerificationResult> {
-    const { email, code, invitationToken, ipAddress, userAgent, radarAuthAttemptId } = params;
+    const { email, code, invitationToken, ipAddress, userAgent, radarAuthAttemptId, signalsId } =
+      params;
 
     return this.completeAuthentication(() =>
       this.provider.userManagement.authenticateWithMagicAuth({
@@ -982,6 +990,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         ipAddress,
         userAgent,
         radarAuthAttemptId,
+        signalsId,
         session: {
           sealSession: true,
           cookiePassword: this.cookiePassword,
