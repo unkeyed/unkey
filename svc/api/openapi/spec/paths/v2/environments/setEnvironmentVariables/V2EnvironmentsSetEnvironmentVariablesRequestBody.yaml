@@ -1,0 +1,48 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - variables
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  variables:
+    type: array
+    maxItems: 100
+    items:
+      "$ref": "./EnvironmentVariableInput.yaml"
+    description: |
+      The desired set of variables. The key set is replaced wholesale: keys in
+      this list are created or updated, unprotected keys absent from the list
+      are removed, and delete-protected keys absent from the list are preserved.
+      An empty array therefore removes every unprotected variable while leaving
+      protected ones intact.
+
+      For a key that already exists, omitted optional fields (`sensitive`,
+      `description`, `deleteProtection`) keep their current values; only `value`
+      is required on every entry. A new key uses the field defaults.
+
+      Duplicate keys are allowed and collapse to the last occurrence. The whole
+      operation is atomic: if any part fails the environment is left unchanged.
+      All values are encrypted at rest. Limited to 100 variables per request.
+additionalProperties: false
+examples:
+  setVariables:
+    summary: Replace the variable set
+    description: Locate the environment by slug and set its variables
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      variables:
+        - key: DATABASE_URL
+          value: postgresql://user:pass@host:5432/db
+          sensitive: true
+        - key: LOG_LEVEL
+          value: debug
+          description: Application log verbosity

@@ -1,0 +1,97 @@
+post:
+  tags:
+    - environments
+  summary: Set environment variables
+  description: |
+    Replace the environment variables for an environment in a single atomic
+    request.
+
+    This operation reconciles the environment toward the variables you send:
+    keys in the payload are created or updated, unprotected keys absent from the
+    payload are removed, and delete-protected keys absent from the payload are
+    preserved. Sending the full desired set at once avoids partial-update states
+    where dependent variables (such as a username and password) drift out of
+    sync across deployments.
+
+    When updating an existing key, omitted optional fields (`sensitive`,
+    `description`, `deleteProtection`) keep their current values; only `value`
+    is required.
+
+    Values are always encrypted at rest. Set `sensitive: true` to make a value
+    write-only so it can never be read back. The response echoes the variables
+    you set as metadata and never returns values.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.set_environment_variables` (for any environment)
+    - `environment.<environment_id>.set_environment_variables` (for a specific environment)
+  operationId: environments.setEnvironmentVariables
+  x-speakeasy-name-override: setEnvironmentVariables
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2EnvironmentsSetEnvironmentVariablesRequestBody.yaml"
+        examples:
+          setVariables:
+            summary: Replace the variable set
+            description: Locate the environment by slug and set its variables
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              variables:
+                - key: DATABASE_URL
+                  value: postgresql://user:pass@host:5432/db
+                  sensitive: true
+                - key: LOG_LEVEL
+                  value: debug
+                  description: Application log verbosity
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully set the environment variables.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2EnvironmentsSetEnvironmentVariablesResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.set_environment_variables`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The requested environment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
