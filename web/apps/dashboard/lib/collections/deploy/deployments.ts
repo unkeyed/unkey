@@ -128,7 +128,6 @@ export const deployments = createCollection<Deployment, string>(
     },
     retry: 3,
     syncMode: "on-demand",
-    refetchInterval: 5000,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 
