@@ -13,7 +13,9 @@ export const EditRole = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { permissions, keys, error, hasData } = useFetchConnectedKeysAndPermsData(role.roleId);
+  const { permissions, keys, error, hasData, shouldPrefetch } = useFetchConnectedKeysAndPermsData(
+    role.roleId,
+  );
 
   useEffect(() => {
     if (error) {
@@ -43,14 +45,15 @@ export const EditRole = ({
     }
   }, [error]);
 
-  // Don't mount the form until we actually have the connected keys/permissions.
-  // Gating on data presence (rather than a loading flag) covers every state in
-  // which the baseline would be empty: in-flight fetches, fetch errors, and
-  // disabled queries for over-limit roles whose cache isn't populated yet. If we
-  // rendered in any of those, the dialog would initialize its baseline with empty
-  // keyIds/permissionIds and submitting would wipe the role's existing
-  // associations. Errors surface via the toast above.
-  if (!hasData) {
+  // For roles under the attach limit, the connected keys/permissions query runs,
+  // so wait for it: rendering before the data lands (in-flight or on error) would
+  // initialize the form baseline with empty keyIds/permissionIds and submitting
+  // would wipe the role's existing associations. Errors surface via the toast
+  // above. Over-limit roles (shouldPrefetch === false) intentionally skip the
+  // query, so we must NOT wait on data that never arrives; they open immediately
+  // with an empty baseline and submit preserves their associations by sending
+  // `undefined` (see onSubmit in upsert-role).
+  if (shouldPrefetch && !hasData) {
     return null;
   }
 

@@ -17,8 +17,10 @@ export const useFetchConnectedKeysAndPermsData = (roleId: string) => {
     keys: query.data?.keys || [],
     permissions: query.data?.permissions || [],
     hasData: Boolean(query.data),
-    isLoading: query.isLoading,
-    isError: query.isError,
+    // Whether the connected keys/permissions query actually runs. It is disabled
+    // for over-limit roles, so callers must not wait on `hasData` in that case
+    // (the query never resolves and the data never arrives).
+    shouldPrefetch,
     error: query.error,
   };
 };
