@@ -27,7 +27,12 @@ function RadarSignalsBridge({ children }: { children: ReactNode }) {
 
   const safeGetToken = useCallback(async () => {
     try {
-      return await getToken();
+      // The SDK is itself fail-open: it resolves to an empty string (not a
+      // rejection) when the CDN script fails to load or times out. Normalize
+      // that to undefined so the result matches the documented contract and
+      // the optional signalsId shape.
+      const token = await getToken();
+      return token || undefined;
     } catch {
       // Fail open: a collection error must never stop the user signing in.
       return undefined;
