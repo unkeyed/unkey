@@ -78,6 +78,14 @@ type Querier interface {
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
 	DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	// Deletes an environment's regional rows whose region is not in the desired set,
+	// reconciling the stored set to exactly the provided regions in one statement.
+	//
+	//  DELETE FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND region_id NOT IN (/*SLICE:region_ids*/?)
+	DeleteAppRegionalSettingsNotInRegions(ctx context.Context, db DBTX, arg DeleteAppRegionalSettingsNotInRegionsParams) error
 	//DeleteAppRuntimeSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
