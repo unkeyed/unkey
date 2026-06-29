@@ -68,8 +68,10 @@ import { listEnvVars } from "./deploy/env-vars/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
+import { updateBuildCommand } from "./deploy/environment-settings/build/update-build-command";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
+import { updateInstallCommand } from "./deploy/environment-settings/build/update-install-command";
 import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
@@ -524,6 +526,8 @@ export const router = t.router({
         updateAutoDeploy,
         updateDockerfile,
         updateDockerContext,
+        updateBuildCommand,
+        updateInstallCommand,
         updateWatchPaths,
       }),
     }),

@@ -3,8 +3,10 @@
 import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
+import { BuildCommand } from "./components/build-settings/build-command-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
+import { InstallCommand } from "./components/build-settings/install-command-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
 import { WatchPaths } from "./components/build-settings/watch-paths-settings";
 
@@ -42,6 +44,8 @@ export const DeploymentSettings = ({
         <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
         <RootDirectory />
         <Dockerfile />
+        <InstallCommand />
+        <BuildCommand />
         <WatchPaths />
         <AutoDeploy />
       </SettingCardGroup>

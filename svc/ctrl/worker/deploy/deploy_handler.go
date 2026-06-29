@@ -411,7 +411,10 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			ContextPath:    source.Git.GetContextPath(),
 			// Normalized here because the value routes the build method below:
 			// a whitespace-only setting must mean "no Dockerfile configured".
-			DockerfilePath:                strings.TrimSpace(source.Git.GetDockerfilePath()),
+			DockerfilePath: strings.TrimSpace(source.Git.GetDockerfilePath()),
+			// Trimmed so a whitespace-only setting means "let Railpack auto-detect".
+			BuildCommand:                  strings.TrimSpace(source.Git.GetBuildCommand()),
+			InstallCommand:                strings.TrimSpace(source.Git.GetInstallCommand()),
 			ProjectID:                     deployment.ProjectID,
 			AppID:                         deployment.AppID,
 			DeploymentID:                  deployment.ID,

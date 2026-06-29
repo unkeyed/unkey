@@ -19,6 +19,8 @@ INSERT INTO app_build_settings (
     environment_id,
     dockerfile,
     docker_context,
+    build_command,
+    install_command,
     watch_paths,
     auto_deploy,
     created_at,
@@ -32,26 +34,32 @@ INSERT INTO app_build_settings (
     ?,
     ?,
     ?,
+    ?,
+    ?,
     ?
 )
 ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
     docker_context = VALUES(docker_context),
+    build_command = VALUES(build_command),
+    install_command = VALUES(install_command),
     watch_paths = VALUES(watch_paths),
     auto_deploy = VALUES(auto_deploy),
     updated_at = VALUES(updated_at)
 `
 
 type UpsertAppBuildSettingsParams struct {
-	WorkspaceID   string             `db:"workspace_id"`
-	AppID         string             `db:"app_id"`
-	EnvironmentID string             `db:"environment_id"`
-	Dockerfile    sql.NullString     `db:"dockerfile"`
-	DockerContext string             `db:"docker_context"`
-	WatchPaths    dbtype.StringSlice `db:"watch_paths"`
-	AutoDeploy    bool               `db:"auto_deploy"`
-	CreatedAt     int64              `db:"created_at"`
-	UpdatedAt     sql.NullInt64      `db:"updated_at"`
+	WorkspaceID    string             `db:"workspace_id"`
+	AppID          string             `db:"app_id"`
+	EnvironmentID  string             `db:"environment_id"`
+	Dockerfile     sql.NullString     `db:"dockerfile"`
+	DockerContext  string             `db:"docker_context"`
+	BuildCommand   sql.NullString     `db:"build_command"`
+	InstallCommand sql.NullString     `db:"install_command"`
+	WatchPaths     dbtype.StringSlice `db:"watch_paths"`
+	AutoDeploy     bool               `db:"auto_deploy"`
+	CreatedAt      int64              `db:"created_at"`
+	UpdatedAt      sql.NullInt64      `db:"updated_at"`
 }
 
 // UpsertAppBuildSettings
@@ -62,6 +70,8 @@ type UpsertAppBuildSettingsParams struct {
 //	    environment_id,
 //	    dockerfile,
 //	    docker_context,
+//	    build_command,
+//	    install_command,
 //	    watch_paths,
 //	    auto_deploy,
 //	    created_at,
@@ -75,11 +85,15 @@ type UpsertAppBuildSettingsParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
+//	    ?,
 //	    ?
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    dockerfile = VALUES(dockerfile),
 //	    docker_context = VALUES(docker_context),
+//	    build_command = VALUES(build_command),
+//	    install_command = VALUES(install_command),
 //	    watch_paths = VALUES(watch_paths),
 //	    auto_deploy = VALUES(auto_deploy),
 //	    updated_at = VALUES(updated_at)
@@ -90,6 +104,8 @@ func (q *Queries) UpsertAppBuildSettings(ctx context.Context, db DBTX, arg Upser
 		arg.EnvironmentID,
 		arg.Dockerfile,
 		arg.DockerContext,
+		arg.BuildCommand,
+		arg.InstallCommand,
 		arg.WatchPaths,
 		arg.AutoDeploy,
 		arg.CreatedAt,

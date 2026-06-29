@@ -18,6 +18,11 @@ export const appBuildSettings = mysqlTable(
     // the app with Railpack instead of a Dockerfile.
     dockerfile: varchar("dockerfile", { length: 500 }),
     dockerContext: varchar("docker_context", { length: 500 }).notNull().default("."),
+    // NULL means "let Railpack auto-detect". When set, these override Railpack's
+    // detected build/install commands (RAILPACK_BUILD_CMD / RAILPACK_INSTALL_CMD)
+    // so monorepos can scope the build to a single app. Ignored for Dockerfile builds.
+    buildCommand: varchar("build_command", { length: 1000 }),
+    installCommand: varchar("install_command", { length: 1000 }),
     watchPaths: json("watch_paths").notNull().$type<string[]>().default([]),
     autoDeploy: boolean("auto_deploy").notNull().default(true),
 

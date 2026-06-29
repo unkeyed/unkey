@@ -73,7 +73,7 @@ var knownBuildErrors = []knownBuildError{
 	// The message is deliberately tech-neutral: Railpack is an implementation
 	// detail we don't surface to customers. "check the root directory" also
 	// makes the dashboard's failed-deployment banner show its settings link.
-	{substr: "railpack prepare failed", message: "Unkey could not determine how to build this app. Please check the root directory in settings, or review the build logs for details."},
+	{substr: "railpack prepare failed", message: "Unkey could not build this app automatically. For a monorepo, set the root directory to your app and a custom build command (and install command) in settings, or review the build logs for details."},
 	// Settings-fixable: dockerfile path / docker context
 	{substr: "the dockerfile cannot be empty", message: "The Dockerfile appears to be empty. Please verify the file path in settings."},
 	{substr: "failed to read dockerfile", message: "Dockerfile could not be read. Please check that the file path is correct in settings."},
@@ -141,12 +141,18 @@ type buildResult struct {
 // gitBuildParams holds the inputs for building a container image from a Git
 // repository, including the exact commit and the build context location.
 type gitBuildParams struct {
-	InstallationID                int64
-	Repository                    string
-	ForkRepository                string
-	CommitSHA                     string
-	ContextPath                   string
-	DockerfilePath                string
+	InstallationID int64
+	Repository     string
+	ForkRepository string
+	CommitSHA      string
+	ContextPath    string
+	DockerfilePath string
+	// BuildCommand and InstallCommand override Railpack's auto-detected commands
+	// (RAILPACK_BUILD_CMD / RAILPACK_INSTALL_CMD) so monorepos can scope the build
+	// to a single app. Empty means auto-detect. Only consumed by the Railpack
+	// build path; Dockerfile builds ignore them.
+	BuildCommand                  string
+	InstallCommand                string
 	ProjectID                     string
 	AppID                         string
 	DeploymentID                  string
