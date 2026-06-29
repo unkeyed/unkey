@@ -764,7 +764,7 @@ components:
                         - "null"
                     minLength: 1
                     maxLength: 512
-                    pattern: '^(/[\w\-]+)*(\.[\w]+)?/?$'
+                    pattern: '^(/[\w\-]+)+(\.[\w]+)?$'
                     description: |
                         Path to the OpenAPI spec file within the build. Must start with a slash.
                         Omit to leave unchanged; set null to clear.
@@ -3565,7 +3565,7 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 512
-                    pattern: '^(/[\w\-]+)*(\.[\w]+)?/?$'
+                    pattern: '^(/[\w\-]+)+(\.[\w]+)?$'
                     description: HTTP path probed for health. Must start with a slash.
                     example: /health
                 intervalSeconds:
