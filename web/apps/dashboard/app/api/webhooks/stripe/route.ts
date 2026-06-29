@@ -104,7 +104,7 @@ async function deactivateNonCreatorMemberships(orgId: string): Promise<void> {
   await Promise.all(
     nonCreators.map(async (member) => {
       try {
-        await auth.deactivateMembership(member.id);
+        await auth.deactivateMembership(member.id, orgId);
       } catch (err) {
         console.error("Failed to deactivate membership:", {
           orgId,

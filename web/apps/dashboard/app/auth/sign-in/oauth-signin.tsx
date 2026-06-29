@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import * as React from "react";
 import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
+import { useRadarSignals } from "../radar/radar-signals";
 import { LastUsed, useLastUsed } from "./last_used";
 import { isSafeRedirectPath } from "./redirect-utils";
 
@@ -14,6 +15,7 @@ export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const [lastUsed, setLastUsed] = useLastUsed();
   const [clientReady, setClientReady] = React.useState(false);
+  const { getToken } = useRadarSignals();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams?.get("redirect");
   const redirectUrlComplete =
@@ -28,9 +30,11 @@ export const OAuthSignIn: React.FC = () => {
     try {
       setIsLoading(provider);
       setLastUsed(provider);
+      const signalsId = await getToken();
       const url = await signInViaOAuth({
         provider,
         redirectUrlComplete,
+        signalsId,
       });
 
       if (url) {

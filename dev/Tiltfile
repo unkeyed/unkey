@@ -26,6 +26,12 @@ local_resource(
 )
 
 local_resource(
+  'node-labels',
+  'kubectl label node --all node-class=untrusted --overwrite',
+  labels=['setup'],
+)
+
+local_resource(
   'registry',
   '''
   REGISTRY_IP=$(docker inspect ctlptl-registry --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' | awk '{print $NF}')
