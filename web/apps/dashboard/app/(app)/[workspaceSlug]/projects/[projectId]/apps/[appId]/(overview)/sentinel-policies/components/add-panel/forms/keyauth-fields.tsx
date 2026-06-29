@@ -367,7 +367,6 @@ export function KeyAuthFields() {
                   <FormInput
                     type="number"
                     placeholder="limit"
-                    requirement="required"
                     value={rl.limit ?? ""}
                     onChange={(e) =>
                       updateRatelimit(rl.id, { limit: toOptionalInt(e.target.value) })
@@ -379,7 +378,6 @@ export function KeyAuthFields() {
                   <FormInput
                     type="number"
                     placeholder="duration (ms)"
-                    requirement="required"
                     value={rl.duration ?? ""}
                     onChange={(e) =>
                       updateRatelimit(rl.id, { duration: toOptionalInt(e.target.value) })
