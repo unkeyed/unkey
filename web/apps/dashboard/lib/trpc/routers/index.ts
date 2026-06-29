@@ -57,6 +57,8 @@ import { promote } from "./deploy/deployment/promote";
 import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
+import { stopDeployment } from "./deploy/deployment/stop";
+import { wakeDeployment } from "./deploy/deployment/wake";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
 import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
@@ -97,6 +99,7 @@ import { create as createRatelimitPolicy } from "./deploy/environment-settings/s
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
+import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -215,7 +218,15 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
-import { getCurrentUser, listMemberships, switchOrg } from "./user";
+import {
+  getCurrentUser,
+  listMemberships,
+  listMfaFactors,
+  removeMfaFactor,
+  startMfaEnrollment,
+  switchOrg,
+  verifyMfaEnrollment,
+} from "./user";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -413,6 +424,12 @@ export const router = t.router({
     getCurrentUser,
     listMemberships,
     switchOrg,
+    mfa: t.router({
+      listFactors: listMfaFactors,
+      startEnrollment: startMfaEnrollment,
+      verifyEnrollment: verifyMfaEnrollment,
+      removeFactor: removeMfaFactor,
+    }),
   }),
   org: t.router({
     getOrg,
@@ -546,6 +563,8 @@ export const router = t.router({
       create: createDeploy,
       authorize: authorizeDeployment,
       cancel: cancelDeployment,
+      stop: stopDeployment,
+      wake: wakeDeployment,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,
@@ -557,6 +576,7 @@ export const router = t.router({
       listInstances,
     }),
     metrics: t.router({
+      getAppRpsMetrics,
       getDeploymentRpsMetrics,
       getDeploymentLatencyMetrics,
       getDeploymentCpuTimeseries,

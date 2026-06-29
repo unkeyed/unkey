@@ -44,8 +44,8 @@ type BufferConfig struct {
 //
 // Example:
 //
-//	buf := clickhouse.NewBuffer[schema.SentinelRequest](client, "default.sentinel_requests_raw_v1", clickhouse.BufferConfig{
-//	    Name:          "sentinel_requests",
+//	buf := clickhouse.NewBuffer[schema.FrontlineRequest](client, "default.frontline_requests_raw_v1", clickhouse.BufferConfig{
+//	    Name:          "frontline_requests",
 //	    BatchSize:     50_000,
 //	    BufferSize:    50_000,
 //	    FlushInterval: 5 * time.Second,

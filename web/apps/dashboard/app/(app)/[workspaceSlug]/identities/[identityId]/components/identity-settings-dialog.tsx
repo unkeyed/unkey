@@ -3,6 +3,7 @@
 import { IdentityTableActions } from "@/components/identities-table/components/identity-table-actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Gear } from "@unkey/icons";
 import { useRouter } from "next/navigation";
@@ -31,7 +32,7 @@ export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) =
           // before navigating, so the destination list renders without the
           // just-deleted row instead of flickering it in then out.
           await trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" });
-          router.push(`/${workspace.slug}/identities`);
+          router.push(routes.identities.list({ workspaceSlug: workspace.slug }));
         }}
       >
         <NavbarActionButton variant="outline">

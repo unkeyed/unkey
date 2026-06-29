@@ -5,7 +5,6 @@ import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
-import { clearWorkspaceCache } from "../workspace/getCurrent";
 
 export const updateWorkspaceStripeCustomer = workspaceProcedure
   .input(
@@ -80,8 +79,6 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
     // Invalidate workspace cache after successful update
     await invalidateWorkspaceCache(ctx.tenant.id);
 
-    // Also clear the tRPC workspace cache to ensure fresh data on next request
-    clearWorkspaceCache(ctx.tenant.id);
     return {
       success: true,
     };

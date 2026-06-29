@@ -62,7 +62,9 @@ describe("dashboard proxy POST", () => {
       UNKEY_API_URL: "https://api.example.test",
       UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
     } as ReturnType<typeof env>);
-    mockedFindWorkspace.mockResolvedValue({ id: "ws_123" });
+    mockedFindWorkspace.mockResolvedValue({ id: "ws_123" } as Awaited<
+      ReturnType<typeof mockedFindWorkspace>
+    >);
   });
 
   afterEach(() => {
@@ -149,6 +151,49 @@ describe("dashboard proxy POST", () => {
     expect(payload.wid).toBeUndefined();
     expect(payload.name).toBe("Test User");
     expect(payload.perms).toEqual(["unkey:v1:ws_123:**#*"]);
+  });
+
+  it.each([
+    ["leading backslash host", ["\\evil.com", "v1", "keys"]],
+    ["leading double-slash host", ["", "", "evil.com", "v1", "keys"]],
+    ["backslash mid-segment", ["v1", "x\\evil.com"]],
+    ["embedded slash segment", ["v1/keys", "x"]],
+    ["control character", ["v1", "keys\u0001"]],
+  ])("rejects SSRF path injection via %s", async (_label, injectedPath) => {
+    // The proxy pins the upstream origin from UNKEY_API_URL. A path segment
+    // carrying a slash, backslash, or control character must never be allowed
+    // to rewrite the origin and turn the proxy into an SSRF primitive.
+    mockedGetAuth.mockResolvedValue({
+      userId: "user_1",
+      orgId: "org_1",
+      accessToken: "workos_access_token",
+      role: "owner",
+    });
+
+    const res = await POST(makeRequest({ accept: "application/json" }), {
+      params: Promise.resolve({ path: injectedPath }),
+    });
+
+    expect(res.status).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps the upstream request pinned to the configured origin", async () => {
+    mockedGetAuth.mockResolvedValue({
+      userId: "user_1",
+      orgId: "org_1",
+      accessToken: "workos_access_token",
+      role: "owner",
+    });
+
+    const res = await POST(makeRequest({ accept: "application/json" }), { params });
+
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledOnce();
+    const [target] = vi.mocked(fetch).mock.calls[0];
+    const url = new URL(target instanceof Request ? target.url : String(target));
+    expect(url.origin).toBe("https://api.example.test");
+    expect(url.pathname).toBe("/v2/apis.listKeys");
   });
 
   it("rejects fallback proxy JWT minting when the org has no workspace", async () => {

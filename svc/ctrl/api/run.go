@@ -130,7 +130,6 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	clk := clock.New()
-
 	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
 		Fresh:    5 * time.Minute,
 		Stale:    30 * time.Minute,
@@ -280,9 +279,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Bearer:                     cfg.AuthToken,
 	})))
 	appSvc := app.New(app.Config{
-		Database: database,
-		Restate:  restateClient,
-		Bearer:   cfg.AuthToken,
+		Database:  database,
+		Restate:   restateClient,
+		Auditlogs: auditlogSvc,
+		Bearer:    cfg.AuthToken,
 	})
 	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{

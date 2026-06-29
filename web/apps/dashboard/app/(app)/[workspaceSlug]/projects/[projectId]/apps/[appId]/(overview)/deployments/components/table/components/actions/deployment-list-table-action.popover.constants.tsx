@@ -8,6 +8,8 @@ import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   Ban,
+  Bolt,
+  BoltSlash,
   ChevronUp,
   Hammer2,
   Layers3,
@@ -19,6 +21,8 @@ import { getDeploymentActionEligibility } from "./deployment-action-eligibility"
 import { PromotionDialog } from "./promotion-dialog";
 import { RedeployDialog } from "./redeploy-dialog";
 import { RollbackDialog } from "./rollback-dialog";
+import { StopDialog } from "./stop-dialog";
+import { WakeDialog } from "./wake-dialog";
 
 type DeploymentListTableActionsProps = {
   selectedDeployment: Deployment;
@@ -40,12 +44,13 @@ export const DeploymentListTableActions = ({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   const menuItems = useMemo((): MenuItem[] => {
-    const { canRollback, canPromote, canRedeploy, canCancel } = getDeploymentActionEligibility({
-      selectedDeployment,
-      currentDeploymentId,
-      isRolledBack,
-      environmentSlug: environment?.slug ?? null,
-    });
+    const { canRollback, canPromote, canRedeploy, canCancel, canStop, canWake } =
+      getDeploymentActionEligibility({
+        selectedDeployment,
+        currentDeploymentId,
+        isRolledBack,
+        environmentSlug: environment?.slug ?? null,
+      });
 
     return [
       {
@@ -77,6 +82,20 @@ export const DeploymentListTableActions = ({
               />
             )
           : undefined,
+      },
+      {
+        id: "wake",
+        label: "Wake deployment",
+        icon: <Bolt iconSize="md-regular" />,
+        disabled: !canWake,
+        ActionComponent: (props) => <WakeDialog {...props} deployment={selectedDeployment} />,
+      },
+      {
+        id: "stop",
+        label: "Stop deployment",
+        icon: <BoltSlash iconSize="md-regular" />,
+        disabled: !canStop,
+        ActionComponent: (props) => <StopDialog {...props} deployment={selectedDeployment} />,
       },
       {
         id: "redeploy",

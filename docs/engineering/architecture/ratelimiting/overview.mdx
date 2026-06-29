@@ -3,7 +3,7 @@ title: "Rate limiting"
 description: "Architecture overview for Unkey's distributed rate limiter"
 ---
 
-Rate limiting is a shared runtime subsystem used by API, Frontline, and Sentinel policy execution. The implementation lives in [`internal/services/ratelimit`](https://github.com/unkeyed/unkey/tree/main/internal/services/ratelimit).
+Rate limiting is a shared runtime subsystem used by API and Frontline policy execution. The implementation lives in [`internal/services/ratelimit`](https://github.com/unkeyed/unkey/tree/main/internal/services/ratelimit).
 
 The system is designed to protect request-serving paths first. Accuracy improves as state converges, but no normal request depends on a synchronous global counter.
 
@@ -86,4 +86,4 @@ These invariants shape the implementation:
 
 This subsystem owns counting, convergence, and the rate limit decision. It does not own how callers choose identifiers, configure limits, or translate denial responses into protocol-specific errors.
 
-API uses the subsystem for standalone rate limits, key verification limits, and workspace API throttling. Frontline and Sentinel use it for policy execution. Sharing the subsystem keeps these paths on the same counter semantics instead of creating service-specific rate limit behavior.
+API uses the subsystem for standalone rate limits, key verification limits, and workspace API throttling. Frontline uses it for policy execution. Sharing the subsystem keeps these paths on the same counter semantics instead of creating service-specific rate limit behavior.

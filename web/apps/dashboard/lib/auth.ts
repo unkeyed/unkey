@@ -1,6 +1,7 @@
 import { getAuth as getBaseAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
 import type { AuthenticatedUser } from "@/lib/auth/types";
+import { routes } from "@/lib/navigation/routes";
 import type { Route } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -46,7 +47,7 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
   }
 
   if (!authResult.orgId && !authResult.role) {
-    redirect("/new");
+    redirect(routes.workspaces.create());
   }
 
   return authResult as GetAuthResult;

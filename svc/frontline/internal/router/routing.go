@@ -99,6 +99,7 @@ func (s *service) selectDestination(
 			EnvironmentID:       route.EnvironmentID,
 			WorkspaceID:         localRunning[0].WorkspaceID,
 			ProjectID:           localRunning[0].ProjectID,
+			AppID:               localRunning[0].AppID,
 			UpstreamProtocol:    route.UpstreamProtocol,
 			Policies:            policies,
 			LocalInstances:      localRunning,

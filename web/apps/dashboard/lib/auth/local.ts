@@ -12,6 +12,8 @@ import {
   LOCAL_USER_ID,
   type Membership,
   type MembershipListResponse,
+  type MfaEnrollmentStart,
+  type MfaFactor,
   type OAuthResult,
   type OrgInviteParams,
   type Organization,
@@ -100,6 +102,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
       orgId: this.ORG_ID,
       permissions: LOCAL_AUTH_PERMISSIONS,
       role: this.ROLE,
+      user: this.user,
     };
   }
 
@@ -121,6 +124,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
         orgId: this.ORG_ID,
         permissions: LOCAL_AUTH_PERMISSIONS,
         role: this.ROLE,
+        user: this.user,
       },
     };
   }
@@ -382,7 +386,6 @@ export class LocalAuthProvider extends BaseAuthProvider {
     _params: UserData & {
       ipAddress?: string;
       userAgent?: string;
-      bypassRadar?: boolean;
     },
   ): Promise<EmailAuthResult> {
     // always successful
@@ -393,13 +396,17 @@ export class LocalAuthProvider extends BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
-    bypassRadar?: boolean;
   }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
   }
 
-  async resendAuthCode(_email: string): Promise<EmailAuthResult> {
+  async resendAuthCode(_params: {
+    email: string;
+    ipAddress?: string;
+    userAgent?: string;
+    radarAuthAttemptId?: string;
+  }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
   }
@@ -408,6 +415,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
     email: string;
     code: string;
     invitationToken?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    radarAuthAttemptId?: string;
   }): Promise<VerificationResult> {
     // always successful
     return {
@@ -475,6 +485,70 @@ export class LocalAuthProvider extends BaseAuthProvider {
         },
       ],
     };
+  }
+
+  // MFA and Radar challenges never occur in local mode
+  async completeMfaChallenge(_params: {
+    code: string;
+    challengeId: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult> {
+    throw new Error("MFA is not supported in local development mode");
+  }
+
+  async beginMfaEnrollment(_params: {
+    userId: string;
+    email: string;
+  }): Promise<MfaEnrollmentStart> {
+    throw new Error("MFA is not supported in local development mode");
+  }
+
+  async verifyMfaEnrollment(_params: {
+    challengeId: string;
+    code: string;
+  }): Promise<boolean> {
+    throw new Error("MFA is not supported in local development mode");
+  }
+
+  async listMfaFactors(_userId: string): Promise<MfaFactor[]> {
+    return [];
+  }
+
+  async removeMfaFactor(_factorId: string): Promise<void> {
+    throw new Error("MFA is not supported in local development mode");
+  }
+
+  async completeRadarEmailChallenge(_params: {
+    code: string;
+    radarChallengeId: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult> {
+    throw new Error("Radar challenges are not supported in local development mode");
+  }
+
+  async sendRadarSmsCode(_params: {
+    userId: string;
+    phoneNumber: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<{ verificationId: string; phoneNumber: string }> {
+    throw new Error("Radar challenges are not supported in local development mode");
+  }
+
+  async completeRadarSmsChallenge(_params: {
+    code: string;
+    verificationId: string;
+    phoneNumber: string;
+    pendingAuthToken: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<VerificationResult> {
+    throw new Error("Radar challenges are not supported in local development mode");
   }
 
   async getSignOutUrl(): Promise<string | null> {

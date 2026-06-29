@@ -1,9 +1,10 @@
-import { and, db, desc, eq, gte, inArray, lte } from "@/lib/db";
+import { and, db, desc, eq, gte, inArray, lte, sql } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import type { LastExit } from "@/lib/types/deploy";
 import { TRPCError } from "@trpc/server";
 import {
   appRegionalSettings,
+  deploymentSteps,
   deployments,
   instances,
   openapiSpecs,
@@ -13,6 +14,7 @@ import { z } from "zod";
 import { type FlagCode, mapRegionToFlag } from "../network/utils";
 import {
   deploymentSelectFields,
+  fetchCurrentDeploymentOutsideWindow,
   mapInstanceRow,
   normalizeDeploymentRow,
 } from "./deployment-query-helpers";
@@ -50,12 +52,27 @@ export const listDeployments = workspaceProcedure
         return [];
       }
 
+      if (
+        input.appId !== undefined &&
+        input.startTime === undefined &&
+        input.endTime === undefined
+      ) {
+        const currentDeployment = await fetchCurrentDeploymentOutsideWindow(
+          ctx.workspace.id,
+          { projectId: input.projectId, appId: input.appId },
+          deploymentRows,
+        );
+        if (currentDeployment) {
+          deploymentRows.push(currentDeployment);
+        }
+      }
+
       const deploymentIds = deploymentRows.map((d) => d.id);
 
       const appIds = [...new Set(deploymentRows.map((d) => d.appId))];
       const environmentIds = [...new Set(deploymentRows.map((d) => d.environmentId))];
 
-      const [specRows, instanceRows, regionalSettingsRows] = await Promise.all([
+      const [specRows, instanceRows, regionalSettingsRows, stepTimingRows] = await Promise.all([
         db
           .select({ deploymentId: openapiSpecs.deploymentId })
           .from(openapiSpecs)
@@ -91,7 +108,30 @@ export const listDeployments = workspaceProcedure
               inArray(appRegionalSettings.environmentId, environmentIds),
             ),
           ),
+        // Build/deploy timing comes from deployment_steps, the only timestamps
+        // stop/wake never mutate. openSteps counts steps still running so we
+        // can tell an in-progress build (tick live) from a finished one.
+        db
+          .select({
+            deploymentId: deploymentSteps.deploymentId,
+            maxEndedAt: sql<number | null>`max(${deploymentSteps.endedAt})`,
+            openSteps: sql<number>`sum(case when ${deploymentSteps.endedAt} is null then 1 else 0 end)`,
+          })
+          .from(deploymentSteps)
+          .where(inArray(deploymentSteps.deploymentId, deploymentIds))
+          .groupBy(deploymentSteps.deploymentId),
       ]);
+
+      // buildEndedAt is the moment the pipeline finished: the latest step end,
+      // but null while any step is still open so the row ticks live instead of
+      // freezing a partial duration. Null when a deployment has no steps (old
+      // or prebuilt-image rows) — the row then shows no duration.
+      const buildEndedAtByDeployment = new Map<string, number | null>();
+      for (const row of stepTimingRows) {
+        const openSteps = Number(row.openSteps ?? 0);
+        const maxEndedAt = row.maxEndedAt == null ? null : Number(row.maxEndedAt);
+        buildEndedAtByDeployment.set(row.deploymentId, openSteps > 0 ? null : maxEndedAt);
+      }
 
       const specSet = new Set(specRows.map((s) => s.deploymentId));
       const instancesByDeployment = new Map<string, ReturnType<typeof mapInstanceRow>[]>();
@@ -175,6 +215,7 @@ export const listDeployments = workspaceProcedure
           appId,
           ...normalizeDeploymentRow(deployment),
           instances: instancesByDeployment.get(deployment.id) ?? [],
+          buildEndedAt: buildEndedAtByDeployment.get(deployment.id) ?? null,
           lastExit: lastExitByDeployment.get(deployment.id) ?? null,
           desiredInstanceCount: desired?.desiredInstanceCount ?? 0,
           desiredRegions: desired?.desiredRegions ?? [],

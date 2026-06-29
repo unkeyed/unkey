@@ -26,18 +26,19 @@ export const runtimeLogsRequestSchema = z.object({
   region: z.array(z.string()).nullable(),
   message: z.string().nullable(),
   k8sPodNames: z.array(z.string()),
-  cursorTime: z.int().nullable(),
+  // 1-based page for offset pagination. Defaults to 1 (offset 0).
+  page: z.number().int().min(1).default(1),
 });
 
 export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
 
-const runtimeLogsQueryParamsSchema = runtimeLogsRequestSchema.extend({
-  limit: z
-    .int()
-    .min(2)
-    .max(MAX_PAGE_SIZE + 1),
+const runtimeLogsCountParamsSchema = runtimeLogsRequestSchema.extend({
   partitionStartTime: z.int(),
   partitionEndTime: z.int(),
+});
+
+const runtimeLogsQueryParamsSchema = runtimeLogsCountParamsSchema.extend({
+  offset: z.int(),
 });
 
 export const runtimeLog = z.object({
@@ -65,8 +66,17 @@ const runtimeLogRow = z.object({
   attributes_text: z.string().nullable(),
 });
 
+// `includeTotal` gates the count(*) query. Offset pagination needs a total to
+// render page counts, but callers that only read a single page (e.g. the
+// deployment-detail view) should pass `false` to skip the extra ClickHouse
+// round-trip.
+type RuntimeLogsOptions = {
+  includeTotal?: boolean;
+};
+
 export function getRuntimeLogs(ch: Querier) {
-  return async (args: RuntimeLogsRequest) => {
+  return async (args: RuntimeLogsRequest, options?: RuntimeLogsOptions) => {
+    const includeTotal = options?.includeTotal ?? true;
     const wheres: string[] = [
       "workspace_id = {workspaceId: String}",
       "project_id = {projectId: String}",
@@ -99,15 +109,15 @@ export function getRuntimeLogs(ch: Querier) {
     if (args.k8sPodNames.length > 0) {
       wheres.push("k8s_pod_name IN {k8sPodNames: Array(String)}");
     }
-    if (args.cursorTime !== null) {
-      wheres.push("time < {cursorTime: Int64}");
-    }
 
     const filterConditions = wheres.join("\n          AND ");
 
-    // +1 to derive hasMore without a count(*).
     const pageSize = Math.min(Math.max(args.limit, 1), MAX_PAGE_SIZE);
-    const fetchLimit = pageSize + 1;
+    // Offset pagination. `page` is 1-based; page 1 maps to offset 0.
+    const offset = (args.page - 1) * pageSize;
+
+    const partitionStartTime = args.startTime - INGESTION_LAG_GRACE_MS;
+    const partitionEndTime = args.endTime + INGESTION_LAG_GRACE_MS;
 
     const logsQuery = ch.query({
       query: `
@@ -116,8 +126,10 @@ export function getRuntimeLogs(ch: Querier) {
           region, k8s_pod_name, attributes_text
         FROM ${TABLE}
         WHERE ${filterConditions}
-        ORDER BY time DESC, deployment_id DESC
+
+        ORDER BY time DESC, deployment_id DESC, k8s_pod_name DESC, message DESC
         LIMIT {limit: Int}
+        OFFSET {offset: Int}
         SETTINGS
           optimize_read_in_order = 1,
           optimize_move_to_prewhere = 1,
@@ -128,16 +140,41 @@ export function getRuntimeLogs(ch: Querier) {
 
     const rowsPromise = logsQuery({
       ...args,
-      limit: fetchLimit,
-      partitionStartTime: args.startTime - INGESTION_LAG_GRACE_MS,
-      partitionEndTime: args.endTime + INGESTION_LAG_GRACE_MS,
+      limit: pageSize,
+      offset,
+      partitionStartTime,
+      partitionEndTime,
     });
+
+    // Offset pagination needs a total to compute the page count, so callers that
+    // page (the default) count the filtered window. This is the count(*) the
+    // cursor-based design avoided; it's bounded by the same partition pruning and
+    // max_execution_time as the page query. Single-page callers pass
+    // includeTotal: false and skip the query entirely.
+    let totalResult: Promise<Result<number, QueryError>> = Promise.resolve(Ok(0));
+    if (includeTotal) {
+      const totalQuery = ch.query({
+        query: `
+        SELECT count(*) as total_count
+        FROM ${TABLE}
+        WHERE ${filterConditions}
+        SETTINGS
+          optimize_move_to_prewhere = 1,
+          max_execution_time = ${MAX_EXECUTION_TIME_SECONDS}`,
+        params: runtimeLogsCountParamsSchema,
+        schema: z.object({ total_count: z.int() }),
+      });
+      totalResult = totalQuery({ ...args, partitionStartTime, partitionEndTime }).then((res) =>
+        res.err ? Err(res.err) : Ok(res.val[0]?.total_count ?? 0),
+      );
+    }
 
     return {
       logsQuery: rowsPromise.then(
         (res): Result<RuntimeLog[], QueryError> =>
           res.err ? Err(res.err) : Ok(res.val.map(toRuntimeLog)),
       ),
+      totalQuery: totalResult,
     };
   };
 }

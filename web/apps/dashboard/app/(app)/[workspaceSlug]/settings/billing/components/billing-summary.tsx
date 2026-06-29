@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDollars } from "@/lib/fmt";
+import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -49,7 +50,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
               size="md"
               disabled={!isAdmin}
               onClick={() =>
-                router.push(`/${workspaceSlug}/settings/billing/stripe/checkout?intent=payment`)
+                router.push(routes.settings.stripe.checkout({ workspaceSlug, intent: "payment" }))
               }
             >
               Add payment method
@@ -103,7 +104,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
               // The portal route redirects to Stripe's hosted portal, leaving
               // the dashboard — open it in a new tab so this page stays put.
               window.open(
-                `/${workspaceSlug}/settings/billing/stripe/portal`,
+                routes.settings.stripe.portal({ workspaceSlug }),
                 "_blank",
                 "noopener,noreferrer",
               )

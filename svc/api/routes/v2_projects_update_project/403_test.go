@@ -52,7 +52,7 @@ func TestUpdateProjectForbidden(t *testing.T) {
 			}
 
 			newName := "Updated"
-			req := handler.Request{ProjectId: project.ID, Name: &newName}
+			req := handler.Request{Project: project.ID, Name: &newName}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if tc.shouldPass {

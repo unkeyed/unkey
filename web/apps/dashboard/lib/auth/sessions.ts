@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
 import { getAuthCookieOptions } from "./cookie-security";
 import { getCookie, getCookieOptionsAsString, setSessionCookie } from "./cookies";
 import { auth } from "./server";
-import { UNKEY_SESSION_COOKIE } from "./types";
+import { UNKEY_SESSION_COOKIE, type User } from "./types";
 
 type SessionResult = {
   session: {
@@ -14,6 +14,8 @@ type SessionResult = {
     accessToken?: string;
     permissions?: readonly string[];
     role: string | null;
+    // Profile embedded in the sealed session cookie, when available
+    user?: User | null;
     impersonator?: {
       email: string;
       reason?: string | null;
@@ -106,6 +108,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
             accessToken: sessionValidationResult.accessToken,
             permissions: sessionValidationResult.permissions,
             role: sessionValidationResult.role ?? null,
+            user: sessionValidationResult.user ?? null,
             impersonator: sessionValidationResult.impersonator,
           },
           headers,
@@ -161,6 +164,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
                 accessToken: refreshedSession.session?.accessToken,
                 permissions: refreshedSession.session?.permissions,
                 role: refreshedSession.session?.role ?? null,
+                user: refreshedSession.session?.user ?? null,
                 impersonator: refreshedSession.impersonator,
               },
               headers,

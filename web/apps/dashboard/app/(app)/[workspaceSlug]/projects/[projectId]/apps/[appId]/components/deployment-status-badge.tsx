@@ -2,8 +2,8 @@
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import {
   Ban,
+  BoltSlash,
   CircleCheck,
-  CircleHalfDottedClock,
   CircleWarning,
   CloudUp,
   Earth,
@@ -103,7 +103,7 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     iconColor: "text-warning-11",
   },
   stopped: {
-    icon: CircleHalfDottedClock,
+    icon: BoltSlash,
     label: "Stopped",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",

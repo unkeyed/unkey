@@ -106,7 +106,7 @@ export function DeploymentRow({
           <DeploymentDuration
             status={deployment.status}
             createdAt={deployment.createdAt}
-            updatedAt={deployment.updatedAt}
+            buildEndedAt={deployment.buildEndedAt}
           />
           {/* Same hide rule as the deployment-detail header — once a deploy
               has stabilized into ready/superseded the prior crash isn't

@@ -16,6 +16,7 @@ import (
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
@@ -119,6 +120,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			codes.Data.Api.NotFound.URN(),
 			"The specified API was not found.",
 		)
+	}
+
+	// Portal sessions are scoped to a single external identity. Force the
+	// externalId on the request so the created key is always owned by the
+	// session's identity, regardless of what the client sends.
+	switch src := principal.Source.(type) {
+	case authprincipal.PortalSessionSource:
+		if src.ExternalID == "" {
+			return fault.New("portal session missing identity",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("portal session externalId is empty"),
+				fault.Public("An internal error occurred."),
+			)
+		}
+		req.ExternalId = &src.ExternalID
 	}
 
 	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)

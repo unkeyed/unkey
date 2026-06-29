@@ -1,34 +1,11 @@
 "use client";
 
-import type {
-  EmailAuthResult,
-  PendingTurnstileResponse,
-  UserData,
-  VerificationResult,
-} from "@/lib/auth/types";
-import { AuthErrorCode } from "@/lib/auth/types";
-import {
-  resendAuthCode,
-  signUpViaEmail,
-  verifyAuthCode,
-  verifyEmail,
-  verifyTurnstileAndRetry,
-} from "../actions";
+import type { EmailAuthResult, UserData, VerificationResult } from "@/lib/auth/types";
+import { resendAuthCode, signUpViaEmail, verifyAuthCode, verifyEmail } from "../actions";
 import { useSignUpContext } from "../context/signup-context";
 
 export function useSignUp() {
   const { userData, updateUserData, clearUserData } = useSignUpContext();
-
-  const isPendingTurnstileChallenge = (
-    result: EmailAuthResult,
-  ): result is PendingTurnstileResponse => {
-    return (
-      !result.success &&
-      result.code === AuthErrorCode.RADAR_CHALLENGE_REQUIRED &&
-      "email" in result &&
-      "challengeParams" in result
-    );
-  };
 
   const handleSignUpViaEmail = async ({
     firstName,
@@ -38,27 +15,6 @@ export function useSignUp() {
     updateUserData({ email, firstName, lastName });
 
     const result = await signUpViaEmail({ email, firstName, lastName });
-    return result;
-  };
-
-  const handleTurnstileVerification = async (
-    turnstileToken: string,
-    challengeData: PendingTurnstileResponse,
-  ): Promise<EmailAuthResult> => {
-    // Validate userData exists and has required properties
-    if (!userData || !userData.firstName || !userData.lastName) {
-      throw new Error("User data is incomplete. First name and last name are required.");
-    }
-
-    const result = await verifyTurnstileAndRetry({
-      turnstileToken,
-      email: challengeData.email,
-      challengeParams: challengeData.challengeParams,
-      userData: {
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-      },
-    });
     return result;
   };
 
@@ -107,7 +63,5 @@ export function useSignUp() {
     handleEmailVerification,
     handleResendCode,
     handleSignUpViaEmail,
-    handleTurnstileVerification,
-    isPendingTurnstileChallenge,
   };
 }

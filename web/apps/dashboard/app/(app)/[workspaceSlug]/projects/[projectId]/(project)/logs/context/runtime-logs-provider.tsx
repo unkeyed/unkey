@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import type { RuntimeLog } from "../types";
 
 type RuntimeLogsContextType = {
@@ -8,6 +8,10 @@ type RuntimeLogsContextType = {
   setSelectedLog: (log: RuntimeLog | null) => void;
   isLive: boolean;
   toggleLive: (value?: boolean) => void;
+  // Bumped by the refresh control; the logs query watches this to re-anchor its
+  // window so a refresh surfaces logs that arrived since the last anchor.
+  refreshNonce: number;
+  refresh: () => void;
 };
 
 const RuntimeLogsContext = createContext<RuntimeLogsContextType | undefined>(undefined);
@@ -15,13 +19,20 @@ const RuntimeLogsContext = createContext<RuntimeLogsContextType | undefined>(und
 export function RuntimeLogsProvider({ children }: { children: React.ReactNode }) {
   const [selectedLog, setSelectedLog] = useState<RuntimeLog | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   const toggleLive = (value?: boolean) => {
     setIsLive((prev) => (typeof value !== "undefined" ? value : !prev));
   };
 
+  const refresh = useCallback(() => {
+    setRefreshNonce((prev) => prev + 1);
+  }, []);
+
   return (
-    <RuntimeLogsContext.Provider value={{ selectedLog, setSelectedLog, isLive, toggleLive }}>
+    <RuntimeLogsContext.Provider
+      value={{ selectedLog, setSelectedLog, isLive, toggleLive, refreshNonce, refresh }}
+    >
       {children}
     </RuntimeLogsContext.Provider>
   );
