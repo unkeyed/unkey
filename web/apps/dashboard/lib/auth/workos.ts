@@ -1265,8 +1265,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
-    const { provider, redirectUrlComplete } = options;
-    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete }));
+    const { provider, redirectUrlComplete, signalsId } = options;
+    // The browser-signal token is collected client-side before the redirect to
+    // the OAuth provider. There is no client touchpoint on the callback, so it
+    // rides through the OAuth `state` round-trip and is handed to
+    // `authenticateWithCode` in completeOAuthSignIn to link the attempt to Radar.
+    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete, signalsId }));
     const baseUrl = getBaseUrl();
     const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
@@ -1287,12 +1291,21 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
+      // `state` carries both the post-auth redirect target and the browser-signal
+      // token collected before the OAuth redirect (see signInViaOAuth). It is an
+      // attacker-influenceable callback query param, so parse it inside the try so
+      // a malformed value is routed through mapAuthError instead of throwing.
+      const parsedState: { redirectUrlComplete?: string; signalsId?: string } = state
+        ? JSON.parse(decodeURIComponent(state))
+        : {};
+
       const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
         clientId: this.clientId,
         code,
         ipAddress:
           callbackRequest.headers.get("x-forwarded-for")?.split(",")[0].trim() || undefined,
         userAgent: callbackRequest.headers.get("user-agent") || undefined,
+        signalsId: parsedState.signalsId,
         session: {
           sealSession: true,
           cookiePassword: this.cookiePassword,
@@ -1303,9 +1316,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("No sealed session returned");
       }
 
-      const redirectUrlComplete = state
-        ? JSON.parse(decodeURIComponent(state)).redirectUrlComplete
-        : "/apis";
+      const redirectUrlComplete = parsedState.redirectUrlComplete ?? "/apis";
 
       return {
         success: true,

@@ -447,6 +447,56 @@ describe("WorkOSAuthProvider", () => {
     });
   });
 
+  describe("OAuth", () => {
+    it("encodes the browser-signal token into the OAuth state round-trip", () => {
+      workos.userManagement.getAuthorizationUrl.mockReturnValue("https://workos.test/authorize");
+
+      provider.signInViaOAuth({
+        provider: "github",
+        redirectUrlComplete: "/apis",
+        signalsId: "signals_123",
+      });
+
+      const callArgs = workos.userManagement.getAuthorizationUrl.mock.calls[0][0];
+      expect(JSON.parse(decodeURIComponent(callArgs.state))).toEqual({
+        redirectUrlComplete: "/apis",
+        signalsId: "signals_123",
+      });
+    });
+
+    it("forwards the browser-signal token from state to authenticateWithCode", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      const state = encodeURIComponent(
+        JSON.stringify({ redirectUrlComplete: "/apis", signalsId: "signals_123" }),
+      );
+      const result = await provider.completeOAuthSignIn(
+        new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
+      );
+
+      expect(workos.userManagement.authenticateWithCode).toHaveBeenCalledWith(
+        expect.objectContaining({ code: "auth_code_1", signalsId: "signals_123" }),
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.redirectTo).toBe("/apis");
+      }
+    });
+
+    it("completes OAuth without a token when none was collected", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete: "/apis" }));
+      await provider.completeOAuthSignIn(
+        new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
+      );
+
+      expect(workos.userManagement.authenticateWithCode).toHaveBeenCalledWith(
+        expect.objectContaining({ code: "auth_code_1", signalsId: undefined }),
+      );
+    });
+  });
+
   describe("challenge completion", () => {
     it("completes an MFA challenge with authenticateWithTotp", async () => {
       workos.userManagement.authenticateWithTotp.mockResolvedValue({
