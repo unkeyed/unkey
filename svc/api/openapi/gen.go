@@ -1185,6 +1185,47 @@ type V2EnvironmentsListEnvironmentsResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2EnvironmentsSetEnvironmentVariablesRequestBody defines model for V2EnvironmentsSetEnvironmentVariablesRequestBody.
+type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Variables The desired set of variables. The key set is replaced wholesale: keys in
+	// this list are created or updated, unprotected keys absent from the list
+	// are removed, and delete-protected keys absent from the list are preserved.
+	// An empty array therefore removes every unprotected variable while leaving
+	// protected ones intact.
+	//
+	// For a key that already exists, omitted optional fields (`sensitive`,
+	// `description`, `deleteProtection`) keep their current values; only `value`
+	// is required on every entry. A new key uses the field defaults.
+	//
+	// Duplicate keys are allowed and collapse to the last occurrence. The whole
+	// operation is atomic: if any part fails the environment is left unchanged.
+	// All values are encrypted at rest. Limited to 100 variables per request.
+	Variables []EnvironmentVariableInput `json:"variables"`
+}
+
+// V2EnvironmentsSetEnvironmentVariablesResponseBody defines model for V2EnvironmentsSetEnvironmentVariablesResponseBody.
+type V2EnvironmentsSetEnvironmentVariablesResponseBody struct {
+	// Data The variables that were set, echoed back as metadata. Delete-protected
+	// variables preserved from a previous set are not included. Values are never
+	// returned.
+	Data []EnvironmentVariableMetadata `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2EnvironmentsUpdateSettingsRequestBody defines model for V2EnvironmentsUpdateSettingsRequestBody.
 type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -3028,6 +3069,9 @@ type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentReq
 
 // EnvironmentsListEnvironmentsJSONRequestBody defines body for EnvironmentsListEnvironments for application/json ContentType.
 type EnvironmentsListEnvironmentsJSONRequestBody = V2EnvironmentsListEnvironmentsRequestBody
+
+// EnvironmentsSetEnvironmentVariablesJSONRequestBody defines body for EnvironmentsSetEnvironmentVariables for application/json ContentType.
+type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvironmentVariablesRequestBody
 
 // EnvironmentsUpdateSettingsJSONRequestBody defines body for EnvironmentsUpdateSettings for application/json ContentType.
 type EnvironmentsUpdateSettingsJSONRequestBody = V2EnvironmentsUpdateSettingsRequestBody

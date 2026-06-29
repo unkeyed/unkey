@@ -1,0 +1,45 @@
+type: object
+description: A single environment variable to set.
+required:
+  - key
+  - value
+properties:
+  key:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    description: |
+      The variable name. Must be a POSIX shell name: letters, digits, and
+      underscores only, and must not start with a digit. Other names are
+      unreachable from shells and most runtimes.
+    example: DATABASE_URL
+  value:
+    type: string
+    minLength: 1
+    maxLength: 4096
+    description: The variable value. Always encrypted at rest.
+    example: postgresql://user:pass@host:5432/db
+  sensitive:
+    type: boolean
+    description: |
+      When true the value is write-only and can never be read back through the
+      API. When false it is recoverable and can be decrypted. Values are
+      encrypted at rest either way. Omit to keep the current setting when
+      updating an existing variable; defaults to false for a new variable.
+    example: false
+  description:
+    type: string
+    maxLength: 255
+    description: |
+      Human-readable description of the variable. Omit to keep the current
+      description when updating an existing variable.
+    example: Primary database connection string
+  deleteProtection:
+    type: boolean
+    description: |
+      When true this variable is never removed by a set operation, even if it
+      is absent from a later payload. Omit to keep the current setting when
+      updating an existing variable; defaults to false for a new variable.
+    example: false
+additionalProperties: false

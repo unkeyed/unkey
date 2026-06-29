@@ -1,0 +1,24 @@
+type: object
+description: Metadata for an environment variable. Never includes the value.
+required:
+  - key
+  - sensitive
+  - deleteProtection
+properties:
+  key:
+    type: string
+    description: The variable name.
+    example: DATABASE_URL
+  sensitive:
+    type: boolean
+    description: Whether the value is write-only (true) or recoverable (false).
+    example: false
+  description:
+    type: string
+    description: Human-readable description of the variable, if set.
+    example: Primary database connection string
+  deleteProtection:
+    type: boolean
+    description: Whether this variable is protected from deletion.
+    example: false
+additionalProperties: false

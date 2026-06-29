@@ -220,6 +220,8 @@ const (
 	ReadEnvironment ActionType = "read_environment"
 	// UpdateEnvironment permits updating a specific environment's settings
 	UpdateEnvironment ActionType = "update_environment"
+	// SetEnvironmentVariables permits replacing a specific environment's variables
+	SetEnvironmentVariables ActionType = "set_environment_variables"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

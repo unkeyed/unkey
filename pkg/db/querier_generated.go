@@ -305,6 +305,22 @@ type Querier interface {
 	//
 	//  DELETE FROM sentinels WHERE project_id = ?
 	DeleteSentinelsByProjectId(ctx context.Context, db DBTX, projectID string) error
+	// Deletes all unprotected variables for an environment, leaving
+	// delete-protected variables untouched. Used when the desired set is empty.
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE environment_id = ?
+	//    AND (delete_protection = false OR delete_protection IS NULL)
+	DeleteUnprotectedAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	// Deletes an environment's unprotected variables whose key is not in the
+	// provided set, reconciling toward the desired set while leaving
+	// delete-protected variables untouched.
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE environment_id = ?
+	//    AND (delete_protection = false OR delete_protection IS NULL)
+	//    AND `key` NOT IN (/*SLICE:env_keys*/?)
+	DeleteUnprotectedAppEnvVarsNotInKeys(ctx context.Context, db DBTX, arg DeleteUnprotectedAppEnvVarsNotInKeysParams) error
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -1517,8 +1533,14 @@ type Querier interface {
 	InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) error
 	//InsertAppEnvironmentVariable
 	//
-	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
-	//  VALUES (?, ?, ?, ?, ?, ?, ?)
+	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, delete_protection, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//    value = VALUES(value),
+	//    `type` = VALUES(`type`),
+	//    description = VALUES(description),
+	//    delete_protection = VALUES(delete_protection),
+	//    updated_at = VALUES(created_at)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
 	//InsertCertificate
 	//

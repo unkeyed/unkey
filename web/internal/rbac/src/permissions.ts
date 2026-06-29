@@ -82,7 +82,11 @@ export const projectActions = z.enum([
   "generate_upload_url",
 ]);
 export const appActions = z.enum(["read_app", "update_app", "delete_app"]);
-export const environmentActions = z.enum(["read_environment", "update_environment"]);
+export const environmentActions = z.enum([
+  "read_environment",
+  "update_environment",
+  "set_environment_variables",
+]);
 
 // Resources that require an ID (resource.id.action format)
 const scopedResources = {
