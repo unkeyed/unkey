@@ -14,7 +14,7 @@ import (
 func TestUpdateSettingsForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, QuotaCache: h.Caches.WorkspaceQuota}
 	h.Register(route)
 
 	env := seedEnvironment(t, h)
