@@ -38,6 +38,32 @@ func portalMiddleware(h *testutil.Harness) []zen.Middleware {
 	}
 }
 
+// setupPortalRoute builds a harness with the delete-key handler registered
+// behind the portal middleware stack, plus a freshly created API in the user
+// workspace. Every portal session test starts from this identical setup.
+func setupPortalRoute(t *testing.T) (*testutil.Harness, *handler.Handler, db.Workspace, db.Api) {
+	t.Helper()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
+	}
+	h.Register(route, portalMiddleware(h)...)
+
+	workspace := h.Resources().UserWorkspace
+
+	apiName := "Portal DeleteKey Test API"
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+		Name:        &apiName,
+	})
+
+	return h, route, workspace, api
+}
+
 // createPortalSession inserts a portal session row and returns a cookie header
 // suitable for use in CallRoute.
 func createPortalSession(
@@ -76,23 +102,8 @@ func createPortalSession(
 // TestPortalSessionDeleteOwnKey verifies a portal session can delete a key that
 // belongs to its own externalId identity.
 func TestPortalSessionDeleteOwnKey(t *testing.T) {
-	h := testutil.NewHarness(t)
 	ctx := context.Background()
-
-	route := &handler.Handler{
-		DB:        h.DB,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
-	}
-	h.Register(route, portalMiddleware(h)...)
-
-	workspace := h.Resources().UserWorkspace
-
-	apiName := "Portal DeleteKey Test API"
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-		Name:        &apiName,
-	})
+	h, route, workspace, api := setupPortalRoute(t)
 
 	externalID := "portal_user_A"
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -129,23 +140,8 @@ func TestPortalSessionDeleteOwnKey(t *testing.T) {
 // cannot delete a key belonging to a different externalId. The handler returns
 // 404 to avoid leaking the existence of keys the session does not own.
 func TestPortalSessionCannotDeleteOtherIdentityKey(t *testing.T) {
-	h := testutil.NewHarness(t)
 	ctx := context.Background()
-
-	route := &handler.Handler{
-		DB:        h.DB,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
-	}
-	h.Register(route, portalMiddleware(h)...)
-
-	workspace := h.Resources().UserWorkspace
-
-	apiName := "Portal DeleteKey Test API"
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-		Name:        &apiName,
-	})
+	h, route, workspace, api := setupPortalRoute(t)
 
 	// Key belongs to user B.
 	otherIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -185,23 +181,8 @@ func TestPortalSessionCannotDeleteOtherIdentityKey(t *testing.T) {
 // cannot delete a key that has no identity at all. Such a key can never belong
 // to the session's externalId, so it returns 404.
 func TestPortalSessionCannotDeleteKeyWithoutIdentity(t *testing.T) {
-	h := testutil.NewHarness(t)
 	ctx := context.Background()
-
-	route := &handler.Handler{
-		DB:        h.DB,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
-	}
-	h.Register(route, portalMiddleware(h)...)
-
-	workspace := h.Resources().UserWorkspace
-
-	apiName := "Portal DeleteKey Test API"
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-		Name:        &apiName,
-	})
+	h, route, workspace, api := setupPortalRoute(t)
 
 	keyName := "no-identity-key"
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
