@@ -40,7 +40,6 @@ go_library(
         "app_insert.sql_generated.go",
         "app_list_by_project.sql_generated.go",
         "app_list_ids_by_project.sql_generated.go",
-        "app_regional_settings_delete_by_app_env_region.sql_generated.go",
         "app_regional_settings_delete_by_environment.sql_generated.go",
         "app_regional_settings_delete_not_in_regions.sql_generated.go",
         "app_regional_settings_find_by_app_and_env.sql_generated.go",

@@ -67,13 +67,6 @@ type Querier interface {
 	//
 	//  DELETE FROM app_environment_variables WHERE environment_id = ?
 	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteAppRegionalSettingByAppEnvRegion
-	//
-	//  DELETE FROM app_regional_settings
-	//  WHERE app_id = ?
-	//    AND environment_id = ?
-	//    AND region_id = ?
-	DeleteAppRegionalSettingByAppEnvRegion(ctx context.Context, db DBTX, arg DeleteAppRegionalSettingByAppEnvRegionParams) error
 	//DeleteAppRegionalSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
