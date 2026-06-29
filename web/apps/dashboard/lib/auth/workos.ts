@@ -1290,13 +1290,15 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return this.handleError(new Error(AuthErrorCode.MISSING_REQUIRED_FIELDS));
     }
 
-    // `state` carries both the post-auth redirect target and the browser-signal
-    // token collected before the OAuth redirect (see signInViaOAuth).
-    const parsedState: { redirectUrlComplete?: string; signalsId?: string } = state
-      ? JSON.parse(decodeURIComponent(state))
-      : {};
-
     try {
+      // `state` carries both the post-auth redirect target and the browser-signal
+      // token collected before the OAuth redirect (see signInViaOAuth). It is an
+      // attacker-influenceable callback query param, so parse it inside the try so
+      // a malformed value is routed through mapAuthError instead of throwing.
+      const parsedState: { redirectUrlComplete?: string; signalsId?: string } = state
+        ? JSON.parse(decodeURIComponent(state))
+        : {};
+
       const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
         clientId: this.clientId,
         code,
