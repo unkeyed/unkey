@@ -37,6 +37,15 @@ const (
 // cpuThreshold is the fixed autoscaling CPU threshold; the API does not expose it.
 const cpuThreshold = 80
 
+// Replica bounds per region. These are a beta-wide cap enforced in code rather
+// than the OpenAPI spec so they can move to a per-workspace quota later without
+// a spec/codegen change. The quota table already gates cpu/memory/storage the
+// same way; replicas have no quota column yet.
+const (
+	minReplicasPerRegion = 1
+	maxReplicasPerRegion = 4
+)
+
 type Handler struct {
 	DB        db.Database
 	Auditlogs auditlogs.AuditLogService
@@ -409,6 +418,10 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' is listed more than once.", r.Name))
 		}
 		seen[key] = struct{}{}
+
+		if rmin < minReplicasPerRegion || rmax > maxReplicasPerRegion {
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' replicas must be between %d and %d.", r.Name, minReplicasPerRegion, maxReplicasPerRegion))
+		}
 
 		if rmin > rmax {
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' min replicas cannot exceed max replicas.", r.Name))
