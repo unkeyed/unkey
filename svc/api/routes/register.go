@@ -715,8 +715,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2EnvironmentsUpdateSettings.Handler{
-			DB:        svc.Database,
-			Auditlogs: svc.Auditlogs,
+			DB:         svc.Database,
+			Auditlogs:  svc.Auditlogs,
+			QuotaCache: svc.Caches.WorkspaceQuota,
 		},
 	)
 
