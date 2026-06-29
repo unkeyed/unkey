@@ -78,24 +78,6 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
   ];
 }
 
-export function buildAuthorizationLinks(slug: string, segments: string[]): ResolvedNavLink[] {
-  const page = segments[1];
-  return [
-    {
-      key: "roles",
-      label: "Roles",
-      href: `/${slug}/authorization/roles`,
-      isActive: page === "roles",
-    },
-    {
-      key: "permissions",
-      label: "Permissions",
-      href: `/${slug}/authorization/permissions`,
-      isActive: page === "permissions",
-    },
-  ];
-}
-
 export function buildProjectLinks(
   slug: string,
   projectId: string,

@@ -12,7 +12,7 @@
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
-    "@workos-inc/node": "10.2.0",
+    "@workos-inc/node": "10.5.0",
     "base-x": "4.0.1",
     "mysql2": "catalog:",
     "stripe": "14.23.0",
