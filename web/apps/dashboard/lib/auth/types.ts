@@ -236,6 +236,27 @@ export interface UpdateOrgParams {
 export interface UpdateMembershipParams {
   membershipId: string;
   role: string;
+  /**
+   * The organization the caller is scoped to. The provider asserts the target
+   * membership belongs to this organization before mutating it, preventing
+   * cross-tenant access via a guessed membership ID.
+   */
+  orgId: string;
+}
+
+/**
+ * Thrown when a membership or invitation targeted by a mutation does not belong
+ * to the caller's organization. Routers map this to a NOT_FOUND response so the
+ * existence of other organizations' resources is never confirmed.
+ */
+export class OrganizationScopeError extends Error {
+  constructor(
+    public readonly resource: "membership" | "invitation",
+    public readonly resourceId: string,
+  ) {
+    super(`${resource} ${resourceId} does not belong to this organization`);
+    this.name = "OrganizationScopeError";
+  }
 }
 
 export interface OrgInviteParams {
