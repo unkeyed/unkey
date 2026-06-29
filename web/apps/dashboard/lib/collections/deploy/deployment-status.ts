@@ -23,6 +23,7 @@ const TERMINAL_DEPLOYMENT_STATUSES = new Set<DeploymentStatus>([
   "ready",
   "failed",
   "skipped",
+  "awaiting_approval",
   "stopped",
   "superseded",
   "cancelled",
