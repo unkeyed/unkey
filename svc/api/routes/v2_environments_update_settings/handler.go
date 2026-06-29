@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
@@ -39,8 +42,9 @@ const (
 )
 
 type Handler struct {
-	DB        db.Database
-	Auditlogs auditlogs.AuditLogService
+	DB         db.Database
+	Auditlogs  auditlogs.AuditLogService
+	QuotaCache cache.Cache[string, keysdb.Quotas]
 }
 
 func (h *Handler) Method() string {
@@ -338,21 +342,24 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 }
 
 func (h *Handler) validateResourceQuota(ctx context.Context, workspaceID string, req Request) error {
-	quota, err := db.Query.FindQuotaByWorkspaceID(ctx, h.DB.RO(), workspaceID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New(
-				"workspace quota not found",
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("workspace has no quota row"),
-				fault.Public("Resource limits are not configured for this workspace. Contact support@unkey.com."),
-			)
-		}
+	quota, hit, err := h.QuotaCache.SWR(ctx, workspaceID, func(ctx context.Context) (keysdb.Quotas, error) {
+		return keysdb.Query.FindQuotaByWorkspaceID(ctx, h.DB.RO(), workspaceID)
+	}, caches.DefaultFindFirstOp)
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to validate resource limits."),
+		)
+	}
+
+	if db.IsNotFound(err) || hit == cache.Null {
+		return fault.New(
+			"workspace quota not found",
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("workspace has no quota row"),
+			fault.Public("Resource limits are not configured for this workspace. Contact support@unkey.com."),
 		)
 	}
 
