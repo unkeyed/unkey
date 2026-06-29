@@ -11,22 +11,19 @@ type RadarSignals = {
    * block a sign-in attempt.
    */
   getToken: () => Promise<string | undefined>;
-  /** True once a real token is available; always true in the no-op case. */
-  tokenReady: boolean;
 };
 
 // Default value used when Radar is not mounted (local / non-WorkOS). Consumers
 // can therefore call useRadarSignals() unconditionally without a provider.
 const RadarSignalsContext = createContext<RadarSignals>({
   getToken: async () => undefined,
-  tokenReady: true,
 });
 
 // Republishes WorkOS's useRadarToken through our own context so the rest of the
 // auth flow has a single, always-available hook regardless of whether Radar is
 // mounted. Must live inside RadarSignalsProvider.
 function RadarSignalsBridge({ children }: { children: ReactNode }) {
-  const { getToken, tokenReady } = useRadarToken();
+  const { getToken } = useRadarToken();
 
   const safeGetToken = useCallback(async () => {
     try {
@@ -37,10 +34,7 @@ function RadarSignalsBridge({ children }: { children: ReactNode }) {
     }
   }, [getToken]);
 
-  const value = useMemo<RadarSignals>(
-    () => ({ getToken: safeGetToken, tokenReady }),
-    [safeGetToken, tokenReady],
-  );
+  const value = useMemo<RadarSignals>(() => ({ getToken: safeGetToken }), [safeGetToken]);
 
   return <RadarSignalsContext.Provider value={value}>{children}</RadarSignalsContext.Provider>;
 }
