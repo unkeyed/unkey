@@ -74,7 +74,7 @@ func TestUpdateSettings400(t *testing.T) {
 			regionSetting("r4", 1, 2), regionSetting("r5", 1, 2), regionSetting("r6", 1, 2),
 		})}},
 
-		// Region replica bounds (spec).
+		// Region replica bounds (handler).
 		{name: "replicas max above limit", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 1, 5)})}},
 		{name: "replicas min below one", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 0, 2)})}},
 		{name: "empty regions list", req: handler.Request{Regions: ptr([]openapi.RegionSetting{})}},

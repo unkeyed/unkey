@@ -3619,15 +3619,15 @@ components:
                     properties:
                         min:
                             type: integer
-                            minimum: 1
-                            maximum: 4
-                            description: Minimum replicas (1-4).
+                            description: |
+                                Minimum replicas. Bounds are enforced server-side and vary by
+                                workspace; requests outside the allowed range return 400.
                             example: 1
                         max:
                             type: integer
-                            minimum: 1
-                            maximum: 4
-                            description: Maximum replicas (1-4), must be >= min.
+                            description: |
+                                Maximum replicas, must be >= min. Bounds are enforced server-side
+                                and vary by workspace; requests outside the allowed range return 400.
                             example: 3
                     required:
                         - min
