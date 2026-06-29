@@ -1222,10 +1222,6 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	CpuMillicores *int `json:"cpuMillicores,omitempty"`
 
-	// DockerContext Build context directory.
-	// Omit to leave unchanged.
-	DockerContext *string `json:"dockerContext,omitempty"`
-
 	// Dockerfile Path to the Dockerfile used for builds.
 	// Omit to leave unchanged; set null to clear and fall back to Railpack.
 	Dockerfile nullable.Nullable[string] `json:"dockerfile,omitempty"`
@@ -1260,6 +1256,11 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// (regions absent from the list are removed). At least one region is required;
 	// an empty list is rejected because an environment cannot have zero regions.
 	Regions *[]RegionSetting `json:"regions,omitempty"`
+
+	// RootDirectory The directory your app lives in. Unkey builds from here.
+	// Use "." for the repository root, or set a subdirectory when your app
+	// is nested (e.g., services/api). Omit to leave unchanged.
+	RootDirectory *string `json:"rootDirectory,omitempty"`
 
 	// ShutdownSignal Signal sent to the container on shutdown.
 	// Omit to leave unchanged.

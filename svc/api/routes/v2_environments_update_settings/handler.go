@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	hasBuild := req.Dockerfile.IsSpecified() || req.DockerContext != nil ||
+	hasBuild := req.Dockerfile.IsSpecified() || req.RootDirectory != nil ||
 		req.WatchPaths != nil || req.AutoDeploy != nil
 	hasRuntime := req.Port != nil || req.CpuMillicores != nil || req.MemoryMib != nil ||
 		req.StorageMib != nil || req.Command != nil || req.Healthcheck.IsSpecified() ||
@@ -232,9 +232,9 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 			params.Dockerfile = sql.NullString{Valid: true, String: req.Dockerfile.MustGet()}
 		}
 	}
-	if req.DockerContext != nil {
+	if req.RootDirectory != nil {
 		params.DockerContextSpecified = 1
-		params.DockerContext = *req.DockerContext
+		params.DockerContext = *req.RootDirectory
 	}
 	if req.WatchPaths != nil {
 		params.WatchPathsSpecified = 1

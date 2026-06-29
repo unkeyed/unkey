@@ -40,7 +40,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:           env.appID,
 			Environment:   env.environmentID,
 			Dockerfile:    nullable.NewNullableWithValue("Dockerfile.prod"),
-			DockerContext: ptr("./app"),
+			RootDirectory: ptr("./app"),
 			WatchPaths:    ptr([]string{"src/**"}),
 			AutoDeploy:    ptr(false),
 		})

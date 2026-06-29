@@ -52,10 +52,10 @@ func TestUpdateSettings400(t *testing.T) {
 		{name: "memory off step", req: handler.Request{MemoryMib: ptr(1000)}},
 		{name: "storage off step", req: handler.Request{StorageMib: ptr(1000)}},
 
-		// Path patterns (spec). dockerfile/dockerContext are unconstrained strings;
+		// Path patterns (spec). dockerfile/rootDirectory are unconstrained strings;
 		// only openapiSpecPath and the healthcheck path are guarded.
 		{name: "dockerfile empty", req: handler.Request{Dockerfile: nullable.NewNullableWithValue("")}},
-		{name: "dockerContext empty", req: handler.Request{DockerContext: ptr("")}},
+		{name: "rootDirectory empty", req: handler.Request{RootDirectory: ptr("")}},
 		{name: "openapiSpecPath no slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("openapi.yaml")}},
 		{name: "openapiSpecPath space", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/open api.yaml")}},
 		{name: "openapiSpecPath traversal", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/../openapi.yaml")}},
