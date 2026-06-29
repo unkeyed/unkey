@@ -337,8 +337,6 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 	return nil
 }
 
-// validateResourceQuota rejects cpu/memory/storage requests that exceed the
-// workspace's per-instance quota, mirroring the dashboard.
 func (h *Handler) validateResourceQuota(ctx context.Context, workspaceID string, req Request) error {
 	quota, err := db.Query.FindQuotaByWorkspaceID(ctx, h.DB.RO(), workspaceID)
 	if err != nil {
@@ -432,7 +430,7 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 			return nil, invalidRegion(fmt.Sprintf("Region '%s' is not available for scheduling.", r.Name))
 		}
 
-		// applyRegions writes one shared policy from desired[0], so per-region
+		// applyRegions writes one env-level policy from desired[0], so per-region
 		// bounds must match. Infra supports per-region; this is a product choice
 		// mirroring the dashboard's single env-level replica range.
 		if len(resolved) > 0 && (rmin != resolved[0].min || rmax != resolved[0].max) {
@@ -450,8 +448,12 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 }
 
 // applyRegions reconciles the desired region set: reuse or create the env's
-// shared autoscaling policy, point every desired region at it with replicas =
-// max, and delete rows for regions no longer desired. The policy is never deleted.
+// autoscaling policy, point every desired region at it with replicas = max, and
+// delete rows for regions no longer desired. The policy is never deleted.
+//
+// Invariant: one autoscaling policy per environment, shared by all of its
+// regional rows. Per-region autoscaling is not exposed (resolveRegions rejects
+// mismatched bounds), so the env has a single replica range.
 func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, appID, environmentID string, desired []resolvedRegion, now int64) error {
 	current, err := db.Query.ListAppRegionalSettingsByAppEnv(ctx, tx, db.ListAppRegionalSettingsByAppEnvParams{
 		AppID:         appID,
@@ -466,12 +468,12 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 		)
 	}
 
-	sharedPolicyID := existingPolicyID(current)
+	envPolicyID := existingPolicyID(current)
 
 	if len(desired) > 0 {
 		minReplicas, maxReplicas := desired[0].min, desired[0].max
 
-		sharedPolicyID, err = h.ensureSharedPolicy(ctx, tx, workspaceID, sharedPolicyID, minReplicas, maxReplicas, now)
+		envPolicyID, err = h.ensureEnvAutoscalingPolicy(ctx, tx, workspaceID, envPolicyID, minReplicas, maxReplicas, now)
 		if err != nil {
 			return wrapRegionWriteErr(err)
 		}
@@ -483,7 +485,7 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 				EnvironmentID:                 environmentID,
 				RegionID:                      d.regionID,
 				Replicas:                      maxReplicas,
-				HorizontalAutoscalingPolicyID: sql.NullString{Valid: true, String: sharedPolicyID},
+				HorizontalAutoscalingPolicyID: sql.NullString{Valid: true, String: envPolicyID},
 				CreatedAt:                     now,
 				UpdatedAt:                     sql.NullInt64{Valid: true, Int64: now},
 			}); err != nil {
@@ -497,7 +499,7 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 		desiredByRegion[d.regionID] = struct{}{}
 	}
 
-	// Remove rows for regions no longer desired. The shared policy is left in place.
+	// Remove rows for regions no longer desired. The env policy is left in place.
 	for _, row := range current {
 		if _, ok := desiredByRegion[row.RegionID]; ok {
 			continue
@@ -514,8 +516,9 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 	return nil
 }
 
-// existingPolicyID returns the shared autoscaling policy id from the current
-// regional rows, or "" if none reference one.
+// existingPolicyID returns the env's autoscaling policy id from the current
+// regional rows, or "" if none reference one. Rows are assumed to share one
+// policy; the first non-null id wins and reconciliation re-points the rest.
 func existingPolicyID(current []db.ListAppRegionalSettingsByAppEnvRow) string {
 	for _, row := range current {
 		if row.HorizontalAutoscalingPolicyID.Valid {
@@ -525,9 +528,9 @@ func existingPolicyID(current []db.ListAppRegionalSettingsByAppEnvRow) string {
 	return ""
 }
 
-// ensureSharedPolicy updates the policy at policyID to the given bounds, or
-// creates one when policyID is empty, returning the id to point regional rows at.
-func (h *Handler) ensureSharedPolicy(ctx context.Context, tx db.DBTX, workspaceID, policyID string, minReplicas, maxReplicas int32, now int64) (string, error) {
+// ensureEnvAutoscalingPolicy updates the policy at policyID to the given bounds,
+// or creates one when policyID is empty, returning the id to point regional rows at.
+func (h *Handler) ensureEnvAutoscalingPolicy(ctx context.Context, tx db.DBTX, workspaceID, policyID string, minReplicas, maxReplicas int32, now int64) (string, error) {
 	if policyID != "" {
 		return policyID, db.Query.UpdateHorizontalAutoscalingPolicy(ctx, tx, db.UpdateHorizontalAutoscalingPolicyParams{
 			ID:          policyID,
