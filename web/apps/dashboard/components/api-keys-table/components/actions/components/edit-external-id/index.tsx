@@ -2,7 +2,7 @@ import { ExternalIdField } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_compo
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { Button, ConfirmPopover, DialogContainer } from "@unkey/ui";
-import { type JSX, useRef, useState } from "react";
+import { type JSX, useEffect, useRef, useState } from "react";
 import { useEditExternalId } from "../hooks/use-edit-external-id";
 import { KeyInfo } from "../key-info";
 
@@ -24,6 +24,23 @@ export const EditExternalId = ({
   const [selectedExternalId, setSelectedExternalId] = useState<string | null>(null);
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
+
+  // The dialog can stay mounted across opens, so re-sync the baseline from
+  // keyDetails each time it transitions from closed to open. Without this, the
+  // baseline keeps the value from the first mount and submitting compares
+  // against a stale identity. We only reset on the open transition (not on every
+  // keyDetails change) so a background keys-list refetch while the dialog is open
+  // can't overwrite the user's in-progress selection.
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      setOriginalIdentityId(keyDetails.identity_id || null);
+      setSelectedIdentityId(keyDetails.identity_id || null);
+      setSelectedExternalId(null);
+      setIsConfirmPopoverOpen(false);
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, keyDetails.identity_id]);
 
   const updateKeyOwner = useEditExternalId(() => {
     setOriginalIdentityId(selectedIdentityId);
