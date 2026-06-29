@@ -21,13 +21,14 @@ properties:
       Path to the Dockerfile used for builds.
       Omit to leave unchanged; set null to clear and fall back to Railpack.
     example: ./Dockerfile
-  dockerContext:
+  rootDirectory:
     type: string
     minLength: 1
     maxLength: 500
     description: |
-      Build context directory.
-      Omit to leave unchanged.
+      The directory your app lives in. Unkey builds from here.
+      Use "." for the repository root, or set a subdirectory when your app
+      is nested (e.g., services/api). Omit to leave unchanged.
     example: .
   watchPaths:
     type: array
