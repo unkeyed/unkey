@@ -43,8 +43,8 @@ import (
 // namespace, owned by the ReplicaSet, that permits ingress only from
 // frontline pods on the deployment's container port. Pods run with gVisor
 // isolation (RuntimeClass "gvisor") since they execute untrusted user code,
-// and are scheduled on Karpenter-managed untrusted nodes with zone-spread
-// constraints.
+// and are scheduled on Karpenter-managed untrusted nodes with node- and
+// zone-spread constraints so replicas don't stack on a single node.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
 	logger.Info("applying deployment",
@@ -281,9 +281,9 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		RestartPolicy:                corev1.RestartPolicyAlways,
 		AutomountServiceAccountToken: ptr.P(false),
 		EnableServiceLinks:           ptr.P(false),
+		NodeSelector:                 map[string]string{nodeClassLabelKey: CustomerNodeClass},
 		Tolerations:                  []corev1.Toleration{untrustedToleration},
 		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId()),
-		Affinity:                     deploymentAffinity(req.GetEnvironmentId()),
 		Containers:                   []corev1.Container{container},
 	}
 

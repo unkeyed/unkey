@@ -15,6 +15,10 @@ const (
 	// workloads. Nodes in this pool have additional isolation and monitoring.
 	CustomerNodeClass = "untrusted"
 
+	// nodeClassLabelKey selects and tolerates the infra node class assigned by
+	// the Karpenter NodePool.
+	nodeClassLabelKey = "node-class"
+
 	// resourceRequestFraction is the fraction of limits used for resource requests.
 	// Requests determine scheduling; limits cap actual usage.
 	resourceRequestFraction = 2 // requests = limits / N
@@ -41,9 +45,7 @@ const (
 	// so only pods inside the frontline namespace can reach the customer
 	// pods. We trust the namespace boundary instead of additionally
 	// matching an "app" label because the prod helm chart and the dev
-	// manifest disagree on label conventions; matching by namespace alone
-	// is also the approach the cluster-wide allow-frontline-to-sentinel
-	// policy in infra/eks-cluster/helm-chart/networking already uses.
+	// manifest disagree on label conventions.
 	frontlineNamespace = "frontline"
 )
 
@@ -51,7 +53,7 @@ const (
 // for untrusted workloads. Without this toleration, pods would be rejected by
 // the Karpenter-managed nodepool's NoSchedule taint.
 var untrustedToleration = corev1.Toleration{
-	Key:      "karpenter.sh/nodepool",
+	Key:      nodeClassLabelKey,
 	Operator: corev1.TolerationOpEqual,
 	Value:    CustomerNodeClass,
 	Effect:   corev1.TaintEffectNoSchedule,

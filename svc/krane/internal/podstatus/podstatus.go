@@ -1,7 +1,6 @@
 // Package podstatus provides small helpers for inspecting a pod's
-// ContainersReady condition from krane's watch loops. Both the deployment
-// and sentinel controllers use them to emit the same lag metric and log
-// fields.
+// ContainersReady condition from krane's watch loops. The deployment
+// controller uses them to emit the lag metric and log fields.
 package podstatus
 
 import (
@@ -26,7 +25,7 @@ import (
 // skipped entirely for the same reason: the LastTransitionTime on a
 // deleted pod is historical.
 type LagRecorder struct {
-	// component labels the metric ("deployment" or "sentinel").
+	// component labels the metric (e.g. "deployment").
 	component string
 
 	// observed caches (pod UID -> last recorded LastTransitionTime) so we
