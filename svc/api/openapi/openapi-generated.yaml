@@ -3607,15 +3607,6 @@ components:
             type: object
             description: Desired replica bounds for a single region.
             properties:
-                platform:
-                    type: string
-                    minLength: 1
-                    maxLength: 64
-                    default: aws
-                    description: |
-                        Cloud platform the region belongs to (e.g. aws, gcp).
-                        Region names are unique only per platform; omit to default to aws.
-                    example: aws
                 name:
                     type: string
                     minLength: 1

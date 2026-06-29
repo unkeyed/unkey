@@ -98,8 +98,7 @@ func ptr[T any](v T) *T {
 
 func regionSetting(name string, minReplicas, maxReplicas int) openapi.RegionSetting {
 	return openapi.RegionSetting{
-		Name:     name,
-		Platform: ptr("aws"),
+		Name: name,
 		Replicas: struct {
 			Max int `json:"max"`
 			Min int `json:"min"`
