@@ -26,14 +26,6 @@ type (
 
 const platform = "aws"
 
-// Per-instance resource ceilings applied when a workspace has no quota row.
-// These mirror the dashboard fallbacks and the quota column defaults.
-const (
-	defaultMaxCPUMillicores = 2000
-	defaultMaxMemoryMib     = 4096
-	defaultMaxStorageMib    = 10240
-)
-
 // cpuThreshold is the fixed autoscaling CPU threshold; the API does not expose it.
 const cpuThreshold = 80
 
@@ -348,25 +340,27 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 // validateResourceQuota rejects cpu/memory/storage requests that exceed the
 // workspace's per-instance quota, mirroring the dashboard.
 func (h *Handler) validateResourceQuota(ctx context.Context, workspaceID string, req Request) error {
-	maxCPU := uint32(defaultMaxCPUMillicores)
-	maxMemory := uint32(defaultMaxMemoryMib)
-	maxStorage := uint32(defaultMaxStorageMib)
-
 	quota, err := db.Query.FindQuotaByWorkspaceID(ctx, h.DB.RO(), workspaceID)
 	if err != nil {
-		if !db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
+		if db.IsNotFound(err) {
+			return fault.New(
+				"workspace quota not found",
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to validate resource limits."),
+				fault.Internal("workspace has no quota row"),
+				fault.Public("Resource limits are not configured for this workspace. Contact support@unkey.com."),
 			)
 		}
-	} else {
-		maxCPU = quota.MaxCpuMillicoresPerInstance
-		maxMemory = quota.MaxMemoryMibPerInstance
-		maxStorage = quota.MaxStorageMibPerInstance
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to validate resource limits."),
+		)
 	}
+
+	maxCPU := quota.MaxCpuMillicoresPerInstance
+	maxMemory := quota.MaxMemoryMibPerInstance
+	maxStorage := quota.MaxStorageMibPerInstance
 
 	if req.CpuMillicores != nil && *req.CpuMillicores > int(maxCPU) {
 		return quotaExceeded(fmt.Sprintf("CPU per instance cannot exceed %d millicores. Contact support@unkey.com to increase it.", maxCPU))
