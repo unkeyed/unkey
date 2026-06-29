@@ -59,6 +59,18 @@ type config struct {
 	// circuit trips and opens
 	tripThreshold int
 
+	// failureRatio, when > 0, switches tripping from an absolute count to a
+	// rate: the circuit opens once failures/requests within the cyclic period
+	// reaches this fraction, but only after at least minRequests requests so a
+	// tiny sample can't trip it. This is robust to traffic volume — a brief
+	// sub-1% blip never trips, while a real outage (most requests failing)
+	// trips fast regardless of throughput. When 0, tripThreshold is used.
+	failureRatio float64
+
+	// minRequests is the minimum number of requests within the cyclic period
+	// before failureRatio is evaluated. Ignored when failureRatio is 0.
+	minRequests int
+
 	// Clock to use for timing, defaults to the system clock but can be overridden for testing
 	clock clock.Clock
 }
@@ -98,6 +110,24 @@ func WithTripThreshold(tripThreshold int) applyConfig {
 	}
 }
 
+// WithFailureRatio switches tripping from an absolute failure count to a
+// failure rate. The circuit opens once failures/requests within the cyclic
+// period reaches ratio (0..1], but only after at least minRequests requests so
+// a small sample can't trip it. Prefer this for high-throughput call sites
+// where a fixed count is either trivially exceeded by harmless blips or never
+// reached during a low-traffic outage. ratio <= 0 disables it (falls back to
+// WithTripThreshold). A ratio above 1 is clamped to 1 (requires 100% failures)
+// so a typo can't silently produce a breaker that never trips on rate.
+func WithFailureRatio(ratio float64, minRequests int) applyConfig {
+	return func(c *config) {
+		if ratio > 1 {
+			ratio = 1
+		}
+		c.failureRatio = ratio
+		c.minRequests = minRequests
+	}
+}
+
 // WithTimeout sets how long the circuit remains [Open] before transitioning
 // to [HalfOpen] to probe for recovery. Defaults to 1 minute.
 func WithTimeout(timeout time.Duration) applyConfig {
@@ -131,6 +161,8 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 			return err != nil
 		},
 		tripThreshold: 5,
+		failureRatio:  0,
+		minRequests:   0,
 		clock:         clock.New(),
 	}
 
@@ -236,7 +268,7 @@ func (cb *CB[Res]) postflight(_ context.Context, err error) {
 	switch cb.state {
 
 	case Closed:
-		if cb.failures >= cb.config.tripThreshold {
+		if cb.shouldTrip() {
 			cb.state = Open
 		}
 
@@ -246,4 +278,17 @@ func (cb *CB[Res]) postflight(_ context.Context, err error) {
 		}
 	}
 
+}
+
+// shouldTrip reports whether the accumulated counts in the current cyclic
+// period warrant opening the circuit. Rate-based when failureRatio is set,
+// otherwise the legacy absolute count. Caller must hold the lock.
+func (cb *CB[Res]) shouldTrip() bool {
+	if cb.config.failureRatio > 0 {
+		if cb.requests < cb.config.minRequests {
+			return false
+		}
+		return float64(cb.failures)/float64(cb.requests) >= cb.config.failureRatio
+	}
+	return cb.failures >= cb.config.tripThreshold
 }

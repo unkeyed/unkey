@@ -14,6 +14,7 @@ import { z } from "zod";
 import { type FlagCode, mapRegionToFlag } from "../network/utils";
 import {
   deploymentSelectFields,
+  fetchCurrentDeploymentOutsideWindow,
   mapInstanceRow,
   normalizeDeploymentRow,
 } from "./deployment-query-helpers";
@@ -49,6 +50,21 @@ export const listDeployments = workspaceProcedure
 
       if (deploymentRows.length === 0) {
         return [];
+      }
+
+      if (
+        input.appId !== undefined &&
+        input.startTime === undefined &&
+        input.endTime === undefined
+      ) {
+        const currentDeployment = await fetchCurrentDeploymentOutsideWindow(
+          ctx.workspace.id,
+          { projectId: input.projectId, appId: input.appId },
+          deploymentRows,
+        );
+        if (currentDeployment) {
+          deploymentRows.push(currentDeployment);
+        }
       }
 
       const deploymentIds = deploymentRows.map((d) => d.id);
