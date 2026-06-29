@@ -24,6 +24,8 @@ type (
 	Response = openapi.V2EnvironmentsUpdateSettingsResponseBody
 )
 
+const platform = "aws"
+
 // Per-instance resource ceilings applied when a workspace has no quota row.
 // These mirror the dashboard fallbacks and the quota column defaults.
 const (
@@ -400,15 +402,11 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 	resolved := make([]resolvedRegion, 0, len(regions))
 
 	for _, r := range regions {
-		platform := "aws"
-		if r.Platform != nil {
-			platform = *r.Platform
-		}
 		key := platform + "/" + r.Name
 		rmin, rmax := int32(r.Replicas.Min), int32(r.Replicas.Max)
 
 		if _, dup := seen[key]; dup {
-			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' is listed more than once.", r.Name, platform))
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' is listed more than once.", r.Name))
 		}
 		seen[key] = struct{}{}
 
@@ -418,13 +416,13 @@ func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSe
 
 		region, ok := byKey[key]
 		if !ok {
-			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' does not exist.", r.Name, platform))
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' does not exist.", r.Name))
 		}
 
 		// The deploy worker silently skips regions with can_schedule=false, so
 		// reject them here rather than store a set that never schedules.
 		if !region.CanSchedule {
-			return nil, invalidRegion(fmt.Sprintf("Region '%s' on platform '%s' is not available for scheduling.", r.Name, platform))
+			return nil, invalidRegion(fmt.Sprintf("Region '%s' is not available for scheduling.", r.Name))
 		}
 
 		// applyRegions writes one shared policy from desired[0], so per-region
