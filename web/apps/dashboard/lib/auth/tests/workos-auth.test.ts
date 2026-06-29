@@ -253,6 +253,13 @@ describe("WorkOSAuthProvider", () => {
           radarAuthAttemptId: "radar_attempt_1",
         }),
       );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const names = result.cookies.map((cookie) => cookie.name);
+        expect(names).toContain(UNKEY_SESSION_COOKIE);
+        expect(names).toContain(AUTH_CHALLENGE_COOKIE);
+        expect(names).toContain(RADAR_ATTEMPT_COOKIE);
+      }
     });
 
     it("forwards the browser-signal token to authenticateWithMagicAuth", async () => {
@@ -269,13 +276,6 @@ describe("WorkOSAuthProvider", () => {
       expect(workos.userManagement.authenticateWithMagicAuth).toHaveBeenCalledWith(
         expect.objectContaining({ signalsId: "signals_123" }),
       );
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const names = result.cookies.map((cookie) => cookie.name);
-        expect(names).toContain(UNKEY_SESSION_COOKIE);
-        expect(names).toContain(AUTH_CHALLENGE_COOKIE);
-        expect(names).toContain(RADAR_ATTEMPT_COOKIE);
-      }
     });
 
     it("maps a radar_email_challenge error to a pending challenge response", async () => {

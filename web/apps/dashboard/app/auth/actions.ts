@@ -263,10 +263,7 @@ export async function verifyEmail(code: string): Promise<VerificationResult> {
   }
 }
 
-export async function resendAuthCode(
-  email: string,
-  signalsId?: string,
-): Promise<EmailAuthResult> {
+export async function resendAuthCode(email: string, signalsId?: string): Promise<EmailAuthResult> {
   const envVars = env();
   const unkeyRootKey = envVars.UNKEY_ROOT_KEY;
   if (!unkeyRootKey) {
