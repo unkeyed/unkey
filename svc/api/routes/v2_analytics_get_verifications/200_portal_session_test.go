@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -105,6 +106,21 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		IdentityID:  ptr.P(identityA.ID),
 	})
 
+	// A also has a soft-deleted key. Its verification events are immutable
+	// history that still belongs to A, so they must remain visible after the key
+	// is deleted (matching the root-key analytics path, which is scoped by
+	// key_space_id and is unaffected by key deletion).
+	keyADeleted := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		IdentityID:  ptr.P(identityA.ID),
+	})
+	err := db.Query.SoftDeleteKeyByID(context.Background(), h.DB.RW(), db.SoftDeleteKeyByIDParams{
+		Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		ID:  keyADeleted.KeyID,
+	})
+	require.NoError(t, err)
+
 	// Identity B owns a different key whose events must never be visible to A.
 	identityB := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
@@ -118,7 +134,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 
 	now := time.Now().UnixMilli()
 
-	// 3 events for A's key.
+	// 3 events for A's live key.
 	for i := range 3 {
 		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
@@ -126,6 +142,21 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 			KeyID:       keyA.KeyID,
+			Region:      "us-west-1",
+			Outcome:     "VALID",
+			IdentityID:  identityA.ID,
+			Tags:        []string{},
+		})
+	}
+
+	// 2 events for A's soft-deleted key; these must still be counted.
+	for i := range 2 {
+		h.KeyVerifications.Buffer(schema.KeyVerification{
+			RequestID:   uid.New(uid.RequestPrefix),
+			Time:        now - int64(i*1000),
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			KeyID:       keyADeleted.KeyID,
 			Region:      "us-west-1",
 			Outcome:     "VALID",
 			IdentityID:  identityA.ID,
@@ -162,10 +193,10 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		require.NotNil(c, res.Body)
 		require.Len(c, res.Body.Data, 1)
 
-		// Only A's 3 events, never B's 5.
+		// A's 3 live-key events plus 2 deleted-key events = 5, never B's 5.
 		count, ok := res.Body.Data[0]["count"]
 		require.True(c, ok, "count field should exist")
-		require.Equal(c, float64(3), count, "portal session should only see its own keys' events")
+		require.Equal(c, float64(5), count, "portal session should see its own keys' events, including deleted keys, but never another identity's")
 	}, 30*time.Second, time.Second)
 }
 
@@ -228,4 +259,37 @@ func TestPortalSessionAnalyticsNoKeysReturnsEmpty(t *testing.T) {
 	require.Equal(t, 200, res.Status)
 	require.NotNil(t, res.Body)
 	require.Empty(t, res.Body.Data, "session with no keys should receive empty analytics")
+}
+
+// TestPortalSessionAnalyticsWithoutPermissionForbidden verifies that RBAC
+// authorization is enforced even when the session's identity owns no keys. The
+// zero-keys path must not short-circuit before Authorize, otherwise a session
+// lacking read_analytics would receive an empty 200 instead of a 403.
+func TestPortalSessionAnalyticsWithoutPermissionForbidden(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	_ = h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	h.SetupAnalytics(workspace.ID)
+
+	route := &handler.Handler{
+		DB:                         h.DB,
+		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
+		Caches:                     h.Caches,
+	}
+	h.Register(route, portalMiddleware(h)...)
+
+	// Session owns no keys AND has no read_analytics permission.
+	headers := createPortalSession(t, h, workspace.ID, "portal_user_no_perm", []string{
+		"api.*.read_api",
+	})
+
+	req := handler.Request{
+		Query: "SELECT COUNT(*) as count FROM key_verifications_v1",
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, 403, res.Status, "session without read_analytics must be forbidden even with zero keys")
 }

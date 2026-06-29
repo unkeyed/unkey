@@ -94,6 +94,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// gates which keys' analytics are visible to a portal session. We inject a
 	// key_id security filter so the scoping cannot be bypassed by the request
 	// query, mirroring the key_space_id filter applied for root keys.
+	//
+	// A portal session whose identity owns no keys has no verification events to
+	// return, but we must still run RBAC authorization first so an unpermitted
+	// session gets 403 rather than an empty 200. The short-circuit therefore
+	// happens after Authorize below, gated on this flag.
+	portalSessionNoKeys := false
 	switch src := principal.Source.(type) {
 	case authprincipal.PortalSessionSource:
 		// An empty externalId is a broken invariant: a portal session should
@@ -119,17 +125,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// A session with no keys can have no verification events. Return empty
-		// analytics instead of running an unfiltered query: an empty IN list is
-		// dropped by the security filter injector, which would otherwise leak the
-		// whole workspace's data.
+		// A session with no keys can have no verification events. Defer returning
+		// empty analytics until after Authorize so authorization is still enforced;
+		// we must not run the query, though, since an empty IN list is dropped by
+		// the security filter injector and would leak the whole workspace's data.
 		if len(keyIDs) == 0 {
-			return s.JSON(http.StatusOK, Response{
-				Meta: openapi.Meta{
-					RequestId: s.RequestID(),
-				},
-				Data: ResponseData{},
-			})
+			portalSessionNoKeys = true
+			break
 		}
 
 		securityFilters = append(securityFilters, chquery.SecurityFilter{
@@ -176,6 +178,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(rbac.Or(permissionChecks...))
 	if err != nil {
 		return err
+	}
+
+	// Authorization passed; a portal session whose identity owns no keys has no
+	// events to return. Short-circuit here rather than executing an unfiltered
+	// query (see the key_id scoping block above).
+	if portalSessionNoKeys {
+		return s.JSON(http.StatusOK, Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: ResponseData{},
+		})
 	}
 
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
