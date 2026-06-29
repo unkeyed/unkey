@@ -118,28 +118,55 @@ const basePolicyFields = {
 };
 
 // Mirrors keyauthRatelimitSchema with a client-only `id` for React keying and a
-// client-only `override` toggle. The common case is referencing a named limit on
-// the key (override off); overriding the limit/duration/cost is opt-in and rare.
-// When override is on, both limit and duration are required (the Go service only
-// honors a fully-specified inline override).
+// client-only `override` toggle. Discriminated on `override` so the two states
+// are structurally distinct: override off is a bare named reference, override on
+// carries the optional inline fields. The common case is referencing a named
+// limit on the key (override off). When override is on the user can either:
+//   - override the cost alone (the named limit's window is kept, only cost changes), or
+//   - define an inline limit + duration (optionally with a cost) that need not
+//     exist on the key.
+// limit and duration are an inline pair and must be set together: the Go service
+// silently ignores a partial inline override (only limit, or only duration), so
+// we reject it here rather than letting it no-op on the wire. The fields stay
+// optional on the override-on branch because the form holds them undefined while
+// the user is still typing; the superRefine enforces the valid combinations.
 const keyauthRatelimitFormSchema = z
-  .object({
-    id: z.string(),
-    name: z.string().min(1, "Name is required"),
-    override: z.boolean(),
-    limit: z.number().int().min(1, "Limit must be at least 1").optional(),
-    duration: z.number().int().min(1, "Duration must be at least 1ms").optional(),
-    cost: z.number().int().min(1, "Cost must be at least 1").optional(),
-  })
+  .discriminatedUnion("override", [
+    z.object({
+      id: z.string(),
+      name: z.string().min(1, "Name is required"),
+      override: z.literal(false),
+    }),
+    z.object({
+      id: z.string(),
+      name: z.string().min(1, "Name is required"),
+      override: z.literal(true),
+      limit: z.number().int().min(1, "Limit must be at least 1").optional(),
+      duration: z.number().int().min(1, "Duration must be at least 1ms").optional(),
+      cost: z.number().int().min(1, "Cost must be at least 1").optional(),
+    }),
+  ])
   .superRefine((r, ctx) => {
     if (!r.override) {
       return;
     }
-    if (r.limit === undefined) {
+    const hasLimit = r.limit !== undefined;
+    const hasDuration = r.duration !== undefined;
+    if (hasLimit && !hasDuration) {
+      ctx.addIssue({ code: "custom", message: "Duration is required", path: ["duration"] });
+    }
+    if (hasDuration && !hasLimit) {
       ctx.addIssue({ code: "custom", message: "Limit is required", path: ["limit"] });
     }
-    if (r.duration === undefined) {
-      ctx.addIssue({ code: "custom", message: "Duration is required", path: ["duration"] });
+    // Override is on but nothing was entered — require at least one of the
+    // valid overrides (cost, or the limit+duration pair) so the toggle isn't a
+    // no-op that serializes to a bare named reference.
+    if (!hasLimit && !hasDuration && r.cost === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Enter a cost, or a limit and duration, to override",
+        path: ["cost"],
+      });
     }
   });
 

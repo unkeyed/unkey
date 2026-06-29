@@ -78,14 +78,21 @@ export function KeyAuthFields() {
     );
   };
 
-  // Toggling the override off clears the override values so a disabled override
-  // never leaks onto the wire.
+  // Rebuild the row on the matching `override` branch rather than merging fields:
+  // the override-off branch structurally has no limit/duration/cost, so toggling
+  // off drops the inline values and a disabled override never leaks onto the wire.
   const setRatelimitOverride = (id: string, enabled: boolean) => {
-    updateRatelimit(
-      id,
-      enabled
-        ? { override: true }
-        : { override: false, limit: undefined, duration: undefined, cost: undefined },
+    setValue(
+      "ratelimits",
+      ratelimits.map((rl): KeyauthRatelimitFormValues => {
+        if (rl.id !== id) {
+          return rl;
+        }
+        return enabled
+          ? { id: rl.id, name: rl.name, override: true }
+          : { id: rl.id, name: rl.name, override: false };
+      }),
+      { shouldDirty: true, shouldValidate: isSubmitted },
     );
   };
 
