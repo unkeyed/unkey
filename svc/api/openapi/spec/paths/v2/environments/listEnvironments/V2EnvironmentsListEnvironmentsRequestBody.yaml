@@ -7,39 +7,17 @@ properties:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
   app:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
-  limit:
-    type: integer
-    description: |
-      Maximum number of environments to return per request.
-      Balance between response size and number of pagination calls needed.
-    default: 100
-    minimum: 1
-    maximum: 100
-  cursor:
-    type: string
-    description: |
-      Pagination cursor from a previous response to fetch the next page.
-      Use when `hasMore: true` in the previous response.
-    example: env_1234abcd
 additionalProperties: false
 examples:
   bySlugs:
     summary: List an app's environments by slugs
-    description: List the first page of environments, locating project and app by slug
+    description: List environments, locating project and app by slug
     value:
       project: payments-service
       app: payments-api
   byIds:
     summary: List an app's environments by IDs
-    description: List the first page of environments, locating project and app by ID
+    description: List environments, locating project and app by ID
     value:
       project: proj_1234abcd
       app: app_1234abcd
-  paginated:
-    summary: Paginate with a smaller page size
-    description: Fetch a smaller page and continue from a cursor
-    value:
-      project: payments-service
-      app: payments-api
-      limit: 20
-      cursor: env_1234abcd
