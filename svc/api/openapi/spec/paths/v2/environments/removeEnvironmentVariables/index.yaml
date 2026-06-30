@@ -6,13 +6,13 @@ post:
     Remove environment variables from an environment in a single atomic request.
 
     This operation only deletes keys by name. Keys in the payload that exist are
-    removed; keys that are not present are ignored (no error). Delete-protected
-    keys are never removed and are left untouched. To replace or update values,
-    use `setEnvironmentVariables` instead. The whole operation is atomic: if any
-    part fails the environment is left unchanged.
+    removed; keys that are not present are ignored, since their absence already
+    matches the requested state. To replace or update values, use
+    `setEnvironmentVariables` instead. The whole operation is atomic: if any part
+    fails the environment is left unchanged.
 
-    Values are never read or returned. The response echoes the full remaining
-    set of variables as metadata after the removal.
+    Duplicate keys in the payload collapse to a single removal. Values are never
+    read or returned.
 
     **Required Permissions**
 
