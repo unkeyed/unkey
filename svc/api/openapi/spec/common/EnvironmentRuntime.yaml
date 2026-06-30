@@ -41,23 +41,9 @@ properties:
   healthcheck:
     "$ref": "./EnvironmentHealthcheck.yaml"
   shutdownSignal:
-    type: string
-    enum:
-      - SIGTERM
-      - SIGINT
-      - SIGQUIT
-      - SIGKILL
-    description: |
-      Signal sent to the container on shutdown.
-    example: SIGTERM
+    "$ref": "./EnvironmentShutdownSignal.yaml"
   upstreamProtocol:
-    type: string
-    enum:
-      - http1
-      - h2c
-    description: |
-      Protocol used to reach the container.
-    example: http1
+    "$ref": "./EnvironmentUpstreamProtocol.yaml"
   openapiSpecPath:
     type: string
     description: |

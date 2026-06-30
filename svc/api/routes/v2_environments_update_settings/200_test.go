@@ -70,7 +70,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			ShutdownSignal:   ptr(openapi.SIGINT),
 			UpstreamProtocol: ptr(openapi.H2c),
 			OpenapiSpecPath:  nullable.NewNullableWithValue("/openapi.yaml"),
-			Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{
+			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
 				Method:          openapi.GET,
 				Path:            "/health",
 				IntervalSeconds: ptr(15),
@@ -111,7 +111,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{
+			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
 				Method:              openapi.GET,
 				Path:                "/v1/liveness",
 				IntervalSeconds:     ptr(5),
@@ -182,7 +182,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 
 		// Create: one region with bounds 1..3.
-		create := []openapi.RegionSetting{regionSetting("us-east-1", 1, 3)}
+		create := []openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 3)}
 		call(t, handler.Request{
 			Project: env.projectID, App: env.appID, Environment: env.environmentID,
 			Regions: &create,
@@ -197,7 +197,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		firstPolicyID := rows[0].HorizontalAutoscalingPolicyID.String
 
 		// Update: same region, new bounds 2..2. Policy id must be reused.
-		update := []openapi.RegionSetting{regionSetting("us-east-1", 2, 2)}
+		update := []openapi.EnvironmentRegion{regionSetting("us-east-1", 2, 2)}
 		call(t, handler.Request{
 			Project: env.projectID, App: env.appID, Environment: env.environmentID,
 			Regions: &update,
@@ -214,7 +214,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 	t.Run("multiple regions share one policy", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 
-		regions := []openapi.RegionSetting{
+		regions := []openapi.EnvironmentRegion{
 			regionSetting("us-east-1", 1, 3),
 			regionSetting("us-west-2", 1, 3),
 		}

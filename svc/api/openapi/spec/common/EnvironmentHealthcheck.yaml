@@ -13,27 +13,38 @@ properties:
     example: GET
   path:
     type: string
+    minLength: 1
+    maxLength: 512
+    pattern: '^(/[\w\-]+)+(\.[\w]+)?$'
     description: |
-      HTTP path probed on the container.
+      HTTP path probed on the container. Must start with a slash.
     example: /healthz
   intervalSeconds:
     type: integer
+    minimum: 1
+    maximum: 3600
     description: |
-      How often the probe runs, in seconds.
+      How often the probe runs, in seconds. Defaults to 10 when omitted.
     example: 10
   timeoutSeconds:
     type: integer
+    minimum: 1
+    maximum: 3600
     description: |
-      Per-probe timeout, in seconds.
+      Per-probe timeout, in seconds. Defaults to 5 when omitted.
     example: 2
   failureThreshold:
     type: integer
+    minimum: 1
+    maximum: 100
     description: |
-      Consecutive failures before the container is restarted.
+      Consecutive failures before the container is restarted. Defaults to 3 when omitted.
     example: 3
   initialDelaySeconds:
     type: integer
+    minimum: 0
+    maximum: 3600
     description: |
-      Delay before the first probe runs, in seconds.
+      Delay before the first probe runs, in seconds. Defaults to 0 when omitted.
     example: 5
 additionalProperties: false

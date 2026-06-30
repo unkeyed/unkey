@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	env, err := db.Query.FindEnvironmentByAppAndIdOrSlug(ctx, h.DB.RO(), db.FindEnvironmentByAppAndIdOrSlugParams{
+	env, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
@@ -391,7 +391,7 @@ func quotaExceeded(public string) error {
 // resolveRegions validates the desired regions against the regions table and
 // replica bounds, returning the resolved region ids. The regions table is loaded
 // once and matched in memory.
-func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.RegionSetting) ([]resolvedRegion, error) {
+func (h *Handler) resolveRegions(ctx context.Context, regions []openapi.EnvironmentRegion) ([]resolvedRegion, error) {
 	all, err := db.Query.ListRegions(ctx, h.DB.RO())
 	if err != nil {
 		return nil, fault.Wrap(
@@ -576,7 +576,7 @@ func invalidRegion(public string) error {
 
 // buildHealthcheck maps the request healthcheck to the stored type, applying the
 // dashboard's default field values.
-func buildHealthcheck(hc openapi.Healthcheck) *dbtype.Healthcheck {
+func buildHealthcheck(hc openapi.EnvironmentHealthcheck) *dbtype.Healthcheck {
 	intervalSeconds := 10
 	if hc.IntervalSeconds != nil {
 		intervalSeconds = *hc.IntervalSeconds

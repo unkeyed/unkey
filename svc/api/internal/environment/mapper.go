@@ -42,8 +42,8 @@ func ToResponse(p Params) openapi.Environment {
 			MemoryMib:        int(rs.MemoryMib),
 			StorageMib:       int(rs.StorageMib),
 			Command:          []string(rs.Command),
-			ShutdownSignal:   openapi.EnvironmentRuntimeShutdownSignal(rs.ShutdownSignal),
-			UpstreamProtocol: openapi.EnvironmentRuntimeUpstreamProtocol(rs.UpstreamProtocol),
+			ShutdownSignal:   openapi.EnvironmentShutdownSignal(rs.ShutdownSignal),
+			UpstreamProtocol: openapi.EnvironmentUpstreamProtocol(rs.UpstreamProtocol),
 			Healthcheck:      nil,
 			OpenapiSpecPath:  nil,
 		}

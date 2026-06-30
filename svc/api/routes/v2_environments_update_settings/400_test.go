@@ -62,29 +62,29 @@ func TestUpdateSettings400(t *testing.T) {
 		{name: "openapiSpecPath extension only", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue(".yaml")}},
 		{name: "openapiSpecPath bare slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/")}},
 		{name: "openapiSpecPath trailing slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/specs/")}},
-		{name: "healthcheck path no slash", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{Method: "GET", Path: "health"})}},
-		{name: "healthcheck path bad chars", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{Method: "GET", Path: "/health check"})}},
-		{name: "healthcheck path traversal", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.Healthcheck{Method: "GET", Path: "/../etc/passwd"})}},
+		{name: "healthcheck path no slash", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "health"})}},
+		{name: "healthcheck path bad chars", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/health check"})}},
+		{name: "healthcheck path traversal", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/../etc/passwd"})}},
 
 		// Array caps (spec).
 		{name: "watchPaths over limit", req: handler.Request{WatchPaths: ptr(overLimit(11))}},
 		{name: "command over limit", req: handler.Request{Command: ptr(overLimit(11))}},
-		{name: "regions over limit", req: handler.Request{Regions: ptr([]openapi.RegionSetting{
+		{name: "regions over limit", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{
 			regionSetting("r1", 1, 2), regionSetting("r2", 1, 2), regionSetting("r3", 1, 2),
 			regionSetting("r4", 1, 2), regionSetting("r5", 1, 2), regionSetting("r6", 1, 2),
 		})}},
 
 		// Region replica bounds (handler).
-		{name: "replicas max above limit", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 1, 5)})}},
-		{name: "replicas min below one", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 0, 2)})}},
-		{name: "empty regions list", req: handler.Request{Regions: ptr([]openapi.RegionSetting{})}},
+		{name: "replicas max above limit", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 5)})}},
+		{name: "replicas min below one", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 0, 2)})}},
+		{name: "empty regions list", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{})}},
 
 		// Region logic (handler).
-		{name: "replicas min greater than max", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 3, 1)})}},
-		{name: "unknown region", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("ap-south-1", 1, 2)})}},
-		{name: "unschedulable region", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("eu-west-1", 1, 2)})}},
-		{name: "duplicate region", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)})}},
-		{name: "mismatched replica bounds", req: handler.Request{Regions: ptr([]openapi.RegionSetting{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)})}},
+		{name: "replicas min greater than max", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 3, 1)})}},
+		{name: "unknown region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("ap-south-1", 1, 2)})}},
+		{name: "unschedulable region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("eu-west-1", 1, 2)})}},
+		{name: "duplicate region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)})}},
+		{name: "mismatched replica bounds", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)})}},
 	}
 
 	for _, tc := range testCases {
