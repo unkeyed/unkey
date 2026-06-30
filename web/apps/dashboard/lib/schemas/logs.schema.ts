@@ -4,7 +4,7 @@ import { logsFilterOperatorEnum } from "./logs.filter.schema";
 
 export type LogsRequestSchema = z.infer<typeof logsRequestSchema>;
 export const logsRequestSchema = z.object({
-  limit: z.int(),
+  limit: z.int().min(1).max(100),
   startTime: z.int(),
   endTime: z.int(),
   since: z.string(),
@@ -61,7 +61,7 @@ export const logsRequestSchema = z.object({
       ),
     })
     .nullable(),
-  cursor: z.number().nullable().optional().nullable(),
+  cursor: z.number().nullable().optional(),
 });
 
 export const logsResponseSchema = z.object({

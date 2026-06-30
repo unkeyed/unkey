@@ -2,13 +2,14 @@ import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 
 export const keyDetailsLogsPayload = z.object({
-  limit: z.int(),
+  limit: z.int().min(1).max(100),
   startTime: z.int(),
   endTime: z.int(),
   keyspaceId: z.string(),
   keyId: z.string(),
   since: z.string(),
-  page: z.int().optional().default(1),
+  // min(1) keeps the derived offset (page - 1) * limit non-negative in the query builder.
+  page: z.int().min(1).optional().default(1),
   tags: z
     .array(
       z.object({

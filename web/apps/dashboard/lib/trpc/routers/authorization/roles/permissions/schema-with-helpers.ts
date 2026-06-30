@@ -21,7 +21,7 @@ export const permissionsSearchPayload = z.object({
 
 export const permissionsQueryPayload = z.object({
   cursor: z.string().optional(),
-  limit: z.number().prefault(LIMIT),
+  limit: z.number().int().min(1).max(100).prefault(LIMIT),
 });
 
 export const PermissionsSearchResponse = z.object({
