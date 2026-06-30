@@ -104,6 +104,7 @@ func TestGetEnvironmentSuccessfully(t *testing.T) {
 			require.Equal(t, ".", *res.Body.Data.RootDirectory)
 			require.NotNil(t, res.Body.Data.AutoDeploy)
 			require.True(t, *res.Body.Data.AutoDeploy)
+			require.Nil(t, res.Body.Data.BuildCommand, "no build command configured")
 
 			// No regional settings seeded, so regions stay omitted.
 			require.Nil(t, res.Body.Data.Regions)

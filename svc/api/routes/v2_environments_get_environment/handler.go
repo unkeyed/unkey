@@ -105,6 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		OpenapiSpecPath:  nil,
 		Dockerfile:       nil,
 		RootDirectory:    nil,
+		BuildCommand:     nil,
 		WatchPaths:       nil,
 		AutoDeploy:       nil,
 		Regions:          nil,
@@ -169,6 +170,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			data.Dockerfile = ptr.P(build.Dockerfile.String)
 		}
 		data.RootDirectory = ptr.P(build.DockerContext)
+		if build.BuildCommand.Valid {
+			data.BuildCommand = ptr.P(build.BuildCommand.String)
+		}
 		data.WatchPaths = ptr.P([]string(build.WatchPaths))
 		data.AutoDeploy = ptr.P(build.AutoDeploy)
 	}

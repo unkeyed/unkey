@@ -185,6 +185,11 @@ type Environment struct {
 	// Omitted until the environment has build settings.
 	AutoDeploy *bool `json:"autoDeploy,omitempty"`
 
+	// BuildCommand Overrides the build command auto-detected by Railpack, so monorepos can
+	// scope the build to a single app. Omitted when left to auto-detection or
+	// for Dockerfile builds.
+	BuildCommand *string `json:"buildCommand,omitempty"`
+
 	// Command Container entrypoint command override.
 	// Omitted until the environment has runtime settings.
 	Command *[]string `json:"command,omitempty"`

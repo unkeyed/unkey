@@ -130,6 +130,13 @@ properties:
       The directory the app is built from. "." for the repository root.
       Omitted until the environment has build settings.
     example: .
+  buildCommand:
+    type: string
+    description: |
+      Overrides the build command auto-detected by Railpack, so monorepos can
+      scope the build to a single app. Omitted when left to auto-detection or
+      for Dockerfile builds.
+    example: pnpm --filter api build
   watchPaths:
     type: array
     items:
