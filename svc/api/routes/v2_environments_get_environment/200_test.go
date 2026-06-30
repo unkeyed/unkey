@@ -80,6 +80,33 @@ func TestGetEnvironmentSuccessfully(t *testing.T) {
 			require.False(t, res.Body.Data.DeleteProtection)
 			require.Greater(t, res.Body.Data.CreatedAt, int64(0))
 			require.Zero(t, res.Body.Data.UpdatedAt, "never-updated environment should have zero (omitted) updatedAt")
+
+			// Default runtime settings seeded by CreateEnvironment.
+			require.NotNil(t, res.Body.Data.Port)
+			require.Equal(t, 8080, *res.Body.Data.Port)
+			require.NotNil(t, res.Body.Data.CpuMillicores)
+			require.Equal(t, 100, *res.Body.Data.CpuMillicores)
+			require.NotNil(t, res.Body.Data.MemoryMib)
+			require.Equal(t, 128, *res.Body.Data.MemoryMib)
+			require.NotNil(t, res.Body.Data.StorageMib)
+			require.Equal(t, 0, *res.Body.Data.StorageMib)
+			require.NotNil(t, res.Body.Data.ShutdownSignal)
+			require.EqualValues(t, "SIGTERM", *res.Body.Data.ShutdownSignal)
+			require.NotNil(t, res.Body.Data.UpstreamProtocol)
+			require.EqualValues(t, "http1", *res.Body.Data.UpstreamProtocol)
+			require.Nil(t, res.Body.Data.Healthcheck, "no healthcheck configured")
+			require.Nil(t, res.Body.Data.OpenapiSpecPath, "no openapi spec path configured")
+
+			// Default build settings seeded by CreateEnvironment.
+			require.NotNil(t, res.Body.Data.Dockerfile)
+			require.Equal(t, "Dockerfile", *res.Body.Data.Dockerfile)
+			require.NotNil(t, res.Body.Data.RootDirectory)
+			require.Equal(t, ".", *res.Body.Data.RootDirectory)
+			require.NotNil(t, res.Body.Data.AutoDeploy)
+			require.True(t, *res.Body.Data.AutoDeploy)
+
+			// No regional settings seeded, so regions stay omitted.
+			require.Nil(t, res.Body.Data.Regions)
 		})
 	}
 }

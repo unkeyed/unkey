@@ -3202,6 +3202,167 @@ components:
                     example: 1704153600000
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+                port:
+                    type: integer
+                    description: |
+                        Port the container listens on.
+                        Omitted until the environment has runtime settings.
+                    example: 8080
+                cpuMillicores:
+                    type: integer
+                    description: |
+                        CPU allocation in millicores (1000 = one vCPU).
+                        Omitted until the environment has runtime settings.
+                    example: 250
+                memoryMib:
+                    type: integer
+                    description: |
+                        Memory allocation in mebibytes.
+                        Omitted until the environment has runtime settings.
+                    example: 256
+                storageMib:
+                    type: integer
+                    description: |
+                        Ephemeral storage allocation in mebibytes.
+                        Omitted until the environment has runtime settings.
+                    example: 0
+                command:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Container entrypoint command override.
+                        Omitted until the environment has runtime settings.
+                    example: ["node", "server.js"]
+                healthcheck:
+                    "$ref": "#/components/schemas/Healthcheck"
+                shutdownSignal:
+                    type: string
+                    enum:
+                        - SIGTERM
+                        - SIGINT
+                        - SIGQUIT
+                        - SIGKILL
+                    description: |
+                        Signal sent to the container on shutdown.
+                        Omitted until the environment has runtime settings.
+                    example: SIGTERM
+                upstreamProtocol:
+                    type: string
+                    enum:
+                        - http1
+                        - h2c
+                    description: |
+                        Protocol used to reach the container.
+                        Omitted until the environment has runtime settings.
+                    example: http1
+                openapiSpecPath:
+                    type: string
+                    description: |
+                        Path to the OpenAPI spec served by the container, if any.
+                    example: /openapi.yaml
+                dockerfile:
+                    type: string
+                    description: |
+                        Path to the Dockerfile used to build the app, if any.
+                    example: Dockerfile
+                rootDirectory:
+                    type: string
+                    description: |
+                        The directory the app is built from. "." for the repository root.
+                        Omitted until the environment has build settings.
+                    example: .
+                watchPaths:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Paths that trigger a rebuild when changed.
+                        Omitted until the environment has build settings.
+                    example: ["src/**"]
+                autoDeploy:
+                    type: boolean
+                    description: |
+                        Whether pushes automatically trigger a deployment.
+                        Omitted until the environment has build settings.
+                    example: true
+                regions:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/EnvironmentRegion"
+                    description: |
+                        Per-region deployment settings for this environment.
+                        Empty until regional settings are configured.
+            additionalProperties: false
+        Healthcheck:
+            type: object
+            required:
+                - method
+                - path
+            properties:
+                method:
+                    type: string
+                    enum:
+                        - GET
+                        - POST
+                    description: |
+                        HTTP method used to probe the container.
+                    example: GET
+                path:
+                    type: string
+                    description: |
+                        HTTP path probed on the container.
+                    example: /healthz
+                intervalSeconds:
+                    type: integer
+                    description: |
+                        How often the probe runs, in seconds.
+                    example: 10
+                timeoutSeconds:
+                    type: integer
+                    description: |
+                        Per-probe timeout, in seconds.
+                    example: 2
+                failureThreshold:
+                    type: integer
+                    description: |
+                        Consecutive failures before the container is restarted.
+                    example: 3
+                initialDelaySeconds:
+                    type: integer
+                    description: |
+                        Delay before the first probe runs, in seconds.
+                    example: 5
+            additionalProperties: false
+        EnvironmentRegion:
+            type: object
+            description: Replica bounds for a single region the environment deploys to.
+            required:
+                - name
+                - replicas
+            properties:
+                name:
+                    type: string
+                    description: Region name, such as us-east-1.
+                    example: us-east-1
+                replicas:
+                    "$ref": "#/components/schemas/ReplicaBounds"
+            additionalProperties: false
+        ReplicaBounds:
+            type: object
+            description: Min and max replica bounds for autoscaling in a region.
+            required:
+                - min
+                - max
+            properties:
+                min:
+                    type: integer
+                    description: Minimum number of replicas.
+                    example: 1
+                max:
+                    type: integer
+                    description: Maximum number of replicas.
+                    example: 3
             additionalProperties: false
         RatelimitRequest:
             type: object
@@ -5617,13 +5778,32 @@ paths:
                                     value:
                                         data:
                                             appId: app_1234abcd
+                                            autoDeploy: true
+                                            command:
+                                                - node
+                                                - server.js
+                                            cpuMillicores: 250
                                             createdAt: 1704067200000
                                             deleteProtection: false
                                             description: Production environment
+                                            dockerfile: Dockerfile
                                             id: env_1234abcd
+                                            memoryMib: 256
+                                            port: 8080
                                             projectId: proj_1234abcd
+                                            regions:
+                                                - name: us-east-1
+                                                  replicas:
+                                                    max: 3
+                                                    min: 1
+                                            rootDirectory: .
+                                            shutdownSignal: SIGTERM
                                             slug: production
+                                            storageMib: 0
                                             updatedAt: 1704153600000
+                                            upstreamProtocol: http1
+                                            watchPaths:
+                                                - src/**
                                         meta:
                                             requestId: req_1234abcd
                             schema:

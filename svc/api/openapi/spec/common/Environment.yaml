@@ -60,4 +60,95 @@ properties:
     example: 1704153600000
     x-go-type-skip-optional-pointer: true
     x-go-type-skip-optional-pointer-with-omitzero: true
+  port:
+    type: integer
+    description: |
+      Port the container listens on.
+      Omitted until the environment has runtime settings.
+    example: 8080
+  cpuMillicores:
+    type: integer
+    description: |
+      CPU allocation in millicores (1000 = one vCPU).
+      Omitted until the environment has runtime settings.
+    example: 250
+  memoryMib:
+    type: integer
+    description: |
+      Memory allocation in mebibytes.
+      Omitted until the environment has runtime settings.
+    example: 256
+  storageMib:
+    type: integer
+    description: |
+      Ephemeral storage allocation in mebibytes.
+      Omitted until the environment has runtime settings.
+    example: 0
+  command:
+    type: array
+    items:
+      type: string
+    description: |
+      Container entrypoint command override.
+      Omitted until the environment has runtime settings.
+    example: ["node", "server.js"]
+  healthcheck:
+    "$ref": "./Healthcheck.yaml"
+  shutdownSignal:
+    type: string
+    enum:
+      - SIGTERM
+      - SIGINT
+      - SIGQUIT
+      - SIGKILL
+    description: |
+      Signal sent to the container on shutdown.
+      Omitted until the environment has runtime settings.
+    example: SIGTERM
+  upstreamProtocol:
+    type: string
+    enum:
+      - http1
+      - h2c
+    description: |
+      Protocol used to reach the container.
+      Omitted until the environment has runtime settings.
+    example: http1
+  openapiSpecPath:
+    type: string
+    description: |
+      Path to the OpenAPI spec served by the container, if any.
+    example: /openapi.yaml
+  dockerfile:
+    type: string
+    description: |
+      Path to the Dockerfile used to build the app, if any.
+    example: Dockerfile
+  rootDirectory:
+    type: string
+    description: |
+      The directory the app is built from. "." for the repository root.
+      Omitted until the environment has build settings.
+    example: .
+  watchPaths:
+    type: array
+    items:
+      type: string
+    description: |
+      Paths that trigger a rebuild when changed.
+      Omitted until the environment has build settings.
+    example: ["src/**"]
+  autoDeploy:
+    type: boolean
+    description: |
+      Whether pushes automatically trigger a deployment.
+      Omitted until the environment has build settings.
+    example: true
+  regions:
+    type: array
+    items:
+      "$ref": "./EnvironmentRegion.yaml"
+    description: |
+      Per-region deployment settings for this environment.
+      Empty until regional settings are configured.
 additionalProperties: false
