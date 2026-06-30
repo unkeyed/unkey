@@ -22,7 +22,7 @@ properties:
     example: postgresql://user:pass@host:5432/db
   kind:
     allOf:
-      - "$ref": "../../../../common/EnvironmentVariableKind.yaml"
+      - "$ref": "./EnvironmentVariableKind.yaml"
     default: writeonly
     description: |
       How the value may be read back. Defaults to `writeonly`.
