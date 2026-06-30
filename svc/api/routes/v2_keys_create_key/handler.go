@@ -129,8 +129,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Portal-authenticated actions are attributed to a portalEndUser actor so
 	// customers can see end-user activity in their audit logs. The actor
 	// metadata records which end user acted.
-	actorType := auditlog.AuditLogActor(principal.Subject.Type)
-	actorMeta := map[string]any{}
 	switch src := principal.Source.(type) {
 	case authprincipal.PortalSessionSource:
 		if src.ExternalID == "" {
@@ -141,11 +139,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		req.ExternalId = &src.ExternalID
-		actorType = auditlog.PortalEndUserActor
-		actorMeta = map[string]any{
-			"externalId": src.ExternalID,
-		}
 	}
+	actor := auditlog.ActorFromPrincipal(principal)
 
 	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 	if err != nil {
@@ -506,10 +501,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					auditLogs = append(auditLogs, auditlog.AuditLog{
 						WorkspaceID:   principal.WorkspaceID,
 						Event:         auditlog.AuthConnectPermissionKeyEvent,
-						ActorType:     actorType,
+						ActorType:     actor.Type,
 						ActorID:       principal.Subject.ID,
 						ActorName:     principal.Subject.Name,
-						ActorMeta:     actorMeta,
+						ActorMeta:     actor.Meta,
 						Display:       fmt.Sprintf("Added permission %s to key %s", reqPerm.Slug, keyID),
 						RemoteIP:      s.Location(),
 						UserAgent:     s.UserAgent(),
@@ -594,10 +589,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					auditLogs = append(auditLogs, auditlog.AuditLog{
 						WorkspaceID:   principal.WorkspaceID,
 						Event:         auditlog.AuthConnectRoleKeyEvent,
-						ActorType:     actorType,
+						ActorType:     actor.Type,
 						ActorID:       principal.Subject.ID,
 						ActorName:     principal.Subject.Name,
-						ActorMeta:     actorMeta,
+						ActorMeta:     actor.Meta,
 						Display:       fmt.Sprintf("Connected role %s to key %s", reqRole.Name, keyID),
 						RemoteIP:      s.Location(),
 						UserAgent:     s.UserAgent(),
@@ -636,10 +631,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.KeyCreateEvent,
-				ActorType:     actorType,
+				ActorType:     actor.Type,
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
-				ActorMeta:     actorMeta,
+				ActorMeta:     actor.Meta,
 				Display:       fmt.Sprintf("Created key %s", keyID),
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),

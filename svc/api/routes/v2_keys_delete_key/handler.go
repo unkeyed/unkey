@@ -93,8 +93,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Portal-authenticated deletes are attributed to a portalEndUser actor so
 	// customers can see end-user activity in their audit logs. The actor
 	// metadata records which end user acted.
-	actorType := auditlog.AuditLogActor(principal.Subject.Type)
-	actorMeta := map[string]any{}
 	switch src := principal.Source.(type) {
 	case authprincipal.PortalSessionSource:
 		// An empty externalId is a broken invariant: a portal session should
@@ -114,11 +112,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("The specified key was not found."),
 			)
 		}
-		actorType = auditlog.PortalEndUserActor
-		actorMeta = map[string]any{
-			"externalId": src.ExternalID,
-		}
 	}
+	actor := auditlog.ActorFromPrincipal(principal)
 
 	// Permission check
 	err = principal.Authorize(rbac.Or(
@@ -161,10 +156,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			{
 				Event:         auditlog.KeyDeleteEvent,
 				WorkspaceID:   principal.WorkspaceID,
-				ActorType:     actorType,
+				ActorType:     actor.Type,
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
-				ActorMeta:     actorMeta,
+				ActorMeta:     actor.Meta,
 				Display:       fmt.Sprintf("%s %s", description, key.ID),
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),
