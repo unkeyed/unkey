@@ -346,6 +346,30 @@ type GoneErrorResponse struct {
 	Meta Meta `json:"meta"`
 }
 
+// Healthcheck defines model for Healthcheck.
+type Healthcheck struct {
+	// FailureThreshold Consecutive failures before the container is restarted.
+	FailureThreshold *int `json:"failureThreshold,omitempty"`
+
+	// InitialDelaySeconds Delay before the first probe runs, in seconds.
+	InitialDelaySeconds *int `json:"initialDelaySeconds,omitempty"`
+
+	// IntervalSeconds How often the probe runs, in seconds.
+	IntervalSeconds *int `json:"intervalSeconds,omitempty"`
+
+	// Method HTTP method used to probe the container.
+	Method HealthcheckMethod `json:"method"`
+
+	// Path HTTP path probed for health. Must start with a slash.
+	Path string `json:"path"`
+
+	// TimeoutSeconds Per-probe timeout, in seconds.
+	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
+}
+
+// HealthcheckMethod HTTP method used to probe the container.
+type HealthcheckMethod string
+
 // Identity defines model for Identity.
 type Identity struct {
 	// ExternalId External identity ID
@@ -1222,6 +1246,10 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	CpuMillicores *int `json:"cpuMillicores,omitempty"`
 
+	// DockerContext Build context directory.
+	// Omit to leave unchanged.
+	DockerContext *string `json:"dockerContext,omitempty"`
+
 	// Dockerfile Path to the Dockerfile used for builds.
 	// Omit to leave unchanged; set null to clear and fall back to Railpack.
 	Dockerfile nullable.Nullable[string] `json:"dockerfile,omitempty"`
@@ -1239,7 +1267,7 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	MemoryMib *int `json:"memoryMib,omitempty"`
 
-	// OpenapiSpecPath Path to the OpenAPI spec file within the build. Must start with a slash.
+	// OpenapiSpecPath Path to the OpenAPI spec file within the build.
 	// Omit to leave unchanged; set null to clear.
 	OpenapiSpecPath nullable.Nullable[string] `json:"openapiSpecPath,omitempty"`
 
@@ -1256,11 +1284,6 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// (regions absent from the list are removed). At least one region is required;
 	// an empty list is rejected because an environment cannot have zero regions.
 	Regions *[]RegionSetting `json:"regions,omitempty"`
-
-	// RootDirectory The directory your app lives in. Unkey builds from here.
-	// Use "." for the repository root, or set a subdirectory when your app
-	// is nested (e.g., services/api). Omit to leave unchanged.
-	RootDirectory *string `json:"rootDirectory,omitempty"`
 
 	// ShutdownSignal Signal sent to the container on shutdown.
 	// Omit to leave unchanged.
