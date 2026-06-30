@@ -1,4 +1,4 @@
-"use client"; // Keep if needed
+"use client";
 
 import { cn } from "@/lib/utils";
 import { CircleLock } from "@unkey/icons";

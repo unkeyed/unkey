@@ -118,6 +118,8 @@ import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
 import { updateProject } from "./deploy/project/update";
+import { createSharedSecret } from "./share/create";
+import { revealSharedSecret } from "./share/reveal";
 
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
@@ -235,6 +237,10 @@ import { onboardingKeyCreation } from "./workspace/onboarding";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
+  share: t.router({
+    create: createSharedSecret,
+    reveal: revealSharedSecret,
+  }),
   key: t.router({
     create: createKey,
     delete: deleteKeys,

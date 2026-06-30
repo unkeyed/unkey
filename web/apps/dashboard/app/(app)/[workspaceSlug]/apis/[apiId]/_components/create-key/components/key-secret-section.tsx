@@ -1,6 +1,6 @@
 "use client";
 
-import { SecretKey } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/secret-key";
+import { SecretKey } from "@/components/secret-key";
 import { CircleInfo } from "@unkey/icons";
 
 type KeySecretSectionProps = {
