@@ -15,8 +15,7 @@ post:
 
     Values are always encrypted at rest. Set `kind: recoverable` to allow a
     value to be read back; it defaults to `writeonly`, which can never be read
-    back through the API. The response echoes the variables you set as metadata
-    and never returns values.
+    back through the API.
 
     **Required Permissions**
 

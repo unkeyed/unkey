@@ -42,8 +42,8 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 	t.Run("set on empty environment encrypts and stores values", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "DATABASE_URL", Value: "postgres://secret", Kind: ptr(openapi.EnvironmentVariableInputKindWriteonly)},
-			{Key: "LOG_LEVEL", Value: "debug", Kind: ptr(openapi.EnvironmentVariableInputKindRecoverable), Description: ptr("verbosity")},
+			{Key: "DATABASE_URL", Value: "postgres://secret", Kind: ptr(openapi.Writeonly)},
+			{Key: "LOG_LEVEL", Value: "debug", Kind: ptr(openapi.Recoverable), Description: ptr("verbosity")},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
@@ -59,24 +59,12 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 
 	t.Run("kind defaults to writeonly when omitted", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "PLAIN", Value: "v"},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
 		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["PLAIN"].varType)
-		require.Equal(t, openapi.EnvironmentVariableMetadataKindWriteonly, body.Data[0].Kind)
-	})
-
-	t.Run("response returns metadata without values", func(t *testing.T) {
-		env := seedEnvironment(t, h)
-		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "API_KEY", Value: "shh", Kind: ptr(openapi.EnvironmentVariableInputKindWriteonly)},
-		}))
-
-		require.Len(t, body.Data, 1)
-		require.Equal(t, "API_KEY", body.Data[0].Key)
-		require.Equal(t, openapi.EnvironmentVariableMetadataKindWriteonly, body.Data[0].Kind)
 	})
 
 	t.Run("replace removes vars absent from payload", func(t *testing.T) {
@@ -111,7 +99,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVarFull(t, h, env, "SECRET", "old", db.AppEnvironmentVariablesTypeRecoverable, "db password")
 
-		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "SECRET", Value: "rotated"},
 		}))
 
@@ -121,10 +109,6 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		// Nothing merged: kind defaults to writeonly and description is cleared.
 		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["SECRET"].varType)
 		require.Empty(t, raw["SECRET"].description)
-
-		require.Len(t, body.Data, 1)
-		require.Equal(t, openapi.EnvironmentVariableMetadataKindWriteonly, body.Data[0].Kind)
-		require.Nil(t, body.Data[0].Description)
 	})
 
 	t.Run("emits per-variable audit events", func(t *testing.T) {
@@ -163,10 +147,9 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		seedVar(t, h, env, "ONE", "a", db.AppEnvironmentVariablesTypeRecoverable)
 		seedVar(t, h, env, "TWO", "b", db.AppEnvironmentVariablesTypeRecoverable)
 
-		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{}))
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{}))
 
 		raw := listRawVars(t, h, env.environmentID)
 		require.Empty(t, raw)
-		require.Empty(t, body.Data)
 	})
 }
