@@ -156,17 +156,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// deleteUnlistedVars removes unprotected variables that are not in the desired
-// set. Protected variables are never deleted. An empty desired set drops the
-// NOT IN filter, which is invalid SQL with zero keys.
+// deleteUnlistedVars removes variables that are not in the desired set. An
+// empty desired set drops the NOT IN filter, which is invalid SQL with zero
+// keys.
 func deleteUnlistedVars(ctx context.Context, tx db.DBTX, environmentID string, keys []string) error {
 	if len(keys) == 0 {
-		if err := db.Query.DeleteUnprotectedAppEnvVarsByEnvironmentId(ctx, tx, environmentID); err != nil {
+		if err := db.Query.DeleteAppEnvVarsByEnvironmentId(ctx, tx, environmentID); err != nil {
 			return setVarsDBError(err, "unable to delete variables")
 		}
 		return nil
 	}
-	if err := db.Query.DeleteUnprotectedAppEnvVarsNotInKeys(ctx, tx, db.DeleteUnprotectedAppEnvVarsNotInKeysParams{
+	if err := db.Query.DeleteAppEnvVarsNotInKeys(ctx, tx, db.DeleteAppEnvVarsNotInKeysParams{
 		EnvironmentID: environmentID,
 		EnvKeys:       keys,
 	}); err != nil {
@@ -208,25 +208,16 @@ func mergeVariables(
 			description = cur.Description
 		}
 
-		deleteProtection := false
-		switch {
-		case v.DeleteProtection != nil:
-			deleteProtection = *v.DeleteProtection
-		case existed:
-			deleteProtection = cur.DeleteProtection.Valid && cur.DeleteProtection.Bool
-		}
-
 		params = append(params, db.InsertAppEnvironmentVariableParams{
-			ID:               encrypted[key].id,
-			WorkspaceID:      env.WorkspaceID,
-			AppID:            env.AppID,
-			EnvironmentID:    env.ID,
-			EnvKey:           key,
-			Value:            encrypted[key].ciphertext,
-			Type:             varType,
-			Description:      description,
-			DeleteProtection: sql.NullBool{Valid: true, Bool: deleteProtection},
-			CreatedAt:        now,
+			ID:            encrypted[key].id,
+			WorkspaceID:   env.WorkspaceID,
+			AppID:         env.AppID,
+			EnvironmentID: env.ID,
+			EnvKey:        key,
+			Value:         encrypted[key].ciphertext,
+			Type:          varType,
+			Description:   description,
+			CreatedAt:     now,
 		})
 
 		var desc *string
@@ -235,10 +226,9 @@ func mergeVariables(
 			desc = &d
 		}
 		data = append(data, openapi.EnvironmentVariableMetadata{
-			Key:              key,
-			Sensitive:        varType == db.AppEnvironmentVariablesTypeWriteonly,
-			Description:      desc,
-			DeleteProtection: deleteProtection,
+			Key:         key,
+			Sensitive:   varType == db.AppEnvironmentVariablesTypeWriteonly,
+			Description: desc,
 		})
 	}
 
@@ -295,12 +285,8 @@ func (h *Handler) variableAuditLogs(
 		}
 		logs = append(logs, event(key, action))
 	}
-	for key, cur := range currentByKey {
+	for key := range currentByKey {
 		if _, stillSet := deduped[key]; stillSet {
-			continue
-		}
-		if cur.DeleteProtection.Valid && cur.DeleteProtection.Bool {
-			// Preserved, not deleted; no removal event.
 			continue
 		}
 		logs = append(logs, event(key, "removed"))

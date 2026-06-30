@@ -11,22 +11,21 @@ import (
 )
 
 const listAppEnvVarsForSet = `-- name: ListAppEnvVarsForSet :many
-SELECT ` + "`" + `key` + "`" + `, ` + "`" + `type` + "`" + `, description, delete_protection
+SELECT ` + "`" + `key` + "`" + `, ` + "`" + `type` + "`" + `, description
 FROM app_environment_variables
 WHERE environment_id = ?
 `
 
 type ListAppEnvVarsForSetRow struct {
-	Key              string                      `db:"key"`
-	Type             AppEnvironmentVariablesType `db:"type"`
-	Description      sql.NullString              `db:"description"`
-	DeleteProtection sql.NullBool                `db:"delete_protection"`
+	Key         string                      `db:"key"`
+	Type        AppEnvironmentVariablesType `db:"type"`
+	Description sql.NullString              `db:"description"`
 }
 
 // Returns each variable's current attributes for an environment. Used to merge
 // omitted optional fields and to classify a set into added/updated/removed.
 //
-//	SELECT `key`, `type`, description, delete_protection
+//	SELECT `key`, `type`, description
 //	FROM app_environment_variables
 //	WHERE environment_id = ?
 func (q *Queries) ListAppEnvVarsForSet(ctx context.Context, db DBTX, environmentID string) ([]ListAppEnvVarsForSetRow, error) {
@@ -38,12 +37,7 @@ func (q *Queries) ListAppEnvVarsForSet(ctx context.Context, db DBTX, environment
 	var items []ListAppEnvVarsForSetRow
 	for rows.Next() {
 		var i ListAppEnvVarsForSetRow
-		if err := rows.Scan(
-			&i.Key,
-			&i.Type,
-			&i.Description,
-			&i.DeleteProtection,
-		); err != nil {
+		if err := rows.Scan(&i.Key, &i.Type, &i.Description); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -9,11 +9,10 @@ import (
 )
 
 // bulkInsertAppEnvironmentVariable is the base query for bulk insert
-const bulkInsertAppEnvironmentVariable = `INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, ` + "`" + `key` + "`" + `, value, ` + "`" + `type` + "`" + `, description, delete_protection, created_at) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkInsertAppEnvironmentVariable = `INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, ` + "`" + `key` + "`" + `, value, ` + "`" + `type` + "`" + `, description, created_at) VALUES %s ON DUPLICATE KEY UPDATE
   value = VALUES(value),
   ` + "`" + `type` + "`" + ` = VALUES(` + "`" + `type` + "`" + `),
   description = VALUES(description),
-  delete_protection = VALUES(delete_protection),
   updated_at = VALUES(created_at)`
 
 // InsertAppEnvironmentVariables performs bulk insert in a single query
@@ -26,7 +25,7 @@ func (q *BulkQueries) InsertAppEnvironmentVariables(ctx context.Context, db DBTX
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertAppEnvironmentVariable, strings.Join(valueClauses, ", "))
@@ -42,7 +41,6 @@ func (q *BulkQueries) InsertAppEnvironmentVariables(ctx context.Context, db DBTX
 		allArgs = append(allArgs, arg.Value)
 		allArgs = append(allArgs, arg.Type)
 		allArgs = append(allArgs, arg.Description)
-		allArgs = append(allArgs, arg.DeleteProtection)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}
 

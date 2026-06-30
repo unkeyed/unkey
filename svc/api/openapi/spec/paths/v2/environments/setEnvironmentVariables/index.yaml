@@ -6,16 +6,13 @@ post:
     Replace all environment variables for an environment in a single atomic
     request.
 
-    This operation reconciles the environment toward the variables you send:
-    keys in the payload are created or updated, unprotected keys absent from the
-    payload are removed, and delete-protected keys absent from the payload are
-    preserved. Sending the full desired set at once avoids partial-update states
-    where dependent variables (such as a username and password) drift out of
-    sync across deployments.
+    The payload is the complete desired set: keys in the payload are created or
+    updated, and any key absent from the payload is removed. Sending the full
+    desired set at once avoids partial-update states where dependent variables
+    (such as a username and password) drift out of sync across deployments.
 
     When updating an existing key, omitted optional fields (`sensitive`,
-    `description`, `deleteProtection`) keep their current values; only `value`
-    is required.
+    `description`) keep their current values; only `value` is required.
 
     Values are always encrypted at rest. Set `sensitive: true` to make a value
     write-only so it can never be read back. The response echoes the variables
