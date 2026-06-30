@@ -3,9 +3,11 @@
 import type { EmailAuthResult, UserData, VerificationResult } from "@/lib/auth/types";
 import { resendAuthCode, signUpViaEmail, verifyAuthCode, verifyEmail } from "../actions";
 import { useSignUpContext } from "../context/signup-context";
+import { useRadarSignals } from "../radar/radar-signals";
 
 export function useSignUp() {
   const { userData, updateUserData, clearUserData } = useSignUpContext();
+  const { getToken } = useRadarSignals();
 
   const handleSignUpViaEmail = async ({
     firstName,
@@ -14,7 +16,8 @@ export function useSignUp() {
   }: UserData): Promise<EmailAuthResult> => {
     updateUserData({ email, firstName, lastName });
 
-    const result = await signUpViaEmail({ email, firstName, lastName });
+    const signalsId = await getToken();
+    const result = await signUpViaEmail({ email, firstName, lastName }, signalsId);
     return result;
   };
 
@@ -27,10 +30,12 @@ export function useSignUp() {
       throw new Error("User email is required for code verification.");
     }
 
+    const signalsId = await getToken();
     return await verifyAuthCode({
       email: userData.email,
       code,
       invitationToken,
+      signalsId,
     });
   };
 
@@ -45,7 +50,8 @@ export function useSignUp() {
     }
 
     try {
-      return await resendAuthCode(userData.email);
+      const signalsId = await getToken();
+      return await resendAuthCode(userData.email, signalsId);
     } catch (error) {
       throw new Error(
         `Failed to resend authentication code to ${userData.email}: ${

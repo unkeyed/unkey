@@ -29,6 +29,7 @@ go_library(
 go_test(
     name = "middleware_test",
     srcs = [
+        "clickhouse_logging_test.go",
         "client_gone_test.go",
         "observability_test.go",
         "sanitize_headers_test.go",

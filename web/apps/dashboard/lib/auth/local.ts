@@ -272,9 +272,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
   }
 
   async updateMembership(params: UpdateMembershipParams): Promise<Membership> {
-    const { membershipId, role } = params;
-    if (!membershipId || !role) {
-      throw new Error("Membership id and role are required.");
+    const { membershipId, role, orgId } = params;
+    if (!membershipId || !role || !orgId) {
+      throw new Error("Membership id, role, and organization id are required.");
     }
 
     if (membershipId !== this.membership.id) {
@@ -285,9 +285,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
     throw new Error("Cannot update the default membership in local development mode");
   }
 
-  async removeMembership(membershipId: string): Promise<void> {
-    if (!membershipId) {
-      throw new Error("Membership Id is required");
+  async removeMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
     }
 
     // Cannot remove the only membership
@@ -297,9 +297,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
     throw new Error(`Membership ${membershipId} not found`);
   }
 
-  async deactivateMembership(membershipId: string): Promise<void> {
-    if (!membershipId) {
-      throw new Error("Membership Id is required");
+  async deactivateMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
     }
 
     if (membershipId === this.membership.id) {
@@ -349,9 +349,9 @@ export class LocalAuthProvider extends BaseAuthProvider {
     return null;
   }
 
-  async revokeOrgInvitation(invitationId: string): Promise<void> {
-    if (!invitationId) {
-      throw new Error("Invitation Id is required");
+  async revokeOrgInvitation(invitationId: string, orgId: string): Promise<void> {
+    if (!invitationId || !orgId) {
+      throw new Error("Invitation id and organization id are required.");
     }
 
     // No-op implementation
@@ -386,6 +386,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     _params: UserData & {
       ipAddress?: string;
       userAgent?: string;
+      signalsId?: string;
     },
   ): Promise<EmailAuthResult> {
     // always successful
@@ -396,6 +397,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
@@ -406,6 +408,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     // always successful
     return { success: true };
@@ -418,6 +421,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<VerificationResult> {
     // always successful
     return {
