@@ -658,7 +658,7 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 variables:
                     type: array
-                    maxItems: 100
+                    maxItems: 50
                     items:
                         "$ref": "#/components/schemas/EnvironmentVariableInput"
                     description: |
