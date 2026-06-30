@@ -78,7 +78,6 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
     },
     retry: 3,
     syncMode: "on-demand",
-    refetchInterval: 30_000,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
       validateEnvironmentIdInQuery(options?.where);

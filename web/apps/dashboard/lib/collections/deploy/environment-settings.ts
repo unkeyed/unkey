@@ -63,8 +63,6 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
     },
     retry: 3,
     syncMode: "on-demand",
-    // Setting don't change that often and we already do revalidation on submit so no need to poll it short
-    refetchInterval: 30_000,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 
