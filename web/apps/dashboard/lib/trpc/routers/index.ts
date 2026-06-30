@@ -71,7 +71,6 @@ import { updateAutoDeploy } from "./deploy/environment-settings/build/update-aut
 import { updateBuildCommand } from "./deploy/environment-settings/build/update-build-command";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
-import { updateInstallCommand } from "./deploy/environment-settings/build/update-install-command";
 import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
@@ -527,7 +526,6 @@ export const router = t.router({
         updateDockerfile,
         updateDockerContext,
         updateBuildCommand,
-        updateInstallCommand,
         updateWatchPaths,
       }),
     }),

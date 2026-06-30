@@ -24,10 +24,9 @@ const schema = z.object({
   autoDeploy: z.boolean().default(true),
   dockerfile: z.string(),
   dockerContext: z.string(),
-  // Empty means "let Railpack auto-detect". Override Railpack's commands so
-  // monorepos can scope the build to a single app.
+  // Empty means "let Railpack auto-detect". Overrides Railpack's build command
+  // so monorepos can scope the build to a single app.
   buildCommand: z.string().default(""),
-  installCommand: z.string().default(""),
   watchPaths: z.array(z.string()).default([]),
   // Runtime settings
   port: z.number().int(),
@@ -109,9 +108,8 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   // Empty means "no Dockerfile configured" — the app is built with Railpack.
   dockerfile: "",
   dockerContext: ".",
-  // Empty means "let Railpack auto-detect" the build/install commands.
+  // Empty means "let Railpack auto-detect" the build command.
   buildCommand: "",
-  installCommand: "",
   port: 8080,
   cpuMillicores: 250,
   memoryMib: 256,
@@ -139,7 +137,6 @@ function flattenSettingsResponse(
     dockerfile: build?.dockerfile ?? d.dockerfile,
     dockerContext: build?.dockerContext || d.dockerContext,
     buildCommand: build?.buildCommand ?? d.buildCommand,
-    installCommand: build?.installCommand ?? d.installCommand,
     watchPaths: build?.watchPaths ?? [],
     port: runtime?.port ?? d.port,
     cpuMillicores: runtime?.cpuMillicores ?? d.cpuMillicores,
@@ -206,15 +203,6 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.build.updateBuildCommand.mutate({
         environmentId,
         buildCommand: modified.buildCommand,
-      }),
-    );
-  }
-
-  if (modified.installCommand !== original.installCommand) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.build.updateInstallCommand.mutate({
-        environmentId,
-        installCommand: modified.installCommand,
       }),
     );
   }

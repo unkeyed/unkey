@@ -57,14 +57,14 @@ func TestBuildRailpackPrepareDockerfile(t *testing.T) {
 	require.NotContains(t, bare, "--mount=type=secret")
 	require.NotContains(t, bare, "RAILPACK_SECRETS_HASH")
 
-	// Railpack command overrides are mounted as secrets and passed via --env:
-	// railpack reads its environment only from --env and interprets RAILPACK_*
-	// keys there as config. The fixed names — never the values — appear in the
-	// Dockerfile.
+	// The Railpack build command override is mounted as a secret and passed via
+	// --env: railpack reads its environment only from --env and interprets
+	// RAILPACK_* keys there as config. The fixed name — never the value —
+	// appears in the Dockerfile.
 	withConfig, err := buildRailpackPrepareDockerfile(
 		"frontend:v1", "builder:v1",
 		[]string{"FOO"},
-		[]string{"RAILPACK_BUILD_CMD", "RAILPACK_INSTALL_CMD"},
+		[]string{"RAILPACK_BUILD_CMD"},
 		"hash999",
 	)
 	require.NoError(t, err)
@@ -72,8 +72,7 @@ func TestBuildRailpackPrepareDockerfile(t *testing.T) {
     --mount=type=cache,target=/tmp/railpack \
     --mount=type=secret,id=FOO,env=FOO \
     --mount=type=secret,id=RAILPACK_BUILD_CMD,env=RAILPACK_BUILD_CMD \
-    --mount=type=secret,id=RAILPACK_INSTALL_CMD,env=RAILPACK_INSTALL_CMD \
-    RAILPACK_SECRETS_HASH=hash999 /usr/local/bin/railpack prepare /workspace --plan-out /railpack-plan.json --env FOO="$FOO" --env RAILPACK_BUILD_CMD="$RAILPACK_BUILD_CMD" --env RAILPACK_INSTALL_CMD="$RAILPACK_INSTALL_CMD"`)
+    RAILPACK_SECRETS_HASH=hash999 /usr/local/bin/railpack prepare /workspace --plan-out /railpack-plan.json --env FOO="$FOO" --env RAILPACK_BUILD_CMD="$RAILPACK_BUILD_CMD"`)
 
 	// Config-only (no env vars): mounts the secret and passes it via --env.
 	configOnly, err := buildRailpackPrepareDockerfile(
@@ -92,17 +91,9 @@ func TestBuildRailpackPrepareDockerfile(t *testing.T) {
 func TestRailpackConfigVars(t *testing.T) {
 	require.Empty(t, railpackConfigVars(gitBuildParams{}))
 
-	cfg := railpackConfigVars(gitBuildParams{
-		BuildCommand:   "pnpm --filter api build",
-		InstallCommand: "pnpm install --filter api",
-	})
+	cfg := railpackConfigVars(gitBuildParams{BuildCommand: "pnpm --filter api build"})
 	require.Equal(t, "pnpm --filter api build", cfg[railpackBuildCmdEnv])
-	require.Equal(t, "pnpm install --filter api", cfg[railpackInstallCmdEnv])
-
-	// Only the build command set: install is absent, not empty.
-	cfg = railpackConfigVars(gitBuildParams{BuildCommand: "go build ./..."})
-	require.Equal(t, "go build ./...", cfg[railpackBuildCmdEnv])
-	require.NotContains(t, cfg, railpackInstallCmdEnv)
+	require.Len(t, cfg, 1)
 }
 
 func TestHashRailpackPrepareInputs(t *testing.T) {

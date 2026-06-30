@@ -53,15 +53,14 @@ const (
 	// Plans are small JSON documents; anything larger indicates a bug or abuse.
 	railpackPlanBytesMax = 16 << 20 // 16 MiB
 
-	// railpackBuildCmdEnv and railpackInstallCmdEnv are the Railpack config env
-	// vars that override its auto-detected commands. Railpack only reads its
-	// environment from values passed via `railpack prepare --env` (it never
-	// reads the process environment), so these are passed as --env in the
-	// prepare step. Railpack also registers every --env name in the generated
-	// plan's secrets list, so the image build solve must provide them as
-	// secrets too; the values are mounted as BuildKit secrets in both solves.
-	railpackBuildCmdEnv   = "RAILPACK_BUILD_CMD"
-	railpackInstallCmdEnv = "RAILPACK_INSTALL_CMD"
+	// railpackBuildCmdEnv is the Railpack config env var that overrides its
+	// auto-detected build command. Railpack only reads its environment from
+	// values passed via `railpack prepare --env` (it never reads the process
+	// environment), so this is passed as --env in the prepare step. Railpack
+	// also registers every --env name in the generated plan's secrets list, so
+	// the image build solve must provide it as a secret too; the value is
+	// mounted as a BuildKit secret in both solves.
+	railpackBuildCmdEnv = "RAILPACK_BUILD_CMD"
 )
 
 // railpackPrepareDockerfileTemplate renders the Dockerfile for the plan
@@ -362,12 +361,9 @@ func (w *Workflow) buildRailpackSolverOptions(
 // Railpack falls back to its own auto-detection. These influence plan
 // generation and are injected into the prepare solve only.
 func railpackConfigVars(params gitBuildParams) map[string]string {
-	config := make(map[string]string, 2)
+	config := make(map[string]string, 1)
 	if params.BuildCommand != "" {
 		config[railpackBuildCmdEnv] = params.BuildCommand
-	}
-	if params.InstallCommand != "" {
-		config[railpackInstallCmdEnv] = params.InstallCommand
 	}
 	return config
 }

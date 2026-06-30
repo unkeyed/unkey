@@ -117,10 +117,6 @@ message GitSource {
   // Railpack auto-detects the command. Lets monorepos scope the build to a
   // single app. Ignored when dockerfile_path is set.
   string build_command = 9;
-
-  // Custom install command for Railpack builds (RAILPACK_INSTALL_CMD). Empty
-  // means Railpack auto-detects the command. Ignored when dockerfile_path is set.
-  string install_command = 10;
 }
 
 message DeployRequest {

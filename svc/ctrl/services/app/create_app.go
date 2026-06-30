@@ -85,17 +85,16 @@ func (s *Service) CreateApp(
 			}
 
 			if txErr := db.Query.UpsertAppBuildSettings(txCtx, tx, db.UpsertAppBuildSettingsParams{
-				WorkspaceID:    workspaceID,
-				AppID:          appID,
-				EnvironmentID:  envID,
-				Dockerfile:     sql.NullString{Valid: false, String: ""},
-				DockerContext:  "",
-				BuildCommand:   sql.NullString{Valid: false, String: ""},
-				InstallCommand: sql.NullString{Valid: false, String: ""},
-				WatchPaths:     nil,
-				AutoDeploy:     true,
-				CreatedAt:      now,
-				UpdatedAt:      sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:   workspaceID,
+				AppID:         appID,
+				EnvironmentID: envID,
+				Dockerfile:    sql.NullString{Valid: false, String: ""},
+				DockerContext: "",
+				BuildCommand:  sql.NullString{Valid: false, String: ""},
+				WatchPaths:    nil,
+				AutoDeploy:    true,
+				CreatedAt:     now,
+				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {
 				return fmt.Errorf("upsert %s build settings: %w", env.slug, txErr)
 			}

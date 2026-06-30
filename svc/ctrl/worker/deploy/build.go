@@ -147,12 +147,11 @@ type gitBuildParams struct {
 	CommitSHA      string
 	ContextPath    string
 	DockerfilePath string
-	// BuildCommand and InstallCommand override Railpack's auto-detected commands
-	// (RAILPACK_BUILD_CMD / RAILPACK_INSTALL_CMD) so monorepos can scope the build
-	// to a single app. Empty means auto-detect. Only consumed by the Railpack
-	// build path; Dockerfile builds ignore them.
+	// BuildCommand overrides Railpack's auto-detected build command
+	// (RAILPACK_BUILD_CMD) so monorepos can scope the build to a single app.
+	// Empty means auto-detect. Only consumed by the Railpack build path;
+	// Dockerfile builds ignore it.
 	BuildCommand                  string
-	InstallCommand                string
 	ProjectID                     string
 	AppID                         string
 	DeploymentID                  string

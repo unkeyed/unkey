@@ -15,8 +15,15 @@ const buildCommandSchema = z.object({
 
 export const BuildCommand = () => {
   const { settings, variant } = useEnvironmentSettings();
-  const { buildCommand: defaultValue } = settings;
+  const { buildCommand: defaultValue, dockerfile } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
+
+  // The build command only applies to automatic (Railpack) builds. When a
+  // Dockerfile is configured the build follows the Dockerfile and Railpack is
+  // never invoked, so the command is ignored — disable the field to make that
+  // explicit. settings.dockerfile is reactive: editing the Dockerfile card
+  // re-renders this one.
+  const dockerfileConfigured = dockerfile.trim() !== "";
 
   const {
     register,
@@ -32,6 +39,13 @@ export const BuildCommand = () => {
   const currentBuildCommand = useWatch({ control, name: "buildCommand" });
 
   const saveState = resolveSaveState([
+    [
+      dockerfileConfigured,
+      {
+        status: "disabled",
+        reason: "Not used with a Dockerfile build. Remove the Dockerfile to build automatically.",
+      },
+    ],
     [isSubmitting, { status: "saving" }],
     [!isValid, { status: "disabled" }],
     [currentBuildCommand === defaultValue, { status: "disabled", reason: "No changes to save" }],
@@ -48,7 +62,9 @@ export const BuildCommand = () => {
       icon={<Hammer2 className="text-gray-12" iconSize="xl-medium" />}
       title="Build command"
       description="Override the auto-detected build command. Useful for monorepos, e.g. pnpm build --filter api. Only applies when no Dockerfile is set."
-      displayValue={defaultValue || "Automatic"}
+      displayValue={
+        dockerfileConfigured ? "Not used (Dockerfile build)" : defaultValue || "Automatic"
+      }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       autoSave={variant === "onboarding"}
@@ -57,8 +73,13 @@ export const BuildCommand = () => {
         <FormInput
           label="Build command"
           requirement="optional"
-          description="Leave empty to let Unkey detect it automatically. Changes apply on next deploy."
+          description={
+            dockerfileConfigured
+              ? "Disabled because a Dockerfile is configured. Build commands only apply to automatic (Railpack) builds."
+              : "Leave empty to let Unkey detect it automatically. Changes apply on next deploy."
+          }
           placeholder="Automatic"
+          disabled={dockerfileConfigured}
           error={errors.buildCommand?.message}
           {...register("buildCommand")}
         />

@@ -248,17 +248,16 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 
 	// Insert default app build settings for this (app, environment) pair.
 	err = db.Query.UpsertAppBuildSettings(ctx, s.DB.RW(), db.UpsertAppBuildSettingsParams{
-		WorkspaceID:    req.WorkspaceID,
-		AppID:          req.AppID,
-		EnvironmentID:  req.ID,
-		Dockerfile:     sql.NullString{Valid: true, String: "Dockerfile"},
-		DockerContext:  ".",
-		BuildCommand:   sql.NullString{Valid: false, String: ""},
-		InstallCommand: sql.NullString{Valid: false, String: ""},
-		WatchPaths:     nil,
-		AutoDeploy:     true,
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Valid: false},
+		WorkspaceID:   req.WorkspaceID,
+		AppID:         req.AppID,
+		EnvironmentID: req.ID,
+		Dockerfile:    sql.NullString{Valid: true, String: "Dockerfile"},
+		DockerContext: ".",
+		BuildCommand:  sql.NullString{Valid: false, String: ""},
+		WatchPaths:    nil,
+		AutoDeploy:    true,
+		CreatedAt:     now,
+		UpdatedAt:     sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
 
