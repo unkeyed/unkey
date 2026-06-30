@@ -51,9 +51,7 @@ actions:
   - target: $["components"]["schemas"]["UpdateKeyCreditsRefill"]
     update:
       nullable: true
-  - target: $["components"]["schemas"]["Healthcheck"]["type"]
-    update: object
-  - target: $["components"]["schemas"]["Healthcheck"]
+  - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["healthcheck"]
     update:
       nullable: true
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["dockerfile"]["type"]

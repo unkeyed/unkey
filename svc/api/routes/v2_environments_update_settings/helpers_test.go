@@ -96,12 +96,9 @@ func ptr[T any](v T) *T {
 	return &v
 }
 
-func regionSetting(name string, minReplicas, maxReplicas int) openapi.RegionSetting {
-	return openapi.RegionSetting{
-		Name: name,
-		Replicas: struct {
-			Max int `json:"max"`
-			Min int `json:"min"`
-		}{Max: maxReplicas, Min: minReplicas},
+func regionSetting(name string, minReplicas, maxReplicas int) openapi.EnvironmentRegion {
+	return openapi.EnvironmentRegion{
+		Name:     name,
+		Replicas: openapi.Replicas{Max: maxReplicas, Min: minReplicas},
 	}
 }

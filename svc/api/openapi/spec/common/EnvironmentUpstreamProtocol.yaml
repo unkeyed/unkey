@@ -1,0 +1,7 @@
+type: string
+enum:
+  - http1
+  - h2c
+description: |
+  Protocol used to reach the container.
+example: http1
