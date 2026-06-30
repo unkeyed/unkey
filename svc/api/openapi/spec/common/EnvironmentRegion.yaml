@@ -9,5 +9,5 @@ properties:
     description: Region name, such as us-east-1.
     example: us-east-1
   replicas:
-    "$ref": "./ReplicaBounds.yaml"
+    "$ref": "./Replicas.yaml"
 additionalProperties: false
