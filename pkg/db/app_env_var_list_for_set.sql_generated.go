@@ -7,40 +7,33 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
-const listAppEnvVarsForSet = `-- name: ListAppEnvVarsForSet :many
-SELECT ` + "`" + `key` + "`" + `, ` + "`" + `type` + "`" + `, description
+const listAppEnvVarKeys = `-- name: ListAppEnvVarKeys :many
+SELECT ` + "`" + `key` + "`" + `
 FROM app_environment_variables
 WHERE environment_id = ?
 `
 
-type ListAppEnvVarsForSetRow struct {
-	Key         string                      `db:"key"`
-	Type        AppEnvironmentVariablesType `db:"type"`
-	Description sql.NullString              `db:"description"`
-}
-
-// Returns each variable's current attributes for an environment. Used to merge
-// omitted optional fields and to classify a set into added/updated/removed.
+// Returns the existing variable keys for an environment. Used to classify a
+// set into created/updated/removed for audit logging.
 //
-//	SELECT `key`, `type`, description
+//	SELECT `key`
 //	FROM app_environment_variables
 //	WHERE environment_id = ?
-func (q *Queries) ListAppEnvVarsForSet(ctx context.Context, db DBTX, environmentID string) ([]ListAppEnvVarsForSetRow, error) {
-	rows, err := db.QueryContext(ctx, listAppEnvVarsForSet, environmentID)
+func (q *Queries) ListAppEnvVarKeys(ctx context.Context, db DBTX, environmentID string) ([]string, error) {
+	rows, err := db.QueryContext(ctx, listAppEnvVarKeys, environmentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListAppEnvVarsForSetRow
+	var items []string
 	for rows.Next() {
-		var i ListAppEnvVarsForSetRow
-		if err := rows.Scan(&i.Key, &i.Type, &i.Description); err != nil {
+		var key string
+		if err := rows.Scan(&key); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, key)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
