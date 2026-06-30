@@ -32,7 +32,6 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
       id: "delete",
       label: "Delete from all environments",
       icon: <Trash iconSize="md-regular" />,
-      divider: true,
       onClick: (e) => {
         e.stopPropagation();
         setIsDeleteConfirmOpen(true);
