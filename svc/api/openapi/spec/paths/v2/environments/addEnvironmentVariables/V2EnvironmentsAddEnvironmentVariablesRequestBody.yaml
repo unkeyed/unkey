@@ -16,7 +16,7 @@ properties:
     minItems: 1
     maxItems: 50
     items:
-      "$ref": "../setEnvironmentVariables/EnvironmentVariableInput.yaml"
+      "$ref": "../../../../common/EnvironmentVariableInput.yaml"
     description: |
       The variables to add. Every key must not already exist; if any one does,
       the request is rejected with a 409 and nothing is changed. Use

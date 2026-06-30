@@ -3394,6 +3394,52 @@ components:
                     format: int64
                     description: Unix timestamp in milliseconds
                     example: 1704067200000
+        EnvironmentVariableInput:
+            type: object
+            description: A single environment variable to set.
+            required:
+                - key
+                - value
+            properties:
+                key:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+                    description: |
+                        The variable name. Must be a POSIX shell name: letters, digits, and
+                        underscores only, and must not start with a digit. Other names are
+                        unreachable from shells and most runtimes.
+                    example: DATABASE_URL
+                value:
+                    type: string
+                    minLength: 1
+                    maxLength: 4096
+                    description: The variable value. Always encrypted at rest.
+                    example: postgresql://user:pass@host:5432/db
+                kind:
+                    allOf:
+                        - "$ref": "#/components/schemas/EnvironmentVariableKind"
+                    default: writeonly
+                    description: |
+                        How the value may be read back. Defaults to `writeonly`.
+                description:
+                    type: string
+                    maxLength: 255
+                    description: |
+                        Human-readable description of the variable.
+                    example: Primary database connection string
+            additionalProperties: false
+        EnvironmentVariableKind:
+            type: string
+            enum:
+                - recoverable
+                - writeonly
+            description: |
+                How the value may be read back. `writeonly` values can never be read back
+                through the API; `recoverable` values can be decrypted. Values are encrypted
+                at rest either way.
+            example: writeonly
         Environment:
             type: object
             required:
@@ -3647,52 +3693,6 @@ components:
                     description: Maximum number of replicas.
                     example: 3
             additionalProperties: false
-        EnvironmentVariableInput:
-            type: object
-            description: A single environment variable to set.
-            required:
-                - key
-                - value
-            properties:
-                key:
-                    type: string
-                    minLength: 1
-                    maxLength: 256
-                    pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
-                    description: |
-                        The variable name. Must be a POSIX shell name: letters, digits, and
-                        underscores only, and must not start with a digit. Other names are
-                        unreachable from shells and most runtimes.
-                    example: DATABASE_URL
-                value:
-                    type: string
-                    minLength: 1
-                    maxLength: 4096
-                    description: The variable value. Always encrypted at rest.
-                    example: postgresql://user:pass@host:5432/db
-                kind:
-                    allOf:
-                        - "$ref": "#/components/schemas/EnvironmentVariableKind"
-                    default: writeonly
-                    description: |
-                        How the value may be read back. Defaults to `writeonly`.
-                description:
-                    type: string
-                    maxLength: 255
-                    description: |
-                        Human-readable description of the variable.
-                    example: Primary database connection string
-            additionalProperties: false
-        EnvironmentVariableKind:
-            type: string
-            enum:
-                - recoverable
-                - writeonly
-            description: |
-                How the value may be read back. `writeonly` values can never be read back
-                through the API; `recoverable` values can be decrypted. Values are encrypted
-                at rest either way.
-            example: writeonly
         RatelimitRequest:
             type: object
             required:
