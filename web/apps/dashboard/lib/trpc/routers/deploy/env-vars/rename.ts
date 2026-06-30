@@ -48,9 +48,19 @@ export const renameEnvVars = workspaceProcedure
       }
       const appId = envVars[0].appId;
 
+      // Two targets in the same environment would both resolve to the same new
+      // key and violate the unique (appId, environmentId, key) constraint. Reject
+      // that here so it surfaces as an actionable error rather than a generic 500.
+      const environmentIds = [...new Set(envVars.map((v) => v.environmentId))];
+      if (environmentIds.length !== envVars.length) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot rename multiple variables in the same environment to the same key",
+        });
+      }
+
       // A rename would collide if another variable (not in this set) already
       // uses the new key in any of the targeted environments.
-      const environmentIds = [...new Set(envVars.map((v) => v.environmentId))];
       const conflicts = await db.query.appEnvironmentVariables.findMany({
         where: and(
           eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
