@@ -21,16 +21,11 @@ properties:
     description: The variable value. Always encrypted at rest.
     example: postgresql://user:pass@host:5432/db
   kind:
-    type: string
-    enum:
-      - recoverable
-      - writeonly
+    allOf:
+      - "$ref": "../../../../common/EnvironmentVariableKind.yaml"
     default: writeonly
     description: |
-      How the value may be read back. `writeonly` values can never be read
-      back through the API; `recoverable` values can be decrypted. Values are
-      encrypted at rest either way. Defaults to `writeonly`.
-    example: writeonly
+      How the value may be read back. Defaults to `writeonly`.
   description:
     type: string
     maxLength: 255
