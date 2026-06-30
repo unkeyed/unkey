@@ -104,6 +104,7 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 			require.Equal(t, ".", *e.RootDirectory)
 			require.NotNil(t, e.AutoDeploy)
 			require.True(t, *e.AutoDeploy)
+			require.Nil(t, e.BuildCommand, "no build command configured")
 			require.Nil(t, e.Regions, "no regional settings seeded")
 		}
 	})
