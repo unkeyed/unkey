@@ -8,7 +8,7 @@ import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connect
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenWriting3 } from "@unkey/icons";
 import { Button, DialogContainer } from "@unkey/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { useUpdateKeyRbac } from "../hooks/use-edit-rbac";
 import { KeyInfo } from "../key-info";
@@ -23,8 +23,8 @@ const FORM_STORAGE_KEY = "unkey_key_rbac_form_state";
 type ExistingKey = {
   id: string;
   name?: string;
-  roleIds: string[];
-  permissionIds: string[];
+  roleNames: string[];
+  directPermissionSlugs: string[];
 };
 
 const DIALOG_CONFIG = {
@@ -47,13 +47,15 @@ const getDefaultValues = (
   apiData?: { roles: KeyRole[]; permissions: KeyPermission[] },
 ): FormValues => {
   // Separate direct permissions from role-inherited permissions
-  const directPermissionIds =
-    apiData?.permissions.filter((p) => p.source === "direct").map((p) => p.id) ?? [];
+  const directPermissionSlugs =
+    apiData?.permissions.filter((p) => p.source === "direct").map((p) => p.slug) ?? [];
 
   return {
     keyId: existingKey.id,
-    roleIds: apiData?.roles.map((r) => r.id) ?? existingKey.roleIds ?? [],
-    directPermissionIds,
+    roleNames: apiData ? apiData.roles.map((r) => r.name) : (existingKey.roleNames ?? []),
+    directPermissionSlugs: apiData
+      ? directPermissionSlugs
+      : (existingKey.directPermissionSlugs ?? []),
   };
 };
 
@@ -103,24 +105,14 @@ export const KeyRbacDialog = ({
     watch,
   } = methods;
 
-  const watchedRoleIds = watch("roleIds", []);
-  const watchedDirectPermissionIds = watch("directPermissionIds", []);
+  const watchedRoleNames = watch("roleNames", []);
+  const watchedDirectPermissionSlugs = watch("directPermissionSlugs", []);
 
-  // Calculate all effective permissions for GrantedAccess component
-  const allEffectivePermissionIds = useMemo(() => {
-    const rolePermissions =
-      connectedRolesAndPerms?.permissions
-        .filter((p) => p.source === "role" && p.roleId && watchedRoleIds.includes(p.roleId))
-        .map((p) => p.id) ?? [];
-
-    return [...rolePermissions, ...watchedDirectPermissionIds];
-  }, [connectedRolesAndPerms?.permissions, watchedRoleIds, watchedDirectPermissionIds]);
-
-  const { data: dataSlugs, isLoading: isSlugsLoading } = useFetchPermissionSlugs(
-    watchedRoleIds,
-    allEffectivePermissionIds,
-    isDialogOpen,
-  );
+  const {
+    data: dataSlugs,
+    isLoading: isSlugsLoading,
+    refetch: refetchPermissionSlugs,
+  } = useFetchPermissionSlugs(watchedRoleNames, watchedDirectPermissionSlugs, isDialogOpen);
 
   // Reset form data when dialog opens
   useEffect(() => {
@@ -146,7 +138,13 @@ export const KeyRbacDialog = ({
   });
 
   const onSubmit = async (data: FormValues) => {
-    updateKeyRbacMutation.mutate(data);
+    const resolved = await refetchPermissionSlugs();
+
+    updateKeyRbacMutation.mutate({
+      ...data,
+      totalEffectivePermissions:
+        resolved.data?.totalCount ?? dataSlugs?.totalCount ?? data.directPermissionSlugs.length,
+    });
   };
 
   const handleDialogToggle = (open: boolean) => {
@@ -219,7 +217,7 @@ export const KeyRbacDialog = ({
                 <div className="h-px bg-grayA-3 w-full" />
               </div>
               <Controller
-                name="roleIds"
+                name="roleNames"
                 control={control}
                 render={({ field, fieldState }) => (
                   <RoleField
@@ -232,7 +230,7 @@ export const KeyRbacDialog = ({
                 )}
               />
               <Controller
-                name="directPermissionIds"
+                name="directPermissionSlugs"
                 control={control}
                 render={({ field, fieldState }) => (
                   <PermissionField

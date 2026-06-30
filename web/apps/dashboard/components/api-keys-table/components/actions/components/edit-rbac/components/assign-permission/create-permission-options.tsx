@@ -95,15 +95,13 @@ export function createPermissionOptions({
             <Page2 iconSize="sm-regular" className="text-grayA-11" />
           </div>
           <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
-            {permission.id.length > 15
-              ? `${permission.id.slice(0, 8)}...${permission.id.slice(-4)}`
-              : permission.id}
+            {permission.slug}
           </span>
         </div>
         <span className="w-[200px] truncate text-accent-8 text-left">{permission.name}</span>
       </div>
     ),
-    value: permission.id,
+    value: permission.slug,
     searchValue: `${permission.id} ${permission.name} ${permission.slug} ${
       permission.description || ""
     }`.trim(),

@@ -5,8 +5,8 @@ import { permissions, roles, rolesPermissions } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 const resolvePermissionSlugsInput = z.object({
-  roleIds: z.array(z.string()).prefault([]),
-  permissionIds: z.array(z.string()).prefault([]),
+  roleNames: z.array(z.string()).prefault([]),
+  permissionSlugs: z.array(z.string()).prefault([]),
 });
 
 const resolvePermissionSlugsResponse = z.object({
@@ -27,11 +27,11 @@ export const getPermissionSlugs = workspaceProcedure
   .input(resolvePermissionSlugsInput)
   .output(resolvePermissionSlugsResponse)
   .query(async ({ ctx, input }) => {
-    const { roleIds, permissionIds } = input;
+    const roleNames = Array.from(new Set(input.roleNames));
+    const permissionSlugs = Array.from(new Set(input.permissionSlugs));
     const workspaceId = ctx.workspace.id;
 
-    // Early return if no input
-    if (roleIds.length === 0 && permissionIds.length === 0) {
+    if (roleNames.length === 0 && permissionSlugs.length === 0) {
       return {
         slugs: [],
         totalCount: 0,
@@ -42,53 +42,58 @@ export const getPermissionSlugs = workspaceProcedure
     try {
       let rolePermissionsPromise: Promise<PermissionSlug[]> = Promise.resolve([]);
       let directPermissionsPromise: Promise<PermissionSlug[]> = Promise.resolve([]);
+      let roleNamesPromise: Promise<Array<{ name: string }>> = Promise.resolve([]);
 
-      // Role permissions
-      if (roleIds.length > 0) {
+      if (roleNames.length > 0) {
+        roleNamesPromise = db
+          .select({ name: roles.name })
+          .from(roles)
+          .where(and(inArray(roles.name, roleNames), eq(roles.workspaceId, workspaceId)));
+
         rolePermissionsPromise = db
           .selectDistinct({ slug: permissions.slug })
           .from(rolesPermissions)
+          .innerJoin(roles, eq(rolesPermissions.roleId, roles.id))
           .innerJoin(permissions, eq(rolesPermissions.permissionId, permissions.id))
           .where(
             and(
-              inArray(rolesPermissions.roleId, roleIds),
+              inArray(roles.name, roleNames),
               eq(rolesPermissions.workspaceId, workspaceId),
+              eq(roles.workspaceId, workspaceId),
+              eq(permissions.workspaceId, workspaceId),
             ),
           );
       }
 
-      // Direct permissions
-      if (permissionIds.length > 0) {
+      if (permissionSlugs.length > 0) {
         directPermissionsPromise = db
           .select({ slug: permissions.slug })
           .from(permissions)
           .where(
-            and(inArray(permissions.id, permissionIds), eq(permissions.workspaceId, workspaceId)),
+            and(
+              inArray(permissions.slug, permissionSlugs),
+              eq(permissions.workspaceId, workspaceId),
+            ),
           );
       }
 
-      const [rolePermissions, directPermissions] = await Promise.all([
+      const [rolePermissions, directPermissions, roleRows] = await Promise.all([
         rolePermissionsPromise,
         directPermissionsPromise,
+        roleNamesPromise,
       ]);
 
-      if (roleIds.length > 0 && rolePermissions.length === 0) {
-        // Double-check if roles exist in workspace
-        const roleExists = await db
-          .select({ id: roles.id })
-          .from(roles)
-          .where(and(inArray(roles.id, roleIds), eq(roles.workspaceId, workspaceId)))
-          .limit(1);
-
-        if (roleExists.length === 0) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "One or more roles not found or access denied",
-          });
-        }
+      if (roleNames.length > 0 && roleRows.length !== roleNames.length) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "One or more roles not found or access denied",
+        });
       }
 
-      if (permissionIds.length > 0 && directPermissions.length === 0) {
+      if (
+        permissionSlugs.length > 0 &&
+        directPermissions.length !== permissionSlugs.length
+      ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "One or more permissions not found or access denied",
