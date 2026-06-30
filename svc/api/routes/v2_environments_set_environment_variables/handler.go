@@ -4,17 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -96,7 +98,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	byKey := make(map[string]openapi.EnvironmentVariableInput, len(req.Variables))
-	keys := make([]string, 0, len(req.Variables))
 	for _, v := range req.Variables {
 		if _, dup := byKey[v.Key]; dup {
 			return fault.New(
@@ -107,12 +108,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		byKey[v.Key] = v
-		keys = append(keys, v.Key)
 	}
 
-	encrypted, err := h.encryptValues(ctx, env.ID, keys, byKey)
+	encrypted, err := h.encryptValues(ctx, env.ID, byKey)
 	if err != nil {
 		return err
+	}
+
+	now := time.Now().UnixMilli()
+	newEnvVars := make([]db.InsertAppEnvironmentVariableParams, 0, len(byKey))
+	for key, v := range byKey {
+		varType := db.AppEnvironmentVariablesTypeWriteonly
+		if ptr.SafeDeref(v.Kind, openapi.Writeonly) == openapi.Recoverable {
+			varType = db.AppEnvironmentVariablesTypeRecoverable
+		}
+
+		description := sql.NullString{}
+		if v.Description != nil {
+			description = sql.NullString{Valid: true, String: *v.Description}
+		}
+
+		newEnvVars = append(newEnvVars, db.InsertAppEnvironmentVariableParams{
+			ID:            encrypted[key].id,
+			WorkspaceID:   env.WorkspaceID,
+			AppID:         env.AppID,
+			EnvironmentID: env.ID,
+			EnvKey:        key,
+			Value:         encrypted[key].ciphertext,
+			Type:          varType,
+			Description:   description,
+			CreatedAt:     now,
+		})
 	}
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
@@ -128,25 +154,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return setVarsDBError(lockErr, "unable to lock environment")
 		}
 
-		currentKeys, err := db.Query.ListAppEnvVarKeys(ctx, tx, env.ID)
-		if err != nil {
-			return setVarsDBError(err, "database error")
-		}
-		existing := make(map[string]struct{}, len(currentKeys))
-		for _, key := range currentKeys {
-			existing[key] = struct{}{}
-		}
-
 		if err := db.Query.DeleteAppEnvVarsByEnvironmentId(ctx, tx, env.ID); err != nil {
 			return setVarsDBError(err, "unable to delete variables")
 		}
 
-		newEnvVars := buildVariables(keys, byKey, encrypted, env, time.Now().UnixMilli())
 		if err = db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newEnvVars); err != nil {
 			return setVarsDBError(err, "unable to insert variables")
 		}
 
-		return h.Auditlogs.Insert(ctx, tx, h.variableAuditLogs(principal, s, env, keys, byKey, existing))
+		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
+				WorkspaceID:   principal.WorkspaceID,
+				Event:         auditlog.EnvironmentUpdateEvent,
+				Display:       fmt.Sprintf("Set environment variables for environment %s", env.ID),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          env.ID,
+						Type:        auditlog.EnvironmentResourceType,
+						Meta:        map[string]any{"keys": slices.Sorted(maps.Keys(byKey))},
+						Name:        env.Slug,
+						DisplayName: env.Slug,
+					},
+				},
+			},
+		})
 	})
 	if err != nil {
 		return err
@@ -158,111 +196,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-func buildVariables(
-	keys []string,
-	byKey map[string]openapi.EnvironmentVariableInput,
-	encrypted map[string]encryptedValue,
-	env db.Environment,
-	now int64,
-) []db.InsertAppEnvironmentVariableParams {
-	params := make([]db.InsertAppEnvironmentVariableParams, 0, len(keys))
-
-	for _, key := range keys {
-		v := byKey[key]
-
-		varType := db.AppEnvironmentVariablesTypeWriteonly
-		if v.Kind != nil && *v.Kind == openapi.Recoverable {
-			varType = db.AppEnvironmentVariablesTypeRecoverable
-		}
-
-		description := sql.NullString{}
-		if v.Description != nil {
-			description = sql.NullString{Valid: true, String: *v.Description}
-		}
-
-		params = append(params, db.InsertAppEnvironmentVariableParams{
-			ID:            encrypted[key].id,
-			WorkspaceID:   env.WorkspaceID,
-			AppID:         env.AppID,
-			EnvironmentID: env.ID,
-			EnvKey:        key,
-			Value:         encrypted[key].ciphertext,
-			Type:          varType,
-			Description:   description,
-			CreatedAt:     now,
-		})
-	}
-
-	return params
-}
-
-func (h *Handler) variableAuditLogs(
-	principal *authprincipal.Principal,
-	s *zen.Session,
-	env db.Environment,
-	keys []string,
-	byKey map[string]openapi.EnvironmentVariableInput,
-	existing map[string]struct{},
-) []auditlog.AuditLog {
-	event := func(key, action string) auditlog.AuditLog {
-		var display string
-		switch action {
-		case "created":
-			display = fmt.Sprintf("Created environment variable %s in environment %s", key, env.ID)
-		case "updated":
-			display = fmt.Sprintf("Updated environment variable %s in environment %s", key, env.ID)
-		default:
-			display = fmt.Sprintf("Removed environment variable %s from environment %s", key, env.ID)
-		}
-
-		return auditlog.AuditLog{
-			WorkspaceID:   principal.WorkspaceID,
-			Event:         auditlog.EnvironmentUpdateEvent,
-			Display:       display,
-			ActorID:       principal.Subject.ID,
-			ActorName:     principal.Subject.Name,
-			ActorMeta:     map[string]any{},
-			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-			RemoteIP:      s.Location(),
-			UserAgent:     s.UserAgent(),
-			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          env.ID,
-					Type:        auditlog.EnvironmentResourceType,
-					Meta:        map[string]any{"key": key, "action": action},
-					Name:        env.Slug,
-					DisplayName: env.Slug,
-				},
-			},
-		}
-	}
-
-	logs := make([]auditlog.AuditLog, 0, len(keys)+len(existing))
-	for _, key := range keys {
-		action := "created"
-		if _, existed := existing[key]; existed {
-			action = "updated"
-		}
-		logs = append(logs, event(key, action))
-	}
-	for key := range existing {
-		if _, stillSet := byKey[key]; stillSet {
-			continue
-		}
-		logs = append(logs, event(key, "removed"))
-	}
-	return logs
-}
-
 func (h *Handler) encryptValues(
 	ctx context.Context,
 	environmentID string,
-	keys []string,
 	byKey map[string]openapi.EnvironmentVariableInput,
 ) (map[string]encryptedValue, error) {
-	out := make(map[string]encryptedValue, len(keys))
-	if len(keys) == 0 {
+	out := make(map[string]encryptedValue, len(byKey))
+	if len(byKey) == 0 {
 		return out, nil
 	}
 
@@ -277,12 +217,12 @@ func (h *Handler) encryptValues(
 
 	// The vault item key is the variable's id, not its name, so the mapping
 	// holds regardless of key contents (mirrors the dashboard env-var flow).
-	ids := make(map[string]string, len(keys))
-	items := make(map[string]string, len(keys))
-	for _, key := range keys {
+	ids := make(map[string]string, len(byKey))
+	items := make(map[string]string, len(byKey))
+	for key, v := range byKey {
 		id := uid.New(uid.EnvironmentVariablePrefix)
 		ids[key] = id
-		items[id] = byKey[key].Value
+		items[id] = v.Value
 	}
 
 	encrypted, err := h.Vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{
@@ -298,8 +238,7 @@ func (h *Handler) encryptValues(
 		)
 	}
 
-	for _, key := range keys {
-		id := ids[key]
+	for key, id := range ids {
 		item, ok := encrypted.GetItems()[id]
 		if !ok {
 			return nil, fault.New(
