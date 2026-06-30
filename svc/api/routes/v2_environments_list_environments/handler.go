@@ -136,7 +136,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		regionsByEnv[r.EnvironmentID] = append(regionsByEnv[r.EnvironmentID], openapi.EnvironmentRegion{
 			Name: r.RegionName,
-			Replicas: openapi.ReplicaBounds{
+			Replicas: openapi.Replicas{
 				Min: minReplicas,
 				Max: maxReplicas,
 			},
@@ -183,8 +183,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				env.OpenapiSpecPath = ptr.P(rs.OpenapiSpecPath.String)
 			}
 			if hc := rs.Healthcheck.Healthcheck; hc != nil {
-				env.Healthcheck = &openapi.Healthcheck{
-					Method:              openapi.HealthcheckMethod(hc.Method),
+				env.Healthcheck = &openapi.EnvironmentHealthcheck{
+					Method:              openapi.EnvironmentHealthcheckMethod(hc.Method),
 					Path:                hc.Path,
 					IntervalSeconds:     ptr.P(hc.IntervalSeconds),
 					TimeoutSeconds:      ptr.P(hc.TimeoutSeconds),
