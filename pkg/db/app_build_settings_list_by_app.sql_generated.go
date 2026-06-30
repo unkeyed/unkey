@@ -10,7 +10,7 @@ import (
 )
 
 const listAppBuildSettingsByApp = `-- name: ListAppBuildSettingsByApp :many
-SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, watch_paths, auto_deploy, created_at, updated_at
+SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
 FROM app_build_settings
 WHERE app_id = ?
 `
@@ -18,7 +18,7 @@ WHERE app_id = ?
 // Returns the build settings for every environment in an app, for callers
 // that build multiple environments at once and group by environment_id.
 //
-//	SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, watch_paths, auto_deploy, created_at, updated_at
+//	SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
 //	FROM app_build_settings
 //	WHERE app_id = ?
 func (q *Queries) ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error) {
@@ -37,6 +37,7 @@ func (q *Queries) ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID 
 			&i.EnvironmentID,
 			&i.Dockerfile,
 			&i.DockerContext,
+			&i.BuildCommand,
 			&i.WatchPaths,
 			&i.AutoDeploy,
 			&i.CreatedAt,

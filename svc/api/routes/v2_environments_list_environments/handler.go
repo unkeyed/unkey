@@ -126,9 +126,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	regionsByEnv := make(map[string][]openapi.EnvironmentRegion, len(regionalRows))
 	for _, r := range regionalRows {
-		// Replica bounds come from the attached autoscaling policy. Without one,
-		// the current replica count acts as a fixed min and max, which is the
-		// shape updateSettings round-trips.
 		minReplicas := int(r.Replicas)
 		maxReplicas := int(r.Replicas)
 		if r.AutoscalingReplicasMin.Valid {
@@ -168,6 +165,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			OpenapiSpecPath:  nil,
 			Dockerfile:       nil,
 			RootDirectory:    nil,
+			BuildCommand:     nil,
 			WatchPaths:       nil,
 			AutoDeploy:       nil,
 			Regions:          nil,
@@ -201,6 +199,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				env.Dockerfile = ptr.P(bs.Dockerfile.String)
 			}
 			env.RootDirectory = ptr.P(bs.DockerContext)
+			if bs.BuildCommand.Valid {
+				env.BuildCommand = ptr.P(bs.BuildCommand.String)
+			}
 			env.WatchPaths = ptr.P([]string(bs.WatchPaths))
 			env.AutoDeploy = ptr.P(bs.AutoDeploy)
 		}
