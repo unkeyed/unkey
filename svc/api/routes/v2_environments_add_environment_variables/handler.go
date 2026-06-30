@@ -112,7 +112,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	var existingVars []db.ListAppEnvVarsForSetRow
+	var currentVars []db.ListAppEnvVarsForSetRow
 	var newParams []db.InsertAppEnvironmentVariableParams
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
@@ -132,9 +132,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if listErr != nil {
 			return addVarsDBError(listErr, "database error")
 		}
-		existingVars = rows
-		currentByKey := make(map[string]db.ListAppEnvVarsForSetRow, len(existingVars))
-		for _, v := range existingVars {
+		currentVars = rows
+		currentByKey := make(map[string]db.ListAppEnvVarsForSetRow, len(currentVars))
+		for _, v := range currentVars {
 			currentByKey[v.Key] = v
 		}
 
@@ -210,8 +210,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	data := make([]openapi.EnvironmentVariableMetadata, 0, len(existingVars)+len(newParams))
-	for _, cur := range existingVars {
+	data := make([]openapi.EnvironmentVariableMetadata, 0, len(currentVars)+len(newParams))
+	for _, cur := range currentVars {
 		var desc *string
 		if cur.Description.Valid {
 			d := cur.Description.String
