@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environments"
@@ -36,8 +35,6 @@ func TestListEnvironmentsValidationErrors(t *testing.T) {
 		{name: "app invalid chars", req: handler.Request{Project: "payments-service", App: "payments.api"}},
 		{name: "app too long", req: handler.Request{Project: "payments-service", App: strings.Repeat("a", 256)}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 257), App: "payments-api"}},
-		{name: "limit below minimum", req: handler.Request{Project: "payments-service", App: "payments-api", Limit: ptr.P(0)}},
-		{name: "limit above maximum", req: handler.Request{Project: "payments-service", App: "payments-api", Limit: ptr.P(101)}},
 	}
 
 	for _, tc := range testCases {

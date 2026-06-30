@@ -3,9 +3,9 @@ post:
     - environments
   summary: List environments
   description: |
-    Retrieve a paginated list of environments within an app.
+    Retrieve the environments within an app.
 
-    Use this to enumerate every environment in an app. Identify the app by its project slug and app slug. Results are ordered by environment id and paginated; when `hasMore` is true, pass the returned `cursor` to fetch the next page.
+    Use this to enumerate every environment in an app. Identify the app by its project slug and app slug. Results are ordered by environment id. An app has only a handful of environments, so all of them are returned in a single response.
 
     **Required Permissions**
 
@@ -23,7 +23,7 @@ post:
         examples:
           basic:
             summary: List an app's environments
-            description: List the first page of environments in the given app
+            description: List the environments in the given app
             value:
               project: payments-service
               app: payments-api
@@ -50,6 +50,10 @@ post:
                     deleteProtection: false
                     createdAt: 1704067200000
                     updatedAt: 1704153600000
+                    cpuMillicores: 250
+                    memoryMib: 256
+                    rootDirectory: .
+                    autoDeploy: true
                   - id: env_5678efgh
                     projectId: proj_1234abcd
                     appId: app_1234abcd
@@ -57,10 +61,12 @@ post:
                     description: Staging environment
                     deleteProtection: false
                     createdAt: 1704240000000
-                pagination:
-                  hasMore: false
+                    cpuMillicores: 250
+                    memoryMib: 256
+                    rootDirectory: .
+                    autoDeploy: true
       description: |
-        Successfully retrieved a paginated list of environments. Use the pagination cursor for additional results when `hasMore: true`.
+        Successfully retrieved the app's environments.
     "400":
       description: Bad request
       content:
@@ -68,20 +74,20 @@ post:
           schema:
             "$ref": "../../../../error/BadRequestErrorResponse.yaml"
           examples:
-            invalidLimit:
-              summary: Invalid limit
+            missingApp:
+              summary: Missing required field
               value:
                 meta:
                   requestId: req_1234abcd
                 error:
                   title: Bad Request
-                  detail: The limit must be between 1 and 100.
+                  detail: The app field is required.
                   status: 400
                   type: validation-error
                   errors:
-                    - location: body.limit
-                      message: must be less than or equal to 100
-                      fix: Use a limit between 1 and 100
+                    - location: body.app
+                      message: missing required field
+                      fix: Provide the app id or slug
     "401":
       description: Unauthorized
       content:
@@ -134,11 +140,3 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
-  x-speakeasy-pagination:
-    type: cursor
-    inputs:
-      - name: cursor
-        in: requestBody
-        type: cursor
-    outputs:
-      nextCursor: "$.pagination.cursor"

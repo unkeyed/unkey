@@ -1175,14 +1175,6 @@ type V2EnvironmentsListEnvironmentsRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	App ResourceIdentifier `json:"app"`
 
-	// Cursor Pagination cursor from a previous response to fetch the next page.
-	// Use when `hasMore: true` in the previous response.
-	Cursor *string `json:"cursor,omitempty"`
-
-	// Limit Maximum number of environments to return per request.
-	// Balance between response size and number of pagination calls needed.
-	Limit *int `json:"limit,omitempty"`
-
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
@@ -1195,9 +1187,6 @@ type V2EnvironmentsListEnvironmentsResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-
-	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.

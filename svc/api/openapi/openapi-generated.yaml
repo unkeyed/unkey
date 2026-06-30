@@ -627,20 +627,6 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 app:
                     "$ref": "#/components/schemas/ResourceIdentifier"
-                limit:
-                    type: integer
-                    description: |
-                        Maximum number of environments to return per request.
-                        Balance between response size and number of pagination calls needed.
-                    default: 100
-                    minimum: 1
-                    maximum: 100
-                cursor:
-                    type: string
-                    description: |
-                        Pagination cursor from a previous response to fetch the next page.
-                        Use when `hasMore: true` in the previous response.
-                    example: env_1234abcd
             additionalProperties: false
         V2EnvironmentsListEnvironmentsResponseBody:
             type: object
@@ -652,14 +638,9 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     type: array
-                    maxItems: 100
                     items:
                         "$ref": "#/components/schemas/Environment"
                     description: Array of environments in the app, ordered by environment id.
-                pagination:
-                    "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2IdentitiesCreateIdentityRequestBody:
             type: object
@@ -5929,9 +5910,9 @@ paths:
     /v2/environments.listEnvironments:
         post:
             description: |
-                Retrieve a paginated list of environments within an app.
+                Retrieve the environments within an app.
 
-                Use this to enumerate every environment in an app. Identify the app by its project slug and app slug. Results are ordered by environment id and paginated; when `hasMore` is true, pass the returned `cursor` to fetch the next page.
+                Use this to enumerate every environment in an app. Identify the app by its project slug and app slug. Results are ordered by environment id. An app has only a handful of environments, so all of them are returned in a single response.
 
                 **Required Permissions**
 
@@ -5943,7 +5924,7 @@ paths:
                     application/json:
                         examples:
                             basic:
-                                description: List the first page of environments in the given app
+                                description: List the environments in the given app
                                 summary: List an app's environments
                                 value:
                                     app: payments-api
@@ -5962,41 +5943,47 @@ paths:
                                     value:
                                         data:
                                             - appId: app_1234abcd
+                                              autoDeploy: true
+                                              cpuMillicores: 250
                                               createdAt: 1704067200000
                                               deleteProtection: false
                                               description: Production environment
                                               id: env_1234abcd
+                                              memoryMib: 256
                                               projectId: proj_1234abcd
+                                              rootDirectory: .
                                               slug: production
                                               updatedAt: 1704153600000
                                             - appId: app_1234abcd
+                                              autoDeploy: true
+                                              cpuMillicores: 250
                                               createdAt: 1704240000000
                                               deleteProtection: false
                                               description: Staging environment
                                               id: env_5678efgh
+                                              memoryMib: 256
                                               projectId: proj_1234abcd
+                                              rootDirectory: .
                                               slug: staging
                                         meta:
                                             requestId: req_1234abcd
-                                        pagination:
-                                            hasMore: false
                             schema:
                                 $ref: '#/components/schemas/V2EnvironmentsListEnvironmentsResponseBody'
                     description: |
-                        Successfully retrieved a paginated list of environments. Use the pagination cursor for additional results when `hasMore: true`.
+                        Successfully retrieved the app's environments.
                 "400":
                     content:
                         application/json:
                             examples:
-                                invalidLimit:
-                                    summary: Invalid limit
+                                missingApp:
+                                    summary: Missing required field
                                     value:
                                         error:
-                                            detail: The limit must be between 1 and 100.
+                                            detail: The app field is required.
                                             errors:
-                                                - fix: Use a limit between 1 and 100
-                                                  location: body.limit
-                                                  message: must be less than or equal to 100
+                                                - fix: Provide the app id or slug
+                                                  location: body.app
+                                                  message: missing required field
                                             status: 400
                                             title: Bad Request
                                             type: validation-error
@@ -6063,14 +6050,6 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironments
-            x-speakeasy-pagination:
-                inputs:
-                    - in: requestBody
-                      name: cursor
-                      type: cursor
-                outputs:
-                    nextCursor: $.pagination.cursor
-                type: cursor
     /v2/identities.createIdentity:
         post:
             description: |

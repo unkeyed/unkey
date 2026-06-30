@@ -77,14 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 100)
-	cursor := ptr.SafeDeref(req.Cursor, "")
-
-	rows, err := db.Query.ListEnvironmentsByApp(ctx, h.DB.RO(), db.ListEnvironmentsByAppParams{
-		AppID:    app.ID,
-		IDCursor: cursor,
-		Limit:    int32(limit + 1), // nolint:gosec
-	})
+	rows, err := db.Query.ListEnvironmentsByApp(ctx, h.DB.RO(), app.ID)
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -94,16 +87,68 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	hasMore := len(rows) > limit
-	var nextCursor *string
-	if hasMore {
-		nextCursor = ptr.P(rows[limit].ID)
-		rows = rows[:limit]
+	runtimeRows, err := db.Query.ListAppRuntimeSettingsByApp(ctx, h.DB.RO(), app.ID)
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve environments."),
+		)
+	}
+	runtimeByEnv := make(map[string]db.AppRuntimeSetting, len(runtimeRows))
+	for _, r := range runtimeRows {
+		runtimeByEnv[r.AppRuntimeSetting.EnvironmentID] = r.AppRuntimeSetting
+	}
+
+	buildRows, err := db.Query.ListAppBuildSettingsByApp(ctx, h.DB.RO(), app.ID)
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve environments."),
+		)
+	}
+	buildByEnv := make(map[string]db.AppBuildSetting, len(buildRows))
+	for _, b := range buildRows {
+		buildByEnv[b.EnvironmentID] = b
+	}
+
+	regionalRows, err := db.Query.ListAppRegionalSettingsByApp(ctx, h.DB.RO(), app.ID)
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve environments."),
+		)
+	}
+	regionsByEnv := make(map[string][]openapi.EnvironmentRegion, len(regionalRows))
+	for _, r := range regionalRows {
+		// Replica bounds come from the attached autoscaling policy. Without one,
+		// the current replica count acts as a fixed min and max, which is the
+		// shape updateSettings round-trips.
+		minReplicas := int(r.Replicas)
+		maxReplicas := int(r.Replicas)
+		if r.AutoscalingReplicasMin.Valid {
+			minReplicas = int(r.AutoscalingReplicasMin.Int32)
+		}
+		if r.AutoscalingReplicasMax.Valid {
+			maxReplicas = int(r.AutoscalingReplicasMax.Int32)
+		}
+		regionsByEnv[r.EnvironmentID] = append(regionsByEnv[r.EnvironmentID], openapi.EnvironmentRegion{
+			Name: r.RegionName,
+			Replicas: openapi.ReplicaBounds{
+				Min: minReplicas,
+				Max: maxReplicas,
+			},
+		})
 	}
 
 	data := make([]openapi.Environment, len(rows))
 	for i, row := range rows {
-		data[i] = openapi.Environment{
+		env := openapi.Environment{
 			Id:               row.ID,
 			ProjectId:        row.ProjectID,
 			AppId:            row.AppID,
@@ -112,7 +157,59 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			DeleteProtection: row.DeleteProtection.Bool,
 			CreatedAt:        row.CreatedAt,
 			UpdatedAt:        row.UpdatedAt.Int64,
+			Port:             nil,
+			CpuMillicores:    nil,
+			MemoryMib:        nil,
+			StorageMib:       nil,
+			Command:          nil,
+			Healthcheck:      nil,
+			ShutdownSignal:   nil,
+			UpstreamProtocol: nil,
+			OpenapiSpecPath:  nil,
+			Dockerfile:       nil,
+			RootDirectory:    nil,
+			WatchPaths:       nil,
+			AutoDeploy:       nil,
+			Regions:          nil,
 		}
+
+		if rs, ok := runtimeByEnv[row.ID]; ok {
+			env.Port = ptr.P(int(rs.Port))
+			env.CpuMillicores = ptr.P(int(rs.CpuMillicores))
+			env.MemoryMib = ptr.P(int(rs.MemoryMib))
+			env.StorageMib = ptr.P(int(rs.StorageMib))
+			env.Command = ptr.P([]string(rs.Command))
+			env.ShutdownSignal = ptr.P(openapi.EnvironmentShutdownSignal(rs.ShutdownSignal))
+			env.UpstreamProtocol = ptr.P(openapi.EnvironmentUpstreamProtocol(rs.UpstreamProtocol))
+			if rs.OpenapiSpecPath.Valid {
+				env.OpenapiSpecPath = ptr.P(rs.OpenapiSpecPath.String)
+			}
+			if hc := rs.Healthcheck.Healthcheck; hc != nil {
+				env.Healthcheck = &openapi.Healthcheck{
+					Method:              openapi.HealthcheckMethod(hc.Method),
+					Path:                hc.Path,
+					IntervalSeconds:     ptr.P(hc.IntervalSeconds),
+					TimeoutSeconds:      ptr.P(hc.TimeoutSeconds),
+					FailureThreshold:    ptr.P(hc.FailureThreshold),
+					InitialDelaySeconds: ptr.P(hc.InitialDelaySeconds),
+				}
+			}
+		}
+
+		if bs, ok := buildByEnv[row.ID]; ok {
+			if bs.Dockerfile.Valid {
+				env.Dockerfile = ptr.P(bs.Dockerfile.String)
+			}
+			env.RootDirectory = ptr.P(bs.DockerContext)
+			env.WatchPaths = ptr.P([]string(bs.WatchPaths))
+			env.AutoDeploy = ptr.P(bs.AutoDeploy)
+		}
+
+		if regions := regionsByEnv[row.ID]; len(regions) > 0 {
+			env.Regions = ptr.P(regions)
+		}
+
+		data[i] = env
 	}
 
 	return s.JSON(http.StatusOK, Response{
@@ -120,9 +217,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: data,
-		Pagination: &openapi.Pagination{
-			Cursor:  nextCursor,
-			HasMore: hasMore,
-		},
 	})
 }

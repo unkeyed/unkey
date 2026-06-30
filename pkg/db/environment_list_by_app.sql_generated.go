@@ -13,27 +13,18 @@ const listEnvironmentsByApp = `-- name: ListEnvironmentsByApp :many
 SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
 FROM environments
 WHERE app_id = ?
-  AND id >= ?
 ORDER BY id ASC
-LIMIT ?
 `
 
-type ListEnvironmentsByAppParams struct {
-	AppID    string `db:"app_id"`
-	IDCursor string `db:"id_cursor"`
-	Limit    int32  `db:"limit"`
-}
-
-// ListEnvironmentsByApp
+// An app has only a handful of environments, so this returns all of them
+// without pagination.
 //
 //	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
 //	FROM environments
 //	WHERE app_id = ?
-//	  AND id >= ?
 //	ORDER BY id ASC
-//	LIMIT ?
-func (q *Queries) ListEnvironmentsByApp(ctx context.Context, db DBTX, arg ListEnvironmentsByAppParams) ([]Environment, error) {
-	rows, err := db.QueryContext(ctx, listEnvironmentsByApp, arg.AppID, arg.IDCursor, arg.Limit)
+func (q *Queries) ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error) {
+	rows, err := db.QueryContext(ctx, listEnvironmentsByApp, appID)
 	if err != nil {
 		return nil, err
 	}
