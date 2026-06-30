@@ -1,0 +1,39 @@
+type: object
+required:
+  - method
+  - path
+properties:
+  method:
+    type: string
+    enum:
+      - GET
+      - POST
+    description: |
+      HTTP method used to probe the container.
+    example: GET
+  path:
+    type: string
+    description: |
+      HTTP path probed on the container.
+    example: /healthz
+  intervalSeconds:
+    type: integer
+    description: |
+      How often the probe runs, in seconds.
+    example: 10
+  timeoutSeconds:
+    type: integer
+    description: |
+      Per-probe timeout, in seconds.
+    example: 2
+  failureThreshold:
+    type: integer
+    description: |
+      Consecutive failures before the container is restarted.
+    example: 3
+  initialDelaySeconds:
+    type: integer
+    description: |
+      Delay before the first probe runs, in seconds.
+    example: 5
+additionalProperties: false
