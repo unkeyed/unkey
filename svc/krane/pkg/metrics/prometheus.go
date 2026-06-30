@@ -10,7 +10,7 @@ var (
 	// Use this to monitor deployment throughput and error rates.
 	//
 	// Labels:
-	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
+	//   - "resource_type": "deployment" or "cilium_network_policy"
 	//   - "operation": "apply" or "delete"
 	//   - "result": "success" or "error"
 	ReconcileOperationsTotal = lazy.NewCounterVec(
@@ -27,7 +27,7 @@ var (
 	// High values indicate the streaming path is missing events and resync is compensating.
 	//
 	// Labels:
-	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
+	//   - "resource_type": "deployment" or "cilium_network_policy"
 	ResyncCorrectionsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -89,7 +89,7 @@ var (
 	//
 	// Labels:
 	//   - "source": "stream" or "full_sync"
-	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
+	//   - "resource_type": "deployment" or "cilium_network_policy"
 	//   - "status": "success" or "error"
 	DispatchTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
@@ -123,10 +123,10 @@ var (
 	)
 
 	// PodWatchEventsTotal counts pod watch events and their disposition for
-	// both the deployment and sentinel controllers.
+	// the deployment controller.
 	//
 	// Labels:
-	//   - "component": "deployment" or "sentinel"
+	//   - "component": "deployment"
 	//   - "event_type": k8s watch event type ("added", "modified", "deleted")
 	//   - "outcome": "reported", "deduped", "skipped_no_rs", "skipped_rs_gone",
 	//                "skipped_no_deployment", "error"
@@ -151,7 +151,7 @@ var (
 	// missed") lives on [ResyncCorrectionsTotal].
 	//
 	// Labels:
-	//   - "component": "deployment" or "sentinel"
+	//   - "component": "deployment"
 	//   - "source": "watch" (real-time) — kept as a label for future
 	//               resync-sourced samples.
 	PodWatchDeliveryLagSeconds = lazy.NewHistogramVec(
@@ -171,7 +171,7 @@ var (
 	// on the "resync" label of PodWatchDeliveryLagSeconds.
 	//
 	// Labels:
-	//   - "component": "deployment" or "sentinel"
+	//   - "component": "deployment"
 	//   - "reason": "channel_closed", "error"
 	PodWatchReconnectsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
@@ -184,18 +184,17 @@ var (
 	)
 
 	// ReportStatusDurationSeconds measures krane-side latency of the
-	// ReportDeploymentStatus and ReportSentinelStatus RPCs, including
-	// circuit breaker overhead.
+	// ReportDeploymentStatus RPC, including circuit breaker overhead.
 	//
 	// Labels:
-	//   - "component": "deployment" or "sentinel"
+	//   - "component": "deployment"
 	//   - "result": "success", "error"
 	ReportStatusDurationSeconds = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "report_status_duration_seconds",
-			Help:      "Duration of ReportDeploymentStatus / ReportSentinelStatus calls from krane.",
+			Help:      "Duration of ReportDeploymentStatus calls from krane.",
 			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5},
 		},
 		[]string{"component", "result"},
@@ -205,7 +204,7 @@ var (
 	// because the fingerprint matched the last successful report.
 	//
 	// Labels:
-	//   - "component": "deployment" or "sentinel"
+	//   - "component": "deployment"
 	ReportDedupedTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
