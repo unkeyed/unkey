@@ -132,6 +132,33 @@ func TestFetchFromOrigin_CircuitBreakerShortCircuitsAfterTrip(t *testing.T) {
 		additionalCalls, maxTolerated)
 }
 
+func TestFetchFromOrigin_ContextCanceledDoesNotTripCircuitBreaker(t *testing.T) {
+	t.Parallel()
+
+	origin := newFailingCounter(context.Canceled)
+	svc := &service{
+		origin:               origin,
+		originCircuitBreaker: circuitbreaker.New[int64]("ratelimitOrigin"),
+	}
+	key := counterKey{
+		workspaceID: "ws",
+		namespace:   "ns",
+		identifier:  "id",
+		durationMs:  time.Minute.Milliseconds(),
+		sequence:    1,
+	}
+
+	const attempts = 20
+	for range attempts {
+		count, ok := svc.fetchFromOrigin(context.Background(), key, "fetch_cold")
+		require.False(t, ok)
+		require.Zero(t, count)
+	}
+
+	require.Equal(t, int64(attempts), origin.getCalls.Load(),
+		"context cancellations should not open the origin circuit breaker")
+}
+
 func TestCounterEntryEnsureFreshFromOrigin_RefreshesWarmEntryAfterFreshUntil(t *testing.T) {
 	t.Parallel()
 

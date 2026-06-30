@@ -140,3 +140,50 @@ func TestCircuitBreakerRecovers(t *testing.T) {
 	// Circuit should close
 	require.Equal(t, Closed, cb.state)
 }
+
+func TestCircuitBreakerIgnoresContextCanceled(t *testing.T) {
+	t.Parallel()
+
+	cb := New[int]("test", WithTripThreshold(1))
+
+	_, err := cb.Do(context.Background(), func(ctx context.Context) (int, error) {
+		return 0, context.Canceled
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, Closed, cb.state)
+	require.Zero(t, cb.failures)
+	require.Zero(t, cb.successes)
+
+	_, err = cb.Do(context.Background(), func(ctx context.Context) (int, error) {
+		return 0, errTestDownstream
+	})
+	require.ErrorIs(t, err, errTestDownstream)
+	require.Equal(t, Open, cb.state)
+}
+
+func TestCircuitBreakerIgnoredErrorsDoNotCloseHalfOpenCircuit(t *testing.T) {
+	t.Parallel()
+
+	cb := New[int](
+		"test",
+		WithMaxRequests(1),
+		WithIsDownstreamError(func(err error) bool {
+			return err != nil && !errors.Is(err, context.Canceled)
+		}),
+	)
+	cb.state = HalfOpen
+
+	_, err := cb.Do(context.Background(), func(ctx context.Context) (int, error) {
+		return 0, context.Canceled
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, HalfOpen, cb.state)
+	require.Zero(t, cb.consecutiveSuccesses)
+	require.Zero(t, cb.consecutiveFailures)
+
+	_, err = cb.Do(context.Background(), func(ctx context.Context) (int, error) {
+		return 42, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, Closed, cb.state)
+}

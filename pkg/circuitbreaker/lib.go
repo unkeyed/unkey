@@ -2,6 +2,7 @@ package circuitbreaker
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -94,8 +95,9 @@ func WithCyclicPeriod(cyclicPeriod time.Duration) applyConfig {
 }
 
 // WithIsDownstreamError provides a function to classify errors. Only errors
-// where this function returns true count toward the trip threshold. By default,
-// all non-nil errors are considered downstream errors.
+// where this function returns true count toward the trip threshold. Ignored
+// errors are neutral: they do not count as failures or successes. By default,
+// all non-nil errors except context.Canceled are considered downstream errors.
 func WithIsDownstreamError(isDownstreamError func(error) bool) applyConfig {
 	return func(c *config) {
 		c.isDownstreamError = isDownstreamError
@@ -158,7 +160,7 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 		cyclicPeriod: 5 * time.Second,
 		timeout:      time.Minute,
 		isDownstreamError: func(err error) bool {
-			return err != nil
+			return err != nil && !errors.Is(err, context.Canceled)
 		},
 		tripThreshold: 5,
 		failureRatio:  0,
@@ -254,12 +256,19 @@ func (cb *CB[Res]) preflight(_ context.Context) error {
 func (cb *CB[Res]) postflight(_ context.Context, err error) {
 	cb.Lock()
 	defer cb.Unlock()
+
+	isDownstreamError := err != nil && cb.config.isDownstreamError(err)
+	if err != nil && !isDownstreamError {
+		return
+	}
+
 	cb.requests++
-	if cb.config.isDownstreamError(err) {
+	switch {
+	case isDownstreamError:
 		cb.failures++
 		cb.consecutiveFailures++
 		cb.consecutiveSuccesses = 0
-	} else {
+	case err == nil:
 		cb.successes++
 		cb.consecutiveSuccesses++
 		cb.consecutiveFailures = 0
