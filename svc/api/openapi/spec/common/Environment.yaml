@@ -93,7 +93,7 @@ properties:
       Omitted until the environment has runtime settings.
     example: ["node", "server.js"]
   healthcheck:
-    "$ref": "./Healthcheck.yaml"
+    "$ref": "./EnvironmentHealthcheck.yaml"
   shutdownSignal:
     type: string
     enum:

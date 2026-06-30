@@ -3235,7 +3235,7 @@ components:
                         Omitted until the environment has runtime settings.
                     example: ["node", "server.js"]
                 healthcheck:
-                    "$ref": "#/components/schemas/Healthcheck"
+                    "$ref": "#/components/schemas/EnvironmentHealthcheck"
                 shutdownSignal:
                     type: string
                     enum:
@@ -3301,7 +3301,7 @@ components:
                         Per-region deployment settings for this environment.
                         Empty until regional settings are configured.
             additionalProperties: false
-        Healthcheck:
+        EnvironmentHealthcheck:
             type: object
             required:
                 - method
@@ -3353,9 +3353,9 @@ components:
                     description: Region name, such as us-east-1.
                     example: us-east-1
                 replicas:
-                    "$ref": "#/components/schemas/ReplicaBounds"
+                    "$ref": "#/components/schemas/Replicas"
             additionalProperties: false
-        ReplicaBounds:
+        Replicas:
             type: object
             description: Min and max replica bounds for autoscaling in a region.
             required:
