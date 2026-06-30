@@ -4,9 +4,10 @@ import { db, eq, schema } from "@/lib/db";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 export const changeWorkspaceName = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       name: z
