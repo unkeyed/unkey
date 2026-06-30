@@ -1200,14 +1200,12 @@ type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
 	Project ResourceIdentifier `json:"project"`
 
 	// Variables The desired set of variables. The key set is replaced wholesale: keys in
-	// this list are created or updated, unprotected keys absent from the list
-	// are removed, and delete-protected keys absent from the list are preserved.
-	// An empty array therefore removes every unprotected variable while leaving
-	// protected ones intact.
+	// this list are created or updated, and any key absent from the list is
+	// removed. An empty array therefore removes every variable.
 	//
 	// For a key that already exists, omitted optional fields (`sensitive`,
-	// `description`, `deleteProtection`) keep their current values; only `value`
-	// is required on every entry. A new key uses the field defaults.
+	// `description`) keep their current values; only `value` is required on
+	// every entry. A new key uses the field defaults.
 	//
 	// Duplicate keys are allowed and collapse to the last occurrence. The whole
 	// operation is atomic: if any part fails the environment is left unchanged.
@@ -1217,8 +1215,7 @@ type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
 
 // V2EnvironmentsSetEnvironmentVariablesResponseBody defines model for V2EnvironmentsSetEnvironmentVariablesResponseBody.
 type V2EnvironmentsSetEnvironmentVariablesResponseBody struct {
-	// Data The variables that were set, echoed back as metadata. Delete-protected
-	// variables preserved from a previous set are not included. Values are never
+	// Data The variables that were set, echoed back as metadata. Values are never
 	// returned.
 	Data []EnvironmentVariableMetadata `json:"data"`
 

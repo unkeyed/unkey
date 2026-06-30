@@ -35,11 +35,4 @@ properties:
       Human-readable description of the variable. Omit to keep the current
       description when updating an existing variable.
     example: Primary database connection string
-  deleteProtection:
-    type: boolean
-    description: |
-      When true this variable is never removed by a set operation, even if it
-      is absent from a later payload. Omit to keep the current setting when
-      updating an existing variable; defaults to false for a new variable.
-    example: false
 additionalProperties: false

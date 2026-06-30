@@ -10,8 +10,7 @@ properties:
     items:
       "$ref": "./EnvironmentVariableMetadata.yaml"
     description: |
-      The variables that were set, echoed back as metadata. Delete-protected
-      variables preserved from a previous set are not included. Values are never
+      The variables that were set, echoed back as metadata. Values are never
       returned.
 additionalProperties: false
 examples:
@@ -23,8 +22,6 @@ examples:
       data:
         - key: DATABASE_URL
           sensitive: true
-          deleteProtection: false
         - key: LOG_LEVEL
           sensitive: false
           description: Application log verbosity
-          deleteProtection: false

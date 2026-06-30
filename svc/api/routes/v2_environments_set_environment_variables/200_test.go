@@ -83,13 +83,12 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Len(t, body.Data, 1)
 		require.Equal(t, "API_KEY", body.Data[0].Key)
 		require.True(t, body.Data[0].Sensitive)
-		require.False(t, body.Data[0].DeleteProtection)
 	})
 
-	t.Run("replace removes unprotected vars absent from payload", func(t *testing.T) {
+	t.Run("replace removes vars absent from payload", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "OLD_ONE", "x", db.AppEnvironmentVariablesTypeRecoverable, false)
-		seedVar(t, h, env, "OLD_TWO", "y", db.AppEnvironmentVariablesTypeRecoverable, false)
+		seedVar(t, h, env, "OLD_ONE", "x", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "OLD_TWO", "y", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "NEW_ONE", Value: "z"},
@@ -101,40 +100,22 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.True(t, ok)
 	})
 
-	t.Run("protected var omitted from payload survives", func(t *testing.T) {
+	t.Run("existing var in payload is updated in place", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "PROTECTED", "keep", db.AppEnvironmentVariablesTypeRecoverable, true)
-		seedVar(t, h, env, "PLAIN", "drop", db.AppEnvironmentVariablesTypeRecoverable, false)
+		seedVar(t, h, env, "API_KEY", "old", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "FRESH", Value: "v"},
-		}))
-
-		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 2)
-		require.Contains(t, raw, "PROTECTED")
-		require.Contains(t, raw, "FRESH")
-		require.NotContains(t, raw, "PLAIN")
-		require.True(t, raw["PROTECTED"].deleteProtection)
-	})
-
-	t.Run("protected var in payload is updated in place", func(t *testing.T) {
-		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "PROTECTED", "old", db.AppEnvironmentVariablesTypeRecoverable, true)
-
-		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "PROTECTED", Value: "new", DeleteProtection: ptr(true)},
+			{Key: "API_KEY", Value: "new"},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
 		require.Len(t, raw, 1)
-		require.Equal(t, "new", decrypt(t, env.environmentID, raw["PROTECTED"].value))
-		require.True(t, raw["PROTECTED"].deleteProtection)
+		require.Equal(t, "new", decrypt(t, env.environmentID, raw["API_KEY"].value))
 	})
 
 	t.Run("omitted optional fields preserve existing values", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVarFull(t, h, env, "SECRET", "old", db.AppEnvironmentVariablesTypeWriteonly, "db password", true)
+		seedVarFull(t, h, env, "SECRET", "old", db.AppEnvironmentVariablesTypeWriteonly, "db password")
 
 		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "SECRET", Value: "rotated"},
@@ -143,36 +124,21 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		raw := listRawVars(t, h, env.environmentID)
 		require.Len(t, raw, 1)
 		require.Equal(t, "rotated", decrypt(t, env.environmentID, raw["SECRET"].value))
-		// sensitive, description, and protection are preserved when omitted.
+		// sensitive and description are preserved when omitted.
 		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["SECRET"].varType)
 		require.Equal(t, "db password", raw["SECRET"].description)
-		require.True(t, raw["SECRET"].deleteProtection)
 
 		// Response reflects the merged result, not the raw payload.
 		require.Len(t, body.Data, 1)
 		require.True(t, body.Data[0].Sensitive)
-		require.True(t, body.Data[0].DeleteProtection)
 		require.NotNil(t, body.Data[0].Description)
 		require.Equal(t, "db password", *body.Data[0].Description)
 	})
 
-	t.Run("explicit false overrides preserved protection", func(t *testing.T) {
-		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "WAS_PROTECTED", "v", db.AppEnvironmentVariablesTypeRecoverable, true)
-
-		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "WAS_PROTECTED", Value: "v2", DeleteProtection: ptr(false)},
-		}))
-
-		raw := listRawVars(t, h, env.environmentID)
-		require.False(t, raw["WAS_PROTECTED"].deleteProtection)
-	})
-
 	t.Run("emits per-variable audit events", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "EXISTING", "old", db.AppEnvironmentVariablesTypeRecoverable, false)
-		seedVar(t, h, env, "DROP", "x", db.AppEnvironmentVariablesTypeRecoverable, false)
-		seedVar(t, h, env, "PROTECTED", "keep", db.AppEnvironmentVariablesTypeRecoverable, true)
+		seedVar(t, h, env, "EXISTING", "old", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "DROP", "x", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "EXISTING", Value: "new"},
@@ -198,21 +164,17 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Contains(t, updated[0], "EXISTING")
 		require.Len(t, removed, 1)
 		require.Contains(t, removed[0], "DROP")
-		// PROTECTED was preserved, so it must not produce a removal event.
-		require.NotContains(t, removed[0], "PROTECTED")
 	})
 
-	t.Run("empty payload clears unprotected and keeps protected", func(t *testing.T) {
+	t.Run("empty payload clears all vars", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "PROTECTED", "keep", db.AppEnvironmentVariablesTypeRecoverable, true)
-		seedVar(t, h, env, "PLAIN", "drop", db.AppEnvironmentVariablesTypeRecoverable, false)
+		seedVar(t, h, env, "ONE", "a", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "TWO", "b", db.AppEnvironmentVariablesTypeRecoverable)
 
 		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{}))
 
 		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 1)
-		require.Contains(t, raw, "PROTECTED")
-		// Response echoes only what was set; preserved protected vars are not listed.
+		require.Empty(t, raw)
 		require.Empty(t, body.Data)
 	})
 }
