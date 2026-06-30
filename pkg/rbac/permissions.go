@@ -224,6 +224,8 @@ const (
 	SetEnvironmentVariables ActionType = "set_environment_variables"
 	// RemoveEnvironmentVariables permits removing variables from a specific environment
 	RemoveEnvironmentVariables ActionType = "remove_environment_variables"
+	// ReadEnvironmentVariables permits reading a specific environment's variables
+	ReadEnvironmentVariables ActionType = "read_environment_variables"
 )
 
 // Tuple represents a specific permission as a combination of resource type,
