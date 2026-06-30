@@ -124,12 +124,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return setVarsDBError(lockErr, "unable to lock environment")
 		}
 
-		existingVars, err := db.Query.ListAppEnvVarsForSet(ctx, tx, env.ID)
+		currentVars, err := db.Query.ListAppEnvVarsForSet(ctx, tx, env.ID)
 		if err != nil {
 			return setVarsDBError(err, "database error")
 		}
-		currentByKey := make(map[string]db.ListAppEnvVarsForSetRow, len(existingVars))
-		for _, v := range existingVars {
+		currentByKey := make(map[string]db.ListAppEnvVarsForSetRow, len(currentVars))
+		for _, v := range currentVars {
 			currentByKey[v.Key] = v
 		}
 
