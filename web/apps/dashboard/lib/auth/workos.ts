@@ -32,6 +32,7 @@ import {
   type OAuthResult,
   type OrgInviteParams,
   type Organization,
+  OrganizationScopeError,
   PENDING_SESSION_COOKIE,
   type PendingAuthChallengeResponse,
   RADAR_ATTEMPT_COOKIE,
@@ -670,13 +671,73 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  /**
+   * Whether a thrown WorkOS error is a 404. A missing resource is treated the
+   * same as one belonging to another organization so the two cases are
+   * indistinguishable to the caller (see `OrganizationScopeError`).
+   */
+  private isNotFoundError(error: unknown): boolean {
+    return typeof error === "object" && error !== null && "status" in error && error.status === 404;
+  }
+
+  /**
+   * Asserts the membership belongs to `orgId` before it is mutated. WorkOS
+   * scopes membership mutations by ID alone, so without this check an admin of
+   * one organization could target a membership ID belonging to another. A
+   * missing membership raises the same `OrganizationScopeError` as a wrong-org
+   * one so callers cannot use the error to probe for IDs in other organizations.
+   */
+  private async assertMembershipInOrg(membershipId: string, orgId: string): Promise<void> {
+    let organizationId: string;
+    try {
+      const membership = await this.provider.userManagement.getOrganizationMembership(membershipId);
+      organizationId = membership.organizationId;
+    } catch (error) {
+      if (this.isNotFoundError(error)) {
+        throw new OrganizationScopeError("membership", membershipId);
+      }
+      throw error;
+    }
+
+    if (organizationId !== orgId) {
+      throw new OrganizationScopeError("membership", membershipId);
+    }
+  }
+
+  /**
+   * Asserts the invitation belongs to `orgId` before it is mutated. Mirrors
+   * {@link assertMembershipInOrg}: WorkOS revokes by invitation ID alone, and a
+   * missing invitation raises the same `OrganizationScopeError` as a wrong-org
+   * one so the error cannot confirm another organization's invitation IDs.
+   */
+  private async assertInvitationInOrg(invitationId: string, orgId: string): Promise<void> {
+    // WorkOS invitations may be created without an organization; such an
+    // invitation can never match the caller's org and is rejected below.
+    let organizationId: string | null;
+    try {
+      const invitation = await this.provider.userManagement.getInvitation(invitationId);
+      organizationId = invitation.organizationId;
+    } catch (error) {
+      if (this.isNotFoundError(error)) {
+        throw new OrganizationScopeError("invitation", invitationId);
+      }
+      throw error;
+    }
+
+    if (organizationId !== orgId) {
+      throw new OrganizationScopeError("invitation", invitationId);
+    }
+  }
+
   async updateMembership(params: UpdateMembershipParams): Promise<Membership> {
-    const { membershipId, role } = params;
-    if (!membershipId || !role) {
-      throw new Error("Membership id and role are required.");
+    const { membershipId, role, orgId } = params;
+    if (!membershipId || !role || !orgId) {
+      throw new Error("Membership id, role, and organization id are required.");
     }
 
     try {
+      await this.assertMembershipInOrg(membershipId, orgId);
+
       const membership = await this.provider.userManagement.updateOrganizationMembership(
         membershipId,
         { roleSlug: role },
@@ -702,30 +763,41 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         status: membership.status,
       };
     } catch (error) {
+      if (error instanceof OrganizationScopeError) {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }
 
-  async removeMembership(membershipId: string): Promise<void> {
-    if (!membershipId) {
-      throw new Error("Membership Id is required");
+  async removeMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
     }
 
     try {
+      await this.assertMembershipInOrg(membershipId, orgId);
       await this.provider.userManagement.deleteOrganizationMembership(membershipId);
     } catch (error) {
+      if (error instanceof OrganizationScopeError) {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }
 
-  async deactivateMembership(membershipId: string): Promise<void> {
-    if (!membershipId) {
-      throw new Error("Membership Id is required");
+  async deactivateMembership(membershipId: string, orgId: string): Promise<void> {
+    if (!membershipId || !orgId) {
+      throw new Error("Membership id and organization id are required.");
     }
 
     try {
+      await this.assertMembershipInOrg(membershipId, orgId);
       await this.provider.userManagement.deactivateOrganizationMembership(membershipId);
     } catch (error) {
+      if (error instanceof OrganizationScopeError) {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }
@@ -797,14 +869,18 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async revokeOrgInvitation(invitationId: string): Promise<void> {
-    if (!invitationId) {
-      throw new Error("Invitation Id is required");
+  async revokeOrgInvitation(invitationId: string, orgId: string): Promise<void> {
+    if (!invitationId || !orgId) {
+      throw new Error("Invitation id and organization id are required.");
     }
 
     try {
+      await this.assertInvitationInOrg(invitationId, orgId);
       await this.provider.userManagement.revokeInvitation(invitationId);
     } catch (error) {
+      if (error instanceof OrganizationScopeError) {
+        throw error;
+      }
       throw this.handleError(error);
     }
   }
@@ -833,6 +909,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     const magicAuth = await this.provider.userManagement.createMagicAuth(params);
 
@@ -856,26 +933,29 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     params: UserData & {
       ipAddress?: string;
       userAgent?: string;
+      signalsId?: string;
     },
   ): Promise<EmailAuthResult> {
-    const { email, firstName, lastName, ipAddress, userAgent } = params;
+    const { email, firstName, lastName, ipAddress, userAgent, signalsId } = params;
 
     try {
-      // Create the user with WorkOS. Passing the request metadata enrolls
-      // this request with Radar, which links the attempt to the
-      // authentication that follows.
+      // Create the user with WorkOS. Passing the request metadata plus the
+      // browser-signal token enrolls this request with Radar, which links the
+      // attempt to the authentication that follows.
       const createUserResponse = await this.provider.userManagement.createUser({
         firstName,
         lastName,
         email,
         ipAddress,
         userAgent,
+        signalsId,
       });
 
       return await this.sendMagicAuthCode({
         email,
         ipAddress,
         userAgent,
+        signalsId,
         radarAuthAttemptId: createUserResponse.radarAuthAttemptId,
       });
     } catch (error: unknown) {
@@ -899,7 +979,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           const { data } = await this.provider.userManagement.listUsers({ email });
           const existingUser = data[0];
           if (existingUser && !existingUser.emailVerified) {
-            return await this.sendMagicAuthCode({ email, ipAddress, userAgent });
+            return await this.sendMagicAuthCode({ email, ipAddress, userAgent, signalsId });
           }
         } catch (_lookupError) {
           // Fall through to the duplicate-email error below
@@ -931,8 +1011,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     email: string;
     ipAddress?: string;
     userAgent?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
-    const { email, ipAddress, userAgent } = params;
+    const { email, ipAddress, userAgent, signalsId } = params;
 
     try {
       const { data } = await this.provider.userManagement.listUsers({ email });
@@ -941,7 +1022,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         return this.handleError(new Error(AuthErrorCode.ACCOUNT_NOT_FOUND));
       }
 
-      return await this.sendMagicAuthCode({ email, ipAddress, userAgent });
+      return await this.sendMagicAuthCode({ email, ipAddress, userAgent, signalsId });
     } catch (error) {
       if (this.isRadarBlock(error)) {
         return this.radarBlockedResponse();
@@ -955,6 +1036,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<EmailAuthResult> {
     try {
       return await this.sendMagicAuthCode(params);
@@ -970,8 +1052,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     ipAddress?: string;
     userAgent?: string;
     radarAuthAttemptId?: string;
+    signalsId?: string;
   }): Promise<VerificationResult> {
-    const { email, code, invitationToken, ipAddress, userAgent, radarAuthAttemptId } = params;
+    const { email, code, invitationToken, ipAddress, userAgent, radarAuthAttemptId, signalsId } =
+      params;
 
     return this.completeAuthentication(() =>
       this.provider.userManagement.authenticateWithMagicAuth({
@@ -982,6 +1066,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         ipAddress,
         userAgent,
         radarAuthAttemptId,
+        signalsId,
         session: {
           sealSession: true,
           cookiePassword: this.cookiePassword,
@@ -1256,8 +1341,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
-    const { provider, redirectUrlComplete } = options;
-    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete }));
+    const { provider, redirectUrlComplete, signalsId } = options;
+    // The browser-signal token is collected client-side before the redirect to
+    // the OAuth provider. There is no client touchpoint on the callback, so it
+    // rides through the OAuth `state` round-trip and is handed to
+    // `authenticateWithCode` in completeOAuthSignIn to link the attempt to Radar.
+    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete, signalsId }));
     const baseUrl = getBaseUrl();
     const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
@@ -1278,12 +1367,21 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
 
     try {
+      // `state` carries both the post-auth redirect target and the browser-signal
+      // token collected before the OAuth redirect (see signInViaOAuth). It is an
+      // attacker-influenceable callback query param, so parse it inside the try so
+      // a malformed value is routed through mapAuthError instead of throwing.
+      const parsedState: { redirectUrlComplete?: string; signalsId?: string } = state
+        ? JSON.parse(decodeURIComponent(state))
+        : {};
+
       const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
         clientId: this.clientId,
         code,
         ipAddress:
           callbackRequest.headers.get("x-forwarded-for")?.split(",")[0].trim() || undefined,
         userAgent: callbackRequest.headers.get("user-agent") || undefined,
+        signalsId: parsedState.signalsId,
         session: {
           sealSession: true,
           cookiePassword: this.cookiePassword,
@@ -1294,9 +1392,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("No sealed session returned");
       }
 
-      const redirectUrlComplete = state
-        ? JSON.parse(decodeURIComponent(state)).redirectUrlComplete
-        : "/apis";
+      const redirectUrlComplete = parsedState.redirectUrlComplete ?? "/apis";
 
       return {
         success: true,

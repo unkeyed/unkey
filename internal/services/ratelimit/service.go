@@ -380,6 +380,7 @@ func New(config Config) (*service, error) {
 		originCircuitBreaker: circuitbreaker.New[int64](
 			"ratelimitOrigin",
 			circuitbreaker.WithTimeout(originBreakerOpenTimeout),
+			circuitbreaker.WithFailureRatio(originBreakerFailureRatio, originBreakerMinRequests),
 		),
 		globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_push"),
 		db:                   db.New(config.DB.RW(), config.DB.RO()),
