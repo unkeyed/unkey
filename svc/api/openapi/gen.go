@@ -1251,6 +1251,40 @@ type V2EnvironmentsListEnvironmentsResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2EnvironmentsRemoveEnvironmentVariablesRequestBody defines model for V2EnvironmentsRemoveEnvironmentVariablesRequestBody.
+type V2EnvironmentsRemoveEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Variables The names of the variables to remove. Keys that exist are deleted; keys
+	// that are not present are ignored. Delete-protected keys are never removed
+	// and are left untouched.
+	//
+	// Duplicate keys are allowed and collapse to a single removal. The whole
+	// operation is atomic: if any part fails the environment is left unchanged.
+	// Limited to 50 variables per request.
+	Variables []string `json:"variables"`
+}
+
+// V2EnvironmentsRemoveEnvironmentVariablesResponseBody defines model for V2EnvironmentsRemoveEnvironmentVariablesResponseBody.
+type V2EnvironmentsRemoveEnvironmentVariablesResponseBody struct {
+	// Data The full remaining set of variables for the environment after the
+	// removal, echoed back as metadata. Values are never returned.
+	Data []EnvironmentVariableMetadata `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2EnvironmentsSetEnvironmentVariablesRequestBody defines model for V2EnvironmentsSetEnvironmentVariablesRequestBody.
 type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -3135,6 +3169,9 @@ type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentReq
 
 // EnvironmentsListEnvironmentsJSONRequestBody defines body for EnvironmentsListEnvironments for application/json ContentType.
 type EnvironmentsListEnvironmentsJSONRequestBody = V2EnvironmentsListEnvironmentsRequestBody
+
+// EnvironmentsRemoveEnvironmentVariablesJSONRequestBody defines body for EnvironmentsRemoveEnvironmentVariables for application/json ContentType.
+type EnvironmentsRemoveEnvironmentVariablesJSONRequestBody = V2EnvironmentsRemoveEnvironmentVariablesRequestBody
 
 // EnvironmentsSetEnvironmentVariablesJSONRequestBody defines body for EnvironmentsSetEnvironmentVariables for application/json ContentType.
 type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvironmentVariablesRequestBody

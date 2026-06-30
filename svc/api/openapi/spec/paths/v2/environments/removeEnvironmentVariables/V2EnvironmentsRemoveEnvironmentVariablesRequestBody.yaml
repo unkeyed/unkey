@@ -1,0 +1,46 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - variables
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  variables:
+    type: array
+    minItems: 1
+    maxItems: 50
+    items:
+      type: string
+      minLength: 1
+      maxLength: 256
+      pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      description: |
+        The name of a variable to remove. Must be a POSIX shell name: letters,
+        digits, and underscores only, and must not start with a digit.
+      example: LOG_LEVEL
+    description: |
+      The names of the variables to remove. Keys that exist are deleted; keys
+      that are not present are ignored. Delete-protected keys are never removed
+      and are left untouched.
+
+      Duplicate keys are allowed and collapse to a single removal. The whole
+      operation is atomic: if any part fails the environment is left unchanged.
+      Limited to 50 variables per request.
+additionalProperties: false
+examples:
+  removeVariables:
+    summary: Remove variables
+    description: Remove the named variables from an environment
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      variables:
+        - LOG_LEVEL
+        - DEBUG_MODE
