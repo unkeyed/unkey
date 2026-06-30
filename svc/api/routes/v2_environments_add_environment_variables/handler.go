@@ -107,57 +107,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		deduped[v.Key] = v
 	}
 
-	existingVars, err := db.Query.ListAppEnvVarsForSet(ctx, h.DB.RO(), env.ID)
-	if err != nil {
-		return addVarsDBError(err, "database error")
-	}
-	currentByKey := make(map[string]db.ListAppEnvVarsForSetRow, len(existingVars))
-	for _, v := range existingVars {
-		currentByKey[v.Key] = v
-	}
-
-	newKeys := make([]string, 0, len(keys))
-	for _, key := range keys {
-		if _, existed := currentByKey[key]; existed {
-			continue
-		}
-		newKeys = append(newKeys, key)
-	}
-
-	encrypted, err := h.encryptValues(ctx, env.ID, newKeys, deduped)
+	encrypted, err := h.encryptValues(ctx, env.ID, keys, deduped)
 	if err != nil {
 		return err
 	}
 
-	newParams := make([]db.InsertAppEnvironmentVariableParams, 0, len(newKeys))
-	for _, key := range newKeys {
-		v := deduped[key]
-
-		varType := db.AppEnvironmentVariablesTypeRecoverable
-		if ptr.SafeDeref(v.Sensitive, false) {
-			varType = db.AppEnvironmentVariablesTypeWriteonly
-		}
-
-		description := sql.NullString{}
-		if v.Description != nil {
-			description = sql.NullString{Valid: true, String: *v.Description}
-		}
-
-		deleteProtection := ptr.SafeDeref(v.DeleteProtection, false)
-
-		newParams = append(newParams, db.InsertAppEnvironmentVariableParams{
-			ID:               encrypted[key].id,
-			WorkspaceID:      env.WorkspaceID,
-			AppID:            env.AppID,
-			EnvironmentID:    env.ID,
-			EnvKey:           key,
-			Value:            encrypted[key].ciphertext,
-			Type:             varType,
-			Description:      description,
-			DeleteProtection: sql.NullBool{Valid: true, Bool: deleteProtection},
-			CreatedAt:        time.Now().UnixMilli(),
-		})
-	}
+	var existingVars []db.ListAppEnvVarsForSetRow
+	var newParams []db.InsertAppEnvironmentVariableParams
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		if _, lockErr := db.Query.LockEnvironmentForUpdate(ctx, tx, env.ID); lockErr != nil {
@@ -172,16 +128,55 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return addVarsDBError(lockErr, "unable to lock environment")
 		}
 
-		if len(newParams) == 0 {
-			return nil
+		rows, listErr := db.Query.ListAppEnvVarsForSet(ctx, tx, env.ID)
+		if listErr != nil {
+			return addVarsDBError(listErr, "database error")
+		}
+		existingVars = rows
+		currentByKey := make(map[string]db.ListAppEnvVarsForSetRow, len(existingVars))
+		for _, v := range existingVars {
+			currentByKey[v.Key] = v
 		}
 
-		auditLogs := make([]auditlog.AuditLog, 0, len(newParams))
-		for _, p := range newParams {
+		now := time.Now().UnixMilli()
+		newParams = make([]db.InsertAppEnvironmentVariableParams, 0, len(keys))
+		auditLogs := make([]auditlog.AuditLog, 0, len(keys))
+
+		for _, key := range keys {
+			if _, existed := currentByKey[key]; existed {
+				continue
+			}
+			v := deduped[key]
+
+			varType := db.AppEnvironmentVariablesTypeRecoverable
+			if ptr.SafeDeref(v.Sensitive, false) {
+				varType = db.AppEnvironmentVariablesTypeWriteonly
+			}
+
+			description := sql.NullString{}
+			if v.Description != nil {
+				description = sql.NullString{Valid: true, String: *v.Description}
+			}
+
+			deleteProtection := ptr.SafeDeref(v.DeleteProtection, false)
+
+			newParams = append(newParams, db.InsertAppEnvironmentVariableParams{
+				ID:               encrypted[key].id,
+				WorkspaceID:      env.WorkspaceID,
+				AppID:            env.AppID,
+				EnvironmentID:    env.ID,
+				EnvKey:           key,
+				Value:            encrypted[key].ciphertext,
+				Type:             varType,
+				Description:      description,
+				DeleteProtection: sql.NullBool{Valid: true, Bool: deleteProtection},
+				CreatedAt:        now,
+			})
+
 			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.EnvironmentUpdateEvent,
-				Display:       fmt.Sprintf("Created environment variable %s in environment %s", p.EnvKey, env.ID),
+				Display:       fmt.Sprintf("Created environment variable %s in environment %s", key, env.ID),
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
@@ -193,7 +188,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						ID:          env.ID,
 						Type:        auditlog.EnvironmentResourceType,
-						Meta:        map[string]any{"key": p.EnvKey, "action": "created"},
+						Meta:        map[string]any{"key": key, "action": "created"},
 						Name:        env.Slug,
 						DisplayName: env.Slug,
 					},
@@ -201,8 +196,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 		}
 
-		if err = db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newParams); err != nil {
-			return addVarsDBError(err, "unable to insert variables")
+		if len(newParams) == 0 {
+			return nil
+		}
+
+		if insErr := db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newParams); insErr != nil {
+			return addVarsDBError(insErr, "unable to insert variables")
 		}
 
 		return h.Auditlogs.Insert(ctx, tx, auditLogs)
