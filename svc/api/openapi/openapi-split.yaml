@@ -248,6 +248,8 @@ paths:
     $ref: "./spec/paths/v2/environments/addEnvironmentVariables/index.yaml"
   /v2/environments.removeEnvironmentVariables:
     $ref: "./spec/paths/v2/environments/removeEnvironmentVariables/index.yaml"
+  /v2/environments.listEnvironmentVariables:
+    $ref: "./spec/paths/v2/environments/listEnvironmentVariables/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:
