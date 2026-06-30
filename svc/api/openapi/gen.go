@@ -306,6 +306,27 @@ type EnvironmentShutdownSignal string
 // EnvironmentUpstreamProtocol Protocol used to reach the container.
 type EnvironmentUpstreamProtocol string
 
+// EnvironmentVariable defines model for EnvironmentVariable.
+type EnvironmentVariable struct {
+	// CreatedAt Unix timestamp in milliseconds when the variable was created.
+	CreatedAt int64 `json:"createdAt"`
+
+	// Description Human-readable description. Omitted if none was provided.
+	Description string `json:"description,omitempty"`
+
+	// Key The variable name.
+	Key string `json:"key"`
+
+	// Kind How the value may be read back. `writeonly` values can never be read back
+	// through the API; `recoverable` values can be decrypted. Values are encrypted
+	// at rest either way.
+	Kind EnvironmentVariableKind `json:"kind"`
+
+	// Value The decrypted plaintext value. Present only for `recoverable` variables.
+	// Omitted for `writeonly` variables, which can never be read back.
+	Value string `json:"value,omitempty"`
+}
+
 // EnvironmentVariableInput A single environment variable to set.
 type EnvironmentVariableInput struct {
 	// Description Human-readable description of the variable.
@@ -1231,6 +1252,39 @@ type V2EnvironmentsGetEnvironmentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2EnvironmentsListEnvironmentVariablesRequestBody defines model for V2EnvironmentsListEnvironmentVariablesRequestBody.
+type V2EnvironmentsListEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Limit Maximum number of variables to return per request.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2EnvironmentsListEnvironmentVariablesResponseBody defines model for V2EnvironmentsListEnvironmentVariablesResponseBody.
+type V2EnvironmentsListEnvironmentVariablesResponseBody struct {
+	Data []EnvironmentVariable `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
 // V2EnvironmentsListEnvironmentsRequestBody defines model for V2EnvironmentsListEnvironmentsRequestBody.
 type V2EnvironmentsListEnvironmentsRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -1246,6 +1300,39 @@ type V2EnvironmentsListEnvironmentsRequestBody struct {
 type V2EnvironmentsListEnvironmentsResponseBody struct {
 	// Data Array of environments in the app, ordered by environment id.
 	Data []Environment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2EnvironmentsRemoveEnvironmentVariablesRequestBody defines model for V2EnvironmentsRemoveEnvironmentVariablesRequestBody.
+type V2EnvironmentsRemoveEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Variables The names of the variables to remove. Keys that exist are deleted; keys
+	// that are not present are ignored, since their absence already matches the
+	// requested state.
+	//
+	// Duplicate keys collapse to a single removal. The whole operation is atomic:
+	// if any part fails the environment is left unchanged. Limited to 50
+	// variables per request.
+	Variables []string `json:"variables"`
+}
+
+// V2EnvironmentsRemoveEnvironmentVariablesResponseBody defines model for V2EnvironmentsRemoveEnvironmentVariablesResponseBody.
+type V2EnvironmentsRemoveEnvironmentVariablesResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -3133,8 +3220,14 @@ type EnvironmentsAddEnvironmentVariablesJSONRequestBody = V2EnvironmentsAddEnvir
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody
 
+// EnvironmentsListEnvironmentVariablesJSONRequestBody defines body for EnvironmentsListEnvironmentVariables for application/json ContentType.
+type EnvironmentsListEnvironmentVariablesJSONRequestBody = V2EnvironmentsListEnvironmentVariablesRequestBody
+
 // EnvironmentsListEnvironmentsJSONRequestBody defines body for EnvironmentsListEnvironments for application/json ContentType.
 type EnvironmentsListEnvironmentsJSONRequestBody = V2EnvironmentsListEnvironmentsRequestBody
+
+// EnvironmentsRemoveEnvironmentVariablesJSONRequestBody defines body for EnvironmentsRemoveEnvironmentVariables for application/json ContentType.
+type EnvironmentsRemoveEnvironmentVariablesJSONRequestBody = V2EnvironmentsRemoveEnvironmentVariablesRequestBody
 
 // EnvironmentsSetEnvironmentVariablesJSONRequestBody defines body for EnvironmentsSetEnvironmentVariables for application/json ContentType.
 type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvironmentVariablesRequestBody

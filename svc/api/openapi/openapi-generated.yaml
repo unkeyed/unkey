@@ -3784,6 +3784,39 @@ components:
                     description: Maximum number of replicas.
                     example: 3
             additionalProperties: false
+        EnvironmentVariable:
+            type: object
+            required:
+                - key
+                - kind
+                - createdAt
+            properties:
+                key:
+                    type: string
+                    description: The variable name.
+                    example: DATABASE_URL
+                kind:
+                    "$ref": "#/components/schemas/EnvironmentVariableKind"
+                value:
+                    type: string
+                    description: |
+                        The decrypted plaintext value. Present only for `recoverable` variables.
+                        Omitted for `writeonly` variables, which can never be read back.
+                    example: postgresql://user:pass@host:5432/db
+                    x-go-type-skip-optional-pointer: true
+                description:
+                    type: string
+                    description: Human-readable description. Omitted if none was provided.
+                    example: Primary database connection string
+                    x-go-type-skip-optional-pointer: true
+                createdAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: Unix timestamp in milliseconds when the variable was created.
+                    example: 1704067200000
+            additionalProperties: false
         RatelimitRequest:
             type: object
             required:
