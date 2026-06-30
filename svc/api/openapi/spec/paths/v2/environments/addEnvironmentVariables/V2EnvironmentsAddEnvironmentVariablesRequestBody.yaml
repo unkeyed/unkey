@@ -1,0 +1,47 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - variables
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  variables:
+    type: array
+    minItems: 1
+    maxItems: 50
+    items:
+      "$ref": "../setEnvironmentVariables/EnvironmentVariableInput.yaml"
+    description: |
+      The variables to add. Keys that do not yet exist are created; keys that
+      already exist are left untouched (no overwrite, no deletion). Use
+      `setEnvironmentVariables` to update existing values.
+
+      A new key uses the field defaults when optional fields (`sensitive`,
+      `description`, `deleteProtection`) are omitted; only `value` is required
+      on every entry.
+
+      Duplicate keys are allowed and collapse to the last occurrence. The whole
+      operation is atomic: if any part fails the environment is left unchanged.
+      All values are encrypted at rest. Limited to 50 variables per request.
+additionalProperties: false
+examples:
+  addVariables:
+    summary: Add new variables
+    description: Add variables to an environment, leaving existing keys untouched
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      variables:
+        - key: DATABASE_URL
+          value: postgresql://user:pass@host:5432/db
+          sensitive: true
+        - key: LOG_LEVEL
+          value: debug
+          description: Application log verbosity

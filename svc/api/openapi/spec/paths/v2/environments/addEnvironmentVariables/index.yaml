@@ -1,0 +1,95 @@
+post:
+  tags:
+    - environments
+  summary: Add environment variables
+  description: |
+    Add new environment variables to an environment in a single atomic request.
+
+    This operation only creates keys. Keys in the payload that do not yet exist
+    are created; keys that already exist are left untouched (no overwrite, no
+    deletion). To replace or update existing values, use
+    `setEnvironmentVariables` instead. The whole operation is atomic: if any
+    part fails the environment is left unchanged.
+
+    A new key uses the field defaults when optional fields are omitted:
+    `sensitive` defaults to false (recoverable) and `deleteProtection` defaults
+    to false.
+
+    Values are always encrypted at rest. Set `sensitive: true` to make a value
+    write-only so it can never be read back. The response echoes the full
+    resulting set of variables as metadata and never returns values.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.set_environment_variables` (for any environment)
+    - `environment.<environment_id>.set_environment_variables` (for a specific environment)
+  operationId: environments.addEnvironmentVariables
+  x-speakeasy-name-override: addEnvironmentVariables
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2EnvironmentsAddEnvironmentVariablesRequestBody.yaml"
+        examples:
+          addVariables:
+            summary: Add new variables
+            description: Locate the environment by slug and add variables, leaving existing keys untouched
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              variables:
+                - key: DATABASE_URL
+                  value: postgresql://user:pass@host:5432/db
+                  sensitive: true
+                - key: LOG_LEVEL
+                  value: debug
+                  description: Application log verbosity
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully added the environment variables.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2EnvironmentsAddEnvironmentVariablesResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.set_environment_variables`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The requested environment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
