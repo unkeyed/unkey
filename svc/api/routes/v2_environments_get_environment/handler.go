@@ -140,8 +140,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			data.OpenapiSpecPath = ptr.P(rs.OpenapiSpecPath.String)
 		}
 		if hc := rs.Healthcheck.Healthcheck; hc != nil {
-			data.Healthcheck = &openapi.Healthcheck{
-				Method:              openapi.HealthcheckMethod(hc.Method),
+			data.Healthcheck = &openapi.EnvironmentHealthcheck{
+				Method:              openapi.EnvironmentHealthcheckMethod(hc.Method),
 				Path:                hc.Path,
 				IntervalSeconds:     ptr.P(hc.IntervalSeconds),
 				TimeoutSeconds:      ptr.P(hc.TimeoutSeconds),
@@ -202,7 +202,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			regions = append(regions, openapi.EnvironmentRegion{
 				Name: r.RegionName,
-				Replicas: openapi.ReplicaBounds{
+				Replicas: openapi.Replicas{
 					Min: minReplicas,
 					Max: maxReplicas,
 				},
