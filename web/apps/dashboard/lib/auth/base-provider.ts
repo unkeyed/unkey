@@ -346,9 +346,10 @@ export abstract class BaseAuthProvider {
    * Removes a user's membership from an organization.
    *
    * @param membershipId - The ID of the membership to remove
+   * @param orgId - The caller's organization; the membership must belong to it
    * @returns A promise that resolves when the membership is removed
    */
-  abstract removeMembership(membershipId: string): Promise<void>;
+  abstract removeMembership(membershipId: string, orgId: string): Promise<void>;
 
   /**
    * Deactivates a user's membership in an organization without deleting it.
@@ -356,9 +357,10 @@ export abstract class BaseAuthProvider {
    * for non-creator members. The membership can be reactivated later.
    *
    * @param membershipId - The ID of the membership to deactivate
+   * @param orgId - The caller's organization; the membership must belong to it
    * @returns A promise that resolves when the membership is deactivated
    */
-  abstract deactivateMembership(membershipId: string): Promise<void>;
+  abstract deactivateMembership(membershipId: string, orgId: string): Promise<void>;
 
   /**
    * Invites a new user to join an organization.
@@ -388,9 +390,10 @@ export abstract class BaseAuthProvider {
    * Revokes an existing invitation.
    *
    * @param invitationId - The ID of the invitation to revoke
+   * @param orgId - The caller's organization; the invitation must belong to it
    * @returns A promise that resolves when the invitation is revoked
    */
-  abstract revokeOrgInvitation(invitationId: string): Promise<void>;
+  abstract revokeOrgInvitation(invitationId: string, orgId: string): Promise<void>;
 
   /**
    * Accepts an invitation to join an organization.

@@ -6,10 +6,12 @@ import { Loading, toast } from "@unkey/ui";
 import * as React from "react";
 import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
+import { useRadarSignals } from "../radar/radar-signals";
 
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const [clientReady, setClientReady] = React.useState(false);
+  const { getToken } = useRadarSignals();
   const redirectUrlComplete = "/new";
 
   // Set clientReady to true after hydration is complete
@@ -20,9 +22,11 @@ export function OAuthSignUp() {
   const oauthSignIn = async (provider: OAuthStrategy) => {
     try {
       setIsLoading(provider);
+      const signalsId = await getToken();
       const url = await signInViaOAuth({
         provider,
         redirectUrlComplete,
+        signalsId,
       });
 
       if (url) {
