@@ -2,7 +2,7 @@ package handler_test
 
 import (
 	"context"
-	"strings"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -111,7 +111,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Empty(t, raw["SECRET"].description)
 	})
 
-	t.Run("emits per-variable audit events", func(t *testing.T) {
+	t.Run("emits a single audit event with the applied key set", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVar(t, h, env, "EXISTING", "old", db.AppEnvironmentVariablesTypeRecoverable)
 		seedVar(t, h, env, "DROP", "x", db.AppEnvironmentVariablesTypeRecoverable)
@@ -122,24 +122,15 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		}))
 
 		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
-		var created, updated, removed []string
-		for _, ev := range logs {
-			switch {
-			case strings.HasPrefix(ev.Description, "Created environment variable"):
-				created = append(created, ev.Description)
-			case strings.HasPrefix(ev.Description, "Updated environment variable"):
-				updated = append(updated, ev.Description)
-			case strings.HasPrefix(ev.Description, "Removed environment variable"):
-				removed = append(removed, ev.Description)
-			}
-		}
+		require.Len(t, logs, 1)
+		require.Contains(t, logs[0].Description, "Set environment variables")
 
-		require.Len(t, created, 1)
-		require.Contains(t, created[0], "NEW")
-		require.Len(t, updated, 1)
-		require.Contains(t, updated[0], "EXISTING")
-		require.Len(t, removed, 1)
-		require.Contains(t, removed[0], "DROP")
+		require.Len(t, logs[0].Targets, 1)
+		keys := fmt.Sprintf("%v", logs[0].Targets[0].Meta["keys"])
+		require.Contains(t, keys, "EXISTING")
+		require.Contains(t, keys, "NEW")
+		// Removals are implicit: DROP is simply absent from the applied set.
+		require.NotContains(t, keys, "DROP")
 	})
 
 	t.Run("empty payload clears all vars", func(t *testing.T) {
