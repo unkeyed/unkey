@@ -9,11 +9,7 @@ import (
 )
 
 // bulkInsertAppEnvironmentVariable is the base query for bulk insert
-const bulkInsertAppEnvironmentVariable = `INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, ` + "`" + `key` + "`" + `, value, ` + "`" + `type` + "`" + `, description, created_at) VALUES %s ON DUPLICATE KEY UPDATE
-  value = VALUES(value),
-  ` + "`" + `type` + "`" + ` = VALUES(` + "`" + `type` + "`" + `),
-  description = VALUES(description),
-  updated_at = VALUES(created_at)`
+const bulkInsertAppEnvironmentVariable = `INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, ` + "`" + `key` + "`" + `, value, ` + "`" + `type` + "`" + `, description, created_at) VALUES %s`
 
 // InsertAppEnvironmentVariables performs bulk insert in a single query
 func (q *BulkQueries) InsertAppEnvironmentVariables(ctx context.Context, db DBTX, args []InsertAppEnvironmentVariableParams) error {

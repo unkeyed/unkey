@@ -6,17 +6,17 @@ post:
     Replace all environment variables for an environment in a single atomic
     request.
 
-    The payload is the complete desired set: keys in the payload are created or
-    updated, and any key absent from the payload is removed. Sending the full
+    This is a complete reset: the payload fully replaces the existing set. Every
+    variable is written exactly as sent, and any key absent from the payload is
+    removed. Nothing is merged with the current state, so omitted optional fields
+    fall back to their defaults rather than the previous value. Sending the full
     desired set at once avoids partial-update states where dependent variables
     (such as a username and password) drift out of sync across deployments.
 
-    When updating an existing key, omitted optional fields (`sensitive`,
-    `description`) keep their current values; only `value` is required.
-
-    Values are always encrypted at rest. Set `sensitive: true` to make a value
-    write-only so it can never be read back. The response echoes the variables
-    you set as metadata and never returns values.
+    Values are always encrypted at rest. Set `kind: recoverable` to allow a
+    value to be read back; it defaults to `writeonly`, which can never be read
+    back through the API. The response echoes the variables you set as metadata
+    and never returns values.
 
     **Required Permissions**
 
@@ -43,9 +43,10 @@ post:
               variables:
                 - key: DATABASE_URL
                   value: postgresql://user:pass@host:5432/db
-                  sensitive: true
+                  kind: writeonly
                 - key: LOG_LEVEL
                   value: debug
+                  kind: recoverable
                   description: Application log verbosity
     required: true
   responses:

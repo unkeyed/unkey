@@ -67,13 +67,6 @@ type Querier interface {
 	//
 	//  DELETE FROM app_environment_variables WHERE environment_id = ?
 	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	// Deletes an environment's variables whose key is not in the provided set,
-	// reconciling toward the desired set.
-	//
-	//  DELETE FROM app_environment_variables
-	//  WHERE environment_id = ?
-	//    AND `key` NOT IN (/*SLICE:env_keys*/?)
-	DeleteAppEnvVarsNotInKeys(ctx context.Context, db DBTX, arg DeleteAppEnvVarsNotInKeysParams) error
 	//DeleteAppRegionalSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
@@ -1526,11 +1519,6 @@ type Querier interface {
 	//
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	//  ON DUPLICATE KEY UPDATE
-	//    value = VALUES(value),
-	//    `type` = VALUES(`type`),
-	//    description = VALUES(description),
-	//    updated_at = VALUES(created_at)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
 	//InsertCertificate
 	//

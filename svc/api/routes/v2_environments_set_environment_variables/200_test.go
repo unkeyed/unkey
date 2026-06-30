@@ -42,8 +42,8 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 	t.Run("set on empty environment encrypts and stores values", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "DATABASE_URL", Value: "postgres://secret", Sensitive: ptr(true)},
-			{Key: "LOG_LEVEL", Value: "debug", Description: ptr("verbosity")},
+			{Key: "DATABASE_URL", Value: "postgres://secret", Kind: ptr(openapi.EnvironmentVariableInputKindWriteonly)},
+			{Key: "LOG_LEVEL", Value: "debug", Kind: ptr(openapi.EnvironmentVariableInputKindRecoverable), Description: ptr("verbosity")},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
@@ -57,32 +57,26 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Equal(t, "debug", decrypt(t, env.environmentID, raw["LOG_LEVEL"].value))
 	})
 
-	t.Run("duplicate keys dedup with last occurrence winning", func(t *testing.T) {
+	t.Run("kind defaults to writeonly when omitted", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "DUP", Value: "first", Sensitive: ptr(false)},
-			{Key: "DUP", Value: "last", Sensitive: ptr(true)},
+			{Key: "PLAIN", Value: "v"},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 1)
-		require.Equal(t, "last", decrypt(t, env.environmentID, raw["DUP"].value))
-		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["DUP"].varType)
-
-		require.Len(t, body.Data, 1)
-		require.Equal(t, "DUP", body.Data[0].Key)
-		require.True(t, body.Data[0].Sensitive)
+		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["PLAIN"].varType)
+		require.Equal(t, openapi.EnvironmentVariableMetadataKindWriteonly, body.Data[0].Kind)
 	})
 
 	t.Run("response returns metadata without values", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "API_KEY", Value: "shh", Sensitive: ptr(true)},
+			{Key: "API_KEY", Value: "shh", Kind: ptr(openapi.EnvironmentVariableInputKindWriteonly)},
 		}))
 
 		require.Len(t, body.Data, 1)
 		require.Equal(t, "API_KEY", body.Data[0].Key)
-		require.True(t, body.Data[0].Sensitive)
+		require.Equal(t, openapi.EnvironmentVariableMetadataKindWriteonly, body.Data[0].Kind)
 	})
 
 	t.Run("replace removes vars absent from payload", func(t *testing.T) {
@@ -113,9 +107,9 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Equal(t, "new", decrypt(t, env.environmentID, raw["API_KEY"].value))
 	})
 
-	t.Run("omitted optional fields preserve existing values", func(t *testing.T) {
+	t.Run("complete reset: omitted optional fields fall back to defaults", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVarFull(t, h, env, "SECRET", "old", db.AppEnvironmentVariablesTypeWriteonly, "db password")
+		seedVarFull(t, h, env, "SECRET", "old", db.AppEnvironmentVariablesTypeRecoverable, "db password")
 
 		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "SECRET", Value: "rotated"},
@@ -124,15 +118,13 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		raw := listRawVars(t, h, env.environmentID)
 		require.Len(t, raw, 1)
 		require.Equal(t, "rotated", decrypt(t, env.environmentID, raw["SECRET"].value))
-		// sensitive and description are preserved when omitted.
+		// Nothing merged: kind defaults to writeonly and description is cleared.
 		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["SECRET"].varType)
-		require.Equal(t, "db password", raw["SECRET"].description)
+		require.Empty(t, raw["SECRET"].description)
 
-		// Response reflects the merged result, not the raw payload.
 		require.Len(t, body.Data, 1)
-		require.True(t, body.Data[0].Sensitive)
-		require.NotNil(t, body.Data[0].Description)
-		require.Equal(t, "db password", *body.Data[0].Description)
+		require.Equal(t, openapi.EnvironmentVariableMetadataKindWriteonly, body.Data[0].Kind)
+		require.Nil(t, body.Data[0].Description)
 	})
 
 	t.Run("emits per-variable audit events", func(t *testing.T) {

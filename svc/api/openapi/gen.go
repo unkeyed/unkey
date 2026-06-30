@@ -300,6 +300,9 @@ type EnvironmentShutdownSignal string
 // EnvironmentUpstreamProtocol Protocol used to reach the container.
 type EnvironmentUpstreamProtocol string
 
+// EnvironmentVariableMetadataKind How the value may be read back.
+type EnvironmentVariableMetadataKind string
+
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
 // - The operation requires elevated privileges that the current key lacks
@@ -1199,17 +1202,18 @@ type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
 
-	// Variables The desired set of variables. The key set is replaced wholesale: keys in
-	// this list are created or updated, and any key absent from the list is
-	// removed. An empty array therefore removes every variable.
+	// Variables The complete desired set of variables. This fully replaces the existing
+	// set: every entry is written exactly as sent, and any key absent from the
+	// list is removed. An empty array therefore removes every variable.
 	//
-	// For a key that already exists, omitted optional fields (`sensitive`,
-	// `description`) keep their current values; only `value` is required on
-	// every entry. A new key uses the field defaults.
+	// Nothing is merged with the current state. Only `value` is required on each
+	// entry; omitted optional fields (`kind`, `description`) fall back to their
+	// defaults rather than any previous value.
 	//
-	// Duplicate keys are allowed and collapse to the last occurrence. The whole
-	// operation is atomic: if any part fails the environment is left unchanged.
-	// All values are encrypted at rest. Limited to 50 variables per request.
+	// Each key may appear at most once; a duplicate key is rejected with a 400.
+	// The whole operation is atomic: if any part fails the environment is left
+	// unchanged. All values are encrypted at rest. Limited to 50 variables per
+	// request.
 	Variables []EnvironmentVariableInput `json:"variables"`
 }
 

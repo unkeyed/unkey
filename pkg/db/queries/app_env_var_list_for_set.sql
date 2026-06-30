@@ -1,6 +1,6 @@
--- name: ListAppEnvVarsForSet :many
--- Returns each variable's current attributes for an environment. Used to merge
--- omitted optional fields and to classify a set into added/updated/removed.
-SELECT `key`, `type`, description
+-- name: ListAppEnvVarKeys :many
+-- Returns the existing variable keys for an environment. Used to classify a
+-- set into created/updated/removed for audit logging.
+SELECT `key`
 FROM app_environment_variables
 WHERE environment_id = sqlc.arg(environment_id);

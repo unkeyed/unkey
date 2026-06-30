@@ -20,19 +20,21 @@ properties:
     maxLength: 4096
     description: The variable value. Always encrypted at rest.
     example: postgresql://user:pass@host:5432/db
-  sensitive:
-    type: boolean
+  kind:
+    type: string
+    enum:
+      - recoverable
+      - writeonly
+    default: writeonly
     description: |
-      When true the value is write-only and can never be read back through the
-      API. When false it is recoverable and can be decrypted. Values are
-      encrypted at rest either way. Omit to keep the current setting when
-      updating an existing variable; defaults to false for a new variable.
-    example: false
+      How the value may be read back. `writeonly` values can never be read
+      back through the API; `recoverable` values can be decrypted. Values are
+      encrypted at rest either way. Defaults to `writeonly`.
+    example: writeonly
   description:
     type: string
     maxLength: 255
     description: |
-      Human-readable description of the variable. Omit to keep the current
-      description when updating an existing variable.
+      Human-readable description of the variable.
     example: Primary database connection string
 additionalProperties: false

@@ -13,11 +13,6 @@ import (
 const insertAppEnvironmentVariable = `-- name: InsertAppEnvironmentVariable :exec
 INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, ` + "`" + `key` + "`" + `, value, ` + "`" + `type` + "`" + `, description, created_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON DUPLICATE KEY UPDATE
-  value = VALUES(value),
-  ` + "`" + `type` + "`" + ` = VALUES(` + "`" + `type` + "`" + `),
-  description = VALUES(description),
-  updated_at = VALUES(created_at)
 `
 
 type InsertAppEnvironmentVariableParams struct {
@@ -36,11 +31,6 @@ type InsertAppEnvironmentVariableParams struct {
 //
 //	INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
 //	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-//	ON DUPLICATE KEY UPDATE
-//	  value = VALUES(value),
-//	  `type` = VALUES(`type`),
-//	  description = VALUES(description),
-//	  updated_at = VALUES(created_at)
 func (q *Queries) InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error {
 	_, err := db.ExecContext(ctx, insertAppEnvironmentVariable,
 		arg.ID,

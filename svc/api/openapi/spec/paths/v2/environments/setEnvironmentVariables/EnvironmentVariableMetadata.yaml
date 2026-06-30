@@ -2,16 +2,19 @@ type: object
 description: Metadata for an environment variable. Never includes the value.
 required:
   - key
-  - sensitive
+  - kind
 properties:
   key:
     type: string
     description: The variable name.
     example: DATABASE_URL
-  sensitive:
-    type: boolean
-    description: Whether the value is write-only (true) or recoverable (false).
-    example: false
+  kind:
+    type: string
+    enum:
+      - recoverable
+      - writeonly
+    description: How the value may be read back.
+    example: writeonly
   description:
     type: string
     description: Human-readable description of the variable, if set.

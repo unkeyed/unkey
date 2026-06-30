@@ -21,7 +21,7 @@ examples:
         requestId: req_1234abcd
       data:
         - key: DATABASE_URL
-          sensitive: true
+          kind: writeonly
         - key: LOG_LEVEL
-          sensitive: false
+          kind: recoverable
           description: Application log verbosity
