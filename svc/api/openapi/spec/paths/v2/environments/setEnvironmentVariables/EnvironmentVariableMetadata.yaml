@@ -3,7 +3,6 @@ description: Metadata for an environment variable. Never includes the value.
 required:
   - key
   - sensitive
-  - deleteProtection
 properties:
   key:
     type: string
@@ -17,8 +16,4 @@ properties:
     type: string
     description: Human-readable description of the variable, if set.
     example: Primary database connection string
-  deleteProtection:
-    type: boolean
-    description: Whether this variable is protected from deletion.
-    example: false
 additionalProperties: false

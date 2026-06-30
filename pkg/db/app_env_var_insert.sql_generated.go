@@ -11,38 +11,35 @@ import (
 )
 
 const insertAppEnvironmentVariable = `-- name: InsertAppEnvironmentVariable :exec
-INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, ` + "`" + `key` + "`" + `, value, ` + "`" + `type` + "`" + `, description, delete_protection, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, ` + "`" + `key` + "`" + `, value, ` + "`" + `type` + "`" + `, description, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
   value = VALUES(value),
   ` + "`" + `type` + "`" + ` = VALUES(` + "`" + `type` + "`" + `),
   description = VALUES(description),
-  delete_protection = VALUES(delete_protection),
   updated_at = VALUES(created_at)
 `
 
 type InsertAppEnvironmentVariableParams struct {
-	ID               string                      `db:"id"`
-	WorkspaceID      string                      `db:"workspace_id"`
-	AppID            string                      `db:"app_id"`
-	EnvironmentID    string                      `db:"environment_id"`
-	EnvKey           string                      `db:"env_key"`
-	Value            string                      `db:"value"`
-	Type             AppEnvironmentVariablesType `db:"type"`
-	Description      sql.NullString              `db:"description"`
-	DeleteProtection sql.NullBool                `db:"delete_protection"`
-	CreatedAt        int64                       `db:"created_at"`
+	ID            string                      `db:"id"`
+	WorkspaceID   string                      `db:"workspace_id"`
+	AppID         string                      `db:"app_id"`
+	EnvironmentID string                      `db:"environment_id"`
+	EnvKey        string                      `db:"env_key"`
+	Value         string                      `db:"value"`
+	Type          AppEnvironmentVariablesType `db:"type"`
+	Description   sql.NullString              `db:"description"`
+	CreatedAt     int64                       `db:"created_at"`
 }
 
 // InsertAppEnvironmentVariable
 //
-//	INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, delete_protection, created_at)
-//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
+//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	  value = VALUES(value),
 //	  `type` = VALUES(`type`),
 //	  description = VALUES(description),
-//	  delete_protection = VALUES(delete_protection),
 //	  updated_at = VALUES(created_at)
 func (q *Queries) InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error {
 	_, err := db.ExecContext(ctx, insertAppEnvironmentVariable,
@@ -54,7 +51,6 @@ func (q *Queries) InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg
 		arg.Value,
 		arg.Type,
 		arg.Description,
-		arg.DeleteProtection,
 		arg.CreatedAt,
 	)
 	return err
