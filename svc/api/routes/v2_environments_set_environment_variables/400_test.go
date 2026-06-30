@@ -30,8 +30,8 @@ func TestSetEnvironmentVariablesBadRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("more than 100 variables are rejected", func(t *testing.T) {
-		vars := make([]openapi.EnvironmentVariableInput, 101)
+	t.Run("more than 50 variables are rejected", func(t *testing.T) {
+		vars := make([]openapi.EnvironmentVariableInput, 51)
 		for i := range vars {
 			vars[i] = openapi.EnvironmentVariableInput{Key: fmt.Sprintf("KEY_%d", i), Value: "v"}
 		}
