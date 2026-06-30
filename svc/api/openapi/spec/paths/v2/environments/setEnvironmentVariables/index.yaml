@@ -3,7 +3,7 @@ post:
     - environments
   summary: Set environment variables
   description: |
-    Replace the environment variables for an environment in a single atomic
+    Replace all environment variables for an environment in a single atomic
     request.
 
     This operation reconciles the environment toward the variables you send:
