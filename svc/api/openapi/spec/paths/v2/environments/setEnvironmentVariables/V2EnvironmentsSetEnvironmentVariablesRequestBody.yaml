@@ -15,7 +15,7 @@ properties:
     type: array
     maxItems: 50
     items:
-      "$ref": "./EnvironmentVariableInput.yaml"
+      "$ref": "../../../../common/EnvironmentVariableInput.yaml"
     description: |
       The complete desired set of variables. This fully replaces the existing
       set: every entry is written exactly as sent, and any key absent from the
