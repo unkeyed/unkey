@@ -148,7 +148,6 @@ import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { rerollRootKey } from "./key/reroll";
-import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { llmSearch } from "./logs/llm-search";
@@ -235,7 +234,6 @@ export const router = t.router({
       timeseries: keyDetailsVerificationsTimeseries,
     }),
     update: t.router({
-      ratelimit: updateKeyRatelimit,
       rbac: t.router({
         update: updateKeyRbac,
         roles: t.router({
