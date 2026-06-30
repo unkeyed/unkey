@@ -200,6 +200,130 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
+// TestPortalSessionAnalyticsNonWildcardPermission verifies the combined filter
+// path: a portal session scoped to a single API via a non-wildcard
+// api.<id>.read_analytics permission gets both a key_space_id filter (from the
+// permission) and a key_id filter (from identity scoping). It must see only its
+// own keys within the permitted API, never its keys in other APIs nor other
+// identities' keys in the permitted API.
+func TestPortalSessionAnalyticsNonWildcardPermission(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	api1 := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	api2 := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	h.SetupAnalytics(workspace.ID)
+
+	route := &handler.Handler{
+		DB:                         h.DB,
+		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
+		Caches:                     h.Caches,
+	}
+	h.Register(route, portalMiddleware(h)...)
+
+	// Identity A owns a key in each API.
+	externalA := "portal_user_A"
+	identityA := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID,
+		ExternalID:  externalA,
+	})
+	keyA1 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api1.KeyAuthID.String,
+		IdentityID:  ptr.P(identityA.ID),
+	})
+	keyA2 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api2.KeyAuthID.String,
+		IdentityID:  ptr.P(identityA.ID),
+	})
+
+	// Identity B owns a key in api1 whose events must never be visible to A.
+	identityB := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID,
+		ExternalID:  "portal_user_B",
+	})
+	keyB1 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api1.KeyAuthID.String,
+		IdentityID:  ptr.P(identityB.ID),
+	})
+
+	now := time.Now().UnixMilli()
+
+	// 4 events for A's api1 key (the only events that should be counted).
+	for i := range 4 {
+		h.KeyVerifications.Buffer(schema.KeyVerification{
+			RequestID:   uid.New(uid.RequestPrefix),
+			Time:        now - int64(i*1000),
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api1.KeyAuthID.String,
+			KeyID:       keyA1.KeyID,
+			Region:      "us-west-1",
+			Outcome:     "VALID",
+			IdentityID:  identityA.ID,
+			Tags:        []string{},
+		})
+	}
+
+	// 3 events for A's api2 key; excluded by the key_space_id filter.
+	for i := range 3 {
+		h.KeyVerifications.Buffer(schema.KeyVerification{
+			RequestID:   uid.New(uid.RequestPrefix),
+			Time:        now - int64(i*1000),
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api2.KeyAuthID.String,
+			KeyID:       keyA2.KeyID,
+			Region:      "us-west-1",
+			Outcome:     "VALID",
+			IdentityID:  identityA.ID,
+			Tags:        []string{},
+		})
+	}
+
+	// 5 events for B's api1 key; excluded by the key_id filter.
+	for i := range 5 {
+		h.KeyVerifications.Buffer(schema.KeyVerification{
+			RequestID:   uid.New(uid.RequestPrefix),
+			Time:        now - int64(i*1000),
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api1.KeyAuthID.String,
+			KeyID:       keyB1.KeyID,
+			Region:      "us-east-1",
+			Outcome:     "VALID",
+			IdentityID:  identityB.ID,
+			Tags:        []string{},
+		})
+	}
+
+	// Permission is scoped to api1 only (non-wildcard); the query must reference
+	// api1's key_space_id so authorization resolves to the api1 permission.
+	headers := createPortalSession(t, h, workspace.ID, externalA, []string{
+		fmt.Sprintf("api.%s.read_analytics", api1.ID),
+	})
+
+	req := handler.Request{
+		Query: fmt.Sprintf("SELECT COUNT(*) as count FROM key_verifications_v1 WHERE key_space_id = '%s'", api1.KeyAuthID.String),
+	}
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(c, 200, res.Status)
+		require.NotNil(c, res.Body)
+		require.Len(c, res.Body.Data, 1)
+
+		// Only A's 4 api1 events: not A's 3 api2 events (key_space_id filter),
+		// not B's 5 api1 events (key_id filter).
+		count, ok := res.Body.Data[0]["count"]
+		require.True(c, ok, "count field should exist")
+		require.Equal(c, float64(4), count, "combined key_space_id + key_id filters should yield only the session's keys in the permitted API")
+	}, 30*time.Second, time.Second)
+}
+
 // TestPortalSessionAnalyticsNoKeysReturnsEmpty verifies that a portal session
 // whose identity owns no keys receives empty analytics rather than an error or
 // another identity's data.
