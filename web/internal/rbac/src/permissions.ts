@@ -86,6 +86,7 @@ export const environmentActions = z.enum([
   "read_environment",
   "update_environment",
   "set_environment_variables",
+  "read_environment_variables",
 ]);
 
 // Resources that require an ID (resource.id.action format)
