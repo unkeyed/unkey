@@ -13,7 +13,7 @@ properties:
     "$ref": "../../../../common/ResourceIdentifier.yaml"
   variables:
     type: array
-    maxItems: 100
+    maxItems: 50
     items:
       "$ref": "./EnvironmentVariableInput.yaml"
     description: |
