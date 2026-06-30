@@ -149,7 +149,7 @@ import { queryKeysPermissions } from "./key/rbac/permissions/query";
 import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { updateKeyRbac } from "./key/rbac/update-rbac";
-import { rerollKey, rerollRootKey } from "./key/reroll";
+import { rerollRootKey } from "./key/reroll";
 import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -238,7 +238,6 @@ import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 export const router = t.router({
   key: t.router({
     create: createKey,
-    reroll: rerollKey,
     fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,

@@ -1,9 +1,8 @@
 import type { FormSelectOption } from "@unkey/ui";
 
-// Single source of truth for grace-period choices. The server schema in
-// `lib/trpc/routers/key/reroll/index.ts` validates against
-// GRACE_PERIOD_VALUES_MS derived below, so adding or removing a row here
-// updates both the form options and the API contract.
+// Single source of truth for grace-period choices. Root-key rotation still
+// validates against GRACE_PERIOD_VALUES_MS in the tRPC router; API-key
+// rotation is constrained here before it reaches the SDK call.
 const GRACE_PERIODS = [
   { ms: 0, label: "Revoke immediately" },
   { ms: 900_000, label: "15 minutes" },
