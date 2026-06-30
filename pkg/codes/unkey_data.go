@@ -55,6 +55,12 @@ type dataEnvironment struct {
 	NotFound Code
 }
 
+// dataEnvironmentVariable defines errors related to environment variable operations.
+type dataEnvironmentVariable struct {
+	// Duplicate indicates an environment variable key already exists.
+	Duplicate Code
+}
+
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
 	// Duplicate indicates the requested permission already exists.
@@ -127,23 +133,24 @@ type dataAnalytics struct {
 // These errors generally relate to CRUD operations on domain entities.
 type UnkeyDataErrors struct {
 	// Resource-specific categories
-	Key                dataKey
-	Workspace          dataWorkspace
-	Api                dataApi
-	Project            dataProject
-	App                dataApp
-	Environment        dataEnvironment
-	Migration          dataMigration
-	KeySpace           dataKeySpace
-	Permission         dataPermission
-	Role               dataRole
-	KeyAuth            dataKeyAuth
-	RatelimitNamespace dataRatelimitNamespace
-	RatelimitOverride  dataRatelimitOverride
-	Identity           dataIdentity
-	AuditLog           dataAuditLog
-	PortalConfig       dataPortalConfig
-	Analytics          dataAnalytics
+	Key                 dataKey
+	Workspace           dataWorkspace
+	Api                 dataApi
+	Project             dataProject
+	App                 dataApp
+	Environment         dataEnvironment
+	EnvironmentVariable dataEnvironmentVariable
+	Migration           dataMigration
+	KeySpace            dataKeySpace
+	Permission          dataPermission
+	Role                dataRole
+	KeyAuth             dataKeyAuth
+	RatelimitNamespace  dataRatelimitNamespace
+	RatelimitOverride   dataRatelimitOverride
+	Identity            dataIdentity
+	AuditLog            dataAuditLog
+	PortalConfig        dataPortalConfig
+	Analytics           dataAnalytics
 }
 
 // Data contains all predefined data-related error codes.
@@ -182,6 +189,10 @@ var Data = UnkeyDataErrors{
 
 	Environment: dataEnvironment{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "environment_not_found"},
+	},
+
+	EnvironmentVariable: dataEnvironmentVariable{
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "environment_variable_already_exists"},
 	},
 
 	Permission: dataPermission{

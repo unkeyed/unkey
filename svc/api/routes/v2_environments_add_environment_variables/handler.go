@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -37,17 +39,14 @@ type encryptedValue struct {
 	ciphertext string
 }
 
-// Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/environments.addEnvironmentVariables"
 }
 
-// Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -98,26 +97,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	deduped := make(map[string]openapi.EnvironmentVariableInput, len(req.Variables))
-	keys := make([]string, 0, len(req.Variables))
+	byKey := make(map[string]openapi.EnvironmentVariableInput, len(req.Variables))
 	for _, v := range req.Variables {
-		if _, ok := deduped[v.Key]; !ok {
-			keys = append(keys, v.Key)
+		if _, dup := byKey[v.Key]; dup {
+			return fault.New(
+				"duplicate variable key",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("duplicate variable key in request"),
+				fault.Public(fmt.Sprintf("Variable %q is listed more than once. Each key may appear at most once.", v.Key)),
+			)
 		}
-		deduped[v.Key] = v
+		byKey[v.Key] = v
 	}
 
-	encrypted, err := h.encryptValues(ctx, env.ID, keys, deduped)
+	encrypted, err := h.encryptValues(ctx, env.ID, byKey)
 	if err != nil {
 		return err
 	}
 
-	var currentVars []db.ListAppEnvVarsForSetRow
-	var newParams []db.InsertAppEnvironmentVariableParams
-
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		if _, lockErr := db.Query.LockEnvironmentForUpdate(ctx, tx, env.ID); lockErr != nil {
-			if db.IsNotFound(lockErr) {
+		if _, err := db.Query.LockEnvironmentForUpdate(ctx, tx, env.ID); err != nil {
+			if db.IsNotFound(err) {
 				return fault.New(
 					"environment not found",
 					fault.Code(codes.Data.Environment.NotFound.URN()),
@@ -125,32 +125,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Public("The requested environment does not exist."),
 				)
 			}
-			return addVarsDBError(lockErr, "unable to lock environment")
+			return addVarsDBError(err, "unable to lock environment")
 		}
 
-		rows, listErr := db.Query.ListAppEnvVarsForSet(ctx, tx, env.ID)
-		if listErr != nil {
-			return addVarsDBError(listErr, "database error")
+		existing, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, tx, db.FindAppEnvVarsByAppAndEnvParams{
+			AppID:         env.AppID,
+			EnvironmentID: env.ID,
+		})
+		if err != nil {
+			return addVarsDBError(err, "database error")
 		}
-		currentVars = rows
-		currentByKey := make(map[string]db.ListAppEnvVarsForSetRow, len(currentVars))
-		for _, v := range currentVars {
-			currentByKey[v.Key] = v
+		for _, e := range existing {
+			if _, requested := byKey[e.Key]; requested {
+				return fault.New(
+					"environment variable already exists",
+					fault.Code(codes.Data.EnvironmentVariable.Duplicate.URN()),
+					fault.Internal("environment variable key already exists"),
+					fault.Public(fmt.Sprintf("Variable %q already exists. Use setEnvironmentVariables to change it.", e.Key)),
+				)
+			}
 		}
 
 		now := time.Now().UnixMilli()
-		newParams = make([]db.InsertAppEnvironmentVariableParams, 0, len(keys))
-		auditLogs := make([]auditlog.AuditLog, 0, len(keys))
-
-		for _, key := range keys {
-			if _, existed := currentByKey[key]; existed {
-				continue
-			}
-			v := deduped[key]
-
-			varType := db.AppEnvironmentVariablesTypeRecoverable
-			if ptr.SafeDeref(v.Sensitive, false) {
-				varType = db.AppEnvironmentVariablesTypeWriteonly
+		newEnvVars := make([]db.InsertAppEnvironmentVariableParams, 0, len(byKey))
+		for key, v := range byKey {
+			varType := db.AppEnvironmentVariablesTypeWriteonly
+			if ptr.SafeDeref(v.Kind, openapi.Writeonly) == openapi.Recoverable {
+				varType = db.AppEnvironmentVariablesTypeRecoverable
 			}
 
 			description := sql.NullString{}
@@ -158,25 +159,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				description = sql.NullString{Valid: true, String: *v.Description}
 			}
 
-			deleteProtection := ptr.SafeDeref(v.DeleteProtection, false)
-
-			newParams = append(newParams, db.InsertAppEnvironmentVariableParams{
-				ID:               encrypted[key].id,
-				WorkspaceID:      env.WorkspaceID,
-				AppID:            env.AppID,
-				EnvironmentID:    env.ID,
-				EnvKey:           key,
-				Value:            encrypted[key].ciphertext,
-				Type:             varType,
-				Description:      description,
-				DeleteProtection: sql.NullBool{Valid: true, Bool: deleteProtection},
-				CreatedAt:        now,
+			newEnvVars = append(newEnvVars, db.InsertAppEnvironmentVariableParams{
+				ID:            encrypted[key].id,
+				WorkspaceID:   env.WorkspaceID,
+				AppID:         env.AppID,
+				EnvironmentID: env.ID,
+				EnvKey:        key,
+				Value:         encrypted[key].ciphertext,
+				Type:          varType,
+				Description:   description,
+				CreatedAt:     now,
 			})
+		}
 
-			auditLogs = append(auditLogs, auditlog.AuditLog{
+		if err := db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newEnvVars); err != nil {
+			return addVarsDBError(err, "unable to insert variables")
+		}
+
+		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+			{
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.EnvironmentUpdateEvent,
-				Display:       fmt.Sprintf("Created environment variable %s in environment %s", key, env.ID),
+				Display:       fmt.Sprintf("Added environment variables to environment %s", env.ID),
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
@@ -188,70 +192,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						ID:          env.ID,
 						Type:        auditlog.EnvironmentResourceType,
-						Meta:        map[string]any{"key": key, "action": "created"},
+						Meta:        map[string]any{"keys": slices.Sorted(maps.Keys(byKey))},
 						Name:        env.Slug,
 						DisplayName: env.Slug,
 					},
 				},
-			})
-		}
-
-		if len(newParams) == 0 {
-			return nil
-		}
-
-		if insErr := db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newParams); insErr != nil {
-			return addVarsDBError(insErr, "unable to insert variables")
-		}
-
-		return h.Auditlogs.Insert(ctx, tx, auditLogs)
+			},
+		})
 	})
 	if err != nil {
 		return err
 	}
 
-	data := make([]openapi.EnvironmentVariableMetadata, 0, len(currentVars)+len(newParams))
-	for _, cur := range currentVars {
-		var desc *string
-		if cur.Description.Valid {
-			d := cur.Description.String
-			desc = &d
-		}
-		data = append(data, openapi.EnvironmentVariableMetadata{
-			Key:              cur.Key,
-			Sensitive:        cur.Type == db.AppEnvironmentVariablesTypeWriteonly,
-			Description:      desc,
-			DeleteProtection: cur.DeleteProtection.Valid && cur.DeleteProtection.Bool,
-		})
-	}
-	for _, p := range newParams {
-		var desc *string
-		if p.Description.Valid {
-			d := p.Description.String
-			desc = &d
-		}
-		data = append(data, openapi.EnvironmentVariableMetadata{
-			Key:              p.EnvKey,
-			Sensitive:        p.Type == db.AppEnvironmentVariablesTypeWriteonly,
-			Description:      desc,
-			DeleteProtection: p.DeleteProtection.Valid && p.DeleteProtection.Bool,
-		})
-	}
-
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: data,
+		Data: openapi.EmptyResponse{},
 	})
 }
 
 func (h *Handler) encryptValues(
 	ctx context.Context,
 	environmentID string,
-	keys []string,
-	deduped map[string]openapi.EnvironmentVariableInput,
+	byKey map[string]openapi.EnvironmentVariableInput,
 ) (map[string]encryptedValue, error) {
-	out := make(map[string]encryptedValue, len(keys))
-	if len(keys) == 0 {
+	out := make(map[string]encryptedValue, len(byKey))
+	if len(byKey) == 0 {
 		return out, nil
 	}
 
@@ -264,12 +229,12 @@ func (h *Handler) encryptValues(
 		)
 	}
 
-	ids := make(map[string]string, len(keys))
-	items := make(map[string]string, len(keys))
-	for _, key := range keys {
+	ids := make(map[string]string, len(byKey))
+	items := make(map[string]string, len(byKey))
+	for key, v := range byKey {
 		id := uid.New(uid.EnvironmentVariablePrefix)
 		ids[key] = id
-		items[id] = deduped[key].Value
+		items[id] = v.Value
 	}
 
 	encrypted, err := h.Vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{
@@ -285,8 +250,7 @@ func (h *Handler) encryptValues(
 		)
 	}
 
-	for _, key := range keys {
-		id := ids[key]
+	for key, id := range ids {
 		item, ok := encrypted.GetItems()[id]
 		if !ok {
 			return nil, fault.New(

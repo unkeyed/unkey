@@ -18,22 +18,23 @@ properties:
     items:
       "$ref": "../setEnvironmentVariables/EnvironmentVariableInput.yaml"
     description: |
-      The variables to add. Keys that do not yet exist are created; keys that
-      already exist are left untouched (no overwrite, no deletion). Use
+      The variables to add. Every key must not already exist; if any one does,
+      the request is rejected with a 409 and nothing is changed. Use
       `setEnvironmentVariables` to update existing values.
 
-      A new key uses the field defaults when optional fields (`sensitive`,
-      `description`, `deleteProtection`) are omitted; only `value` is required
-      on every entry.
+      A new key uses the field defaults when optional fields (`kind`,
+      `description`) are omitted; only `key` and `value` are required on every
+      entry. `kind` defaults to `writeonly`.
 
-      Duplicate keys are allowed and collapse to the last occurrence. The whole
-      operation is atomic: if any part fails the environment is left unchanged.
-      All values are encrypted at rest. Limited to 50 variables per request.
+      Each key may appear at most once; duplicates are rejected with a 400. The
+      whole operation is atomic: if any part fails the environment is left
+      unchanged. All values are encrypted at rest. Limited to 50 variables per
+      request.
 additionalProperties: false
 examples:
   addVariables:
     summary: Add new variables
-    description: Add variables to an environment, leaving existing keys untouched
+    description: Create new keys in an environment; fails with 409 if any key already exists
     value:
       project: payments
       app: payments-api
@@ -41,7 +42,8 @@ examples:
       variables:
         - key: DATABASE_URL
           value: postgresql://user:pass@host:5432/db
-          sensitive: true
+          kind: writeonly
         - key: LOG_LEVEL
           value: debug
+          kind: recoverable
           description: Application log verbosity

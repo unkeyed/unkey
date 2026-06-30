@@ -114,6 +114,11 @@ const (
 	// NotFound indicates the requested environment does not exist.
 	UnkeyDataErrorsEnvironmentNotFound URN = "err:unkey:data:environment_not_found"
 
+	// EnvironmentVariable
+
+	// Duplicate indicates an environment variable key already exists.
+	UnkeyDataErrorsEnvironmentVariableDuplicate URN = "err:unkey:data:environment_variable_already_exists"
+
 	// Migration
 
 	// NotFound indicates the requested migration was not found.
