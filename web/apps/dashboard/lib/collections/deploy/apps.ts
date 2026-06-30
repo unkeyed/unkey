@@ -63,7 +63,6 @@ export const apps = createCollection<App, string>(
     },
     retry: 3,
     syncMode: "on-demand",
-    refetchInterval: 5000,
     queryFn: async (ctx) => {
       const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
       const projectId = extractStringFilter(filters, "projectId", "eq");
