@@ -120,6 +120,13 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
         try {
           const refreshedSession = await auth.refreshSession(sessionToken);
 
+          // A successful refresh must yield a session. If it doesn't, treat it
+          // as an error rather than writing a fresh cookie and reporting the
+          // user as logged out (which causes spurious sign-outs).
+          if (!refreshedSession.session) {
+            throw new Error("Session refresh succeeded but returned no session");
+          }
+
           // Use different methods to set cookies based on whether we have a request
           if (request) {
             // For middleware/trpc routes with request object
@@ -156,20 +163,18 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
 
           headers.set(UNKEY_SESSION_HEADER, refreshedSession.newToken);
 
-          if (refreshedSession.session) {
-            return {
-              session: {
-                userId: refreshedSession.session?.userId,
-                orgId: refreshedSession.session?.orgId ?? null,
-                accessToken: refreshedSession.session?.accessToken,
-                permissions: refreshedSession.session?.permissions,
-                role: refreshedSession.session?.role ?? null,
-                user: refreshedSession.session?.user ?? null,
-                impersonator: refreshedSession.impersonator,
-              },
-              headers,
-            };
-          }
+          return {
+            session: {
+              userId: refreshedSession.session.userId,
+              orgId: refreshedSession.session.orgId ?? null,
+              accessToken: refreshedSession.session.accessToken,
+              permissions: refreshedSession.session.permissions,
+              role: refreshedSession.session.role ?? null,
+              user: refreshedSession.session.user ?? null,
+              impersonator: refreshedSession.impersonator,
+            },
+            headers,
+          };
         } catch (_refreshError) {
           // If refresh fails, treat as no session
           return { session: null, headers };
