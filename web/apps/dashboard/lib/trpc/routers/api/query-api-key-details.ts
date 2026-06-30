@@ -18,6 +18,7 @@ const apiLayoutResponse = z.object({
       .object({
         prefix: z.string().optional(),
         bytes: z.number().optional(),
+        recoverable: z.boolean().optional(),
       })
       .nullable(),
     deleteProtection: z.boolean().nullable(),
@@ -69,6 +70,7 @@ export const queryApiKeyDetails = workspaceProcedure
               id: true,
               defaultPrefix: true,
               defaultBytes: true,
+              storeEncryptedKeys: true,
               sizeApprox: true,
             },
           },
@@ -109,6 +111,7 @@ export const queryApiKeyDetails = workspaceProcedure
             ? {
                 prefix: currentApi.keyAuth.defaultPrefix || undefined,
                 bytes: currentApi.keyAuth.defaultBytes || undefined,
+                recoverable: currentApi.keyAuth.storeEncryptedKeys,
               }
             : null,
         },

@@ -22,7 +22,7 @@ import { KeyCreatedSuccessDialog } from "./components/key-created-success-dialog
 import { SectionLabel } from "./components/section-label";
 import { type DialogSectionName, SECTIONS } from "./create-key.constants";
 import { type FormValues, formSchema } from "./create-key.schema";
-import { formValuesToApiInput, getDefaultValues } from "./create-key.utils";
+import { formValuesToCreateKeyRequest, getDefaultValues } from "./create-key.utils";
 import { useCreateKey } from "./hooks/use-create-key";
 import { useValidateSteps } from "./hooks/use-validate-steps";
 
@@ -41,6 +41,7 @@ export const CreateKeyDialog = ({
   keyspaceDefaults: {
     prefix?: string;
     bytes?: number;
+    recoverable?: boolean;
   } | null;
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -122,7 +123,9 @@ export const CreateKeyDialog = ({
       });
       return;
     }
-    const finalData = formValuesToApiInput(data, keyspaceId);
+    const finalData = formValuesToCreateKeyRequest(data, apiId, {
+      recoverable: keyspaceDefaults?.recoverable,
+    });
 
     try {
       await key.mutateAsync(finalData);
