@@ -1170,6 +1170,45 @@ type V2DeployGitCommit struct {
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
+// V2EnvironmentsAddEnvironmentVariablesRequestBody defines model for V2EnvironmentsAddEnvironmentVariablesRequestBody.
+type V2EnvironmentsAddEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Variables The variables to add. Keys that do not yet exist are created; keys that
+	// already exist are left untouched (no overwrite, no deletion). Use
+	// `setEnvironmentVariables` to update existing values.
+	//
+	// A new key uses the field defaults when optional fields (`sensitive`,
+	// `description`, `deleteProtection`) are omitted; only `value` is required
+	// on every entry.
+	//
+	// Duplicate keys are allowed and collapse to the last occurrence. The whole
+	// operation is atomic: if any part fails the environment is left unchanged.
+	// All values are encrypted at rest. Limited to 50 variables per request.
+	Variables []EnvironmentVariableInput `json:"variables"`
+}
+
+// V2EnvironmentsAddEnvironmentVariablesResponseBody defines model for V2EnvironmentsAddEnvironmentVariablesResponseBody.
+type V2EnvironmentsAddEnvironmentVariablesResponseBody struct {
+	// Data The full resulting set of variables for the environment, echoed back as
+	// metadata. Includes both pre-existing variables and the ones just added.
+	// Values are never returned.
+	Data []EnvironmentVariableMetadata `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
 type V2EnvironmentsGetEnvironmentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -3088,6 +3127,9 @@ type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 
 // DeployGetDeploymentJSONRequestBody defines body for DeployGetDeployment for application/json ContentType.
 type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
+
+// EnvironmentsAddEnvironmentVariablesJSONRequestBody defines body for EnvironmentsAddEnvironmentVariables for application/json ContentType.
+type EnvironmentsAddEnvironmentVariablesJSONRequestBody = V2EnvironmentsAddEnvironmentVariablesRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody
