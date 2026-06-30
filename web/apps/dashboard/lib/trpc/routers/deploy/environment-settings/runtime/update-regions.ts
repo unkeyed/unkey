@@ -1,34 +1,78 @@
-import { and, db, eq, notInArray } from "@/lib/db";
+import { and, db, eq, inArray, notInArray } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { appRegionalSettings, environments } from "@unkey/db/src/schema";
+import { appRegionalSettings, environments, regions } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
+
+// Per-id length matches the regions.id varchar(64); the array cap bounds the
+// delete/insert fanout per request. No deployment targets anywhere near 50
+// regions, so this is an abuse bound rather than a functional limit.
+const MAX_REGIONS_PER_REQUEST = 50;
+const MAX_REGION_ID_LENGTH = 64;
 
 export const updateRegions = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      regionIds: z.array(z.string()).min(1),
+      regionIds: z
+        .array(z.string().min(1).max(MAX_REGION_ID_LENGTH))
+        .min(1)
+        .max(MAX_REGIONS_PER_REQUEST),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const env = await db.query.environments.findFirst({
-      where: and(
-        eq(environments.id, input.environmentId),
-        eq(environments.workspaceId, ctx.workspace.id),
-      ),
-      columns: { appId: true },
-    });
+    // The client can submit the same region twice; dedup before persisting so
+    // the insert below cannot violate the unique_app_env_region index.
+    const requestedRegionIds = [...new Set(input.regionIds)];
+
+    // None of these reads depend on each other, so issue them together.
+    const [env, knownRegions, existingSettings] = await Promise.all([
+      db.query.environments.findFirst({
+        where: and(
+          eq(environments.id, input.environmentId),
+          eq(environments.workspaceId, ctx.workspace.id),
+        ),
+        columns: { appId: true },
+      }),
+      db.query.regions.findMany({
+        where: inArray(regions.id, requestedRegionIds),
+        columns: { id: true, canSchedule: true },
+      }),
+      db.query.appRegionalSettings.findMany({
+        where: and(
+          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+          eq(appRegionalSettings.environmentId, input.environmentId),
+        ),
+      }),
+    ]);
     if (!env) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
     }
 
-    const existingSettings = await db.query.appRegionalSettings.findMany({
-      where: and(
-        eq(appRegionalSettings.workspaceId, ctx.workspace.id),
-        eq(appRegionalSettings.environmentId, input.environmentId),
-      ),
+    const existingRegionIds = new Set(existingSettings.map((s) => s.regionId));
+
+    // app_regional_settings.regionId FK-references regions.id, but the FK alone
+    // would not reject an unknown id. Every requested region must exist. New
+    // regions must also be schedulable, but a region already assigned to this
+    // environment is allowed to stay even after its canSchedule flag flips off
+    // — the UI intentionally keeps such regions selected (with a warning), so
+    // rejecting them here would lock the user out of region management.
+    const knownRegionIds = new Set(knownRegions.map((region) => region.id));
+    const schedulableRegionIds = new Set(
+      knownRegions.filter((region) => region.canSchedule).map((region) => region.id),
+    );
+    const invalidRegionIds = requestedRegionIds.filter((id) => {
+      if (!knownRegionIds.has(id)) {
+        return true;
+      }
+      return !existingRegionIds.has(id) && !schedulableRegionIds.has(id);
     });
+    if (invalidRegionIds.length > 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `Unknown or unschedulable region(s): ${invalidRegionIds.join(", ")}`,
+      });
+    }
 
     const defaultReplicas = existingSettings.at(0)?.replicas ?? 1;
     const defaultPolicyId = existingSettings.at(0)?.horizontalAutoscalingPolicyId ?? null;
@@ -39,12 +83,11 @@ export const updateRegions = workspaceProcedure
         and(
           eq(appRegionalSettings.workspaceId, ctx.workspace.id),
           eq(appRegionalSettings.environmentId, input.environmentId),
-          notInArray(appRegionalSettings.regionId, input.regionIds),
+          notInArray(appRegionalSettings.regionId, requestedRegionIds),
         ),
       );
 
-    const existingRegionIds = new Set(existingSettings.map((s) => s.regionId));
-    const toInsert = input.regionIds
+    const toInsert = requestedRegionIds
       .filter((regionId) => !existingRegionIds.has(regionId))
       .map((regionId) => ({
         workspaceId: ctx.workspace.id,
