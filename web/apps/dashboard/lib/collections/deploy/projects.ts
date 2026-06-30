@@ -56,7 +56,6 @@ export const projects = createCollection<Project, string>(
     queryClient,
     queryKey: ["projects"],
     retry: 3,
-    refetchInterval: 5000,
     queryFn: async () => {
       return await trpcClient.deploy.project.list.query();
     },

@@ -8,7 +8,6 @@ import {
   findApiItem,
 } from "@/lib/stripe/deployBilling";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
-import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -241,7 +240,4 @@ export const createSubscription = workspaceProcedure
         },
       });
     });
-
-    // Invalidate workspace cache after subscription creation
-    await invalidateWorkspaceCache(ctx.tenant.id);
   });

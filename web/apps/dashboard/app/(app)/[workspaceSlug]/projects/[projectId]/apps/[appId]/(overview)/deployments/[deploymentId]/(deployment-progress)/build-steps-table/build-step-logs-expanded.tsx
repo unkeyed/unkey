@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { TimestampInfo } from "@unkey/ui";
 import { Fragment } from "react/jsx-runtime";
 import { TruncatedCell } from "../truncated-cell";
@@ -14,28 +15,32 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
     );
   }
 
+  const isError = Boolean(step.error);
+  const borderClass = isError ? "border-error-7" : "border-accent-7";
+  const bgClass = isError ? "bg-error-2" : "";
+
   return (
     <>
       <tr>
-        <td className="border-l-2 border-accent-7 p-0" />
+        <td colSpan={6} className={cn("border-l-2 p-0", borderClass, bgClass)} />
       </tr>
       {step.logs.map((log, idx) => (
         <Fragment key={`row-group-${log.time}-${idx}`}>
           <tr key={`spacer-${log.time}-${idx}`} style={{ height: "4px" }}>
-            <td className="border-l-2 border-accent-7 p-0" />
+            <td colSpan={6} className={cn("border-l-2 p-0", borderClass, bgClass)} />
           </tr>
           <tr key={`${log.time}-${idx}`}>
-            <td className="border-l-2 border-accent-7 py-0" />
-            <td className="py-0">
+            <td className={cn("border-l-2 py-0", borderClass, bgClass)} />
+            <td className={cn("py-0", bgClass)}>
               <TimestampInfo
                 displayType="local_hours_with_millis"
                 value={log.time}
                 className="font-mono text-xs text-grayA-9 hover:underline decoration-dotted"
               />
             </td>
-            <td className="py-0" />
-            <td colSpan={3} className="h-[26px] py-px ">
-              <TruncatedCell text={log.message} className="text-gray-12" />
+            <td className={cn("py-0", bgClass)} />
+            <td colSpan={3} className={cn("h-[26px] py-px", bgClass)}>
+              <TruncatedCell text={log.message} />
             </td>
           </tr>
         </Fragment>

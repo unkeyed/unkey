@@ -2,7 +2,6 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig, findDeployItems } from "@/lib/stripe/deployBilling";
-import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
@@ -91,6 +90,4 @@ export const cancelDeploy = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
-
-    await invalidateWorkspaceCache(ctx.tenant.id);
   });

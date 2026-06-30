@@ -300,7 +300,7 @@ function BuildErrorDescription({
             e.stopPropagation();
             onViewLogs();
           }}
-          className="shrink-0 cursor-pointer underline hover:text-gray-12 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7 rounded"
+          className="relative shrink-0 cursor-pointer underline hover:text-gray-12 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7 rounded before:absolute before:-inset-x-3 before:-inset-y-2 before:content-['']"
         >
           View full error
         </button>

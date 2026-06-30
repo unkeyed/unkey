@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
@@ -51,9 +50,6 @@ export const optWorkspaceIntoBeta = workspaceProcedure
             userAgent: ctx.audit.userAgent,
           },
         });
-
-        // Invalidate workspace cache after successful update
-        await invalidateWorkspaceCache(ctx.tenant.id);
       })
       .catch((err) => {
         console.error(err);
