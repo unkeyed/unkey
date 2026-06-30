@@ -69,6 +69,7 @@ import (
 	v2EnvironmentsAddEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_add_environment_variables"
 	v2EnvironmentsGetEnvironment "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
 	v2EnvironmentsListEnvironments "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environments"
+	v2EnvironmentsRemoveEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_remove_environment_variables"
 	v2EnvironmentsSetEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_set_environment_variables"
 	v2EnvironmentsUpdateSettings "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
 	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
@@ -739,6 +740,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2EnvironmentsAddEnvironmentVariables.Handler{
 			DB:        svc.Database,
 			Vault:     svc.Vault,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/environments.removeEnvironmentVariables
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2EnvironmentsRemoveEnvironmentVariables.Handler{
+			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
