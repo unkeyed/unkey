@@ -89,6 +89,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Identity scoping is intentionally separate from the RBAC permission system.
 	// Permissions gate what operations a principal can perform; identity scoping
 	// gates which keys are visible to a portal session.
+	//
+	// Portal-authenticated deletes are attributed to a portalEndUser actor so
+	// customers can see end-user activity in their audit logs. The actor
+	// metadata records which end user acted.
+	actorType := auditlog.AuditLogActor(principal.Subject.Type)
+	actorMeta := map[string]any{}
 	switch src := principal.Source.(type) {
 	case authprincipal.PortalSessionSource:
 		// An empty externalId is a broken invariant: a portal session should
@@ -107,6 +113,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("key identity does not match portal session externalId"),
 				fault.Public("The specified key was not found."),
 			)
+		}
+		actorType = auditlog.PortalEndUserActor
+		actorMeta = map[string]any{
+			"externalId": src.ExternalID,
 		}
 	}
 
@@ -151,10 +161,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			{
 				Event:         auditlog.KeyDeleteEvent,
 				WorkspaceID:   principal.WorkspaceID,
-				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorType:     actorType,
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
-				ActorMeta:     map[string]any{},
+				ActorMeta:     actorMeta,
 				Display:       fmt.Sprintf("%s %s", description, key.ID),
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),

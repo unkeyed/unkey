@@ -19,4 +19,10 @@ const (
 	// This might include scheduled tasks, automatic cleanups, or
 	// system maintenance operations.
 	SystemActor AuditLogActor = "system"
+
+	// PortalEndUserActor indicates the action was performed by an end user
+	// authenticated through a customer portal session, rather than by the
+	// workspace owner. The actor metadata carries the portal externalId so
+	// customers can see what their end users did.
+	PortalEndUserActor AuditLogActor = "portalEndUser"
 )
