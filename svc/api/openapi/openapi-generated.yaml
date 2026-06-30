@@ -716,12 +716,12 @@ components:
                         example: LOG_LEVEL
                     description: |
                         The names of the variables to remove. Keys that exist are deleted; keys
-                        that are not present are ignored. Delete-protected keys are never removed
-                        and are left untouched.
+                        that are not present are ignored, since their absence already matches the
+                        requested state.
 
-                        Duplicate keys are allowed and collapse to a single removal. The whole
-                        operation is atomic: if any part fails the environment is left unchanged.
-                        Limited to 50 variables per request.
+                        Duplicate keys collapse to a single removal. The whole operation is atomic:
+                        if any part fails the environment is left unchanged. Limited to 50
+                        variables per request.
             additionalProperties: false
         V2EnvironmentsRemoveEnvironmentVariablesResponseBody:
             type: object
@@ -732,12 +732,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    type: array
-                    items:
-                        "$ref": "#/components/schemas/EnvironmentVariableMetadata"
-                    description: |
-                        The full remaining set of variables for the environment after the
-                        removal, echoed back as metadata. Values are never returned.
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2EnvironmentsSetEnvironmentVariablesRequestBody:
             type: object

@@ -1266,20 +1266,19 @@ type V2EnvironmentsRemoveEnvironmentVariablesRequestBody struct {
 	Project ResourceIdentifier `json:"project"`
 
 	// Variables The names of the variables to remove. Keys that exist are deleted; keys
-	// that are not present are ignored. Delete-protected keys are never removed
-	// and are left untouched.
+	// that are not present are ignored, since their absence already matches the
+	// requested state.
 	//
-	// Duplicate keys are allowed and collapse to a single removal. The whole
-	// operation is atomic: if any part fails the environment is left unchanged.
-	// Limited to 50 variables per request.
+	// Duplicate keys collapse to a single removal. The whole operation is atomic:
+	// if any part fails the environment is left unchanged. Limited to 50
+	// variables per request.
 	Variables []string `json:"variables"`
 }
 
 // V2EnvironmentsRemoveEnvironmentVariablesResponseBody defines model for V2EnvironmentsRemoveEnvironmentVariablesResponseBody.
 type V2EnvironmentsRemoveEnvironmentVariablesResponseBody struct {
-	// Data The full remaining set of variables for the environment after the
-	// removal, echoed back as metadata. Values are never returned.
-	Data []EnvironmentVariableMetadata `json:"data"`
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
