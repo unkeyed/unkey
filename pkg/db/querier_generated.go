@@ -2327,6 +2327,17 @@ type Querier interface {
 	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
 	//  WHERE ars.app_id = ?
 	ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error)
+	// Returns the current regional rows for reconciliation, including the
+	// horizontal_autoscaling_policy_id that FindAppRegionalSettingsByAppAndEnv omits.
+	//
+	//  SELECT
+	//      region_id,
+	//      replicas,
+	//      horizontal_autoscaling_policy_id
+	//  FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	ListAppRegionalSettingsByAppEnv(ctx context.Context, db DBTX, arg ListAppRegionalSettingsByAppEnvParams) ([]ListAppRegionalSettingsByAppEnvRow, error)
 	// Returns the runtime settings for every environment in an app, for callers
 	// that build multiple environments at once and group by environment_id.
 	//

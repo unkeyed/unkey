@@ -11,6 +11,12 @@ const (
 	RootKeyScopes = "rootKey.Scopes"
 )
 
+// Defines values for EnvironmentHealthcheckMethod.
+const (
+	GET  EnvironmentHealthcheckMethod = "GET"
+	POST EnvironmentHealthcheckMethod = "POST"
+)
+
 // Defines values for EnvironmentShutdownSignal.
 const (
 	SIGINT  EnvironmentShutdownSignal = "SIGINT"
@@ -23,12 +29,6 @@ const (
 const (
 	H2c   EnvironmentUpstreamProtocol = "h2c"
 	Http1 EnvironmentUpstreamProtocol = "http1"
-)
-
-// Defines values for EnvironmentHealthcheckMethod.
-const (
-	GET  EnvironmentHealthcheckMethod = "GET"
-	POST EnvironmentHealthcheckMethod = "POST"
 )
 
 // Defines values for KeyCreditsRefillInterval.
@@ -59,20 +59,6 @@ const (
 	STOPPED          V2DeployGetDeploymentResponseDataStatus = "STOPPED"
 	SUPERSEDED       V2DeployGetDeploymentResponseDataStatus = "SUPERSEDED"
 	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
-)
-
-// Defines values for V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal.
-const (
-	SIGINT  V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal = "SIGINT"
-	SIGKILL V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal = "SIGKILL"
-	SIGQUIT V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal = "SIGQUIT"
-	SIGTERM V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal = "SIGTERM"
-)
-
-// Defines values for V2EnvironmentsUpdateSettingsRequestBodyUpstreamProtocol.
-const (
-	H2c   V2EnvironmentsUpdateSettingsRequestBodyUpstreamProtocol = "h2c"
-	Http1 V2EnvironmentsUpdateSettingsRequestBodyUpstreamProtocol = "http1"
 )
 
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
@@ -253,7 +239,6 @@ type Environment struct {
 	RootDirectory *string `json:"rootDirectory,omitempty"`
 
 	// ShutdownSignal Signal sent to the container on shutdown.
-	// Omitted until the environment has runtime settings.
 	ShutdownSignal *EnvironmentShutdownSignal `json:"shutdownSignal,omitempty"`
 
 	// Slug URL-safe handle for this environment, unique within its app.
@@ -269,7 +254,6 @@ type Environment struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 
 	// UpstreamProtocol Protocol used to reach the container.
-	// Omitted until the environment has runtime settings.
 	UpstreamProtocol *EnvironmentUpstreamProtocol `json:"upstreamProtocol,omitempty"`
 
 	// WatchPaths Paths that trigger a rebuild when changed.
@@ -277,32 +261,24 @@ type Environment struct {
 	WatchPaths *[]string `json:"watchPaths,omitempty"`
 }
 
-// EnvironmentShutdownSignal Signal sent to the container on shutdown.
-// Omitted until the environment has runtime settings.
-type EnvironmentShutdownSignal string
-
-// EnvironmentUpstreamProtocol Protocol used to reach the container.
-// Omitted until the environment has runtime settings.
-type EnvironmentUpstreamProtocol string
-
 // EnvironmentHealthcheck defines model for EnvironmentHealthcheck.
 type EnvironmentHealthcheck struct {
-	// FailureThreshold Consecutive failures before the container is restarted.
+	// FailureThreshold Consecutive failures before the container is restarted. Defaults to 3 when omitted.
 	FailureThreshold *int `json:"failureThreshold,omitempty"`
 
-	// InitialDelaySeconds Delay before the first probe runs, in seconds.
+	// InitialDelaySeconds Delay before the first probe runs, in seconds. Defaults to 0 when omitted.
 	InitialDelaySeconds *int `json:"initialDelaySeconds,omitempty"`
 
-	// IntervalSeconds How often the probe runs, in seconds.
+	// IntervalSeconds How often the probe runs, in seconds. Defaults to 10 when omitted.
 	IntervalSeconds *int `json:"intervalSeconds,omitempty"`
 
 	// Method HTTP method used to probe the container.
 	Method EnvironmentHealthcheckMethod `json:"method"`
 
-	// Path HTTP path probed on the container.
+	// Path HTTP path probed on the container. Must start with a slash.
 	Path string `json:"path"`
 
-	// TimeoutSeconds Per-probe timeout, in seconds.
+	// TimeoutSeconds Per-probe timeout, in seconds. Defaults to 5 when omitted.
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 
@@ -317,6 +293,12 @@ type EnvironmentRegion struct {
 	// Replicas Min and max replica bounds for autoscaling in a region.
 	Replicas Replicas `json:"replicas"`
 }
+
+// EnvironmentShutdownSignal Signal sent to the container on shutdown.
+type EnvironmentShutdownSignal string
+
+// EnvironmentUpstreamProtocol Protocol used to reach the container.
+type EnvironmentUpstreamProtocol string
 
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
@@ -345,30 +327,6 @@ type GoneErrorResponse struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
-
-// Healthcheck defines model for Healthcheck.
-type Healthcheck struct {
-	// FailureThreshold Consecutive failures before the container is restarted.
-	FailureThreshold *int `json:"failureThreshold,omitempty"`
-
-	// InitialDelaySeconds Delay before the first probe runs, in seconds.
-	InitialDelaySeconds *int `json:"initialDelaySeconds,omitempty"`
-
-	// IntervalSeconds How often the probe runs, in seconds.
-	IntervalSeconds *int `json:"intervalSeconds,omitempty"`
-
-	// Method HTTP method used to probe the container.
-	Method HealthcheckMethod `json:"method"`
-
-	// Path HTTP path probed for health. Must start with a slash.
-	Path string `json:"path"`
-
-	// TimeoutSeconds Per-probe timeout, in seconds.
-	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
-}
-
-// HealthcheckMethod HTTP method used to probe the container.
-type HealthcheckMethod string
 
 // Identity defines model for Identity.
 type Identity struct {
@@ -1246,10 +1204,6 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	CpuMillicores *int `json:"cpuMillicores,omitempty"`
 
-	// DockerContext Build context directory.
-	// Omit to leave unchanged.
-	DockerContext *string `json:"dockerContext,omitempty"`
-
 	// Dockerfile Path to the Dockerfile used for builds.
 	// Omit to leave unchanged; set null to clear and fall back to Railpack.
 	Dockerfile nullable.Nullable[string] `json:"dockerfile,omitempty"`
@@ -1258,16 +1212,16 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Environment ResourceIdentifier `json:"environment"`
 
-	// Healthcheck HTTP healthcheck configuration for the environment.
-	// Set null to remove the healthcheck entirely.
-	Healthcheck nullable.Nullable[Healthcheck] `json:"healthcheck,omitempty"`
+	// Healthcheck HTTP healthcheck configuration.
+	// Omit to leave unchanged; set null to remove.
+	Healthcheck nullable.Nullable[EnvironmentHealthcheck] `json:"healthcheck,omitempty"`
 
 	// MemoryMib Memory allocation in MiB. Minimum 256, in steps of 256.
 	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
 	// Omit to leave unchanged.
 	MemoryMib *int `json:"memoryMib,omitempty"`
 
-	// OpenapiSpecPath Path to the OpenAPI spec file within the build.
+	// OpenapiSpecPath Path to the OpenAPI spec file within the build. Must start with a slash.
 	// Omit to leave unchanged; set null to clear.
 	OpenapiSpecPath nullable.Nullable[string] `json:"openapiSpecPath,omitempty"`
 
@@ -1283,33 +1237,28 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave regions unchanged; when present, this replaces the full set
 	// (regions absent from the list are removed). At least one region is required;
 	// an empty list is rejected because an environment cannot have zero regions.
-	Regions *[]RegionSetting `json:"regions,omitempty"`
+	Regions *[]EnvironmentRegion `json:"regions,omitempty"`
+
+	// RootDirectory The directory your app lives in. Unkey builds from here.
+	// Use "." for the repository root, or set a subdirectory when your app
+	// is nested (e.g., services/api). Omit to leave unchanged.
+	RootDirectory *string `json:"rootDirectory,omitempty"`
 
 	// ShutdownSignal Signal sent to the container on shutdown.
-	// Omit to leave unchanged.
-	ShutdownSignal *V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal `json:"shutdownSignal,omitempty"`
+	ShutdownSignal *EnvironmentShutdownSignal `json:"shutdownSignal,omitempty"`
 
 	// StorageMib Ephemeral storage allocation in MiB, in steps of 512 (0 for none).
 	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
 	// Omit to leave unchanged.
 	StorageMib *int `json:"storageMib,omitempty"`
 
-	// UpstreamProtocol Protocol used to reach the upstream container.
-	// Omit to leave unchanged.
-	UpstreamProtocol *V2EnvironmentsUpdateSettingsRequestBodyUpstreamProtocol `json:"upstreamProtocol,omitempty"`
+	// UpstreamProtocol Protocol used to reach the container.
+	UpstreamProtocol *EnvironmentUpstreamProtocol `json:"upstreamProtocol,omitempty"`
 
 	// WatchPaths Glob paths that trigger auto-deploys when changed.
 	// Omit to leave unchanged.
 	WatchPaths *[]string `json:"watchPaths,omitempty"`
 }
-
-// V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal Signal sent to the container on shutdown.
-// Omit to leave unchanged.
-type V2EnvironmentsUpdateSettingsRequestBodyShutdownSignal string
-
-// V2EnvironmentsUpdateSettingsRequestBodyUpstreamProtocol Protocol used to reach the upstream container.
-// Omit to leave unchanged.
-type V2EnvironmentsUpdateSettingsRequestBodyUpstreamProtocol string
 
 // V2EnvironmentsUpdateSettingsResponseBody defines model for V2EnvironmentsUpdateSettingsResponseBody.
 type V2EnvironmentsUpdateSettingsResponseBody struct {

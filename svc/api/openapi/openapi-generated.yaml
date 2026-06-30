@@ -734,30 +734,21 @@ components:
                         Override container entrypoint command.
                         Omit to leave unchanged.
                 healthcheck:
-                    "$ref": "#/components/schemas/Healthcheck"
                     description: |
                         HTTP healthcheck configuration.
                         Omit to leave unchanged; set null to remove.
+                    allOf:
+                        - "$ref": "#/components/schemas/EnvironmentHealthcheck"
                 shutdownSignal:
-                    type: string
-                    enum:
-                        - SIGTERM
-                        - SIGINT
-                        - SIGQUIT
-                        - SIGKILL
+                    "$ref": "#/components/schemas/EnvironmentShutdownSignal"
                     description: |
                         Signal sent to the container on shutdown.
                         Omit to leave unchanged.
-                    example: SIGTERM
                 upstreamProtocol:
-                    type: string
-                    enum:
-                        - http1
-                        - h2c
+                    "$ref": "#/components/schemas/EnvironmentUpstreamProtocol"
                     description: |
                         Protocol used to reach the upstream container.
                         Omit to leave unchanged.
-                    example: http1
                 openapiSpecPath:
                     type:
                         - string
@@ -774,7 +765,7 @@ components:
                     minItems: 1
                     maxItems: 5
                     items:
-                        "$ref": "#/components/schemas/RegionSetting"
+                        "$ref": "#/components/schemas/EnvironmentRegion"
                     description: |
                         Desired set of regions with per-region replica bounds.
                         Omit to leave regions unchanged; when present, this replaces the full set
@@ -3412,25 +3403,15 @@ components:
                 healthcheck:
                     "$ref": "#/components/schemas/EnvironmentHealthcheck"
                 shutdownSignal:
-                    type: string
-                    enum:
-                        - SIGTERM
-                        - SIGINT
-                        - SIGQUIT
-                        - SIGKILL
+                    "$ref": "#/components/schemas/EnvironmentShutdownSignal"
                     description: |
                         Signal sent to the container on shutdown.
                         Omitted until the environment has runtime settings.
-                    example: SIGTERM
                 upstreamProtocol:
-                    type: string
-                    enum:
-                        - http1
-                        - h2c
+                    "$ref": "#/components/schemas/EnvironmentUpstreamProtocol"
                     description: |
                         Protocol used to reach the container.
                         Omitted until the environment has runtime settings.
-                    example: http1
                 openapiSpecPath:
                     type: string
                     description: |
@@ -3492,30 +3473,59 @@ components:
                     example: GET
                 path:
                     type: string
+                    minLength: 1
+                    maxLength: 512
+                    pattern: '^(/[\w\-]+)+(\.[\w]+)?$'
                     description: |
-                        HTTP path probed on the container.
+                        HTTP path probed on the container. Must start with a slash.
                     example: /healthz
                 intervalSeconds:
                     type: integer
+                    minimum: 1
+                    maximum: 3600
                     description: |
-                        How often the probe runs, in seconds.
+                        How often the probe runs, in seconds. Defaults to 10 when omitted.
                     example: 10
                 timeoutSeconds:
                     type: integer
+                    minimum: 1
+                    maximum: 3600
                     description: |
-                        Per-probe timeout, in seconds.
+                        Per-probe timeout, in seconds. Defaults to 5 when omitted.
                     example: 2
                 failureThreshold:
                     type: integer
+                    minimum: 1
+                    maximum: 100
                     description: |
-                        Consecutive failures before the container is restarted.
+                        Consecutive failures before the container is restarted. Defaults to 3 when omitted.
                     example: 3
                 initialDelaySeconds:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                     description: |
-                        Delay before the first probe runs, in seconds.
+                        Delay before the first probe runs, in seconds. Defaults to 0 when omitted.
                     example: 5
             additionalProperties: false
+        EnvironmentShutdownSignal:
+            type: string
+            enum:
+                - SIGTERM
+                - SIGINT
+                - SIGQUIT
+                - SIGKILL
+            description: |
+                Signal sent to the container on shutdown.
+            example: SIGTERM
+        EnvironmentUpstreamProtocol:
+            type: string
+            enum:
+                - http1
+                - h2c
+            description: |
+                Protocol used to reach the container.
+            example: http1
         EnvironmentRegion:
             type: object
             description: Replica bounds for a single region the environment deploys to.
@@ -3545,97 +3555,6 @@ components:
                     type: integer
                     description: Maximum number of replicas.
                     example: 3
-            additionalProperties: false
-        Healthcheck:
-            type:
-                - object
-                - "null"
-            description: |
-                HTTP healthcheck configuration for the environment.
-                Set null to remove the healthcheck entirely.
-            properties:
-                method:
-                    type: string
-                    enum:
-                        - GET
-                        - POST
-                    description: HTTP method used for the healthcheck probe.
-                    example: GET
-                path:
-                    type: string
-                    minLength: 1
-                    maxLength: 512
-                    pattern: '^(/[\w\-]+)+(\.[\w]+)?$'
-                    description: HTTP path probed for health. Must start with a slash.
-                    example: /health
-                intervalSeconds:
-                    type: integer
-                    minimum: 1
-                    maximum: 3600
-                    description: Seconds between probes. Defaults to 10 when omitted.
-                    example: 10
-                timeoutSeconds:
-                    type: integer
-                    minimum: 1
-                    maximum: 3600
-                    description: Seconds before a probe is considered failed. Defaults to 5 when omitted.
-                    example: 5
-                failureThreshold:
-                    type: integer
-                    minimum: 1
-                    maximum: 100
-                    description: Consecutive failures before the instance is marked unhealthy. Defaults to 3 when omitted.
-                    example: 3
-                initialDelaySeconds:
-                    type: integer
-                    minimum: 0
-                    maximum: 3600
-                    description: Seconds to wait after start before the first probe. Defaults to 0 when omitted.
-                    example: 0
-            required:
-                - method
-                - path
-            additionalProperties: false
-            example:
-                path: /v1/liveness
-                method: GET
-                intervalSeconds: 5
-                timeoutSeconds: 5
-                failureThreshold: 3
-                initialDelaySeconds: 0
-        RegionSetting:
-            type: object
-            description: Desired replica bounds for a single region.
-            properties:
-                name:
-                    type: string
-                    minLength: 1
-                    maxLength: 64
-                    description: Region name, such as us-east-1.
-                    example: us-east-1
-                replicas:
-                    type: object
-                    description: Min and max replica bounds for autoscaling in this region.
-                    properties:
-                        min:
-                            type: integer
-                            description: |
-                                Minimum replicas. Bounds are enforced server-side and vary by
-                                workspace; requests outside the allowed range return 400.
-                            example: 1
-                        max:
-                            type: integer
-                            description: |
-                                Maximum replicas, must be >= min. Bounds are enforced server-side
-                                and vary by workspace; requests outside the allowed range return 400.
-                            example: 3
-                    required:
-                        - min
-                        - max
-                    additionalProperties: false
-            required:
-                - name
-                - replicas
             additionalProperties: false
         RatelimitRequest:
             type: object
@@ -6316,6 +6235,130 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironments
+    /v2/environments.updateSettings:
+        post:
+            description: |
+                Update the build, runtime, and regional settings for an environment.
+
+                All settings fields are optional. Omit a field to leave it unchanged. For
+                nullable fields (`dockerfile`, `healthcheck`, `openapiSpecPath`), send null
+                to clear the value. When `regions` is present it replaces the full set of
+                regions for the environment.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.update_environment` (to update any environment)
+                - `environment.<environment_id>.update_environment` (to update a specific environment)
+            operationId: environments.updateSettings
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            setRegions:
+                                description: Deploy to a single region with replica bounds
+                                summary: Replace the region set
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                                    regions:
+                                        - name: us-east-1
+                                          replicas:
+                                            max: 3
+                                            min: 1
+                            setRuntime:
+                                description: Adjust CPU and memory, locating the environment by slug
+                                summary: Update runtime resources
+                                value:
+                                    app: payments-api
+                                    cpuMillicores: 2000
+                                    environment: production
+                                    memoryMib: 1024
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2EnvironmentsUpdateSettingsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: Environment settings were successfully updated
+                                    summary: Settings updated
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2EnvironmentsUpdateSettingsResponseBody'
+                    description: |
+                        Successfully updated the environment settings.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'environment.*.update_environment' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.update_environment`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                environmentNotFound:
+                                    summary: Environment not found
+                                    value:
+                                        error:
+                                            detail: The requested environment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested environment does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Update environment settings
+            tags:
+                - environments
+            x-speakeasy-name-override: updateSettings
     /v2/identities.createIdentity:
         post:
             description: |
