@@ -1211,7 +1211,7 @@ type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
 	//
 	// Duplicate keys are allowed and collapse to the last occurrence. The whole
 	// operation is atomic: if any part fails the environment is left unchanged.
-	// All values are encrypted at rest. Limited to 100 variables per request.
+	// All values are encrypted at rest. Limited to 50 variables per request.
 	Variables []EnvironmentVariableInput `json:"variables"`
 }
 
