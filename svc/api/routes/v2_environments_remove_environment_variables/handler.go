@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -25,17 +26,14 @@ type Handler struct {
 	Auditlogs auditlogs.AuditLogService
 }
 
-// Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
 }
 
-// Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
 	return "/v2/environments.removeEnvironmentVariables"
 }
 
-// Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -86,105 +84,71 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	seen := make(map[string]struct{}, len(req.Variables))
-	keys := make([]string, 0, len(req.Variables))
-	for _, key := range req.Variables {
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		keys = append(keys, key)
-	}
-
-	currentVars, err := db.Query.ListAppEnvVarsForSet(ctx, h.DB.RO(), env.ID)
+	existing, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, h.DB.RO(), db.FindAppEnvVarsByAppAndEnvParams{
+		AppID:         env.AppID,
+		EnvironmentID: env.ID,
+	})
 	if err != nil {
-		return removeVarsDBError(err, "database error")
-	}
-	currentByKey := make(map[string]db.ListAppEnvVarsForSetRow, len(currentVars))
-	for _, v := range currentVars {
-		currentByKey[v.Key] = v
-	}
-
-	removed := make(map[string]struct{}, len(keys))
-	toRemove := make([]string, 0, len(keys))
-	auditLogs := make([]auditlog.AuditLog, 0, len(keys))
-	for _, key := range keys {
-		cur, ok := currentByKey[key]
-		if !ok {
-			continue
-		}
-		if cur.DeleteProtection.Valid && cur.DeleteProtection.Bool {
-			continue
-		}
-		removed[key] = struct{}{}
-		toRemove = append(toRemove, key)
-		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID:   principal.WorkspaceID,
-			Event:         auditlog.EnvironmentUpdateEvent,
-			Display:       fmt.Sprintf("Removed environment variable %s from environment %s", key, env.ID),
-			ActorID:       principal.Subject.ID,
-			ActorName:     principal.Subject.Name,
-			ActorMeta:     map[string]any{},
-			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-			RemoteIP:      s.Location(),
-			UserAgent:     s.UserAgent(),
-			CorrelationID: "",
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          env.ID,
-					Type:        auditlog.EnvironmentResourceType,
-					Meta:        map[string]any{"key": key, "action": "removed"},
-					Name:        env.Slug,
-					DisplayName: env.Slug,
-				},
-			},
-		})
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve environment variables."),
+		)
 	}
 
-	if len(toRemove) > 0 {
+	keys := make([]string, 0, len(existing))
+	for _, e := range existing {
+		if slices.Contains(req.Variables, e.Key) {
+			keys = append(keys, e.Key)
+		}
+	}
+
+	if len(keys) > 0 {
 		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-			if delErr := db.Query.DeleteUnprotectedAppEnvVarsByKeys(ctx, tx, db.DeleteUnprotectedAppEnvVarsByKeysParams{
+			if err := db.Query.DeleteAppEnvVarsByKeys(ctx, tx, db.DeleteAppEnvVarsByKeysParams{
 				EnvironmentID: env.ID,
-				EnvKeys:       toRemove,
-			}); delErr != nil {
-				return removeVarsDBError(delErr, "unable to remove variables")
+				EnvKeys:       keys,
+			}); err != nil {
+				return fault.Wrap(
+					err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("unable to remove variables"),
+					fault.Public("We're unable to remove the environment variables."),
+				)
 			}
-			return h.Auditlogs.Insert(ctx, tx, auditLogs)
+
+			return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
+				{
+					WorkspaceID:   principal.WorkspaceID,
+					Event:         auditlog.EnvironmentUpdateEvent,
+					Display:       fmt.Sprintf("Removed environment variables from environment %s", env.ID),
+					ActorID:       principal.Subject.ID,
+					ActorName:     principal.Subject.Name,
+					ActorMeta:     map[string]any{},
+					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
+					Resources: []auditlog.AuditLogResource{
+						{
+							ID:          env.ID,
+							Type:        auditlog.EnvironmentResourceType,
+							Meta:        map[string]any{"keys": keys},
+							Name:        env.Slug,
+							DisplayName: env.Slug,
+						},
+					},
+				},
+			})
 		})
 		if err != nil {
 			return err
 		}
 	}
 
-	data := make([]openapi.EnvironmentVariableMetadata, 0, len(currentVars))
-	for _, cur := range currentVars {
-		if _, gone := removed[cur.Key]; gone {
-			continue
-		}
-		var desc *string
-		if cur.Description.Valid {
-			d := cur.Description.String
-			desc = &d
-		}
-		data = append(data, openapi.EnvironmentVariableMetadata{
-			Key:              cur.Key,
-			Sensitive:        cur.Type == db.AppEnvironmentVariablesTypeWriteonly,
-			Description:      desc,
-			DeleteProtection: cur.DeleteProtection.Valid && cur.DeleteProtection.Bool,
-		})
-	}
-
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: data,
+		Data: openapi.EmptyResponse{},
 	})
-}
-
-func removeVarsDBError(err error, internal string) error {
-	return fault.Wrap(
-		err,
-		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-		fault.Internal(internal),
-		fault.Public("We're unable to remove the environment variables."),
-	)
 }

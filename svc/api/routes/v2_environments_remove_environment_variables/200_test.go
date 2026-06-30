@@ -1,13 +1,13 @@
 package handler_test
 
 import (
-	"sort"
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_remove_environment_variables"
 )
 
@@ -17,6 +17,7 @@ func TestRemoveEnvironmentVariablesSuccessfully(t *testing.T) {
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 
+	ctx := context.Background()
 	workspace := h.Resources().UserWorkspace
 	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_environment_variables")
 	headers := authHeaders(rootKey)
@@ -29,105 +30,69 @@ func TestRemoveEnvironmentVariablesSuccessfully(t *testing.T) {
 		return *res.Body
 	}
 
-	keysOf := func(data []openapi.EnvironmentVariableMetadata) []string {
-		out := make([]string, 0, len(data))
-		for _, d := range data {
-			out = append(out, d.Key)
-		}
-		sort.Strings(out)
-		return out
-	}
-
-	t.Run("remove existing keys deletes them and returns the remaining set", func(t *testing.T) {
+	t.Run("remove existing keys deletes them", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVar(t, h, env, "GONE", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
 		seedVar(t, h, env, "ALSO_GONE", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
 		seedVar(t, h, env, "KEEP", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
 
-		body := call(t, makeRequest(env, []string{"GONE", "ALSO_GONE"}))
+		call(t, makeRequest(env, []string{"GONE", "ALSO_GONE"}))
 
 		raw := listRawVars(t, h, env.environmentID)
 		require.Len(t, raw, 1)
 		_, ok := raw["KEEP"]
 		require.True(t, ok)
-
-		require.Equal(t, []string{"KEEP"}, keysOf(body.Data))
 	})
 
 	t.Run("removing a key that is not present is a noop", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVar(t, h, env, "KEEP", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
 
-		body := call(t, makeRequest(env, []string{"MISSING"}))
+		call(t, makeRequest(env, []string{"MISSING"}))
 
 		raw := listRawVars(t, h, env.environmentID)
 		require.Len(t, raw, 1)
-		require.Equal(t, []string{"KEEP"}, keysOf(body.Data))
-	})
-
-	t.Run("delete-protected keys are never removed", func(t *testing.T) {
-		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "PROTECTED", "v", db.AppEnvironmentVariablesTypeRecoverable, true)
-
-		body := call(t, makeRequest(env, []string{"PROTECTED"}))
-
-		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 1)
-		require.True(t, raw["PROTECTED"].deleteProtection)
-
-		require.Len(t, body.Data, 1)
-		require.Equal(t, "PROTECTED", body.Data[0].Key)
-		require.True(t, body.Data[0].DeleteProtection)
-	})
-
-	t.Run("mixed present, missing, and protected removes only unprotected present keys", func(t *testing.T) {
-		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "GONE", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
-		seedVar(t, h, env, "PROTECTED", "v", db.AppEnvironmentVariablesTypeRecoverable, true)
-
-		body := call(t, makeRequest(env, []string{"GONE", "PROTECTED", "MISSING"}))
-
-		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 1)
-		_, ok := raw["PROTECTED"]
+		_, ok := raw["KEEP"]
 		require.True(t, ok)
-
-		require.Equal(t, []string{"PROTECTED"}, keysOf(body.Data))
 	})
 
-	t.Run("metadata is preserved on remaining keys", func(t *testing.T) {
+	t.Run("delete protection no longer blocks removal", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVarFull(t, h, env, "GONE", "v", db.AppEnvironmentVariablesTypeRecoverable, "", false)
-		seedVarFull(t, h, env, "KEEP", "v", db.AppEnvironmentVariablesTypeWriteonly, "secret token", false)
+		seedVar(t, h, env, "PROTECTED", "v", db.AppEnvironmentVariablesTypeRecoverable, true)
 
-		body := call(t, makeRequest(env, []string{"GONE"}))
+		call(t, makeRequest(env, []string{"PROTECTED"}))
 
-		require.Len(t, body.Data, 1)
-		require.Equal(t, "KEEP", body.Data[0].Key)
-		require.True(t, body.Data[0].Sensitive)
-		require.NotNil(t, body.Data[0].Description)
-		require.Equal(t, "secret token", *body.Data[0].Description)
+		raw := listRawVars(t, h, env.environmentID)
+		require.Empty(t, raw)
 	})
 
 	t.Run("duplicate keys in payload collapse to a single removal", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVar(t, h, env, "DUP", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
 
-		body := call(t, makeRequest(env, []string{"DUP", "DUP"}))
+		call(t, makeRequest(env, []string{"DUP", "DUP"}))
 
 		raw := listRawVars(t, h, env.environmentID)
 		require.Empty(t, raw)
-		require.Empty(t, body.Data)
 	})
 
-	t.Run("removing keys that are all missing or protected leaves state unchanged", func(t *testing.T) {
+	t.Run("emits a single audit event with only the keys that existed", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "PROTECTED", "v", db.AppEnvironmentVariablesTypeRecoverable, true)
+		seedVar(t, h, env, "ALPHA", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
+		seedVar(t, h, env, "BETA", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
 
-		body := call(t, makeRequest(env, []string{"PROTECTED", "MISSING"}))
+		// Duplicates and a non-existent key (KEBAP) in the request: the audit log
+		// records only the keys that were actually present and removed.
+		call(t, makeRequest(env, []string{"BETA", "ALPHA", "BETA", "ALPHA", "KEBAP"}))
 
-		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 1)
-		require.Equal(t, []string{"PROTECTED"}, keysOf(body.Data))
+		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
+		require.Len(t, logs, 1)
+		require.Contains(t, logs[0].Description, "Removed environment variables")
+
+		require.Len(t, logs[0].Targets, 1)
+		keys := fmt.Sprintf("%v", logs[0].Targets[0].Meta["keys"])
+		require.Contains(t, keys, "ALPHA")
+		require.Contains(t, keys, "BETA")
+		require.NotContains(t, keys, "KEBAP")
 	})
 }
