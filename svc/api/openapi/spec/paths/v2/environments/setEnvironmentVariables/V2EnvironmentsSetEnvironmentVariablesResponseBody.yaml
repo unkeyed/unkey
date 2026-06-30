@@ -6,12 +6,7 @@ properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
   data:
-    type: array
-    items:
-      "$ref": "./EnvironmentVariableMetadata.yaml"
-    description: |
-      The variables that were set, echoed back as metadata. Values are never
-      returned.
+    "$ref": "../../../../common/EmptyResponse.yaml"
 additionalProperties: false
 examples:
   success:
@@ -19,9 +14,4 @@ examples:
     value:
       meta:
         requestId: req_1234abcd
-      data:
-        - key: DATABASE_URL
-          kind: writeonly
-        - key: LOG_LEVEL
-          kind: recoverable
-          description: Application log verbosity
+      data: {}

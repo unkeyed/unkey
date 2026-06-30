@@ -1219,9 +1219,8 @@ type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
 
 // V2EnvironmentsSetEnvironmentVariablesResponseBody defines model for V2EnvironmentsSetEnvironmentVariablesResponseBody.
 type V2EnvironmentsSetEnvironmentVariablesResponseBody struct {
-	// Data The variables that were set, echoed back as metadata. Values are never
-	// returned.
-	Data []EnvironmentVariableMetadata `json:"data"`
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`

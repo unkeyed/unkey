@@ -115,8 +115,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	var data []openapi.EnvironmentVariableMetadata
-
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		if _, lockErr := db.Query.LockEnvironmentForUpdate(ctx, tx, env.ID); lockErr != nil {
 			if db.IsNotFound(lockErr) {
@@ -139,15 +137,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			existing[key] = struct{}{}
 		}
 
-		// Complete reset: drop every existing variable, then write the desired
-		// set. Simpler than reconciling, and atomic within the transaction.
 		if err := db.Query.DeleteAppEnvVarsByEnvironmentId(ctx, tx, env.ID); err != nil {
 			return setVarsDBError(err, "unable to delete variables")
 		}
 
-		var newEnvVars []db.InsertAppEnvironmentVariableParams
-		newEnvVars, data = buildVariables(keys, byKey, encrypted, env, time.Now().UnixMilli())
-
+		newEnvVars := buildVariables(keys, byKey, encrypted, env, time.Now().UnixMilli())
 		if err = db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newEnvVars); err != nil {
 			return setVarsDBError(err, "unable to insert variables")
 		}
@@ -160,28 +154,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: data,
+		Data: openapi.EmptyResponse{},
 	})
 }
 
-// buildVariables maps the desired set into insert params and response metadata.
-// This is a complete reset: every field comes from the payload, with omitted
-// optional fields falling back to defaults rather than the previous value.
 func buildVariables(
 	keys []string,
 	byKey map[string]openapi.EnvironmentVariableInput,
 	encrypted map[string]encryptedValue,
 	env db.Environment,
 	now int64,
-) ([]db.InsertAppEnvironmentVariableParams, []openapi.EnvironmentVariableMetadata) {
+) []db.InsertAppEnvironmentVariableParams {
 	params := make([]db.InsertAppEnvironmentVariableParams, 0, len(keys))
-	data := make([]openapi.EnvironmentVariableMetadata, 0, len(keys))
 
 	for _, key := range keys {
 		v := byKey[key]
 
 		varType := db.AppEnvironmentVariablesTypeWriteonly
-		if v.Kind != nil && *v.Kind == openapi.EnvironmentVariableInputKindRecoverable {
+		if v.Kind != nil && *v.Kind == openapi.Recoverable {
 			varType = db.AppEnvironmentVariablesTypeRecoverable
 		}
 
@@ -201,25 +191,9 @@ func buildVariables(
 			Description:   description,
 			CreatedAt:     now,
 		})
-
-		kind := openapi.EnvironmentVariableMetadataKindWriteonly
-		if varType == db.AppEnvironmentVariablesTypeRecoverable {
-			kind = openapi.EnvironmentVariableMetadataKindRecoverable
-		}
-
-		var desc *string
-		if description.Valid {
-			d := description.String
-			desc = &d
-		}
-		data = append(data, openapi.EnvironmentVariableMetadata{
-			Key:         key,
-			Kind:        kind,
-			Description: desc,
-		})
 	}
 
-	return params, data
+	return params
 }
 
 func (h *Handler) variableAuditLogs(

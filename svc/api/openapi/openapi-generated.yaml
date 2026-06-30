@@ -684,12 +684,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    type: array
-                    items:
-                        "$ref": "#/components/schemas/EnvironmentVariableMetadata"
-                    description: |
-                        The variables that were set, echoed back as metadata. Values are never
-                        returned.
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2EnvironmentsUpdateSettingsRequestBody:
             type: object
