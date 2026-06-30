@@ -140,7 +140,6 @@ import { updateIdentityMetadata } from "./identity/updateMetadata";
 import { updateIdentityRatelimit } from "./identity/updateRatelimit";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
-import { deleteKeys } from "./key/delete";
 import { fetchKeyPermissions } from "./key/fetch-key-permissions";
 import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
@@ -239,7 +238,6 @@ import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 export const router = t.router({
   key: t.router({
     create: createKey,
-    delete: deleteKeys,
     reroll: rerollKey,
     fetchPermissions: fetchKeyPermissions,
     logs: t.router({
