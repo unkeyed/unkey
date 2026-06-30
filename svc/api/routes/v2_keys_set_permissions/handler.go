@@ -16,7 +16,9 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -94,18 +96,34 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ResourceID:   key.Api.ID,
 					Action:       rbac.UpdateKey,
 				}),
+				rbac.U(
+					urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
+					permissions.UpdateKey{},
+				),
 			),
 			rbac.And(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Rbac,
-					ResourceID:   "*",
-					Action:       rbac.AddPermissionToKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Rbac,
-					ResourceID:   "*",
-					Action:       rbac.RemovePermissionFromKey,
-				}),
+				rbac.Or(
+					rbac.T(rbac.Tuple{
+						ResourceType: rbac.Rbac,
+						ResourceID:   "*",
+						Action:       rbac.AddPermissionToKey,
+					}),
+					rbac.U(
+						urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
+						permissions.AddPermissionToKey{},
+					),
+				),
+				rbac.Or(
+					rbac.T(rbac.Tuple{
+						ResourceType: rbac.Rbac,
+						ResourceID:   "*",
+						Action:       rbac.RemovePermissionFromKey,
+					}),
+					rbac.U(
+						urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
+						permissions.RemovePermissionFromKey{},
+					),
+				),
 			),
 		),
 	)
@@ -148,13 +166,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	permissionsToSet = append(permissionsToSet, foundPermissions...)
 
 	if len(missingPermissions) > 0 {
-		err = principal.Authorize(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Rbac,
-				ResourceID:   "*",
-				Action:       rbac.CreatePermission,
-			}),
-		)
+		err = principal.Authorize(rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.CreatePermission,
+		}))
 		if err != nil {
 			return err
 		}

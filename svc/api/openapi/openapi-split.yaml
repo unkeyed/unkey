@@ -8,7 +8,7 @@ info:
 
     ### Authentication
     #
-    This API uses HTTP Bearer authentication with root keys. Most endpoints require specific permissions associated with your root key. When making requests, include your root key in the `Authorization` header:
+    This API accepts HTTP Bearer credentials. Public integrations use root keys. Dashboard-originated requests use a short-lived dashboard proxy JWT minted by the dashboard server. Most endpoints require permissions associated with the authenticated principal. When making public API requests, include your root key in the `Authorization` header:
     ```
     Authorization: Bearer unkey_xxxxxxxxxxx
     ```
@@ -257,10 +257,17 @@ components:
         ```
         Authorization: Bearer unkey_123
         ```
-        Root keys have specific permissions attached to them, controlling what operations they can perform. Key permissions follow a hierarchical structure with patterns like `resource.resource_id.action` (e.g., `apis.*.create_key`, `apis.*.read_api`).
+        Root keys have specific permissions attached to them, controlling what operations they can perform. Legacy permissions use tuple strings like `api.*.create_key`; resource permissions use Unkey Resource Names plus actions, like `unkey:v1:ws_123:keyspaces/*#create_key`.
         Security best practices:
         - Keep root keys secure and never expose them in client-side code
         - Use different root keys for different environments
         - Rotate keys periodically, especially after team member departures
         - Create keys with minimal necessary permissions following least privilege principle
         - Monitor key usage with audit logs.
+    dashboard:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |-
+        Short-lived bearer token used by the Unkey dashboard when it calls svc/api.
+        Browser clients should call the dashboard `/proxy/...` route without an Authorization header. The dashboard server mints and attaches this token upstream.

@@ -15,6 +15,8 @@ go_library(
         "//pkg/fault",
         "//pkg/ptr",
         "//pkg/rbac",
+        "//pkg/rbac/permissions",
+        "//pkg/urn",
         "//pkg/zen",
         "//svc/api/openapi",
     ],

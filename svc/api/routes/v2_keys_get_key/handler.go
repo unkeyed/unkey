@@ -15,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -93,6 +95,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   keyData.Api.ID,
 			Action:       rbac.ReadKey,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			permissions.ReadKey{},
+		),
 	))
 	if err != nil {
 		return err
@@ -262,6 +268,10 @@ func (h *Handler) decryptKey(ctx context.Context, principal *principal.Principal
 			ResourceID:   keyData.Api.ID,
 			Action:       rbac.DecryptKey,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			permissions.DecryptKey{},
+		),
 	))
 	if err != nil {
 		return nil, err

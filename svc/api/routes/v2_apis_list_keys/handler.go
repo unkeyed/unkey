@@ -17,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -54,38 +56,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	err = principal.Authorize(rbac.Or(
-		rbac.And(
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.ReadKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   req.ApiId,
-					Action:       rbac.ReadKey,
-				}),
-			),
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.ReadAPI,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   req.ApiId,
-					Action:       rbac.ReadAPI,
-				}),
-			),
-		),
-	))
-	if err != nil {
-		return err
-	}
-
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
 		WorkspaceID: principal.WorkspaceID,
 		Key:         req.ApiId,
@@ -124,6 +94,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	if !api.KeyAuthID.Valid {
+		return fault.New("api missing keyspace",
+			fault.Code(codes.Data.KeySpace.NotFound.URN()),
+			fault.Internal("api has no key auth id"),
+			fault.Public("The requested API does not have a keyspace."),
+		)
+	}
+
+	err = principal.Authorize(rbac.And(
+		rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.ReadKey,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   req.ApiId,
+				Action:       rbac.ReadKey,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
+				permissions.ReadKey{},
+			),
+		),
+		rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.ReadAPI,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   req.ApiId,
+				Action:       rbac.ReadAPI,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
+				permissions.ReadKeyspace{},
+			),
+		),
+	))
+	if err != nil {
+		return err
+	}
+
 	if ptr.SafeDeref(req.Decrypt, false) {
 		if h.Vault == nil {
 			return fault.New("vault missing",
@@ -143,6 +159,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.DecryptKey,
 			}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
+				permissions.DecryptKey{},
+			),
 		))
 		if err != nil {
 			return err

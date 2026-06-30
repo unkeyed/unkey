@@ -19,6 +19,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -129,6 +131,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Key.ApiID,
 			Action:       rbac.VerifyKey,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+			permissions.VerifyKey{},
+		),
 	))
 	if err != nil {
 		// Return 200 OK with NOT_FOUND because returning a permission error here

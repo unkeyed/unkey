@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	RootKeyScopes = "rootKey.Scopes"
+	DashboardScopes = "dashboard.Scopes"
+	RootKeyScopes   = "rootKey.Scopes"
 )
 
 // Defines values for KeyCreditsRefillInterval.

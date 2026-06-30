@@ -15,6 +15,13 @@ func HasAnyPermission(granted []string, resourceType ResourceType, action Action
 		if strings.HasPrefix(permission, prefix) && strings.HasSuffix(permission, suffix) {
 			return true
 		}
+		unkeyPermission, err := parseUrnPermission(permission)
+		if err != nil {
+			continue
+		}
+		if unkeyPermission.Action == action || unkeyPermission.Action == "*" {
+			return true
+		}
 	}
 	return false
 }
