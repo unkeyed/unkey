@@ -30,6 +30,7 @@ func TestBuildRailpackPrepareDockerfile(t *testing.T) {
 		"ghcr.io/unkeyed/railpack-frontend:v0.27.0-unkey.1",
 		"ghcr.io/railwayapp/railpack-builder:mise-2026.6.1",
 		[]string{"BAR", "FOO"},
+		nil,
 		"hash123",
 	)
 	require.NoError(t, err)
@@ -51,10 +52,60 @@ func TestBuildRailpackPrepareDockerfile(t *testing.T) {
 
 	// Secret values must never appear in the Dockerfile, and without env vars
 	// there must be no secret machinery at all.
-	bare, err := buildRailpackPrepareDockerfile("frontend:v1", "builder:v1", nil, "")
+	bare, err := buildRailpackPrepareDockerfile("frontend:v1", "builder:v1", nil, nil, "")
 	require.NoError(t, err)
 	require.NotContains(t, bare, "--mount=type=secret")
 	require.NotContains(t, bare, "RAILPACK_SECRETS_HASH")
+
+	// The Railpack build command override is mounted as a secret and passed via
+	// --env: railpack reads its environment only from --env and interprets
+	// RAILPACK_* keys there as config. The fixed name — never the value —
+	// appears in the Dockerfile.
+	withConfig, err := buildRailpackPrepareDockerfile(
+		"frontend:v1", "builder:v1",
+		[]string{"FOO"},
+		[]string{"RAILPACK_BUILD_CMD"},
+		"hash999",
+	)
+	require.NoError(t, err)
+	require.Contains(t, withConfig, `RUN --mount=type=bind,target=/workspace,readonly \
+    --mount=type=cache,target=/tmp/railpack \
+    --mount=type=secret,id=FOO,env=FOO \
+    --mount=type=secret,id=RAILPACK_BUILD_CMD,env=RAILPACK_BUILD_CMD \
+    RAILPACK_SECRETS_HASH=hash999 /usr/local/bin/railpack prepare /workspace --plan-out /railpack-plan.json --env FOO="$FOO" --env RAILPACK_BUILD_CMD="$RAILPACK_BUILD_CMD"`)
+
+	// Config-only (no env vars): mounts the secret and passes it via --env.
+	configOnly, err := buildRailpackPrepareDockerfile(
+		"frontend:v1", "builder:v1",
+		nil,
+		[]string{"RAILPACK_BUILD_CMD"},
+		"hash000",
+	)
+	require.NoError(t, err)
+	require.Contains(t, configOnly, `RUN --mount=type=bind,target=/workspace,readonly \
+    --mount=type=cache,target=/tmp/railpack \
+    --mount=type=secret,id=RAILPACK_BUILD_CMD,env=RAILPACK_BUILD_CMD \
+    RAILPACK_SECRETS_HASH=hash000 /usr/local/bin/railpack prepare /workspace --plan-out /railpack-plan.json --env RAILPACK_BUILD_CMD="$RAILPACK_BUILD_CMD"`)
+}
+
+func TestRailpackConfigVars(t *testing.T) {
+	require.Empty(t, railpackConfigVars(gitBuildParams{}))
+
+	cfg := railpackConfigVars(gitBuildParams{BuildCommand: "pnpm --filter api build"})
+	require.Equal(t, "pnpm --filter api build", cfg[railpackBuildCmdEnv])
+	require.Len(t, cfg, 1)
+}
+
+func TestHashRailpackPrepareInputs(t *testing.T) {
+	require.Empty(t, hashRailpackPrepareInputs(nil, nil))
+
+	// Changing a command override changes the hash so a cached plan for the same
+	// commit is not reused.
+	base := hashRailpackPrepareInputs(map[string]string{"FOO": "bar"}, nil)
+	withCmd := hashRailpackPrepareInputs(map[string]string{"FOO": "bar"}, map[string]string{railpackBuildCmdEnv: "x"})
+	changedCmd := hashRailpackPrepareInputs(map[string]string{"FOO": "bar"}, map[string]string{railpackBuildCmdEnv: "y"})
+	require.NotEqual(t, base, withCmd)
+	require.NotEqual(t, withCmd, changedCmd)
 }
 
 func TestRailpackSecrets(t *testing.T) {

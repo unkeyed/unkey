@@ -69,6 +69,7 @@ import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
+import { updateBuildCommand } from "./deploy/environment-settings/build/update-build-command";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
 import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
@@ -525,6 +526,7 @@ export const router = t.router({
         updateAutoDeploy,
         updateDockerfile,
         updateDockerContext,
+        updateBuildCommand,
         updateWatchPaths,
       }),
     }),
