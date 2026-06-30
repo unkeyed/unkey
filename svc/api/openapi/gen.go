@@ -31,6 +31,12 @@ const (
 	Http1 EnvironmentUpstreamProtocol = "http1"
 )
 
+// Defines values for EnvironmentVariableKind.
+const (
+	Recoverable EnvironmentVariableKind = "recoverable"
+	Writeonly   EnvironmentVariableKind = "writeonly"
+)
+
 // Defines values for KeyCreditsRefillInterval.
 const (
 	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
@@ -300,8 +306,27 @@ type EnvironmentShutdownSignal string
 // EnvironmentUpstreamProtocol Protocol used to reach the container.
 type EnvironmentUpstreamProtocol string
 
-// EnvironmentVariableMetadataKind How the value may be read back.
-type EnvironmentVariableMetadataKind string
+// EnvironmentVariableInput A single environment variable to set.
+type EnvironmentVariableInput struct {
+	// Description Human-readable description of the variable.
+	Description *string `json:"description,omitempty"`
+
+	// Key The variable name. Must be a POSIX shell name: letters, digits, and
+	// underscores only, and must not start with a digit. Other names are
+	// unreachable from shells and most runtimes.
+	Key string `json:"key"`
+
+	// Kind How the value may be read back. Defaults to `writeonly`.
+	Kind *EnvironmentVariableKind `json:"kind,omitempty"`
+
+	// Value The variable value. Always encrypted at rest.
+	Value string `json:"value"`
+}
+
+// EnvironmentVariableKind How the value may be read back. `writeonly` values can never be read back
+// through the API; `recoverable` values can be decrypted. Values are encrypted
+// at rest either way.
+type EnvironmentVariableKind string
 
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
