@@ -506,6 +506,7 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-shiny-text: shiny-text 10s infinite;
   --animate-shimmer: shimmer 1.2s ease-in-out infinite;
+  --animate-error-blink: error-blink 0.7s ease-in-out;
 
   @keyframes marquee {
     0% {
@@ -548,6 +549,20 @@
     }
     100% {
       transform: translateX(100%);
+    }
+  }
+  @keyframes error-blink {
+    0%,
+    100% {
+      background-color: hsl(var(--error-2));
+    }
+    20%,
+    60% {
+      background-color: hsl(var(--error-5));
+    }
+    40%,
+    80% {
+      background-color: hsl(var(--error-3));
     }
   }
 }

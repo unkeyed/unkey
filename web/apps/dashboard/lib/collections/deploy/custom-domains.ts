@@ -43,7 +43,6 @@ export const customDomains = createCollection<CustomDomain, string>(
   queryCollectionOptions({
     queryClient,
     syncMode: "on-demand",
-    refetchInterval: 5000,
     queryKey: (opts) => {
       const projectId = parseProjectIdFromWhere(opts.where);
       return projectId ? ["customDomains", projectId] : ["customDomains"];
