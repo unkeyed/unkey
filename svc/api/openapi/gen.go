@@ -1184,26 +1184,25 @@ type V2EnvironmentsAddEnvironmentVariablesRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
 
-	// Variables The variables to add. Keys that do not yet exist are created; keys that
-	// already exist are left untouched (no overwrite, no deletion). Use
+	// Variables The variables to add. Every key must not already exist; if any one does,
+	// the request is rejected with a 409 and nothing is changed. Use
 	// `setEnvironmentVariables` to update existing values.
 	//
-	// A new key uses the field defaults when optional fields (`sensitive`,
-	// `description`, `deleteProtection`) are omitted; only `value` is required
-	// on every entry.
+	// A new key uses the field defaults when optional fields (`kind`,
+	// `description`) are omitted; only `key` and `value` are required on every
+	// entry. `kind` defaults to `writeonly`.
 	//
-	// Duplicate keys are allowed and collapse to the last occurrence. The whole
-	// operation is atomic: if any part fails the environment is left unchanged.
-	// All values are encrypted at rest. Limited to 50 variables per request.
+	// Each key may appear at most once; duplicates are rejected with a 400. The
+	// whole operation is atomic: if any part fails the environment is left
+	// unchanged. All values are encrypted at rest. Limited to 50 variables per
+	// request.
 	Variables []EnvironmentVariableInput `json:"variables"`
 }
 
 // V2EnvironmentsAddEnvironmentVariablesResponseBody defines model for V2EnvironmentsAddEnvironmentVariablesResponseBody.
 type V2EnvironmentsAddEnvironmentVariablesResponseBody struct {
-	// Data The full resulting set of variables for the environment, echoed back as
-	// metadata. Includes both pre-existing variables and the ones just added.
-	// Values are never returned.
-	Data []EnvironmentVariableMetadata `json:"data"`
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`

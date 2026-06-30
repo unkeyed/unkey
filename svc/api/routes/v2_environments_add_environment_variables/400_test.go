@@ -43,4 +43,12 @@ func TestAddEnvironmentVariablesBadRequest(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(env, vars))
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
+
+	t.Run("duplicate keys are rejected", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "DUP", Value: "first"},
+			{Key: "DUP", Value: "second"},
+		}))
+		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
+	})
 }

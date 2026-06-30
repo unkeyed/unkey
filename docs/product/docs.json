@@ -491,6 +491,7 @@
                       "errors/unkey/data/app_not_found",
                       "errors/unkey/data/audit_log_not_found",
                       "errors/unkey/data/environment_not_found",
+                      "errors/unkey/data/environment_variable_already_exists",
                       "errors/unkey/data/identity_already_exists",
                       "errors/unkey/data/identity_not_found",
                       "errors/unkey/data/key_auth_not_found",

@@ -613,17 +613,18 @@ components:
                     items:
                         "$ref": "#/components/schemas/EnvironmentVariableInput"
                     description: |
-                        The variables to add. Keys that do not yet exist are created; keys that
-                        already exist are left untouched (no overwrite, no deletion). Use
+                        The variables to add. Every key must not already exist; if any one does,
+                        the request is rejected with a 409 and nothing is changed. Use
                         `setEnvironmentVariables` to update existing values.
 
-                        A new key uses the field defaults when optional fields (`sensitive`,
-                        `description`, `deleteProtection`) are omitted; only `value` is required
-                        on every entry.
+                        A new key uses the field defaults when optional fields (`kind`,
+                        `description`) are omitted; only `key` and `value` are required on every
+                        entry. `kind` defaults to `writeonly`.
 
-                        Duplicate keys are allowed and collapse to the last occurrence. The whole
-                        operation is atomic: if any part fails the environment is left unchanged.
-                        All values are encrypted at rest. Limited to 50 variables per request.
+                        Each key may appear at most once; duplicates are rejected with a 400. The
+                        whole operation is atomic: if any part fails the environment is left
+                        unchanged. All values are encrypted at rest. Limited to 50 variables per
+                        request.
             additionalProperties: false
         V2EnvironmentsAddEnvironmentVariablesResponseBody:
             type: object
@@ -634,13 +635,7 @@ components:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
-                    type: array
-                    items:
-                        "$ref": "#/components/schemas/EnvironmentVariableMetadata"
-                    description: |
-                        The full resulting set of variables for the environment, echoed back as
-                        metadata. Includes both pre-existing variables and the ones just added.
-                        Values are never returned.
+                    "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
         V2EnvironmentsGetEnvironmentRequestBody:
             type: object
@@ -6072,19 +6067,19 @@ paths:
             description: |
                 Add new environment variables to an environment in a single atomic request.
 
-                This operation only creates keys. Keys in the payload that do not yet exist
-                are created; keys that already exist are left untouched (no overwrite, no
-                deletion). To replace or update existing values, use
-                `setEnvironmentVariables` instead. The whole operation is atomic: if any
-                part fails the environment is left unchanged.
+                This operation only creates keys. Every key in the payload must not already
+                exist; if any one does, the request is rejected with a 409 and nothing is
+                changed. To replace or update existing values, use `setEnvironmentVariables`
+                instead. The whole operation is atomic: if any part fails the environment is
+                left unchanged.
 
-                A new key uses the field defaults when optional fields are omitted:
-                `sensitive` defaults to false (recoverable) and `deleteProtection` defaults
-                to false.
+                A new key uses the field defaults when optional fields are omitted: `kind`
+                defaults to `writeonly`.
 
-                Values are always encrypted at rest. Set `sensitive: true` to make a value
-                write-only so it can never be read back. The response echoes the full
-                resulting set of variables as metadata and never returns values.
+                Values are always encrypted at rest. `kind: writeonly` makes a value
+                write-only so it can never be read back; `kind: recoverable` allows it to be
+                decrypted later. Each key may appear at most once per request; duplicates in
+                the same request are rejected with a 400.
 
                 **Required Permissions**
 
@@ -6097,7 +6092,7 @@ paths:
                     application/json:
                         examples:
                             addVariables:
-                                description: Locate the environment by slug and add variables, leaving existing keys untouched
+                                description: Locate the environment by slug and create new variables; fails with 409 if any key already exists
                                 summary: Add new variables
                                 value:
                                     app: payments-api
@@ -6105,10 +6100,11 @@ paths:
                                     project: payments
                                     variables:
                                         - key: DATABASE_URL
-                                          sensitive: true
+                                          kind: writeonly
                                           value: postgresql://user:pass@host:5432/db
                                         - description: Application log verbosity
                                           key: LOG_LEVEL
+                                          kind: recoverable
                                           value: debug
                         schema:
                             $ref: '#/components/schemas/V2EnvironmentsAddEnvironmentVariablesRequestBody'
@@ -6145,6 +6141,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found - The requested environment does not exist in your workspace
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Conflict - One of the variable keys already exists. Use `setEnvironmentVariables` to change existing values.
                 "429":
                     content:
                         application/problem+json:

@@ -2,7 +2,7 @@ package handler_test
 
 import (
 	"context"
-	"sort"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -39,20 +39,11 @@ func TestAddEnvironmentVariablesSuccessfully(t *testing.T) {
 		return res.GetPlaintext()
 	}
 
-	keysOf := func(data []openapi.EnvironmentVariableMetadata) []string {
-		out := make([]string, 0, len(data))
-		for _, d := range data {
-			out = append(out, d.Key)
-		}
-		sort.Strings(out)
-		return out
-	}
-
 	t.Run("add to empty environment creates all keys", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "DATABASE_URL", Value: "postgres://secret", Sensitive: ptr(true)},
-			{Key: "LOG_LEVEL", Value: "debug", Description: ptr("verbosity")},
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "DATABASE_URL", Value: "postgres://secret", Kind: ptr(openapi.Writeonly)},
+			{Key: "LOG_LEVEL", Value: "debug", Kind: ptr(openapi.Recoverable), Description: ptr("verbosity")},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
@@ -65,75 +56,53 @@ func TestAddEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Equal(t, db.AppEnvironmentVariablesTypeRecoverable, raw["LOG_LEVEL"].varType)
 		require.Equal(t, "debug", decrypt(t, env.environmentID, raw["LOG_LEVEL"].value))
 		require.Equal(t, "verbosity", raw["LOG_LEVEL"].description)
-
-		require.ElementsMatch(t, []string{"DATABASE_URL", "LOG_LEVEL"}, keysOf(body.Data))
 	})
 
-	t.Run("existing keys are left untouched and new keys created", func(t *testing.T) {
+	t.Run("adds new keys alongside unrelated existing ones", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVarFull(t, h, env, "EXISTING", "original", db.AppEnvironmentVariablesTypeWriteonly, "keep me", true)
+		seedVarFull(t, h, env, "EXISTING", "original", db.AppEnvironmentVariablesTypeWriteonly, "keep me")
 
-		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "EXISTING", Value: "should-be-ignored", Sensitive: ptr(false), Description: ptr("changed"), DeleteProtection: ptr(false)},
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "NEW", Value: "fresh"},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
 		require.Len(t, raw, 2)
 
-		// EXISTING is fully unchanged: value, type, description, delete_protection.
+		// EXISTING is fully unchanged: value, type, description.
 		require.Equal(t, "original", raw["EXISTING"].value, "existing value must not be overwritten")
 		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["EXISTING"].varType)
 		require.Equal(t, "keep me", raw["EXISTING"].description)
-		require.True(t, raw["EXISTING"].deleteProtection)
 
 		require.Equal(t, "fresh", decrypt(t, env.environmentID, raw["NEW"].value))
-
-		// Response echoes the full resulting set.
-		require.ElementsMatch(t, []string{"EXISTING", "NEW"}, keysOf(body.Data))
 	})
 
-	t.Run("adding only existing keys is a noop", func(t *testing.T) {
+	t.Run("kind defaults to writeonly when omitted", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "ONLY", "original", db.AppEnvironmentVariablesTypeRecoverable, false)
-
-		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "ONLY", Value: "ignored"},
-		}))
-
-		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 1)
-		require.Equal(t, "original", raw["ONLY"].value)
-		require.Equal(t, []string{"ONLY"}, keysOf(body.Data))
-	})
-
-	t.Run("new key field defaults when omitted", func(t *testing.T) {
-		env := seedEnvironment(t, h)
-		body := call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "PLAIN", Value: "v"},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
-		require.Equal(t, db.AppEnvironmentVariablesTypeRecoverable, raw["PLAIN"].varType)
+		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["PLAIN"].varType)
 		require.Equal(t, "", raw["PLAIN"].description)
-		require.False(t, raw["PLAIN"].deleteProtection)
-
-		require.Len(t, body.Data, 1)
-		require.Equal(t, "PLAIN", body.Data[0].Key)
-		require.False(t, body.Data[0].Sensitive)
-		require.False(t, body.Data[0].DeleteProtection)
 	})
 
-	t.Run("duplicate keys dedup with last occurrence winning", func(t *testing.T) {
+	t.Run("emits a single audit event with the created key set", func(t *testing.T) {
 		env := seedEnvironment(t, h)
+
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "DUP", Value: "first", Sensitive: ptr(false)},
-			{Key: "DUP", Value: "last", Sensitive: ptr(true)},
+			{Key: "ALPHA", Value: "a"},
+			{Key: "BETA", Value: "b"},
 		}))
 
-		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 1)
-		require.Equal(t, "last", decrypt(t, env.environmentID, raw["DUP"].value))
-		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["DUP"].varType)
+		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
+		require.Len(t, logs, 1)
+		require.Contains(t, logs[0].Description, "Added environment variables")
+
+		require.Len(t, logs[0].Targets, 1)
+		keys := fmt.Sprintf("%v", logs[0].Targets[0].Meta["keys"])
+		require.Contains(t, keys, "ALPHA")
+		require.Contains(t, keys, "BETA")
 	})
 }

@@ -29,6 +29,7 @@ go_test(
         "401_test.go",
         "403_test.go",
         "404_test.go",
+        "409_test.go",
         "helpers_test.go",
     ],
     deps = [

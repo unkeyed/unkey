@@ -5,19 +5,19 @@ post:
   description: |
     Add new environment variables to an environment in a single atomic request.
 
-    This operation only creates keys. Keys in the payload that do not yet exist
-    are created; keys that already exist are left untouched (no overwrite, no
-    deletion). To replace or update existing values, use
-    `setEnvironmentVariables` instead. The whole operation is atomic: if any
-    part fails the environment is left unchanged.
+    This operation only creates keys. Every key in the payload must not already
+    exist; if any one does, the request is rejected with a 409 and nothing is
+    changed. To replace or update existing values, use `setEnvironmentVariables`
+    instead. The whole operation is atomic: if any part fails the environment is
+    left unchanged.
 
-    A new key uses the field defaults when optional fields are omitted:
-    `sensitive` defaults to false (recoverable) and `deleteProtection` defaults
-    to false.
+    A new key uses the field defaults when optional fields are omitted: `kind`
+    defaults to `writeonly`.
 
-    Values are always encrypted at rest. Set `sensitive: true` to make a value
-    write-only so it can never be read back. The response echoes the full
-    resulting set of variables as metadata and never returns values.
+    Values are always encrypted at rest. `kind: writeonly` makes a value
+    write-only so it can never be read back; `kind: recoverable` allows it to be
+    decrypted later. Each key may appear at most once per request; duplicates in
+    the same request are rejected with a 400.
 
     **Required Permissions**
 
@@ -36,7 +36,7 @@ post:
         examples:
           addVariables:
             summary: Add new variables
-            description: Locate the environment by slug and add variables, leaving existing keys untouched
+            description: Locate the environment by slug and create new variables; fails with 409 if any key already exists
             value:
               project: payments
               app: payments-api
@@ -44,9 +44,10 @@ post:
               variables:
                 - key: DATABASE_URL
                   value: postgresql://user:pass@host:5432/db
-                  sensitive: true
+                  kind: writeonly
                 - key: LOG_LEVEL
                   value: debug
+                  kind: recoverable
                   description: Application log verbosity
     required: true
   responses:
@@ -81,6 +82,12 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "409":
+      description: Conflict - One of the variable keys already exists. Use `setEnvironmentVariables` to change existing values.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ConflictErrorResponse.yaml"
     "429":
       description: Too Many Requests
       content:

@@ -35,13 +35,15 @@ func TestAddEnvironmentVariablesForbidden(t *testing.T) {
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rootKey := h.CreateRootKey(env.workspaceID, tc.permissions...)
 			headers := authHeaders(rootKey)
 
+			// Unique key per subtest: add now rejects keys that already exist,
+			// so authorized subtests must not collide with each other.
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, makeRequest(env, []openapi.EnvironmentVariableInput{
-				{Key: "KEY", Value: "value"},
+				{Key: fmt.Sprintf("KEY_%d", i), Value: "value"},
 			}))
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
