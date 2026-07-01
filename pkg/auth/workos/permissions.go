@@ -61,7 +61,7 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
 		},
 	},
-	"keys:update_key": {
+	"keys:update": {
 		name:        "Update keys",
 		description: "Allows updating keys.",
 		permissions: []permissionGrant{
@@ -130,7 +130,7 @@ func sortedPermissionSlugs() []string {
 //
 //	keys:create        => unkey:v1:ws_1:keyspaces/*#create_key
 //	keys:read          => unkey:v1:ws_1:keyspaces/*/keys/*#read_key
-//	keys:update_key    => unkey:v1:ws_1:keyspaces/*/keys/*#update_key
+//	keys:update        => unkey:v1:ws_1:keyspaces/*/keys/*#update_key
 //	admin:*            => unkey:v1:ws_1:**#*
 //	unknown:permission => dropped with a warning log
 func translatePermissions(workspaceID string, permissions []string) []string {
