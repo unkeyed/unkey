@@ -90,6 +90,7 @@ func (s *Service) CreateApp(
 				EnvironmentID: envID,
 				Dockerfile:    sql.NullString{Valid: false, String: ""},
 				DockerContext: "",
+				BuildCommand:  sql.NullString{Valid: false, String: ""},
 				WatchPaths:    nil,
 				AutoDeploy:    true,
 				CreatedAt:     now,

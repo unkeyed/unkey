@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/app.proto.
  */
 export const file_ctrl_v1_app: GenFile = /*@__PURE__*/
-  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSJ7ChBDcmVhdGVBcHBSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEc2x1ZxgEIAEoCRIhCgVhY3RvchgFIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIiIKEERlbGV0ZUFwcFJlcXVlc3QSDgoGYXBwX2lkGAEgASgJIhMKEURlbGV0ZUFwcFJlc3BvbnNlMpgBCgpBcHBTZXJ2aWNlEkQKCUNyZWF0ZUFwcBIZLmN0cmwudjEuQ3JlYXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuQ3JlYXRlQXBwUmVzcG9uc2UiABJECglEZWxldGVBcHASGS5jdHJsLnYxLkRlbGV0ZUFwcFJlcXVlc3QaGi5jdHJsLnYxLkRlbGV0ZUFwcFJlc3BvbnNlIgBChwEKC2NvbS5jdHJsLnYxQghBcHBQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw", [file_ctrl_v1_actor]);
+  fileDesc("ChFjdHJsL3YxL2FwcC5wcm90bxIHY3RybC52MSJ7ChBDcmVhdGVBcHBSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEc2x1ZxgEIAEoCRIhCgVhY3RvchgFIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIh8KEUNyZWF0ZUFwcFJlc3BvbnNlEgoKAmlkGAEgASgJIkUKEERlbGV0ZUFwcFJlcXVlc3QSDgoGYXBwX2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iEwoRRGVsZXRlQXBwUmVzcG9uc2UymAEKCkFwcFNlcnZpY2USRAoJQ3JlYXRlQXBwEhkuY3RybC52MS5DcmVhdGVBcHBSZXF1ZXN0GhouY3RybC52MS5DcmVhdGVBcHBSZXNwb25zZSIAEkQKCURlbGV0ZUFwcBIZLmN0cmwudjEuRGVsZXRlQXBwUmVxdWVzdBoaLmN0cmwudjEuRGVsZXRlQXBwUmVzcG9uc2UiAEKHAQoLY29tLmN0cmwudjFCCEFwcFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateAppRequest
@@ -76,6 +76,11 @@ export type DeleteAppRequest = Message<"ctrl.v1.DeleteAppRequest"> & {
    * @generated from field: string app_id = 1;
    */
   appId: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 2;
+   */
+  actor?: ActorInfo;
 };
 
 /**

@@ -166,10 +166,13 @@ export function useKeyDetailsLogsQuery({
 
   // Clamp page to valid range after data/totalPages updates
   useEffect(() => {
+    if (!logData) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [logData, normalizedPage, totalPages, setPage]);
 
   // Prefetch the next few pages
   useEffect(() => {

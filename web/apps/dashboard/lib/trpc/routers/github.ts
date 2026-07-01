@@ -1,9 +1,10 @@
 import crypto from "node:crypto";
 import { and, db, eq, schema } from "@/lib/db";
-import { githubAppEnv } from "@/lib/env";
+import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import {
   type BranchActivity,
   MAX_BRANCHES,
+  exchangeInstallationOAuthCode,
   getInstallationRepositories,
   getMostActiveBranches,
   getRepository,
@@ -11,6 +12,7 @@ import {
   getRepositoryById,
   getRepositoryTree,
   searchBranchesByPrefix,
+  userCanAccessInstallation,
 } from "@/lib/github";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -268,10 +270,14 @@ export const githubRouter = t.router({
       z.object({
         state: z.string(),
         installationId: z.number().int(),
+        // OAuth `code` returned alongside installation_id when the GitHub App
+        // requests user authorization during installation. Used to prove the
+        // caller can actually access the supplied installation on GitHub.
+        code: z.string().min(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!githubAppEnv()) {
+      if (!githubAppEnv() || !githubOAuthEnv()) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "GitHub App not configured",
@@ -298,6 +304,46 @@ export const githubRouter = t.router({
       }
 
       const projectId = parsedState.projectId;
+
+      // Verify the caller actually owns/can access this installation on
+      // GitHub before binding it. installationId comes straight from the
+      // OAuth callback query string and is a small, enumerable, sequential
+      // integer exposed in webhooks/URLs. The signed state only proves who the
+      // caller is, not that they performed this installation, and the
+      // existing-binding check below only blocks re-claiming an installation
+      // already registered to another workspace. Without this step a caller
+      // could bind a victim org's unregistered installation to their own
+      // workspace and read its private repos via the app-minted access token.
+      // We exchange the OAuth code for a user-to-server token and confirm the
+      // authenticated GitHub identity can see this installation.
+      let userToken: string;
+      try {
+        userToken = await exchangeInstallationOAuthCode(input.code);
+      } catch (err) {
+        console.error(err);
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid GitHub authorization",
+        });
+      }
+
+      let canAccessInstallation: boolean;
+      try {
+        canAccessInstallation = await userCanAccessInstallation(userToken, input.installationId);
+      } catch (err) {
+        console.error(err);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to verify GitHub installation ownership",
+        });
+      }
+
+      if (!canAccessInstallation) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have access to this GitHub installation",
+        });
+      }
 
       // Refuse to bind the same installation id to multiple workspaces. An
       // attacker who already owns a workspace could otherwise re-register a

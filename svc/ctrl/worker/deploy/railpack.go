@@ -52,6 +52,15 @@ const (
 	// railpackPlanBytesMax caps the plan file returned from the prepare solve.
 	// Plans are small JSON documents; anything larger indicates a bug or abuse.
 	railpackPlanBytesMax = 16 << 20 // 16 MiB
+
+	// railpackBuildCmdEnv is the Railpack config env var that overrides its
+	// auto-detected build command. Railpack only reads its environment from
+	// values passed via `railpack prepare --env` (it never reads the process
+	// environment), so this is passed as --env in the prepare step. Railpack
+	// also registers every --env name in the generated plan's secrets list, so
+	// the image build solve must provide it as a secret too; the value is
+	// mounted as a BuildKit secret in both solves.
+	railpackBuildCmdEnv = "RAILPACK_BUILD_CMD"
 )
 
 // railpackPrepareDockerfileTemplate renders the Dockerfile for the plan
@@ -124,6 +133,10 @@ func (w *Workflow) buildRailpackImageFromGit(
 		// needs them in a stable order.
 		envKeys := slices.Sorted(maps.Keys(bctx.EnvVars))
 
+		// Optional Railpack command overrides. Sorted for a stable Dockerfile.
+		railpackConfig := railpackConfigVars(params)
+		railpackConfigKeys := slices.Sorted(maps.Keys(railpackConfig))
+
 		// The workspace only holds the generated prepare Dockerfile and the
 		// returned plan JSON — a few KB, cleaned up per attempt.
 		if err := os.MkdirAll(railpackWorkspaceRoot(), 0o755); err != nil {
@@ -147,7 +160,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 			}
 		}
 
-		prepareDockerfile, err := buildRailpackPrepareDockerfile(railpackFrontendImage, railpackBuilderImage, envKeys, hashEnvVars(bctx.EnvVars))
+		prepareDockerfile, err := buildRailpackPrepareDockerfile(railpackFrontendImage, railpackBuilderImage, envKeys, railpackConfigKeys, hashRailpackPrepareInputs(bctx.EnvVars, railpackConfig))
 		if err != nil {
 			return nil, restate.TerminalError(err)
 		}
@@ -165,7 +178,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 
 		// One machine, two solves: plan generation, then the image build.
 		depotBuildID, err := w.withDepotBuildkit(runCtx, bctx.DepotProjectID, params, func(buildClient *client.Client) error {
-			prepareOptions, optErr := w.buildRailpackPrepareSolverOptions(bctx.GitContextURL, prepareDir, planDir, bctx.GithubToken, bctx.EnvVars)
+			prepareOptions, optErr := w.buildRailpackPrepareSolverOptions(bctx.GitContextURL, prepareDir, planDir, bctx.GithubToken, bctx.EnvVars, railpackConfig)
 			if optErr != nil {
 				return restate.TerminalError(fmt.Errorf("failed to build prepare solver options: %w", optErr))
 			}
@@ -176,7 +189,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 				return restate.TerminalError(fmt.Errorf("railpack prepare failed: %w", planErr))
 			}
 
-			buildOptions, optErr := w.buildRailpackSolverOptions(bctx.GitContextURL, planDir, bctx.ImageName, params.ProjectID, bctx.GithubToken, bctx.EnvVars)
+			buildOptions, optErr := w.buildRailpackSolverOptions(bctx.GitContextURL, planDir, bctx.ImageName, params.ProjectID, bctx.GithubToken, bctx.EnvVars, railpackConfig)
 			if optErr != nil {
 				return restate.TerminalError(fmt.Errorf("failed to build solver options: %w", optErr))
 			}
@@ -202,19 +215,25 @@ func (w *Workflow) buildRailpackImageFromGit(
 // image against the build context, and exposes only the plan JSON in a
 // scratch stage so the local exporter returns nothing else.
 //
-// Only validated env var NAMES are embedded in the Dockerfile; values flow
-// through BuildKit session secrets and are expanded by the shell at run time.
-func buildRailpackPrepareDockerfile(frontendImage, builderImage string, envKeys []string, secretsHash string) (string, error) {
+// Only validated env var NAMES and the fixed RAILPACK_* config NAMES are
+// embedded in the Dockerfile; values flow through BuildKit session secrets and
+// are expanded by the shell at run time. Both envKeys (application
+// environment) and configKeys (RAILPACK_* command overrides) are passed to
+// railpack via --env, since railpack reads its environment only from --env and
+// interprets RAILPACK_* keys there as config.
+func buildRailpackPrepareDockerfile(frontendImage, builderImage string, envKeys, configKeys []string, secretsHash string) (string, error) {
 	var b strings.Builder
 	err := railpackPrepareDockerfileTemplate.Execute(&b, struct {
 		FrontendImage string
 		BuilderImage  string
 		EnvKeys       []string
+		ConfigKeys    []string
 		SecretsHash   string
 	}{
 		FrontendImage: frontendImage,
 		BuilderImage:  builderImage,
 		EnvKeys:       envKeys,
+		ConfigKeys:    configKeys,
 		SecretsHash:   secretsHash,
 	})
 	if err != nil {
@@ -229,15 +248,22 @@ func buildRailpackPrepareDockerfile(frontendImage, builderImage string, envKeys 
 // The dockerfile.v0 frontend fetches the git context on the build machine.
 func (w *Workflow) buildRailpackPrepareSolverOptions(
 	gitContextURL, prepareDir, planDir, githubToken string,
-	envVars map[string]string,
+	envVars, railpackConfig map[string]string,
 ) (client.SolveOpt, error) {
 	prepareFS, err := fsutil.NewFS(prepareDir)
 	if err != nil {
 		return client.SolveOpt{}, fmt.Errorf("failed to create dockerfile mount: %w", err)
 	}
 
+	// Railpack command overrides are mounted as secrets in the prepare solve
+	// only — they must not reach the image build solve or the container runtime.
+	secrets := railpackSecrets(githubToken, envVars)
+	for k, v := range railpackConfig {
+		secrets[k] = []byte(v)
+	}
+
 	var sessionAttachables []session.Attachable
-	if secrets := railpackSecrets(githubToken, envVars); len(secrets) > 0 {
+	if len(secrets) > 0 {
 		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(secrets))
 	}
 
@@ -273,7 +299,7 @@ func (w *Workflow) buildRailpackPrepareSolverOptions(
 // fetches the application source from the git context on the build machine.
 func (w *Workflow) buildRailpackSolverOptions(
 	gitContextURL, planDir, imageName, projectID, githubToken string,
-	envVars map[string]string,
+	envVars, railpackConfig map[string]string,
 ) (client.SolveOpt, error) {
 	planFS, err := fsutil.NewFS(planDir)
 	if err != nil {
@@ -299,7 +325,13 @@ func (w *Workflow) buildRailpackSolverOptions(
 	sessionAttachables := []session.Attachable{
 		w.registryAuthProvider(),
 	}
-	if secrets := railpackSecrets(githubToken, envVars); len(secrets) > 0 {
+	// Railpack adds every prepare --env name to the plan's secrets list, so the
+	// frontend expects the command overrides here too, alongside the env vars.
+	secrets := railpackSecrets(githubToken, envVars)
+	for k, v := range railpackConfig {
+		secrets[k] = []byte(v)
+	}
+	if len(secrets) > 0 {
 		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(secrets))
 	}
 
@@ -322,6 +354,33 @@ func (w *Workflow) buildRailpackSolverOptions(
 			},
 		},
 	}, nil
+}
+
+// railpackConfigVars collects the optional Railpack command overrides set on
+// the deployment as RAILPACK_* config env vars. Empty values are omitted so
+// Railpack falls back to its own auto-detection. These influence plan
+// generation and are injected into the prepare solve only.
+func railpackConfigVars(params gitBuildParams) map[string]string {
+	config := make(map[string]string, 1)
+	if params.BuildCommand != "" {
+		config[railpackBuildCmdEnv] = params.BuildCommand
+	}
+	return config
+}
+
+// hashRailpackPrepareInputs hashes the inputs that can change the generated
+// plan for an otherwise-identical commit: the env var values and the Railpack
+// command overrides. The hash is embedded in the prepare RUN command text so
+// BuildKit regenerates the plan when any of them change (secret mounts are not
+// part of the RUN cache key). Returns "" when there is nothing to hash.
+func hashRailpackPrepareInputs(envVars, railpackConfig map[string]string) string {
+	if len(envVars) == 0 && len(railpackConfig) == 0 {
+		return ""
+	}
+	merged := make(map[string]string, len(envVars)+len(railpackConfig))
+	maps.Copy(merged, envVars)
+	maps.Copy(merged, railpackConfig)
+	return hashEnvVars(merged)
 }
 
 // railpackSecrets assembles the BuildKit session secrets for a Railpack

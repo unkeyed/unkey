@@ -30,17 +30,6 @@ type Querier interface {
 	//  JOIN deployments d ON i.deployment_id = d.id
 	//  WHERE d.app_id = ?
 	CountInstancesByAppId(ctx context.Context, db DBTX, appID string) (int64, error)
-	//CountSentinelsByAppId
-	//
-	//  SELECT COUNT(*) as count
-	//  FROM sentinels s
-	//  JOIN environments e ON s.environment_id = e.id
-	//  WHERE e.app_id = ?
-	CountSentinelsByAppId(ctx context.Context, db DBTX, appID string) (int64, error)
-	//CountSentinelsByProjectId
-	//
-	//  SELECT COUNT(*) as count FROM sentinels WHERE project_id = ?
-	CountSentinelsByProjectId(ctx context.Context, db DBTX, projectID string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -289,14 +278,6 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
-	//DeleteSentinelsByEnvironmentId
-	//
-	//  DELETE FROM sentinels WHERE environment_id = ?
-	DeleteSentinelsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteSentinelsByProjectId
-	//
-	//  DELETE FROM sentinels WHERE project_id = ?
-	DeleteSentinelsByProjectId(ctx context.Context, db DBTX, projectID string) error
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -337,7 +318,7 @@ type Querier interface {
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	//FindAppBuildSettingByAppEnv
 	//
-	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, watch_paths, auto_deploy, created_at, updated_at
+	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
 	//  FROM `app_build_settings`
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
@@ -411,7 +392,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
+	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM apps a
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
@@ -1272,28 +1253,6 @@ type Querier interface {
 	//
 	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
-	//FindSentinelByID
-	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
-	//  WHERE id = ? LIMIT 1
-	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
-	// Returns the sentinel fields ReportSentinelStatus needs to decide whether
-	// a rollout has converged: deploy_status (gates), image comparison, and
-	// desired replica count.
-	//
-	//  SELECT
-	//      id,
-	//      deploy_status,
-	//      image AS desired_image,
-	//      running_image,
-	//      desired_replicas
-	//  FROM sentinels
-	//  WHERE k8s_name = ? LIMIT 1
-	FindSentinelDeployContextByK8sName(ctx context.Context, db DBTX, k8sName string) (FindSentinelDeployContextByK8sNameRow, error)
-	//FindSentinelsByEnvironmentID
-	//
-	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
-	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindValidPortalSession
 	//
 	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
@@ -1346,19 +1305,6 @@ type Querier interface {
 	//  FROM `workspaces` w
 	//  WHERE w.id = ?
 	FindWorkspaceDeployEntitlement(ctx context.Context, db DBTX, id string) (FindWorkspaceDeployEntitlementRow, error)
-	// FlipSentinelDeployStatusIfProgressing flips deploy_status from progressing
-	// to the target status, guarding against concurrent writers (e.g. the Deploy
-	// worker marking failed on timeout) by only updating rows whose current
-	// status is still 'progressing'. Returns the number of rows affected; the
-	// caller should treat 0 as "someone else already moved this sentinel out of
-	// progressing" and skip follow-up side effects (NotifyReady, etc.).
-	//
-	//  UPDATE sentinels SET
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	//    AND deploy_status = 'progressing'
-	FlipSentinelDeployStatusIfProgressing(ctx context.Context, db DBTX, arg FlipSentinelDeployStatusIfProgressingParams) (int64, error)
 	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
 	// Used during full sync to establish the starting version for incremental polling.
 	//
@@ -2167,36 +2113,6 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
-	//InsertSentinel
-	//
-	//  INSERT INTO sentinels (
-	//      id,
-	//      workspace_id,
-	//      environment_id,
-	//      project_id,
-	//      k8s_address,
-	//      k8s_name,
-	//      region_id,
-	//      image,
-	//      desired_replicas,
-	//      cpu_millicores,
-	//      memory_mib,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertSentinel(ctx context.Context, db DBTX, arg InsertSentinelParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -2252,14 +2168,6 @@ type Querier interface {
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, db DBTX, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
-	// ListAllSentinelsByRegion returns sentinels for a region, paginated by pk.
-	// Used during full sync (version=0) to bootstrap krane agents with current state.
-	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
-	//  WHERE region_id = ? AND pk > ?
-	//  ORDER BY pk ASC
-	//  LIMIT ?
-	ListAllSentinelsByRegion(ctx context.Context, db DBTX, arg ListAllSentinelsByRegionParams) ([]Sentinel, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
@@ -2269,8 +2177,10 @@ type Querier interface {
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE project_id = ?
-	//  ORDER BY created_at ASC
-	ListAppsByProject(ctx context.Context, db DBTX, projectID string) ([]ListAppsByProjectRow, error)
+	//    AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
@@ -2330,17 +2240,6 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg ListDesiredNetworkPoliciesParams) ([]CiliumNetworkPolicy, error)
-	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
-	// Used during bootstrap to stream all running sentinels to krane.
-	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at
-	//  FROM `sentinels`
-	//  WHERE (? = '' OR region_id = ?)
-	//      AND desired_state = ?
-	//      AND id > ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDesiredSentinelsParams) ([]Sentinel, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2717,7 +2616,7 @@ type Querier interface {
 	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
 	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
+	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.build_command, abs.watch_paths, abs.auto_deploy, abs.created_at, abs.updated_at,
 	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.storage_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.upstream_protocol, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM github_repo_connections gc
 	//  INNER JOIN apps a ON a.id = gc.app_id
@@ -2795,17 +2694,6 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, db DBTX, arg ListRunningDeploymentsByBranchParams) ([]string, error)
-	// ListRunningSentinelIDsAndImages returns IDs, images, and regions of all
-	// running sentinels, paginated by id. Used by the rollout service to plan
-	// wave assignments without fetching full sentinel rows.
-	//
-	//  SELECT id, image, region_id
-	//  FROM sentinels
-	//  WHERE desired_state = 'running'
-	//    AND id > ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListRunningSentinelIDsAndImages(ctx context.Context, db DBTX, arg ListRunningSentinelIDsAndImagesParams) ([]ListRunningSentinelIDsAndImagesRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT
@@ -3084,6 +2972,30 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateApp
+	//
+	//  UPDATE apps a
+	//  SET
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE a.name
+	//      END,
+	//      slug = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE a.slug
+	//      END,
+	//      default_branch = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE a.default_branch
+	//      END,
+	//      delete_protection = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE a.delete_protection
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdateApp(ctx context.Context, db DBTX, arg UpdateAppParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -3390,39 +3302,6 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
-	// UpdateSentinelConfig updates a sentinel's configuration and deploy status.
-	// Used by SentinelService.Deploy() to apply new config before triggering krane.
-	//
-	//  UPDATE sentinels SET
-	//    image = ?,
-	//    cpu_millicores = ?,
-	//    memory_mib = ?,
-	//    desired_replicas = ?,
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateSentinelConfig(ctx context.Context, db DBTX, arg UpdateSentinelConfigParams) error
-	// UpdateSentinelDeployStatus updates only the deploy status field.
-	// Used after convergence check or rollback completes.
-	//
-	//  UPDATE sentinels SET
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateSentinelDeployStatus(ctx context.Context, db DBTX, arg UpdateSentinelDeployStatusParams) error
-	// UpdateSentinelObservedState writes observed state from a krane agent:
-	// the current health, available replica count, and the image that is
-	// actually running on the pods. The running image is used to detect
-	// rollout convergence — a deploy is only complete when running_image
-	// matches the desired image.
-	//
-	//  UPDATE sentinels SET
-	//    available_replicas = ?,
-	//    health = ?,
-	//    running_image = ?,
-	//    updated_at = ?
-	//  WHERE k8s_name = ?
-	UpdateSentinelObservedState(ctx context.Context, db DBTX, arg UpdateSentinelObservedStateParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -3437,6 +3316,7 @@ type Querier interface {
 	//      environment_id,
 	//      dockerfile,
 	//      docker_context,
+	//      build_command,
 	//      watch_paths,
 	//      auto_deploy,
 	//      created_at,
@@ -3450,11 +3330,13 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
+	//      ?,
 	//      ?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      dockerfile = VALUES(dockerfile),
 	//      docker_context = VALUES(docker_context),
+	//      build_command = VALUES(build_command),
 	//      watch_paths = VALUES(watch_paths),
 	//      auto_deploy = VALUES(auto_deploy),
 	//      updated_at = VALUES(updated_at)

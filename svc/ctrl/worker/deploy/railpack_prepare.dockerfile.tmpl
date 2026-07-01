@@ -11,10 +11,14 @@ RUN --mount=type=bind,target=/workspace,readonly \
     --mount=type=cache,target=/tmp/railpack
 {{- range .EnvKeys }} \
     --mount=type=secret,id={{ . }},env={{ . }}
+{{- end }}
+{{- range .ConfigKeys }} \
+    --mount=type=secret,id={{ . }},env={{ . }}
 {{- end }} \
     {{ if .SecretsHash }}RAILPACK_SECRETS_HASH={{ .SecretsHash }} {{ end -}}
     /usr/local/bin/railpack prepare /workspace --plan-out /railpack-plan.json
 {{- range .EnvKeys }} --env {{ . }}="${{ . }}"{{ end }}
+{{- range .ConfigKeys }} --env {{ . }}="${{ . }}"{{ end }}
 
 FROM scratch
 COPY --from=prepare /railpack-plan.json /

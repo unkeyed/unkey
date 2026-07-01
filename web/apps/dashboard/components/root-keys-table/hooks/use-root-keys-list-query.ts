@@ -149,10 +149,13 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
 
   // Clamp page to valid range after data/totalPages updates.
   useEffect(() => {
+    if (!data) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [data, normalizedPage, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {
