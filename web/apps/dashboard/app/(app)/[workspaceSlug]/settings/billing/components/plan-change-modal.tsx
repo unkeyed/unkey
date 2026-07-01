@@ -45,6 +45,13 @@ type PlanChangeModalProps = {
   /** The option whose mutation is in flight, for the CTA loading state. */
   submittingId: string | undefined;
   onSelect: (id: string) => void;
+  /** Override the directional CTA label (used by the deploy-gate dialog). */
+  ctaLabelOverride?: string;
+  /**
+   * When set, disables the CTA and shows the reason below it. Mirrors the
+   * admin-only billing gate so non-admins see why they can't continue.
+   */
+  ctaDisabledReason?: string;
 };
 
 /**
@@ -65,6 +72,8 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
   changeNote,
   submittingId,
   onSelect,
+  ctaLabelOverride,
+  ctaDisabledReason,
 }) => {
   const [selected, setSelected] = useState<string | null>(currentId);
 
@@ -76,7 +85,8 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
   }, [isOpen, currentId]);
 
   const isSubmitting = submittingId !== undefined;
-  const ctaDisabled = !selected || selected === currentId || isSubmitting;
+  const ctaDisabled =
+    !selected || selected === currentId || isSubmitting || ctaDisabledReason !== undefined;
 
   const currentOption = options.find((o) => o.id === currentId);
   const selectedOption = options.find((o) => o.id === selected);
@@ -84,8 +94,8 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
   // Directional CTA: changing plans is an upgrade or a downgrade, and the
   // button should say which. Falls back to "Change plan" when either fee is
   // unknown (e.g. "Contact us" plans).
-  let ctaLabel = "Subscribe";
-  if (currentId) {
+  let ctaLabel = ctaLabelOverride ?? "Subscribe";
+  if (!ctaLabelOverride && currentId) {
     ctaLabel = "Change plan";
     if (
       selectedOption &&
@@ -128,7 +138,11 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
           >
             {ctaLabel}
           </Button>
-          {currentId && changeNote ? <div className="text-gray-9 text-xs">{changeNote}</div> : null}
+          {ctaDisabledReason ? (
+            <div className="text-gray-9 text-xs">{ctaDisabledReason}</div>
+          ) : currentId && changeNote ? (
+            <div className="text-gray-9 text-xs">{changeNote}</div>
+          ) : null}
         </div>
       }
     >

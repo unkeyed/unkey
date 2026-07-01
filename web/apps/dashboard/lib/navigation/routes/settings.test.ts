@@ -14,7 +14,7 @@ describe("settings-scoped paths", () => {
 
   it("builds the stripe redirect paths", () => {
     const scope = { workspaceSlug: ws };
-    expect(routes.settings.stripe.portal(scope)).toBe("/acme/settings/billing/stripe/portal");
-    expect(routes.settings.stripe.checkout(scope)).toBe("/acme/settings/billing/stripe/checkout");
+    expect(routes.settings.stripe.portal(scope)).toBe("/acme/stripe/portal");
+    expect(routes.settings.stripe.checkout(scope)).toBe("/acme/stripe/checkout");
   });
 });

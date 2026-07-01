@@ -15,6 +15,7 @@ import { settingsRoutes } from "./settings";
 import { workspaceRoutes } from "./workspaces";
 
 export { buildRoute } from "./shared";
+export type { CheckoutIntent, DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
 
 export const routes = {
   projects: projectRoutes,

@@ -5,6 +5,8 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { CreateProjectDialog } from "../create-project-dialog";
+import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
+import { useDeployGate } from "../hooks/use-deploy-gate";
 
 type IconBoxProps = {
   children?: ReactNode;
@@ -55,7 +57,9 @@ const ProjectIconRow = () => (
 export function EmptyProjects() {
   const workspace = useWorkspaceNavigation();
   const searchParams = useSearchParams();
+  const { gated } = useDeployGate();
   const [isDialogOpen, setIsDialogOpen] = useState(searchParams.get("new") === "true");
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
 
   return (
     <div className="grow w-full flex justify-center items-center p-12">
@@ -72,7 +76,7 @@ export function EmptyProjects() {
           <Button
             variant="primary"
             size="md"
-            onClick={() => setIsDialogOpen(true)}
+            onClick={() => (gated ? setIsPlanOpen(true) : setIsDialogOpen(true))}
             className="w-full max-w-[200px] sm:w-auto sm:max-w-none"
           >
             Create your first project
@@ -97,6 +101,7 @@ export function EmptyProjects() {
         onOpenChange={setIsDialogOpen}
         workspaceSlug={workspace.slug}
       />
+      <DeployPlanGateDialog isOpen={isPlanOpen} onOpenChange={setIsPlanOpen} from="create" />
     </div>
   );
 }

@@ -35,9 +35,23 @@ type Props = {
    * the matching plan picker; its presence disables the legacy forced modal.
    */
   intent?: string;
+  /**
+   * For the "deploy" intent: the plan the user picked and where they started.
+   * Carried back to the projects page, which subscribes and (when from is
+   * "create") reopens the create dialog.
+   */
+  plan?: string;
+  from?: string;
 };
 
-export function SuccessClient({ workSpaceSlug, showPlanSelection, products, intent }: Props) {
+export function SuccessClient({
+  workSpaceSlug,
+  showPlanSelection,
+  products,
+  intent,
+  plan,
+  from,
+}: Props) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(!!(showPlanSelection && products && workSpaceSlug));
 
@@ -49,6 +63,21 @@ export function SuccessClient({ workSpaceSlug, showPlanSelection, products, inte
 
     // Redirect based on workspace availability
     if (workSpaceSlug) {
+      if (intent === "deploy") {
+        const params = new URLSearchParams();
+        if (plan) {
+          params.set("pendingPlan", plan);
+        }
+        if (from) {
+          params.set("from", from);
+        }
+        const query = params.toString();
+        router.push(
+          `${routes.projects.list({ workspaceSlug: workSpaceSlug })}${query ? `?${query}` : ""}`,
+        );
+        return;
+      }
+
       router.push(
         `${routes.settings.billing({ workspaceSlug: workSpaceSlug })}${
           intent ? `?intent=${encodeURIComponent(intent)}` : ""
@@ -57,7 +86,7 @@ export function SuccessClient({ workSpaceSlug, showPlanSelection, products, inte
     } else {
       router.push("/");
     }
-  }, [router, workSpaceSlug, showPlanSelection, products, intent]);
+  }, [router, workSpaceSlug, showPlanSelection, products, intent, plan, from]);
 
   if (showPlanSelection && products && workSpaceSlug) {
     return (
