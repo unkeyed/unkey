@@ -5947,28 +5947,53 @@ paths:
                                     summary: Environment list
                                     value:
                                         data:
-                                            - appId: app_1234abcd
-                                              autoDeploy: true
-                                              cpuMillicores: 250
+                                            - build:
+                                                autoDeploy: true
+                                                dockerfile: Dockerfile
+                                                rootDirectory: .
+                                                watchPaths:
+                                                    - src/**
                                               createdAt: 1704067200000
                                               deleteProtection: false
                                               description: Production environment
                                               id: env_1234abcd
-                                              memoryMib: 256
-                                              projectId: proj_1234abcd
-                                              rootDirectory: .
+                                              regions:
+                                                - name: us-east-1
+                                                  replicas:
+                                                    max: 3
+                                                    min: 1
+                                              runtime:
+                                                command:
+                                                    - node
+                                                    - server.js
+                                                cpuMillicores: 250
+                                                memoryMib: 256
+                                                port: 8080
+                                                shutdownSignal: SIGTERM
+                                                storageMib: 0
+                                                upstreamProtocol: http1
                                               slug: production
                                               updatedAt: 1704153600000
-                                            - appId: app_1234abcd
-                                              autoDeploy: true
-                                              cpuMillicores: 250
+                                            - build:
+                                                autoDeploy: true
+                                                buildCommand: pnpm --filter api build
+                                                rootDirectory: .
+                                                watchPaths:
+                                                    - src/**
                                               createdAt: 1704240000000
                                               deleteProtection: false
                                               description: Staging environment
                                               id: env_5678efgh
-                                              memoryMib: 256
-                                              projectId: proj_1234abcd
-                                              rootDirectory: .
+                                              runtime:
+                                                command:
+                                                    - node
+                                                    - server.js
+                                                cpuMillicores: 250
+                                                memoryMib: 256
+                                                port: 8080
+                                                shutdownSignal: SIGTERM
+                                                storageMib: 0
+                                                upstreamProtocol: http1
                                               slug: staging
                                         meta:
                                             requestId: req_1234abcd

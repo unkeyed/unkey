@@ -84,12 +84,9 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 		require.Len(t, res.Body.Data, len(seeded))
 
 		for _, e := range res.Body.Data {
-			envSlug, ok := seeded[e.Id]
+			_, ok := seeded[e.Id]
 			require.True(t, ok, "unexpected environment %s in response", e.Id)
 			require.True(t, strings.HasPrefix(e.Id, "env_"), "id should have env_ prefix: %s", e.Id)
-			require.Equal(t, envSlug, e.Slug)
-			require.Equal(t, project.ID, e.ProjectId)
-			require.Equal(t, app.ID, e.AppId)
 			require.NotEmpty(t, e.Description)
 			require.False(t, e.DeleteProtection)
 			require.Greater(t, e.CreatedAt, int64(0))

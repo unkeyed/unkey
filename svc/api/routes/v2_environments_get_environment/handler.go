@@ -7,9 +7,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	envmapper "github.com/unkeyed/unkey/svc/api/internal/environment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -85,88 +85,44 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	data := openapi.Environment{
-		Id:               environment.ID,
-		Slug:             environment.Slug,
-		Description:      environment.Description,
-		DeleteProtection: environment.DeleteProtection.Bool,
-		CreatedAt:        environment.CreatedAt,
-		UpdatedAt:        environment.UpdatedAt.Int64,
-		Runtime:          nil,
-		Build:            nil,
-		Regions:          nil,
-	}
-
 	// Settings rows are created at deploy time, so an environment may exist
 	// before any of them do. A missing row leaves those fields omitted.
 	runtime, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 		AppID:         environment.AppID,
 		EnvironmentID: environment.ID,
 	})
-	if err != nil && !db.IsNotFound(err) {
+	var runtimeSettings *db.AppRuntimeSetting
+	switch {
+	case db.IsNotFound(err):
+		// Skip. Settings are missing
+	case err != nil:
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve environment."),
 		)
-	}
-	if !db.IsNotFound(err) {
-		rs := runtime.AppRuntimeSetting
-		rt := openapi.EnvironmentRuntime{
-			Port:             int(rs.Port),
-			CpuMillicores:    int(rs.CpuMillicores),
-			MemoryMib:        int(rs.MemoryMib),
-			StorageMib:       int(rs.StorageMib),
-			Command:          []string(rs.Command),
-			ShutdownSignal:   openapi.EnvironmentRuntimeShutdownSignal(rs.ShutdownSignal),
-			UpstreamProtocol: openapi.EnvironmentRuntimeUpstreamProtocol(rs.UpstreamProtocol),
-			Healthcheck:      nil,
-			OpenapiSpecPath:  nil,
-		}
-		if rs.OpenapiSpecPath.Valid {
-			rt.OpenapiSpecPath = ptr.P(rs.OpenapiSpecPath.String)
-		}
-		if hc := rs.Healthcheck.Healthcheck; hc != nil {
-			rt.Healthcheck = &openapi.EnvironmentHealthcheck{
-				Method:              openapi.EnvironmentHealthcheckMethod(hc.Method),
-				Path:                hc.Path,
-				IntervalSeconds:     ptr.P(hc.IntervalSeconds),
-				TimeoutSeconds:      ptr.P(hc.TimeoutSeconds),
-				FailureThreshold:    ptr.P(hc.FailureThreshold),
-				InitialDelaySeconds: ptr.P(hc.InitialDelaySeconds),
-			}
-		}
-		data.Runtime = &rt
+	default:
+		runtimeSettings = &runtime.AppRuntimeSetting
 	}
 
 	build, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
 		AppID:         environment.AppID,
 		EnvironmentID: environment.ID,
 	})
-	if err != nil && !db.IsNotFound(err) {
+	var buildSettings *db.AppBuildSetting
+	switch {
+	case db.IsNotFound(err):
+		// Skip. Settings are missing
+	case err != nil:
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve environment."),
 		)
-	}
-	if !db.IsNotFound(err) {
-		bs := openapi.EnvironmentBuild{
-			RootDirectory: build.DockerContext,
-			WatchPaths:    []string(build.WatchPaths),
-			AutoDeploy:    build.AutoDeploy,
-			Dockerfile:    nil,
-			BuildCommand:  nil,
-		}
-		if build.Dockerfile.Valid {
-			bs.Dockerfile = ptr.P(build.Dockerfile.String)
-		}
-		if build.BuildCommand.Valid {
-			bs.BuildCommand = ptr.P(build.BuildCommand.String)
-		}
-		data.Build = &bs
+	default:
+		buildSettings = &build
 	}
 
 	regional, err := db.Query.FindAppRegionalSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRegionalSettingsByAppAndEnvParams{
@@ -181,32 +137,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve environment."),
 		)
 	}
-	if len(regional) > 0 {
-		regions := make([]openapi.EnvironmentRegion, 0, len(regional))
-		for _, r := range regional {
-			minReplicas := int(r.Replicas)
-			maxReplicas := int(r.Replicas)
-			if r.AutoscalingReplicasMin.Valid {
-				minReplicas = int(r.AutoscalingReplicasMin.Int32)
-			}
-			if r.AutoscalingReplicasMax.Valid {
-				maxReplicas = int(r.AutoscalingReplicasMax.Int32)
-			}
-			regions = append(regions, openapi.EnvironmentRegion{
-				Name: r.RegionName,
-				Replicas: openapi.Replicas{
-					Min: minReplicas,
-					Max: maxReplicas,
-				},
-			})
-		}
-		data.Regions = ptr.P(regions)
+	regions := make([]openapi.EnvironmentRegion, 0, len(regional))
+	for _, r := range regional {
+		regions = append(regions, envmapper.Region(r.RegionName, r.Replicas, r.AutoscalingReplicasMin, r.AutoscalingReplicasMax))
 	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: data,
+		Data: envmapper.ToResponse(envmapper.Params{
+			Env:     environment,
+			Runtime: runtimeSettings,
+			Build:   buildSettings,
+			Regions: regions,
+		}),
 	})
 }
