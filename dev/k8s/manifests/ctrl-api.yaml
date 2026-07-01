@@ -14,9 +14,7 @@ data:
     auth_token = "your-local-dev-key"
     default_domain = "unkey.local"
     cname_domain = "unkey.local"
-
-    [database]
-    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+    database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
     [restate]
     url = "http://restate:8080"

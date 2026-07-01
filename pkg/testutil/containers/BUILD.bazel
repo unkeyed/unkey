@@ -9,6 +9,7 @@ go_library(
         "doc.go",
         "docker.go",
         "mysql.go",
+        "paths.go",
         "redis.go",
         "restate.go",
         "s3.go",

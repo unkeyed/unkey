@@ -9,8 +9,8 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // DeleteProject enqueues a durable Restate workflow that cascades through
@@ -38,7 +38,8 @@ func (s *Service) DeleteProject(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if _, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId()); err != nil {
+	_, err := s.db.FindProjectById(ctx, req.Msg.GetProjectId())
+	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
 		}
@@ -46,7 +47,7 @@ func (s *Service) DeleteProject(
 	}
 
 	client := hydrav1.NewProjectServiceIngressClient(s.restate, req.Msg.GetProjectId())
-	_, err := client.Delete().Send(ctx, &hydrav1.DeleteProjectRequest{
+	_, err = client.Delete().Send(ctx, &hydrav1.DeleteProjectRequest{
 		Actor:         req.Msg.GetActor(),
 		CorrelationId: auditlog.NewCorrelationID(),
 	})

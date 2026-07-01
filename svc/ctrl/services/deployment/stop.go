@@ -8,9 +8,9 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // StopDeployment transitions a running deployment to stopped. The actual
@@ -25,7 +25,7 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("deployment_id is required"))
 	}
 
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
+	deployment, err := s.db.FindDeploymentById(ctx, deploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found"))
@@ -41,7 +41,7 @@ func (s *Service) StopDeployment(ctx context.Context, req *connect.Request[ctrlv
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	environment, err := db.Query.FindEnvironmentById(ctx, s.db.RO(), deployment.EnvironmentID)
+	environment, err := s.db.FindEnvironmentById(ctx, deployment.EnvironmentID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))

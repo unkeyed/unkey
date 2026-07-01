@@ -15,9 +15,9 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // retention is how long an exported (soft-deleted) outbox row is kept before
@@ -78,7 +78,7 @@ func (h *Handler) Handle(
 	var totalDeleted int64
 	for batchNum := 0; ; batchNum++ {
 		deleted, err := restate.Run(ctx, func(rc restate.RunContext) (int64, error) {
-			return db.Query.DeleteExportedClickhouseOutbox(rc, h.db.RW(), db.DeleteExportedClickhouseOutboxParams{
+			return h.db.DeleteExportedClickhouseOutbox(rc, db.DeleteExportedClickhouseOutboxParams{
 				Cutoff: sql.NullInt64{Int64: cutoff, Valid: true},
 				Limit:  batchLimit,
 			})

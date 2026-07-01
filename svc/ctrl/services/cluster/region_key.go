@@ -8,7 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // validateRegionKey returns an InvalidArgument error when the RegionKey is
@@ -39,7 +39,7 @@ func (s *Service) resolveRegion(ctx context.Context, rk *ctrlv1.RegionKey) (db.R
 	key := regionCacheKey{platform: rk.GetPlatform(), name: rk.GetName()}
 	region, _, err := s.regionCache.SWR(ctx, key,
 		func(ctx context.Context) (db.Region, error) {
-			return db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
+			return s.db.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
 				Platform: key.platform,
 				Name:     key.name,
 			})

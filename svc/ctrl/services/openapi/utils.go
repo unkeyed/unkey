@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func (s *Service) loadOpenApiSpec(ctx context.Context, deploymentID string) ([]byte, error) {
-	row, err := db.Query.FindOpenApiSpecByDeploymentID(ctx, s.db.RO(), sql.NullString{Valid: true, String: deploymentID})
+	row, err := s.db.FindOpenApiSpecByDeploymentID(ctx, sql.NullString{Valid: true, String: deploymentID})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, fault.Wrap(err,

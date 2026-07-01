@@ -9,8 +9,8 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // DeleteApp enqueues a durable Restate workflow that cascades through
@@ -38,7 +38,8 @@ func (s *Service) DeleteApp(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if _, err := db.Query.FindAppById(ctx, s.db.RO(), req.Msg.GetAppId()); err != nil {
+	_, err := s.db.FindAppById(ctx, req.Msg.GetAppId())
+	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found: %s", req.Msg.GetAppId()))
 		}
@@ -46,7 +47,7 @@ func (s *Service) DeleteApp(
 	}
 
 	client := hydrav1.NewAppServiceIngressClient(s.restate, req.Msg.GetAppId())
-	_, err := client.Delete().Send(ctx, &hydrav1.DeleteAppRequest{
+	_, err = client.Delete().Send(ctx, &hydrav1.DeleteAppRequest{
 		Actor:         req.Msg.GetActor(),
 		CorrelationId: auditlog.NewCorrelationID(),
 	})

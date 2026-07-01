@@ -126,7 +126,7 @@
     {
       "name": "bulk-insert",
       "process": {
-        "cmd": "./plugins/dist/bulk-insert"
+        "cmd": "../mysql/plugins/dist/bulk-insert"
       }
     }
   ]

@@ -7,9 +7,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // skipIfSuperseded marks the current deployment as superseded and returns
@@ -31,7 +31,7 @@ func (w *Workflow) skipIfSuperseded(
 	deployment db.Deployment,
 ) (bool, error) {
 	hasNewer, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
-		return db.Query.HasNewerActiveDeployment(runCtx, w.db.RO(), db.HasNewerActiveDeploymentParams{
+		return w.db.HasNewerActiveDeployment(runCtx, db.HasNewerActiveDeploymentParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
 			GitBranch:     deployment.GitBranch,
@@ -54,14 +54,14 @@ func (w *Workflow) skipIfSuperseded(
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-		if updErr := db.Query.UpdateDeploymentStatus(runCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+		if updErr := w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deployment.ID,
 			Status:    db.DeploymentsStatusSuperseded,
 			UpdatedAt: now,
 		}); updErr != nil {
 			return updErr
 		}
-		return db.Query.EndDeploymentStep(runCtx, w.db.RW(), db.EndDeploymentStepParams{
+		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
 			DeploymentID: deployment.ID,
 			Step:         db.DeploymentStepsStepQueued,
 			EndedAt:      now,

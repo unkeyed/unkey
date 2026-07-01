@@ -8,8 +8,8 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // SwapLiveDeployment atomically performs the three operations that make a
@@ -34,7 +34,7 @@ func (s *Service) SwapLiveDeployment(
 	// unaffected.
 	for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
 		_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.ReassignFrontlineRoute(stepCtx, s.db.RW(), db.ReassignFrontlineRouteParams{
+			return restate.Void{}, s.db.ReassignFrontlineRoute(stepCtx, db.ReassignFrontlineRouteParams{
 				ID:           frontlineRouteID,
 				DeploymentID: deploymentID,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -51,16 +51,16 @@ func (s *Service) SwapLiveDeployment(
 	// rows).
 	previous, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
 		return db.TxWithResult(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
-			deployment, findErr := db.Query.FindDeploymentById(txCtx, tx, deploymentID)
+			deployment, findErr := db.NewQueries(tx).FindDeploymentById(txCtx, deploymentID)
 			if findErr != nil {
 				return sql.NullString{}, fmt.Errorf("find target deployment: %w", findErr)
 			}
-			currentApp, findErr := db.Query.FindAppById(txCtx, tx, deployment.AppID)
+			currentApp, findErr := db.NewQueries(tx).FindAppById(txCtx, deployment.AppID)
 			if findErr != nil {
 				return sql.NullString{}, fmt.Errorf("find app: %w", findErr)
 			}
 
-			updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
+			updateErr := db.NewQueries(tx).UpdateAppDeployments(txCtx, db.UpdateAppDeploymentsParams{
 				AppID:               deployment.AppID,
 				CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
 				IsRolledBack:        req.GetSetRollbackFlag(),

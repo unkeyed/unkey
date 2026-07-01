@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // findTopologyMinReplicas returns the per-region minimum replica requirements
@@ -20,7 +20,7 @@ func (s *Service) findTopologyMinReplicas(ctx context.Context, deploymentID stri
 			// deploy, where replica lag would make the RO read return
 			// "no rows yet" and treat it as topology_missing, stalling
 			// ready notification until a later report arrives.
-			loaded, err := db.Query.FindDeploymentTopologyMinReplicas(ctx, s.db.RW(), deploymentID)
+			loaded, err := s.db.FindDeploymentTopologyMinReplicas(ctx, deploymentID)
 			if err != nil {
 				return nil, err
 			}

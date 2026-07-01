@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "auditlogs",
+    srcs = [
+        "insert.go",
+        "interface.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/auditlog",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/uid",
+        "//svc/ctrl/internal/db",
+    ],
+)

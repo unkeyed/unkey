@@ -11,9 +11,9 @@ package audit
 import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 )
 
 // Event is a single audit log entry to write from a workflow. The actor fields
