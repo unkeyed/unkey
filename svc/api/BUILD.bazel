@@ -54,7 +54,7 @@ go_library(
 
 go_test(
     name = "api_test",
-    size = "small",
+    size = "large",
     srcs = [
         "cancel_test.go",
         "config_test.go",

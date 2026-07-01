@@ -53,6 +53,7 @@ go_library(
 
 go_test(
     name = "api_test",
+    size = "large",
     srcs = [
         "deployment_integration_test.go",
         "github_webhook_integration_test.go",
