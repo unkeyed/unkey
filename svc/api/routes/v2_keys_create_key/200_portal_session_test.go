@@ -265,6 +265,74 @@ func TestPortalSessionsCreateKeysWithDistinctIdentities(t *testing.T) {
 		"keys created by different portal sessions should belong to different identities")
 }
 
+func TestPortalSessionCreateKeyAuditLog(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+	h.Register(route, portalMiddleware(h)...)
+
+	setup := setupPortalCreateKeyTest(t, h)
+
+	externalID := "portal_user_audit"
+	sessionID := uid.New(uid.PortalSessionPrefix)
+
+	permsJSON, err := json.Marshal([]string{fmt.Sprintf("api.%s.create_key", setup.apiID)})
+	require.NoError(t, err)
+
+	err = db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
+		ID:             sessionID,
+		WorkspaceID:    setup.workspace.ID,
+		PortalConfigID: uid.New(uid.PortalConfigPrefix),
+		ExternalID:     externalID,
+		Permissions:    permsJSON,
+		Preview:        false,
+		ExpiresAt:      time.Now().Add(24 * time.Hour).UnixMilli(),
+		CreatedAt:      time.Now().UnixMilli(),
+	})
+	require.NoError(t, err)
+
+	headers := http.Header{
+		"Content-Type": {"application/json"},
+		"Cookie":       {fmt.Sprintf("portal_session=%s", sessionID)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		ApiId: setup.apiID,
+	})
+	require.Equal(t, 200, res.Status)
+	require.NotEmpty(t, res.Body.Data.KeyId)
+	require.NotEmpty(t, res.Body.Data.Key)
+
+	auditLogs := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.KeyId)
+	require.NotEmpty(t, auditLogs, "expected audit logs for the key created via portal session")
+
+	var foundCreateEvent bool
+	for _, ev := range auditLogs {
+		if ev.Event != "key.create" {
+			continue
+		}
+		foundCreateEvent = true
+		require.Equal(t, "portalEndUser", ev.Actor.Type, "portal-created key must be attributed to a portalEndUser actor")
+		require.Equal(t, externalID, ev.Actor.ID, "portal actor ID must be the end user's externalId")
+		require.NotContains(t, ev.Actor.Meta, "sessionId", "session token must not be persisted in audit metadata")
+	}
+	require.True(t, foundCreateEvent, "expected a key.create audit log event")
+
+	// The plaintext key value must never appear in any audit log.
+	for _, ev := range auditLogs {
+		payload, marshalErr := json.Marshal(ev)
+		require.NoError(t, marshalErr)
+		require.NotContains(t, string(payload), res.Body.Data.Key,
+			"audit log must not contain the plaintext key value")
+	}
+}
+
 func TestRootKeyCreateKeyUnaffectedByPortalScoping(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
