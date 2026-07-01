@@ -5944,27 +5944,52 @@ paths:
                                         data:
                                             - appId: app_1234abcd
                                               autoDeploy: true
+                                              command:
+                                                - node
+                                                - server.js
                                               cpuMillicores: 250
                                               createdAt: 1704067200000
                                               deleteProtection: false
                                               description: Production environment
+                                              dockerfile: Dockerfile
                                               id: env_1234abcd
                                               memoryMib: 256
+                                              port: 8080
                                               projectId: proj_1234abcd
+                                              regions:
+                                                - name: us-east-1
+                                                  replicas:
+                                                    max: 3
+                                                    min: 1
                                               rootDirectory: .
+                                              shutdownSignal: SIGTERM
                                               slug: production
+                                              storageMib: 0
                                               updatedAt: 1704153600000
+                                              upstreamProtocol: http1
+                                              watchPaths:
+                                                - src/**
                                             - appId: app_1234abcd
                                               autoDeploy: true
+                                              buildCommand: pnpm --filter api build
+                                              command:
+                                                - node
+                                                - server.js
                                               cpuMillicores: 250
                                               createdAt: 1704240000000
                                               deleteProtection: false
                                               description: Staging environment
                                               id: env_5678efgh
                                               memoryMib: 256
+                                              port: 8080
                                               projectId: proj_1234abcd
                                               rootDirectory: .
+                                              shutdownSignal: SIGTERM
                                               slug: staging
+                                              storageMib: 0
+                                              upstreamProtocol: http1
+                                              watchPaths:
+                                                - src/**
                                         meta:
                                             requestId: req_1234abcd
                             schema:

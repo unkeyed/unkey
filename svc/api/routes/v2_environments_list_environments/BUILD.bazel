@@ -9,9 +9,9 @@ go_library(
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
-        "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",
+        "//svc/api/internal/environment",
         "//svc/api/openapi",
     ],
 )
