@@ -71,17 +71,21 @@ export function EnvVarActionMenu({ envVarId, variableKey, type, onEdit }: EnvVar
         </Button>
       </TableActionPopover>
 
-      <ConfirmPopover
-        isOpen={isDeleteConfirmOpen}
-        onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => collection.envVars.delete([envVarId])}
-        triggerRef={deleteButtonRef}
-        title="Confirm deletion"
-        description={`This will permanently delete "${variableKey}". This action cannot be undone.`}
-        confirmButtonText="Delete variable"
-        cancelButtonText="Cancel"
-        variant="danger"
-      />
+      {/* Stop clicks inside the popover (e.g. Cancel) from bubbling up to the
+          row, which would otherwise open the edit form. */}
+      <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+        <ConfirmPopover
+          isOpen={isDeleteConfirmOpen}
+          onOpenChange={setIsDeleteConfirmOpen}
+          onConfirm={() => collection.envVars.delete([envVarId])}
+          triggerRef={deleteButtonRef}
+          title="Confirm deletion"
+          description={`This will permanently delete "${variableKey}". This action cannot be undone.`}
+          confirmButtonText="Delete variable"
+          cancelButtonText="Cancel"
+          variant="danger"
+        />
+      </div>
     </>
   );
 }

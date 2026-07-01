@@ -230,8 +230,11 @@ importers:
         specifier: 0.2.2
         version: 0.2.2(@vercel/analytics@2.0.1(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@7.3.3(@types/node@22.14.0)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.19.1)(yaml@2.9.0))
       '@workos-inc/node':
-        specifier: 10.2.0
-        version: 10.2.0
+        specifier: 10.5.0
+        version: 10.5.0
+      '@workos/radar-signals':
+        specifier: 0.0.1
+        version: 0.0.1(react@19.2.4)
       boring-avatars:
         specifier: 2.0.4
         version: 2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1023,8 +1026,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/resend
       '@workos-inc/node':
-        specifier: 10.2.0
-        version: 10.2.0
+        specifier: 10.5.0
+        version: 10.5.0
       base-x:
         specifier: 4.0.1
         version: 4.0.1
@@ -5261,9 +5264,17 @@ packages:
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
 
-  '@workos-inc/node@10.2.0':
-    resolution: {integrity: sha512-K7LmCvwu8fL7HN3drAvjb/dWceltlDNSs3u1QNNYx5goZaxxG4dgCXDkdlcDt6ZKm8VGv030WfkmL7DylXvdaQ==}
+  '@workos-inc/node@10.5.0':
+    resolution: {integrity: sha512-kTtDOXUDM56f0JReKDlIrTQZu4RbiR8ExwLbJE5QquvhduT/NHccbDZthILd4izT28jwtGVe0bX597w7+NMwqg==}
     engines: {node: '>=22.11.0'}
+
+  '@workos/radar-signals@0.0.1':
+    resolution: {integrity: sha512-GTFjAl+4kwDgycRVoRFSQdZ2Eog9/dZynaX5m2CE5JNMkoQ2I+n/K5qjHvrMysMh2N/GSSd7eYIgCk2HAfXzhg==}
+    peerDependencies:
+      react: '>=18.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -8640,6 +8651,7 @@ packages:
   tsconfck@3.1.6:
     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
     engines: {node: ^18 || >=20}
+    deprecated: unmaintained
     hasBin: true
     peerDependencies:
       typescript: ^5.0.0
@@ -13639,9 +13651,11 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@workos-inc/node@10.2.0':
-    dependencies:
-      eventemitter3: 5.0.4
+  '@workos-inc/node@10.5.0': {}
+
+  '@workos/radar-signals@0.0.1(react@19.2.4)':
+    optionalDependencies:
+      react: 19.2.4
 
   '@xtuc/ieee754@1.2.0': {}
 
