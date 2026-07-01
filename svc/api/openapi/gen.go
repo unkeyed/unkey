@@ -31,6 +31,12 @@ const (
 	Http1 EnvironmentUpstreamProtocol = "http1"
 )
 
+// Defines values for EnvironmentVariableKind.
+const (
+	Recoverable EnvironmentVariableKind = "recoverable"
+	Writeonly   EnvironmentVariableKind = "writeonly"
+)
+
 // Defines values for KeyCreditsRefillInterval.
 const (
 	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
@@ -299,6 +305,28 @@ type EnvironmentShutdownSignal string
 
 // EnvironmentUpstreamProtocol Protocol used to reach the container.
 type EnvironmentUpstreamProtocol string
+
+// EnvironmentVariableInput A single environment variable to set.
+type EnvironmentVariableInput struct {
+	// Description Human-readable description of the variable.
+	Description *string `json:"description,omitempty"`
+
+	// Key The variable name. Must be a POSIX shell name: letters, digits, and
+	// underscores only, and must not start with a digit. Other names are
+	// unreachable from shells and most runtimes.
+	Key string `json:"key"`
+
+	// Kind How the value may be read back. Defaults to `writeonly`.
+	Kind *EnvironmentVariableKind `json:"kind,omitempty"`
+
+	// Value The variable value. Always encrypted at rest.
+	Value string `json:"value"`
+}
+
+// EnvironmentVariableKind How the value may be read back. `writeonly` values can never be read back
+// through the API; `recoverable` values can be decrypted. Values are encrypted
+// at rest either way.
+type EnvironmentVariableKind string
 
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
@@ -1180,6 +1208,44 @@ type V2EnvironmentsListEnvironmentsRequestBody struct {
 type V2EnvironmentsListEnvironmentsResponseBody struct {
 	// Data Array of environments in the app, ordered by environment id.
 	Data []Environment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2EnvironmentsSetEnvironmentVariablesRequestBody defines model for V2EnvironmentsSetEnvironmentVariablesRequestBody.
+type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Variables The complete desired set of variables. This fully replaces the existing
+	// set: every entry is written exactly as sent, and any key absent from the
+	// list is removed. An empty array therefore removes every variable.
+	//
+	// Nothing is merged with the current state. Only `value` is required on each
+	// entry; omitted optional fields (`kind`, `description`) fall back to their
+	// defaults rather than any previous value.
+	//
+	// Each key may appear at most once; a duplicate key is rejected with a 400.
+	// The whole operation is atomic: if any part fails the environment is left
+	// unchanged. All values are encrypted at rest. Limited to 50 variables per
+	// request.
+	Variables []EnvironmentVariableInput `json:"variables"`
+}
+
+// V2EnvironmentsSetEnvironmentVariablesResponseBody defines model for V2EnvironmentsSetEnvironmentVariablesResponseBody.
+type V2EnvironmentsSetEnvironmentVariablesResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -3028,6 +3094,9 @@ type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentReq
 
 // EnvironmentsListEnvironmentsJSONRequestBody defines body for EnvironmentsListEnvironments for application/json ContentType.
 type EnvironmentsListEnvironmentsJSONRequestBody = V2EnvironmentsListEnvironmentsRequestBody
+
+// EnvironmentsSetEnvironmentVariablesJSONRequestBody defines body for EnvironmentsSetEnvironmentVariables for application/json ContentType.
+type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvironmentVariablesRequestBody
 
 // EnvironmentsUpdateSettingsJSONRequestBody defines body for EnvironmentsUpdateSettings for application/json ContentType.
 type EnvironmentsUpdateSettingsJSONRequestBody = V2EnvironmentsUpdateSettingsRequestBody

@@ -1,0 +1,44 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "v2_environments_set_environment_variables",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_environments_set_environment_variables",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//gen/rpc/vault",
+        "//internal/services/auditlogs",
+        "//pkg/auditlog",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/ptr",
+        "//pkg/rbac",
+        "//pkg/uid",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "v2_environments_set_environment_variables_test",
+    srcs = [
+        "200_test.go",
+        "400_test.go",
+        "401_test.go",
+        "403_test.go",
+        "404_test.go",
+        "helpers_test.go",
+    ],
+    deps = [
+        ":v2_environments_set_environment_variables",
+        "//gen/proto/vault/v1:vault",
+        "//pkg/db",
+        "//pkg/uid",
+        "//svc/api/internal/testutil",
+        "//svc/api/internal/testutil/seed",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)

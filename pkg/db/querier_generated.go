@@ -1517,8 +1517,8 @@ type Querier interface {
 	InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) error
 	//InsertAppEnvironmentVariable
 	//
-	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
-	//  VALUES (?, ?, ?, ?, ?, ?, ?)
+	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
 	//InsertCertificate
 	//

@@ -1,0 +1,146 @@
+package handler_test
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_environments_set_environment_variables"
+)
+
+func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs}
+	h.Register(route)
+
+	ctx := context.Background()
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_environment_variables")
+	headers := authHeaders(rootKey)
+
+	call := func(t *testing.T, req handler.Request) handler.Response {
+		t.Helper()
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+		return *res.Body
+	}
+
+	decrypt := func(t *testing.T, environmentID, encrypted string) string {
+		t.Helper()
+		res, err := h.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{Keyring: environmentID, Encrypted: encrypted})
+		require.NoError(t, err)
+		return res.GetPlaintext()
+	}
+
+	t.Run("set on empty environment encrypts and stores values", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "DATABASE_URL", Value: "postgres://secret", Kind: ptr(openapi.Writeonly)},
+			{Key: "LOG_LEVEL", Value: "debug", Kind: ptr(openapi.Recoverable), Description: ptr("verbosity")},
+		}))
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Len(t, raw, 2)
+
+		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["DATABASE_URL"].varType)
+		require.Equal(t, "postgres://secret", decrypt(t, env.environmentID, raw["DATABASE_URL"].value))
+		require.NotEqual(t, "postgres://secret", raw["DATABASE_URL"].value, "value must be stored encrypted")
+
+		require.Equal(t, db.AppEnvironmentVariablesTypeRecoverable, raw["LOG_LEVEL"].varType)
+		require.Equal(t, "debug", decrypt(t, env.environmentID, raw["LOG_LEVEL"].value))
+	})
+
+	t.Run("kind defaults to writeonly when omitted", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "PLAIN", Value: "v"},
+		}))
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["PLAIN"].varType)
+	})
+
+	t.Run("replace removes vars absent from payload", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVar(t, h, env, "OLD_ONE", "x", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "OLD_TWO", "y", db.AppEnvironmentVariablesTypeRecoverable)
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "NEW_ONE", Value: "z"},
+		}))
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Len(t, raw, 1)
+		_, ok := raw["NEW_ONE"]
+		require.True(t, ok)
+	})
+
+	t.Run("existing var in payload is updated in place", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVar(t, h, env, "API_KEY", "old", db.AppEnvironmentVariablesTypeRecoverable)
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "API_KEY", Value: "new"},
+		}))
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Len(t, raw, 1)
+		require.Equal(t, "new", decrypt(t, env.environmentID, raw["API_KEY"].value))
+	})
+
+	t.Run("complete reset: omitted optional fields fall back to defaults", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVarFull(t, h, env, "SECRET", "old", db.AppEnvironmentVariablesTypeRecoverable, "db password")
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "SECRET", Value: "rotated"},
+		}))
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Len(t, raw, 1)
+		require.Equal(t, "rotated", decrypt(t, env.environmentID, raw["SECRET"].value))
+		// Nothing merged: kind defaults to writeonly and description is cleared.
+		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["SECRET"].varType)
+		require.Empty(t, raw["SECRET"].description)
+	})
+
+	t.Run("emits a single audit event with the applied key set", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVar(t, h, env, "EXISTING", "old", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "DROP", "x", db.AppEnvironmentVariablesTypeRecoverable)
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "EXISTING", Value: "new"},
+			{Key: "NEW", Value: "v"},
+		}))
+
+		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
+		require.Len(t, logs, 1)
+		require.Contains(t, logs[0].Description, "Set environment variables")
+
+		require.Len(t, logs[0].Targets, 1)
+		keys := fmt.Sprintf("%v", logs[0].Targets[0].Meta["keys"])
+		require.Contains(t, keys, "EXISTING")
+		require.Contains(t, keys, "NEW")
+		// Removals are implicit: DROP is simply absent from the applied set.
+		require.NotContains(t, keys, "DROP")
+	})
+
+	t.Run("empty payload clears all vars", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVar(t, h, env, "ONE", "a", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "TWO", "b", db.AppEnvironmentVariablesTypeRecoverable)
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{}))
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Empty(t, raw)
+	})
+}

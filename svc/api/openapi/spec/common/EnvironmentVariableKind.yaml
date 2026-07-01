@@ -1,0 +1,9 @@
+type: string
+enum:
+  - recoverable
+  - writeonly
+description: |
+  How the value may be read back. `writeonly` values can never be read back
+  through the API; `recoverable` values can be decrypted. Values are encrypted
+  at rest either way.
+example: writeonly

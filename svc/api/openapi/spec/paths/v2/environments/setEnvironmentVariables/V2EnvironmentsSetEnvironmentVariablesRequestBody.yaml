@@ -1,0 +1,48 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - variables
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  variables:
+    type: array
+    maxItems: 50
+    items:
+      "$ref": "../../../../common/EnvironmentVariableInput.yaml"
+    description: |
+      The complete desired set of variables. This fully replaces the existing
+      set: every entry is written exactly as sent, and any key absent from the
+      list is removed. An empty array therefore removes every variable.
+
+      Nothing is merged with the current state. Only `value` is required on each
+      entry; omitted optional fields (`kind`, `description`) fall back to their
+      defaults rather than any previous value.
+
+      Each key may appear at most once; a duplicate key is rejected with a 400.
+      The whole operation is atomic: if any part fails the environment is left
+      unchanged. All values are encrypted at rest. Limited to 50 variables per
+      request.
+additionalProperties: false
+examples:
+  setVariables:
+    summary: Replace the variable set
+    description: Locate the environment by slug and set its variables
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      variables:
+        - key: DATABASE_URL
+          value: postgresql://user:pass@host:5432/db
+          kind: writeonly
+        - key: LOG_LEVEL
+          value: debug
+          kind: recoverable
+          description: Application log verbosity
