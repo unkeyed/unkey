@@ -44,6 +44,7 @@ go_library(
         "app_runtime_settings_delete_by_environment.sql_generated.go",
         "app_runtime_settings_find.sql_generated.go",
         "app_runtime_settings_upsert.sql_generated.go",
+        "app_update.sql_generated.go",
         "app_update_deployments.sql_generated.go",
         "bulk_acme_challenge_insert.sql_generated.go",
         "bulk_acme_user_insert.sql_generated.go",
