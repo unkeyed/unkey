@@ -268,7 +268,8 @@
                   "security/recovering-keys",
                   "platform/apis/features/whitelist",
                   "security/github-scanning",
-                  "security/delete-protection"
+                  "security/delete-protection",
+                  "security/mfa"
                 ]
               }
             ]
