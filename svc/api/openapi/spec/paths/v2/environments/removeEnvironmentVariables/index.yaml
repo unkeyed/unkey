@@ -1,0 +1,86 @@
+post:
+  tags:
+    - environments
+  summary: Remove environment variables
+  description: |
+    Remove environment variables from an environment in a single atomic request.
+
+    This operation only deletes keys by name. Keys in the payload that exist are
+    removed; keys that are not present are ignored, since their absence already
+    matches the requested state. To replace or update values, use
+    `setEnvironmentVariables` instead. The whole operation is atomic: if any part
+    fails the environment is left unchanged.
+
+    Duplicate keys in the payload collapse to a single removal. Values are never
+    read or returned.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.set_environment_variables` (for any environment)
+    - `environment.<environment_id>.set_environment_variables` (for a specific environment)
+  operationId: environments.removeEnvironmentVariables
+  x-speakeasy-name-override: removeEnvironmentVariables
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2EnvironmentsRemoveEnvironmentVariablesRequestBody.yaml"
+        examples:
+          removeVariables:
+            summary: Remove variables
+            description: Locate the environment by slug and remove the named variables
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              variables:
+                - LOG_LEVEL
+                - DEBUG_MODE
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully removed the environment variables.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2EnvironmentsRemoveEnvironmentVariablesResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.set_environment_variables`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The requested environment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
