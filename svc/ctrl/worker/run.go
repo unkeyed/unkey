@@ -26,7 +26,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -37,6 +36,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
@@ -53,8 +53,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
@@ -146,10 +146,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize database
-	database, err := db.New(db.Config{
-		PrimaryDSN:  cfg.Database.Primary,
-		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-	})
+	database, err := db.New(cfg.Database)
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}

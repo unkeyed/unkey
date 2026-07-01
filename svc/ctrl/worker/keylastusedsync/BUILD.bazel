@@ -9,9 +9,9 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//pkg/assert",
         "//pkg/clickhouse",
-        "//pkg/db",
         "//pkg/logger",
         "//pkg/retry",
+        "//svc/ctrl/internal/db",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )

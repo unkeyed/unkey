@@ -2,7 +2,7 @@ package routing
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Service implements the routing service for frontline route management.

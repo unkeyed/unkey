@@ -14,9 +14,7 @@ data:
     dashboard_url = "http://localhost:3000"
     cname_domain = "unkey.local"
     build_platform = "linux/arm64"
-
-    [database]
-    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+    database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
     [vault]
     url = "http://vault:8060"

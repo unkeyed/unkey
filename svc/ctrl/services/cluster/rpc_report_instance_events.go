@@ -9,10 +9,10 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // ReportInstanceEvents persists container lifecycle events captured by a
@@ -144,7 +144,7 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 				},
 				Waiting: nil,
 			}
-			err := db.Query.RecordInstanceExit(ctx, s.db.RW(), db.RecordInstanceExitParams{
+			err := s.db.RecordInstanceExit(ctx, db.RecordInstanceExitParams{
 				ContainerStatus: newStatus,
 				K8sName:         event.GetPodName(),
 				RegionID:        region.ID,
@@ -177,7 +177,7 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			// for the timeline but don't change the live instance summary
 			// the dashboard header reads.
 			if w.GetReason() == "CrashLoopBackOff" {
-				err := db.Query.RecordInstanceCrashLoopBackOff(ctx, s.db.RW(), db.RecordInstanceCrashLoopBackOffParams{
+				err := s.db.RecordInstanceCrashLoopBackOff(ctx, db.RecordInstanceCrashLoopBackOffParams{
 					K8sName:      event.GetPodName(),
 					RegionID:     region.ID,
 					RestartCount: int64(event.GetRestartCount()),

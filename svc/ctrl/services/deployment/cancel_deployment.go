@@ -8,9 +8,9 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // cancelledByUserMessage is the error message stamped onto any in-flight
@@ -50,7 +50,7 @@ func (s *Service) CancelDeployment(
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("deployment_id is required"))
 	}
 
-	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
+	deployment, err := s.db.FindDeploymentById(ctx, deploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", deploymentID))
@@ -89,7 +89,7 @@ func (s *Service) CancelDeployment(
 	// regions became healthy"). EndDeploymentStep is first-write-wins
 	// (WHERE ended_at IS NULL), so the Deploy handler's later attempt to
 	// end the same step is a no-op.
-	if err := db.Query.EndActiveDeploymentStepsWithError(ctx, s.db.RW(), db.EndActiveDeploymentStepsWithErrorParams{
+	if err := s.db.EndActiveDeploymentStepsWithError(ctx, db.EndActiveDeploymentStepsWithErrorParams{
 		DeploymentID: deploymentID,
 		EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		Error:        sql.NullString{Valid: true, String: cancelledByUserMessage},
@@ -111,7 +111,7 @@ func (s *Service) CancelDeployment(
 	// Set the status to cancelled before cancelling the invocation. The
 	// compensation stack will try UpdateDeploymentStatusIfActive(failed),
 	// but cancelled is in the NOT IN list so that update is a no-op.
-	if err := db.Query.UpdateDeploymentStatusIfActive(ctx, s.db.RW(), db.UpdateDeploymentStatusIfActiveParams{
+	if err := s.db.UpdateDeploymentStatusIfActive(ctx, db.UpdateDeploymentStatusIfActiveParams{
 		ID:               deploymentID,
 		Status:           db.DeploymentsStatusCancelled,
 		UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

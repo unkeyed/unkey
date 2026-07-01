@@ -2,7 +2,7 @@ package githubstatus
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 

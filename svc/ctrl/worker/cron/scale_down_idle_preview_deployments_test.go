@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequests
@@ -60,7 +60,7 @@ func TestScaleDownIdlePreviewDeployments_ScalesDownIdleDeploymentWithZeroRequest
 
 	triggerScaleDown(t, h)
 
-	updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
+	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
 	require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState)
 }
@@ -114,7 +114,7 @@ func TestScaleDownIdlePreviewDeployments_DoesNotScaleDownDeploymentWithRecentReq
 
 	triggerScaleDown(t, h)
 
-	updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
+	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
@@ -165,7 +165,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresNonPreviewEnvironments(t *testin
 
 	triggerScaleDown(t, h)
 
-	updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
+	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
@@ -217,7 +217,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresDeploymentsNotInReadyStatus(t *t
 
 	triggerScaleDown(t, h)
 
-	updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
+	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
@@ -268,7 +268,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyCreatedDeployments(t *te
 
 	triggerScaleDown(t, h)
 
-	updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
+	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
@@ -319,7 +319,7 @@ func TestScaleDownIdlePreviewDeployments_IgnoresRecentlyUpdatedDeployments(t *te
 
 	triggerScaleDown(t, h)
 
-	updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
+	updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 	require.NoError(t, err)
 	require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState)
 }
@@ -391,12 +391,12 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 	triggerScaleDown(t, h)
 
 	for _, dep := range idleDeployments {
-		updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
+		updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 		require.NoError(t, err)
 		require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState, "idle deployment %s should be stopped", dep.ID)
 	}
 	for _, dep := range activeDeployments {
-		updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), dep.ID)
+		updated, err := h.DB.FindDeploymentById(h.Ctx, dep.ID)
 		require.NoError(t, err)
 		require.Equal(t, db.DeploymentsDesiredStateRunning, updated.DesiredState, "active deployment %s should be running", dep.ID)
 	}
@@ -455,7 +455,7 @@ func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsA
 	triggerScaleDown(t, h)
 
 	for _, id := range depIDs {
-		updated, err := db.Query.FindDeploymentById(h.Ctx, h.DB.RO(), id)
+		updated, err := h.DB.FindDeploymentById(h.Ctx, id)
 		require.NoError(t, err)
 		require.Equal(t, db.DeploymentsDesiredStateStopped, updated.DesiredState, "deployment %s should be stopped", id)
 	}

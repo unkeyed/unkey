@@ -6,9 +6,9 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Delete removes a project by delegating all resource cleanup to each
@@ -33,14 +33,14 @@ func (s *Service) Delete(
 
 	// Capture project metadata before the row is deleted, for the audit log.
 	project, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
-		return db.Query.FindProjectById(runCtx, s.db.RO(), projectID)
+		return s.db.FindProjectById(runCtx, projectID)
 	}, restate.WithName("find project"))
 	if err != nil {
 		return nil, fmt.Errorf("find project: %w", err)
 	}
 
 	apps, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
-		return db.Query.ListAppIdsByProject(runCtx, s.db.RO(), projectID)
+		return s.db.ListAppIdsByProject(runCtx, projectID)
 	}, restate.WithName("list apps"))
 	if err != nil {
 		return nil, fmt.Errorf("list apps: %w", err)
@@ -57,7 +57,7 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.DeleteProjectById(runCtx, s.db.RW(), projectID)
+		return s.db.DeleteProjectById(runCtx, projectID)
 	}, restate.WithName("delete project")); err != nil {
 		return nil, fmt.Errorf("delete project: %w", err)
 	}

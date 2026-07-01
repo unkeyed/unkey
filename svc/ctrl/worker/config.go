@@ -255,8 +255,8 @@ type Config struct {
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain" config:"required,nonempty"`
 
-	// Database configures MySQL connections. See [config.DatabaseConfig].
-	Database config.DatabaseConfig `toml:"database"`
+	// Database is the MySQL DSN used for all control plane reads and writes.
+	Database string `toml:"database" config:"required,nonempty"`
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
