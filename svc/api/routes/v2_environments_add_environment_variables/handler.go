@@ -125,7 +125,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Public("The requested environment does not exist."),
 				)
 			}
-			return addVarsDBError(err, "unable to lock environment")
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to lock environment"),
+				fault.Public("We're unable to add the environment variables."),
+			)
 		}
 
 		existing, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, tx, db.FindAppEnvVarsByAppAndEnvParams{
@@ -133,7 +138,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			EnvironmentID: env.ID,
 		})
 		if err != nil {
-			return addVarsDBError(err, "database error")
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("We're unable to add the environment variables."),
+			)
 		}
 		for _, e := range existing {
 			if _, requested := byKey[e.Key]; requested {
@@ -173,7 +183,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if err := db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newEnvVars); err != nil {
-			return addVarsDBError(err, "unable to insert variables")
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to insert variables"),
+				fault.Public("We're unable to add the environment variables."),
+			)
 		}
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
@@ -264,13 +279,4 @@ func (h *Handler) encryptValues(
 	}
 
 	return out, nil
-}
-
-func addVarsDBError(err error, internal string) error {
-	return fault.Wrap(
-		err,
-		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-		fault.Internal(internal),
-		fault.Public("We're unable to add the environment variables."),
-	)
 }
