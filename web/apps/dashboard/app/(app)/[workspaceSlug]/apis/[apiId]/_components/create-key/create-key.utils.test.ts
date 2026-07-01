@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formSchema, type FormValues } from "./create-key.schema";
+import { type FormValues, formSchema } from "./create-key.schema";
 import { formValuesToCreateKeyRequest, getDefaultValues } from "./create-key.utils";
 
 function formValues(overrides: Partial<FormValues> = {}): FormValues {

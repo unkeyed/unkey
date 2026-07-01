@@ -1,5 +1,6 @@
 import { metadataSchema } from "@/lib/schemas/metadata";
 import { deepMerge } from "@/lib/utils";
+import type { V2KeysCreateKeyRequestBody } from "@unkey/api/models/components";
 import {
   type FormValues,
   creditsSchema,
@@ -8,7 +9,6 @@ import {
   ratelimitSchema,
 } from "./create-key.schema";
 import type { SectionName } from "./types";
-import type { V2KeysCreateKeyRequestBody } from "@unkey/api/models/components";
 
 export const formValuesToCreateKeyRequest = (
   formValues: FormValues,
