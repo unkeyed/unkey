@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	env, err := db.Query.FindEnvironmentByAppAndIdOrSlug(ctx, h.DB.RO(), db.FindEnvironmentByAppAndIdOrSlugParams{
+	environment, err := db.Query.FindEnvironmentByAppAndIdOrSlug(ctx, h.DB.RO(), db.FindEnvironmentByAppAndIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
@@ -95,8 +95,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve environment."),
 		)
 	}
-
-	environment := env
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -473,12 +471,6 @@ func (h *Handler) applyRegions(ctx context.Context, tx db.DBTX, workspaceID, app
 			fault.Internal("unable to list regional settings"),
 			fault.Public("We're unable to update the environment settings."),
 		)
-	}
-
-	// Empty region sets are rejected in resolveRegions, so desired always
-	// has at least one entry here.
-	if len(desired) == 0 {
-		return nil
 	}
 
 	minReplicas, maxReplicas := desired[0].min, desired[0].max
