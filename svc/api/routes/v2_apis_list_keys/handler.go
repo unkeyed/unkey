@@ -94,50 +94,55 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	readKeyChecks := []rbac.PermissionQuery{
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.ReadKey,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   req.ApiId,
+			Action:       rbac.ReadKey,
+		}),
+	}
+	readAPIChecks := []rbac.PermissionQuery{
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.ReadAPI,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   req.ApiId,
+			Action:       rbac.ReadAPI,
+		}),
+	}
+	if api.KeyAuthID.Valid {
+		readKeyChecks = append(readKeyChecks, rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
+			permissions.ReadKey{},
+		))
+		readAPIChecks = append(readAPIChecks, rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
+			permissions.ReadKeyspace{},
+		))
+	}
+
+	err = principal.Authorize(rbac.And(
+		rbac.Or(readKeyChecks...),
+		rbac.Or(readAPIChecks...),
+	))
+	if err != nil {
+		return err
+	}
+
 	if !api.KeyAuthID.Valid {
 		return fault.New("api missing keyspace",
 			fault.Code(codes.Data.KeySpace.NotFound.URN()),
 			fault.Internal("api has no key auth id"),
 			fault.Public("The requested API does not have a keyspace."),
 		)
-	}
-
-	err = principal.Authorize(rbac.And(
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.ReadKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   req.ApiId,
-				Action:       rbac.ReadKey,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
-				permissions.ReadKey{},
-			),
-		),
-		rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.ReadAPI,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   req.ApiId,
-				Action:       rbac.ReadAPI,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
-				permissions.ReadKeyspace{},
-			),
-		),
-	))
-	if err != nil {
-		return err
 	}
 
 	if ptr.SafeDeref(req.Decrypt, false) {
