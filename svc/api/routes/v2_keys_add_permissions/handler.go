@@ -161,11 +161,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	for perm := range missingPermissions {
-		err = principal.Authorize(rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.CreatePermission,
-		}))
+		err = principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).RBAC.Permission("*"),
+				permissions.CreatePermission{},
+			),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.CreatePermission,
+			}),
+		))
 		if err != nil {
 			return err
 		}
