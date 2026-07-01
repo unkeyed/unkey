@@ -801,6 +801,33 @@ type V2AppsGetAppResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2AppsListAppsRequestBody defines model for V2AppsListAppsRequestBody.
+type V2AppsListAppsRequestBody struct {
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of apps to return per request.
+	// Balance between response size and number of pagination calls needed.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2AppsListAppsResponseBody defines model for V2AppsListAppsResponseBody.
+type V2AppsListAppsResponseBody struct {
+	// Data Array of apps in the project, ordered by app id.
+	Data []App `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
 type V2DeployCreateDeploymentRequestBody struct {
 	// App App slug within the project
@@ -2645,6 +2672,9 @@ type AppsCreateAppJSONRequestBody = V2AppsCreateAppRequestBody
 
 // AppsGetAppJSONRequestBody defines body for AppsGetApp for application/json ContentType.
 type AppsGetAppJSONRequestBody = V2AppsGetAppRequestBody
+
+// AppsListAppsJSONRequestBody defines body for AppsListApps for application/json ContentType.
+type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
