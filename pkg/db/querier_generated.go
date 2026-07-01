@@ -71,6 +71,14 @@ type Querier interface {
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
 	DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	// Deletes an environment's regional rows whose region is not in the desired set,
+	// reconciling the stored set to exactly the provided regions in one statement.
+	//
+	//  DELETE FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND region_id NOT IN (/*SLICE:region_ids*/?)
+	DeleteAppRegionalSettingsNotInRegions(ctx context.Context, db DBTX, arg DeleteAppRegionalSettingsNotInRegionsParams) error
 	//DeleteAppRuntimeSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
@@ -1802,6 +1810,24 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertGithubRepoConnection(ctx context.Context, db DBTX, arg InsertGithubRepoConnectionParams) error
+	//InsertHorizontalAutoscalingPolicy
+	//
+	//  INSERT INTO horizontal_autoscaling_policies (
+	//      id,
+	//      workspace_id,
+	//      replicas_min,
+	//      replicas_max,
+	//      cpu_threshold,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg InsertHorizontalAutoscalingPolicyParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -2301,6 +2327,17 @@ type Querier interface {
 	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
 	//  WHERE ars.app_id = ?
 	ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error)
+	// Returns the current regional rows for reconciliation, including the
+	// horizontal_autoscaling_policy_id that FindAppRegionalSettingsByAppAndEnv omits.
+	//
+	//  SELECT
+	//      region_id,
+	//      replicas,
+	//      horizontal_autoscaling_policy_id
+	//  FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	ListAppRegionalSettingsByAppEnv(ctx context.Context, db DBTX, arg ListAppRegionalSettingsByAppEnvParams) ([]ListAppRegionalSettingsByAppEnvRow, error)
 	// Returns the runtime settings for every environment in an app, for callers
 	// that build multiple environments at once and group by environment_id.
 	//
@@ -2901,6 +2938,13 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
+	// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
+	// This serializes region reconciliation, which reads the current set then replaces it.
+	//
+	//  SELECT id FROM environments
+	//  WHERE id = ?
+	//  FOR UPDATE
+	LockEnvironmentForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.
 	// This should be called at the start of a transaction before modifying identity-related data.
 	//
@@ -3162,6 +3206,32 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateApp(ctx context.Context, db DBTX, arg UpdateAppParams) error
+	// Updates only the columns whose *_specified flag is 1, preserving all others.
+	// columns cannot overwrite each other. dockerfile is clearable (narg -> NULL).
+	//
+	//  UPDATE app_build_settings t
+	//  SET
+	//      dockerfile = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.dockerfile
+	//      END,
+	//      docker_context = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.docker_context
+	//      END,
+	//      watch_paths = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.watch_paths
+	//      END,
+	//      auto_deploy = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.auto_deploy
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -3171,6 +3241,53 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, db DBTX, arg UpdateAppDeploymentsParams) error
+	// Updates only the columns whose *_specified flag is 1, preserving all others.
+	// sentinel_config is intentionally absent from the SET list so it is preserved
+	// without a prior read. healthcheck and openapi_spec_path are clearable (narg).
+	//
+	//  UPDATE app_runtime_settings t
+	//  SET
+	//      port = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.port
+	//      END,
+	//      cpu_millicores = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.cpu_millicores
+	//      END,
+	//      memory_mib = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.memory_mib
+	//      END,
+	//      storage_mib = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.storage_mib
+	//      END,
+	//      command = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.command
+	//      END,
+	//      healthcheck = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.healthcheck
+	//      END,
+	//      shutdown_signal = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.shutdown_signal
+	//      END,
+	//      upstream_protocol = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.upstream_protocol
+	//      END,
+	//      openapi_spec_path = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.openapi_spec_path
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
 	//UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
 	//
 	//  UPDATE cilium_network_policies
@@ -3314,6 +3431,16 @@ type Querier interface {
 	//  SET deployment_id = ?
 	//  WHERE id = ?
 	UpdateFrontlineRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateFrontlineRouteDeploymentIdParams) error
+	//UpdateHorizontalAutoscalingPolicy
+	//
+	//  UPDATE horizontal_autoscaling_policies
+	//  SET
+	//      replicas_min = ?,
+	//      replicas_max = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	UpdateHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg UpdateHorizontalAutoscalingPolicyParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -3548,9 +3675,11 @@ type Querier interface {
 	//      environment_id,
 	//      region_id,
 	//      replicas,
+	//      horizontal_autoscaling_policy_id,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3561,6 +3690,7 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      replicas = VALUES(replicas),
+	//      horizontal_autoscaling_policy_id = VALUES(horizontal_autoscaling_policy_id),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, arg UpsertAppRegionalSettingsParams) error
 	//UpsertAppRuntimeSettings

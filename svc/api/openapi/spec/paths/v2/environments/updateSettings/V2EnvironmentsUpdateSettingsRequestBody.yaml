@@ -1,0 +1,162 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+
+  dockerfile:
+    type:
+      - string
+      - "null"
+    minLength: 1
+    maxLength: 500
+    description: |
+      Path to the Dockerfile used for builds.
+      Omit to leave unchanged; set null to clear and fall back to Railpack.
+    example: ./Dockerfile
+  rootDirectory:
+    type: string
+    minLength: 1
+    maxLength: 500
+    description: |
+      The directory your app lives in. Unkey builds from here.
+      Use "." for the repository root, or set a subdirectory when your app
+      is nested (e.g., services/api). Omit to leave unchanged.
+    example: .
+  watchPaths:
+    type: array
+    maxItems: 10
+    items:
+      type: string
+      maxLength: 500
+    description: |
+      Glob paths that trigger auto-deploys when changed.
+      Omit to leave unchanged.
+  autoDeploy:
+    type: boolean
+    description: |
+      Whether pushes auto-deploy.
+      Omit to leave unchanged.
+    example: true
+
+  port:
+    type: integer
+    minimum: 1
+    maximum: 65535
+    description: |
+      Container port the app listens on.
+      Omit to leave unchanged.
+    example: 8080
+  cpuMillicores:
+    type: integer
+    minimum: 250
+    multipleOf: 250
+    description: |
+      CPU allocation in millicores. Minimum 250 (1/4 vCPU), in steps of 250.
+      The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+      Omit to leave unchanged.
+    example: 1000
+  memoryMib:
+    type: integer
+    minimum: 256
+    multipleOf: 256
+    description: |
+      Memory allocation in MiB. Minimum 256, in steps of 256.
+      The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+      Omit to leave unchanged.
+    example: 512
+  storageMib:
+    type: integer
+    minimum: 0
+    multipleOf: 512
+    description: |
+      Ephemeral storage allocation in MiB, in steps of 512 (0 for none).
+      The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+      Omit to leave unchanged.
+    example: 1024
+  command:
+    type: array
+    maxItems: 10
+    items:
+      type: string
+      maxLength: 4096
+    description: |
+      Override container entrypoint command.
+      Omit to leave unchanged.
+  healthcheck:
+    description: |
+      HTTP healthcheck configuration.
+      Omit to leave unchanged; set null to remove.
+    allOf:
+      - "$ref": "../../../../common/EnvironmentHealthcheck.yaml"
+  shutdownSignal:
+    "$ref": "../../../../common/EnvironmentShutdownSignal.yaml"
+    description: |
+      Signal sent to the container on shutdown.
+      Omit to leave unchanged.
+  upstreamProtocol:
+    "$ref": "../../../../common/EnvironmentUpstreamProtocol.yaml"
+    description: |
+      Protocol used to reach the upstream container.
+      Omit to leave unchanged.
+  openapiSpecPath:
+    type:
+      - string
+      - "null"
+    minLength: 1
+    maxLength: 512
+    pattern: '^(/[\w\-]+)+(\.[\w]+)?$'
+    description: |
+      Path to the OpenAPI spec file within the build. Must start with a slash.
+      Omit to leave unchanged; set null to clear.
+    example: /openapi.yaml
+
+  regions:
+    type: array
+    minItems: 1
+    maxItems: 5
+    items:
+      "$ref": "../../../../common/EnvironmentRegion.yaml"
+    description: |
+      Desired set of regions with per-region replica bounds.
+      Omit to leave regions unchanged; when present, this replaces the full set
+      (regions absent from the list are removed). At least one region is required;
+      an empty list is rejected because an environment cannot have zero regions.
+additionalProperties: false
+examples:
+  setRuntime:
+    summary: Update runtime resources
+    description: Adjust CPU and memory, locating the environment by slug
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      cpuMillicores: 2000
+      memoryMib: 1024
+  clearDockerfile:
+    summary: Clear the Dockerfile
+    description: Fall back to Railpack by setting dockerfile to null
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      dockerfile: null
+  setRegions:
+    summary: Replace the region set
+    description: Deploy to a single region with replica bounds
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      regions:
+        - name: us-east-1
+          replicas:
+            min: 1
+            max: 3

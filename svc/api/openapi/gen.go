@@ -11,6 +11,12 @@ const (
 	RootKeyScopes = "rootKey.Scopes"
 )
 
+// Defines values for EnvironmentHealthcheckMethod.
+const (
+	GET  EnvironmentHealthcheckMethod = "GET"
+	POST EnvironmentHealthcheckMethod = "POST"
+)
+
 // Defines values for EnvironmentShutdownSignal.
 const (
 	SIGINT  EnvironmentShutdownSignal = "SIGINT"
@@ -23,12 +29,6 @@ const (
 const (
 	H2c   EnvironmentUpstreamProtocol = "h2c"
 	Http1 EnvironmentUpstreamProtocol = "http1"
-)
-
-// Defines values for EnvironmentHealthcheckMethod.
-const (
-	GET  EnvironmentHealthcheckMethod = "GET"
-	POST EnvironmentHealthcheckMethod = "POST"
 )
 
 // Defines values for KeyCreditsRefillInterval.
@@ -239,7 +239,6 @@ type Environment struct {
 	RootDirectory *string `json:"rootDirectory,omitempty"`
 
 	// ShutdownSignal Signal sent to the container on shutdown.
-	// Omitted until the environment has runtime settings.
 	ShutdownSignal *EnvironmentShutdownSignal `json:"shutdownSignal,omitempty"`
 
 	// Slug URL-safe handle for this environment, unique within its app.
@@ -255,7 +254,6 @@ type Environment struct {
 	UpdatedAt int64 `json:"updatedAt,omitempty"`
 
 	// UpstreamProtocol Protocol used to reach the container.
-	// Omitted until the environment has runtime settings.
 	UpstreamProtocol *EnvironmentUpstreamProtocol `json:"upstreamProtocol,omitempty"`
 
 	// WatchPaths Paths that trigger a rebuild when changed.
@@ -263,32 +261,24 @@ type Environment struct {
 	WatchPaths *[]string `json:"watchPaths,omitempty"`
 }
 
-// EnvironmentShutdownSignal Signal sent to the container on shutdown.
-// Omitted until the environment has runtime settings.
-type EnvironmentShutdownSignal string
-
-// EnvironmentUpstreamProtocol Protocol used to reach the container.
-// Omitted until the environment has runtime settings.
-type EnvironmentUpstreamProtocol string
-
 // EnvironmentHealthcheck defines model for EnvironmentHealthcheck.
 type EnvironmentHealthcheck struct {
-	// FailureThreshold Consecutive failures before the container is restarted.
+	// FailureThreshold Consecutive failures before the container is restarted. Defaults to 3 when omitted.
 	FailureThreshold *int `json:"failureThreshold,omitempty"`
 
-	// InitialDelaySeconds Delay before the first probe runs, in seconds.
+	// InitialDelaySeconds Delay before the first probe runs, in seconds. Defaults to 0 when omitted.
 	InitialDelaySeconds *int `json:"initialDelaySeconds,omitempty"`
 
-	// IntervalSeconds How often the probe runs, in seconds.
+	// IntervalSeconds How often the probe runs, in seconds. Defaults to 10 when omitted.
 	IntervalSeconds *int `json:"intervalSeconds,omitempty"`
 
 	// Method HTTP method used to probe the container.
 	Method EnvironmentHealthcheckMethod `json:"method"`
 
-	// Path HTTP path probed on the container.
+	// Path HTTP path probed on the container. Must start with a slash.
 	Path string `json:"path"`
 
-	// TimeoutSeconds Per-probe timeout, in seconds.
+	// TimeoutSeconds Per-probe timeout, in seconds. Defaults to 5 when omitted.
 	TimeoutSeconds *int `json:"timeoutSeconds,omitempty"`
 }
 
@@ -303,6 +293,12 @@ type EnvironmentRegion struct {
 	// Replicas Min and max replica bounds for autoscaling in a region.
 	Replicas Replicas `json:"replicas"`
 }
+
+// EnvironmentShutdownSignal Signal sent to the container on shutdown.
+type EnvironmentShutdownSignal string
+
+// EnvironmentUpstreamProtocol Protocol used to reach the container.
+type EnvironmentUpstreamProtocol string
 
 // ForbiddenErrorResponse Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
 // - The root key doesn't have the required permissions for this endpoint
@@ -1184,6 +1180,90 @@ type V2EnvironmentsListEnvironmentsRequestBody struct {
 type V2EnvironmentsListEnvironmentsResponseBody struct {
 	// Data Array of environments in the app, ordered by environment id.
 	Data []Environment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2EnvironmentsUpdateSettingsRequestBody defines model for V2EnvironmentsUpdateSettingsRequestBody.
+type V2EnvironmentsUpdateSettingsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// AutoDeploy Whether pushes auto-deploy.
+	// Omit to leave unchanged.
+	AutoDeploy *bool `json:"autoDeploy,omitempty"`
+
+	// Command Override container entrypoint command.
+	// Omit to leave unchanged.
+	Command *[]string `json:"command,omitempty"`
+
+	// CpuMillicores CPU allocation in millicores. Minimum 250 (1/4 vCPU), in steps of 250.
+	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+	// Omit to leave unchanged.
+	CpuMillicores *int `json:"cpuMillicores,omitempty"`
+
+	// Dockerfile Path to the Dockerfile used for builds.
+	// Omit to leave unchanged; set null to clear and fall back to Railpack.
+	Dockerfile nullable.Nullable[string] `json:"dockerfile,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Healthcheck HTTP healthcheck configuration.
+	// Omit to leave unchanged; set null to remove.
+	Healthcheck nullable.Nullable[EnvironmentHealthcheck] `json:"healthcheck,omitempty"`
+
+	// MemoryMib Memory allocation in MiB. Minimum 256, in steps of 256.
+	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+	// Omit to leave unchanged.
+	MemoryMib *int `json:"memoryMib,omitempty"`
+
+	// OpenapiSpecPath Path to the OpenAPI spec file within the build. Must start with a slash.
+	// Omit to leave unchanged; set null to clear.
+	OpenapiSpecPath nullable.Nullable[string] `json:"openapiSpecPath,omitempty"`
+
+	// Port Container port the app listens on.
+	// Omit to leave unchanged.
+	Port *int `json:"port,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Regions Desired set of regions with per-region replica bounds.
+	// Omit to leave regions unchanged; when present, this replaces the full set
+	// (regions absent from the list are removed). At least one region is required;
+	// an empty list is rejected because an environment cannot have zero regions.
+	Regions *[]EnvironmentRegion `json:"regions,omitempty"`
+
+	// RootDirectory The directory your app lives in. Unkey builds from here.
+	// Use "." for the repository root, or set a subdirectory when your app
+	// is nested (e.g., services/api). Omit to leave unchanged.
+	RootDirectory *string `json:"rootDirectory,omitempty"`
+
+	// ShutdownSignal Signal sent to the container on shutdown.
+	ShutdownSignal *EnvironmentShutdownSignal `json:"shutdownSignal,omitempty"`
+
+	// StorageMib Ephemeral storage allocation in MiB, in steps of 512 (0 for none).
+	// The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+	// Omit to leave unchanged.
+	StorageMib *int `json:"storageMib,omitempty"`
+
+	// UpstreamProtocol Protocol used to reach the container.
+	UpstreamProtocol *EnvironmentUpstreamProtocol `json:"upstreamProtocol,omitempty"`
+
+	// WatchPaths Glob paths that trigger auto-deploys when changed.
+	// Omit to leave unchanged.
+	WatchPaths *[]string `json:"watchPaths,omitempty"`
+}
+
+// V2EnvironmentsUpdateSettingsResponseBody defines model for V2EnvironmentsUpdateSettingsResponseBody.
+type V2EnvironmentsUpdateSettingsResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -2948,6 +3028,9 @@ type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentReq
 
 // EnvironmentsListEnvironmentsJSONRequestBody defines body for EnvironmentsListEnvironments for application/json ContentType.
 type EnvironmentsListEnvironmentsJSONRequestBody = V2EnvironmentsListEnvironmentsRequestBody
+
+// EnvironmentsUpdateSettingsJSONRequestBody defines body for EnvironmentsUpdateSettings for application/json ContentType.
+type EnvironmentsUpdateSettingsJSONRequestBody = V2EnvironmentsUpdateSettingsRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

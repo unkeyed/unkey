@@ -17,9 +17,11 @@ INSERT INTO app_regional_settings (
     environment_id,
     region_id,
     replicas,
+    horizontal_autoscaling_policy_id,
     created_at,
     updated_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -30,17 +32,19 @@ INSERT INTO app_regional_settings (
 )
 ON DUPLICATE KEY UPDATE
     replicas = VALUES(replicas),
+    horizontal_autoscaling_policy_id = VALUES(horizontal_autoscaling_policy_id),
     updated_at = VALUES(updated_at)
 `
 
 type UpsertAppRegionalSettingsParams struct {
-	WorkspaceID   string        `db:"workspace_id"`
-	AppID         string        `db:"app_id"`
-	EnvironmentID string        `db:"environment_id"`
-	RegionID      string        `db:"region_id"`
-	Replicas      int32         `db:"replicas"`
-	CreatedAt     int64         `db:"created_at"`
-	UpdatedAt     sql.NullInt64 `db:"updated_at"`
+	WorkspaceID                   string         `db:"workspace_id"`
+	AppID                         string         `db:"app_id"`
+	EnvironmentID                 string         `db:"environment_id"`
+	RegionID                      string         `db:"region_id"`
+	Replicas                      int32          `db:"replicas"`
+	HorizontalAutoscalingPolicyID sql.NullString `db:"horizontal_autoscaling_policy_id"`
+	CreatedAt                     int64          `db:"created_at"`
+	UpdatedAt                     sql.NullInt64  `db:"updated_at"`
 }
 
 // UpsertAppRegionalSettings
@@ -51,9 +55,11 @@ type UpsertAppRegionalSettingsParams struct {
 //	    environment_id,
 //	    region_id,
 //	    replicas,
+//	    horizontal_autoscaling_policy_id,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -64,6 +70,7 @@ type UpsertAppRegionalSettingsParams struct {
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    replicas = VALUES(replicas),
+//	    horizontal_autoscaling_policy_id = VALUES(horizontal_autoscaling_policy_id),
 //	    updated_at = VALUES(updated_at)
 func (q *Queries) UpsertAppRegionalSettings(ctx context.Context, db DBTX, arg UpsertAppRegionalSettingsParams) error {
 	_, err := db.ExecContext(ctx, upsertAppRegionalSettings,
@@ -72,6 +79,7 @@ func (q *Queries) UpsertAppRegionalSettings(ctx context.Context, db DBTX, arg Up
 		arg.EnvironmentID,
 		arg.RegionID,
 		arg.Replicas,
+		arg.HorizontalAutoscalingPolicyID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

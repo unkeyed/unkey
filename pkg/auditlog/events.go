@@ -79,5 +79,6 @@ const (
 	AppDeleteEvent AuditLogEvent = "app.delete"
 
 	// Environment events
+	EnvironmentUpdateEvent AuditLogEvent = "environment.update"
 	EnvironmentDeleteEvent AuditLogEvent = "environment.delete"
 )

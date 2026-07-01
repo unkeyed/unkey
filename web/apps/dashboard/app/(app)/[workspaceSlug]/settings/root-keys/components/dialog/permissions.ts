@@ -254,6 +254,10 @@ export const workspacePermissions = {
       description: "Read any environment in this workspace",
       permission: "environment.*.read_environment",
     },
+    update_environment: {
+      description: "Update any environment's settings in this workspace",
+      permission: "environment.*.update_environment",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -370,6 +374,10 @@ export function environmentPermissions(environmentId: string): {
       read_environment: {
         description: "Read this environment.",
         permission: `environment.${environmentId}.read_environment`,
+      },
+      update_environment: {
+        description: "Update this environment's settings.",
+        permission: `environment.${environmentId}.update_environment`,
       },
     },
   };
