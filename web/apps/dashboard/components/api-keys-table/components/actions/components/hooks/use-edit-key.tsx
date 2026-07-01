@@ -1,11 +1,41 @@
 import { UNNAMED_KEY } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.constants";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
+import type { Unkey } from "@unkey/api";
 import { toast } from "@unkey/ui";
+
+type UpdateKeyRequest = Parameters<Unkey["keys"]["updateKey"]>[0];
+
+type EditKeyNameVariables = {
+  keyId: UpdateKeyRequest["keyId"];
+  name?: string | undefined;
+  originalName?: string | undefined;
+};
+
+type EditKeyNameResult = {
+  keyId: string;
+  previousName?: string | null;
+  newName?: string | null;
+};
 
 export const useEditKeyName = (onSuccess: () => void) => {
   const trpcUtils = trpc.useUtils();
 
-  const key = trpc.key.update.name.useMutation({
+  const key = useMutation<EditKeyNameResult, unknown, EditKeyNameVariables>({
+    mutationFn: async ({ keyId, name, originalName }) => {
+      const normalizedName = name?.trim() || null;
+      await getUnkeyClient().keys.updateKey({
+        keyId,
+        name: normalizedName,
+      });
+
+      return {
+        keyId,
+        previousName: originalName?.trim() || null,
+        newName: normalizedName,
+      };
+    },
     onSuccess(data) {
       const nameChange =
         data.previousName !== data.newName
@@ -21,34 +51,13 @@ export const useEditKeyName = (onSuccess: () => void) => {
       onSuccess();
     },
     onError(err) {
-      const errorMessage = err.message || "";
-
-      if (err.data?.code === "UNPROCESSABLE_CONTENT") {
-        toast.error("No Changes Detected", {
-          description: "The new name must be different from the current name.",
-        });
-      } else if (err.data?.code === "NOT_FOUND") {
-        toast.error("Key Update Failed", {
-          description: "Unable to find the key. Please refresh and try again.",
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while updating your key. Please try again later or contact support at support.unkey.dev",
-        });
-      } else if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Configuration", {
-          description: `Please check your key name. ${errorMessage}`,
-        });
-      } else {
-        toast.error("Failed to Update Key", {
-          description: errorMessage || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+      toast.error("Failed to Update Key", {
+        description: getErrorMessage(err),
+        action: {
+          label: "Contact Support",
+          onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+        },
+      });
     },
   });
 

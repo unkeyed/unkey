@@ -150,7 +150,6 @@ import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { rerollRootKey } from "./key/reroll";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
-import { updateKeyName } from "./key/updateName";
 import { updateKeyOwner } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
@@ -242,7 +241,6 @@ export const router = t.router({
     update: t.router({
       expiration: updateKeyExpiration,
       metadata: updateKeyMetadata,
-      name: updateKeyName,
       ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,
