@@ -117,6 +117,61 @@ const basePolicyFields = {
   matchConditions: z.array(matchConditionSchema),
 };
 
+// Mirrors keyauthRatelimitSchema with a client-only `id` for React keying and a
+// client-only `override` toggle. Discriminated on `override` so the two states
+// are structurally distinct: override off is a bare named reference, override on
+// carries the optional inline fields. The common case is referencing a named
+// limit on the key (override off). When override is on the user can either:
+//   - override the cost alone (the named limit's window is kept, only cost changes), or
+//   - define an inline limit + duration (optionally with a cost) that need not
+//     exist on the key.
+// limit and duration are an inline pair and must be set together: the Go service
+// silently ignores a partial inline override (only limit, or only duration), so
+// we reject it here rather than letting it no-op on the wire. The fields stay
+// optional on the override-on branch because the form holds them undefined while
+// the user is still typing; the superRefine enforces the valid combinations.
+const keyauthRatelimitFormSchema = z
+  .discriminatedUnion("override", [
+    z.object({
+      id: z.string(),
+      name: z.string().min(1, "Name is required"),
+      override: z.literal(false),
+    }),
+    z.object({
+      id: z.string(),
+      name: z.string().min(1, "Name is required"),
+      override: z.literal(true),
+      limit: z.number().int().min(1, "Limit must be at least 1").optional(),
+      duration: z.number().int().min(1, "Duration must be at least 1ms").optional(),
+      cost: z.number().int().min(1, "Cost must be at least 1").optional(),
+    }),
+  ])
+  .superRefine((r, ctx) => {
+    if (!r.override) {
+      return;
+    }
+    const hasLimit = r.limit !== undefined;
+    const hasDuration = r.duration !== undefined;
+    if (hasLimit && !hasDuration) {
+      ctx.addIssue({ code: "custom", message: "Duration is required", path: ["duration"] });
+    }
+    if (hasDuration && !hasLimit) {
+      ctx.addIssue({ code: "custom", message: "Limit is required", path: ["limit"] });
+    }
+    // Override is on but nothing was entered — require at least one of the
+    // valid overrides (cost, or the limit+duration pair) so the toggle isn't a
+    // no-op that serializes to a bare named reference.
+    if (!hasLimit && !hasDuration && r.cost === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Enter a cost, or a limit and duration, to override",
+        path: ["cost"],
+      });
+    }
+  });
+
+export type KeyauthRatelimitFormValues = z.infer<typeof keyauthRatelimitFormSchema>;
+
 const keyauthFormSchema = z.object({
   ...basePolicyFields,
   type: z.literal("keyauth"),
@@ -126,6 +181,7 @@ const keyauthFormSchema = z.object({
     .max(SENTINEL_LIMITS.maxKeyspacesPerPolicy),
   locations: z.array(keyLocationFormSchema),
   permissionQuery: z.string().max(SENTINEL_LIMITS.permissionQueryMaxLength),
+  ratelimits: z.array(keyauthRatelimitFormSchema).max(SENTINEL_LIMITS.maxRatelimitsPerKeyauth),
 });
 
 export const rateLimitIdentifierSourceSchema = z.enum([
@@ -221,6 +277,7 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       keySpaceIds: [],
       locations: [],
       permissionQuery: "",
+      ratelimits: [],
     }))
     .with("ratelimit", () => ({
       ...base,
@@ -327,6 +384,13 @@ export function toSentinelPolicy(
           .exhaustive(),
       );
 
+      const ratelimits = v.ratelimits.map((r) => ({
+        name: r.name,
+        ...(r.override && r.limit !== undefined ? { limit: r.limit } : {}),
+        ...(r.override && r.duration !== undefined ? { duration: r.duration } : {}),
+        ...(r.override && r.cost !== undefined ? { cost: r.cost } : {}),
+      }));
+
       return {
         id,
         name: v.name,
@@ -336,6 +400,7 @@ export function toSentinelPolicy(
           keySpaceIds: v.keySpaceIds,
           locations,
           permissionQuery: v.permissionQuery,
+          ...(ratelimits.length > 0 ? { ratelimits } : {}),
         },
         match: matchExprs,
       };
@@ -470,6 +535,15 @@ export function fromSentinelPolicy(
           .exhaustive();
       });
 
+      const ratelimits: KeyauthRatelimitFormValues[] = (p.keyauth.ratelimits ?? []).map((r) => ({
+        id: crypto.randomUUID(),
+        name: r.name,
+        override: r.limit !== undefined || r.duration !== undefined || r.cost !== undefined,
+        limit: r.limit,
+        duration: r.duration,
+        cost: r.cost,
+      }));
+
       return {
         type: "keyauth" as const,
         name: p.name,
@@ -478,6 +552,7 @@ export function fromSentinelPolicy(
         keySpaceIds: p.keyauth.keySpaceIds,
         locations,
         permissionQuery: p.keyauth.permissionQuery ?? "",
+        ratelimits,
       };
     })
     .with({ type: "ratelimit" }, (p) => {
