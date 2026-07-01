@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/array"
-	"github.com/unkeyed/unkey/pkg/auth/principal"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
@@ -86,6 +86,38 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Portal sessions are scoped to a single external identity and may only see
+	// verification events attributed to that identity.
+	//
+	// Identity scoping is intentionally separate from the RBAC permission system.
+	// Permissions gate which APIs/key_spaces a portal session may surface at all;
+	// identity scoping restricts that to the one identity's events. Both layers
+	// are injected as security filters so neither can be bypassed by the request
+	// query, and they are ANDed together.
+	//
+	// We filter on external_id, which is denormalized onto each verification event
+	// at write time. This scopes by attribution-at-event-time (no dependency on
+	// current key ownership) and, since a portal session always carries a
+	// non-empty external identity, avoids any DB lookup or empty-filter edge case.
+	switch src := principal.Source.(type) {
+	case authprincipal.PortalSessionSource:
+		// An empty externalId is a broken invariant: a portal session should
+		// always carry an identity. Surface it as an internal error to match the
+		// sibling key handlers, rather than silently returning unscoped data.
+		if src.ExternalID == "" {
+			return fault.New("portal session missing identity",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("portal session externalId is empty"),
+				fault.Public("An internal error occurred."),
+			)
+		}
+
+		securityFilters = append(securityFilters, chquery.SecurityFilter{
+			Column:        "external_id",
+			AllowedValues: []string{src.ExternalID},
+		})
+	}
+
 	parser := chquery.NewParser(chquery.Config{
 		WorkspaceID:       principal.WorkspaceID,
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
@@ -144,7 +176,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.
 // Returns filters that restrict queries to only the key_space_ids the user has access to.
-func (h *Handler) buildSecurityFilters(ctx context.Context, principal *principal.Principal) ([]chquery.SecurityFilter, error) {
+func (h *Handler) buildSecurityFilters(ctx context.Context, principal *authprincipal.Principal) ([]chquery.SecurityFilter, error) {
 	allowedAPIIds := extractAllowedAPIIds(principal.Permissions)
 	if len(allowedAPIIds) == 0 {
 		return []chquery.SecurityFilter{}, nil
@@ -208,7 +240,7 @@ func (h *Handler) fetchKeyAuthsByAPIIds(ctx context.Context, workspaceID string,
 
 // buildAPIPermissionsFromKeySpaces fetches key spaces and builds RBAC permissions for them.
 // Returns an error if any key space is not found.
-func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *principal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
+func (h *Handler) buildAPIPermissionsFromKeySpaces(ctx context.Context, principal *authprincipal.Principal, keySpaceIds []string) ([]rbac.PermissionQuery, error) {
 	keySpaces, keySpaceHits, err := h.fetchKeyAuthsByKeyAuthIds(ctx, principal.WorkspaceID, keySpaceIds)
 	if err != nil {
 		return nil, err

@@ -63,9 +63,11 @@ func (p *Parser) injectWorkspaceFilterOnSelect(stmt *clickhouse.SelectQuery) {
 
 func (p *Parser) injectSecurityFilters() {
 	for _, securityFilter := range p.config.SecurityFilters {
-		if len(securityFilter.AllowedValues) == 0 {
-			continue
-		}
+		// A security filter that is present but has no allowed values means the
+		// principal may see nothing for this column, so we fail closed by
+		// injecting a constant-false predicate (returning zero rows) rather than
+		// skipping the filter, which would leak all rows the other filters allow.
+		// This must not be a `continue`: dropping the filter is fail-open.
 
 		// Walk the AST to inject security filter only on SELECT statements that directly access tables
 		clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
@@ -121,23 +123,31 @@ func (p *Parser) selectReferencesTable(stmt *clickhouse.SelectQuery) bool {
 
 // injectSecurityFilterOnSelect injects a security filter on a single SELECT statement
 func (p *Parser) injectSecurityFilterOnSelect(stmt *clickhouse.SelectQuery, securityFilter SecurityFilter) {
-	// Build IN list: {column} IN ('val1', 'val2', ...)
-	items := make([]clickhouse.Expr, len(securityFilter.AllowedValues))
-	for i, value := range securityFilter.AllowedValues {
-		items[i] = &clickhouse.ColumnExpr{
-			Expr: &clickhouse.StringLiteral{
-				Literal: value,
+	var filter clickhouse.Expr
+	if len(securityFilter.AllowedValues) == 0 {
+		// Fail closed: no allowed values means no rows are visible. We cannot
+		// emit `{column} IN ()` since an empty IN list is a syntax error in
+		// ClickHouse, so we use a constant-false predicate instead.
+		filter = &clickhouse.NumberLiteral{Literal: "0"}
+	} else {
+		// Build IN list: {column} IN ('val1', 'val2', ...)
+		items := make([]clickhouse.Expr, len(securityFilter.AllowedValues))
+		for i, value := range securityFilter.AllowedValues {
+			items[i] = &clickhouse.ColumnExpr{
+				Expr: &clickhouse.StringLiteral{
+					Literal: value,
+				},
+			}
+		}
+
+		// Create filter using column name
+		filter = &clickhouse.BinaryOperation{
+			LeftExpr:  &clickhouse.Ident{Name: securityFilter.Column},
+			Operation: "IN",
+			RightExpr: &clickhouse.ParamExprList{
+				Items: &clickhouse.ColumnExprList{Items: items},
 			},
 		}
-	}
-
-	// Create filter using column name
-	filter := &clickhouse.BinaryOperation{
-		LeftExpr:  &clickhouse.Ident{Name: securityFilter.Column},
-		Operation: "IN",
-		RightExpr: &clickhouse.ParamExprList{
-			Items: &clickhouse.ColumnExprList{Items: items},
-		},
 	}
 
 	// Add to WHERE clause
