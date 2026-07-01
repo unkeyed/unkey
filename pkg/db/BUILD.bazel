@@ -187,6 +187,7 @@ go_library(
         "deployment_update_status_if_active.sql_generated.go",
         "doc.go",
         "environment_delete_by_id.sql_generated.go",
+        "environment_find_by_app_and_id_or_slug.sql_generated.go",
         "environment_find_by_app_id_and_slug.sql_generated.go",
         "environment_find_by_id.sql_generated.go",
         "environment_find_by_project_id_and_slug.sql_generated.go",

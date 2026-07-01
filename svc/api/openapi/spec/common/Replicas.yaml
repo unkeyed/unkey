@@ -1,0 +1,15 @@
+type: object
+description: Min and max replica bounds for autoscaling in a region.
+required:
+  - min
+  - max
+properties:
+  min:
+    type: integer
+    description: Minimum number of replicas.
+    example: 1
+  max:
+    type: integer
+    description: Maximum number of replicas.
+    example: 3
+additionalProperties: false

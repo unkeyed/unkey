@@ -1,0 +1,13 @@
+type: object
+description: Replica bounds for a single region the environment deploys to.
+required:
+  - name
+  - replicas
+properties:
+  name:
+    type: string
+    description: Region name, such as us-east-1.
+    example: us-east-1
+  replicas:
+    "$ref": "./Replicas.yaml"
+additionalProperties: false

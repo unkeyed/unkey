@@ -106,6 +106,8 @@ tags:
     description: App management operations
   - name: deploy
     description: Deployment operations
+  - name: environments
+    description: Environment management operations
   - name: identities
     description: Identity management operations
   - name: keys
@@ -232,6 +234,10 @@ paths:
     $ref: "./spec/paths/v2/apps/updateApp/index.yaml"
   /v2/apps.deleteApp:
     $ref: "./spec/paths/v2/apps/deleteApp/index.yaml"
+
+  # Environment Endpoints
+  /v2/environments.getEnvironment:
+    $ref: "./spec/paths/v2/environments/getEnvironment/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:

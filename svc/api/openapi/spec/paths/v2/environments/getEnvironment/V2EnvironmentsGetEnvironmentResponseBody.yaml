@@ -1,0 +1,43 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/Environment.yaml"
+additionalProperties: false
+examples:
+  environment:
+    summary: Environment details
+    description: Successfully retrieved an environment
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        id: env_1234abcd
+        projectId: proj_1234abcd
+        appId: app_1234abcd
+        slug: production
+        description: Production environment
+        deleteProtection: false
+        createdAt: 1704067200000
+        updatedAt: 1704153600000
+        port: 8080
+        cpuMillicores: 250
+        memoryMib: 256
+        storageMib: 0
+        command: ["node", "server.js"]
+        shutdownSignal: SIGTERM
+        upstreamProtocol: http1
+        dockerfile: Dockerfile
+        rootDirectory: .
+        buildCommand: pnpm --filter api build
+        watchPaths: ["src/**"]
+        autoDeploy: true
+        regions:
+          - name: us-east-1
+            replicas:
+              min: 1
+              max: 3
