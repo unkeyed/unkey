@@ -53,12 +53,6 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.DeleteSentinelsByEnvironmentId(runCtx, s.db.RW(), envID)
-	}, restate.WithName("delete sentinels")); err != nil {
-		return nil, fmt.Errorf("delete sentinels: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Query.DeleteCustomDomainsByEnvironmentId(runCtx, s.db.RW(), envID)
 	}, restate.WithName("delete custom domains")); err != nil {
 		return nil, fmt.Errorf("delete custom domains: %w", err)
