@@ -22,7 +22,7 @@ func TestTranslatePermissions(t *testing.T) {
 		"keys:create",
 		" keys:create ",
 		"keys:read",
-		"keys:update",
+		"keys:update_key",
 		"keys:verify",
 		"keys:encrypt",
 		"keys:delete",
@@ -71,7 +71,7 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 		},
 		{
 			name: "key update",
-			in:   "keys:update",
+			in:   "keys:update_key",
 			want: "unkey:v1:ws_123:keyspaces/*/keys/*#update_key",
 		},
 		{

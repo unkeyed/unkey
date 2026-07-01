@@ -53,20 +53,6 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "keyspaces/*", action: action(rbacpermissions.CreateKey{})},
 		},
 	},
-	"keys:add_permission": {
-		name:        "Add permissions to keys",
-		description: "Allows attaching permissions to keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: rbac.AddPermissionToKey},
-		},
-	},
-	"keys:add_role": {
-		name:        "Add roles to keys",
-		description: "Allows attaching roles to keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: rbac.AddRoleToKey},
-		},
-	},
 	"keys:read": {
 		name:        "Read keys",
 		description: "Allows reading keys.",
@@ -75,7 +61,7 @@ var permissionMappings = map[string]permissionMapping{
 			{resource: "keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
 		},
 	},
-	"keys:update": {
+	"keys:update_key": {
 		name:        "Update keys",
 		description: "Allows updating keys.",
 		permissions: []permissionGrant{
@@ -108,20 +94,6 @@ var permissionMappings = map[string]permissionMapping{
 		description: "Allows deleting keys.",
 		permissions: []permissionGrant{
 			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DeleteKey{})},
-		},
-	},
-	"keys:remove_permission": {
-		name:        "Remove permissions from keys",
-		description: "Allows detaching permissions from keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: rbac.RemovePermissionFromKey},
-		},
-	},
-	"keys:remove_role": {
-		name:        "Remove roles from keys",
-		description: "Allows detaching roles from keys.",
-		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: rbac.RemoveRoleFromKey},
 		},
 	},
 }
@@ -158,6 +130,7 @@ func sortedPermissionSlugs() []string {
 //
 //	keys:create        => unkey:v1:ws_1:keyspaces/*#create_key
 //	keys:read          => unkey:v1:ws_1:keyspaces/*/keys/*#read_key
+//	keys:update_key    => unkey:v1:ws_1:keyspaces/*/keys/*#update_key
 //	admin:*            => unkey:v1:ws_1:**#*
 //	unknown:permission => dropped with a warning log
 func translatePermissions(workspaceID string, permissions []string) []string {
