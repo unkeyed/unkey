@@ -42,6 +42,56 @@ func TestCircuitBreakerStates(t *testing.T) {
 	require.Equal(t, HalfOpen, cb.state)
 }
 
+func TestCircuitBreakerFailureRatio(t *testing.T) {
+	run := func(cb *CB[int], fail bool) {
+		_, _ = cb.Do(context.Background(), func(ctx context.Context) (int, error) {
+			if fail {
+				return 0, errTestDownstream
+			}
+			return 0, nil
+		})
+	}
+
+	t.Run("low failure rate does not trip even with many absolute failures", func(t *testing.T) {
+		c := clock.NewTestClock()
+		// 50% ratio, but a high-throughput window: 1000 ok + 5 fail = 0.5% << 50%.
+		cb := New[int]("test", WithClock(c), WithCyclicPeriod(time.Hour),
+			WithFailureRatio(0.5, 20))
+		for i := 0; i < 1000; i++ {
+			run(cb, false)
+		}
+		for i := 0; i < 5; i++ {
+			run(cb, true)
+		}
+		require.Equal(t, Closed, cb.state, "0.5%% failure rate must not trip a 50%% breaker")
+	})
+
+	t.Run("high failure rate trips once past minRequests", func(t *testing.T) {
+		c := clock.NewTestClock()
+		cb := New[int]("test", WithClock(c), WithCyclicPeriod(time.Hour),
+			WithFailureRatio(0.5, 20))
+		// Below minRequests: all failing but sample too small to act.
+		for i := 0; i < 19; i++ {
+			run(cb, true)
+		}
+		require.Equal(t, Closed, cb.state, "must not trip before minRequests")
+		run(cb, true) // 20th failing request crosses minRequests at 100% failure
+		require.Equal(t, Open, cb.state, "100%% failure past minRequests must trip")
+	})
+
+	t.Run("ratio above 1 is clamped to 1 and still trips at 100% failure", func(t *testing.T) {
+		c := clock.NewTestClock()
+		// A typo'd ratio of 1.5 must not silently produce a never-tripping breaker.
+		cb := New[int]("test", WithClock(c), WithCyclicPeriod(time.Hour),
+			WithFailureRatio(1.5, 5))
+		require.Equal(t, 1.0, cb.config.failureRatio, "ratio above 1 must clamp to 1")
+		for i := 0; i < 5; i++ {
+			run(cb, true)
+		}
+		require.Equal(t, Open, cb.state, "100%% failure past minRequests must trip a clamped breaker")
+	})
+}
+
 func TestCircuitBreakerReset(t *testing.T) {
 
 	c := clock.NewTestClock()

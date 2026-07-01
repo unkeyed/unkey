@@ -5,6 +5,7 @@ CREATE TABLE `app_build_settings` (
 	`environment_id` varchar(128) NOT NULL,
 	`dockerfile` varchar(500),
 	`docker_context` varchar(500) NOT NULL DEFAULT '.',
+	`build_command` varchar(1000),
 	`watch_paths` json NOT NULL DEFAULT ('[]'),
 	`auto_deploy` boolean NOT NULL DEFAULT true,
 	`created_at` bigint NOT NULL,

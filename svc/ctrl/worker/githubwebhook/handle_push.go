@@ -201,6 +201,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					CommitSha:      req.GetAfter(),
 					ContextPath:    row.AppBuildSetting.DockerContext,
 					DockerfilePath: row.AppBuildSetting.Dockerfile.String,
+					BuildCommand:   row.AppBuildSetting.BuildCommand.String,
 					PrNumber:       req.GetPrNumber(),
 					ForkRepository: req.GetForkRepositoryFullName(),
 				},

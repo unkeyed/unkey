@@ -96,6 +96,27 @@ func (p *Parser) validateWhereClause(expr clickhouse.Expr, earliestAllowed time.
 				return err
 			}
 		}
+
+	case *clickhouse.ParamExprList:
+		// A parenthesized group. The filter injector wraps the caller's WHERE in
+		// one to preserve AND/OR precedence, and users may write explicit parens
+		// too. Recurse into the contents so time comparisons inside are still
+		// validated rather than silently skipped.
+		if e.Items != nil {
+			for _, item := range e.Items.Items {
+				if err := p.validateWhereClause(item, earliestAllowed, hasLowerBoundTimeFilter); err != nil {
+					return err
+				}
+			}
+		}
+
+	case *clickhouse.ColumnExpr:
+		// Grouped expressions can appear wrapped in a ColumnExpr; unwrap it.
+		if e.Expr != nil {
+			if err := p.validateWhereClause(e.Expr, earliestAllowed, hasLowerBoundTimeFilter); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

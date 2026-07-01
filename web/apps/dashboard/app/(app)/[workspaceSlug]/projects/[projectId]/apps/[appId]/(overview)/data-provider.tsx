@@ -2,10 +2,12 @@
 
 import { collection } from "@/lib/collections";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { DEPLOYMENTS_DEFAULT_LIMIT, type Deployment } from "@/lib/collections/deploy/deployments";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
+import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { notFound, useParams } from "next/navigation";
 import {
@@ -137,6 +139,21 @@ export const ProjectDataProvider = ({
         .orderBy(({ customDomain }) => customDomain.createdAt, "desc"),
     [projectId, appId],
   );
+
+  const hasInFlightDeployment = (deploymentsQuery.data ?? []).some((d) =>
+    isDeploymentInFlight(d.status),
+  );
+  const hasPendingDomain = (customDomainsQuery.data ?? []).some(
+    (d) => d.verificationStatus === "pending" || d.verificationStatus === "verifying",
+  );
+  useCollectionPolling(() => collection.deployments.utils.refetch(), {
+    intervalMs: 5000,
+    enabled: hasInFlightDeployment,
+  });
+  useCollectionPolling(() => collection.customDomains.utils.refetch(), {
+    intervalMs: 5000,
+    enabled: hasPendingDomain,
+  });
 
   const value = useMemo(() => {
     const domains = domainsQuery.data ?? [];

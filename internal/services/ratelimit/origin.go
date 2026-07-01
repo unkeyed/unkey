@@ -48,6 +48,17 @@ const originFetchTimeout = 300 * time.Millisecond
 // since in-region Redis recovers fast.
 const originBreakerOpenTimeout = 5 * time.Second
 
+// The origin breaker trips on failure *rate*, not an absolute count. A pod runs
+// hundreds of origin ops/s, and individual timeouts already degrade gracefully
+// (the request falls back to local state). An absolute threshold trips on
+// harmless sub-1% blips — e.g. the cold-key herd at window rollover — and then
+// fail-fasts every tenant on the pod. A rate only fires when a real outage
+// makes most ops fail, independent of throughput.
+const (
+	originBreakerFailureRatio = 0.5 // open when >=50% of origin ops in the window fail
+	originBreakerMinRequests  = 20  // ...but only after a meaningful sample
+)
+
 // fetchFromOrigin returns the current counter value from the origin. The call is
 // wrapped in the origin circuit breaker so that Redis outages fail fast instead
 // of stalling every request in strict mode. On any failure (circuit tripped,
