@@ -1,16 +1,32 @@
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
+import type { Unkey } from "@unkey/api";
 import { toast } from "@unkey/ui";
+
+type UpdateKeyRequest = Parameters<Unkey["keys"]["updateKey"]>[0];
+
+type EditCreditsVariables = {
+  keyId: UpdateKeyRequest["keyId"];
+  credits?: UpdateKeyRequest["credits"];
+};
 
 export const useEditCredits = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();
-  const updateKeyRemaining = trpc.key.update.remaining.useMutation({
-    onSuccess(data, variables) {
-      const remainingChange = variables.limit?.enabled
-        ? `with ${variables.limit.data.remaining} uses remaining`
+  const mutation = useMutation<void, unknown, EditCreditsVariables>({
+    mutationFn: async ({ keyId, credits }) => {
+      await getUnkeyClient().keys.updateKey({
+        keyId,
+        credits,
+      });
+    },
+    onSuccess(_, variables) {
+      const remainingChange = variables.credits
+        ? `with ${variables.credits.remaining} uses remaining`
         : "with limits disabled";
 
       toast.success("Key Limits Updated", {
-        description: `Your key ${data.keyId} has been updated successfully ${remainingChange}`,
+        description: `Your key ${variables.keyId} has been updated successfully ${remainingChange}`,
         duration: 5000,
       });
       trpcUtils.api.keys.list.invalidate();
@@ -19,25 +35,14 @@ export const useEditCredits = (onSuccess?: () => void) => {
       }
     },
     onError(err) {
-      if (err.data?.code === "NOT_FOUND") {
-        toast.error("Key Update Failed", {
-          description: "Unable to find the key. Please refresh and try again.",
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while updating your key. Please try again later or contact support at support.unkey.dev",
-        });
-      } else {
-        toast.error("Failed to Update Key Limits", {
-          description: err.message || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+      toast.error("Failed to Update Key Limits", {
+        description: getErrorMessage(err),
+        action: {
+          label: "Contact Support",
+          onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+        },
+      });
     },
   });
-  return updateKeyRemaining;
+  return mutation;
 };

@@ -150,7 +150,6 @@ import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { rerollRootKey } from "./key/reroll";
 import { updateKeyOwner } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
-import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
 import { llmSearch } from "./logs/llm-search";
@@ -239,7 +238,6 @@ export const router = t.router({
     update: t.router({
       ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
-      remaining: updateKeyRemaining,
       rbac: t.router({
         update: updateKeyRbac,
         roles: t.router({
