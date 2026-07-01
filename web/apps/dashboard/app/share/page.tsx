@@ -1,3 +1,4 @@
+import { FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import type { Metadata } from "next";
 import { ShareReveal } from "./share-reveal";
 
@@ -11,20 +12,24 @@ export const metadata: Metadata = {
 
 export default function SharePage() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 512 512"
-        fill="currentColor"
-        className="pointer-events-none absolute left-1/2 top-1/2 size-[75vmin] -translate-x-1/2 -translate-y-1/2 text-grayA-2"
-      >
-        <title>Unkey</title>
-        <path d="M170.8 115V340.6H341.2L284.4 397H170.8C139.418 397 114 371.761 114 340.6V115H170.8Z" />
-        <path d="M398 284.2L341.2 340.6V115H398V284.2Z" />
-      </svg>
-      <main className="relative flex items-center justify-center">
-        <ShareReveal />
-      </main>
-    </div>
+    <FullScreenLayout className="px-4">
+      <FullScreenContent>
+        <main className="w-full max-w-sm">
+          <ShareReveal />
+        </main>
+      </FullScreenContent>
+      <div className="flex items-center gap-1.5 pb-6 text-gray-9">
+        <span className="text-[13px] leading-5 opacity-50">Powered by</span>
+        <a
+          href="https://www.unkey.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Unkey"
+          className="opacity-50 transition-opacity hover:opacity-100"
+        >
+          <Logo className="h-4 w-auto" />
+        </a>
+      </div>
+    </FullScreenLayout>
   );
 }

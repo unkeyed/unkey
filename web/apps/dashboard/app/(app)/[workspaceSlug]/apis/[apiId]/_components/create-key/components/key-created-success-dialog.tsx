@@ -3,8 +3,7 @@
 import { Check, Key2 } from "@unkey/icons";
 import { ConfirmPopover, Dialog, DialogContent, DialogTitle, VisuallyHidden } from "@unkey/ui";
 import { type FC, useEffect, useRef, useState } from "react";
-import { KeySecretSection } from "./key-secret-section";
-import { ShareKeyButton } from "./share-key-button";
+import { KeyPayloadTabs } from "./key-payload-tabs";
 
 type ResourceLabel = "key" | "root key";
 
@@ -136,8 +135,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
           <div className="p-1 w-full my-8">
             <div className="h-px bg-grayA-3 w-full" />
           </div>
-          <KeySecretSection keyValue={keyData.key} className="w-full" />
-          <ShareKeyButton secret={keyData.key} />
+          <KeyPayloadTabs keyValue={keyData.key} />
         </div>
         <ConfirmPopover
           isOpen={isConfirmOpen}
