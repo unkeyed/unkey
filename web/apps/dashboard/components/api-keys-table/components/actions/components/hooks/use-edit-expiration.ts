@@ -1,15 +1,31 @@
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
+import type { Unkey } from "@unkey/api";
 import { toast } from "@unkey/ui";
+
+type UpdateKeyRequest = Parameters<Unkey["keys"]["updateKey"]>[0];
+
+type EditExpirationVariables = {
+  keyId: UpdateKeyRequest["keyId"];
+  expires?: Date | null;
+};
 
 export const useEditExpiration = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();
-  const updateKeyExpiration = trpc.key.update.expiration.useMutation({
+  const mutation = useMutation<void, unknown, EditExpirationVariables>({
+    mutationFn: async ({ keyId, expires }) => {
+      await getUnkeyClient().keys.updateKey({
+        keyId,
+        expires: expires instanceof Date ? expires.getTime() : expires,
+      });
+    },
     onSuccess(_, variables) {
       let description = "";
-      if (variables.expiration?.enabled && variables.expiration.data) {
+      if (variables.expires) {
         description = `Your key ${
           variables.keyId
-        } has been updated to expire on ${variables.expiration.data.toLocaleString()}`;
+        } has been updated to expire on ${variables.expires.toLocaleString()}`;
       } else {
         description = `Expiration has been disabled for key ${variables.keyId}`;
       }
@@ -24,32 +40,14 @@ export const useEditExpiration = (onSuccess?: () => void) => {
       }
     },
     onError(err) {
-      if (err.data?.code === "NOT_FOUND") {
-        toast.error("Key Update Failed", {
-          description:
-            "We are unable to find the correct key. Please try again or contact support@unkey.com.",
-        });
-      } else if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Request", {
-          description: err.message || "Please check your expiration settings and try again.",
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We were unable to update expiration on this key. Please try again or contact support@unkey.com",
-        });
-      } else {
-        toast.error("Failed to Update Key Expiration", {
-          description:
-            err.message ||
-            "An unexpected error occurred. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+      toast.error("Failed to Update Key Expiration", {
+        description: getErrorMessage(err),
+        action: {
+          label: "Contact Support",
+          onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+        },
+      });
     },
   });
-  return updateKeyExpiration;
+  return mutation;
 };
