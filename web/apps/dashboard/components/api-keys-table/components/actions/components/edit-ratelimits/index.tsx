@@ -61,7 +61,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
         ratelimit: data.ratelimit,
       });
     } catch {
-      // `useEditRatelimits` already shows a toast, but we still need to
+      // `useEditKeyRatelimits` already shows a toast, but we still need to
       // prevent unhandled rejection noise in the console.
     }
   };
