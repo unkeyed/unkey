@@ -151,15 +151,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Public("The requested environment does not exist."),
 				)
 			}
-			return setVarsDBError(lockErr, "unable to lock environment")
+			return fault.Wrap(
+				lockErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to lock environment"),
+				fault.Public("We're unable to set the environment variables."),
+			)
 		}
 
 		if err := db.Query.DeleteAppEnvVarsByEnvironmentId(ctx, tx, env.ID); err != nil {
-			return setVarsDBError(err, "unable to delete variables")
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to delete variables"),
+				fault.Public("We're unable to set the environment variables."),
+			)
 		}
 
 		if err = db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newEnvVars); err != nil {
-			return setVarsDBError(err, "unable to insert variables")
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to insert variables"),
+				fault.Public("We're unable to set the environment variables."),
+			)
 		}
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
@@ -252,13 +267,4 @@ func (h *Handler) encryptValues(
 	}
 
 	return out, nil
-}
-
-func setVarsDBError(err error, internal string) error {
-	return fault.Wrap(
-		err,
-		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-		fault.Internal(internal),
-		fault.Public("We're unable to set the environment variables."),
-	)
 }
