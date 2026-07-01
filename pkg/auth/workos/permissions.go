@@ -57,14 +57,14 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Add permissions to keys",
 		description: "Allows attaching permissions to keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.AddPermissionToKey{})},
+			{resource: "keyspaces/*/keys/*", action: rbac.AddPermissionToKey},
 		},
 	},
 	"keys:add_role": {
 		name:        "Add roles to keys",
 		description: "Allows attaching roles to keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.AddRoleToKey{})},
+			{resource: "keyspaces/*/keys/*", action: rbac.AddRoleToKey},
 		},
 	},
 	"keys:read": {
@@ -114,14 +114,14 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Remove permissions from keys",
 		description: "Allows detaching permissions from keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.RemovePermissionFromKey{})},
+			{resource: "keyspaces/*/keys/*", action: rbac.RemovePermissionFromKey},
 		},
 	},
 	"keys:remove_role": {
 		name:        "Remove roles from keys",
 		description: "Allows detaching roles from keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.RemoveRoleFromKey{})},
+			{resource: "keyspaces/*/keys/*", action: rbac.RemoveRoleFromKey},
 		},
 	},
 }
