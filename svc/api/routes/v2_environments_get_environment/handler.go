@@ -125,9 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve environment."),
 		)
 	}
-	if db.IsNotFound(err) {
-		// No runtime settings until first deploy; leave fields omitted.
-	} else {
+	if !db.IsNotFound(err) {
 		rs := runtime.AppRuntimeSetting
 		data.Port = ptr.P(int(rs.Port))
 		data.CpuMillicores = ptr.P(int(rs.CpuMillicores))
@@ -163,9 +161,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve environment."),
 		)
 	}
-	if db.IsNotFound(err) {
-		// No build settings until first deploy; leave fields omitted.
-	} else {
+	if !db.IsNotFound(err) {
 		if build.Dockerfile.Valid {
 			data.Dockerfile = ptr.P(build.Dockerfile.String)
 		}

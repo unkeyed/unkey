@@ -19,8 +19,6 @@ go_library(
 go_test(
     name = "v2_environments_get_environment_test",
     srcs = [
-        "200_no_settings_test.go",
-        "200_regions_test.go",
         "200_test.go",
         "400_test.go",
         "401_test.go",
