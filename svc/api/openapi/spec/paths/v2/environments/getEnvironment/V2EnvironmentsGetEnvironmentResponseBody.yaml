@@ -33,6 +33,7 @@ examples:
         upstreamProtocol: http1
         dockerfile: Dockerfile
         rootDirectory: .
+        buildCommand: pnpm --filter api build
         watchPaths: ["src/**"]
         autoDeploy: true
         regions:

@@ -5786,6 +5786,7 @@ paths:
                                         data:
                                             appId: app_1234abcd
                                             autoDeploy: true
+                                            buildCommand: pnpm --filter api build
                                             command:
                                                 - node
                                                 - server.js
