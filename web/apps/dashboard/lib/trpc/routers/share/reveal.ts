@@ -41,8 +41,8 @@ export const revealSharedSecret = publicProcedure
         workspaceId: row.workspaceId,
         actor: { type: "system", id: "secret-share" },
         event: "secret.decrypt",
-        description: `One-time share link ${input.id} was revealed`,
-        resources: [{ type: "secret", id: input.id }],
+        description: "One-time share link was revealed",
+        resources: [],
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
 
