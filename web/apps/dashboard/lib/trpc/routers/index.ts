@@ -8,7 +8,6 @@ import { queryKeysList } from "./api/keys/query-api-keys";
 import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
-import { enableKey } from "./api/keys/toggle-key-enabled";
 import { overviewApiSearch } from "./api/overview-api-search";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
@@ -149,7 +148,6 @@ import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { rerollRootKey } from "./key/reroll";
-import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
 import { updateKeyName } from "./key/updateName";
@@ -242,7 +240,6 @@ export const router = t.router({
       timeseries: keyDetailsVerificationsTimeseries,
     }),
     update: t.router({
-      enabled: updateKeysEnabled,
       expiration: updateKeyExpiration,
       metadata: updateKeyMetadata,
       name: updateKeyName,
@@ -296,7 +293,6 @@ export const router = t.router({
       llmSearch: keysLlmSearch,
       list: queryKeysList,
       listLlmSearch: apiKeysLlmSearch,
-      enableKey: enableKey,
       usageTimeseries: keyUsageTimeseries,
     }),
     overview: t.router({

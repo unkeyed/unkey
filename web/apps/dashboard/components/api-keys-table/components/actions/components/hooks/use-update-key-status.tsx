@@ -1,35 +1,65 @@
 import { trpc } from "@/lib/trpc/client";
-import type { TRPCClientErrorLike } from "@trpc/client";
-import type { TRPCErrorShape } from "@trpc/server/rpc";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
+import type { Unkey } from "@unkey/api";
 import { toast } from "@unkey/ui";
 
-const handleKeyUpdateError = (err: TRPCClientErrorLike<TRPCErrorShape>) => {
-  const errorMessage = err.message || "";
-  if (err.data?.code === "NOT_FOUND") {
-    toast.error("Key Update Failed", {
-      description: "Unable to find the key(s). Please refresh and try again.",
-    });
-  } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-    toast.error("Server Error", {
-      description:
-        "We encountered an issue while updating your key(s). Please try again later or contact support at support.unkey.dev",
-    });
-  } else {
-    toast.error("Failed to Update Key Status", {
-      description: errorMessage || "An unexpected error occurred. Please try again later.",
-      action: {
-        label: "Contact Support",
-        onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-      },
-    });
-  }
+type UpdateKeyRequest = Parameters<Unkey["keys"]["updateKey"]>[0];
+
+type UpdateKeyStatusVariables = {
+  keyIds: UpdateKeyRequest["keyId"][];
+  enabled: NonNullable<UpdateKeyRequest["enabled"]>;
 };
+
+type UpdateKeyStatusResult = {
+  enabled: boolean;
+  updatedKeyIds: string[];
+};
+
+async function updateKeysStatus({
+  keyIds,
+  enabled,
+}: UpdateKeyStatusVariables): Promise<UpdateKeyStatusResult> {
+  if (keyIds.length === 0) {
+    return {
+      enabled,
+      updatedKeyIds: [],
+    };
+  }
+
+  const updatedKeyIds = await Promise.all(
+    keyIds.map(async (keyId) => {
+      await getUnkeyClient().keys.updateKey({ keyId, enabled });
+      return keyId;
+    }),
+  );
+
+  return {
+    enabled,
+    updatedKeyIds,
+  };
+}
+
+function showUpdateKeyStatusError(error: unknown) {
+  toast.error("Failed to Update Key Status", {
+    description: getErrorMessage(error),
+    action: {
+      label: "Contact Support",
+      onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+    },
+  });
+}
 
 export const useUpdateKeyStatus = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();
 
-  const updateKeyEnabled = trpc.key.update.enabled.useMutation({
+  const updateKeyEnabled = useMutation<UpdateKeyStatusResult, unknown, UpdateKeyStatusVariables>({
+    mutationFn: updateKeysStatus,
     onSuccess(data) {
+      if (data.updatedKeyIds.length === 0) {
+        return;
+      }
+
       toast.success(`Key ${data.enabled ? "Enabled" : "Disabled"}`, {
         description: `Your key ${data.updatedKeyIds[0]} has been ${
           data.enabled ? "enabled" : "disabled"
@@ -42,7 +72,7 @@ export const useUpdateKeyStatus = (onSuccess?: () => void) => {
       }
     },
     onError(err) {
-      handleKeyUpdateError(err);
+      showUpdateKeyStatusError(err);
     },
   });
 
@@ -52,9 +82,18 @@ export const useUpdateKeyStatus = (onSuccess?: () => void) => {
 export const useBatchUpdateKeyStatus = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();
 
-  const updateMultipleKeysEnabled = trpc.key.update.enabled.useMutation({
+  const updateMultipleKeysEnabled = useMutation<
+    UpdateKeyStatusResult,
+    unknown,
+    UpdateKeyStatusVariables
+  >({
+    mutationFn: updateKeysStatus,
     onSuccess(data) {
       const updatedCount = data.updatedKeyIds.length;
+      if (updatedCount === 0) {
+        return;
+      }
+
       toast.success(`Keys ${data.enabled ? "Enabled" : "Disabled"}`, {
         description: `${updatedCount} ${
           updatedCount === 1 ? "key has" : "keys have"
@@ -62,23 +101,13 @@ export const useBatchUpdateKeyStatus = (onSuccess?: () => void) => {
         duration: 5000,
       });
 
-      // Show warning if some keys were not found
-      if (data.missingKeyIds && data.missingKeyIds.length > 0) {
-        toast.warning("Some Keys Not Found", {
-          description: `${data.missingKeyIds.length} ${
-            data.missingKeyIds.length === 1 ? "key was" : "keys were"
-          } not found and could not be updated.`,
-          duration: 7000,
-        });
-      }
-
       trpcUtils.api.keys.list.invalidate();
       if (onSuccess) {
         onSuccess();
       }
     },
     onError(err) {
-      handleKeyUpdateError(err);
+      showUpdateKeyStatusError(err);
     },
   });
 
