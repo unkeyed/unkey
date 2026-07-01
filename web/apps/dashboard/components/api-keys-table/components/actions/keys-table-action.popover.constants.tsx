@@ -126,8 +126,8 @@ export const getKeysTableActionItems = (
           {...props}
           existingKey={{
             id: key.id,
-            permissionIds: [],
-            roleIds: [],
+            directPermissionSlugs: [],
+            roleNames: [],
             name: key.name ?? undefined,
           }}
         />
@@ -139,22 +139,20 @@ export const getKeysTableActionItems = (
             keyId: key.id,
           });
 
-          const currentRoleIds = connectedData?.roles?.map((r) => r.id) ?? [];
-          const directPermissionIds =
-            connectedData?.permissions?.filter((p) => p.source === "direct")?.map((p) => p.id) ??
-            [];
-          const rolePermissionIds =
-            connectedData?.permissions?.filter((p) => p.source === "role")?.map((p) => p.id) ?? [];
-          const allEffectivePermissionIds = [...rolePermissionIds, ...directPermissionIds];
+          const currentRoleNames = connectedData?.roles?.map((r) => r.name) ?? [];
+          const directPermissionSlugs =
+            connectedData?.permissions
+              ?.filter((p) => p.source === "direct")
+              ?.map((p) => p.slug) ?? [];
 
           // Prefetch dependent data that requires connectedData
           const dependentPrefetches = [];
 
-          if (allEffectivePermissionIds.length > 0 || currentRoleIds.length > 0) {
+          if (directPermissionSlugs.length > 0 || currentRoleNames.length > 0) {
             dependentPrefetches.push(
               trpcUtils.key.queryPermissionSlugs.prefetch({
-                roleIds: currentRoleIds,
-                permissionIds: allEffectivePermissionIds,
+                roleNames: currentRoleNames,
+                permissionSlugs: directPermissionSlugs,
               }),
             );
           }

@@ -9,7 +9,7 @@ import { useSearchKeysRoles } from "./hooks/use-search-keys-roles";
 
 type RoleFieldProps = {
   value: string[];
-  onChange: (ids: string[]) => void;
+  onChange: (names: string[]) => void;
   error?: string;
   disabled?: boolean;
   keyId?: string;
@@ -53,7 +53,7 @@ export const RoleField = ({
     hasNextPage: showLoadMore,
     isFetchingNextPage,
     keyId,
-    previouslySelectedRoleIds: assignedRoleDetails.map((r) => r.id),
+    previouslySelectedRoleNames: assignedRoleDetails.map((r) => r.name),
     loadMore,
   });
 
@@ -63,7 +63,6 @@ export const RoleField = ({
         return true;
       }
 
-      // Don't show already selected roles (based on current form state)
       if (value.includes(option.value)) {
         return false;
       }
@@ -74,9 +73,8 @@ export const RoleField = ({
 
   const selectedRoles = useMemo(() => {
     return value
-      .map((roleId) => {
-        // Check assignedRoleDetails first (for pre-loaded edit data)
-        const preLoadedRole = assignedRoleDetails.find((r) => r.id === roleId);
+      .map((roleName) => {
+        const preLoadedRole = assignedRoleDetails.find((r) => r.name === roleName);
         if (preLoadedRole) {
           return {
             id: preLoadedRole.id,
@@ -85,8 +83,7 @@ export const RoleField = ({
           };
         }
 
-        // Check loaded roles (for newly added roles)
-        const loadedRole = allRoles.find((r) => r.id === roleId);
+        const loadedRole = allRoles.find((r) => r.name === roleName);
         if (loadedRole) {
           return {
             id: loadedRole.id,
@@ -95,23 +92,22 @@ export const RoleField = ({
           };
         }
 
-        // Fallback to ID-only display
         return {
-          id: roleId,
-          name: null,
+          id: roleName,
+          name: roleName,
           description: null,
         };
       })
       .filter((role): role is NonNullable<typeof role> => role !== undefined);
   }, [value, allRoles, assignedRoleDetails]);
 
-  const handleRemoveRole = (roleId: string) => {
-    onChange(value.filter((id) => id !== roleId));
+  const handleRemoveRole = (roleName: string) => {
+    onChange(value.filter((name) => name !== roleName));
   };
 
-  const handleAddRole = (roleId: string) => {
-    if (!value.includes(roleId)) {
-      onChange([...value, roleId]);
+  const handleAddRole = (roleName: string) => {
+    if (!value.includes(roleName)) {
+      onChange([...value, roleName]);
     }
     setSearchValue("");
   };
@@ -159,7 +155,7 @@ export const RoleField = ({
         items={selectedRoles.map((r) => ({
           name: r.name ?? "",
           description: r.description ?? "",
-          id: r.id,
+          id: r.name,
         }))}
         disabled={disabled}
         onRemoveItem={handleRemoveRole}

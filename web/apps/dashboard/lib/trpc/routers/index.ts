@@ -146,7 +146,6 @@ import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
 import { queryKeysPermissions } from "./key/rbac/permissions/query";
 import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
-import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
@@ -235,7 +234,6 @@ export const router = t.router({
     }),
     update: t.router({
       rbac: t.router({
-        update: updateKeyRbac,
         roles: t.router({
           search: searchKeysRoles,
           query: queryKeysRoles,

@@ -21,7 +21,7 @@ type RoleSelectorProps = {
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
   keyId?: string;
-  previouslySelectedRoleIds: string[];
+  previouslySelectedRoleNames: string[];
   loadMore: () => void;
 };
 
@@ -29,7 +29,7 @@ export function createRoleOptions({
   roles,
   hasNextPage,
   isFetchingNextPage,
-  previouslySelectedRoleIds,
+  previouslySelectedRoleNames,
   keyId,
   loadMore,
 }: RoleSelectorProps) {
@@ -45,7 +45,7 @@ export function createRoleOptions({
               <div className="flex gap-1 flex-col truncate">
                 <div className="flex gap-2 items-center">
                   <span className="font-medium text-accent-12 text-left">{role.name}</span>
-                  {(previouslySelectedRoleIds.includes(role.id) ||
+                  {(previouslySelectedRoleNames.includes(role.name) ||
                     role.keys.find((item) => item.id === keyId)) && (
                     <StatusBadge
                       variant="locked"
@@ -120,7 +120,7 @@ export function createRoleOptions({
         </span>
       </div>
     ),
-    value: role.id,
+    value: role.name,
     searchValue: `${role.name} ${role.description || ""} ${role.id}`.trim(),
   }));
 
