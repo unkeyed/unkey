@@ -269,5 +269,5 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: |-
-        Short-lived bearer token used by the Unkey dashboard when it calls svc/api.
+        Short-lived bearer token used by the Unkey dashboard when it calls api.unkey.com.
         Browser clients should call the dashboard `/proxy/...` route without an Authorization header. The dashboard server mints and attaches this token upstream.
