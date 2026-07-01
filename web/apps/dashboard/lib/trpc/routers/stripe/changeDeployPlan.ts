@@ -3,7 +3,6 @@ import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig, findPlanFeeItem } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
-import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -109,6 +108,4 @@ export const changeDeployPlan = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
-
-    await invalidateWorkspaceCache(ctx.tenant.id);
   });

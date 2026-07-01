@@ -487,6 +487,8 @@
                       "errors/unkey/data/analytics_connection_failed",
                       "errors/unkey/data/analytics_not_configured",
                       "errors/unkey/data/api_not_found",
+                      "errors/unkey/data/app_already_exists",
+                      "errors/unkey/data/app_not_found",
                       "errors/unkey/data/audit_log_not_found",
                       "errors/unkey/data/identity_already_exists",
                       "errors/unkey/data/identity_not_found",

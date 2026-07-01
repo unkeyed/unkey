@@ -48,6 +48,11 @@ export const env = () =>
 
       WORKOS_API_KEY: z.string().optional(),
       WORKOS_CLIENT_ID: z.string().optional(),
+      // Publishable WorkOS client id, exposed to the browser so the Radar
+      // signal-collection library can run. Its presence also gates Radar on
+      // the client: local / non-WorkOS setups never set it, so the CDN script
+      // is never loaded. Safe to expose — WorkOS client ids are publishable.
+      NEXT_PUBLIC_WORKOS_CLIENT_ID: z.string().optional(),
       WORKOS_WEBHOOK_SECRET: z.string().optional(),
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.string().optional(),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
@@ -80,6 +85,20 @@ export const githubAppSchema = z.object({
 
 const githubAppParsed = githubAppSchema.safeParse(process.env);
 export const githubAppEnv = () => (githubAppParsed.success ? githubAppParsed.data : null);
+
+// GitHub App OAuth (user-to-server) credentials. These are required to verify
+// that the caller who supplied an installation_id in the install callback can
+// actually access that installation on GitHub before we bind it to their
+// workspace. Kept separate from githubAppEnv so app-level read operations on
+// already-registered installations keep working even if OAuth is unconfigured,
+// while registerInstallation fails closed without it.
+export const githubOAuthSchema = z.object({
+  GITHUB_CLIENT_ID: z.string().min(1),
+  GITHUB_CLIENT_SECRET: z.string().min(1),
+});
+
+const githubOAuthParsed = githubOAuthSchema.safeParse(process.env);
+export const githubOAuthEnv = () => (githubOAuthParsed.success ? githubOAuthParsed.data : null);
 
 const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),

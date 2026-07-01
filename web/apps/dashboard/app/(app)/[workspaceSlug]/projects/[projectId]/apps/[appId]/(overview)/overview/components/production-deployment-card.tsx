@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -40,7 +41,6 @@ export function ProductionDeploymentCard() {
     deployments,
     environments,
     customDomains,
-    getDeploymentById,
     getDomainsForDeployment,
     isDeploymentsLoading,
   } = useProjectData();
@@ -60,9 +60,20 @@ export function ProductionDeploymentCard() {
   const repoFullName = app?.repositoryFullName ?? null;
 
   const currentDeploymentId = app?.currentDeploymentId ?? null;
-  const currentDeployment = currentDeploymentId
-    ? getDeploymentById(currentDeploymentId)
-    : undefined;
+  const currentDeploymentQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ deployment: collection.deployments })
+        .where(({ deployment }) =>
+          and(
+            eq(deployment.projectId, projectId),
+            eq(deployment.appId, appId),
+            eq(deployment.id, currentDeploymentId ?? ""),
+          ),
+        ),
+    [projectId, appId, currentDeploymentId],
+  );
+  const currentDeployment = currentDeploymentId ? currentDeploymentQuery.data?.[0] : undefined;
 
   const productionEnvironmentId = environments.find((e) => e.slug === "production")?.id;
   const latestProductionDeployment = productionEnvironmentId
@@ -77,7 +88,16 @@ export function ProductionDeploymentCard() {
     { refetchInterval: 30_000 },
   );
 
-  if (isDeploymentsLoading || appsQuery.isLoading) {
+  const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
+  useCollectionPolling(() => collection.deployments.utils.refetch(), {
+    intervalMs: 10_000,
+    enabled: productionStatus === "live" || productionStatus === "crashing",
+  });
+
+  const isResolvingCurrentDeployment =
+    currentDeploymentId != null && currentDeploymentQuery.isLoading;
+
+  if (isDeploymentsLoading || appsQuery.isLoading || isResolvingCurrentDeployment) {
     return <ProductionDeploymentCardSkeleton />;
   }
 
@@ -95,7 +115,7 @@ export function ProductionDeploymentCard() {
     );
   }
 
-  const status = deriveProductionStatus(deployment);
+  const status = productionStatus ?? deriveProductionStatus(deployment);
   const isRolledBack = isCurrent ? (app?.isRolledBack ?? false) : false;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 

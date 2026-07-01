@@ -903,6 +903,7 @@ type AppBuildSetting struct {
 	EnvironmentID string             `db:"environment_id"`
 	Dockerfile    sql.NullString     `db:"dockerfile"`
 	DockerContext string             `db:"docker_context"`
+	BuildCommand  sql.NullString     `db:"build_command"`
 	WatchPaths    dbtype.StringSlice `db:"watch_paths"`
 	AutoDeploy    bool               `db:"auto_deploy"`
 	CreatedAt     int64              `db:"created_at"`

@@ -230,8 +230,11 @@ importers:
         specifier: 0.2.2
         version: 0.2.2(@vercel/analytics@2.0.1(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@7.3.3(@types/node@22.14.0)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.19.1)(yaml@2.9.0))
       '@workos-inc/node':
-        specifier: 10.2.0
-        version: 10.2.0
+        specifier: 10.5.0
+        version: 10.5.0
+      '@workos/radar-signals':
+        specifier: 0.0.1
+        version: 0.0.1(react@19.2.4)
       boring-avatars:
         specifier: 2.0.4
         version: 2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -325,9 +328,6 @@ importers:
       typescript:
         specifier: 5.7.3
         version: 5.7.3
-      usehooks-ts:
-        specifier: 3.1.0
-        version: 3.1.0(react@19.2.4)
       zod:
         specifier: 4.3.5
         version: 4.3.5
@@ -1026,8 +1026,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/resend
       '@workos-inc/node':
-        specifier: 10.2.0
-        version: 10.2.0
+        specifier: 10.5.0
+        version: 10.5.0
       base-x:
         specifier: 4.0.1
         version: 4.0.1
@@ -5264,9 +5264,17 @@ packages:
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
 
-  '@workos-inc/node@10.2.0':
-    resolution: {integrity: sha512-K7LmCvwu8fL7HN3drAvjb/dWceltlDNSs3u1QNNYx5goZaxxG4dgCXDkdlcDt6ZKm8VGv030WfkmL7DylXvdaQ==}
+  '@workos-inc/node@10.5.0':
+    resolution: {integrity: sha512-kTtDOXUDM56f0JReKDlIrTQZu4RbiR8ExwLbJE5QquvhduT/NHccbDZthILd4izT28jwtGVe0bX597w7+NMwqg==}
     engines: {node: '>=22.11.0'}
+
+  '@workos/radar-signals@0.0.1':
+    resolution: {integrity: sha512-GTFjAl+4kwDgycRVoRFSQdZ2Eog9/dZynaX5m2CE5JNMkoQ2I+n/K5qjHvrMysMh2N/GSSd7eYIgCk2HAfXzhg==}
+    peerDependencies:
+      react: '>=18.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -7097,9 +7105,6 @@ packages:
   lodash.castarray@4.4.0:
     resolution: {integrity: sha512-aVx8ztPv7/2ULbArGJ2Y42bG1mEQ5mGjpdvrbJcJFU3TbYybe+QlLS4pst9zV52ymy2in1KpFPiZnAOATxD4+Q==}
 
-  lodash.debounce@4.0.8:
-    resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
-
   lodash.isplainobject@4.0.6:
     resolution: {integrity: sha512-oSXzaWypCMHkPC3NvBEaPHf0KsA5mvPrOPgQWDsbg8n7orZ290M0BmC/jgRZ4vcJ6DTAhjrsSYgdsW/F+MFOBA==}
 
@@ -8646,6 +8651,7 @@ packages:
   tsconfck@3.1.6:
     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
     engines: {node: ^18 || >=20}
+    deprecated: unmaintained
     hasBin: true
     peerDependencies:
       typescript: ^5.0.0
@@ -8904,12 +8910,6 @@ packages:
     resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
-  usehooks-ts@3.1.0:
-    resolution: {integrity: sha512-bBIa7yUyPhE1BCc0GmR96VU/15l/9gP1Ch5mYdLcFBaFGQsdmXkvjV0TtOqW1yUd6VjIwDunm+flSciCQXujiw==}
-    engines: {node: '>=16.15.0'}
-    peerDependencies:
-      react: ^16.8.0  || ^17 || ^18
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -13651,9 +13651,11 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@workos-inc/node@10.2.0':
-    dependencies:
-      eventemitter3: 5.0.4
+  '@workos-inc/node@10.5.0': {}
+
+  '@workos/radar-signals@0.0.1(react@19.2.4)':
+    optionalDependencies:
+      react: 19.2.4
 
   '@xtuc/ieee754@1.2.0': {}
 
@@ -15553,8 +15555,6 @@ snapshots:
       p-locate: 5.0.0
 
   lodash.castarray@4.4.0: {}
-
-  lodash.debounce@4.0.8: {}
 
   lodash.isplainobject@4.0.6: {}
 
@@ -17789,11 +17789,6 @@ snapshots:
 
   use-sync-external-store@1.6.0(react@19.2.4):
     dependencies:
-      react: 19.2.4
-
-  usehooks-ts@3.1.0(react@19.2.4):
-    dependencies:
-      lodash.debounce: 4.0.8
       react: 19.2.4
 
   util-deprecate@1.0.2: {}

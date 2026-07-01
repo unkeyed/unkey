@@ -1,6 +1,5 @@
 import type React from "react";
 import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
-import { useOnClickOutside } from "usehooks-ts";
 
 export const MAX_DRAGGABLE_WIDTH = 800;
 export const MIN_DRAGGABLE_WIDTH = 300;
@@ -25,7 +24,26 @@ export const ResizablePanel = ({
   const [width, setWidth] = useState<string>(String(style?.width));
   const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
-  useOnClickOutside(panelRef, onClose);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: panelRef is stable and read when the event fires
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const panel = panelRef.current;
+      const target = event.target;
+      if (!panel || !(target instanceof Node) || panel.contains(target)) {
+        return;
+      }
+
+      onClose();
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [onClose]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();

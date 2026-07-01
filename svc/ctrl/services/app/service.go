@@ -3,6 +3,7 @@ package app
 import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
@@ -11,9 +12,10 @@ import (
 // durable cleanup of associated resources.
 type Service struct {
 	ctrlv1connect.UnimplementedAppServiceHandler
-	db      db.Database
-	restate *restateingress.Client
-	bearer  string
+	db        db.Database
+	restate   *restateingress.Client
+	auditlogs auditlogs.AuditLogService
+	bearer    string
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -23,6 +25,9 @@ type Config struct {
 
 	// Restate is the ingress client used to trigger durable app deletion workflows.
 	Restate *restateingress.Client
+
+	// Auditlogs records app mutations within the same transaction as the write.
+	Auditlogs auditlogs.AuditLogService
 
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
@@ -34,6 +39,7 @@ func New(cfg Config) *Service {
 		UnimplementedAppServiceHandler: ctrlv1connect.UnimplementedAppServiceHandler{},
 		db:                             cfg.Database,
 		restate:                        cfg.Restate,
+		auditlogs:                      cfg.Auditlogs,
 		bearer:                         cfg.Bearer,
 	}
 }

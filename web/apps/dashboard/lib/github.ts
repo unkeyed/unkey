@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { githubAppEnv } from "@/lib/env";
+import { githubAppEnv, githubOAuthEnv } from "@/lib/env";
 import { z } from "zod";
 
 const gitHubRepositorySchema = z.object({
@@ -98,6 +98,81 @@ function generateAppJWT(): string {
   const signature = sign.sign(env.UNKEY_GITHUB_PRIVATE_KEY_PEM, "base64url");
 
   return `${signatureInput}.${signature}`;
+}
+
+const oauthAccessTokenSchema = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+  scope: z.string().optional(),
+});
+
+const userInstallationsSchema = z.object({
+  total_count: z.number(),
+  installations: z.array(z.object({ id: z.number() })),
+});
+
+// Exchange the short-lived OAuth `code` from the install callback for a
+// user-to-server access token. GitHub returns HTTP 200 with an `error` field
+// (not a non-2xx status) when the code is invalid or expired, so we treat any
+// response that doesn't parse as an access token as a failure.
+export async function exchangeInstallationOAuthCode(code: string): Promise<string> {
+  const oauthEnv = githubOAuthEnv();
+  if (!oauthEnv) {
+    throw new Error("GitHub OAuth environment not configured");
+  }
+
+  const response = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      client_id: oauthEnv.GITHUB_CLIENT_ID,
+      client_secret: oauthEnv.GITHUB_CLIENT_SECRET,
+      code,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new GitHubApiError(response.status, body);
+  }
+
+  const parsed = oauthAccessTokenSchema.safeParse(await response.json());
+  if (!parsed.success) {
+    throw new Error("Failed to exchange GitHub OAuth code");
+  }
+  return parsed.data.access_token;
+}
+
+// Confirm the authenticated GitHub user (via their user-to-server token) can
+// access the given installation. This is the ownership control that prevents a
+// caller from binding an arbitrary, enumerable installation_id to their
+// workspace.
+export async function userCanAccessInstallation(
+  userToken: string,
+  installationId: number,
+): Promise<boolean> {
+  let page = 1;
+  const perPage = 100;
+
+  while (true) {
+    const data = userInstallationsSchema.parse(
+      await fetchGitHubApi(
+        `https://api.github.com/user/installations?per_page=${perPage}&page=${page}`,
+        userToken,
+      ),
+    );
+
+    if (data.installations.some((i) => i.id === installationId)) {
+      return true;
+    }
+    if (data.installations.length < perPage) {
+      return false;
+    }
+    page++;
+  }
 }
 
 export async function getInstallationAccessToken(

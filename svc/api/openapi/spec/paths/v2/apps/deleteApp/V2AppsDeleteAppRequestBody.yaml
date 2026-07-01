@@ -1,0 +1,23 @@
+type: object
+required:
+  - project
+  - app
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+examples:
+  deleteById:
+    summary: Delete by app ID
+    description: Delete an app using its unique identifier
+    value:
+      project: payments
+      app: app_1234abcd
+  deleteBySlug:
+    summary: Delete by app slug
+    description: Delete an app using its slug
+    value:
+      project: payments
+      app: payments-service

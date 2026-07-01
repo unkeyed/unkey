@@ -13,6 +13,7 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//gen/proto/vault/v1/vaultv1connect",
         "//gen/rpc/vault",
+        "//internal/services/auditlogs",
         "//internal/services/ratelimit/db",
         "//pkg/assert",
         "//pkg/batch",
