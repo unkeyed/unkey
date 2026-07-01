@@ -7,8 +7,8 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 const (
@@ -46,7 +46,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			fmt.Errorf("deployment_id is required"))
 	}
 
-	src, err := db.Query.FindDeploymentById(ctx, s.db.RO(), sourceDeploymentID)
+	src, err := s.db.FindDeploymentById(ctx, sourceDeploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return "", connect.NewError(connect.CodeNotFound,
@@ -57,7 +57,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	}
 
 	if !force {
-		hasNewer, err := db.Query.HasNewerActiveDeployment(ctx, s.db.RO(), db.HasNewerActiveDeploymentParams{
+		hasNewer, err := s.db.HasNewerActiveDeployment(ctx, db.HasNewerActiveDeploymentParams{
 			AppID:         src.AppID,
 			EnvironmentID: src.EnvironmentID,
 			GitBranch:     src.GitBranch,
@@ -79,7 +79,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	hasSha := src.GitCommitSha.Valid && src.GitCommitSha.String != ""
 	hasRepoConn := false
 	if hasSha {
-		if _, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, s.db.RO(), src.AppID); repoErr == nil {
+		if _, repoErr := s.db.FindGithubRepoConnectionByAppId(ctx, src.AppID); repoErr == nil {
 			hasRepoConn = true
 		} else if !db.IsNotFound(repoErr) {
 			return "", connect.NewError(connect.CodeInternal,
@@ -94,7 +94,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			fmt.Errorf("source deployment %q has neither a git_commit_sha+repo connection nor an image; nothing to rebuild from", sourceDeploymentID))
 	}
 
-	env, err := db.Query.FindEnvironmentById(ctx, s.db.RO(), src.EnvironmentID)
+	env, err := s.db.FindEnvironmentById(ctx, src.EnvironmentID)
 	if err != nil {
 		return "", connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup environment: %w", err))

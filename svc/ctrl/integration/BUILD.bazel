@@ -6,11 +6,11 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/ctrl/integration",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/db",
-        "//pkg/db/types",
+        "//pkg/mysql/types",
         "//pkg/testutil/containers",
         "//pkg/uid",
         "//svc/ctrl/integration/seed",
+        "//svc/ctrl/internal/db",
         "@com_github_stretchr_testify//require",
     ],
 )

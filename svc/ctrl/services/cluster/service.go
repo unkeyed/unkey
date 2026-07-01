@@ -10,9 +10,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // notifiedReadyTTL is how long an entry in notifiedReady is kept before

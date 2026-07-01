@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // certificateBootstrap handles ACME certificate bootstrapping.
@@ -34,7 +34,7 @@ func (c *certificateBootstrap) run(ctx context.Context) {
 
 	// Bootstrap per-region wildcards (e.g., *.us-west-2.aws.unkey.cloud)
 	if c.regionalDomain != "" {
-		regions, err := db.Query.ListRegions(ctx, c.database.RO())
+		regions, err := c.database.ListRegions(ctx)
 		if err != nil {
 			logger.Error("Failed to list regions for certificate bootstrap", "error", err)
 		} else {
@@ -57,7 +57,7 @@ func (c *certificateBootstrap) run(ctx context.Context) {
 // platform-managed resources, ensuring separation from user workspaces.
 func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain string) {
 	// Check if the domain already exists
-	_, err := db.Query.FindCustomDomainByDomain(ctx, c.database.RO(), domain)
+	_, err := c.database.FindCustomDomainByDomain(ctx, domain)
 	if err == nil {
 		logger.Info("Domain already exists", "domain", domain)
 		return
@@ -74,7 +74,7 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 	// Use "unkey_internal" as the workspace/project/environment for platform-managed resources
 	// Infrastructure wildcard domains are pre-verified (we control DNS via Route53)
 	internalID := "unkey_internal"
-	err = db.Query.UpsertCustomDomain(ctx, c.database.RW(), db.UpsertCustomDomainParams{
+	err = c.database.UpsertCustomDomain(ctx, db.UpsertCustomDomainParams{
 		ID:                 domainID,
 		WorkspaceID:        internalID,
 		ProjectID:          internalID,
@@ -94,7 +94,7 @@ func (c *certificateBootstrap) bootstrapDomain(ctx context.Context, domain strin
 	}
 
 	// Create the ACME challenge record with status 'waiting' so the renewal cron picks it up
-	err = db.Query.InsertAcmeChallenge(ctx, c.database.RW(), db.InsertAcmeChallengeParams{
+	err = c.database.InsertAcmeChallenge(ctx, db.InsertAcmeChallengeParams{
 		WorkspaceID:   internalID,
 		DomainID:      domainID,
 		Token:         "",

@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
@@ -81,23 +81,23 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		Status:        db.DeploymentsStatusReady,
 	})
 
-	// Region (needed for topology, sentinels, cilium policies)
+	// Region (needed for topology and cilium policies)
 	regionID := uid.New(uid.RegionPrefix)
-	err := db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
+	err := h.DB.UpsertRegion(ctx, db.UpsertRegionParams{
 		ID:       regionID,
 		Name:     "test-cleanup",
 		Platform: "test",
 	})
 	require.NoError(t, err)
 
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, h.DB.RO(), db.FindRegionByPlatformAndNameParams{
+	region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
 		Name:     "test-cleanup",
 		Platform: "test",
 	})
 	require.NoError(t, err)
 
 	// Deployment topology
-	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
+	err = h.DB.InsertDeploymentTopology(ctx, db.InsertDeploymentTopologyParams{
 		WorkspaceID:                workspaceID,
 		DeploymentID:               deployment.ID,
 		RegionID:                   region.ID,
@@ -111,28 +111,8 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Sentinel
-	err = db.Query.InsertSentinel(ctx, h.DB.RW(), db.InsertSentinelParams{
-		ID:                uid.New("sen"),
-		WorkspaceID:       workspaceID,
-		EnvironmentID:     env.ID,
-		ProjectID:         project.ID,
-		K8sAddress:        "http://localhost:9090",
-		K8sName:           uid.New("k8s"),
-		RegionID:          region.ID,
-		Image:             "sentinel:1.0",
-		Health:            db.SentinelsHealthHealthy,
-		DesiredReplicas:   1,
-		AvailableReplicas: 1,
-		CpuMillicores:     100,
-		MemoryMib:         128,
-		Version:           1,
-		CreatedAt:         now,
-	})
-	require.NoError(t, err)
-
 	// Cilium network policy
-	err = db.Query.InsertCiliumNetworkPolicy(ctx, h.DB.RW(), db.InsertCiliumNetworkPolicyParams{
+	err = h.DB.InsertCiliumNetworkPolicy(ctx, db.InsertCiliumNetworkPolicyParams{
 		ID:            uid.New("cnp"),
 		WorkspaceID:   workspaceID,
 		ProjectID:     project.ID,
@@ -149,7 +129,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	require.NoError(t, err)
 
 	// Frontline route
-	err = db.Query.InsertFrontlineRoute(ctx, h.DB.RW(), db.InsertFrontlineRouteParams{
+	err = h.DB.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
 		ID:                       uid.New("fr"),
 		ProjectID:                project.ID,
 		AppID:                    app.ID,
@@ -163,7 +143,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	require.NoError(t, err)
 
 	// GitHub repo connection
-	err = db.Query.InsertGithubRepoConnection(ctx, h.DB.RW(), db.InsertGithubRepoConnectionParams{
+	err = h.DB.InsertGithubRepoConnection(ctx, db.InsertGithubRepoConnectionParams{
 		WorkspaceID:        workspaceID,
 		ProjectID:          project.ID,
 		AppID:              app.ID,
@@ -176,7 +156,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	require.NoError(t, err)
 
 	// Deployment step
-	err = db.Query.InsertDeploymentStep(ctx, h.DB.RW(), db.InsertDeploymentStepParams{
+	err = h.DB.InsertDeploymentStep(ctx, db.InsertDeploymentStepParams{
 		WorkspaceID:   workspaceID,
 		ProjectID:     project.ID,
 		AppID:         app.ID,
@@ -188,7 +168,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	require.NoError(t, err)
 
 	// App regional settings
-	err = db.Query.UpsertAppRegionalSettings(ctx, h.DB.RW(), db.UpsertAppRegionalSettingsParams{
+	err = h.DB.UpsertAppRegionalSettings(ctx, db.UpsertAppRegionalSettingsParams{
 		WorkspaceID:   workspaceID,
 		AppID:         app.ID,
 		EnvironmentID: env.ID,
@@ -200,7 +180,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	require.NoError(t, err)
 
 	// App environment variable
-	err = db.Query.InsertAppEnvironmentVariable(ctx, h.DB.RW(), db.InsertAppEnvironmentVariableParams{
+	err = h.DB.InsertAppEnvironmentVariable(ctx, db.InsertAppEnvironmentVariableParams{
 		ID:            uid.New("aev"),
 		WorkspaceID:   workspaceID,
 		AppID:         app.ID,
@@ -222,7 +202,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		{"SELECT COUNT(*) FROM environments WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM deployments WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ?", deployment.ID},
-		{"SELECT COUNT(*) FROM sentinels WHERE project_id = ?", project.ID},
 		{"SELECT COUNT(*) FROM cilium_network_policies WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM frontline_routes WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM github_repo_connections WHERE app_id = ?", app.ID},

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Harness provides a test environment for ctrl service integration tests.
@@ -32,10 +32,7 @@ func New(t *testing.T) *Harness {
 	mysqlCfg := containers.MySQL(t)
 	mysqlHostDSN := mysqlCfg.DSN
 
-	database, err := db.New(db.Config{
-		PrimaryDSN:  mysqlHostDSN,
-		ReadOnlyDSN: "",
-	})
+	database, err := db.New(mysqlHostDSN)
 	require.NoError(t, err)
 
 	h := &Harness{
@@ -117,7 +114,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	deploymentID := uid.New("dep")
 	k8sName := uid.New("k8s")
 
-	err := db.Query.InsertDeployment(ctx, h.DB.RW(), db.InsertDeploymentParams{
+	err := h.DB.InsertDeployment(ctx, db.InsertDeploymentParams{
 		ID:                            deploymentID,
 		K8sName:                       k8sName,
 		WorkspaceID:                   workspaceID,
@@ -163,20 +160,20 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 
 	// Ensure the region exists
 	regionID := uid.New(uid.RegionPrefix)
-	err = db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
+	err = h.DB.UpsertRegion(ctx, db.UpsertRegionParams{
 		ID:       regionID,
 		Name:     req.Region,
 		Platform: "test",
 	})
 	require.NoError(h.t, err)
 
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, h.DB.RO(), db.FindRegionByPlatformAndNameParams{
+	region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
 		Platform: "test",
 		Name:     req.Region,
 	})
 	require.NoError(h.t, err)
 
-	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
+	err = h.DB.InsertDeploymentTopology(ctx, db.InsertDeploymentTopologyParams{
 		WorkspaceID:                workspaceID,
 		DeploymentID:               deploymentID,
 		RegionID:                   region.ID,
@@ -189,7 +186,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	})
 	require.NoError(h.t, err)
 
-	deployment, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), deploymentID)
+	deployment, err := h.DB.FindDeploymentById(ctx, deploymentID)
 	require.NoError(h.t, err)
 
 	return CreateDeploymentResult{
@@ -208,89 +205,4 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 			UpdatedAt:                  sql.NullInt64{Valid: false},
 		},
 	}
-}
-
-// CreateSentinelRequest contains parameters for creating a test sentinel.
-type CreateSentinelRequest struct {
-	RegionID     string
-	DesiredState db.SentinelsDesiredState
-}
-
-// CreateSentinel creates a sentinel for testing.
-func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest) db.Sentinel {
-	workspaceID := h.Seed.Resources.UserWorkspace.ID
-
-	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
-		ID:          uid.New("prj"),
-		WorkspaceID: workspaceID,
-		Name:        "test-project-sentinel",
-		Slug:        uid.New("slug"),
-
-		DeleteProtection: false,
-	})
-
-	sentinelApp := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New("app"),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "default",
-		Slug:          "default",
-		DefaultBranch: "main",
-	})
-
-	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
-		ID:               uid.New("env"),
-		WorkspaceID:      workspaceID,
-		ProjectID:        project.ID,
-		AppID:            sentinelApp.ID,
-		Slug:             "production",
-		Description:      "",
-		SentinelConfig:   []byte("{}"),
-		DeleteProtection: false,
-	})
-
-	sentinelID := uid.New("sen")
-	k8sName := uid.New("k8s")
-
-	desiredState := req.DesiredState
-	if desiredState == "" {
-		desiredState = db.SentinelsDesiredStateRunning
-	}
-
-	err := db.Query.InsertSentinel(ctx, h.DB.RW(), db.InsertSentinelParams{
-		ID:              sentinelID,
-		WorkspaceID:     workspaceID,
-		EnvironmentID:   env.ID,
-		ProjectID:       project.ID,
-		K8sAddress:      "http://localhost:8080",
-		K8sName:         k8sName,
-		RegionID:        req.RegionID,
-		Image:           "sentinel:1.0",
-		DesiredReplicas: 1,
-		CpuMillicores:   100,
-		MemoryMib:       128,
-		CreatedAt:       h.Now(),
-	})
-	require.NoError(h.t, err)
-
-	// Seed observed state so tests can route to the sentinel.
-	err = db.Query.UpdateSentinelObservedState(ctx, h.DB.RW(), db.UpdateSentinelObservedStateParams{
-		K8sName:           k8sName,
-		RunningImage:      "sentinel:1.0",
-		AvailableReplicas: 1,
-		Health:            db.SentinelsHealthHealthy,
-		UpdatedAt:         sql.NullInt64{Valid: true, Int64: h.Now()},
-	})
-	require.NoError(h.t, err)
-
-	// Update desired_state if needed
-	if desiredState != db.SentinelsDesiredStateRunning {
-		_, err = h.DB.RW().ExecContext(ctx, "UPDATE sentinels SET desired_state = ? WHERE id = ?", desiredState, sentinelID)
-		require.NoError(h.t, err)
-	}
-
-	sentinel, err := db.Query.FindSentinelByID(ctx, h.DB.RO(), sentinelID)
-	require.NoError(h.t, err)
-
-	return sentinel
 }

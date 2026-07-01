@@ -10,10 +10,10 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
@@ -43,7 +43,7 @@ func (s *Service) WatchDeploymentChanges(
 	// When version is 0 and replay is not requested, jump to the current max pk
 	// so we only see new changes.
 	if versionCursor == 0 && !req.Msg.GetReplay() {
-		maxVersion, err := db.Query.GetDeploymentChangesMaxVersion(ctx, s.db.RO(), region.ID)
+		maxVersion, err := s.db.GetDeploymentChangesMaxVersion(ctx, region.ID)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
@@ -84,7 +84,7 @@ func (s *Service) WatchDeploymentChanges(
 // fetchDeploymentChangeEvents polls deployment_changes for new entries and does a
 // point lookup for each row to load current state.
 func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID string, afterVersion uint64) ([]*ctrlv1.DeploymentChangeEvent, error) {
-	changes, err := db.Query.ListDeploymentChangesByRegionAll(ctx, s.db.RO(), db.ListDeploymentChangesByRegionAllParams{
+	changes, err := s.db.ListDeploymentChangesByRegionAll(ctx, db.ListDeploymentChangesByRegionAllParams{
 		RegionID:     regionID,
 		AfterVersion: afterVersion,
 		Limit:        changePageSize,
@@ -122,12 +122,12 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 }
 
 // loadChangeEvent does a point lookup for a single deployment_changes row based on resource_type.
-// Uses the primary (RW) connection because deployment_changes rows arrive immediately
-// after the data is written, and the read replica may not have the data yet.
+// Uses the control plane connection because deployment_changes rows arrive
+// immediately after the data is written.
 func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChange) (*ctrlv1.DeploymentChangeEvent, error) {
 	switch change.ResourceType {
 	case db.DeploymentChangesResourceTypeDeploymentTopology:
-		row, err := db.Query.FindDeploymentTopologyByDeploymentAndRegion(ctx, s.db.RW(), db.FindDeploymentTopologyByDeploymentAndRegionParams{
+		row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
 			DeploymentID: change.ResourceID,
 			RegionID:     change.RegionID,
 		})

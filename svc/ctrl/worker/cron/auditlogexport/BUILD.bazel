@@ -11,9 +11,9 @@ go_library(
         "//pkg/auditlog",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
-        "//pkg/db",
         "//pkg/healthcheck",
         "//pkg/logger",
+        "//svc/ctrl/internal/db",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )

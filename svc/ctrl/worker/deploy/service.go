@@ -6,7 +6,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 

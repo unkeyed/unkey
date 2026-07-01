@@ -6,8 +6,8 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Restate K/V state keys.
@@ -50,7 +50,7 @@ func (s *Service) Init(ctx restate.ObjectContext, req *hydrav1.GitHubStatusInitR
 
 		// Persist to DB so other systems can read it.
 		if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentGithubDeploymentId(runCtx, s.db.RW(), db.UpdateDeploymentGithubDeploymentIdParams{
+			return s.db.UpdateDeploymentGithubDeploymentId(runCtx, db.UpdateDeploymentGithubDeploymentIdParams{
 				GithubDeploymentID: sql.NullInt64{Valid: true, Int64: ghDeploymentID},
 				UpdatedAt:          sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				ID:                 deploymentID,

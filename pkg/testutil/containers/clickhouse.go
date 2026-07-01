@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -197,15 +196,6 @@ func clickhouseSchemaDir() string {
 		}
 	}
 
-	// Fall back to relative path from this file
-	_, currentFile, _, ok := runtime.Caller(0)
-	if !ok {
-		wd, err := os.Getwd()
-		if err != nil {
-			wd = "."
-		}
-		return filepath.Join(wd, "pkg", "clickhouse", "schema")
-	}
-	root := filepath.Dir(filepath.Dir(currentFile))
-	return filepath.Join(root, "clickhouse", "schema")
+	repoRoot := sourceRepoRoot()
+	return filepath.Join(repoRoot, "pkg", "clickhouse", "schema")
 }

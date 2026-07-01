@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "types",
+    srcs = [
+        "container_status.go",
+        "healthcheck.go",
+        "null_string.go",
+        "string_slice.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/mysql/types",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "types_test",
+    srcs = ["string_slice_test.go"],
+    embed = [":types"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

@@ -7,9 +7,9 @@ The deployment sync system delivers desired state from the control plane to kran
 
 Key components:
 
-- The `deployment_changes` MySQL table ([`pkg/db/schema.sql`](https://github.com/unkeyed/unkey/blob/main/pkg/db/schema.sql)) — a change notification log.
-- The `WatchDeploymentChanges` RPC ([`svc/ctrl/services/cluster/rpc_watch_deployment_changes.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/cluster/rpc_watch_deployment_changes.go)) — a streaming endpoint that delivers changes to agents.
-- The krane watcher ([`svc/krane/internal/watcher`](https://github.com/unkeyed/unkey/blob/main/svc/krane/internal/watcher)) — consumes the stream and dispatches events to controllers.
+- The `deployment_changes` MySQL table ([`pkg/mysql/schema/deployment_changes.sql`](https://github.com/unkeyed/unkey/blob/main/pkg/mysql/schema/deployment_changes.sql)), a change notification log.
+- The `WatchDeploymentChanges` RPC ([`svc/ctrl/services/cluster/rpc_watch_deployment_changes.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/cluster/rpc_watch_deployment_changes.go)), a streaming endpoint that delivers changes to agents.
+- The krane watcher ([`svc/krane/internal/watcher`](https://github.com/unkeyed/unkey/blob/main/svc/krane/internal/watcher)), which consumes the stream and dispatches events to controllers.
 
 ## Why this exists
 
@@ -21,7 +21,7 @@ Previously, a Restate virtual object generated monotonic version numbers that we
 
 ### The `deployment_changes` table
 
-Every mutation to deployment state (topology inserts, desired status changes) writes a row to `deployment_changes` in the same MySQL transaction as the state change itself. The row contains no state — just a pointer:
+Every mutation to deployment state (topology inserts, desired status changes) writes a row to `deployment_changes` in the same MySQL transaction as the state change itself. The row contains no state, just a pointer:
 
 | Column | Purpose |
 | --- | --- |
@@ -81,8 +81,8 @@ The watcher resets its cursor to 0 every 5 minutes, triggering a full sync. This
 
 Every code path that mutates deployment state must insert a `deployment_changes` row in the same transaction. The current write sites are:
 
-- [`deploy_handler.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/deploy_handler.go) — `createTopologies` (bulk insert + deployment_changes per region).
-- [`deployment_state.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment/deployment_state.go) — `ChangeDesiredState` (topology status update + deployment_changes per region).
+- [`deploy_handler.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/deploy_handler.go), `createTopologies` (bulk insert + deployment_changes per region).
+- [`deployment_state.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment/deployment_state.go), `ChangeDesiredState` (topology status update + deployment_changes per region).
 
 If you add a new mutation to any of these tables, you must also insert a `deployment_changes` row or the change will be invisible to krane until the next periodic full sync.
 

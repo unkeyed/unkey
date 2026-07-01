@@ -110,8 +110,8 @@ type Config struct {
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain"`
 
-	// Database configures MySQL connections. See [config.DatabaseConfig].
-	Database config.DatabaseConfig `toml:"database"`
+	// Database is the MySQL DSN used for all control plane reads and writes.
+	Database string `toml:"database" config:"required,nonempty"`
 
 	// Observability configures tracing, logging, and metrics. See [config.Observability].
 	Observability config.Observability `toml:"observability"`

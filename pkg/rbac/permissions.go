@@ -202,6 +202,12 @@ const (
 
 	// ReadApp permits reading apps within a project
 	ReadApp ActionType = "read_app"
+
+	// UpdateApp permits modifying existing apps within a project
+	UpdateApp ActionType = "update_app"
+
+	// DeleteApp permits deleting apps within a project
+	DeleteApp ActionType = "delete_app"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

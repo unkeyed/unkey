@@ -782,6 +782,26 @@ type V2AppsCreateAppResponseData struct {
 	AppId string `json:"appId"`
 }
 
+// V2AppsDeleteAppRequestBody defines model for V2AppsDeleteAppRequestBody.
+type V2AppsDeleteAppRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2AppsDeleteAppResponseBody defines model for V2AppsDeleteAppResponseBody.
+type V2AppsDeleteAppResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2AppsGetAppRequestBody defines model for V2AppsGetAppRequestBody.
 type V2AppsGetAppRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -795,6 +815,68 @@ type V2AppsGetAppRequestBody struct {
 
 // V2AppsGetAppResponseBody defines model for V2AppsGetAppResponseBody.
 type V2AppsGetAppResponseBody struct {
+	Data App `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2AppsListAppsRequestBody defines model for V2AppsListAppsRequestBody.
+type V2AppsListAppsRequestBody struct {
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of apps to return per request.
+	// Balance between response size and number of pagination calls needed.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2AppsListAppsResponseBody defines model for V2AppsListAppsResponseBody.
+type V2AppsListAppsResponseBody struct {
+	// Data Array of apps in the project, ordered by app id.
+	Data []App `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
+// V2AppsUpdateAppRequestBody defines model for V2AppsUpdateAppRequestBody.
+type V2AppsUpdateAppRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// DefaultBranch New default git branch deployments track for this app.
+	// Omit this field to leave the current branch unchanged.
+	DefaultBranch *string `json:"defaultBranch,omitempty"`
+
+	// DeleteProtection Enable or disable delete protection for the app.
+	// Omit this field to leave the current setting unchanged.
+	DeleteProtection *bool `json:"deleteProtection,omitempty"`
+
+	// Name New human-readable name for the app.
+	// Omit this field to leave the current name unchanged.
+	Name *string `json:"name,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Slug Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Slug *ResourceIdentifier `json:"slug,omitempty"`
+}
+
+// V2AppsUpdateAppResponseBody defines model for V2AppsUpdateAppResponseBody.
+type V2AppsUpdateAppResponseBody struct {
 	Data App `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
@@ -2643,8 +2725,17 @@ type ApisListKeysJSONRequestBody = V2ApisListKeysRequestBody
 // AppsCreateAppJSONRequestBody defines body for AppsCreateApp for application/json ContentType.
 type AppsCreateAppJSONRequestBody = V2AppsCreateAppRequestBody
 
+// AppsDeleteAppJSONRequestBody defines body for AppsDeleteApp for application/json ContentType.
+type AppsDeleteAppJSONRequestBody = V2AppsDeleteAppRequestBody
+
 // AppsGetAppJSONRequestBody defines body for AppsGetApp for application/json ContentType.
 type AppsGetAppJSONRequestBody = V2AppsGetAppRequestBody
+
+// AppsListAppsJSONRequestBody defines body for AppsListApps for application/json ContentType.
+type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
+
+// AppsUpdateAppJSONRequestBody defines body for AppsUpdateApp for application/json ContentType.
+type AppsUpdateAppJSONRequestBody = V2AppsUpdateAppRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
