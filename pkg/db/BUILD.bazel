@@ -259,7 +259,6 @@ go_library(
         "key_insert_ratelimit.sql_generated.go",
         "key_list_by_key_space_id.sql_generated.go",
         "key_list_for_refill.sql_generated.go",
-        "key_list_ids_by_identity_external_id.sql_generated.go",
         "key_list_live_by_key_space_id.sql_generated.go",
         "key_lock.sql_generated.go",
         "key_migration_find_by_id.sql_generated.go",

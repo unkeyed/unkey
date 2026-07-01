@@ -106,10 +106,10 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		IdentityID:  ptr.P(identityA.ID),
 	})
 
-	// A also has a soft-deleted key. Its verification events are immutable
-	// history that still belongs to A, so they must remain visible after the key
-	// is deleted (matching the root-key analytics path, which is scoped by
-	// key_space_id and is unaffected by key deletion).
+	// A also has a soft-deleted key. Its verification events carry A's external_id
+	// (denormalized at write time), so they remain visible after the key is
+	// deleted: identity scoping filters on external_id, not on current key
+	// ownership.
 	keyADeleted := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
@@ -145,6 +145,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 			Region:      "us-west-1",
 			Outcome:     "VALID",
 			IdentityID:  identityA.ID,
+			ExternalID:  externalA,
 			Tags:        []string{},
 		})
 	}
@@ -160,6 +161,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 			Region:      "us-west-1",
 			Outcome:     "VALID",
 			IdentityID:  identityA.ID,
+			ExternalID:  externalA,
 			Tags:        []string{},
 		})
 	}
@@ -175,6 +177,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 			Region:      "us-east-1",
 			Outcome:     "VALID",
 			IdentityID:  identityB.ID,
+			ExternalID:  identityB.ExternalID,
 			Tags:        []string{},
 		})
 	}
@@ -203,9 +206,9 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 // TestPortalSessionAnalyticsNonWildcardPermission verifies the combined filter
 // path: a portal session scoped to a single API via a non-wildcard
 // api.<id>.read_analytics permission gets both a key_space_id filter (from the
-// permission) and a key_id filter (from identity scoping). It must see only its
-// own keys within the permitted API, never its keys in other APIs nor other
-// identities' keys in the permitted API.
+// permission) and an external_id filter (from identity scoping). It must see
+// only its own identity's events within the permitted API, never its events in
+// other APIs nor other identities' events in the permitted API.
 func TestPortalSessionAnalyticsNonWildcardPermission(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
@@ -266,6 +269,7 @@ func TestPortalSessionAnalyticsNonWildcardPermission(t *testing.T) {
 			Region:      "us-west-1",
 			Outcome:     "VALID",
 			IdentityID:  identityA.ID,
+			ExternalID:  externalA,
 			Tags:        []string{},
 		})
 	}
@@ -281,11 +285,12 @@ func TestPortalSessionAnalyticsNonWildcardPermission(t *testing.T) {
 			Region:      "us-west-1",
 			Outcome:     "VALID",
 			IdentityID:  identityA.ID,
+			ExternalID:  externalA,
 			Tags:        []string{},
 		})
 	}
 
-	// 5 events for B's api1 key; excluded by the key_id filter.
+	// 5 events for B's api1 key; excluded by the external_id filter.
 	for i := range 5 {
 		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
@@ -296,6 +301,7 @@ func TestPortalSessionAnalyticsNonWildcardPermission(t *testing.T) {
 			Region:      "us-east-1",
 			Outcome:     "VALID",
 			IdentityID:  identityB.ID,
+			ExternalID:  identityB.ExternalID,
 			Tags:        []string{},
 		})
 	}
@@ -317,16 +323,17 @@ func TestPortalSessionAnalyticsNonWildcardPermission(t *testing.T) {
 		require.Len(c, res.Body.Data, 1)
 
 		// Only A's 4 api1 events: not A's 3 api2 events (key_space_id filter),
-		// not B's 5 api1 events (key_id filter).
+		// not B's 5 api1 events (external_id filter).
 		count, ok := res.Body.Data[0]["count"]
 		require.True(c, ok, "count field should exist")
-		require.Equal(c, float64(4), count, "combined key_space_id + key_id filters should yield only the session's keys in the permitted API")
+		require.Equal(c, float64(4), count, "combined key_space_id + external_id filters should yield only the session's identity in the permitted API")
 	}, 30*time.Second, time.Second)
 }
 
 // TestPortalSessionAnalyticsNoKeysReturnsEmpty verifies that a portal session
-// whose identity owns no keys receives empty analytics rather than an error or
-// another identity's data.
+// whose identity owns no keys sees none of another identity's data: the
+// external_id filter matches no rows, so an aggregate query returns a zero
+// count rather than an error or another identity's events.
 func TestPortalSessionAnalyticsNoKeysReturnsEmpty(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
@@ -365,6 +372,7 @@ func TestPortalSessionAnalyticsNoKeysReturnsEmpty(t *testing.T) {
 			Region:      "us-east-1",
 			Outcome:     "VALID",
 			IdentityID:  otherIdentity.ID,
+			ExternalID:  otherIdentity.ExternalID,
 			Tags:        []string{},
 		})
 	}
@@ -377,12 +385,19 @@ func TestPortalSessionAnalyticsNoKeysReturnsEmpty(t *testing.T) {
 		Query: "SELECT COUNT(*) as count FROM key_verifications_v1",
 	}
 
-	// The handler short-circuits before touching ClickHouse, so this is
-	// deterministic and does not need to wait for buffered data.
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body)
-	require.Empty(t, res.Body.Data, "session with no keys should receive empty analytics")
+	// The query executes against ClickHouse with an external_id filter that
+	// matches no rows, so the count is zero. EventuallyWithT tolerates the
+	// analytics table not being immediately queryable after setup.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(c, 200, res.Status)
+		require.NotNil(c, res.Body)
+		require.Len(c, res.Body.Data, 1)
+
+		count, ok := res.Body.Data[0]["count"]
+		require.True(c, ok, "count field should exist")
+		require.Equal(c, float64(0), count, "session with no keys must see none of another identity's events")
+	}, 30*time.Second, time.Second)
 }
 
 // TestPortalSessionAnalyticsWithoutPermissionForbidden verifies that RBAC

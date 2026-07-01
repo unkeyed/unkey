@@ -87,19 +87,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Portal sessions are scoped to a single external identity and may only see
-	// verification events for keys that belong to that identity.
+	// verification events attributed to that identity.
 	//
 	// Identity scoping is intentionally separate from the RBAC permission system.
-	// Permissions gate what operations a principal can perform; identity scoping
-	// gates which keys' analytics are visible to a portal session. We inject a
-	// key_id security filter so the scoping cannot be bypassed by the request
-	// query, mirroring the key_space_id filter applied for root keys.
+	// Permissions gate which APIs/key_spaces a portal session may surface at all;
+	// identity scoping restricts that to the one identity's events. Both layers
+	// are injected as security filters so neither can be bypassed by the request
+	// query, and they are ANDed together.
 	//
-	// A portal session whose identity owns no keys has no verification events to
-	// return, but we must still run RBAC authorization first so an unpermitted
-	// session gets 403 rather than an empty 200. The short-circuit therefore
-	// happens after Authorize below, gated on this flag.
-	portalSessionNoKeys := false
+	// We filter on external_id, which is denormalized onto each verification event
+	// at write time. This scopes by attribution-at-event-time (no dependency on
+	// current key ownership) and, since a portal session always carries a
+	// non-empty external identity, avoids any DB lookup or empty-filter edge case.
 	switch src := principal.Source.(type) {
 	case authprincipal.PortalSessionSource:
 		// An empty externalId is a broken invariant: a portal session should
@@ -113,30 +112,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		keyIDs, keyErr := db.Query.ListKeyIDsByIdentityExternalID(ctx, h.DB.RO(), db.ListKeyIDsByIdentityExternalIDParams{
-			WorkspaceID: principal.WorkspaceID,
-			ExternalID:  src.ExternalID,
-		})
-		if keyErr != nil {
-			return fault.Wrap(keyErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error"),
-				fault.Public("Failed to retrieve key information."),
-			)
-		}
-
-		// A session with no keys can have no verification events. Defer returning
-		// empty analytics until after Authorize so authorization is still enforced;
-		// we must not run the query, though, since an empty IN list is dropped by
-		// the security filter injector and would leak the whole workspace's data.
-		if len(keyIDs) == 0 {
-			portalSessionNoKeys = true
-			break
-		}
-
 		securityFilters = append(securityFilters, chquery.SecurityFilter{
-			Column:        "key_id",
-			AllowedValues: keyIDs,
+			Column:        "external_id",
+			AllowedValues: []string{src.ExternalID},
 		})
 	}
 
@@ -178,18 +156,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(rbac.Or(permissionChecks...))
 	if err != nil {
 		return err
-	}
-
-	// Authorization passed; a portal session whose identity owns no keys has no
-	// events to return. Short-circuit here rather than executing an unfiltered
-	// query (see the key_id scoping block above).
-	if portalSessionNoKeys {
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			Data: ResponseData{},
-		})
 	}
 
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
