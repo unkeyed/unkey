@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#MISE description="Regenerate the vendored @unkey/api TypeScript SDK (web/internal/sdk) from this repo's current OpenAPI spec. Sparse-clones only api/ts of github.com/unkeyed/sdks into a temp dir that is removed on exit, so the clone never enters this repo or the Bazel //... graph."
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SDKS_REPO="${UNKEY_SDKS_REPO:-https://github.com/unkeyed/sdks}"
+SPEC="$REPO_ROOT/svc/api/openapi/openapi-generated.yaml"
+OUT="$REPO_ROOT/web/internal/sdk"
+
+# Refresh the bundled spec so the SDK reflects the current hand-written spec.
+(cd "$REPO_ROOT/svc/api/openapi" && go generate ./...)
+
+# Clone into a temp dir OUTSIDE the repo so the upstream monorepo never lands in
+# this workspace or the Bazel //... graph. Sparse + blobless + shallow keeps the
+# checkout to just api/ts, the only SDK we vendor. Removed on exit, even on error.
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+echo "cloning $SDKS_REPO (api/ts only) into $WORK"
+git clone --quiet --depth 1 --filter=blob:none --sparse "$SDKS_REPO" "$WORK"
+git -C "$WORK" sparse-checkout set api/ts
+
+# Point the workflow at the local spec instead of the GitHub main branch. The
+# sparse checkout omits the repo-root .speakeasy dir, so create it before writing.
+mkdir -p "$WORK/.speakeasy"
+cat >"$WORK/.speakeasy/workflow.yaml" <<YAML
+workflowVersion: 1.0.0
+speakeasyVersion: latest
+sources:
+    api:
+        inputs:
+            - location: $SPEC
+targets:
+    api-ts:
+        target: typescript
+        source: api
+        output: ./api/ts
+YAML
+
+echo "generating @unkey/api from $SPEC"
+(cd "$WORK" && speakeasy run -t api-ts --skip-versioning)
+
+# Copy the generated package files this workspace needs. The package keeps its
+# generated package.json: tsc resolves the tshy "source" condition to src, while
+# bundlers use the built dist. Additional generated files can be copied here if
+# package tooling starts requiring them.
+# web/internal/sdk is generated output - do not hand-edit.
+echo "syncing -> web/internal/sdk"
+rm -rf "$OUT"
+mkdir -p "$OUT"
+cp -R "$WORK/api/ts/src" "$OUT/"
+cp -R "$WORK/api/ts/.tshy" "$OUT/"
+cp "$WORK/api/ts/package.json" "$OUT/"
+cp "$WORK/api/ts/tsconfig.json" "$OUT/"
+
+echo ""
+echo "✓ Regenerated web/internal/sdk (@unkey/api). Run: mise exec -- pnpm --dir=web install"

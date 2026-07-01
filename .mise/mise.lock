@@ -397,6 +397,40 @@ url = "https://github.com/pnpm/pnpm/releases/download/v11.5.0/pnpm-win32-x64.zip
 url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/433138830"
 provenance = "github-attestations"
 
+[[tools."github:speakeasy-api/speakeasy"]]
+version = "1.783.1"
+backend = "github:speakeasy-api/speakeasy"
+
+[tools."github:speakeasy-api/speakeasy"."platforms.linux-arm64"]
+checksum = "sha256:545506c2167d29cdb4abe8af5647a403e1a6216bb2fdb01eb4980598be1e8285"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_linux_arm64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931224"
+
+[tools."github:speakeasy-api/speakeasy"."platforms.linux-arm64-musl"]
+checksum = "sha256:545506c2167d29cdb4abe8af5647a403e1a6216bb2fdb01eb4980598be1e8285"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_linux_arm64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931224"
+
+[tools."github:speakeasy-api/speakeasy"."platforms.linux-x64"]
+checksum = "sha256:701713432ad93cb3686ed6a614e049ba7ba431feabe773bb0d9346dad1b2a3a9"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_linux_amd64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931227"
+
+[tools."github:speakeasy-api/speakeasy"."platforms.linux-x64-musl"]
+checksum = "sha256:701713432ad93cb3686ed6a614e049ba7ba431feabe773bb0d9346dad1b2a3a9"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_linux_amd64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931227"
+
+[tools."github:speakeasy-api/speakeasy"."platforms.macos-arm64"]
+checksum = "sha256:ca84e65f2e59d283d63872fdd42daf25867de24a47ef44b421e1696543ef7c30"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_darwin_arm64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931229"
+
+[tools."github:speakeasy-api/speakeasy"."platforms.macos-x64"]
+checksum = "sha256:edc9679f5d7709d8ad829f69b349d551ac9c749426df3fc480f1dd2b6aa26528"
+url = "https://github.com/speakeasy-api/speakeasy/releases/download/v1.783.1/speakeasy_darwin_amd64.zip"
+url_api = "https://api.github.com/repos/speakeasy-api/speakeasy/releases/assets/450931222"
+
 [[tools."github:tilt-dev/ctlptl"]]
 version = "0.9.3"
 backend = "github:tilt-dev/ctlptl"
