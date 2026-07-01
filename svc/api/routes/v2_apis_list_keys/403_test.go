@@ -60,6 +60,10 @@ func TestAuthorizationErrors(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// A caller who lacks read access must not be able to tell that the API
+	// exists, so read-authorization failures are masked as 404 rather than 403.
+	// See TestUnauthorizedDoesNotLeakExistence for the existence-oracle guard.
+
 	// Test case for insufficient permissions - missing read_key
 	t.Run("missing read_key permission", func(t *testing.T) {
 		// Create a root key with only read_api but no read_key permission
@@ -74,17 +78,16 @@ func TestAuthorizationErrors(t *testing.T) {
 			ApiId: apiID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
 	// Test case for insufficient permissions - missing read_api
@@ -101,17 +104,16 @@ func TestAuthorizationErrors(t *testing.T) {
 			ApiId: apiID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
 	// Test case for permission for different API
@@ -133,20 +135,20 @@ func TestAuthorizationErrors(t *testing.T) {
 			ApiId: apiID, // Using the test API, not the one we have permission for
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
-	// Test case for decrypt permission
+	// Test case for decrypt permission. The caller can read the API (so it is
+	// not masked as 404), but lacks decrypt, so the decrypt check returns 403.
 	t.Run("missing decrypt permission", func(t *testing.T) {
 		// Create a root key with read permissions but no decrypt permission
 		rootKey := h.CreateRootKey(workspace.ID, "api.*.read_key", "api.*.read_api")
@@ -189,17 +191,16 @@ func TestAuthorizationErrors(t *testing.T) {
 			ApiId: apiID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
 	// Test case for cross-workspace access attempt
@@ -219,16 +220,16 @@ func TestAuthorizationErrors(t *testing.T) {
 			ApiId: apiID, // API belongs to the original workspace
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		// Should return 404 (not found) rather than 403 for security reasons
-		// The system masks cross-workspace access as "not found"
-		require.True(t, res.Status == 403 || res.Status == 404)
+		// Should return 404 (not found) rather than 403 for security reasons.
+		// The system masks cross-workspace access as "not found".
+		require.Equal(t, 404, res.Status)
 	})
 
 	// Test case for wildcard permissions (should work)
@@ -287,7 +288,7 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 	})
 
-	// Test case for verifying error response structure
+	// Test case for verifying masked-not-found response structure
 	t.Run("verify error response structure", func(t *testing.T) {
 		// Create a root key with insufficient permissions
 		rootKey := h.CreateRootKey(workspace.ID, "workspace.read")
@@ -301,18 +302,18 @@ func TestAuthorizationErrors(t *testing.T) {
 			ApiId: apiID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.NotEmpty(t, res.Body.Error.Detail)
-		require.Equal(t, 403, res.Body.Error.Status)
+		require.Equal(t, 404, res.Body.Error.Status)
 		require.NotEmpty(t, res.Body.Error.Title)
 
 		// Verify meta information is included
@@ -334,17 +335,16 @@ func TestAuthorizationErrors(t *testing.T) {
 			ApiId: apiID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "permission")
 	})
 
 	// Test case for decrypt permission with wildcard

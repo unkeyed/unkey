@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -141,7 +142,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		),
 	))
 	if err != nil {
-		return err
+		// Mask a read-authorization failure as 404 so that callers who lack read
+		// access cannot distinguish an existing API from a non-existent one and
+		// enumerate API IDs in the workspace. The authorization runs after the
+		// lookup because the URN check needs the keyspace ID.
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Api.NotFound.URN(),
+			"The requested API does not exist or has been deleted.",
+		)
 	}
 
 	if ptr.SafeDeref(req.Decrypt, false) {
