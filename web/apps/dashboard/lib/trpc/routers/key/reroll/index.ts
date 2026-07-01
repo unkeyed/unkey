@@ -28,22 +28,6 @@ const rerollInputSchema = z.object({
     }),
 });
 
-// Rotates a regular API key owned by the caller's workspace. The new key
-// inherits the source's metadata and authorization scope; the old key's
-// expiry is shortened to `now + expiration` (capped at the source's own
-// expiry so rotation never extends a key's lifetime).
-export const rerollKey = workspaceProcedure
-  .use(withRatelimit(ratelimit.create))
-  .input(rerollInputSchema)
-  .mutation(async ({ input, ctx }) => {
-    return rerollKeyCore({
-      keyId: input.keyId,
-      expiration: input.expiration,
-      scopedWorkspaceId: ctx.workspace.id,
-      ctx,
-    });
-  });
-
 // Rotates a root key. Root keys live in the Unkey-owned workspace
 // (`UNKEY_WORKSPACE_ID`) but are bound to a customer workspace via
 // `forWorkspaceId`. The lookup is scoped by both: the row must belong to
