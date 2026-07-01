@@ -1,0 +1,82 @@
+post:
+  tags:
+    - environments
+  summary: List environment variables
+  description: |
+    Retrieve the environment variables for an environment.
+
+    Identify the environment by its project, app, and environment identifiers.
+    Results are ordered by variable id and paginated; when `hasMore` is true,
+    pass the returned `cursor` to fetch the next page.
+
+    `recoverable` variables are returned with their decrypted plaintext value.
+    `writeonly` variables never expose a value: only the key, kind, and
+    description are returned.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.read_environment_variables` (for any environment)
+    - `environment.<environment_id>.read_environment_variables` (for a specific environment)
+  operationId: environments.listEnvironmentVariables
+  x-speakeasy-name-override: listEnvironmentVariables
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2EnvironmentsListEnvironmentVariablesRequestBody.yaml"
+        examples:
+          list:
+            summary: List variables for an environment
+            description: List the first page of variables in the given environment
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully retrieved a page of environment variables.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2EnvironmentsListEnvironmentVariablesResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.read_environment_variables`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The requested environment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
