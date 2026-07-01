@@ -146,7 +146,8 @@ func (h *Handler) Handle(
 //     collapses it to a noop, then commits.
 func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
 	return db.TxWithResult(ctx, h.db.RW(), func(txCtx context.Context, tx db.DBTX) (batchResult, error) {
-		rows, err := db.NewQueries(tx).FindClickhouseOutboxBatch(txCtx, db.FindClickhouseOutboxBatchParams{
+		q := db.NewQueries(tx)
+		rows, err := q.FindClickhouseOutboxBatch(txCtx, db.FindClickhouseOutboxBatchParams{
 			Versions: knownVersions,
 			Limit:    batchLimit,
 		})
@@ -175,7 +176,7 @@ func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
 			return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
 		}
 
-		if err := db.NewQueries(tx).MarkClickhouseOutboxBatchDeleted(txCtx, db.MarkClickhouseOutboxBatchDeletedParams{
+		if err := q.MarkClickhouseOutboxBatchDeleted(txCtx, db.MarkClickhouseOutboxBatchDeletedParams{
 			DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 			Pks:       pks,
 		}); err != nil {
