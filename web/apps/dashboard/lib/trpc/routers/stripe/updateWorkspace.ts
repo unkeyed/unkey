@@ -3,9 +3,10 @@ import { db, eq, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 export const updateWorkspaceStripeCustomer = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       sessionId: z.string().min(1, "Stripe checkout session ID is required"),

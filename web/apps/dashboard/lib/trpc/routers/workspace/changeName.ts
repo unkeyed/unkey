@@ -3,9 +3,10 @@ import { auth as authClient } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 export const changeWorkspaceName = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       name: z

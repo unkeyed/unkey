@@ -2,7 +2,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, FormInput, SettingCard, toast } from "@unkey/ui";
+import { Button, FormInput, InfoTooltip, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -14,6 +14,13 @@ export function UpdateWorkspaceName() {
   const utils = trpc.useUtils();
 
   const [name, setName] = useState(workspace?.name);
+
+  // Server-side `requireWorkspaceAdmin` enforces this on the changeName
+  // mutation; we mirror it on the client purely for UX so non-admin members
+  // get a clear "admin required" affordance instead of a request that fails
+  // with FORBIDDEN.
+  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const isAdmin = currentUser?.role === "admin";
 
   const formSchema = z.object({
     workspaceId: z.string(),
@@ -98,17 +105,29 @@ export function UpdateWorkspaceName() {
             error={errors.workspaceName?.message}
             {...register("workspaceName")}
           />
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            disabled={
-              updateName.isLoading || isSubmitting || !isValid || watch("workspaceName") === name
-            }
-            loading={updateName.isLoading || isSubmitting}
+          <InfoTooltip
+            content="Admin access required to rename the workspace"
+            disabled={isAdmin}
+            asChild
           >
-            Save
-          </Button>
+            <span>
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                disabled={
+                  !isAdmin ||
+                  updateName.isLoading ||
+                  isSubmitting ||
+                  !isValid ||
+                  watch("workspaceName") === name
+                }
+                loading={updateName.isLoading || isSubmitting}
+              >
+                Save
+              </Button>
+            </span>
+          </InfoTooltip>
         </div>
       </SettingCard>
     </form>
