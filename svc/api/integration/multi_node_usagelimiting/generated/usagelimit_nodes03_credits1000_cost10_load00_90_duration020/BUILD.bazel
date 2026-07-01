@@ -2,6 +2,7 @@ load("@rules_go//go:def.bzl", "go_test")
 
 go_test(
     name = "usagelimit_nodes03_credits1000_cost10_load00_90_duration020_test",
+    size = "large",
     srcs = ["generated_test.go"],
     deps = [
         "//svc/api/integration",

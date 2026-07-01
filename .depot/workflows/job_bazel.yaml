@@ -20,4 +20,13 @@ jobs:
       - name: Build
         run: bazel build //...
       - name: Run tests
-        run: bazel test //... --test_output=errors
+        # UNKEY_TEST_CONTAINER_SCOPE must be forwarded via --test_env: Bazel
+        # does not pass host env vars into test sandboxes. Without it, every
+        # container-backed test target falls back to TEST_SRCDIR (unique per
+        # target) for its container scope, so each one starts its own
+        # MySQL/ClickHouse/etc pair that never gets cleaned up. Across the
+        # full suite that piles up dozens of container pairs and OOMs the
+        # runner. See .mise/tasks/test, which does the same for local runs.
+        run: |
+          export UNKEY_TEST_CONTAINER_SCOPE="${GITHUB_WORKSPACE}"
+          bazel test --config=ci --test_env=UNKEY_TEST_CONTAINER_SCOPE //... --test_output=errors

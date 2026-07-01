@@ -39,6 +39,19 @@ test --test_summary=terse
 test --local_test_jobs=auto
 
 # ============================================================
+# CI overrides (activated via --config=ci)
+# ============================================================
+# CI runners have a fixed RAM budget. Bazel's local resource manager
+# schedules test parallelism against --local_ram_resources (default: all
+# host RAM), but per-test RAM estimates derived from the `size` attribute
+# are far below what container-backed integration tests actually use.
+# Leaving headroom here prevents concurrently scheduled tests from OOM
+# killing the Bazel server itself (see incident where 8 concurrent test
+# actions exhausted a 32GB depot-ubuntu-24.04-8 runner).
+test:ci --local_ram_resources=HOST_RAM*.75
+test:ci --local_test_jobs=6
+
+# ============================================================
 # Release stamping
 # ============================================================
 # Bakes STABLE_VERSION, STABLE_GIT_COMMIT, and BUILD_TIMESTAMP
