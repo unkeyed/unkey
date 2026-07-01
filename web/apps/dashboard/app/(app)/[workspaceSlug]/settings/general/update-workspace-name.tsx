@@ -85,7 +85,7 @@ export function UpdateWorkspaceName() {
         className="border-b border-grayA-4"
         contentWidth="w-full lg:w-[420px]"
       >
-        <div className="flex flex-row justify-end items-center w-full gap-x-2">
+        <div className="flex flex-row justify-end items-start w-full gap-x-2">
           <input type="hidden" name="workspaceId" value={workspace?.id} />
           <label htmlFor="workspaceName" className="sr-only">
             Workspace Name
