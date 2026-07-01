@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 )
 
@@ -127,8 +128,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// session's identity, regardless of what the client sends.
 	//
 	// Portal-authenticated actions are attributed to a portalEndUser actor so
-	// customers can see end-user activity in their audit logs. The actor
-	// metadata records which end user acted.
+	// customers can see end-user activity in their audit logs.
 	switch src := principal.Source.(type) {
 	case authprincipal.PortalSessionSource:
 		if src.ExternalID == "" {
@@ -140,7 +140,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		req.ExternalId = &src.ExternalID
 	}
-	actor := auditlog.ActorFromPrincipal(principal)
+	actor := auditactor.FromPrincipal(principal)
 
 	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 	if err != nil {
@@ -502,8 +502,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						WorkspaceID:   principal.WorkspaceID,
 						Event:         auditlog.AuthConnectPermissionKeyEvent,
 						ActorType:     actor.Type,
-						ActorID:       principal.Subject.ID,
-						ActorName:     principal.Subject.Name,
+						ActorID:       actor.ID,
+						ActorName:     actor.Name,
 						ActorMeta:     actor.Meta,
 						Display:       fmt.Sprintf("Added permission %s to key %s", reqPerm.Slug, keyID),
 						RemoteIP:      s.Location(),
@@ -590,8 +590,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						WorkspaceID:   principal.WorkspaceID,
 						Event:         auditlog.AuthConnectRoleKeyEvent,
 						ActorType:     actor.Type,
-						ActorID:       principal.Subject.ID,
-						ActorName:     principal.Subject.Name,
+						ActorID:       actor.ID,
+						ActorName:     actor.Name,
 						ActorMeta:     actor.Meta,
 						Display:       fmt.Sprintf("Connected role %s to key %s", reqRole.Name, keyID),
 						RemoteIP:      s.Location(),
@@ -632,8 +632,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.KeyCreateEvent,
 				ActorType:     actor.Type,
-				ActorID:       principal.Subject.ID,
-				ActorName:     principal.Subject.Name,
+				ActorID:       actor.ID,
+				ActorName:     actor.Name,
 				ActorMeta:     actor.Meta,
 				Display:       fmt.Sprintf("Created key %s", keyID),
 				RemoteIP:      s.Location(),

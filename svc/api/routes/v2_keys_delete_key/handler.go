@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -91,8 +92,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// gates which keys are visible to a portal session.
 	//
 	// Portal-authenticated deletes are attributed to a portalEndUser actor so
-	// customers can see end-user activity in their audit logs. The actor
-	// metadata records which end user acted.
+	// customers can see end-user activity in their audit logs.
 	switch src := principal.Source.(type) {
 	case authprincipal.PortalSessionSource:
 		// An empty externalId is a broken invariant: a portal session should
@@ -113,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 	}
-	actor := auditlog.ActorFromPrincipal(principal)
+	actor := auditactor.FromPrincipal(principal)
 
 	// Permission check
 	err = principal.Authorize(rbac.Or(
@@ -157,8 +157,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Event:         auditlog.KeyDeleteEvent,
 				WorkspaceID:   principal.WorkspaceID,
 				ActorType:     actor.Type,
-				ActorID:       principal.Subject.ID,
-				ActorName:     principal.Subject.Name,
+				ActorID:       actor.ID,
+				ActorName:     actor.Name,
 				ActorMeta:     actor.Meta,
 				Display:       fmt.Sprintf("%s %s", description, key.ID),
 				RemoteIP:      s.Location(),

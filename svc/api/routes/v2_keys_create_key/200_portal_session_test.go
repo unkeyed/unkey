@@ -319,8 +319,7 @@ func TestPortalSessionCreateKeyAuditLog(t *testing.T) {
 		}
 		foundCreateEvent = true
 		require.Equal(t, "portalEndUser", ev.Actor.Type, "portal-created key must be attributed to a portalEndUser actor")
-		require.Equal(t, externalID, ev.Actor.ID)
-		require.Equal(t, externalID, ev.Actor.Meta["externalId"])
+		require.Equal(t, externalID, ev.Actor.ID, "portal actor ID must be the end user's externalId")
 		require.NotContains(t, ev.Actor.Meta, "sessionId", "session token must not be persisted in audit metadata")
 	}
 	require.True(t, foundCreateEvent, "expected a key.create audit log event")

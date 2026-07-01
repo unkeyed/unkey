@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 )
 
 type (
@@ -113,9 +114,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Portal-authenticated rerolls are attributed to a portalEndUser actor so
-	// customers can see end-user activity in their audit logs. The actor
-	// metadata records which end user acted.
-	actor := auditlog.ActorFromPrincipal(principal)
+	// customers can see end-user activity in their audit logs.
+	actor := auditactor.FromPrincipal(principal)
 
 	keyData := db.ToKeyData(key)
 
@@ -368,8 +368,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.KeyRerollEvent,
 				ActorType:     actor.Type,
-				ActorID:       principal.Subject.ID,
-				ActorName:     principal.Subject.Name,
+				ActorID:       actor.ID,
+				ActorName:     actor.Name,
 				ActorMeta:     actor.Meta,
 				Display:       fmt.Sprintf("Rerolled key (%s) to (%s)", req.KeyId, keyID),
 				RemoteIP:      s.Location(),

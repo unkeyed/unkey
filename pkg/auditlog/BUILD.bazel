@@ -13,8 +13,5 @@ go_library(
     ],
     importpath = "github.com/unkeyed/unkey/pkg/auditlog",
     visibility = ["//visibility:public"],
-    deps = [
-        "//pkg/auth/principal",
-        "//pkg/uid",
-    ],
+    deps = ["//pkg/uid"],
 )
