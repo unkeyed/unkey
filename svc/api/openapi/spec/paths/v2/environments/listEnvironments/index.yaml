@@ -1,0 +1,161 @@
+post:
+  tags:
+    - environments
+  summary: List environments
+  description: |
+    Retrieve the environments within an app.
+
+    Use this to enumerate every environment in an app. Identify the app by its project slug and app slug. Results are ordered by environment id. An app has only a handful of environments, so all of them are returned in a single response.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `environment.*.read_environment` (to read environments in any app)
+  operationId: environments.listEnvironments
+  x-speakeasy-name-override: listEnvironments
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2EnvironmentsListEnvironmentsRequestBody.yaml"
+        examples:
+          basic:
+            summary: List an app's environments
+            description: List the environments in the given app
+            value:
+              project: payments-service
+              app: payments-api
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2EnvironmentsListEnvironmentsResponseBody.yaml"
+          examples:
+            environmentList:
+              summary: Environment list
+              description: Successfully retrieved a page of environments
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  - id: env_1234abcd
+                    projectId: proj_1234abcd
+                    appId: app_1234abcd
+                    slug: production
+                    description: Production environment
+                    deleteProtection: false
+                    createdAt: 1704067200000
+                    updatedAt: 1704153600000
+                    port: 8080
+                    cpuMillicores: 250
+                    memoryMib: 256
+                    storageMib: 0
+                    command: ["node", "server.js"]
+                    shutdownSignal: SIGTERM
+                    upstreamProtocol: http1
+                    dockerfile: Dockerfile
+                    rootDirectory: .
+                    watchPaths: ["src/**"]
+                    autoDeploy: true
+                    regions:
+                      - name: us-east-1
+                        replicas:
+                          min: 1
+                          max: 3
+                  - id: env_5678efgh
+                    projectId: proj_1234abcd
+                    appId: app_1234abcd
+                    slug: staging
+                    description: Staging environment
+                    deleteProtection: false
+                    createdAt: 1704240000000
+                    port: 8080
+                    cpuMillicores: 250
+                    memoryMib: 256
+                    storageMib: 0
+                    command: ["node", "server.js"]
+                    shutdownSignal: SIGTERM
+                    upstreamProtocol: http1
+                    rootDirectory: .
+                    buildCommand: pnpm --filter api build
+                    watchPaths: ["src/**"]
+                    autoDeploy: true
+      description: |
+        Successfully retrieved the app's environments.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            missingApp:
+              summary: Missing required field
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The app field is required.
+                  status: 400
+                  type: validation-error
+                  errors:
+                    - location: body.app
+                      message: missing required field
+                      fix: Provide the app id or slug
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.read_environment`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'environment.*.read_environment' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - The requested app does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            appNotFound:
+              summary: App not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested app does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -1,0 +1,51 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    type: array
+    items:
+      "$ref": "../../../../common/Environment.yaml"
+    description: Array of environments in the app, ordered by environment id.
+additionalProperties: false
+examples:
+  environmentList:
+    summary: Environment list
+    description: Typical response listing environments in an app
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        - id: env_1234abcd
+          projectId: proj_1234abcd
+          appId: app_1234abcd
+          slug: production
+          description: Production environment
+          deleteProtection: false
+          createdAt: 1704067200000
+          updatedAt: 1704153600000
+          cpuMillicores: 250
+          memoryMib: 256
+          rootDirectory: .
+          autoDeploy: true
+        - id: env_5678efgh
+          projectId: proj_1234abcd
+          appId: app_1234abcd
+          slug: staging
+          description: Staging environment
+          deleteProtection: false
+          createdAt: 1704240000000
+          cpuMillicores: 250
+          memoryMib: 256
+          rootDirectory: .
+          autoDeploy: true
+  emptyResponse:
+    summary: Empty environment list
+    description: Response when the app has no environments
+    value:
+      meta:
+        requestId: req_9876zyxw
+      data: []

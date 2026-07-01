@@ -1,9 +1,9 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "v2_environments_get_environment",
+    name = "v2_environments_list_environments",
     srcs = ["handler.go"],
-    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment",
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environments",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/codes",
@@ -17,7 +17,7 @@ go_library(
 )
 
 go_test(
-    name = "v2_environments_get_environment_test",
+    name = "v2_environments_list_environments_test",
     srcs = [
         "200_test.go",
         "400_test.go",
@@ -26,8 +26,7 @@ go_test(
         "404_test.go",
     ],
     deps = [
-        ":v2_environments_get_environment",
-        "//pkg/db",
+        ":v2_environments_list_environments",
         "//pkg/uid",
         "//svc/api/internal/testutil",
         "//svc/api/internal/testutil/seed",

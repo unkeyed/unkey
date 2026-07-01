@@ -1169,6 +1169,26 @@ type V2EnvironmentsGetEnvironmentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2EnvironmentsListEnvironmentsRequestBody defines model for V2EnvironmentsListEnvironmentsRequestBody.
+type V2EnvironmentsListEnvironmentsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2EnvironmentsListEnvironmentsResponseBody defines model for V2EnvironmentsListEnvironmentsResponseBody.
+type V2EnvironmentsListEnvironmentsResponseBody struct {
+	// Data Array of environments in the app, ordered by environment id.
+	Data []Environment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
 	// ExternalId Creates an identity using your system's unique identifier for a user, organization, or entity.
@@ -2925,6 +2945,9 @@ type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody
+
+// EnvironmentsListEnvironmentsJSONRequestBody defines body for EnvironmentsListEnvironments for application/json ContentType.
+type EnvironmentsListEnvironmentsJSONRequestBody = V2EnvironmentsListEnvironmentsRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

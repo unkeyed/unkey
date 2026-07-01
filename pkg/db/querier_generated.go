@@ -2272,10 +2272,42 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListAllSentinelsByRegion(ctx context.Context, db DBTX, arg ListAllSentinelsByRegionParams) ([]Sentinel, error)
+	// Returns the build settings for every environment in an app, for callers
+	// that build multiple environments at once and group by environment_id.
+	//
+	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
+	//  FROM app_build_settings
+	//  WHERE app_id = ?
+	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
 	ListAppIdsByProject(ctx context.Context, db DBTX, projectID string) ([]string, error)
+	// Returns per-region settings for every environment in an app, including the
+	// autoscaling policy bounds (if attached). Callers group by environment_id.
+	//
+	//  SELECT
+	//  	ars.environment_id,
+	//  	ars.region_id,
+	//  	r.name AS region_name,
+	//  	ars.replicas,
+	//  	r.can_schedule AS region_can_schedule,
+	//  	hap.replicas_min AS autoscaling_replicas_min,
+	//  	hap.replicas_max AS autoscaling_replicas_max,
+	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
+	//  	hap.memory_threshold AS autoscaling_threshold_memory
+	//  FROM app_regional_settings ars
+	//  JOIN regions r ON r.id = ars.region_id
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  WHERE ars.app_id = ?
+	ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error)
+	// Returns the runtime settings for every environment in an app, for callers
+	// that build multiple environments at once and group by environment_id.
+	//
+	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  FROM app_runtime_settings
+	//  WHERE app_id = ?
+	ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRuntimeSettingsByAppRow, error)
 	//ListAppsByProject
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
@@ -2383,6 +2415,14 @@ type Querier interface {
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
 	ListEnvironmentIdsByApp(ctx context.Context, db DBTX, appID string) ([]string, error)
+	// An app has only a handful of environments, so this returns all of them
+	// without pagination.
+	//
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  FROM environments
+	//  WHERE app_id = ?
+	//  ORDER BY id ASC
+	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc

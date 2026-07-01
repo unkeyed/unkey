@@ -238,6 +238,8 @@ paths:
   # Environment Endpoints
   /v2/environments.getEnvironment:
     $ref: "./spec/paths/v2/environments/getEnvironment/index.yaml"
+  /v2/environments.listEnvironments:
+    $ref: "./spec/paths/v2/environments/listEnvironments/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:

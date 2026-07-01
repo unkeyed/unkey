@@ -1,0 +1,23 @@
+type: object
+required:
+  - project
+  - app
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+examples:
+  bySlugs:
+    summary: List an app's environments by slugs
+    description: List environments, locating project and app by slug
+    value:
+      project: payments-service
+      app: payments-api
+  byIds:
+    summary: List an app's environments by IDs
+    description: List environments, locating project and app by ID
+    value:
+      project: proj_1234abcd
+      app: app_1234abcd
