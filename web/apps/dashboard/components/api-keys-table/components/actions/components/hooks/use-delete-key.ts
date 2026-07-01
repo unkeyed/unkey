@@ -1,10 +1,46 @@
 import { trpc } from "@/lib/trpc/client";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
+import type { Unkey } from "@unkey/api";
+import {
+  BadRequestErrorResponse,
+  ForbiddenErrorResponse,
+  InternalServerErrorResponse,
+  NotFoundErrorResponse,
+  UnauthorizedErrorResponse,
+} from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
+
+type DeleteKeyRequest = Parameters<Unkey["keys"]["deleteKey"]>[0];
+
+type DeleteKeyVariables = {
+  keyIds: DeleteKeyRequest["keyId"][];
+};
+
+type DeleteKeyResult = {
+  totalDeleted: number;
+};
 
 export const useDeleteKey = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();
-  const deleteKey = trpc.key.delete.useMutation({
-    onSuccess(data, variable) {
+  const deleteKey = useMutation<DeleteKeyResult, unknown, DeleteKeyVariables>({
+    mutationFn: async ({ keyIds }) => {
+      if (keyIds.length === 0) {
+        throw new Error("No keys were provided for deletion");
+      }
+
+      const deletedKeyIds = await Promise.all(
+        keyIds.map(async (keyId) => {
+          await getUnkeyClient().keys.deleteKey({ keyId });
+          return keyId;
+        }),
+      );
+
+      return {
+        totalDeleted: deletedKeyIds.length,
+      };
+    },
+    onSuccess(data) {
       const deletedCount = data.totalDeleted;
 
       if (deletedCount === 1) {
@@ -19,36 +55,26 @@ export const useDeleteKey = (onSuccess?: () => void) => {
         });
       }
 
-      // If some keys weren't found. Someone might've already deleted them when this is fired.
-      if (data.deletedKeyIds.length < variable.keyIds.length) {
-        const missingCount = variable.keyIds.length - data.deletedKeyIds.length;
-        toast.warning("Some Keys Not Found", {
-          description: `${missingCount} ${
-            missingCount === 1 ? "key was" : "keys were"
-          } not found and could not be deleted.`,
-          duration: 7000,
-        });
-      }
-
       trpcUtils.api.keys.list.invalidate();
       if (onSuccess) {
         onSuccess();
       }
     },
     onError(err, variable) {
-      const errorMessage = err.message || "";
+      const errorMessage = deleteKeyErrorMessage(err);
+      const errorCode = deleteKeyErrorCode(err);
       const isPlural = variable.keyIds.length > 1;
       const keyText = isPlural ? "keys" : "key";
 
-      if (err.data?.code === "NOT_FOUND") {
+      if (errorCode === "NOT_FOUND") {
         toast.error("Key Deletion Failed", {
           description: `Unable to find the ${keyText}. Please refresh and try again.`,
         });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
+      } else if (errorCode === "INTERNAL_SERVER_ERROR") {
         toast.error("Server Error", {
           description: `We encountered an issue while deleting your ${keyText}. Please try again later or contact support at support.unkey.dev`,
         });
-      } else if (err.data?.code === "FORBIDDEN") {
+      } else if (errorCode === "FORBIDDEN") {
         toast.error("Permission Denied", {
           description: `You don't have permission to delete ${
             isPlural ? "these keys" : "this key"
@@ -68,3 +94,29 @@ export const useDeleteKey = (onSuccess?: () => void) => {
 
   return deleteKey;
 };
+
+function deleteKeyErrorCode(
+  error: unknown,
+): "BAD_REQUEST" | "FORBIDDEN" | "INTERNAL_SERVER_ERROR" | "NOT_FOUND" | "UNKNOWN" {
+  if (error instanceof NotFoundErrorResponse) {
+    return "NOT_FOUND";
+  }
+  if (error instanceof ForbiddenErrorResponse || error instanceof UnauthorizedErrorResponse) {
+    return "FORBIDDEN";
+  }
+  if (error instanceof BadRequestErrorResponse) {
+    return "BAD_REQUEST";
+  }
+  if (error instanceof InternalServerErrorResponse) {
+    return "INTERNAL_SERVER_ERROR";
+  }
+
+  return "UNKNOWN";
+}
+
+function deleteKeyErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return "An unexpected error occurred. Please try again later.";
+}
