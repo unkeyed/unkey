@@ -20,9 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -63,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	legacyAuthorizeErr := principal.Authorize(rbac.Or(
+	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   req.ApiId,
@@ -75,6 +73,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateKey,
 		}),
 	))
+	if err != nil {
+		return err
+	}
 
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: req.ApiId}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
@@ -111,19 +112,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("wrong workspace, masking as 404"),
 			fault.Public("The requested API does not exist or has been deleted."),
 		)
-	}
-
-	if legacyAuthorizeErr != nil {
-		if !api.KeyAuthID.Valid {
-			return legacyAuthorizeErr
-		}
-		err = principal.Authorize(rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
-			permissions.CreateKey{},
-		))
-		if err != nil {
-			return legacyAuthorizeErr
-		}
 	}
 
 	migration, err := db.Query.FindKeyMigrationByID(ctx, h.DB.RO(), db.FindKeyMigrationByIDParams{ID: req.MigrationId, WorkspaceID: principal.WorkspaceID})

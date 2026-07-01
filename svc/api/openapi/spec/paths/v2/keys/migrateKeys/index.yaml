@@ -6,16 +6,13 @@ post:
     Returns HTTP 200 even on partial success; hashes that could not be migrated are listed under `data.failed`.
 
     **Required Permissions**
-    Your credential must have one of the following permissions:
+    Your root key must have one of the following permissions for basic key information:
     - `api.*.create_key` (to migrate keys to any API)
     - `api.<api_id>.create_key` (to migrate keys to a specific API)
-    - `unkey:v1:<workspace_id>:keyspaces/*#create_key` (to migrate keys into any keyspace)
-    - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key` (to migrate keys into a specific keyspace)
   operationId: keys.migrateKeys
   x-speakeasy-name-override: migrateKeys
   security:
     - rootKey: []
-    - dashboard: []
   requestBody:
     content:
       application/json:
