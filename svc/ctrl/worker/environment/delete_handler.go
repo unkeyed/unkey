@@ -7,7 +7,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -26,11 +28,19 @@ const envDeletedMessage = "Environment deleted"
 // Key: environment_id
 func (s *Service) Delete(
 	ctx restate.ObjectContext,
-	_ *hydrav1.DeleteEnvironmentRequest,
+	req *hydrav1.DeleteEnvironmentRequest,
 ) (*hydrav1.DeleteEnvironmentResponse, error) {
 	envID := restate.Key(ctx)
 
 	logger.Info("starting environment deletion", "environment_id", envID)
+
+	// Capture env metadata before the row is deleted, for the audit log.
+	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
+		return s.db.FindEnvironmentById(runCtx, envID)
+	}, restate.WithName("find environment"))
+	if err != nil {
+		return nil, fmt.Errorf("find environment: %w", err)
+	}
 
 	if err := s.cancelProgressingDeployments(ctx, envID); err != nil {
 		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
@@ -40,12 +50,6 @@ func (s *Service) Delete(
 		return s.db.DeleteCiliumNetworkPoliciesByEnvironmentId(runCtx, envID)
 	}, restate.WithName("delete network policies")); err != nil {
 		return nil, fmt.Errorf("delete network policies: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteSentinelsByEnvironmentId(runCtx, envID)
-	}, restate.WithName("delete sentinels")); err != nil {
-		return nil, fmt.Errorf("delete sentinels: %w", err)
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -106,6 +110,24 @@ func (s *Service) Delete(
 		return s.db.DeleteEnvironmentById(runCtx, envID)
 	}, restate.WithName("delete environment")); err != nil {
 		return nil, fmt.Errorf("delete environment: %w", err)
+	}
+
+	// The environment has no display name, so its slug stands in.
+	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
+		Actor:         req.GetActor(),
+		CorrelationID: req.GetCorrelationId(),
+		WorkspaceID:   env.WorkspaceID,
+		Event:         auditlog.EnvironmentDeleteEvent,
+		Display:       fmt.Sprintf("Deleted environment %s", env.Slug),
+		Resource: auditlog.AuditLogResource{
+			ID:          env.ID,
+			Type:        auditlog.EnvironmentResourceType,
+			Meta:        map[string]any{"slug": env.Slug, "appId": env.AppID, "projectId": env.ProjectID},
+			Name:        env.Slug,
+			DisplayName: env.Slug,
+		},
+	}); err != nil {
+		return nil, fmt.Errorf("insert audit log: %w", err)
 	}
 
 	logger.Info("environment deletion complete", "environment_id", envID)

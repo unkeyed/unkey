@@ -10,7 +10,11 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/auditlog",
         "//pkg/logger",
+        "//svc/ctrl/internal/audit",
+        "//svc/ctrl/internal/auditlogs",
         "//svc/ctrl/internal/db",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],

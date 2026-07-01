@@ -81,7 +81,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		Status:        db.DeploymentsStatusReady,
 	})
 
-	// Region (needed for topology, sentinels, cilium policies)
+	// Region (needed for topology and cilium policies)
 	regionID := uid.New(uid.RegionPrefix)
 	err := h.DB.UpsertRegion(ctx, db.UpsertRegionParams{
 		ID:       regionID,
@@ -108,26 +108,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
 		Version:                    1,
 		CreatedAt:                  now,
-	})
-	require.NoError(t, err)
-
-	// Sentinel
-	err = h.DB.InsertSentinel(ctx, db.InsertSentinelParams{
-		ID:                uid.New("sen"),
-		WorkspaceID:       workspaceID,
-		EnvironmentID:     env.ID,
-		ProjectID:         project.ID,
-		K8sAddress:        "http://localhost:9090",
-		K8sName:           uid.New("k8s"),
-		RegionID:          region.ID,
-		Image:             "sentinel:1.0",
-		Health:            db.SentinelsHealthHealthy,
-		DesiredReplicas:   1,
-		AvailableReplicas: 1,
-		CpuMillicores:     100,
-		MemoryMib:         128,
-		Version:           1,
-		CreatedAt:         now,
 	})
 	require.NoError(t, err)
 
@@ -222,7 +202,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		{"SELECT COUNT(*) FROM environments WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM deployments WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM deployment_topology WHERE deployment_id = ?", deployment.ID},
-		{"SELECT COUNT(*) FROM sentinels WHERE project_id = ?", project.ID},
 		{"SELECT COUNT(*) FROM cilium_network_policies WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM frontline_routes WHERE app_id = ?", app.ID},
 		{"SELECT COUNT(*) FROM github_repo_connections WHERE app_id = ?", app.ID},

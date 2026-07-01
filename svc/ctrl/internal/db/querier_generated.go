@@ -123,10 +123,6 @@ type Querier interface {
 	//
 	//  DELETE FROM projects WHERE id = ?
 	DeleteProjectById(ctx context.Context, id string) error
-	//DeleteSentinelsByEnvironmentId
-	//
-	//  DELETE FROM sentinels WHERE environment_id = ?
-	DeleteSentinelsByEnvironmentId(ctx context.Context, environmentID string) error
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -505,11 +501,6 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE platform = ? AND name = ? LIMIT 1
 	FindRegionByPlatformAndName(ctx context.Context, arg FindRegionByPlatformAndNameParams) (Region, error)
-	//FindSentinelByID
-	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
-	//  WHERE id = ? LIMIT 1
-	FindSentinelByID(ctx context.Context, id string) (Sentinel, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
@@ -1181,36 +1172,6 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, arg InsertRolePermissionParams) error
-	//InsertSentinel
-	//
-	//  INSERT INTO sentinels (
-	//      id,
-	//      workspace_id,
-	//      environment_id,
-	//      project_id,
-	//      k8s_address,
-	//      k8s_name,
-	//      region_id,
-	//      image,
-	//      desired_replicas,
-	//      cpu_millicores,
-	//      memory_mib,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertSentinel(ctx context.Context, arg InsertSentinelParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -1752,19 +1713,6 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateProjectDepotID(ctx context.Context, arg UpdateProjectDepotIDParams) error
-	// UpdateSentinelObservedState writes observed state from a krane agent:
-	// the current health, available replica count, and the image that is
-	// actually running on the pods. The running image is used to detect
-	// rollout convergence — a deploy is only complete when running_image
-	// matches the desired image.
-	//
-	//  UPDATE sentinels SET
-	//    available_replicas = ?,
-	//    health = ?,
-	//    running_image = ?,
-	//    updated_at = ?
-	//  WHERE k8s_name = ?
-	UpdateSentinelObservedState(ctx context.Context, arg UpdateSentinelObservedStateParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

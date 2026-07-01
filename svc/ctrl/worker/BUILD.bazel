@@ -32,6 +32,7 @@ go_library(
         "//pkg/rpc/interceptor",
         "//pkg/runner",
         "//pkg/uid",
+        "//svc/ctrl/internal/auditlogs",
         "//svc/ctrl/internal/db",
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/app",

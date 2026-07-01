@@ -62,7 +62,10 @@ import (
 	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
+	v2AppsDeleteApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
 	v2AppsGetApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_get_app"
+	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
+	v2AppsUpdateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
 	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
 	v2ProjectsDeleteProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_delete_project"
 	v2ProjectsGetProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
@@ -660,6 +663,32 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		protectedMiddlewares,
 		&v2AppsGetApp.Handler{
 			DB: svc.Database,
+		},
+	)
+
+	// v2/apps.listApps
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AppsListApps.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/apps.updateApp
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AppsUpdateApp.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/apps.deleteApp
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AppsDeleteApp.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlAppClient,
 		},
 	)
 
