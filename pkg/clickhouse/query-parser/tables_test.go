@@ -247,7 +247,7 @@ func TestParser_SubqueryWithTables(t *testing.T) {
 		{
 			name:        "subquery with aggregation not selecting workspace_id",
 			query:       "SELECT date, verifications FROM (SELECT time as date, SUM(count) as verifications FROM default.key_verifications_raw_v2 WHERE time >= now() - INTERVAL 60 DAY GROUP BY date) ORDER BY date",
-			expected:    "SELECT date, verifications FROM (SELECT time AS date, SUM(count) AS verifications FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND time >= now() - INTERVAL 60 DAY GROUP BY date LIMIT 10) ORDER BY date LIMIT 10",
+			expected:    "SELECT date, verifications FROM (SELECT time AS date, SUM(count) AS verifications FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_123' AND (time >= now() - INTERVAL 60 DAY) GROUP BY date LIMIT 10) ORDER BY date LIMIT 10",
 			shouldBlock: false,
 		},
 		{

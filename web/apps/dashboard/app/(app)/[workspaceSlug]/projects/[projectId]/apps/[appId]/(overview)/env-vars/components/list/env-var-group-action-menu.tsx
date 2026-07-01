@@ -2,58 +2,39 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
-import { Clone, Dots, PenWriting3, Trash } from "@unkey/icons";
-import { Button, ConfirmPopover, toast } from "@unkey/ui";
+import { Dots, PenWriting3, Trash } from "@unkey/icons";
+import { Button, ConfirmPopover } from "@unkey/ui";
 import { useRef, useState } from "react";
+import { EnvVarGroupRenameDialog } from "./env-var-group-rename-dialog";
+import type { EnvVarItem } from "./env-var-item-row";
 
-type EnvVarActionMenuProps = {
-  envVarId: string;
-  variableKey: string;
-  type: "writeonly" | "recoverable";
-  onEdit: () => void;
+type EnvVarGroupActionMenuProps = {
+  groupKey: string;
+  items: EnvVarItem[];
 };
 
-export function EnvVarActionMenu({ envVarId, variableKey, type, onEdit }: EnvVarActionMenuProps) {
-  const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
+export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenuProps) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
+  const environmentNames = items.map((i) => i.environmentName).join(", ");
+
   const menuItems: MenuItem[] = [
     {
-      id: "edit",
-      label: "Edit",
+      id: "rename",
+      label: "Rename in all environments",
       icon: <PenWriting3 iconSize="md-regular" />,
-      onClick: (e) => {
-        e.stopPropagation();
-        onEdit();
-      },
+      ActionComponent: (props) => (
+        <EnvVarGroupRenameDialog {...props} groupKey={groupKey} items={items} />
+      ),
     },
     {
       id: "delete",
-      label: "Delete",
+      label: "Delete from all environments",
       icon: <Trash iconSize="md-regular" />,
-      divider: true,
       onClick: (e) => {
         e.stopPropagation();
         setIsDeleteConfirmOpen(true);
-      },
-    },
-    {
-      id: "copy",
-      label: "Copy to Clipboard",
-      icon: <Clone iconSize="md-regular" />,
-      disabled: type === "writeonly",
-      tooltip: type === "writeonly" ? "Write-only variables cannot be copied" : undefined,
-      onClick: async (e) => {
-        e.stopPropagation();
-        try {
-          const result = await decryptMutation.mutateAsync({ envVarId });
-          navigator.clipboard.writeText(`${variableKey}=${result.value}`);
-          toast.success("Copied to clipboard");
-        } catch {
-          toast.error("Failed to decrypt value");
-        }
       },
     },
   ];
@@ -72,15 +53,15 @@ export function EnvVarActionMenu({ envVarId, variableKey, type, onEdit }: EnvVar
       </TableActionPopover>
 
       {/* Stop clicks inside the popover (e.g. Cancel) from bubbling up to the
-          row, which would otherwise open the edit form. */}
+          row, which would otherwise toggle the group accordion. */}
       <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
         <ConfirmPopover
           isOpen={isDeleteConfirmOpen}
           onOpenChange={setIsDeleteConfirmOpen}
-          onConfirm={() => collection.envVars.delete([envVarId])}
+          onConfirm={() => collection.envVars.delete(items.map((i) => i.id))}
           triggerRef={deleteButtonRef}
           title="Confirm deletion"
-          description={`This will permanently delete "${variableKey}". This action cannot be undone.`}
+          description={`This will permanently delete "${groupKey}" from ${items.length} environments (${environmentNames}). This action cannot be undone.`}
           confirmButtonText="Delete variable"
           cancelButtonText="Cancel"
           variant="danger"

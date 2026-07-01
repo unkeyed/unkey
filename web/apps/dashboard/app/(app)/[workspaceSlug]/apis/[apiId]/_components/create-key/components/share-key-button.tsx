@@ -11,11 +11,7 @@ export const ShareKeyButton = ({ secret }: { secret: string }) => {
   const [link, setLink] = useState<string | null>(null);
 
   const create = trpc.share.create.useMutation({
-    onSuccess: ({ id }) => {
-      // The id rides in the fragment (after `#`) so it stays out of server
-      // access logs and Referer headers.
-      setLink(`${window.location.origin}/share#${id}`);
-    },
+    onSuccess: ({ url }) => setLink(url),
     onError: (err) => {
       console.error(err);
       toast.error("Could not create a secure link. Please try again.");
