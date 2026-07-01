@@ -284,6 +284,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
               const match = DEPLOY_PLANS.find((p) => p === plan);
               if (match) {
                 setPendingPlan(match);
+                setPlanModalOpen(false);
               }
             },
             selectLabel,

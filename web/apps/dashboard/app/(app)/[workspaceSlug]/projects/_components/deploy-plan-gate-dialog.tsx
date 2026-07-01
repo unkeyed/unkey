@@ -104,7 +104,7 @@ export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
           </div>
           <div className="mt-0">{renderPlanSection()}</div>
           {isAdmin ? null : (
-            <p className="text-center text-[12px] text-gray-9">
+            <p className="text-center text-[12px] text-gray-11">
               Only workspace admins can manage billing.
             </p>
           )}

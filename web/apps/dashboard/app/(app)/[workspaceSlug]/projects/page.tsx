@@ -144,8 +144,21 @@ function usePendingSubscribe() {
               toast.error("Only workspace admins can manage billing.");
               return;
             }
-            // A precondition failure (e.g. no card on file) also won't clear on
-            // retry; only offer Retry for transient/payment errors.
+            // Payment failure: the workspace has a Stripe customer but no usable
+            // card, so the charge fails. Send them to Stripe to add one — /success
+            // returns to this landing and re-subscribes.
+            if (error.data?.code === "BAD_REQUEST") {
+              router.push(
+                routes.settings.stripe.checkout({
+                  workspaceSlug: workspace.slug,
+                  intent: "deploy",
+                  plan: pending.plan,
+                  from: pending.fromCreate ? "create" : "banner",
+                }),
+              );
+              return;
+            }
+            // Other preconditions won't clear on retry; surface the reason.
             if (error.data?.code === "PRECONDITION_FAILED") {
               toast.error(error.message || "Couldn't start your plan");
               return;

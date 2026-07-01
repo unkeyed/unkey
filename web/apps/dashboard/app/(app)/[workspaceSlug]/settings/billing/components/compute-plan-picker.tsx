@@ -159,6 +159,8 @@ function Row({ plan }: { plan: DeployPlanOption }) {
         <button
           type="button"
           disabled={disabled}
+          aria-busy={isSubmitting}
+          title={meta.disabledReason}
           onClick={() => actions.onSelect(plan.plan)}
           className={cn(
             cardClassName,
@@ -168,7 +170,13 @@ function Row({ plan }: { plan: DeployPlanOption }) {
           {details}
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-12 px-3 py-2 text-[13px] font-medium text-gray-1">
             {isSubmitting ? (
-              <span className="size-4 animate-spin rounded-full border-2 border-gray-1 border-t-transparent" />
+              <>
+                <span
+                  className="size-4 animate-spin rounded-full border-2 border-gray-1 border-t-transparent"
+                  aria-hidden="true"
+                />
+                <span className="sr-only">Working…</span>
+              </>
             ) : (
               <>
                 {label}
@@ -217,7 +225,7 @@ function Features() {
 function MoreInfoLink() {
   return (
     <p className="text-[13px] text-gray-11 leading-normal">
-      Get more information about{" "}
+      Get more information about {/* @dh todo - add docs */}
       <a
         href={COMPUTE_PLANS_LINK_HREF}
         target="_blank"
@@ -253,7 +261,7 @@ function InfoStrip() {
     <div className="flex items-start gap-2.5 rounded-[11px] border border-gray-4 bg-gray-1 px-3.5 py-3">
       <CircleInfo iconSize="lg-regular" className="mt-px shrink-0 text-info-9" />
       <p className="text-[12.5px] text-gray-11 leading-relaxed">
-        {CREDITS_INFO}{" "}
+        {CREDITS_INFO} {/* @dh todo - add docs */}
         <a
           href={meta.creditsHref}
           target="_blank"
