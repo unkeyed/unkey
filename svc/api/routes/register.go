@@ -62,6 +62,7 @@ import (
 	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
 
 	v2AppsCreateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
+	v2AppsDeleteApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_delete_app"
 	v2AppsGetApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_get_app"
 	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
 	v2AppsUpdateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
@@ -679,6 +680,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2AppsUpdateApp.Handler{
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/apps.deleteApp
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2AppsDeleteApp.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlAppClient,
 		},
 	)
 

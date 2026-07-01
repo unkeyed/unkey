@@ -16,13 +16,13 @@ import (
 )
 
 type (
-	Request  = openapi.V2ProjectsDeleteProjectRequestBody
-	Response = openapi.V2ProjectsDeleteProjectResponseBody
+	Request  = openapi.V2AppsDeleteAppRequestBody
+	Response = openapi.V2AppsDeleteAppResponseBody
 )
 
 type Handler struct {
 	DB         db.Database
-	CtrlClient ctrl.ProjectServiceClient
+	CtrlClient ctrl.AppServiceClient
 }
 
 func (h *Handler) Method() string {
@@ -30,7 +30,7 @@ func (h *Handler) Method() string {
 }
 
 func (h *Handler) Path() string {
-	return "/v2/projects.deleteProject"
+	return "/v2/apps.deleteApp"
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
@@ -44,17 +44,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
+	app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RO(), db.FindAppByProjectAndIdOrSlugParams{
 		WorkspaceID: principal.WorkspaceID,
 		Project:     req.Project,
+		App:         req.App,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New(
-				"project not found",
-				fault.Code(codes.Data.Project.NotFound.URN()),
-				fault.Internal("project not found"),
-				fault.Public("The requested project does not exist."),
+				"app not found",
+				fault.Code(codes.Data.App.NotFound.URN()),
+				fault.Internal("app not found"),
+				fault.Public("The requested app does not exist."),
 			)
 		}
 
@@ -62,32 +63,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
-			fault.Public("Failed to retrieve project."),
+			fault.Public("Failed to retrieve app."),
 		)
 	}
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
+			ResourceType: rbac.App,
 			ResourceID:   "*",
-			Action:       rbac.DeleteProject,
+			Action:       rbac.DeleteApp,
 		}),
 		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   project.ID,
-			Action:       rbac.DeleteProject,
+			ResourceType: rbac.App,
+			ResourceID:   app.ID,
+			Action:       rbac.DeleteApp,
 		}),
 	))
 	if err != nil {
 		return err
 	}
 
-	if project.DeleteProtection.Valid && project.DeleteProtection.Bool {
+	if app.DeleteProtection.Valid && app.DeleteProtection.Bool {
 		return fault.New(
 			"delete protected",
 			fault.Code(codes.App.Protection.ProtectedResource.URN()),
-			fault.Internal("project is protected from deletion"),
-			fault.Public("This project has delete protection enabled. Disable it before attempting to delete."),
+			fault.Internal("app is protected from deletion"),
+			fault.Public("This app has delete protection enabled. Disable it before attempting to delete."),
 		)
 	}
 
@@ -96,15 +97,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Deletion cascades through the project's apps, environments, and
-	// deployments via a durable Restate workflow. The control plane enqueues
-	// the workflow and returns immediately; teardown is eventually consistent.
-	_, err = h.CtrlClient.DeleteProject(ctx, &ctrlv1.DeleteProjectRequest{
-		ProjectId: project.ID,
-		Actor:     actor,
+	// Deletion cascades through the app's environments and deployments via a
+	// durable Restate workflow. The control plane enqueues the workflow and
+	// returns immediately; teardown is eventually consistent.
+	_, err = h.CtrlClient.DeleteApp(ctx, &ctrlv1.DeleteAppRequest{
+		AppId: app.ID,
+		Actor: actor,
 	})
 	if err != nil {
-		return ctrlclient.HandleError(err, "delete project")
+		return ctrlclient.HandleError(err, "delete app")
 	}
 
 	return s.JSON(http.StatusAccepted, Response{

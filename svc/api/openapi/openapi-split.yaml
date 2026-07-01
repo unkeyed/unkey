@@ -230,6 +230,8 @@ paths:
     $ref: "./spec/paths/v2/apps/listApps/index.yaml"
   /v2/apps.updateApp:
     $ref: "./spec/paths/v2/apps/updateApp/index.yaml"
+  /v2/apps.deleteApp:
+    $ref: "./spec/paths/v2/apps/deleteApp/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:

@@ -144,6 +144,7 @@ func (x *CreateAppResponse) GetId() string {
 type DeleteAppRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	Actor         *ActorInfo             `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -183,6 +184,13 @@ func (x *DeleteAppRequest) GetAppId() string {
 		return x.AppId
 	}
 	return ""
+}
+
+func (x *DeleteAppRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
 }
 
 type DeleteAppResponse struct {
@@ -234,9 +242,10 @@ const file_ctrl_v1_app_proto_rawDesc = "" +
 	"\x04slug\x18\x04 \x01(\tR\x04slug\x12(\n" +
 	"\x05actor\x18\x05 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"#\n" +
 	"\x11CreateAppResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\")\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
 	"\x10DeleteAppRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\"\x13\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12(\n" +
+	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x13\n" +
 	"\x11DeleteAppResponse2\x98\x01\n" +
 	"\n" +
 	"AppService\x12D\n" +
@@ -266,15 +275,16 @@ var file_ctrl_v1_app_proto_goTypes = []any{
 }
 var file_ctrl_v1_app_proto_depIdxs = []int32{
 	4, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 1: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
-	2, // 2: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
-	1, // 3: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
-	3, // 4: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 1: ctrl.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 2: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
+	2, // 3: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
+	1, // 4: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
+	3, // 5: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_app_proto_init() }

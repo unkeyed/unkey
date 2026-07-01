@@ -782,6 +782,26 @@ type V2AppsCreateAppResponseData struct {
 	AppId string `json:"appId"`
 }
 
+// V2AppsDeleteAppRequestBody defines model for V2AppsDeleteAppRequestBody.
+type V2AppsDeleteAppRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2AppsDeleteAppResponseBody defines model for V2AppsDeleteAppResponseBody.
+type V2AppsDeleteAppResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2AppsGetAppRequestBody defines model for V2AppsGetAppRequestBody.
 type V2AppsGetAppRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -2704,6 +2724,9 @@ type ApisListKeysJSONRequestBody = V2ApisListKeysRequestBody
 
 // AppsCreateAppJSONRequestBody defines body for AppsCreateApp for application/json ContentType.
 type AppsCreateAppJSONRequestBody = V2AppsCreateAppRequestBody
+
+// AppsDeleteAppJSONRequestBody defines body for AppsDeleteApp for application/json ContentType.
+type AppsDeleteAppJSONRequestBody = V2AppsDeleteAppRequestBody
 
 // AppsGetAppJSONRequestBody defines body for AppsGetApp for application/json ContentType.
 type AppsGetAppJSONRequestBody = V2AppsGetAppRequestBody

@@ -1,52 +1,54 @@
 post:
   tags:
-    - projects
-  summary: Delete project
+    - apps
+  summary: Delete app
   description: |
-    Delete an existing project in your workspace, identified by its id.
+    Delete an existing app, identified by its id.
 
-    Deletion is asynchronous and eventually consistent. The project and all of its associated resources (apps, environments, deployments, custom domains) are torn down by a background workflow. A successful response indicates the deletion was enqueued, not that every resource has already been removed.
+    Deletion is asynchronous and eventually consistent. The app and all of its associated resources (environments, deployments, custom domains) are torn down by a background workflow. A successful response indicates the deletion was enqueued, not that every resource has already been removed.
 
-    Projects with delete protection enabled cannot be deleted until protection is disabled.
+    Apps with delete protection enabled cannot be deleted until protection is disabled.
 
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `project.*.delete_project` (to delete any project)
-    - `project.<project_id>.delete_project` (to delete a specific project)
-  operationId: projects.deleteProject
-  x-speakeasy-name-override: deleteProject
+    - `app.*.delete_app` (to delete any app)
+    - `app.<app_id>.delete_app` (to delete a specific app)
+  operationId: apps.deleteApp
+  x-speakeasy-name-override: deleteApp
   security:
     - rootKey: []
   requestBody:
     content:
       application/json:
         schema:
-          "$ref": "./V2ProjectsDeleteProjectRequestBody.yaml"
+          "$ref": "./V2AppsDeleteAppRequestBody.yaml"
         examples:
           deleteById:
-            summary: Delete by project ID
-            description: Delete a project using its unique identifier
+            summary: Delete by app ID
+            description: Delete an app using its unique identifier
             value:
-              project: proj_1234abcd
+              project: payments
+              app: app_1234abcd
           deleteBySlug:
-            summary: Delete by project slug
-            description: Delete a project using its slug
+            summary: Delete by app slug
+            description: Delete an app using its slug
             value:
-              project: payment-service
+              project: payments
+              app: payments-service
     required: true
   responses:
     "202":
       description: |
-        Successfully enqueued deletion of the project.
+        Successfully enqueued deletion of the app.
       content:
         application/json:
           schema:
-            "$ref": "./V2ProjectsDeleteProjectResponseBody.yaml"
+            "$ref": "./V2AppsDeleteAppResponseBody.yaml"
           examples:
             success:
               summary: Deletion enqueued
-              description: Project deletion was successfully enqueued
+              description: App deletion was successfully enqueued
               value:
                 meta:
                   requestId: req_1234abcd
@@ -64,7 +66,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `project.*.delete_project`)
+      description: Forbidden - Insufficient permissions (requires `app.*.delete_app`)
       content:
         application/json:
           schema:
@@ -77,24 +79,24 @@ post:
                   requestId: req_1234abcd
                 error:
                   title: Forbidden
-                  detail: Your root key requires the 'project.*.delete_project' permission to perform this operation
+                  detail: Your root key requires the 'delete_app' permission on the target app to perform this operation
                   status: 403
                   type: forbidden
     "404":
-      description: Not Found - The requested project does not exist in your workspace
+      description: Not Found - The requested app does not exist in your workspace
       content:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
           examples:
-            projectNotFound:
-              summary: Project not found
+            appNotFound:
+              summary: App not found
               value:
                 meta:
                   requestId: req_1234abcd
                 error:
                   title: Not Found
-                  detail: The requested project does not exist.
+                  detail: The requested app does not exist.
                   status: 404
                   type: not-found
     "412":
