@@ -1,0 +1,49 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - variables
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  variables:
+    type: array
+    minItems: 1
+    maxItems: 50
+    items:
+      "$ref": "../../../../common/EnvironmentVariableInput.yaml"
+    description: |
+      The variables to add. Every key must not already exist; if any one does,
+      the request is rejected with a 409 and nothing is changed. Use
+      `setEnvironmentVariables` to update existing values.
+
+      A new key uses the field defaults when optional fields (`kind`,
+      `description`) are omitted; only `key` and `value` are required on every
+      entry. `kind` defaults to `writeonly`.
+
+      Each key may appear at most once; duplicates are rejected with a 400. The
+      whole operation is atomic: if any part fails the environment is left
+      unchanged. All values are encrypted at rest. Limited to 50 variables per
+      request.
+additionalProperties: false
+examples:
+  addVariables:
+    summary: Add new variables
+    description: Create new keys in an environment; fails with 409 if any key already exists
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      variables:
+        - key: DATABASE_URL
+          value: postgresql://user:pass@host:5432/db
+          kind: writeonly
+        - key: LOG_LEVEL
+          value: debug
+          kind: recoverable
+          description: Application log verbosity
