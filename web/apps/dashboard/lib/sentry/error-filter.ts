@@ -27,10 +27,11 @@ export type BeforeSendHook = Parameters<typeof Sentry.init>[0]["beforeSend"];
  * Sentry. The tRPC Sentry middleware attaches the raw procedure input to
  * `event.contexts.trpc.input` (via `attachRpcInput: true`), which would
  * otherwise exfiltrate env-var secret values (`value`, `variables[].value`,
- * `items[].value`) when an unexpected error is forwarded. `sendDefaultPii: false`
- * does not scrub custom contexts, so we redact these explicitly.
+ * `items[].value`) or one-time share payloads (`secret`) when an unexpected
+ * error is forwarded. `sendDefaultPii: false` does not scrub custom contexts,
+ * so we redact these explicitly.
  */
-const SENSITIVE_INPUT_KEYS = new Set(["value"]);
+const SENSITIVE_INPUT_KEYS = new Set(["value", "secret"]);
 
 const REDACTED = "[REDACTED]";
 

@@ -1,0 +1,75 @@
+import { randomBytes } from "node:crypto";
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
+import { insertAuditLogs } from "@/lib/audit";
+import { db, lt, schema } from "@/lib/db";
+import { getBaseUrl } from "@/lib/utils";
+import { createVaultClient } from "@/lib/vault-client";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { withCreateRateLimit, workspaceProcedure } from "../../trpc";
+
+const vault = createVaultClient(VaultService);
+
+// Share links always live for 72 hours, enforced server-side.
+const TTL_MS = 72 * 60 * 60 * 1000;
+
+// Keeps the vault ciphertext within the `encrypted` varchar(1024) column. Keys
+// are far shorter; this just rejects oversized input cleanly.
+const MAX_SECRET_LENGTH = 512;
+
+// Vault-encrypts the secret (keyring = workspace id, like `encrypted_keys`) and
+// stores it for a one-time share link.
+export const createSharedSecret = workspaceProcedure
+  .use(withCreateRateLimit())
+  .input(z.object({ secret: z.string().min(1).max(MAX_SECRET_LENGTH) }))
+  .mutation(async ({ ctx, input }) => {
+    // The id is a bearer credential in the URL, so use raw randomness with no
+    // prefix that would advertise what it points at.
+    const id = randomBytes(16).toString("base64url");
+
+    try {
+      const { encrypted, keyId } = await vault.encrypt({
+        keyring: ctx.workspace.id,
+        data: input.secret,
+      });
+
+      const now = Date.now();
+
+      // Lazy cleanup: MySQL has no native row TTL, so sweep expired rows on write.
+      // The read path enforces expiry independently, so this is only housekeeping.
+      await db.delete(schema.sharedSecrets).where(lt(schema.sharedSecrets.expiresAt, now));
+
+      // Insert and audit atomically so a failed audit can't leave an unrecorded row.
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.sharedSecrets).values({
+          id,
+          workspaceId: ctx.workspace.id,
+          expiresAt: now + TTL_MS,
+          encrypted,
+          encryptionKeyId: keyId,
+        });
+
+        await insertAuditLogs(tx, {
+          workspaceId: ctx.workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "secret.create",
+          description: "Created a one-time share link",
+          resources: [],
+          context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+        });
+      });
+
+      // Build the link server-side: getBaseUrl resolves the production domain
+      // (app.unkey.com) in prod and the branch/preview URL otherwise, which the
+      // client can't do since window.location would be the deployment URL.
+      return { url: `${getBaseUrl()}/share#${id}` };
+    } catch (error) {
+      // Log the real cause server-side; return a generic message so we never
+      // leak query/vault internals to the client.
+      console.error("Failed to create shared secret", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could not create a secure link. Please try again.",
+      });
+    }
+  });

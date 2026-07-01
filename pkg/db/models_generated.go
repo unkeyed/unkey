@@ -1605,6 +1605,16 @@ type Sentinel struct {
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
 }
 
+type SharedSecret struct {
+	Pk              uint64 `db:"pk"`
+	ID              string `db:"id"`
+	WorkspaceID     string `db:"workspace_id"`
+	ExpiresAt       int64  `db:"expires_at"`
+	CreatedAt       int64  `db:"created_at"`
+	Encrypted       string `db:"encrypted"`
+	EncryptionKeyID string `db:"encryption_key_id"`
+}
+
 type Workspace struct {
 	Pk                   uint64          `db:"pk"`
 	ID                   string          `db:"id"`
