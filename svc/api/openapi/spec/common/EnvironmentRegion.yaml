@@ -6,6 +6,8 @@ required:
 properties:
   name:
     type: string
+    minLength: 1
+    maxLength: 64
     description: Region name, such as us-east-1.
     example: us-east-1
   replicas:

@@ -80,7 +80,7 @@ func seedRegions(t *testing.T, h *testutil.Harness, names ...string) {
 func seedUnschedulableRegion(t *testing.T, h *testutil.Harness, name string) {
 	t.Helper()
 	_, err := h.DB.RW().ExecContext(context.Background(),
-		"INSERT INTO regions (id, name, platform, can_schedule) VALUES (?, ?, 'aws', false)",
+		"INSERT INTO regions (id, name, platform, can_schedule) VALUES (?, ?, 'aws', false) ON DUPLICATE KEY UPDATE can_schedule = false",
 		uid.New(uid.RegionPrefix), name)
 	require.NoError(t, err)
 }
