@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
+	"github.com/restatedev/sdk-go/ingress"
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
@@ -26,6 +28,11 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+)
+
+const (
+	readinessServiceName = "harnessReadiness"
+	readinessHandlerName = "ping"
 )
 
 type webhookHarnessConfig struct {
@@ -55,6 +62,19 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		restateSrv.Bind(service)
 	}
 
+	// Readiness probe object. Registering a deployment (register below) only
+	// confirms Restate discovered the worker, not that its partition processor
+	// can route invocations to it yet. Until it can, a Send is accepted but
+	// never dispatched, so the first test would time out waiting for its
+	// invocation. This is a virtual object, matching the keyed services under
+	// test: on cold start keyed routing becomes ready later than unkeyed
+	// service routing, so probing a plain service would pass too early. We
+	// invoke it synchronously after registration and only return once it
+	// responds, proving keyed invocations actually reach this worker.
+	restateSrv.Bind(restate.NewObject(readinessServiceName).
+		Handler(readinessHandlerName, restate.NewObjectHandler(
+			func(_ restate.ObjectContext, in string) (string, error) { return in, nil })))
+
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)
 
@@ -73,7 +93,17 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 
 	workerPort := workerListener.Addr().(*net.TCPAddr).Port
 	registration := &restateRegistration{adminURL: restateCfg.AdminURL, registerAs: fmt.Sprintf("http://%s:%d", dockerHost(), workerPort)}
-	require.NoError(t, registration.register(ctx))
+	deploymentID, err := registration.register(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { registration.deregister(context.Background(), deploymentID) })
+
+	ingressClient := ingress.NewClient(restateCfg.IngressURL)
+	require.Eventually(t, func() bool {
+		reqCtx, reqCancel := context.WithTimeout(ctx, 2*time.Second)
+		defer reqCancel()
+		_, err := ingress.Object[string, string](ingressClient, readinessServiceName, "probe", readinessHandlerName).Request(reqCtx, "ready")
+		return err == nil
+	}, 30*time.Second, 250*time.Millisecond, "restate never routed an invocation to the test worker")
 
 	mysqlCfg := containers.MySQL(t)
 	database, err := db.New(mysqlCfg.DSN)
@@ -191,27 +221,57 @@ type restateRegistration struct {
 	registerAs string
 }
 
-func (r *restateRegistration) register(ctx context.Context) error {
+// register registers the harness's worker as a Restate deployment and returns
+// its deployment id so the caller can deregister it on cleanup.
+func (r *restateRegistration) register(ctx context.Context) (string, error) {
 	registerURL := r.adminURL + "/deployments"
 	payload := []byte("{\"uri\": \"" + r.registerAs + "\"}")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, registerURL, bytes.NewReader(payload))
 	if err != nil {
-		return err
+		return "", err
 	}
 	requireJSON(req)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmtStatus(resp.StatusCode)
+		return "", fmtStatus(resp.StatusCode)
 	}
-	return nil
+
+	var body struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return "", err
+	}
+	return body.ID, nil
+}
+
+// deregister removes the deployment from Restate. Each test registers a fresh
+// worker deployment on the shared Restate container; without removing them the
+// container collects one dead deployment per test run. force=true drops it even
+// while invocations reference it. Best effort: cleanup failures must not fail
+// the test.
+func (r *restateRegistration) deregister(ctx context.Context, id string) {
+	if id == "" {
+		return
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, r.adminURL+"/deployments/"+id+"?force=true", nil)
+	if err != nil {
+		return
+	}
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	_ = resp.Body.Close()
 }
 
 func requireJSON(req *http.Request) {
