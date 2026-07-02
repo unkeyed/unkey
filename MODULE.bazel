@@ -105,6 +105,7 @@ use_repo(
     "com_github_nishanths_exhaustive",
     "com_github_stripe_stripe_go_v86",
     "com_github_unkeyed_sdks_api_go_v2",
+    "com_github_workos_workos_go_v4",
     "org_golang_x_term",
     "team_gaijin_dev_go_exhaustruct_v4",
 )

@@ -241,6 +241,24 @@ local_resource(
 )
 
 local_resource(
+    'workos-credentials',
+    'if [ -f ./.env.workos ]; then kubectl -n unkey create secret generic workos-credentials --from-env-file=./.env.workos -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping workos-credentials (no .env.workos file)"; fi',
+    resource_deps=['namespace'],
+    deps=['./.env.workos'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
+local_resource(
+    'resend-credentials',
+    'if [ -f ./.env.resend ]; then kubectl -n unkey create secret generic resend-credentials --from-env-file=./.env.resend -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping resend-credentials (no .env.resend file)"; fi',
+    resource_deps=['namespace'],
+    deps=['./.env.resend'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
+local_resource(
     'webhooks-config',
     'if [ -f ./.env.webhooks ]; then kubectl -n unkey create configmap ctrl-worker-webhooks --from-env-file=./.env.webhooks -o yaml --dry-run=client | kubectl apply -f -; else kubectl -n unkey delete configmap ctrl-worker-webhooks --ignore-not-found; fi',
     resource_deps=['namespace'],
@@ -386,7 +404,7 @@ custom_build(
     deps=SERVICE_DEPS,
 )
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'workos-credentials', 'resend-credentials']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(

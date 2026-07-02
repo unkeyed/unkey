@@ -64,6 +64,22 @@ export const workspaces = mysqlTable("workspaces", {
   deploySpendBudgetStop: boolean("deploy_spend_budget_stop").notNull().default(false),
 
   /**
+   * Included Compute usage credit for the current billing period, in USD cents.
+   * Written by the invoice.payment_succeeded credit-grant path: it equals the
+   * net plan fee Stripe granted back as metered credit, so it stays correct
+   * across prorations and mid-cycle upgrades where the nominal catalog fee is
+   * not. The spend-cap check reads it locally to compute net-of-credit overage
+   * (overage = gross usage cost - this), so it never reads the Stripe credit
+   * balance on the hot path. NULL = not yet known (no invoice since the feature
+   * shipped); the check skips a NULL-credit workspace rather than counting its
+   * full gross as overage.
+   */
+  deployIncludedCreditCents: bigint("deploy_included_credit_cents", {
+    mode: "number",
+    unsigned: true,
+  }),
+
+  /**
    * feature flags
    *
    * betaFeatures may be toggled by the user for early access

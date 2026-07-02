@@ -69,8 +69,8 @@ func (h *Handler) resolvePushTasks(
 		return nil, 0, fmt.Errorf("get active keys: %w", err)
 	}
 
-	valuesByWorkspace := aggregateUsage(rows)
-	mergeActiveKeys(valuesByWorkspace, keyRows)
+	valuesByWorkspace := AggregateUsage(rows)
+	MergeActiveKeys(valuesByWorkspace, keyRows)
 	if len(valuesByWorkspace) == 0 {
 		logger.Info("no deploy usage this period", "billing_period", period)
 		return nil, 0, nil

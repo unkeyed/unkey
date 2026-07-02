@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// DeploySpendCheckService evaluates one workspace's Compute spend against its
+// configured budget. The RunDeploySpendCheck orchestrator fans out to it, one
+// invocation per budgeted workspace.
+//
+// Keyed by workspace id so a customer's checks serialize (the notify high-water
+// mark is read-modify-written in VO state) and a broken workspace fails in
+// isolation. Holding the high-water mark in VO state, keyed by period, is how
+// the check knows whether an alert was already sent: it emails only when the
+// crossed threshold exceeds the mark, then raises it. A new period is a new key
+// state, so the marks reset for free at the period roll.
+service DeploySpendCheckService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // CheckWorkspaceSpend prices the workspace's month-to-date Deploy usage from
+  // ClickHouse, computes the net-of-credit overage against the budget, and
+  // sends a budget alert for each 50/75/100% threshold newly crossed this
+  // period (at most one email per tick, for the highest crossing). Idempotent
+  // per period via the VO high-water mark.
+  rpc CheckWorkspaceSpend(CheckWorkspaceSpendRequest) returns (CheckWorkspaceSpendResponse) {}
+}
+
+message CheckWorkspaceSpendRequest {
+  // Period is the billing period "YYYY-MM" being evaluated. It bounds the
+  // month-to-date usage window and scopes the VO high-water mark, so a period
+  // roll resets the marks.
+  string period = 1;
+
+  // BudgetCents is the workspace's configured Compute spend budget (the cap on
+  // net-of-credit overage).
+  int64 budget_cents = 2;
+
+  // IncludedCreditCents is the period's included usage credit, subtracted from
+  // gross usage to get the budgeted overage.
+  int64 included_credit_cents = 3;
+
+  // Stop is the workspace's deploy_spend_budget_stop flag. Notify ignores it;
+  // enforcement (ENG-2923) suspends compute at 100% only when it is set.
+  bool stop = 4;
+
+  // OrgId is the workspace's organization, used to resolve the alert recipients
+  // (org admins) via WorkOS.
+  string org_id = 5;
+
+  // WorkspaceName and WorkspaceSlug populate the alert email: the name is shown
+  // in the body, the slug builds the billing-page link.
+  string workspace_name = 6;
+  string workspace_slug = 7;
+}
+
+message CheckWorkspaceSpendResponse {
+  // GrossCents is the priced month-to-date Deploy usage (before credit).
+  int64 gross_cents = 1;
+  // OverageCents is max(0, gross - included credit): what the budget caps.
+  int64 overage_cents = 2;
+  // ThresholdCrossed is the high-water threshold after this run (0/50/75/100).
+  int32 threshold_crossed = 3;
+  // Alerted is true when this run sent a budget alert (a newly crossed level).
+  bool alerted = 4;
+}

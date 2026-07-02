@@ -1606,24 +1606,25 @@ type Sentinel struct {
 }
 
 type Workspace struct {
-	Pk                     uint64          `db:"pk"`
-	ID                     string          `db:"id"`
-	OrgID                  string          `db:"org_id"`
-	Name                   string          `db:"name"`
-	Slug                   string          `db:"slug"`
-	K8sNamespace           sql.NullString  `db:"k8s_namespace"`
-	Tier                   sql.NullString  `db:"tier"`
-	StripeCustomerID       sql.NullString  `db:"stripe_customer_id"`
-	StripeSubscriptionID   sql.NullString  `db:"stripe_subscription_id"`
-	DeployPlan             sql.NullString  `db:"deploy_plan"`
-	DeployPlanOverride     sql.NullString  `db:"deploy_plan_override"`
-	DeploySpendBudgetCents sql.NullInt64   `db:"deploy_spend_budget_cents"`
-	DeploySpendBudgetStop  bool            `db:"deploy_spend_budget_stop"`
-	BetaFeatures           json.RawMessage `db:"beta_features"`
-	Subscriptions          []byte          `db:"subscriptions"`
-	Enabled                bool            `db:"enabled"`
-	DeleteProtection       sql.NullBool    `db:"delete_protection"`
-	CreatedAtM             int64           `db:"created_at_m"`
-	UpdatedAtM             sql.NullInt64   `db:"updated_at_m"`
-	DeletedAtM             sql.NullInt64   `db:"deleted_at_m"`
+	Pk                        uint64          `db:"pk"`
+	ID                        string          `db:"id"`
+	OrgID                     string          `db:"org_id"`
+	Name                      string          `db:"name"`
+	Slug                      string          `db:"slug"`
+	K8sNamespace              sql.NullString  `db:"k8s_namespace"`
+	Tier                      sql.NullString  `db:"tier"`
+	StripeCustomerID          sql.NullString  `db:"stripe_customer_id"`
+	StripeSubscriptionID      sql.NullString  `db:"stripe_subscription_id"`
+	DeployPlan                sql.NullString  `db:"deploy_plan"`
+	DeployPlanOverride        sql.NullString  `db:"deploy_plan_override"`
+	DeploySpendBudgetCents    sql.NullInt64   `db:"deploy_spend_budget_cents"`
+	DeploySpendBudgetStop     bool            `db:"deploy_spend_budget_stop"`
+	DeployIncludedCreditCents sql.NullInt64   `db:"deploy_included_credit_cents"`
+	BetaFeatures              json.RawMessage `db:"beta_features"`
+	Subscriptions             []byte          `db:"subscriptions"`
+	Enabled                   bool            `db:"enabled"`
+	DeleteProtection          sql.NullBool    `db:"delete_protection"`
+	CreatedAtM                int64           `db:"created_at_m"`
+	UpdatedAtM                sql.NullInt64   `db:"updated_at_m"`
+	DeletedAtM                sql.NullInt64   `db:"deleted_at_m"`
 }

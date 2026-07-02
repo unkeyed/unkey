@@ -42,7 +42,10 @@ type resendTemplate struct {
 }
 
 type resendRequest struct {
-	From     string         `json:"from"`
+	// From and Subject are omitempty so a template-only send can leave them out
+	// and let the published template's own From and Subject apply. Setting either
+	// overrides the template.
+	From     string         `json:"from,omitempty"`
 	To       []string       `json:"to"`
 	Subject  string         `json:"subject,omitempty"`
 	Template resendTemplate `json:"template"`

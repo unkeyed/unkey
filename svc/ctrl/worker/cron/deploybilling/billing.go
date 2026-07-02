@@ -2,6 +2,7 @@ package deploybilling
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
@@ -24,8 +25,22 @@ const (
 	bytesPerGiB = 1024 * 1024 * 1024
 )
 
+// Per-unit Deploy meter rates in cents, mirroring the canonical catalog in
+// tools/pricing/catalog.go (CentsPerUnit), which the reconciler writes to
+// Stripe. The spend-cap check prices usage locally with these so it never calls
+// Stripe; any drift from the catalog misprices the cap, so these values must
+// track catalog.go. The meters bill flat per unit (no tiers), so spend is a
+// plain dot product of MeterValues and these rates.
+const (
+	centsPerCPUSecond       = 0.0006944
+	centsPerMemoryGiBSecond = 0.0003472
+	centsPerEgressGiB       = 5.0
+	centsPerDiskGiBSecond   = 0.000006
+	centsPerActiveKey       = 0.2
+)
+
 // usageAccumulator sums per-resource meter rows for one workspace, in the
-// query's natural units (converted to meter units in aggregateUsage).
+// query's natural units (converted to meter units in AggregateUsage).
 type usageAccumulator struct {
 	cpuSeconds     float64
 	memoryGiBHours float64
@@ -33,11 +48,13 @@ type usageAccumulator struct {
 	egressBytes    int64
 }
 
-// aggregateUsage sums the per-resource meter rows into per-workspace meter
+// AggregateUsage sums the per-resource meter rows into per-workspace meter
 // values, converting each meter from the query's natural unit into the unit
 // its meter expects. Values stay full-precision (the meter events carry decimal
-// strings), so there is no rounding here.
-func aggregateUsage(rows []clickhouse.InstanceMeterUsage) map[string]billingmeter.MeterValues {
+// strings), so there is no rounding here. Exported so the spend-cap check
+// prices the exact same MeterValues the hourly push reports, with no second
+// copy of the unit conversions to drift.
+func AggregateUsage(rows []clickhouse.InstanceMeterUsage) map[string]billingmeter.MeterValues {
 	sums := make(map[string]*usageAccumulator)
 	for _, r := range rows {
 		a := sums[r.WorkspaceID]
@@ -64,11 +81,11 @@ func aggregateUsage(rows []clickhouse.InstanceMeterUsage) map[string]billingmete
 	return out
 }
 
-// mergeActiveKeys folds the per-workspace active-key counts into the meter
+// MergeActiveKeys folds the per-workspace active-key counts into the meter
 // values, adding entries for workspaces that have key activity but no
 // instance usage (possible: a deployment can be scaled to zero while its
 // keys keep verifying through the gateway).
-func mergeActiveKeys(
+func MergeActiveKeys(
 	values map[string]billingmeter.MeterValues,
 	rows []clickhouse.ActiveKeysUsage,
 ) {
@@ -77,4 +94,28 @@ func mergeActiveKeys(
 		v.ActiveKeys = float64(r.ActiveKeys)
 		values[r.WorkspaceID] = v
 	}
+}
+
+// PriceCents returns the month-to-date Deploy spend for one workspace's meter
+// values, in fractional cents. No rounding: callers compare it against the
+// integer budget directly, so a partial cent still counts. This is the gross
+// usage the hourly push reports, priced with the catalog rates; the spend-cap
+// check subtracts the included credit from it to get the budgeted overage.
+func PriceCents(v billingmeter.MeterValues) float64 {
+	return v.CPUSeconds*centsPerCPUSecond +
+		v.MemoryGiBSeconds*centsPerMemoryGiBSecond +
+		v.EgressGiB*centsPerEgressGiB +
+		v.DiskGiBSeconds*centsPerDiskGiBSecond +
+		v.ActiveKeys*centsPerActiveKey
+}
+
+// FormatDollars renders cents as a dollar string, dropping the cents when the
+// amount is whole: $25, but $18.75 stays $18.75. Mirrors the dashboard's
+// formatDollars (web/apps/dashboard/lib/fmt.ts) so figures we send (budget
+// alerts) read the same as the billing page.
+func FormatDollars(cents float64) string {
+	if int64(cents)%100 == 0 && cents == float64(int64(cents)) {
+		return fmt.Sprintf("$%d", int64(cents)/100)
+	}
+	return fmt.Sprintf("$%.2f", cents/100)
 }

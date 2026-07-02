@@ -256,6 +256,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 		BillingPusher:      o.billingPusher,
 		BillingCloser:      o.billingCloser,
 		StripeSecretKey:    "",
+		// Deploy spend-check dependencies are empty in tests: no WorkOS/Resend
+		// means the check resolves no recipients and logs instead of emailing.
+		WorkOSAPIKey:   "",
+		ResendAPIKey:   "",
+		BillingBaseURL: "",
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         healthcheck.NewNoop(),
 			KeyRefill:          healthcheck.NewNoop(),
@@ -264,6 +269,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			AuditLogCleanup:    healthcheck.NewNoop(),
 			DeployBillingPush:  healthcheck.NewNoop(),
 			DeployBillingClose: healthcheck.NewNoop(),
+			DeploySpendCheck:   healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)

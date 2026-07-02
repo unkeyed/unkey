@@ -82,6 +82,15 @@ service CronService {
   // invoice counts as done, so the Stripe invoice.created webhook (via
   // ctrl-api) and the 00:30 UTC backup cron can both invoke it safely.
   rpc RunDeployBillingClose(RunDeployBillingCloseRequest) returns (RunDeployBillingCloseResponse) {}
+
+  // RunDeploySpendCheck orchestrates the Compute spend-cap check. Key = billing
+  // period "YYYY-MM". It lists the opt-in set of workspaces that configured a
+  // Deploy spend budget and fans out one DeploySpendCheckService invocation per
+  // workspace. Runs every few minutes (far tighter than the hourly billing
+  // push) because a runaway can blow past the cap between hourly ticks; the
+  // per-workspace work prices usage locally from ClickHouse, so the tight
+  // cadence costs no Stripe calls.
+  rpc RunDeploySpendCheck(RunDeploySpendCheckRequest) returns (RunDeploySpendCheckResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -136,4 +145,14 @@ message RunDeployBillingCloseResponse {
   int32 invoices_finalized = 2;
   // Number of invoices that needed no action (already finalized or paid).
   int32 invoices_skipped = 3;
+}
+
+message RunDeploySpendCheckRequest {}
+message RunDeploySpendCheckResponse {
+  // Number of budgeted workspaces the orchestrator fanned out a check for.
+  int32 workspaces_dispatched = 1;
+  // Number of budgeted workspaces skipped because their included credit is not
+  // yet known (no invoice since the feature shipped), so overage can't be
+  // priced without falsely counting the full gross.
+  int32 workspaces_skipped_no_credit = 2;
 }

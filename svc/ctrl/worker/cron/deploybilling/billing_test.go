@@ -19,7 +19,7 @@ func TestAggregateUsage(t *testing.T) {
 			{WorkspaceID: "ws_b", ResourceID: "r3", CPUSeconds: 100.0, MemoryGiBHours: 1.0, DiskGiBHours: 0.0, EgressBytes: 0},
 		}
 
-		out := aggregateUsage(rows)
+		out := AggregateUsage(rows)
 		require.Len(t, out, 2)
 
 		a := out["ws_a"]
@@ -36,7 +36,7 @@ func TestAggregateUsage(t *testing.T) {
 	})
 
 	t.Run("empty input yields empty map", func(t *testing.T) {
-		require.Empty(t, aggregateUsage(nil))
+		require.Empty(t, AggregateUsage(nil))
 	})
 }
 
@@ -44,7 +44,7 @@ func TestMergeActiveKeys(t *testing.T) {
 	values := map[string]billingmeter.MeterValues{
 		"ws_with_usage": {CPUSeconds: 10, MemoryGiBSeconds: 0, EgressGiB: 0, DiskGiBSeconds: 0, ActiveKeys: 0},
 	}
-	mergeActiveKeys(values, []clickhouse.ActiveKeysUsage{
+	MergeActiveKeys(values, []clickhouse.ActiveKeysUsage{
 		{WorkspaceID: "ws_with_usage", ActiveKeys: 5},
 		// Key activity without instance usage: deployment scaled to zero
 		// while its keys keep verifying through the gateway.
@@ -55,4 +55,26 @@ func TestMergeActiveKeys(t *testing.T) {
 	require.Equal(t, 10.0, values["ws_with_usage"].CPUSeconds, "existing meters must survive the merge")
 	require.Equal(t, 2.0, values["ws_keys_only"].ActiveKeys)
 	require.True(t, values["ws_keys_only"].Positive())
+}
+
+func TestPriceCents(t *testing.T) {
+	t.Run("zero usage costs nothing", func(t *testing.T) {
+		require.Zero(t, PriceCents(billingmeter.MeterValues{}))
+	})
+
+	t.Run("each meter priced at its catalog rate", func(t *testing.T) {
+		// One unit of each meter in isolation must equal that meter's
+		// CentsPerUnit from tools/pricing/catalog.go.
+		require.InDelta(t, 0.0006944, PriceCents(billingmeter.MeterValues{CPUSeconds: 1}), 1e-12)
+		require.InDelta(t, 0.0003472, PriceCents(billingmeter.MeterValues{MemoryGiBSeconds: 1}), 1e-12)
+		require.InDelta(t, 5.0, PriceCents(billingmeter.MeterValues{EgressGiB: 1}), 1e-12)
+		require.InDelta(t, 0.000006, PriceCents(billingmeter.MeterValues{DiskGiBSeconds: 1}), 1e-12)
+		require.InDelta(t, 0.2, PriceCents(billingmeter.MeterValues{ActiveKeys: 1}), 1e-12)
+	})
+
+	t.Run("meters sum", func(t *testing.T) {
+		// $0.50 plan-month of egress (10 GiB) plus 100 active keys ($0.20).
+		got := PriceCents(billingmeter.MeterValues{EgressGiB: 10, ActiveKeys: 100})
+		require.InDelta(t, 10*5.0+100*0.2, got, 1e-9)
+	})
 }

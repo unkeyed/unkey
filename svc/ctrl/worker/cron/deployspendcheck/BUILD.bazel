@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "deployspendcheck",
+    srcs = [
+        "alert.go",
+        "check.go",
+        "doc.go",
+        "handler.go",
+        "thresholds.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/billingperiod",
+        "//pkg/clickhouse",
+        "//pkg/db",
+        "//pkg/email",
+        "//pkg/healthcheck",
+        "//pkg/logger",
+        "//pkg/restate/restateutil",
+        "//svc/ctrl/internal/workos",
+        "//svc/ctrl/worker/cron/deploybilling",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "deployspendcheck_test",
+    srcs = ["thresholds_test.go"],
+    embed = [":deployspendcheck"],
+)

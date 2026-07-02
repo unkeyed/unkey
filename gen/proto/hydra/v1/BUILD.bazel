@@ -19,6 +19,8 @@ go_library(
         "deploy_billing_push.pb.go",
         "deploy_billing_push_restate.pb.go",
         "deploy_restate.pb.go",
+        "deploy_spend_check.pb.go",
+        "deploy_spend_check_restate.pb.go",
         "deployment.pb.go",
         "deployment_restate.pb.go",
         "environment.pb.go",
