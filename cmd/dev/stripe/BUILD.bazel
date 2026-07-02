@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "stripe",
@@ -7,14 +7,23 @@ go_library(
         "grants.go",
         "invoices.go",
         "reset.go",
+        "shadow.go",
         "stripe.go",
     ],
     importpath = "github.com/unkeyed/unkey/cmd/dev/stripe",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/billingperiod",
         "//pkg/cli",
+        "//pkg/clickhouse",
         "//pkg/db",
         "//pkg/tui",
         "@com_github_stripe_stripe_go_v86//:stripe-go",
     ],
+)
+
+go_test(
+    name = "stripe_test",
+    srcs = ["shadow_test.go"],
+    embed = [":stripe"],
 )
