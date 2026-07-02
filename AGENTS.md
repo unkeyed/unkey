@@ -136,3 +136,95 @@ Report failed or skipped verification honestly.
 - Code quality: `docs/engineering/contributing/quality/code-quality.mdx`.
 - Testing: `docs/engineering/contributing/quality/testing/index.mdx`.
 - Documentation: `docs/engineering/contributing/quality/documentation.mdx`.
+
+## Cursor Cloud specific instructions
+
+The startup update script already runs `dev/install-mise`, `mise install`, and
+`mise run install-web`, so the pinned toolchain and `web/` deps are ready. The
+notes below are the non-obvious caveats for running the stack.
+
+### Commit co-author email
+
+- The startup update script also patches the Cursor-managed co-author hook
+ (`~/.cursor/agent-hooks/*/commit-msg.cursor.co-author`) to use GitHub's
+ canonical no-reply email `Flo <53355483+Flo4604@users.noreply.github.com>`
+ instead of the legacy `Flo <Flo4604@users.noreply.github.com>`. The legacy
+ form does not resolve to the GitHub account, which left the CLA bot pending.
+ Keep that line in the update script; the hook is `@cursor-managed` and can be
+ regenerated with the legacy email. The durable fix is to set the correct
+ email in Cursor account settings.
+
+### mise / PATH
+
+- `mise` lives at `$HOME/.local/bin/mise` and is not on `PATH` by default in
+ non-login shells. Use the full path, or `eval "$(mise activate bash --shims)"`,
+ or prefix tool commands with `mise exec -- <tool>` (e.g. `mise exec -- bazel`).
+ `mise run <task>` works without activation.
+
+### Docker (required, not auto-started)
+
+- Docker Engine is installed but the daemon is not running on boot. Start it
+ once per session: `sudo dockerd > /tmp/dockerd.log 2>&1 &` (best run in a
+ dedicated `tmux` session so it outlives the command).
+- The `ubuntu` user is added to the `docker` group, but shells started before
+ that change cannot reach the socket. Quick unblock:
+ `sudo chmod 666 /var/run/docker.sock`.
+- This is Docker 29; `/etc/docker/daemon.json` must set
+ `storage-driver: fuse-overlayfs` and `features.containerd-snapshotter: false`
+ for the VM kernel. If Docker fails to start with overlay errors, recreate that
+ file (and `update-alternatives --set iptables /usr/sbin/iptables-legacy`).
+
+### Running the full stack (dashboard + core key flows)
+
+- Lightest path is `mise run dashboard`, but it depends on `build` + `oci-load`,
+ which compile the entire Bazel graph (first run is long, ~15 min) and load 7
+ service images. The dashboard docker-compose only needs 4 of them, so to save
+ time you can build just those:
+ `mise exec -- bazel run //build/api:load` and likewise for `control-api`,
+ `control-worker`, and `vault`. The full `oci-load` also builds
+ `frontline`/`heimdall`/`krane`.
+- Then start infra and seed directly:
+ `docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait`
+ then `./bin/unkey dev seed local`, then `pnpm --dir=web/apps/dashboard dev`
+ (dashboard on `http://localhost:3000`).
+- The dashboard needs `web/apps/dashboard/.env`; create it with
+ `cp web/apps/dashboard/dev/.env.example web/apps/dashboard/.env`. Do NOT run
+ `mise run bootstrap` unattended; it is interactive and requires a Depot token.
+- `AUTH_PROVIDER="local"` makes the dashboard auto-authenticate into workspace
+ `ws_local` with no login screen.
+
+### Service ports
+
+- dashboard 3000, data-plane api 7070, ctrl-api 7091, vault 8060, restate
+ 8081/9070, mysql 3306, clickhouse 8123/9000, redis 6379.
+
+### Seeding and the data-plane API
+
+- `./bin/unkey dev seed local` prints a root key (and writes `dev/.env.seed`).
+ That root key is scoped to workspace `ws_local`. The seeded "project" does NOT
+ create a row in the `apis` table, so to exercise the data plane create an API
+ first: `POST /v2/keys`... use `/v2/apis.createApi`, then `/v2/keys.createKey`,
+ then `/v2/keys.verifyKey` (all on `http://localhost:7070`, bearer = root key).
+### Full deploy stack (`mise run dev`) does NOT run in Cursor Cloud
+
+- The full Tilt + minikube deploy stack cannot start in the Cursor Cloud agent
+ VM. This is an environment limitation, not a code issue.
+- Root cause: the VM's cgroup v2 root is `domain threaded` (verify with
+ `cat /sys/fs/cgroup/cgroup.type`). A threaded subtree cannot contain domain
+ child cgroups, only exposes the `cpuset`/`cpu`/`pids` controllers (no
+ `memory`/`io`), and rejects moving a process into a child cgroup with `EIO`.
+ The root type cannot be reverted to `domain` from inside the VM (`EIO`).
+- Consequently every Kubernetes node agent fails at startup:
+ - minikube (docker driver, systemd-based kicbase node):
+   `Failed to create /init.scope control group: Structure needs cleaning`.
+ - k3s/k3d (kubelet):
+   `failed to evacuate root cgroup: read /sys/fs/cgroup/cgroup.procs: operation not supported`.
+ - kind, microk8s, etc. fail the same way (all build a `kubepods` cgroup tree).
+ - The k3s control plane alone (`server --disable-agent`) does start, since it
+   runs as in-process components, but it cannot schedule real pods.
+- Net effect: `krane`, `heimdall`, `frontline`, topolvm, cilium, and the
+ deploy/gateway flow cannot be exercised here. Use the docker-compose path
+ above for the dashboard and core key/ratelimit/RBAC flows. Test deploy-stack
+ code with targeted Bazel unit/integration tests instead.
+- The `mise run dev` path is also heavier and historically needs a Depot token
+ for builds (`dev/.env.depot`); not required for the compose path.
