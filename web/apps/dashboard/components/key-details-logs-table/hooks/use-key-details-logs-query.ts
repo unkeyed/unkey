@@ -164,12 +164,17 @@ export function useKeyDetailsLogsQuery({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  // Clamp page to valid range after data/totalPages updates
+  // Clamp page to valid range after data/totalPages updates. The logData guard
+  // keeps a deep-linked page (e.g. ?page=3) from snapping to 1 on first render,
+  // when totalCount is still 0 and totalPages collapses to 1.
   useEffect(() => {
+    if (!logData) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [logData, normalizedPage, totalPages, setPage]);
 
   // Prefetch the next few pages
   useEffect(() => {

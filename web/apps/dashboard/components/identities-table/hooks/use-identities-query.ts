@@ -156,12 +156,17 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const totalCount = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
-  // Clamp page to valid range after data/totalPages updates.
+  // Clamp page to valid range after data/totalPages updates. The data guard
+  // keeps a deep-linked page (e.g. ?page=3) from snapping to 1 on first render,
+  // when totalPages is still its 1 fallback before the first response.
   useEffect(() => {
+    if (!data) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [data, normalizedPage, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {

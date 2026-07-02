@@ -121,11 +121,17 @@ export function useRatelimitsOverviewListPaginated({
   const totalCount = Math.max(0, data?.total ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
+  // Clamp page to valid range after data/totalPages updates. The data guard
+  // keeps a deep-linked page (e.g. ?page=3) from snapping to 1 on first render,
+  // when totalCount is still 0 and totalPages collapses to 1.
   useEffect(() => {
+    if (!data) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [data, normalizedPage, totalPages, setPage]);
 
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {

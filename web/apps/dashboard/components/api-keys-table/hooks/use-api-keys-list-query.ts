@@ -134,12 +134,17 @@ export function useApiKeysListQuery({
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
 
-  // Clamp page to valid range after data loads
+  // Clamp page to valid range after data loads. The data guard keeps a
+  // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
+  // totalCount is still 0 and totalPages collapses to 1.
   useEffect(() => {
+    if (!data) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [data, normalizedPage, totalPages, setPage]);
 
   // Prefetch adjacent pages for instant navigation
   useEffect(() => {
