@@ -16,15 +16,21 @@ export const dynamic = "force-dynamic";
  * knows what the user was actually trying to do. "compute" / "api" reopen
  * that product's plan picker after the card is added; "payment" means the
  * card itself was the goal. Their presence also tells /success to skip the
- * legacy forced API plan modal.
+ * legacy forced API plan modal. "deploy" comes from the compute-plan gate and
+ * carries `plan`/`from` so /success can return the user to the projects page
+ * and subscribe there.
  */
-const CHECKOUT_INTENTS = ["compute", "api", "payment"] as const;
+const CHECKOUT_INTENTS = ["compute", "api", "payment", "deploy"] as const;
+const DEPLOY_PLANS = ["starter", "pro", "business"] as const;
+const DEPLOY_ORIGINS = ["create", "banner", "billing"] as const;
 
 export default async function StripeRedirect(props: {
-  searchParams: Promise<{ intent?: string }>;
+  searchParams: Promise<{ intent?: string; plan?: string; from?: string }>;
 }) {
-  const { intent: rawIntent } = await props.searchParams;
+  const { intent: rawIntent, plan: rawPlan, from: rawFrom } = await props.searchParams;
   const intent = CHECKOUT_INTENTS.find((known) => known === rawIntent);
+  const plan = DEPLOY_PLANS.find((known) => known === rawPlan);
+  const from = DEPLOY_ORIGINS.find((known) => known === rawFrom);
 
   const { orgId, role } = await getAuth();
 
@@ -96,6 +102,8 @@ export default async function StripeRedirect(props: {
     mode: "setup",
     success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}${
       intent ? `&intent=${intent}` : ""
+    }${intent === "deploy" && plan ? `&plan=${plan}` : ""}${
+      intent === "deploy" && from ? `&from=${from}` : ""
     }`,
     currency: "USD",
     ...(devClockedCustomerId

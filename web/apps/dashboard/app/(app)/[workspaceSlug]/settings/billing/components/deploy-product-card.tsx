@@ -1,13 +1,13 @@
 "use client";
 
 import { formatDollars, formatQuantity } from "@/lib/fmt";
-import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { Cube } from "@unkey/icons";
 import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
 import { useState } from "react";
+import { ComputePlanPicker } from "./compute-plan-picker";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
-import { PlanChangeModal } from "./plan-change-modal";
 import { ProductCard } from "./product-card";
 import { UsageMeter } from "./usage-meter";
 
@@ -32,6 +32,9 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   const trpcUtils = trpc.useUtils();
   const [isPlanModalOpen, setPlanModalOpen] = useState(autoOpenPlanModal);
   const [isCancelOpen, setCancelOpen] = useState(false);
+  // The plan a row's Select armed, awaiting confirmation. Subscribing or
+  // changing charges immediately, so a one-click row never commits silently.
+  const [pendingPlan, setPendingPlan] = useState<DeployPlan | null>(null);
 
   const { data: subscription, isLoading: subscriptionLoading } =
     trpc.stripe.getDeploySubscription.useQuery(undefined, { staleTime: 30_000 });
@@ -65,6 +68,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
 
   const subscribe = trpc.stripe.subscribeDeploy.useMutation({
     onSuccess: async () => {
+      setPendingPlan(null);
       setPlanModalOpen(false);
       toast.success("Subscribed to Compute");
       await revalidate();
@@ -73,6 +77,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   });
   const change = trpc.stripe.changeDeployPlan.useMutation({
     onSuccess: async () => {
+      setPendingPlan(null);
       setPlanModalOpen(false);
       toast.success("Compute plan changed");
       await revalidate();
@@ -128,6 +133,43 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         },
       ]
     : null;
+
+  const submittingPlan = subscribe.isLoading
+    ? (subscribe.variables?.plan ?? null)
+    : change.isLoading
+      ? (change.variables?.plan ?? null)
+      : null;
+
+  // Directional commit label: with no current plan every row says "Select";
+  // with one, rows read "Upgrade"/"Downgrade" by fee against the current plan.
+  const selectLabel = (option: (typeof plans)[number]): string => {
+    if (!currentPlan || credits === null || option.amount === null) {
+      return "Select";
+    }
+    return option.amount > credits ? "Upgrade" : "Downgrade";
+  };
+
+  // Warn when the period's metered spend already exceeds the credits the chosen
+  // plan includes. Downgrades keep the current period's credits, so the overage
+  // only bites at the next renewal.
+  const warningFor = (option: (typeof plans)[number]): string | null =>
+    option.amount !== null && usageAmount !== null && usageAmount > option.amount
+      ? `Your usage this period (${formatDollars(usageAmount)}) already exceeds the ${formatDollars(
+          option.amount,
+        )} of monthly credits ${option.name} includes. This period keeps your current credits; from next period, usage at this level is billed as overage.`
+      : null;
+
+  const pendingPlanOption = plans.find((p) => p.plan === pendingPlan);
+  const commitPending = () => {
+    if (!pendingPlan) {
+      return;
+    }
+    if (currentPlan) {
+      change.mutate({ plan: pendingPlan });
+    } else {
+      subscribe.mutate({ plan: pendingPlan });
+    }
+  };
 
   return (
     <>
@@ -227,54 +269,77 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         ) : null}
       </ProductCard>
 
-      <PlanChangeModal
+      <DialogContainer
         isOpen={isPlanModalOpen}
         onOpenChange={setPlanModalOpen}
         title={currentPlan ? "Change Compute plan" : "Choose a Compute plan"}
         subTitle="The monthly plan fee includes the same amount of usage credits; usage beyond them is billed on top."
-        options={plans.map((plan) => ({
-          id: plan.plan,
-          name: plan.name,
-          amount: plan.amount,
-          interval: plan.interval,
-          detail:
-            plan.amount !== null
-              ? `${formatDollars(plan.amount)} usage credits included`
-              : (plan.description ?? "Custom pricing and credits"),
-        }))}
-        currentId={currentPlan}
-        // Warn when the period's metered spend already exceeds the credits the
-        // selected plan includes. Downgrades keep the current period's credits,
-        // so the overage only starts biting at the next renewal.
-        warningFor={(option) =>
-          option.amount !== null && usageAmount !== null && usageAmount > option.amount
-            ? `Your usage this period (${formatDollars(usageAmount)}) already exceeds the ${formatDollars(
-                option.amount,
-              )} of monthly credits ${option.name} includes. This period keeps your current credits; from next period, usage at this level is billed as overage.`
-            : null
-        }
-        changeNote="Takes effect immediately. Upgrades are charged now and add the difference as usage credits; downgrades keep this period's credits, with the new fee starting next period."
-        submittingId={
-          subscribe.isLoading
-            ? subscribe.variables?.plan
-            : change.isLoading
-              ? change.variables?.plan
-              : undefined
-        }
-        onSelect={(id) => {
-          // The option ids are plan names by construction; find() narrows the
-          // string back to DeployPlan without a cast.
-          const plan = DEPLOY_PLANS.find((p) => p === id);
-          if (!plan) {
-            return;
-          }
-          if (currentPlan) {
-            change.mutate({ plan });
-          } else {
-            subscribe.mutate({ plan });
+      >
+        <ComputePlanPicker.Provider
+          state={{ plans, currentPlan, submittingPlan }}
+          actions={{
+            // The plan keys are DEPLOY_PLANS by construction; narrow back
+            // without a cast before arming the confirm step.
+            onSelect: (plan) => {
+              const match = DEPLOY_PLANS.find((p) => p === plan);
+              if (match) {
+                setPendingPlan(match);
+                setPlanModalOpen(false);
+              }
+            },
+            selectLabel,
+            warningFor,
+          }}
+          meta={{
+            disabledReason: isAdmin ? undefined : ADMIN_ONLY_TOOLTIP,
+          }}
+        >
+          <div className="flex flex-col gap-2.5">
+            <ComputePlanPicker.Rows />
+            <ComputePlanPicker.AllPlansInclude />
+            <ComputePlanPicker.InfoStrip />
+          </div>
+        </ComputePlanPicker.Provider>
+      </DialogContainer>
+
+      <DialogContainer
+        isOpen={pendingPlan !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingPlan(null);
           }
         }}
-      />
+        title={currentPlan ? `Change to ${pendingPlanOption?.name ?? "this plan"}` : "Confirm plan"}
+        subTitle={
+          pendingPlanOption?.amount !== null && pendingPlanOption?.amount !== undefined
+            ? `${formatDollars(pendingPlanOption.amount)}/${pendingPlanOption.interval ?? "month"}, billed now.`
+            : undefined
+        }
+        footer={
+          <div className="flex w-full flex-col items-center gap-2">
+            <Button
+              type="button"
+              variant="primary"
+              size="xlg"
+              className="w-full rounded-lg"
+              loading={subscribe.isLoading || change.isLoading}
+              onClick={commitPending}
+            >
+              {currentPlan ? "Confirm change" : "Subscribe"}
+            </Button>
+            <p className="text-center text-[12px] text-gray-9 leading-5">
+              Takes effect immediately. Upgrades are charged now and add the difference as usage
+              credits; downgrades keep this period's credits, with the new fee starting next period.
+            </p>
+          </div>
+        }
+      >
+        <div className="text-[13px] text-gray-11 leading-6">
+          {currentPlan
+            ? `You're moving from ${currentPlanOption?.name ?? currentPlan} to ${pendingPlanOption?.name ?? "the selected plan"}.`
+            : `You're subscribing to ${pendingPlanOption?.name ?? "the selected plan"}.`}
+        </div>
+      </DialogContainer>
 
       <DialogContainer
         isOpen={isCancelOpen}

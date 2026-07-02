@@ -29,6 +29,10 @@ function SuccessContent() {
   // just add a card), so we hand them back to the billing page with that
   // intent instead of forcing the legacy API plan modal below.
   const intent = searchParams?.get("intent") ?? null;
+  // Threaded through for the "deploy" intent so /success can hand the user back
+  // to the projects page, where the subscription is created.
+  const plan = searchParams?.get("plan") ?? null;
+  const from = searchParams?.get("from") ?? null;
 
   const [processedData, setProcessedData] = useState<ProcessedData>({});
   const [loading, setLoading] = useState(true);
@@ -278,6 +282,8 @@ function SuccessContent() {
       showPlanSelection={processedData.showPlanSelection}
       products={processedData.products}
       intent={intent ?? undefined}
+      plan={plan ?? undefined}
+      from={from ?? undefined}
     />
   );
 }

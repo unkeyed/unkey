@@ -1,9 +1,10 @@
 "use client";
 
 import { Plus } from "@unkey/icons";
-import { Button, InfoTooltip } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { CreateProjectDialog } from "./create-project-dialog";
+import { DeployPlanGateDialog } from "./deploy-plan-gate-dialog";
 import { useDeployGate } from "./hooks/use-deploy-gate";
 
 type Props = {
@@ -13,33 +14,26 @@ type Props = {
 
 export function CreateProjectButton({ defaultOpen, workspaceSlug }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
 
-  // UX-only mirror of the authoritative ctrl-api gate, so a gated user gets a
-  // disabled button into the paywall instead of a request that fails.
+  // UX-only mirror of the authoritative ctrl-api gate. When gated, the button
+  // opens the Compute-plan picker instead of the create dialog.
   const { gated, isLoading } = useDeployGate();
 
   return (
     <>
-      <InfoTooltip
-        content="A Compute plan is required to create projects."
-        disabled={!gated}
-        asChild
+      <Button
+        size="md"
+        variant="primary"
+        loading={isLoading}
+        onClick={() => (gated ? setIsPlanOpen(true) : setIsOpen(true))}
       >
-        <span>
-          <Button
-            size="md"
-            variant="primary"
-            loading={isLoading}
-            disabled={gated}
-            onClick={() => setIsOpen(true)}
-          >
-            <Plus iconSize="sm-regular" />
-            Create project
-          </Button>
-        </span>
-      </InfoTooltip>
+        <Plus iconSize="sm-regular" />
+        Create project
+      </Button>
 
       <CreateProjectDialog isOpen={isOpen} onOpenChange={setIsOpen} workspaceSlug={workspaceSlug} />
+      <DeployPlanGateDialog isOpen={isPlanOpen} onOpenChange={setIsPlanOpen} from="create" />
     </>
   );
 }
