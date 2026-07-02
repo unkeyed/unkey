@@ -27,6 +27,11 @@ rules:
     resources: ["pods"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
+  # Job management for the ctrl-worker's kubernetes build backend
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+
   # Service management for VM networking
   - apiGroups: [""]
     resources: ["services"]

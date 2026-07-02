@@ -1,14 +1,48 @@
 package deploy
 
 import (
+	"k8s.io/client-go/kubernetes"
+
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
+
+// BuildBackend identifies which system executes container image builds.
+type BuildBackend string
+
+const (
+	// BuildBackendDepot runs builds on Depot.dev remote BuildKit machines.
+	BuildBackendDepot BuildBackend = "depot"
+
+	// BuildBackendKubernetes runs each build as a one-off BuildKit Job in
+	// the cluster the worker itself runs in. Local development only: the
+	// build pod runs privileged and offers no isolation beyond the pod
+	// boundary, which is acceptable only for builds you already trust.
+	BuildBackendKubernetes BuildBackend = "kubernetes"
+)
+
+// BuildConfig selects and configures the backend that executes builds.
+type BuildConfig struct {
+	Backend    BuildBackend
+	Depot      DepotConfig
+	Kubernetes KubernetesBuildConfig
+}
+
+// KubernetesBuildConfig configures the Kubernetes Job build backend.
+type KubernetesBuildConfig struct {
+	// Namespace is where build Jobs are created. The worker's service
+	// account needs permission to manage Jobs and read Pods there.
+	Namespace string
+
+	// Image is the BuildKit daemon image each build Job runs.
+	Image string
+}
 
 // BuildPlatform specifies the target platform for container builds.
 type BuildPlatform struct {
@@ -28,6 +62,10 @@ type RegistryConfig struct {
 	Repository string
 	Username   string
 	Password   string
+
+	// Insecure allows plain-HTTP pushes. Only for local registries without
+	// TLS; never enable it against a production registry.
+	Insecure bool
 }
 
 // Workflow orchestrates deployment lifecycle operations.
@@ -51,7 +89,8 @@ type Workflow struct {
 	github githubclient.GitHubClient
 
 	// Build dependencies
-	depotConfig                     DepotConfig
+	buildConfig                     BuildConfig
+	k8s                             kubernetes.Interface
 	registryConfig                  RegistryConfig
 	buildPlatform                   BuildPlatform
 	clickhouse                      clickhouse.ClickHouse
@@ -77,8 +116,13 @@ type Config struct {
 	// GitHub provides access to GitHub API for downloading tarballs.
 	GitHub githubclient.GitHubClient
 
-	// DepotConfig configures the Depot API connection.
-	DepotConfig DepotConfig
+	// Build selects and configures the build backend. See [BuildConfig].
+	Build BuildConfig
+
+	// K8s is the cluster client used by the kubernetes build backend to run
+	// build Jobs. Required when Build.Backend is [BuildBackendKubernetes],
+	// unused otherwise.
+	K8s kubernetes.Interface
 
 	// RegistryConfig provides credentials for the container registry.
 	RegistryConfig RegistryConfig
@@ -105,7 +149,13 @@ type Config struct {
 }
 
 // New creates a new deployment workflow instance.
-func New(cfg Config) *Workflow {
+func New(cfg Config) (*Workflow, error) {
+	if cfg.Build.Backend == BuildBackendKubernetes {
+		if err := assert.NotNil(cfg.K8s, "kubernetes build backend requires a k8s client"); err != nil {
+			return nil, err
+		}
+	}
+
 	// Reclaim build workspaces orphaned by a previous crash. Runs before any
 	// handler is bound, so no live workspace can match.
 	cleanupStaleRailpackWorkspaces()
@@ -117,7 +167,8 @@ func New(cfg Config) *Workflow {
 		vault:                            cfg.Vault,
 
 		github:                          cfg.GitHub,
-		depotConfig:                     cfg.DepotConfig,
+		buildConfig:                     cfg.Build,
+		k8s:                             cfg.K8s,
 		registryConfig:                  cfg.RegistryConfig,
 		buildPlatform:                   cfg.BuildPlatform,
 		clickhouse:                      cfg.Clickhouse,
@@ -125,5 +176,5 @@ func New(cfg Config) *Workflow {
 		buildStepLogs:                   cfg.BuildStepLogs,
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
-	}
+	}, nil
 }

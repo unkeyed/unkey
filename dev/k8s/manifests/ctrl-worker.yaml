@@ -25,17 +25,25 @@ data:
     http_port = 9080
     register_as = "http://ctrl-worker:9080"
 
-    # Container registry for pushing built images.
-    # This is a shared Depot registry project: https://depot.dev/orgs/25j3k7j1zw/projects/72dvmc7lv7
-    [registry]
-    repository = "registry.depot.dev/72dvmc7lv7"
-    username = "x-token"
-    password = "${UNKEY_REGISTRY_PASSWORD}"
+    # Local builds run as one-off BuildKit Jobs inside the minikube cluster;
+    # no Depot account or token is needed. Production keeps the default
+    # backend = "depot".
+    [build]
+    backend = "kubernetes"
 
-    [depot]
-    api_url = "https://api.depot.dev"
-    project_region = "us-east-1"
-    project_prefix = "builds-local"
+    [build.kubernetes]
+    namespace = "unkey"
+    image = "moby/buildkit:v0.26.3"
+
+    # Built images are pushed to the ctlptl-provisioned local registry. The
+    # "ctlptl-registry" name resolves both from pods (via the Service the
+    # Tiltfile creates in the unkey namespace) and from the minikube node's
+    # containerd (via docker network DNS), so the same image reference works
+    # for pushing and pulling. The registry has no TLS and no auth, hence
+    # insecure and empty credentials.
+    [registry]
+    repository = "ctlptl-registry:5000/deployments"
+    insecure = true
 
     [acme]
     enabled = false
@@ -110,12 +118,6 @@ spec:
           env:
             - name: UNKEY_VAULT_TOKEN
               value: vault-test-token-123
-            - name: UNKEY_REGISTRY_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: depot-credentials
-                  key: UNKEY_DEPOT_TOKEN
-                  optional: true
             - name: UNKEY_GITHUB_PRIVATE_KEY_PEM
               valueFrom:
                 secretKeyRef:
