@@ -28,6 +28,7 @@ go_library(
         "//pkg/uid",
         "//pkg/validation",
         "//svc/ctrl/dedup",
+        "//svc/ctrl/internal/actor",
         "//svc/ctrl/internal/auditlogs",
         "//svc/ctrl/internal/auth",
         "//svc/ctrl/internal/db",

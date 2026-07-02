@@ -93,6 +93,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
 	}
 
+	actorInfo, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
+	}
+
 	// nolint: exhaustruct // optional proto fields are set per source below
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       environment.ProjectID,
@@ -100,6 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		EnvironmentSlug: environment.Slug,
 		Trigger:         trigger,
 		TriggeredBy:     principal.Subject.ID,
+		Actor:           actorInfo,
 	}
 
 	switch req.Source {
