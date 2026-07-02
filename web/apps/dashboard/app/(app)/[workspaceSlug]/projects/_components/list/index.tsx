@@ -1,11 +1,10 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Dots, TriangleWarning2 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import Link from "next/link";
+import { useState } from "react";
+import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
 import { useDeployGate } from "../hooks/use-deploy-gate";
 import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./project-card";
@@ -16,8 +15,8 @@ import { ProjectCardSkeleton } from "./project-card-skeleton";
 const MAX_SKELETON_COUNT = 3;
 
 export const ProjectsList = () => {
-  const workspace = useWorkspaceNavigation();
   const { gated } = useDeployGate();
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
   const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
 
   if (projects.isLoading) {
@@ -32,29 +31,6 @@ export const ProjectsList = () => {
   }
 
   if (projects.data.length === 0) {
-    // No plan and no projects: the empty state is the paywall, so the primary
-    // action is choosing a plan rather than a create form that dead-ends.
-    if (gated) {
-      return (
-        <div className="w-full flex justify-center items-center h-full p-4">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>Compute plan required</Empty.Title>
-            <Empty.Description className="text-left">
-              You need a Compute plan before you can create projects.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <Link href={routes.settings.billing({ workspaceSlug: workspace.slug })}>
-                <Button size="md" variant="primary">
-                  Choose a plan
-                </Button>
-              </Link>
-            </Empty.Actions>
-          </Empty>
-        </div>
-      );
-    }
-
     return (
       <div className="w-full flex justify-center items-center h-full">
         <Empty className="w-[400px] flex items-start">
@@ -71,9 +47,6 @@ export const ProjectsList = () => {
   return (
     <>
       {gated ? (
-        // Quiet notice, same language as the billing page banners: one slim
-        // strip, not a warning slab. The create button's tooltip carries the
-        // same message, so this only needs to orient, not shout.
         <div className="mb-4 flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <TriangleWarning2 iconSize="md-regular" className="shrink-0 text-warning-11" />
@@ -82,13 +55,12 @@ export const ProjectsList = () => {
               paused.
             </p>
           </div>
-          <Link href={routes.settings.billing({ workspaceSlug: workspace.slug })}>
-            <Button variant="outline" size="md">
-              Choose a plan
-            </Button>
-          </Link>
+          <Button variant="outline" size="md" onClick={() => setIsPlanOpen(true)}>
+            Choose a plan
+          </Button>
         </div>
       ) : null}
+      <DeployPlanGateDialog isOpen={isPlanOpen} onOpenChange={setIsPlanOpen} />
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
