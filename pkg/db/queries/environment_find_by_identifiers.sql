@@ -1,4 +1,4 @@
--- name: FindEnvironmentByAppAndIdOrSlug :one
+-- name: FindEnvironmentByIdentifiers :one
 SELECT e.*
 FROM environments e
 JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
