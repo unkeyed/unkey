@@ -70,11 +70,19 @@ func (h *Handler) Handle(
 
 	var dispatched, skippedNoCredit int32
 	for _, ws := range budgeted {
-		if !ws.DeploySpendBudgetCents.Valid {
-			continue // query filters these out; guard against a future query change
+		// The query returns budgeted workspaces and any that are spend-cap
+		// suspended even without a budget. A row that is neither should not appear,
+		// but guard against a future query change.
+		if !ws.DeploySpendBudgetCents.Valid && !ws.DeploySpendSuspended {
+			continue
 		}
 
-		if !ws.DeployIncludedCreditCents.Valid {
+		// A suspended workspace must always be dispatched so the check can resume
+		// it (a mid-period budget raise, a period reset, or a budget removal).
+		// Otherwise apply the budgeted-path guard: a workspace whose included
+		// credit is not yet known is skipped, because without it the overage can't
+		// be priced without counting the full gross, which would false-alarm.
+		if !ws.DeploySpendSuspended && !ws.DeployIncludedCreditCents.Valid {
 			skippedNoCredit++
 			// Error, not info: an unknown credit disables both budget alerts
 			// and the spend cap for this workspace for as long as it persists.
@@ -99,6 +107,7 @@ func (h *Handler) Handle(
 				OrgId:               ws.OrgID,
 				WorkspaceName:       ws.Name,
 				WorkspaceSlug:       ws.Slug,
+				CurrentlySuspended:  ws.DeploySpendSuspended,
 			})
 		dispatched++
 	}

@@ -13,6 +13,7 @@ import {
 import { z } from "zod";
 import { type FlagCode, mapRegionToFlag } from "../network/utils";
 import {
+  computeLastExit,
   deploymentSelectFields,
   fetchCurrentDeploymentOutsideWindow,
   mapInstanceRow,
@@ -135,12 +136,10 @@ export const listDeployments = workspaceProcedure
 
       const specSet = new Set(specRows.map((s) => s.deploymentId));
       const instancesByDeployment = new Map<string, ReturnType<typeof mapInstanceRow>[]>();
-      // The header badge picks the most recent exit across all instances of
-      // a deployment so that a multi-region rollout with one OOM-ing pod
-      // still surfaces the failure even when others are healthy. Tie-break
-      // by finishedAt (preferred) and fall back to the live waiting reason
-      // (CrashLoopBackOff, ImagePullBackOff, …) when there's no exit yet.
-      const lastExitByDeployment = new Map<string, LastExit>();
+      // Group raw rows per deployment so the header "OOMKilled · exit=137"
+      // badge can be derived with the shared computeLastExit helper, the same
+      // logic getById uses for the single-deployment view.
+      const rowsByDeployment = new Map<string, typeof instanceRows>();
       for (const row of instanceRows) {
         const entry = mapInstanceRow(row);
         const list = instancesByDeployment.get(row.deploymentId);
@@ -149,33 +148,18 @@ export const listDeployments = workspaceProcedure
         } else {
           instancesByDeployment.set(row.deploymentId, [entry]);
         }
-
-        const status = row.containerStatus ?? {};
-        const term = status.lastTerminationState ?? null;
-        const waiting = status.waiting ?? null;
-        const candidate: LastExit = {
-          restartCount: status.restartCount ?? 0,
-          exitCode: term?.exitCode ?? null,
-          signal: term?.signal ?? null,
-          reason: term?.reason ?? null,
-          finishedAt: term?.finishedAt ?? null,
-          statusReason: waiting?.reason ?? null,
-        };
-        if (candidate.reason === null && candidate.statusReason === null) {
-          continue;
+        const rows = rowsByDeployment.get(row.deploymentId);
+        if (rows) {
+          rows.push(row);
+        } else {
+          rowsByDeployment.set(row.deploymentId, [row]);
         }
-        const prev = lastExitByDeployment.get(row.deploymentId);
-        if (!prev) {
-          lastExitByDeployment.set(row.deploymentId, candidate);
-          continue;
-        }
-        // Prefer the candidate with a more recent finishedAt; if neither
-        // has one (only statusReason populated) keep whichever has higher
-        // restartCount as a coarse recency tiebreaker.
-        const prevTs = prev.finishedAt ?? -1;
-        const candTs = candidate.finishedAt ?? -1;
-        if (candTs > prevTs || (candTs === prevTs && candidate.restartCount > prev.restartCount)) {
-          lastExitByDeployment.set(row.deploymentId, candidate);
+      }
+      const lastExitByDeployment = new Map<string, LastExit>();
+      for (const [deploymentId, rows] of rowsByDeployment) {
+        const lastExit = computeLastExit(rows);
+        if (lastExit) {
+          lastExitByDeployment.set(deploymentId, lastExit);
         }
       }
 

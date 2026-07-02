@@ -53,6 +53,12 @@ message CheckWorkspaceSpendRequest {
   // in the body, the slug builds the billing-page link.
   string workspace_name = 6;
   string workspace_slug = 7;
+
+  // CurrentlySuspended is the workspace's deploy_spend_suspended column as the
+  // orchestrator saw it: whether the cap has already stopped this workspace's
+  // compute. The check uses it to decide suspend vs resume and to resume a
+  // workspace whose budget was removed while suspended.
+  bool currently_suspended = 8;
 }
 
 message CheckWorkspaceSpendResponse {
@@ -64,4 +70,7 @@ message CheckWorkspaceSpendResponse {
   int32 threshold_crossed = 3;
   // Alerted is true when this run sent a budget alert (a newly crossed level).
   bool alerted = 4;
+  // Suspended is true when this workspace's compute is currently spend-cap
+  // suspended after this run (set on trip, cleared on resume).
+  bool suspended = 5;
 }

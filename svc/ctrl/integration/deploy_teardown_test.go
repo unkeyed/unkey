@@ -104,3 +104,61 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
 	}, 10*time.Second, 200*time.Millisecond, "desired_state should become stopped")
 }
+
+// TestDeployTeardown_SuspendThenResume verifies the resumable half of teardown:
+// SUSPEND records the app's current deployment and stops it, then Resume brings
+// it back to running and restores apps.current_deployment_id from that record.
+func TestDeployTeardown_SuspendThenResume(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+
+	tEnv := startTeardown(t, h.DB)
+
+	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
+		Region:       "us-east-1",
+		DesiredState: db.DeploymentsDesiredStateRunning,
+	}).Deployment
+
+	// Make the deployment its app's current deployment so SUSPEND records it.
+	err := db.Query.UpdateAppDeployments(ctx, h.DB.RW(), db.UpdateAppDeploymentsParams{
+		CurrentDeploymentID: sql.NullString{Valid: true, String: dep.ID},
+		IsRolledBack:        false,
+		UpdatedAt:           sql.NullInt64{Valid: true, Int64: h.Now()},
+		AppID:               dep.AppID,
+	})
+	require.NoError(t, err)
+
+	client := hydrav1.NewDeployTeardownServiceIngressClient(tEnv.Ingress(), dep.WorkspaceID)
+	suspendResp, err := client.Teardown().Request(ctx, &hydrav1.TeardownRequest{
+		Mode: hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), suspendResp.GetDeploymentsStopped())
+
+	// current_deployment_id is cleared synchronously by teardown.
+	app, err := db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
+	require.NoError(t, err)
+	require.False(t, app.CurrentDeploymentID.Valid, "current_deployment_id should be cleared on suspend")
+
+	// SUSPEND maps to desired_state 'stopped', applied asynchronously.
+	require.Eventually(t, func() bool {
+		got, getErr := db.Query.FindDeploymentById(ctx, h.DB.RO(), dep.ID)
+		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
+	}, 10*time.Second, 200*time.Millisecond, "desired_state should become stopped")
+
+	resumeResp, err := client.Resume().Request(ctx, &hydrav1.ResumeRequest{})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resumeResp.GetDeploymentsResumed())
+
+	// Resume restores current_deployment_id synchronously.
+	app, err = db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
+	require.NoError(t, err)
+	require.True(t, app.CurrentDeploymentID.Valid, "current_deployment_id should be restored on resume")
+	require.Equal(t, dep.ID, app.CurrentDeploymentID.String)
+
+	// The deployment is back to desired_state 'running'.
+	require.Eventually(t, func() bool {
+		got, getErr := db.Query.FindDeploymentById(ctx, h.DB.RO(), dep.ID)
+		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateRunning
+	}, 10*time.Second, 200*time.Millisecond, "desired_state should become running again")
+}

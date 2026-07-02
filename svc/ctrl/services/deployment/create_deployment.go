@@ -115,6 +115,17 @@ func (s *Service) CreateDeployment(
 		)
 	}
 
+	// Spend-cap gate, unconditional (no observe mode): the workspace opted
+	// into stopping at its budget and the spend check tore its compute down.
+	// New deployments would start compute the suspension deliberately stopped
+	// and keep accruing spend past the cap.
+	if entitlement.DeploySpendSuspended {
+		return nil, connect.NewError(
+			connect.CodeFailedPrecondition,
+			fmt.Errorf("workspace %q is suspended by its Compute spend cap; raise the budget to resume", ctxLoad.workspaceID),
+		)
+	}
+
 	keyspaceID := req.Msg.GetKeyspaceId()
 	var keyAuthID *string
 	if keyspaceID != "" {

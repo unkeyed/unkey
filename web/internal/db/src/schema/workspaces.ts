@@ -64,6 +64,14 @@ export const workspaces = mysqlTable("workspaces", {
   deploySpendBudgetStop: boolean("deploy_spend_budget_stop").notNull().default(false),
 
   /**
+   * Written by the spend-cap check when it suspends or resumes a workspace's
+   * compute. The dashboard reads it to show a "suspended by spend cap" state.
+   * Lets the orchestrator find suspended workspaces even after their budget is
+   * removed, so they still resume.
+   */
+  deploySpendSuspended: boolean("deploy_spend_suspended").notNull().default(false),
+
+  /**
    * Included Compute usage credit for the current billing period, in USD cents.
    * Written by the invoice.payment_succeeded credit-grant path: it equals the
    * net plan fee Stripe granted back as metered credit, so it stays correct
