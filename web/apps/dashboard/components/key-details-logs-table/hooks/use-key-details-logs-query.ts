@@ -5,6 +5,7 @@ import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
+  paginationFilterKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -47,7 +48,7 @@ export function useKeyDetailsLogsQuery({
   // window change. usePaginatedPage owns the page reset; the buffer is cleared
   // here.
   const filtersKey = useMemo(
-    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
+    () => `${paginationFilterKey(filters)}|ts:${timestamp}`,
     [filters, timestamp],
   );
 

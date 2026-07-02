@@ -9,6 +9,7 @@ import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
+  paginationFilterKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -39,7 +40,7 @@ export function useRatelimitsOverviewListPaginated({
   // OFFSET is only meaningful relative to the current ordering.
   const filtersKey = useMemo(
     () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+      `${paginationFilterKey(filters)}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
     [filters, timestamp, sorts],
   );
 

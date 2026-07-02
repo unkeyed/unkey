@@ -47,7 +47,7 @@ let queryResult: {
 let currentFilters: { field: string; operator: string; value: string }[];
 let prefetchSpy: ReturnType<typeof vi.fn>;
 
-function makeConfig() {
+function makeConfig(overrides?: { syncDefaultSortToUrl?: boolean }) {
   return {
     pageSize: 10,
     defaultPageSize: 10,
@@ -61,11 +61,12 @@ function makeConfig() {
     useListQuery: () => queryResult,
     prefetch: prefetchSpy,
     getTotalCount: (data: TestResponse) => data.total,
+    ...overrides,
   };
 }
 
-function render() {
-  return renderHook(() => usePaginatedListQuery(makeConfig()));
+function render(overrides?: { syncDefaultSortToUrl?: boolean }) {
+  return renderHook(() => usePaginatedListQuery(makeConfig(overrides)));
 }
 
 beforeEach(() => {
@@ -221,6 +222,32 @@ describe("usePaginatedListQuery", () => {
 
       expect(result.current.page).toBe(1);
       expect(result.current.sorting).toEqual([{ id: "created", desc: false }]);
+    });
+
+    it("clears the URL sort param when sorting is removed and syncDefaultSortToUrl is false", () => {
+      // Hooks that opt into a clean URL (api-keys, root-keys) must not have the
+      // default sort written back when the user removes sorting entirely.
+      queryResult = { data: { total: 100 }, isLoading: false, isFetching: false };
+      urlStore.sort = [{ column: "createdAt", direction: "asc" }];
+      const { result } = render({ syncDefaultSortToUrl: false });
+
+      act(() => {
+        result.current.onSortingChange([]);
+      });
+
+      expect(urlStore.sort).toBeNull();
+    });
+
+    it("pins the default sort in the URL when sorting is removed and syncDefaultSortToUrl is true", () => {
+      queryResult = { data: { total: 100 }, isLoading: false, isFetching: false };
+      urlStore.sort = [{ column: "createdAt", direction: "asc" }];
+      const { result } = render();
+
+      act(() => {
+        result.current.onSortingChange([]);
+      });
+
+      expect(urlStore.sort).toEqual([{ column: "createdAt", direction: "desc" }]);
     });
   });
 });

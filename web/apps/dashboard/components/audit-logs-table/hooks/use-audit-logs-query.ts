@@ -3,6 +3,7 @@ import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
+  paginationFilterKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -19,10 +20,7 @@ const DEFAULT_PAGE_SIZE = 50;
 export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
 
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
-  );
+  const filtersKey = useMemo(() => paginationFilterKey(filters), [filters]);
 
   const { page, setPage } = usePaginatedPage(filtersKey);
 

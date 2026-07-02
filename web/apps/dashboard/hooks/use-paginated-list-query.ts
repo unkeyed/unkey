@@ -144,6 +144,16 @@ export function normalizePageSize(pageSize: number, defaultPageSize: number, max
     : defaultPageSize;
 }
 
+// Stable identity string for a set of filters. Feed it (or an extension of it,
+// e.g. with a time window appended) as the page reset key so page state resets
+// only when filter content actually changes — not when the filter hook returns
+// a new array reference for the same values.
+export function paginationFilterKey(
+  filters: ReadonlyArray<{ field: string; operator: string; value: unknown }>,
+) {
+  return filters.map((f) => `${f.field}:${f.operator}:${String(f.value)}`).join("|");
+}
+
 // ---------------------------------------------------------------------------
 // usePaginatedListQuery — the full shared hook for the common shape:
 // URL `page` + URL `sort`, string-bucket filters via a filter hook, a single
@@ -200,9 +210,6 @@ export type PaginatedListConfig<
   // Read the total row count off the response. Responses spell this differently
   // (`total`, `totalCount`, …), so callers map it explicitly.
   getTotalCount: (data: TResponse) => number;
-  // Optional: use a server-provided page count instead of computing it from the
-  // total and page size. Falls back to the computed value when omitted.
-  getTotalPages?: (data: TResponse) => number;
   // Optional: when the URL has no `sort`, write the default into it on mount.
   // Defaults to true. Set false to keep the URL clean until the user sorts
   // (the table still renders and queries the default sort locally).
@@ -234,7 +241,6 @@ export function usePaginatedListQuery<
     useListQuery,
     prefetch,
     getTotalCount,
-    getTotalPages,
     syncDefaultSortToUrl = true,
   } = config;
 
@@ -282,12 +288,7 @@ export function usePaginatedListQuery<
     }));
   }, [validSortParams, sortFieldToColumnId]);
 
-  // Stable string key from filter content — prevents spurious page resets when
-  // the filter hook returns a new array reference for the same values.
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${String(f.value)}`).join("|"),
-    [filters],
-  );
+  const filtersKey = useMemo(() => paginationFilterKey(filters), [filters]);
 
   const { page: queryPage, setPage } = usePaginatedPage(filtersKey);
 
@@ -297,18 +298,22 @@ export function usePaginatedListQuery<
       const firstValid = next.find((s) =>
         Object.prototype.hasOwnProperty.call(columnIdToSortField, s.id),
       );
-      const mapped: SortUrlValue<TSortField>[] = firstValid
-        ? [
-            {
-              column: columnIdToSortField[firstValid.id],
-              direction: firstValid.desc ? "desc" : "asc",
-            },
-          ]
-        : defaultSortParams;
-      setSortParams(mapped);
+      if (firstValid) {
+        setSortParams([
+          {
+            column: columnIdToSortField[firstValid.id],
+            direction: firstValid.desc ? "desc" : "asc",
+          },
+        ]);
+      } else {
+        // Sorting was cleared (or an unknown column). Mirror syncDefaultSortToUrl:
+        // hooks that keep the URL clean clear the param, others pin the default so
+        // the mount effect does not immediately rewrite it.
+        setSortParams(syncDefaultSortToUrl ? defaultSortParams : null);
+      }
       setPage(1);
     },
-    [sorting, setSortParams, setPage, columnIdToSortField, defaultSortParams],
+    [sorting, setSortParams, setPage, columnIdToSortField, defaultSortParams, syncDefaultSortToUrl],
   );
 
   const filterParams = useMemo<TFilterParams>(() => {
@@ -353,8 +358,7 @@ export function usePaginatedListQuery<
 
   const isInitialLoading = isLoading && !data;
   const totalCount = data ? getTotalCount(data) : 0;
-  const totalPages =
-    data && getTotalPages ? getTotalPages(data) : computeTotalPages(totalCount, normalizedPageSize);
+  const totalPages = computeTotalPages(totalCount, normalizedPageSize);
 
   const { onPageChange } = usePaginatedNavigation({
     data,

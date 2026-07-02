@@ -4,6 +4,7 @@ import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
   normalizePageSize,
+  paginationFilterKey,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -57,10 +58,7 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
 
   // Reset to page 1 when either the filters or the search term change.
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
-  );
+  const filtersKey = useMemo(() => paginationFilterKey(filters), [filters]);
   const resetKey = `${filtersKey}|search:${search}`;
 
   const { page, setPage } = usePaginatedPage(resetKey);
