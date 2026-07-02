@@ -245,21 +245,27 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Clickhouse: chClient,
 	})
 
-	deploySvc := deploy.New(deploy.Config{
+	deploySvc, err := deploy.New(deploy.Config{
 		DB:            database,
 		Clickhouse:    chClient,
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.com",
 		Vault:         vaultClient,
 
-		GitHub:                          nil,
-		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+		GitHub: nil,
+		Build: deploy.BuildConfig{
+			Backend:    deploy.BuildBackendDepot,
+			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
+		},
+		K8s:                             nil,
 		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
 		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: ""},
+		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
 	})
+	require.NoError(t, err)
 
 	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
 		DB:         database,

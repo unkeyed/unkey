@@ -105,7 +105,7 @@ func cleanupStaleRailpackWorkspaces() {
 //
 // Repository content never touches the worker: both solves use a git context
 // URL, so the build machine fetches the source itself — the same trust model
-// as Dockerfile builds. The flow acquires one Depot machine and performs two
+// as Dockerfile builds. The flow acquires one build machine and performs two
 // solves on it:
 //
 //  1. Plan generation: a worker-generated Dockerfile runs `railpack prepare`
@@ -177,7 +177,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 		)
 
 		// One machine, two solves: plan generation, then the image build.
-		depotBuildID, err := w.withDepotBuildkit(runCtx, bctx.DepotProjectID, params, func(buildClient *client.Client) error {
+		buildID, err := w.withBuildkit(runCtx, bctx.DepotProjectID, params, func(buildClient *client.Client) error {
 			prepareOptions, optErr := w.buildRailpackPrepareSolverOptions(bctx.GitContextURL, prepareDir, planDir, bctx.GithubToken, bctx.EnvVars, railpackConfig)
 			if optErr != nil {
 				return restate.TerminalError(fmt.Errorf("failed to build prepare solver options: %w", optErr))
@@ -203,7 +203,7 @@ func (w *Workflow) buildRailpackImageFromGit(
 
 		return &buildResult{
 			ImageName:      bctx.ImageName,
-			DepotBuildID:   depotBuildID,
+			BuildID:        buildID,
 			DepotProjectID: bctx.DepotProjectID,
 		}, nil
 	})
@@ -343,16 +343,7 @@ func (w *Workflow) buildRailpackSolverOptions(
 			"dockerfile": planFS,
 		},
 		Session: sessionAttachables,
-		Exports: []client.ExportEntry{
-			{
-				Type: "image",
-				Attrs: map[string]string{
-					"name":           imageName,
-					"oci-mediatypes": "true",
-					"push":           "true",
-				},
-			},
-		},
+		Exports: w.imageExports(imageName),
 	}, nil
 }
 

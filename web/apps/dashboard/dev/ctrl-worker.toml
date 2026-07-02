@@ -20,7 +20,10 @@ repository = "registry.depot.dev/72dvmc7lv7"
 username = "x-token"
 password = "${UNKEY_REGISTRY_PASSWORD}"
 
-[depot]
+[build]
+backend = "depot"
+
+[build.depot]
 api_url = "https://api.depot.dev"
 project_region = "us-east-1"
 project_prefix = "builds-local"
