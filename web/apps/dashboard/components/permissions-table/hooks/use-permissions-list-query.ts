@@ -64,6 +64,7 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
       trpc.authorization.permissions.query.useQuery(params, PAGINATED_LIST_QUERY_OPTIONS),
     prefetch: (params) =>
       utils.authorization.permissions.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
+    getTotalCount: (data) => data.total,
   });
 
   return {

@@ -1,12 +1,16 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/identities/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import {
+  normalizePageSize,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
-import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { parseAsString, useQueryState } from "nuqs";
+import { useCallback, useMemo } from "react";
 import type { IdentitiesFilterOperator, IdentitiesSortField } from "../schema/identities.schema";
 
-const PREFETCH_PAGES_AHEAD = 2;
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
 
@@ -26,14 +30,13 @@ const SORT_FIELD_TO_COLUMN_ID: Record<IdentitiesSortField, string> = {
   lastUsed: "last_used",
 };
 
+// Identities pagination diverges from usePaginatedListQuery in three ways: a
+// dedicated `search` URL param, filter params that are not the shared string
+// buckets (externalId list plus numeric lastUsed range), and a server-provided
+// `totalPages`. So it composes the shared pagination primitives directly and
+// keeps its own URL-sort + filter mapping here.
 export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
-  const normalizedPageSize =
-    Number.isFinite(pageSize) && pageSize > 0
-      ? Math.min(Math.floor(pageSize), MAX_PAGE_SIZE)
-      : DEFAULT_PAGE_SIZE;
-
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
+  const normalizedPageSize = normalizePageSize(pageSize, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
 
   const [search] = useQueryState(
     "search",
@@ -50,6 +53,15 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
   );
 
   const { filters } = useFilters();
+
+  // Reset to page 1 when either the filters or the search term change.
+  const filtersKey = useMemo(
+    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
+    [filters],
+  );
+  const resetKey = `${filtersKey}|search:${search}`;
+
+  const { page, setPage } = usePaginatedPage(resetKey);
 
   // Convert URL sort params → TanStack SortingState
   const sorting: SortingState = useMemo(() => {
@@ -81,36 +93,6 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
     [sorting, setSortParams, setPage],
   );
 
-  // Reset to page 1 only when search actually changes (not on initial mount).
-  const prevSearchRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevSearchRef.current === null) {
-      prevSearchRef.current = search;
-      return;
-    }
-    if (search !== prevSearchRef.current) {
-      prevSearchRef.current = search;
-      setPage(1);
-    }
-  }, [search, setPage]);
-
-  // Reset to page 1 when filters change (not on initial mount).
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
-  );
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
-
   const filterParams = useMemo(() => {
     const externalId = filters
       .filter((f) => f.field === "externalId")
@@ -133,13 +115,13 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const queryParams = useMemo(
     () => ({
       ...filterParams,
-      page: normalizedPage,
+      page,
       limit: normalizedPageSize,
       search: search || undefined,
       sortBy: sortParams?.[0]?.column ?? "createdAt",
       sortOrder: sortParams?.[0]?.direction ?? "desc",
     }),
-    [filterParams, normalizedPage, normalizedPageSize, search, sortParams],
+    [filterParams, page, normalizedPageSize, search, sortParams],
   );
 
   const utils = trpc.useUtils();
@@ -156,48 +138,24 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const totalCount = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
-  // Clamp page to valid range after data/totalPages updates. The data guard
-  // keeps a deep-linked page (e.g. ?page=3) from snapping to 1 on first render,
-  // when totalPages is still its 1 fallback before the first response.
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, normalizedPage, totalPages, setPage]);
-
-  // Prefetch the next few pages so navigation feels instant.
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
+  const { onPageChange } = usePaginatedNavigation({
+    data,
+    page,
+    totalPages,
+    setPage,
+    prefetch: (nextPage) =>
       utils.identity.query.prefetch(
         { ...queryParams, page: nextPage },
         { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [normalizedPage, totalPages, queryParams, utils.identity.query]);
-
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+      ),
+  });
 
   return {
     identities: data?.identities ?? [],
     isLoading,
     isInitialLoading,
     isFetching,
-    page: normalizedPage,
+    page,
     pageSize: normalizedPageSize,
     totalPages,
     totalCount,

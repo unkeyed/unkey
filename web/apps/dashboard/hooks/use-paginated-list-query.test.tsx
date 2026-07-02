@@ -56,6 +56,7 @@ function makeConfig() {
     filterFieldConfig: {},
     useListQuery: () => queryResult,
     prefetch: prefetchSpy,
+    getTotalCount: (data: TestResponse) => data.total,
   };
 }
 

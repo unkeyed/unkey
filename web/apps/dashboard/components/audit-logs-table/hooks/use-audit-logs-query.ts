@@ -1,28 +1,28 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
+import {
+  computeTotalPages,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
-import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { type AuditLogsQueryPayload, DEFAULT_BUCKET_NAME } from "../schema/audit-logs.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
-const PREFETCH_PAGES_AHEAD = 2;
 
+// Audit logs are paginated but not sortable, so this composes the shared
+// pagination primitives directly rather than usePaginatedListQuery (which owns
+// a URL `sort` param). The primitives own page state, the deep-link clamp, and
+// prefetch; the filter-to-payload mapping stays here.
 export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
 
   const filtersKey = useMemo(
     () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
     [filters],
   );
 
-  const prevFiltersKeyRef = useRef(filtersKey);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current !== filtersKey) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  const { page, setPage } = usePaginatedPage(filtersKey);
 
   const queryParams = useMemo(() => {
     const params: AuditLogsQueryPayload = {
@@ -92,36 +92,19 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   });
 
   const totalCount = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalPages = computeTotalPages(totalCount, pageSize);
 
-  useEffect(() => {
-    if (data && page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, page, totalPages, setPage]);
-
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = page + i;
-      if (nextPage > totalPages) {
-        break;
-      }
+  const { onPageChange } = usePaginatedNavigation({
+    data,
+    page,
+    totalPages,
+    setPage,
+    prefetch: (nextPage) =>
       utils.audit.logs.prefetch(
         { ...queryParams, page: nextPage },
         { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [page, totalPages, queryParams, utils.audit.logs]);
-
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+      ),
+  });
 
   return {
     auditLogs: data?.auditLogs ?? [],

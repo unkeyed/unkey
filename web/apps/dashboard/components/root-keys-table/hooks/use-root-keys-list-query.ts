@@ -4,19 +4,18 @@ import {
 } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import type { RootKeysFilterValue } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/settings/root-keys/hooks/use-filters";
-import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
+  usePaginatedListQuery,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
-import type { SortingState } from "@tanstack/react-table";
-import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import type { RootKeysQueryPayload, RootKeysSortField } from "../schema/query-logs.schema";
-
-const PREFETCH_PAGES_AHEAD = 2;
-
-type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name" | "start" | "permission">;
 
 // Mirrors LIMIT in query.ts — kept here to avoid importing the server-side router into the client bundle
 const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
 
 // Maps TanStack column IDs → server sort field names (and reverse)
 const COLUMN_ID_TO_SORT_FIELD: Record<string, RootKeysSortField> = {
@@ -30,171 +29,48 @@ const SORT_FIELD_TO_COLUMN_ID: Record<RootKeysSortField, string> = {
   lastUpdatedAt: "last_updated",
 };
 
-function buildQueryParams(filters: RootKeysFilterValue[]): RootKeysFilterParams {
-  const params: RootKeysFilterParams = {
-    name: [],
-    start: [],
-    permission: [],
-  };
+type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name" | "start" | "permission">;
 
-  for (const filter of filters) {
-    if (!rootKeysListFilterFieldNames.includes(filter.field) || !params[filter.field]) {
-      continue;
-    }
-
-    const fieldConfig = rootKeysFilterFieldConfig[filter.field];
-    if (!fieldConfig || !fieldConfig.operators.includes(filter.operator)) {
-      continue;
-    }
-
-    if (typeof filter.value === "string") {
-      params[filter.field]?.push({
-        operator: filter.operator,
-        value: filter.value,
-      });
-    }
-  }
-
-  return params;
-}
-
-const MAX_PAGE_SIZE = 200;
+type RootKeysResponse = { keys: RootKey[]; total: number };
 
 export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
-  const normalizedPageSize =
-    Number.isFinite(pageSize) && pageSize > 0
-      ? Math.min(Math.floor(pageSize), MAX_PAGE_SIZE)
-      : DEFAULT_PAGE_SIZE;
-
-  const { filters } = useFilters();
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
-  const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<RootKeysSortField>());
-
-  const sorting: SortingState = useMemo(() => {
-    if (!sortParams || sortParams.length === 0) {
-      return [{ id: "created_at", desc: true }];
-    }
-    return sortParams.map((s) => ({
-      id: SORT_FIELD_TO_COLUMN_ID[s.column] ?? s.column,
-      desc: s.direction === "desc",
-    }));
-  }, [sortParams]);
-
-  const onSortingChange = useCallback(
-    (updater: SortingState | ((old: SortingState) => SortingState)) => {
-      const next = typeof updater === "function" ? updater(sorting) : updater;
-      setSortParams(
-        next.length === 0
-          ? null
-          : next
-              .filter((s) => COLUMN_ID_TO_SORT_FIELD[s.id] !== undefined)
-              .map((s) => ({
-                column: COLUMN_ID_TO_SORT_FIELD[s.id],
-                direction: s.desc ? "desc" : "asc",
-              })),
-      );
-      setPage(1);
-    },
-    [sorting, setSortParams, setPage],
-  );
-
-  // Stable string key derived from filter content — avoids resetting page when
-  // useQueryStates returns a new array reference for the same filter values
-  // (which happens on every URL change, including page navigation).
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
-  );
-
-  // Reset to page 1 only when filter content actually changes (not on initial mount).
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
-
-  const baseParams = useMemo<RootKeysFilterParams>(() => buildQueryParams(filters), [filters]);
-
-  const queryParams = useMemo(
-    () => ({
-      ...baseParams,
-      page: normalizedPage,
-      limit: normalizedPageSize,
-      sortBy: sortParams?.[0]?.column ?? "createdAt",
-      sortOrder: sortParams?.[0]?.direction ?? "desc",
-    }),
-    [baseParams, normalizedPage, normalizedPageSize, sortParams],
-  );
-
   const utils = trpc.useUtils();
 
-  const { data, isLoading, isFetching } = trpc.settings.rootKeys.query.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
+  const result = usePaginatedListQuery<
+    RootKeysResponse,
+    RootKeysFilterValue,
+    RootKeysSortField,
+    RootKeysFilterParams
+  >({
+    pageSize,
+    defaultPageSize: DEFAULT_PAGE_SIZE,
+    maxPageSize: MAX_PAGE_SIZE,
+    defaultSortField: "createdAt",
+    columnIdToSortField: COLUMN_ID_TO_SORT_FIELD,
+    sortFieldToColumnId: SORT_FIELD_TO_COLUMN_ID,
+    useFilters,
+    filterFieldNames: rootKeysListFilterFieldNames,
+    filterFieldConfig: rootKeysFilterFieldConfig,
+    useListQuery: (params) =>
+      // biome-ignore lint/correctness/useHookAtTopLevel: hook factory invoked unconditionally inside the paginated-list hook
+      trpc.settings.rootKeys.query.useQuery(params, PAGINATED_LIST_QUERY_OPTIONS),
+    prefetch: (params) =>
+      utils.settings.rootKeys.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
+    getTotalCount: (data) => data.total,
   });
 
-  const isInitialLoading = isLoading && !data;
-
-  const totalCount = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
-
-  // Clamp page to valid range after data/totalPages updates. The data guard
-  // keeps a deep-linked page (e.g. ?page=3) from snapping to 1 on first render,
-  // when totalCount is still 0 and totalPages collapses to 1.
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, normalizedPage, totalPages, setPage]);
-
-  // Prefetch the next few pages so navigation feels instant.
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      utils.settings.rootKeys.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [normalizedPage, totalPages, queryParams, utils.settings.rootKeys.query]);
-
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
-
   return {
-    rootKeys: data?.keys ?? [],
-    isLoading,
-    isInitialLoading,
-    isPending: isFetching,
-    isFetching,
-    page: normalizedPage,
-    pageSize: normalizedPageSize,
-    totalPages,
-    totalCount,
-    onPageChange,
-    sorting,
-    onSortingChange,
+    rootKeys: result.data?.keys ?? [],
+    isLoading: result.isInitialLoading,
+    isInitialLoading: result.isInitialLoading,
+    isPending: result.isFetching,
+    isFetching: result.isFetching,
+    page: result.page,
+    pageSize: result.pageSize,
+    totalPages: result.totalPages,
+    totalCount: result.totalCount,
+    onPageChange: result.onPageChange,
+    sorting: result.sorting,
+    onSortingChange: result.onSortingChange,
   };
 }

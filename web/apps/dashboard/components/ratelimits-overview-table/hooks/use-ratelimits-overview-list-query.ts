@@ -5,20 +5,26 @@ import type {
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
+import {
+  computeTotalPages,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 
 type UseRatelimitsOverviewListQueryParams = {
   limit?: number;
   namespaceId: string;
 };
 
-const PREFETCH_PAGES_AHEAD = 2;
-
 export const RATELIMITS_OVERVIEW_PAGE_SIZE = 50;
 
+// Time-windowed overview using the multi-column `useSort` surface (URL param
+// `sorts`). Composes the shared pagination primitives — which own page state,
+// the deep-link clamp, and prefetch — while keeping the feature-specific query
+// shape here.
 export function useRatelimitsOverviewListPaginated({
   namespaceId,
   limit = RATELIMITS_OVERVIEW_PAGE_SIZE,
@@ -27,8 +33,15 @@ export function useRatelimitsOverviewListPaginated({
   const { sorts } = useSort<SortFields>();
   const { queryTime: timestamp } = useQueryTime();
 
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
+  // Reset to page 1 when filters, sort, or query time change — the current
+  // OFFSET is only meaningful relative to the current ordering.
+  const filtersKey = useMemo(
+    () =>
+      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    [filters, timestamp, sorts],
+  );
+
+  const { page, setPage } = usePaginatedPage(filtersKey);
 
   const queryParams = useMemo<RatelimitQueryOverviewLogsPayload>(() => {
     const params: RatelimitQueryOverviewLogsPayload = {
@@ -39,7 +52,7 @@ export function useRatelimitsOverviewListPaginated({
       status: { filters: [] },
       namespaceId,
       since: "",
-      page: normalizedPage,
+      page,
       sorts: sorts.length > 0 ? sorts : null,
     };
 
@@ -87,27 +100,7 @@ export function useRatelimitsOverviewListPaginated({
     });
 
     return params;
-  }, [filters, limit, timestamp, namespaceId, sorts, normalizedPage]);
-
-  // Reset to page 1 when filters, sort, or query time change — the current
-  // OFFSET is only meaningful relative to the current ordering.
-  const filtersKey = useMemo(
-    () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
-    [filters, timestamp, sorts],
-  );
-
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  }, [filters, limit, timestamp, namespaceId, sorts, page]);
 
   const utils = trpc.useUtils();
 
@@ -119,44 +112,21 @@ export function useRatelimitsOverviewListPaginated({
   });
 
   const totalCount = Math.max(0, data?.total ?? 0);
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const totalPages = computeTotalPages(totalCount, limit);
 
-  // Clamp page to valid range after data/totalPages updates. The data guard
-  // keeps a deep-linked page (e.g. ?page=3) from snapping to 1 on first render,
-  // when totalCount is still 0 and totalPages collapses to 1.
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, normalizedPage, totalPages, setPage]);
-
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
+  const { onPageChange } = usePaginatedNavigation({
+    data,
+    page,
+    totalPages,
+    setPage,
+    prefetch: (nextPage) =>
       utils.ratelimit.overview.logs.query.prefetch(
         { ...queryParams, page: nextPage },
         { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [normalizedPage, totalPages, queryParams, utils.ratelimit.overview.logs.query]);
+      ),
+  });
 
   const historicalLogs = data?.ratelimitOverviewLogs ?? [];
-
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
 
   const isInitialLoading = isLoading && !data;
   const isNavigating = isFetching && !isInitialLoading;
@@ -166,7 +136,7 @@ export function useRatelimitsOverviewListPaginated({
     isLoading: isInitialLoading,
     isFetching,
     isNavigating,
-    page: normalizedPage,
+    page,
     pageSize: limit,
     totalPages,
     totalCount,

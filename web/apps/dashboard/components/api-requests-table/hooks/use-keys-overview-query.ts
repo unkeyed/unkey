@@ -2,11 +2,15 @@ import { keysOverviewFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
+import {
+  computeTotalPages,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import type { KeysQueryOverviewLogsPayload, SortFields } from "../schema/keys-overview.schema";
 
 type UseLogsQueryParams = {
@@ -14,15 +18,25 @@ type UseLogsQueryParams = {
   apiId: string;
 };
 
-const PREFETCH_PAGES_AHEAD = 2;
-
+// This overview is time-windowed and uses the multi-column `useSort` surface
+// (URL param `sorts`) that its table wires into directly, so it composes the
+// shared pagination primitives rather than usePaginatedListQuery. The
+// primitives own page state, the deep-link clamp, and prefetch.
 export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryParams) {
   const { filters } = useFilters();
   const { sorts } = useSort<SortFields>();
   const { queryTime: timestamp } = useQueryTime();
 
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
+  // Reset to page 1 when filters, sort, or query time change — the current
+  // OFFSET is only meaningful relative to the current ordering, so changing
+  // any of these invalidates it.
+  const filtersKey = useMemo(
+    () =>
+      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    [filters, timestamp, sorts],
+  );
+
+  const { page, setPage } = usePaginatedPage(filtersKey);
 
   // Check if user explicitly set a time frame filter
   const hasTimeFrameFilter = useMemo(() => {
@@ -42,7 +56,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
       apiId,
       since: "",
       sorts: sorts.length > 0 ? sorts : null,
-      page: normalizedPage,
+      page,
       useTimeFrameFilter: hasTimeFrameFilter,
     };
 
@@ -125,28 +139,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     });
 
     return params;
-  }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter, normalizedPage]);
-
-  // Reset to page 1 when filters, sort, or query time change — the current
-  // OFFSET is only meaningful relative to the current ordering, so changing
-  // any of these invalidates it.
-  const filtersKey = useMemo(
-    () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
-    [filters, timestamp, sorts],
-  );
-
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter, page]);
 
   const utils = trpc.useUtils();
 
@@ -158,33 +151,19 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   });
 
   const totalCount = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const totalPages = computeTotalPages(totalCount, limit);
 
-  // Clamp page to valid range after data/totalPages updates. The data guard
-  // keeps a deep-linked page (e.g. ?page=3) from snapping to 1 on first render,
-  // when totalCount is still 0 and totalPages collapses to 1.
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, normalizedPage, totalPages, setPage]);
-
-  // Prefetch the next few pages
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
+  const { onPageChange } = usePaginatedNavigation({
+    data,
+    page,
+    totalPages,
+    setPage,
+    prefetch: (nextPage) =>
       utils.api.keys.query.prefetch(
         { ...queryParams, page: nextPage },
         { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [normalizedPage, totalPages, queryParams, utils.api.keys.query]);
+      ),
+  });
 
   const historicalLogs = useMemo(() => {
     if (!data) {
@@ -200,16 +179,6 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     return Array.from(map.values());
   }, [data]);
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
-
   const isInitialLoading = isLoading && !data;
   const isNavigating = isFetching && !isInitialLoading;
 
@@ -218,7 +187,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     isLoading: isInitialLoading,
     isFetching,
     isNavigating,
-    page: normalizedPage,
+    page,
     pageSize: limit,
     totalPages,
     totalCount,

@@ -20,6 +20,130 @@ export const PAGINATED_LIST_PREFETCH_OPTIONS = {
   staleTime: Number.POSITIVE_INFINITY,
 } as const;
 
+// ---------------------------------------------------------------------------
+// Primitives
+//
+// The two hooks below hold the machinery every server-paginated list view in
+// the dashboard used to copy by hand: URL-synced `page` state, reset-to-page-1
+// when the query inputs change, the deep-link clamp guard (ENG-2930), the
+// adjacent-page prefetch, and the bounds-checked `onPageChange`. Feature hooks
+// that share the shared sort/filter shape use `usePaginatedListQuery` below;
+// hooks with a bespoke sort surface, time window, or realtime polling compose
+// these two primitives directly and keep their feature-specific logic.
+// ---------------------------------------------------------------------------
+
+// Owns the URL `page` param and the reset-to-page-1 transition. `resetKey` is a
+// stable string derived from every input the current OFFSET depends on (filter
+// content, search, sort, query time…). When it changes, the page resets to 1.
+//
+// The returned `page` is already 1 on the render that first observes a
+// resetKey change, before the effect below commits setPage(1). Without that,
+// the same render would fire one stale request for the previous page against
+// the new inputs. The null guard keeps a first-mount URL-persisted page intact;
+// we only override on a real transition.
+export function usePaginatedPage(resetKey: string) {
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const normalizedPage = Math.max(1, page);
+
+  const prevResetKeyRef = useRef<string | null>(null);
+  const queryPage =
+    prevResetKeyRef.current !== null && resetKey !== prevResetKeyRef.current ? 1 : normalizedPage;
+
+  useEffect(() => {
+    if (prevResetKeyRef.current === null) {
+      prevResetKeyRef.current = resetKey;
+      return;
+    }
+    if (resetKey !== prevResetKeyRef.current) {
+      prevResetKeyRef.current = resetKey;
+      setPage(1);
+    }
+  }, [resetKey, setPage]);
+
+  return { page: queryPage, setPage };
+}
+
+type UsePaginatedNavigationParams<TData> = {
+  data: TData | undefined | null;
+  page: number;
+  totalPages: number;
+  setPage: (page: number) => void;
+  // Fresh identity each render is fine — a ref stabilizes the prefetch effect,
+  // so callers do not need to memoize this.
+  prefetch: (page: number) => void;
+  prefetchPagesAhead?: number;
+};
+
+// Owns the clamp guard, the adjacent-page prefetch, and `onPageChange`. Kept
+// separate from `usePaginatedPage` so a caller can compute `data`/`totalPages`
+// from its own query (and run any other hooks it needs) in between.
+export function usePaginatedNavigation<TData>({
+  data,
+  page,
+  totalPages,
+  setPage,
+  prefetch,
+  prefetchPagesAhead = PREFETCH_PAGES_AHEAD,
+}: UsePaginatedNavigationParams<TData>) {
+  // Clamp page to valid range after data loads. The data guard keeps a
+  // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
+  // totalCount is still 0 and totalPages collapses to 1 (ENG-2930).
+  useEffect(() => {
+    if (data == null) {
+      return;
+    }
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [data, page, totalPages, setPage]);
+
+  // Prefetch the next few pages so navigation feels instant. A ref keeps a
+  // fresh caller arrow each render from re-firing the effect; idempotent under
+  // Strict Mode.
+  const prefetchRef = useRef(prefetch);
+  prefetchRef.current = prefetch;
+  useEffect(() => {
+    for (let i = 1; i <= prefetchPagesAhead; i++) {
+      const nextPage = page + i;
+      if (nextPage > totalPages) {
+        break;
+      }
+      prefetchRef.current(nextPage);
+    }
+  }, [page, totalPages, prefetchPagesAhead]);
+
+  const onPageChange = useCallback(
+    (newPage: number) => {
+      if (newPage < 1 || newPage > totalPages) {
+        return;
+      }
+      setPage(newPage);
+    },
+    [totalPages, setPage],
+  );
+
+  return { onPageChange };
+}
+
+// Derive totalPages from a total count and page size, never below 1.
+export function computeTotalPages(totalCount: number, pageSize: number) {
+  return Math.max(1, Math.ceil(totalCount / pageSize));
+}
+
+// Clamp a caller-supplied page size into [1, maxPageSize], falling back to the
+// default for non-finite or non-positive input.
+export function normalizePageSize(pageSize: number, defaultPageSize: number, maxPageSize: number) {
+  return Number.isFinite(pageSize) && pageSize > 0
+    ? Math.min(Math.floor(pageSize), maxPageSize)
+    : defaultPageSize;
+}
+
+// ---------------------------------------------------------------------------
+// usePaginatedListQuery — the full shared hook for the common shape:
+// URL `page` + URL `sort`, string-bucket filters via a filter hook, a single
+// server sortBy/sortOrder, computed totalPages.
+// ---------------------------------------------------------------------------
+
 type FilterLike = {
   field: string;
   operator: string;
@@ -28,10 +152,6 @@ type FilterLike = {
 
 type FilterFieldConfig = {
   operators: readonly string[];
-};
-
-type PaginatedResponse = {
-  total: number;
 };
 
 export type PageSortQueryParams<TSortField extends string> = {
@@ -47,7 +167,7 @@ type FilterParamsConstraint = Record<
 >;
 
 export type PaginatedListConfig<
-  TResponse extends PaginatedResponse,
+  TResponse,
   TFilter extends FilterLike,
   TSortField extends string,
   TFilterParams extends FilterParamsConstraint,
@@ -71,6 +191,12 @@ export type PaginatedListConfig<
   // prefetch effect does not re-fire on every caller re-render. Callers do not
   // need to wrap this in useCallback.
   prefetch: (params: TFilterParams & PageSortQueryParams<TSortField>) => void;
+  // Read the total row count off the response. Responses spell this differently
+  // (`total`, `totalCount`, …), so callers map it explicitly.
+  getTotalCount: (data: TResponse) => number;
+  // Optional: use a server-provided page count instead of computing it from the
+  // total and page size. Falls back to the computed value when omitted.
+  getTotalPages?: (data: TResponse) => number;
 };
 
 // Shared backbone for server-paginated list views (roles, permissions, ...).
@@ -79,7 +205,7 @@ export type PaginatedListConfig<
 // pages so navigation feels instant. Callers supply the filter hook, the list
 // query, and the prefetch helper so feature-specific types flow through.
 export function usePaginatedListQuery<
-  TResponse extends PaginatedResponse,
+  TResponse,
   TFilter extends FilterLike,
   TSortField extends string,
   TFilterParams extends FilterParamsConstraint,
@@ -97,6 +223,8 @@ export function usePaginatedListQuery<
     filterFieldConfig,
     useListQuery,
     prefetch,
+    getTotalCount,
+    getTotalPages,
   } = config;
 
   const defaultSortParams = useMemo<SortUrlValue<TSortField>[]>(
@@ -104,14 +232,9 @@ export function usePaginatedListQuery<
     [defaultSortField, defaultSortDirection],
   );
 
-  const normalizedPageSize =
-    Number.isFinite(pageSize) && pageSize > 0
-      ? Math.min(Math.floor(pageSize), maxPageSize)
-      : defaultPageSize;
+  const normalizedPageSize = normalizePageSize(pageSize, defaultPageSize, maxPageSize);
 
   const { filters } = useFilters();
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
   const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<TSortField>());
 
   // Ensure the default sort is always reflected in the URL.
@@ -143,6 +266,15 @@ export function usePaginatedListQuery<
     }));
   }, [validSortParams, sortFieldToColumnId]);
 
+  // Stable string key from filter content — prevents spurious page resets when
+  // the filter hook returns a new array reference for the same values.
+  const filtersKey = useMemo(
+    () => filters.map((f) => `${f.field}:${f.operator}:${String(f.value)}`).join("|"),
+    [filters],
+  );
+
+  const { page: queryPage, setPage } = usePaginatedPage(filtersKey);
+
   const onSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
@@ -162,36 +294,6 @@ export function usePaginatedListQuery<
     },
     [sorting, setSortParams, setPage, columnIdToSortField, defaultSortParams],
   );
-
-  // Stable string key from filter content — prevents spurious page resets when
-  // the filter hook returns a new array reference for the same values.
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${String(f.value)}`).join("|"),
-    [filters],
-  );
-
-  // Reset to page 1 only when filter content actually changes, not on mount.
-  // The useEffect below syncs URL state for subsequent renders, but the render
-  // that observes the filter change still sees the old normalizedPage — without
-  // queryPage below, that render would fire one stale request for the previous
-  // page against the new filters before setPage(1) commits. The null guard
-  // keeps first-mount URL-persisted pages intact; we only override on a real
-  // filter transition.
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  const queryPage =
-    prevFiltersKeyRef.current !== null && filtersKey !== prevFiltersKeyRef.current
-      ? 1
-      : normalizedPage;
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
 
   const filterParams = useMemo<TFilterParams>(() => {
     const params = Object.fromEntries(
@@ -233,50 +335,18 @@ export function usePaginatedListQuery<
 
   const { data, isLoading, isFetching } = useListQuery(queryParams);
 
-  // Stable identity for the prefetch effect so a fresh caller arrow each
-  // render doesn't re-fire it. Store-latest-callback pattern; idempotent
-  // under Strict Mode.
-  const prefetchRef = useRef(prefetch);
-  prefetchRef.current = prefetch;
-  const prefetchPage = useCallback(
-    (params: TFilterParams & PageSortQueryParams<TSortField>) => prefetchRef.current(params),
-    [],
-  );
-
   const isInitialLoading = isLoading && !data;
-  const totalCount = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
+  const totalCount = data ? getTotalCount(data) : 0;
+  const totalPages =
+    data && getTotalPages ? getTotalPages(data) : computeTotalPages(totalCount, normalizedPageSize);
 
-  // Clamp page to valid range after data/totalPages updates.
-  useEffect(() => {
-    if (data == null) {
-      return;
-    }
-    if (queryPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, queryPage, totalPages, setPage]);
-
-  // Prefetch the next few pages so navigation feels instant.
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      prefetchPage({ ...queryParams, page: nextPage });
-    }
-  }, [queryPage, totalPages, prefetchPage, queryParams]);
-
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const { onPageChange } = usePaginatedNavigation({
+    data,
+    page: queryPage,
+    totalPages,
+    setPage,
+    prefetch: (nextPage) => prefetch({ ...queryParams, page: nextPage }),
+  });
 
   return {
     data,

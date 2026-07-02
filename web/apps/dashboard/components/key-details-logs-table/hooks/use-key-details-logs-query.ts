@@ -1,17 +1,20 @@
 import { keyDetailsFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import {
+  computeTotalPages,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "@/hooks/use-paginated-list-query";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyDetailsLogsPayload } from "../schema/query-logs.schema";
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
-const PREFETCH_PAGES_AHEAD = 2;
 
 type UseKeyDetailsLogsQueryParams = {
   limit?: number;
@@ -21,6 +24,10 @@ type UseKeyDetailsLogsQueryParams = {
   startPolling?: boolean;
 };
 
+// Key-details logs are time-windowed, unsorted, and layer live polling on top
+// of an offset-paginated history. The shared pagination primitives own page
+// state, the deep-link clamp, and prefetch; the realtime buffer and polling
+// stay here.
 export function useKeyDetailsLogsQuery({
   keyId,
   keyspaceId,
@@ -34,14 +41,29 @@ export function useKeyDetailsLogsQuery({
   const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
 
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
+  // Reset to page 1 and clear the realtime buffer when filters or the time
+  // window change. usePaginatedPage owns the page reset; the buffer is cleared
+  // here.
+  const filtersKey = useMemo(
+    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
+    [filters, timestamp],
+  );
+
+  const { page, setPage } = usePaginatedPage(filtersKey);
+
+  // Clear the buffer in-render on a filters/time transition (not on mount), so
+  // the same render that resets the page also sees an empty buffer — matching
+  // the previous behavior where the buffer was never shown against stale inputs.
+  // React re-renders synchronously and discards this render's output.
+  const prevFiltersKeyRef = useRef(filtersKey);
+  if (prevFiltersKeyRef.current !== filtersKey) {
+    prevFiltersKeyRef.current = filtersKey;
+    setRealtimeLogsMap(new Map());
+  }
 
   const activeRealtimeLogsMap = useMemo(() => {
-    return startPolling && normalizedPage === 1
-      ? realtimeLogsMap
-      : new Map<string, KeyDetailsLog>();
-  }, [startPolling, normalizedPage, realtimeLogsMap]);
+    return startPolling && page === 1 ? realtimeLogsMap : new Map<string, KeyDetailsLog>();
+  }, [startPolling, page, realtimeLogsMap]);
 
   const realtimeLogs = useMemo(() => {
     return sortLogs(Array.from(activeRealtimeLogsMap.values()));
@@ -57,7 +79,7 @@ export function useKeyDetailsLogsQuery({
       outcomes: [],
       tags: [],
       since: "",
-      page: normalizedPage,
+      page,
     };
 
     filters.forEach((filter) => {
@@ -112,26 +134,7 @@ export function useKeyDetailsLogsQuery({
     });
 
     return params;
-  }, [filters, limit, timestamp, keyId, keyspaceId, normalizedPage]);
-
-  // Reset to page 1 and clear realtime buffer when filters or time window change
-  const filtersKey = useMemo(
-    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
-    [filters, timestamp],
-  );
-
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-      setRealtimeLogsMap(new Map());
-    }
-  }, [filtersKey, setPage]);
+  }, [filters, limit, timestamp, keyId, keyspaceId, page]);
 
   // Main query for historical data
   const {
@@ -158,37 +161,20 @@ export function useKeyDetailsLogsQuery({
 
   const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
-  const totalCount = useMemo(() => {
-    return logData?.total ?? 0;
-  }, [logData]);
+  const totalCount = logData?.total ?? 0;
+  const totalPages = computeTotalPages(totalCount, limit);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-
-  // Clamp page to valid range after data/totalPages updates. The logData guard
-  // keeps a deep-linked page (e.g. ?page=3) from snapping to 1 on first render,
-  // when totalCount is still 0 and totalPages collapses to 1.
-  useEffect(() => {
-    if (!logData) {
-      return;
-    }
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [logData, normalizedPage, totalPages, setPage]);
-
-  // Prefetch the next few pages
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
+  const { onPageChange } = usePaginatedNavigation({
+    data: logData,
+    page,
+    totalPages,
+    setPage,
+    prefetch: (nextPage) =>
       queryClient.key.logs.query.prefetch(
         { ...queryParams, page: nextPage },
         { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [normalizedPage, totalPages, queryParams, queryClient.key.logs.query]);
+      ),
+  });
 
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
@@ -246,21 +232,11 @@ export function useKeyDetailsLogsQuery({
 
   // Set up polling effect — only poll on page 1
   useEffect(() => {
-    if (startPolling && normalizedPage === 1) {
+    if (startPolling && page === 1) {
       const interval = setInterval(pollForNewLogs, pollIntervalMs);
       return () => clearInterval(interval);
     }
-  }, [startPolling, normalizedPage, pollForNewLogs, pollIntervalMs]);
-
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  }, [startPolling, page, pollForNewLogs, pollIntervalMs]);
 
   const isInitialLoading = isLoading && !logData;
   const isNavigating = isFetching && !isInitialLoading;
@@ -273,7 +249,7 @@ export function useKeyDetailsLogsQuery({
     isFetching,
     isNavigating,
     isPolling: startPolling,
-    page: normalizedPage,
+    page,
     pageSize: limit,
     totalPages,
     onPageChange,
