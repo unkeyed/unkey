@@ -22,6 +22,7 @@ post:
   x-speakeasy-name-override: setRoles
   security:
     - rootKey: []
+    - dashboard: []
   requestBody:
     required: true
     content:

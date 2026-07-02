@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -214,4 +215,48 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.Equal(t, int64(newCredits)-1, authAfter.Key.RemainingRequests.Int64)
 
 	})
+}
+
+func TestKeyUpdateCreditsWithURNPermission(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Remaining:   ptr.P(int64(5)),
+	})
+
+	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	rootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId:     key.KeyID,
+		Operation: openapi.Set,
+		Value:     nullable.NewNullableWithValue(int64(12)),
+	})
+	require.Equal(t, 200, res.Status)
+	require.NotNil(t, res.Body)
+
+	updatedKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), key.KeyID)
+	require.NoError(t, err)
+	require.True(t, updatedKey.RemainingRequests.Valid)
+	require.EqualValues(t, 12, updatedKey.RemainingRequests.Int64)
 }

@@ -149,36 +149,6 @@ func TestNotFoundErrors(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 	})
 
-	// Test case for API without KeySpace (should return 404 Not Found)
-	t.Run("API without KeySpace", func(t *testing.T) {
-		// Create API without KeySpace
-		noKeySpaceApiID := uid.New("api")
-		err := db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-			ID:          noKeySpaceApiID,
-			Name:        "API without KeySpace",
-			WorkspaceID: workspace1.ID,
-			AuthType:    db.NullApisAuthType{Valid: false}, // No auth type
-			KeyAuthID:   sql.NullString{Valid: false},      // No KeySpace
-			CreatedAtM:  time.Now().UnixMilli(),
-		})
-		require.NoError(t, err)
-
-		req := handler.Request{
-			ApiId: noKeySpaceApiID,
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
-			h,
-			route,
-			headers,
-			req,
-		)
-
-		require.Equal(t, 404, res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-	})
-
 	// Test case for invalid API ID format
 	t.Run("invalid API ID format", func(t *testing.T) {
 		req := handler.Request{

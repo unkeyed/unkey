@@ -5,6 +5,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	rbacpermissions "github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 )
 
@@ -21,6 +22,10 @@ type permissionMapping struct {
 type permissionGrant struct {
 	resource string
 	action   rbac.ActionType
+}
+
+func action(value interface{ String() string }) rbac.ActionType {
+	return rbac.ActionType(value.String())
 }
 
 // PermissionDefinition is the WorkOS-facing definition of one Unkey permission.
@@ -45,21 +50,50 @@ var permissionMappings = map[string]permissionMapping{
 		name:        "Create keys",
 		description: "Allows creating keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*", action: "create_key"},
+			{resource: "keyspaces/*", action: action(rbacpermissions.CreateKey{})},
+		},
+	},
+	"keys:read": {
+		name:        "Read keys",
+		description: "Allows reading keys.",
+		permissions: []permissionGrant{
+			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.ReadKey{})},
+			{resource: "keyspaces/*", action: action(rbacpermissions.ReadKeyspace{})},
+		},
+	},
+	"keys:update": {
+		name:        "Update keys",
+		description: "Allows updating keys.",
+		permissions: []permissionGrant{
+			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.UpdateKey{})},
+		},
+	},
+	"keys:verify": {
+		name:        "Verify keys",
+		description: "Allows verifying keys.",
+		permissions: []permissionGrant{
+			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.VerifyKey{})},
 		},
 	},
 	"keys:encrypt": {
 		name:        "Encrypt keys",
 		description: "Allows creating recoverable keys.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: "encrypt_key"},
+			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.EncryptKey{})},
 		},
 	},
 	"keys:decrypt": {
 		name:        "Decrypt keys",
 		description: "Allows reading recoverable key material.",
 		permissions: []permissionGrant{
-			{resource: "keyspaces/*/keys/*", action: "decrypt_key"},
+			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DecryptKey{})},
+		},
+	},
+	"keys:delete": {
+		name:        "Delete keys",
+		description: "Allows deleting keys.",
+		permissions: []permissionGrant{
+			{resource: "keyspaces/*/keys/*", action: action(rbacpermissions.DeleteKey{})},
 		},
 	},
 }
@@ -95,6 +129,8 @@ func sortedPermissionSlugs() []string {
 // For workspaceID "ws_1":
 //
 //	keys:create        => unkey:v1:ws_1:keyspaces/*#create_key
+//	keys:read          => unkey:v1:ws_1:keyspaces/*/keys/*#read_key
+//	keys:update        => unkey:v1:ws_1:keyspaces/*/keys/*#update_key
 //	admin:*            => unkey:v1:ws_1:**#*
 //	unknown:permission => dropped with a warning log
 func translatePermissions(workspaceID string, permissions []string) []string {

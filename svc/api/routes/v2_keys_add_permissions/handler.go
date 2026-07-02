@@ -16,7 +16,9 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -82,20 +84,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = principal.Authorize(
-		rbac.And(
-			rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   "*",
-					Action:       rbac.UpdateKey,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Api,
-					ResourceID:   key.Api.ID,
-					Action:       rbac.UpdateKey,
-				}),
+		rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key(key.ID),
+				permissions.UpdateKey{},
 			),
-			rbac.Or(
+			rbac.And(
+				rbac.Or(
+					rbac.T(rbac.Tuple{
+						ResourceType: rbac.Api,
+						ResourceID:   "*",
+						Action:       rbac.UpdateKey,
+					}),
+					rbac.T(rbac.Tuple{
+						ResourceType: rbac.Api,
+						ResourceID:   key.Api.ID,
+						Action:       rbac.UpdateKey,
+					}),
+				),
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Rbac,
 					ResourceID:   "*",
@@ -155,13 +161,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	for perm := range missingPermissions {
-		err = principal.Authorize(
+		err = principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).RBAC.Permission("*"),
+				permissions.CreatePermission{},
+			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Rbac,
 				ResourceID:   "*",
 				Action:       rbac.CreatePermission,
 			}),
-		)
+		))
 		if err != nil {
 			return err
 		}

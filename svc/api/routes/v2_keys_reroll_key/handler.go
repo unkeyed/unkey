@@ -20,8 +20,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -125,6 +127,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.CreateKey,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID),
+			permissions.CreateKey{},
+		),
 	)
 
 	if keyData.EncryptionKeyID.Valid {
@@ -141,6 +147,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ResourceID:   "*",
 					Action:       rbac.EncryptKey,
 				}),
+				rbac.U(
+					urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
+					permissions.EncryptKey{},
+				),
 			),
 		)
 	}
