@@ -227,6 +227,7 @@
                 "group": "Users",
                 "pages": [
                   "infra/clickhouse/users/apiv2",
+                  "infra/clickhouse/users/eve",
                   "infra/clickhouse/users/github",
                   "infra/clickhouse/users/grafana",
                   "infra/clickhouse/users/frontline",

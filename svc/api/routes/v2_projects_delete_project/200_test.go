@@ -60,7 +60,7 @@ func TestDeleteProjectSuccessfully(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Project: tc.identifier(project),
 			})
-			require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+			require.Equal(t, 202, res.Status, "expected 202, received: %s", res.RawBody)
 			require.NotEmpty(t, res.Body.Meta.RequestId)
 
 			// Deletion is delegated to the control plane, which also writes the audit

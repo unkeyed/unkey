@@ -5,8 +5,8 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 const (
@@ -66,7 +66,7 @@ func (s *Service) AcquireOrWait(
 	}
 
 	quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
-		return db.Query.FindQuotaByWorkspaceID(runCtx, s.db.RO(), workspaceID)
+		return s.db.FindQuotaByWorkspaceID(runCtx, workspaceID)
 	}, restate.WithName("fetch quota"))
 	if err != nil {
 		return nil, fmt.Errorf("fetch quota: %w", err)

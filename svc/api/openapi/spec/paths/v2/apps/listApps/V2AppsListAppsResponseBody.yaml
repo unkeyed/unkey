@@ -1,0 +1,82 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    type: array
+    maxItems: 100
+    items:
+      "$ref": "../../../../common/App.yaml"
+    description: Array of apps in the project, ordered by app id.
+  pagination:
+    "$ref": "../../../../common/Pagination.yaml"
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
+additionalProperties: false
+examples:
+  appList:
+    summary: App list
+    description: Typical response listing apps in a project
+    value:
+      meta:
+        requestId: req_1234abcd
+      data:
+        - id: app_1234abcd
+          name: Payments API
+          slug: payments-api
+          projectId: proj_1234abcd
+          defaultBranch: main
+          currentDeploymentId: dep_1234abcd
+          isRolledBack: false
+          deleteProtection: false
+          createdAt: 1704067200000
+          updatedAt: 1704153600000
+        - id: app_5678efgh
+          name: Billing API
+          slug: billing-api
+          projectId: proj_1234abcd
+          defaultBranch: main
+          isRolledBack: false
+          deleteProtection: false
+          createdAt: 1704240000000
+      pagination:
+        hasMore: false
+  paginatedResponse:
+    summary: Paginated app listing with more results
+    description: Response showing pagination when there are more apps than the requested limit
+    value:
+      meta:
+        requestId: req_5678efgh
+      data:
+        - id: app_1111aaaa
+          name: Payments API
+          slug: payments-api
+          projectId: proj_1234abcd
+          defaultBranch: main
+          isRolledBack: false
+          deleteProtection: false
+          createdAt: 1704067200000
+        - id: app_2222bbbb
+          name: Billing API
+          slug: billing-api
+          projectId: proj_1234abcd
+          defaultBranch: main
+          isRolledBack: false
+          deleteProtection: false
+          createdAt: 1704153600000
+      pagination:
+        cursor: app_2222bbbb
+        hasMore: true
+  emptyResponse:
+    summary: Empty app list
+    description: Response when the project has no apps
+    value:
+      meta:
+        requestId: req_9876zyxw
+      data: []
+      pagination:
+        cursor: null
+        hasMore: false

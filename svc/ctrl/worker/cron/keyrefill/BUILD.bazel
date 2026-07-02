@@ -9,11 +9,11 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//pkg/assert",
         "//pkg/auditlog",
-        "//pkg/db",
         "//pkg/healthcheck",
         "//pkg/logger",
         "//pkg/restate/restateutil",
         "//pkg/uid",
+        "//svc/ctrl/internal/db",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )
