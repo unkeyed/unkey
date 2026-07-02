@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 )
 
 func TestAggregateUsage(t *testing.T) {
@@ -37,4 +38,21 @@ func TestAggregateUsage(t *testing.T) {
 	t.Run("empty input yields empty map", func(t *testing.T) {
 		require.Empty(t, aggregateUsage(nil))
 	})
+}
+
+func TestMergeActiveKeys(t *testing.T) {
+	values := map[string]billingmeter.MeterValues{
+		"ws_with_usage": {CPUSeconds: 10, MemoryGiBSeconds: 0, EgressGiB: 0, DiskGiBSeconds: 0, ActiveKeys: 0},
+	}
+	mergeActiveKeys(values, []clickhouse.ActiveKeysUsage{
+		{WorkspaceID: "ws_with_usage", ActiveKeys: 5},
+		// Key activity without instance usage: deployment scaled to zero
+		// while its keys keep verifying through the gateway.
+		{WorkspaceID: "ws_keys_only", ActiveKeys: 2},
+	})
+
+	require.Equal(t, 5.0, values["ws_with_usage"].ActiveKeys)
+	require.Equal(t, 10.0, values["ws_with_usage"].CPUSeconds, "existing meters must survive the merge")
+	require.Equal(t, 2.0, values["ws_keys_only"].ActiveKeys)
+	require.True(t, values["ws_keys_only"].Positive())
 }
