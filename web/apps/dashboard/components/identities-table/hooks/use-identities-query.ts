@@ -1,6 +1,8 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/identities/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
   normalizePageSize,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -126,12 +128,10 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
 
   const utils = trpc.useUtils();
 
-  const { data, isLoading, isFetching } = trpc.identity.query.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  const { data, isLoading, isFetching } = trpc.identity.query.useQuery(
+    queryParams,
+    PAGINATED_LIST_QUERY_OPTIONS,
+  );
 
   const isInitialLoading = isLoading && !data;
 
@@ -143,11 +143,8 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
     page,
     totalPages,
     setPage,
-    prefetch: (nextPage) =>
-      utils.identity.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      ),
+    queryParams,
+    prefetch: (params) => utils.identity.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   return {

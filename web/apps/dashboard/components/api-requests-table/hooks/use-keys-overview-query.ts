@@ -3,6 +3,8 @@ import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/h
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -143,12 +145,10 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
 
   const utils = trpc.useUtils();
 
-  const { data, isLoading, isFetching } = trpc.api.keys.query.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  const { data, isLoading, isFetching } = trpc.api.keys.query.useQuery(
+    queryParams,
+    PAGINATED_LIST_QUERY_OPTIONS,
+  );
 
   const totalCount = data?.total ?? 0;
   const totalPages = computeTotalPages(totalCount, limit);
@@ -158,11 +158,8 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     page,
     totalPages,
     setPage,
-    prefetch: (nextPage) =>
-      utils.api.keys.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      ),
+    queryParams,
+    prefetch: (params) => utils.api.keys.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   const historicalLogs = useMemo(() => {

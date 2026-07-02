@@ -30,7 +30,11 @@ vi.mock("nuqs", async (importOriginal) => {
   return { ...actual, useQueryState };
 });
 
-import { usePaginatedListQuery } from "./use-paginated-list-query";
+import {
+  usePaginatedListQuery,
+  usePaginatedNavigation,
+  usePaginatedPage,
+} from "./use-paginated-list-query";
 
 // Mutable test doubles read through stable hook/function identities so the
 // shared hook sees fresh values on each render after we mutate + rerender.
@@ -218,5 +222,170 @@ describe("usePaginatedListQuery", () => {
       expect(result.current.page).toBe(1);
       expect(result.current.sorting).toEqual([{ id: "created", desc: false }]);
     });
+  });
+});
+
+describe("usePaginatedPage", () => {
+  it("keeps the URL page on first mount (no reset)", () => {
+    urlStore.page = 4;
+    const { result } = renderHook(({ resetKey }) => usePaginatedPage(resetKey), {
+      initialProps: { resetKey: "filters:a" },
+    });
+
+    expect(result.current.page).toBe(4);
+  });
+
+  it("clamps a non-positive URL page up to 1", () => {
+    urlStore.page = -3;
+    const { result } = renderHook(({ resetKey }) => usePaginatedPage(resetKey), {
+      initialProps: { resetKey: "filters:a" },
+    });
+
+    expect(result.current.page).toBe(1);
+  });
+
+  it("resets to page 1 immediately on the render that observes a resetKey change", () => {
+    urlStore.page = 4;
+    const { result, rerender } = renderHook(({ resetKey }) => usePaginatedPage(resetKey), {
+      initialProps: { resetKey: "filters:a" },
+    });
+    expect(result.current.page).toBe(4);
+
+    // Changing the reset key (filters/sort/time changed) must surface page 1 in
+    // the same render, before the effect commits it to the URL — otherwise a
+    // stale request for page 4 fires against the new inputs.
+    act(() => {
+      rerender({ resetKey: "filters:b" });
+    });
+
+    expect(result.current.page).toBe(1);
+    expect(urlStore.page).toBe(1);
+  });
+});
+
+describe("usePaginatedNavigation", () => {
+  it("does not clamp before data loads even if page is out of range", () => {
+    const setPage = vi.fn();
+    renderHook(() =>
+      usePaginatedNavigation({
+        data: undefined,
+        page: 5,
+        totalPages: 1,
+        setPage,
+        queryParams: { page: 5 },
+        prefetch: vi.fn(),
+      }),
+    );
+
+    expect(setPage).not.toHaveBeenCalled();
+  });
+
+  it("clamps to the last page once data shows the page is out of range", () => {
+    const setPage = vi.fn();
+    renderHook(() =>
+      usePaginatedNavigation({
+        data: { total: 20 },
+        page: 5,
+        totalPages: 2,
+        setPage,
+        queryParams: { page: 5 },
+        prefetch: vi.fn(),
+      }),
+    );
+
+    expect(setPage).toHaveBeenCalledWith(2);
+  });
+
+  it("prefetches the pages ahead (with query params) and stops at the last page", () => {
+    const prefetch = vi.fn();
+    renderHook(() =>
+      usePaginatedNavigation({
+        data: { total: 50 },
+        page: 1,
+        totalPages: 5,
+        setPage: vi.fn(),
+        // A representative query shape — prefetch must carry it, overriding page.
+        queryParams: { page: 1, sortBy: "createdAt" },
+        prefetch,
+      }),
+    );
+
+    // Prefetch receives the full params with page overridden, not a bare page.
+    expect(prefetch.mock.calls.every((call) => call[0].sortBy === "createdAt")).toBe(true);
+    const prefetched = [...new Set(prefetch.mock.calls.map((call) => call[0].page))].sort(
+      (a, b) => a - b,
+    );
+    expect(prefetched).toEqual([2, 3]);
+  });
+
+  it("does not prefetch past the last page", () => {
+    const prefetch = vi.fn();
+    renderHook(() =>
+      usePaginatedNavigation({
+        data: { total: 50 },
+        page: 5,
+        totalPages: 5,
+        setPage: vi.fn(),
+        queryParams: { page: 5 },
+        prefetch,
+      }),
+    );
+
+    expect(prefetch).not.toHaveBeenCalled();
+  });
+
+  it("re-prefetches when queryParams identity changes while page holds steady", () => {
+    // Sorting on page 1 changes queryParams but not page/totalPages; the effect
+    // must still re-warm the adjacent pages for the new query shape.
+    const prefetch = vi.fn();
+    const { rerender } = renderHook(
+      ({ queryParams }) =>
+        usePaginatedNavigation({
+          data: { total: 50 },
+          page: 1,
+          totalPages: 5,
+          setPage: vi.fn(),
+          queryParams,
+          prefetch,
+        }),
+      { initialProps: { queryParams: { page: 1, sortBy: "createdAt" } } },
+    );
+
+    expect(prefetch.mock.calls.length).toBeGreaterThan(0);
+
+    act(() => {
+      rerender({ queryParams: { page: 1, sortBy: "lastUsedAt" } });
+    });
+
+    const newSortCalls = prefetch.mock.calls.filter((call) => call[0].sortBy === "lastUsedAt");
+    expect(newSortCalls.map((call) => call[0].page).sort((a, b) => a - b)).toEqual([2, 3]);
+  });
+
+  it("onPageChange ignores out-of-range targets and navigates in-range ones", () => {
+    const setPage = vi.fn();
+    const { result } = renderHook(() =>
+      usePaginatedNavigation({
+        data: { total: 20 },
+        page: 1,
+        totalPages: 2,
+        setPage,
+        queryParams: { page: 1 },
+        prefetch: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.onPageChange(5);
+    });
+    act(() => {
+      result.current.onPageChange(0);
+    });
+    expect(setPage).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.onPageChange(2);
+    });
+    expect(setPage).toHaveBeenCalledTimes(1);
+    expect(setPage).toHaveBeenCalledWith(2);
   });
 });

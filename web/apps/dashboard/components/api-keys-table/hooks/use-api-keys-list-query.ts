@@ -64,6 +64,8 @@ export function useApiKeysListQuery({
     prefetch: (params) =>
       utils.api.keys.list.prefetch({ ...params, keyAuthId }, PAGINATED_LIST_PREFETCH_OPTIONS),
     getTotalCount: (data) => data.totalCount,
+    // Preserve the bespoke hook's behavior: keep the URL clean until the user sorts.
+    syncDefaultSortToUrl: false,
   });
 
   return {

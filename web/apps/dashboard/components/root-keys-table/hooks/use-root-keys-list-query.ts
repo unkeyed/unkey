@@ -57,6 +57,8 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     prefetch: (params) =>
       utils.settings.rootKeys.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
     getTotalCount: (data) => data.total,
+    // Preserve the bespoke hook's behavior: keep the URL clean until the user sorts.
+    syncDefaultSortToUrl: false,
   });
 
   return {

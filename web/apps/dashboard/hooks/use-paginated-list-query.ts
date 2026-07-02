@@ -63,28 +63,34 @@ export function usePaginatedPage(resetKey: string) {
   return { page: queryPage, setPage };
 }
 
-type UsePaginatedNavigationParams<TData> = {
+type UsePaginatedNavigationParams<TData, TParams extends { page: number }> = {
   data: TData | undefined | null;
   page: number;
   totalPages: number;
   setPage: (page: number) => void;
-  // Fresh identity each render is fine — a ref stabilizes the prefetch effect,
-  // so callers do not need to memoize this.
-  prefetch: (page: number) => void;
+  // The current query params. Prefetch requests reuse these with `page`
+  // overridden. Pass the memoized object: the prefetch effect keys off its
+  // identity, so it re-warms adjacent pages when the query shape (sort,
+  // filters, time window) changes even while page and totalPages hold steady.
+  queryParams: TParams;
+  // Warm a page's query. Fresh identity each render is fine — a ref stabilizes
+  // the effect, so callers do not need to memoize this.
+  prefetch: (params: TParams) => void;
   prefetchPagesAhead?: number;
 };
 
 // Owns the clamp guard, the adjacent-page prefetch, and `onPageChange`. Kept
 // separate from `usePaginatedPage` so a caller can compute `data`/`totalPages`
 // from its own query (and run any other hooks it needs) in between.
-export function usePaginatedNavigation<TData>({
+export function usePaginatedNavigation<TData, TParams extends { page: number }>({
   data,
   page,
   totalPages,
   setPage,
+  queryParams,
   prefetch,
   prefetchPagesAhead = PREFETCH_PAGES_AHEAD,
-}: UsePaginatedNavigationParams<TData>) {
+}: UsePaginatedNavigationParams<TData, TParams>) {
   // Clamp page to valid range after data loads. The data guard keeps a
   // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
   // totalCount is still 0 and totalPages collapses to 1 (ENG-2930).
@@ -98,8 +104,8 @@ export function usePaginatedNavigation<TData>({
   }, [data, page, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant. A ref keeps a
-  // fresh caller arrow each render from re-firing the effect; idempotent under
-  // Strict Mode.
+  // fresh caller arrow each render from re-firing the effect; the effect re-runs
+  // on page/totalPages changes and whenever queryParams identity changes.
   const prefetchRef = useRef(prefetch);
   prefetchRef.current = prefetch;
   useEffect(() => {
@@ -108,9 +114,9 @@ export function usePaginatedNavigation<TData>({
       if (nextPage > totalPages) {
         break;
       }
-      prefetchRef.current(nextPage);
+      prefetchRef.current({ ...queryParams, page: nextPage });
     }
-  }, [page, totalPages, prefetchPagesAhead]);
+  }, [page, totalPages, prefetchPagesAhead, queryParams]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -197,6 +203,10 @@ export type PaginatedListConfig<
   // Optional: use a server-provided page count instead of computing it from the
   // total and page size. Falls back to the computed value when omitted.
   getTotalPages?: (data: TResponse) => number;
+  // Optional: when the URL has no `sort`, write the default into it on mount.
+  // Defaults to true. Set false to keep the URL clean until the user sorts
+  // (the table still renders and queries the default sort locally).
+  syncDefaultSortToUrl?: boolean;
 };
 
 // Shared backbone for server-paginated list views (roles, permissions, ...).
@@ -225,6 +235,7 @@ export function usePaginatedListQuery<
     prefetch,
     getTotalCount,
     getTotalPages,
+    syncDefaultSortToUrl = true,
   } = config;
 
   const defaultSortParams = useMemo<SortUrlValue<TSortField>[]>(
@@ -237,14 +248,19 @@ export function usePaginatedListQuery<
   const { filters } = useFilters();
   const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<TSortField>());
 
-  // Ensure the default sort is always reflected in the URL.
+  // Fall back to the default sort when the URL has none. `effectiveSortParams`
+  // drives the local table/query regardless; the effect only writes it back to
+  // the URL when syncDefaultSortToUrl is set.
   const effectiveSortParams = sortParams && sortParams.length > 0 ? sortParams : defaultSortParams;
 
   useEffect(() => {
+    if (!syncDefaultSortToUrl) {
+      return;
+    }
     if (!sortParams || sortParams.length === 0) {
       setSortParams(defaultSortParams);
     }
-  }, [sortParams, setSortParams, defaultSortParams]);
+  }, [sortParams, setSortParams, defaultSortParams, syncDefaultSortToUrl]);
 
   // Keep only the first URL-derived sort entry whose column is an own key of
   // the caller's allowed set, falling back to defaults otherwise. The server
@@ -345,7 +361,8 @@ export function usePaginatedListQuery<
     page: queryPage,
     totalPages,
     setPage,
-    prefetch: (nextPage) => prefetch({ ...queryParams, page: nextPage }),
+    queryParams,
+    prefetch,
   });
 
   return {

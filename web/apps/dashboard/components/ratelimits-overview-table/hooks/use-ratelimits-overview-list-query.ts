@@ -6,6 +6,8 @@ import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -104,12 +106,10 @@ export function useRatelimitsOverviewListPaginated({
 
   const utils = trpc.useUtils();
 
-  const { data, isLoading, isFetching } = trpc.ratelimit.overview.logs.query.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  const { data, isLoading, isFetching } = trpc.ratelimit.overview.logs.query.useQuery(
+    queryParams,
+    PAGINATED_LIST_QUERY_OPTIONS,
+  );
 
   const totalCount = Math.max(0, data?.total ?? 0);
   const totalPages = computeTotalPages(totalCount, limit);
@@ -119,11 +119,9 @@ export function useRatelimitsOverviewListPaginated({
     page,
     totalPages,
     setPage,
-    prefetch: (nextPage) =>
-      utils.ratelimit.overview.logs.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      ),
+    queryParams,
+    prefetch: (params) =>
+      utils.ratelimit.overview.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   const historicalLogs = data?.ratelimitOverviewLogs ?? [];

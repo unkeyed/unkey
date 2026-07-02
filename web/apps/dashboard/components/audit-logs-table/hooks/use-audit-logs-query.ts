@@ -1,5 +1,7 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
 import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -84,12 +86,10 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
 
   const utils = trpc.useUtils();
 
-  const { data, isLoading, isFetching } = trpc.audit.logs.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  const { data, isLoading, isFetching } = trpc.audit.logs.useQuery(
+    queryParams,
+    PAGINATED_LIST_QUERY_OPTIONS,
+  );
 
   const totalCount = data?.total ?? 0;
   const totalPages = computeTotalPages(totalCount, pageSize);
@@ -99,11 +99,8 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     page,
     totalPages,
     setPage,
-    prefetch: (nextPage) =>
-      utils.audit.logs.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      ),
+    queryParams,
+    prefetch: (params) => utils.audit.logs.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   return {

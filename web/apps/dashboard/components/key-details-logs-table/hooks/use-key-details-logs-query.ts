@@ -2,6 +2,8 @@ import { keyDetailsFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[a
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import {
+  PAGINATED_LIST_PREFETCH_OPTIONS,
+  PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -141,12 +143,7 @@ export function useKeyDetailsLogsQuery({
     data: logData,
     isLoading,
     isFetching,
-  } = trpc.key.logs.query.useQuery(queryParams, {
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    keepPreviousData: true,
-  });
+  } = trpc.key.logs.query.useQuery(queryParams, PAGINATED_LIST_QUERY_OPTIONS);
 
   // Derive historical logs from query data
   const historicalLogsMap = useMemo(() => {
@@ -169,11 +166,9 @@ export function useKeyDetailsLogsQuery({
     page,
     totalPages,
     setPage,
-    prefetch: (nextPage) =>
-      queryClient.key.logs.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      ),
+    queryParams,
+    prefetch: (params) =>
+      queryClient.key.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   // Query for new logs (polling)
