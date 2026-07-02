@@ -19,9 +19,9 @@ docker_prune_settings(
 )
 
 # Check which optional credential files exist
-has_depot_credentials = os.path.exists('./.env.depot')
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
 has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
+has_depot_credentials = os.path.exists('./.env.depot')
 
 # The stripe CLI is "logged in" when it has a configured account. When it is,
 # Tilt writes the shared webhook signing secret into both env files and forwards
@@ -194,7 +194,7 @@ if not ORB:
 
 local_resource(
     'depot-credentials',
-    'if [ -f ./.env.depot ]; then kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping depot-credentials (no .env.depot file)"; fi',
+    'if [ -f ./.env.depot ]; then kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -; else echo "Using the local Kubernetes build backend (no .env.depot file)"; fi',
     resource_deps=['namespace'],
     deps=['./.env.depot'],
     labels=['setup'],
@@ -472,8 +472,6 @@ if ORB and not has_github_credentials:
 else:
     k8s_yaml('k8s/manifests/ctrl-api.yaml')
 ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials', 'control-api-compile']
-if has_depot_credentials:
-    ctrl_api_deps.append('depot-credentials')
 k8s_resource(
   'ctrl-api',
   port_forwards='7091:7091',
@@ -485,9 +483,59 @@ k8s_resource(
 
 # ─── Ctrl Worker (Restate workflow handlers) ───────────────────────────────
 go_service_image('unkey/control-worker:dev', 'control-worker')
+ctrl_worker_manifest = str(read_file('k8s/manifests/ctrl-worker.yaml'))
+if has_depot_credentials:
+    ctrl_worker_manifest = ctrl_worker_manifest.replace(
+        '''    # Local builds run as one-off BuildKit Jobs inside the minikube cluster;
+    # no Depot account or token is needed. Production keeps the default
+    # backend = "depot".
+    [build]
+    backend = "kubernetes"
+
+    [build.kubernetes]
+    namespace = "unkey"
+    image = "moby/buildkit:v0.26.3"
+
+    # Built images are pushed to the ctlptl-provisioned local registry. The
+    # "ctlptl-registry" name resolves both from pods (via the Service the
+    # Tiltfile creates in the unkey namespace) and from the minikube node's
+    # containerd (via docker network DNS), so the same image reference works
+    # for pushing and pulling. The registry has no TLS and no auth, hence
+    # insecure and empty credentials.
+    [registry]
+    repository = "ctlptl-registry:5000/deployments"
+    insecure = true
+''',
+        '''    # A local .env.depot opts into the production-equivalent remote backend.
+    [build]
+    backend = "depot"
+
+    [build.depot]
+    api_url = "https://api.depot.dev"
+    project_region = "us-east-1"
+    project_prefix = "builds-local"
+
+    [registry]
+    repository = "registry.depot.dev/72dvmc7lv7"
+    username = "x-token"
+    password = "${UNKEY_REGISTRY_PASSWORD}"
+''',
+    ).replace(
+        '''            - name: UNKEY_VAULT_TOKEN
+              value: vault-test-token-123
+''',
+        '''            - name: UNKEY_VAULT_TOKEN
+              value: vault-test-token-123
+            - name: UNKEY_REGISTRY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: UNKEY_REGISTRY_PASSWORD
+''',
+    )
 if ORB:
     goarch = str(local('go env GOARCH', quiet=True, echo_off=True)).strip()
-    ctrl_worker_manifest = str(read_file('k8s/manifests/ctrl-worker.yaml')).replace(
+    ctrl_worker_manifest = ctrl_worker_manifest.replace(
         'build_platform = "linux/arm64"',
         'build_platform = "linux/%s"' % goarch,
     )
@@ -496,10 +544,8 @@ if ORB:
             'app_id = ${UNKEY_GITHUB_APP_ID}',
             'app_id = 0',
         )
-    k8s_yaml(blob(ctrl_worker_manifest))
-else:
-    k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile', 'workos-credentials', 'resend-credentials']
+k8s_yaml(blob(ctrl_worker_manifest))
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'registry', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile', 'workos-credentials', 'resend-credentials']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(
@@ -538,27 +584,38 @@ k8s_resource(
 
 # ─── Krane ─────────────────────────────────────────────────────────────────
 go_service_image('unkey/krane:dev', 'krane')
-if ORB and not has_depot_credentials:
-    krane_manifest = str(read_file('k8s/manifests/krane.yaml')).replace(
+krane_manifest = str(read_file('k8s/manifests/krane.yaml'))
+if has_depot_credentials:
+    krane_manifest = krane_manifest.replace(
+        '''    # No [registry] section: the local ctlptl registry is unauthenticated,
+    # and without registry config krane skips pull-secret creation entirely.
+''',
         '''    [registry]
     url = "registry.depot.dev"
     username = "x-token"
     password = "${UNKEY_REGISTRY_PASSWORD}"
-
 ''',
-        '',
     ).replace(
-        '                  optional: false',
-        '                  optional: true',
+        '''          imagePullPolicy: Never # Use local images
+''',
+        '''          imagePullPolicy: Never # Use local images
+          env:
+            - name: UNKEY_REGISTRY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: depot-credentials
+                  key: UNKEY_REGISTRY_PASSWORD
+''',
     )
-    k8s_yaml(blob(krane_manifest))
-else:
-    k8s_yaml('k8s/manifests/krane.yaml')
+k8s_yaml(blob(krane_manifest))
 krane_network_deps = ['cilium-network-policy-crd'] if ORB else ['cilium-policies']
+krane_deps = ['ctrl-api', 'rbac', 'namespace', 'registry', 'topolvm-storageclass', 'krane-compile'] + krane_network_deps
+if has_depot_credentials:
+    krane_deps.append('depot-credentials')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'rbac', 'namespace', 'depot-credentials', 'topolvm-storageclass', 'krane-compile'] + krane_network_deps,
+  resource_deps=krane_deps,
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
