@@ -1,0 +1,44 @@
+type: object
+required:
+  - project
+  - app
+  - environmentSlug
+  - source
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environmentSlug:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  source:
+    type: string
+    enum:
+      - image
+      - git
+      - deployment
+    description: |
+      Where the deployment comes from. image: a prebuilt Docker image. git: build
+      from the app's connected GitHub repository. deployment: re-run an existing deployment.
+  dockerImage:
+    type: string
+    description: Docker image to deploy as-is. Required when source is image.
+    example: "ghcr.io/acme/api:v1.2.3"
+  branch:
+    type: string
+    description: Branch to build (its HEAD). Used when source is git. Omit branch and commitSha to use the app's default branch.
+    example: "main"
+  commitSha:
+    type: string
+    description: Commit to build (full or abbreviated SHA). Used when source is git. Takes precedence over branch.
+    example: "9f2c1a7"
+  forkRepository:
+    type: string
+    description: Fork to build from, as "owner/repo". Used when source is git. Requires commitSha.
+    example: "contributor/acme-api"
+  deploymentId:
+    type: string
+    description: Existing deployment to redeploy. Required when source is deployment.
+    example: "d_abc123xyz"
+additionalProperties: false
+description: Create a deployment. Set source, then provide the fields for that source.

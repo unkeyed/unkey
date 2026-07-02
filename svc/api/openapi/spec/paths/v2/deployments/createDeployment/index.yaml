@@ -1,0 +1,74 @@
+post:
+  tags:
+    - deployments
+  summary: Create deployment
+  description: |
+    Create a deployment for an app in a project.
+
+    Pick a `source`:
+    - `image`: deploy a prebuilt Docker image as-is (no build).
+    - `git`: build and deploy from the app's connected GitHub repository — a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
+    - `deployment`: re-run an existing deployment by its id. Git-connected apps rebuild from the recorded commit; other apps reuse the recorded image.
+
+    Returns immediately with a `deploymentId`. The build and rollout run asynchronously — poll `deployments.getDeployment` to watch status until it is ready.
+
+    **Authentication**: requires a root key with permission to create deployments.
+  operationId: deployments.createDeployment
+  x-speakeasy-name-override: createDeployment
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsCreateDeploymentRequestBody.yaml"
+  responses:
+    "201":
+      description: Deployment created successfully
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsCreateDeploymentResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not found
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "412":
+      description: Precondition failed
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
