@@ -211,6 +211,10 @@
             "group": "Infra",
             "pages": ["infra/index"]
           },
+          {
+            "group": "Runbooks",
+            "pages": ["infra/runbooks/key-migration"]
+          },
          {
             "group": "ClickHouse",
             "pages": [
