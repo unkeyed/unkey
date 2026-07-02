@@ -308,6 +308,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
 	restateSrv := restateServer.NewRestate()
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc))
+	// The deploy billing orchestrator (push and close) fans out to this per-workspace
+	// push service, so it must be bound for those handlers to route end to end.
+	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
