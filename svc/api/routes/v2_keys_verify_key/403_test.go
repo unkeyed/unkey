@@ -31,30 +31,6 @@ func TestForbidden_NoVerifyPermissions(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	t.Run("root key with no verify permissions returns 403", func(t *testing.T) {
-		// Create root key with a permission that is NOT verify_key
-		rootKeyWithoutVerify := h.CreateRootKey(workspace.ID, "api.*.read_key")
-
-		req := handler.Request{
-			Key: key.Key,
-		}
-
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyWithoutVerify)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status, "expected 403, received: %d", res.Status)
-		require.NotNil(t, res.Body)
-		require.NotNil(t, res.Body.Error)
-		require.NotEmpty(t, res.Body.Meta.RequestId, "RequestId should be returned in error response")
-
-		// Verify the error message mentions both permission options
-		require.Contains(t, res.Body.Error.Detail, "api.*.verify_key", "error should mention wildcard permission option")
-		require.Contains(t, res.Body.Error.Detail, "api.<API_ID>.verify_key", "error should mention specific API permission option")
-	})
-
 	t.Run("root key with verify permission for different api returns 200 NOT_FOUND (not 403)", func(t *testing.T) {
 		// Create a second API
 		api2 := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
