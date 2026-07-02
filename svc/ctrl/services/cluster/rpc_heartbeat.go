@@ -6,10 +6,10 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Heartbeat registers or refreshes a krane agent's cluster and region in the
@@ -32,7 +32,7 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 	platform := req.Msg.GetRegion().GetPlatform()
 	now := time.Now().UnixMilli()
 
-	err := db.Query.UpsertRegion(ctx, s.db.RW(), db.UpsertRegionParams{
+	err := s.db.UpsertRegion(ctx, db.UpsertRegionParams{
 		ID:       uid.New(uid.RegionPrefix),
 		Name:     regionName,
 		Platform: platform,
@@ -42,7 +42,7 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 		return nil, err
 	}
 
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RW(), db.FindRegionByPlatformAndNameParams{
+	region, err := s.db.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
 		Platform: platform,
 		Name:     regionName,
 	})
@@ -51,7 +51,7 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 		return nil, err
 	}
 
-	err = db.Query.UpsertCluster(ctx, s.db.RW(), db.UpsertClusterParams{
+	err = s.db.UpsertCluster(ctx, db.UpsertClusterParams{
 		ID:              uid.New(uid.ClusterPrefix),
 		RegionID:        region.ID,
 		LastHeartbeatAt: uint64(now),

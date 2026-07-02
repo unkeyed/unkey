@@ -4,8 +4,8 @@ import (
 	"github.com/go-acme/lego/v4/challenge"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Service orchestrates ACME certificate issuance and renewal.

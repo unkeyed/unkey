@@ -7,9 +7,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // WakeDeployment is the public Restate entrypoint for waking a stopped
@@ -23,7 +23,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(runCtx, w.db.RO(), deploymentID)
+		return w.db.FindDeploymentById(runCtx, deploymentID)
 	}, restate.WithName("find deployment for wake"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -37,7 +37,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}
 
 	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-		return db.Query.FindEnvironmentById(runCtx, w.db.RO(), deployment.EnvironmentID)
+		return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 	}, restate.WithName("find environment for wake"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -63,7 +63,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.UpdateDeploymentStatus(runCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+		return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
 			Status:    db.DeploymentsStatusDeploying,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -74,7 +74,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}
 
 	rows, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindDeploymentTopologyMinReplicasRow, error) {
-		return db.Query.FindDeploymentTopologyMinReplicas(runCtx, w.db.RW(), deploymentID)
+		return w.db.FindDeploymentTopologyMinReplicas(runCtx, deploymentID)
 	}, restate.WithName("find wake topology min replicas"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("find wake topology min replicas: %w", err)
@@ -124,7 +124,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.UpdateDeploymentStatus(runCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+		return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
 			Status:    db.DeploymentsStatusReady,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

@@ -11,6 +11,10 @@ export default function Page() {
   const searchParams = useSearchParams();
   const installationId = searchParams?.get("installation_id") ?? null;
   const state = searchParams?.get("state") ?? null;
+  // OAuth code GitHub returns when the App requests user authorization during
+  // installation. The server uses it to verify the caller can access this
+  // installation before binding it to their workspace.
+  const code = searchParams?.get("code") ?? null;
   const installationIdNumber = useMemo(() => {
     if (!installationId) {
       return null;
@@ -52,12 +56,16 @@ export default function Page() {
     }
 
     if (mutation.isIdle) {
+      // `code` is absent when an existing user returns from editing an
+      // already-authorized installation. The server only requires it when
+      // binding an installation the workspace does not already own.
       mutation.mutate({
         state,
         installationId: installationIdNumber,
+        code: code ?? undefined,
       });
     }
-  }, [mutation, state, installationIdNumber]);
+  }, [mutation, state, installationIdNumber, code]);
 
   if (!state) {
     return (

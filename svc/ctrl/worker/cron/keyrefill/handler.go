@@ -15,11 +15,11 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // stateKeyProcessedKeys tracks key IDs already processed within the
@@ -88,7 +88,7 @@ func (h *Handler) Handle(
 
 	for {
 		keys, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListKeysForRefillRow, error) {
-			return db.Query.ListKeysForRefill(rc, h.db.RO(), db.ListKeysForRefillParams{
+			return h.db.ListKeysForRefill(rc, db.ListKeysForRefillParams{
 				TodayDay:         sql.NullInt16{Int16: int16(todayDay), Valid: true},
 				IsLastDayOfMonth: isLastDayInt,
 				AfterPk:          cursor,
@@ -129,7 +129,7 @@ func (h *Handler) Handle(
 		}
 
 		_, updateErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Query.RefillKeysByIDs(rc, h.db.RW(), db.RefillKeysByIDsParams{
+			return restate.Void{}, h.db.RefillKeysByIDs(rc, db.RefillKeysByIDsParams{
 				Now: sql.NullInt64{Int64: now, Valid: true},
 				Ids: keyIDs,
 			})
@@ -143,7 +143,7 @@ func (h *Handler) Handle(
 			return nil, fmt.Errorf("build outbox rows: %w", buildErr)
 		}
 		_, auditErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			if err := db.BulkQuery.InsertClickhouseOutboxes(rc, h.db.RW(), outboxRows); err != nil {
+			if err := h.db.Bulk().InsertClickhouseOutboxes(rc, outboxRows); err != nil {
 				return restate.Void{}, fmt.Errorf("insert clickhouse outbox rows: %w", err)
 			}
 			return restate.Void{}, nil

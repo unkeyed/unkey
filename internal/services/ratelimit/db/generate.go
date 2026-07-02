@@ -7,7 +7,7 @@ package db
 //go:generate rm -rf ./*_generated.go || true
 
 // Step 2: build the shared sqlc bulk-insert plugin used by sqlc.json.
-//go:generate go build -o ../../../../pkg/db/plugins/dist/bulk-insert ../../../../pkg/db/plugins/bulk-insert
+//go:generate go build -o ../../../../pkg/mysql/plugins/dist/bulk-insert ../../../../pkg/mysql/plugins/bulk-insert
 
 // Step 3: run sqlc, which reads sqlc.json, parses queries/, and emits
 //         typed Go code plus a scaffold db file named "deleteme.go".
