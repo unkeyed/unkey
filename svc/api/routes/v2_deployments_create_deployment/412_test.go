@@ -21,7 +21,7 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 
 	// No repo connection attached to the app.
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 
 	req := handler.Request{
@@ -49,7 +49,7 @@ func TestControlPlanePreconditionFailure(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 

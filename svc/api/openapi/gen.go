@@ -50,24 +50,6 @@ const (
 	UpdateKeyCreditsRefillIntervalMonthly UpdateKeyCreditsRefillInterval = "monthly"
 )
 
-// Defines values for V2DeployGetDeploymentResponseDataStatus.
-const (
-	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
-	BUILDING         V2DeployGetDeploymentResponseDataStatus = "BUILDING"
-	CANCELLED        V2DeployGetDeploymentResponseDataStatus = "CANCELLED"
-	DEPLOYING        V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
-	FAILED           V2DeployGetDeploymentResponseDataStatus = "FAILED"
-	FINALIZING       V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
-	NETWORK          V2DeployGetDeploymentResponseDataStatus = "NETWORK"
-	PENDING          V2DeployGetDeploymentResponseDataStatus = "PENDING"
-	READY            V2DeployGetDeploymentResponseDataStatus = "READY"
-	SKIPPED          V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
-	STARTING         V2DeployGetDeploymentResponseDataStatus = "STARTING"
-	STOPPED          V2DeployGetDeploymentResponseDataStatus = "STOPPED"
-	SUPERSEDED       V2DeployGetDeploymentResponseDataStatus = "SUPERSEDED"
-	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
-)
-
 // Defines values for V2DeploymentsCreateDeploymentRequestBodySource.
 const (
 	DeploymentSourceDeployment V2DeploymentsCreateDeploymentRequestBodySource = "deployment"
@@ -1091,112 +1073,6 @@ type V2AppsUpdateAppResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-}
-
-// V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
-type V2DeployCreateDeploymentRequestBody struct {
-	// App App slug within the project
-	App string `json:"app"`
-
-	// Branch Git branch name
-	Branch string `json:"branch"`
-
-	// DockerImage Docker image reference to deploy
-	DockerImage string `json:"dockerImage"`
-
-	// EnvironmentSlug Environment slug (e.g., "production", "staging")
-	EnvironmentSlug string `json:"environmentSlug"`
-
-	// GitCommit Optional git commit information
-	GitCommit *V2DeployGitCommit `json:"gitCommit,omitempty"`
-
-	// KeyspaceId Optional keyspace ID for authentication context
-	KeyspaceId *string `json:"keyspaceId,omitempty"`
-
-	// Project Project slug
-	Project string `json:"project"`
-}
-
-// V2DeployCreateDeploymentResponseBody defines model for V2DeployCreateDeploymentResponseBody.
-type V2DeployCreateDeploymentResponseBody struct {
-	Data V2DeployCreateDeploymentResponseData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2DeployCreateDeploymentResponseData defines model for V2DeployCreateDeploymentResponseData.
-type V2DeployCreateDeploymentResponseData struct {
-	// DeploymentId Unique deployment identifier
-	DeploymentId string `json:"deploymentId"`
-}
-
-// V2DeployDeploymentStep defines model for V2DeployDeploymentStep.
-type V2DeployDeploymentStep struct {
-	// CreatedAt Unix timestamp in milliseconds
-	CreatedAt *int64 `json:"createdAt,omitempty"`
-
-	// ErrorMessage Error message if step failed
-	ErrorMessage *string `json:"errorMessage,omitempty"`
-
-	// Message Step message
-	Message *string `json:"message,omitempty"`
-
-	// Status Step status
-	Status *string `json:"status,omitempty"`
-}
-
-// V2DeployGetDeploymentRequestBody defines model for V2DeployGetDeploymentRequestBody.
-type V2DeployGetDeploymentRequestBody struct {
-	// DeploymentId Unique deployment identifier to retrieve
-	DeploymentId string `json:"deploymentId"`
-}
-
-// V2DeployGetDeploymentResponseBody defines model for V2DeployGetDeploymentResponseBody.
-type V2DeployGetDeploymentResponseBody struct {
-	Data V2DeployGetDeploymentResponseData `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// V2DeployGetDeploymentResponseData defines model for V2DeployGetDeploymentResponseData.
-type V2DeployGetDeploymentResponseData struct {
-	// ErrorMessage Error message if deployment failed
-	ErrorMessage *string `json:"errorMessage,omitempty"`
-
-	// Hostnames Hostnames associated with this deployment
-	Hostnames *[]string `json:"hostnames,omitempty"`
-
-	// Id Unique deployment identifier
-	Id string `json:"id"`
-
-	// Status Current deployment status
-	Status V2DeployGetDeploymentResponseDataStatus `json:"status"`
-
-	// Steps Deployment steps with status and messages
-	Steps *[]V2DeployDeploymentStep `json:"steps,omitempty"`
-}
-
-// V2DeployGetDeploymentResponseDataStatus Current deployment status
-type V2DeployGetDeploymentResponseDataStatus string
-
-// V2DeployGitCommit Optional git commit information
-type V2DeployGitCommit struct {
-	// AuthorAvatarUrl Git author avatar URL
-	AuthorAvatarUrl *string `json:"authorAvatarUrl,omitempty"`
-
-	// AuthorHandle Git author handle/username
-	AuthorHandle *string `json:"authorHandle,omitempty"`
-
-	// CommitMessage Git commit message
-	CommitMessage *string `json:"commitMessage,omitempty"`
-
-	// CommitSha Git commit SHA
-	CommitSha *string `json:"commitSha,omitempty"`
-
-	// Timestamp Commit timestamp in milliseconds
-	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
 // V2DeploymentsCreateDeploymentRequestBody Create a deployment. Set source, then provide the fields for that source.
@@ -3267,12 +3143,6 @@ type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
 
 // AppsUpdateAppJSONRequestBody defines body for AppsUpdateApp for application/json ContentType.
 type AppsUpdateAppJSONRequestBody = V2AppsUpdateAppRequestBody
-
-// DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
-type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
-
-// DeployGetDeploymentJSONRequestBody defines body for DeployGetDeployment for application/json ContentType.
-type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
 
 // DeploymentsCreateDeploymentJSONRequestBody defines body for DeploymentsCreateDeployment for application/json ContentType.
 type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentRequestBody

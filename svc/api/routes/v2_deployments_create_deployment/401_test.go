@@ -18,7 +18,7 @@ func TestUnauthorized(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 
 	req := handler.Request{

@@ -104,7 +104,7 @@ tags:
     description: API management operations
   - name: apps
     description: App management operations
-  - name: deploy
+  - name: deployments
     description: Deployment operations
   - name: environments
     description: Environment management operations
@@ -140,11 +140,7 @@ paths:
   /v2/apis.listKeys:
     $ref: "./spec/paths/v2/apis/listKeys/index.yaml"
 
-  # Deploy Endpoints
-  /v2/deploy.createDeployment:
-    $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
-  /v2/deploy.getDeployment:
-    $ref: "./spec/paths/v2/deploy/getDeployment/index.yaml"
+  # Deployments Endpoints
   /v2/deployments.createDeployment:
     $ref: "./spec/paths/v2/deployments/createDeployment/index.yaml"
 

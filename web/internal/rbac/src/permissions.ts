@@ -77,9 +77,6 @@ export const projectActions = z.enum([
   "update_project",
   "delete_project",
   "create_app",
-  "create_deployment",
-  "read_deployment",
-  "generate_upload_url",
 ]);
 export const appActions = z.enum(["read_app", "update_app", "delete_app"]);
 export const environmentActions = z.enum([
@@ -88,6 +85,8 @@ export const environmentActions = z.enum([
   "set_environment_variables",
   "remove_environment_variables",
   "read_environment_variables",
+  "create_deployment",
+  "read_deployment",
 ]);
 
 // Resources that require an ID (resource.id.action format)

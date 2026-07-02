@@ -20,7 +20,7 @@ func TestEnvironmentNotFound(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 
 	t.Run("unknown environment", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestRedeployDeploymentNotFound(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 
 	req := handler.Request{
@@ -103,7 +103,7 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 
 	attacker := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		ProjectSlug: "attacker-project",
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 
 	req := handler.Request{
@@ -131,7 +131,7 @@ func TestRedeployWrongAppOrEnvironmentMasked(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 
 	// A second app + environment + deployment in the SAME workspace.

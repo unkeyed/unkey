@@ -19,7 +19,7 @@ func TestInsufficientPermissions(t *testing.T) {
 
 	// A key with an unrelated permission on the project.
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.read_deployment"},
+		Permissions: []string{"environment.*.read_deployment"},
 	})
 
 	req := handler.Request{

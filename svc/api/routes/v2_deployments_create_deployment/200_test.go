@@ -21,7 +21,7 @@ func TestImageSource(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 
 	req := handler.Request{
@@ -53,7 +53,7 @@ func TestImageSourceCliTrigger(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 
 	headers := authHeaders(setup.RootKey)
@@ -80,7 +80,7 @@ func TestGitSource(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
@@ -111,7 +111,7 @@ func TestGitSourceWithFork(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
@@ -139,7 +139,7 @@ func TestRedeployGitApp(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
@@ -175,7 +175,7 @@ func TestRedeployImageReuse(t *testing.T) {
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"project.*.create_deployment"},
+		Permissions: []string{"environment.*.create_deployment"},
 	})
 	// No repo connection: redeploy reuses the recorded image rather than rebuilding.
 
@@ -201,14 +201,14 @@ func TestRedeployImageReuse(t *testing.T) {
 	require.Nil(t, capture.req.GitCommit, "an app without a repo connection reuses the image instead of rebuilding")
 }
 
-func TestSpecificProjectPermission(t *testing.T) {
+func TestSpecificEnvironmentPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	capture := &ctrlCapture{}
 	route := newRoute(h, capture)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup()
-	rootKey := h.CreateRootKey(setup.Workspace.ID, "project."+setup.Project.ID+".create_deployment")
+	rootKey := h.CreateRootKey(setup.Workspace.ID, "environment."+setup.Environment.ID+".create_deployment")
 
 	req := handler.Request{
 		Project:         setup.Project.Slug,
