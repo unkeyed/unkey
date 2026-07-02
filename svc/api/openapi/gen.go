@@ -70,9 +70,9 @@ const (
 
 // Defines values for V2DeploymentsCreateDeploymentRequestBodySource.
 const (
-	Deployment V2DeploymentsCreateDeploymentRequestBodySource = "deployment"
-	Git        V2DeploymentsCreateDeploymentRequestBodySource = "git"
-	Image      V2DeploymentsCreateDeploymentRequestBodySource = "image"
+	DeploymentSourceDeployment V2DeploymentsCreateDeploymentRequestBodySource = "deployment"
+	DeploymentSourceGit        V2DeploymentsCreateDeploymentRequestBodySource = "git"
+	DeploymentSourceImage      V2DeploymentsCreateDeploymentRequestBodySource = "image"
 )
 
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.

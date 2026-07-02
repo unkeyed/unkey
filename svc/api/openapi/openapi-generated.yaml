@@ -619,6 +619,10 @@ components:
                         - image
                         - git
                         - deployment
+                    x-enum-varnames:
+                        - DeploymentSourceImage
+                        - DeploymentSourceGit
+                        - DeploymentSourceDeployment
                     description: |
                         Where the deployment comes from. image: a prebuilt Docker image. git: build
                         from the app's connected GitHub repository. deployment: re-run an existing deployment.
@@ -636,6 +640,7 @@ components:
                     example: "9f2c1a7"
                 forkRepository:
                     type: string
+                    pattern: "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
                     description: Fork to build from, as "owner/repo". Used when source is git. Requires commitSha.
                     example: "contributor/acme-api"
                 deploymentId:

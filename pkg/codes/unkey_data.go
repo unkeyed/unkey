@@ -61,6 +61,12 @@ type dataEnvironmentVariable struct {
 	Duplicate Code
 }
 
+// dataDeployment defines errors related to deployment operations.
+type dataDeployment struct {
+	// NotFound indicates the requested deployment does not exist.
+	NotFound Code
+}
+
 // dataPermission defines errors related to permission operations.
 type dataPermission struct {
 	// Duplicate indicates the requested permission already exists.
@@ -140,6 +146,7 @@ type UnkeyDataErrors struct {
 	App                 dataApp
 	Environment         dataEnvironment
 	EnvironmentVariable dataEnvironmentVariable
+	Deployment          dataDeployment
 	Migration           dataMigration
 	KeySpace            dataKeySpace
 	Permission          dataPermission
@@ -193,6 +200,10 @@ var Data = UnkeyDataErrors{
 
 	EnvironmentVariable: dataEnvironmentVariable{
 		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "environment_variable_already_exists"},
+	},
+
+	Deployment: dataDeployment{
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "deployment_not_found"},
 	},
 
 	Permission: dataPermission{
