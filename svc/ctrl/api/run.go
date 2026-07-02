@@ -31,6 +31,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
@@ -296,10 +297,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
-		mux.Handle("POST /webhooks/github", &GitHubWebhook{
-			restate:       restateClient,
-			webhookSecret: cfg.GitHub.WebhookSecret,
-		})
+		mux.Handle("POST /webhooks/github", githubwebhook.New(restateClient, cfg.GitHub.WebhookSecret))
 		logger.Info("GitHub webhook handler registered")
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
