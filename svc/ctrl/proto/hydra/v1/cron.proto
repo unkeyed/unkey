@@ -71,6 +71,16 @@ service CronService {
   // idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
   // scan is singleton-keyed without sharing a queue with other cron handlers.
   rpc RunScaleDownIdlePreviewDeployments(RunScaleDownIdlePreviewDeploymentsRequest) returns (RunScaleDownIdlePreviewDeploymentsResponse) {}
+
+  // RunDeployBillingClose performs the month-end close for Deploy billing.
+  // Key = the CLOSED billing period "YYYY-MM". Pushes each billable
+  // workspace's final full-period usage, timestamped just inside the closed
+  // period so the "last"-formula meters bill the final total, then finalizes
+  // every Deploy workspace's draft renewal invoice for that period.
+  // Idempotent: pushes converge by construction and an already-finalized
+  // invoice counts as done, so the Stripe invoice.created webhook (via
+  // ctrl-api) and the 00:30 UTC backup cron can both invoke it safely.
+  rpc RunDeployBillingClose(RunDeployBillingCloseRequest) returns (RunDeployBillingCloseResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -116,3 +126,13 @@ message RunDeployBillingPushResponse {}
 
 message RunScaleDownIdlePreviewDeploymentsRequest {}
 message RunScaleDownIdlePreviewDeploymentsResponse {}
+
+message RunDeployBillingCloseRequest {}
+message RunDeployBillingCloseResponse {
+  // Number of workspaces whose final full-period usage was pushed.
+  int32 workspaces_pushed = 1;
+  // Number of draft invoices this run finalized.
+  int32 invoices_finalized = 2;
+  // Number of invoices that needed no action (already finalized or paid).
+  int32 invoices_skipped = 3;
+}

@@ -13,6 +13,15 @@ has_depot_credentials = os.path.exists('./.env.depot')
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
 has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
 
+# The stripe CLI is "logged in" when it has a configured account. When it is,
+# Tilt writes the shared webhook signing secret into both env files and forwards
+# test events to the dashboard and ctrl-api webhooks; otherwise this is skipped.
+has_stripe_login = str(local(
+    "stripe config --list 2>/dev/null | grep -q account_id && echo yes || echo no",
+    quiet=True,
+    echo_off=True,
+)).strip() == "yes"
+
 local_resource(
   'namespace',
   'kubectl apply -f k8s/manifests/namespace.yaml',
@@ -196,10 +205,36 @@ local_resource(
     allow_parallel=True,
 )
 
+# When the stripe CLI is logged in, capture its signing secret (stable per
+# account) and upsert it into both env files, so ctrl-api and the dashboard
+# verify forwarded events with the same secret. Runs before the consumers below.
+stripe_secret_dep = []
+if has_stripe_login:
+    local_resource(
+        'stripe-webhook-secret',
+        '''
+        set -eu
+        whsec=$(stripe listen --print-secret)
+        for f in ./.env.stripe ../web/apps/dashboard/.env; do
+          touch "$f"
+          if grep -q '^STRIPE_WEBHOOK_SECRET=' "$f"; then
+            sed -i.bak "s|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$whsec|" "$f" && rm -f "$f.bak"
+          else
+            printf 'STRIPE_WEBHOOK_SECRET=%s\\n' "$whsec" >> "$f"
+          fi
+        done
+        echo "Wrote STRIPE_WEBHOOK_SECRET to .env.stripe and dashboard .env"
+        ''',
+        resource_deps=['namespace'],
+        labels=['setup'],
+        allow_parallel=True,
+    )
+    stripe_secret_dep = ['stripe-webhook-secret']
+
 local_resource(
     'stripe-credentials',
     'if [ -f ./.env.stripe ]; then kubectl -n unkey create secret generic stripe-credentials --from-env-file=./.env.stripe -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping stripe-credentials (no .env.stripe file)"; fi',
-    resource_deps=['namespace'],
+    resource_deps=['namespace'] + stripe_secret_dep,
     deps=['./.env.stripe'],
     labels=['setup'],
     allow_parallel=True,
@@ -332,7 +367,7 @@ custom_build(
     deps=SERVICE_DEPS,
 )
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
 k8s_resource(
@@ -459,12 +494,33 @@ local_resource(
       cd ../web && pnpm --filter=@unkey/dashboard dev
     ''',
     deps=[],
-    resource_deps=['mysql', 'clickhouse', 'ctrl-api'],
+    resource_deps=['mysql', 'clickhouse', 'ctrl-api'] + stripe_secret_dep,
     labels=['unkey'],
     auto_init=True,
     readiness_probe=probe(http_get=http_get_action(port=3000, path='/'), period_secs=5, failure_threshold=30),
     links=['http://localhost:3000'],
 )
+
+# ─── Stripe webhook listeners (stripe CLI -> dashboard + ctrl-api) ──────────
+# Forward test-mode events to both webhook endpoints so local billing flows
+# (subscribe, invoice.created close) fire end to end. Only when logged in; the
+# signing secret was written into both env files by stripe-webhook-secret above.
+# --forward-to takes one URL, so one listener per endpoint.
+if has_stripe_login:
+    local_resource(
+        'stripe-listen-dashboard',
+        serve_cmd='stripe listen --forward-to http://localhost:3000/api/webhooks/stripe',
+        resource_deps=['dashboard'],
+        labels=['unkey'],
+        auto_init=True,
+    )
+    local_resource(
+        'stripe-listen-ctrl',
+        serve_cmd='stripe listen --forward-to http://localhost:7091/webhooks/stripe',
+        resource_deps=['ctrl-api'],
+        labels=['unkey'],
+        auto_init=True,
+    )
 
 print("""
 Tilt is ready!

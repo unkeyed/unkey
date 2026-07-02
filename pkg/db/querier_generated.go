@@ -516,6 +516,18 @@ type Querier interface {
 	//  LEFT JOIN certificates c ON c.hostname = cd.domain
 	//  WHERE cd.domain = ?
 	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
+	// Resolves a Stripe customer to its workspace, but only when that workspace
+	// has an active Deploy plan. The ctrl Stripe webhook uses this as the
+	// relevance check for month-end invoice closing: invoices of customers
+	// without a Deploy plan are left entirely to Stripe's own finalization.
+	//
+	//  SELECT
+	//     w.id
+	//  FROM `workspaces` w
+	//  WHERE w.stripe_customer_id = ?
+	//    AND w.deploy_plan IS NOT NULL
+	//    AND w.deleted_at_m IS NULL
+	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, db DBTX, stripeCustomerID sql.NullString) (string, error)
 	//FindDeploymentById
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
@@ -2288,6 +2300,27 @@ type Querier interface {
 	//  WHERE project_id = ?
 	//  ORDER BY created_at DESC
 	ListCustomDomainsByProjectID(ctx context.Context, db DBTX, projectID string) ([]CustomDomain, error)
+	// Lists every workspace with an active Deploy plan and a Stripe customer:
+	// the set whose draft renewal invoices the month-end close finalizes. A
+	// workspace that cancelled Deploy mid-month is intentionally absent: cancel
+	// clears deploy_plan, so it drops out here and the close never touches it. Its
+	// final invoice is left to Stripe's own auto-finalize at the period boundary,
+	// which bills whatever the hourly usage push last reported. The push is
+	// usage-driven (not gated on deploy_plan), so it keeps reporting until the
+	// workloads actually drain, including any usage after the cancel call. The
+	// tradeoff is up to ~1h of staleness on that final invoice versus the last
+	// hourly tick, the same bound the hourly push accepts everywhere else.
+	//
+	//  SELECT
+	//     w.id,
+	//     w.stripe_customer_id,
+	//     w.stripe_subscription_id
+	//  FROM `workspaces` w
+	//  WHERE w.deploy_plan IS NOT NULL
+	//    AND w.stripe_customer_id IS NOT NULL
+	//    AND w.enabled = true
+	//    AND w.deleted_at_m IS NULL
+	ListDeployBillableWorkspaces(ctx context.Context, db DBTX) ([]ListDeployBillableWorkspacesRow, error)
 	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
 	// Used by the unified WatchDeploymentChanges stream. Does not filter by resource_type.
 	//
