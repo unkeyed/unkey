@@ -11,8 +11,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // ErrDomainNotFound is returned when a domain is not found in the database.
@@ -70,7 +70,7 @@ func (p *Provider) resolveDomain(ctx context.Context, domain string) (db.CustomD
 
 	dom, hit, err := p.cache.SWR(ctx, cacheKey,
 		func(ctx context.Context) (db.CustomDomain, error) {
-			return db.Query.FindCustomDomainByDomainOrWildcard(ctx, p.db.RO(), db.FindCustomDomainByDomainOrWildcardParams{
+			return p.db.FindCustomDomainByDomainOrWildcard(ctx, db.FindCustomDomainByDomainOrWildcardParams{
 				Domain:   domain,
 				Domain_2: wildcardDomain,
 				Domain_3: domain,
@@ -104,7 +104,7 @@ func (p *Provider) Present(domain, token, keyAuth string) error {
 		return fmt.Errorf("failed to present DNS challenge for domain %s: %w", domain, err)
 	}
 
-	err = db.Query.UpdateAcmeChallengePending(ctx, p.db.RW(), db.UpdateAcmeChallengePendingParams{
+	err = p.db.UpdateAcmeChallengePending(ctx, db.UpdateAcmeChallengePendingParams{
 		DomainID:      dom.ID,
 		Status:        db.AcmeChallengesStatusPending,
 		Token:         token,

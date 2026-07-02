@@ -25,8 +25,7 @@ This error occurs when you're trying to migrate API keys for a migration that do
 
 Common scenarios that trigger this error:
 
-- Using an incorrect or expired migrationId
-- The migration was deleted
+- Using a migrationId that has not been set up for your workspace
 - The migration belongs to a different workspace
 - Typos in the migrationId
 
@@ -39,7 +38,7 @@ curl -X POST https://api.unkey.com/v2/keys.migrateKeys \
   -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
   -d '{
     "apiId": "api_123",
-    "migrationId": "migration_456",
+    "migrationId": "mig_456",
     "keys": [{ "hash": "deadbeef" }]
   }'
 ```

@@ -10,9 +10,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 )
 
@@ -64,7 +64,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 		SentinelConfig: []byte("{}"),
 	})
 
-	require.NoError(t, db.Query.InsertCustomDomain(ctx, h.DB.RW(), db.InsertCustomDomainParams{
+	require.NoError(t, h.DB.InsertCustomDomain(ctx, db.InsertCustomDomainParams{
 		ID:                 uid.New(uid.DomainPrefix),
 		WorkspaceID:        victimWS,
 		ProjectID:          victimProject.ID,
@@ -79,7 +79,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 	}))
 
 	frontlineRouteID := uid.New(uid.FrontlineRoutePrefix)
-	require.NoError(t, db.Query.InsertFrontlineRoute(ctx, h.DB.RW(), db.InsertFrontlineRouteParams{
+	require.NoError(t, h.DB.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
 		ID:                       frontlineRouteID,
 		ProjectID:                victimProject.ID,
 		AppID:                    victimApp.ID,
@@ -117,7 +117,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 	})
 
 	attackerDomainID := uid.New(uid.DomainPrefix)
-	require.NoError(t, db.Query.InsertCustomDomain(ctx, h.DB.RW(), db.InsertCustomDomainParams{
+	require.NoError(t, h.DB.InsertCustomDomain(ctx, db.InsertCustomDomainParams{
 		ID:                 attackerDomainID,
 		WorkspaceID:        attackerWS,
 		ProjectID:          attackerProject.ID,
@@ -143,13 +143,13 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 	require.NoError(t, err)
 
 	// The victim's live frontline route must still exist and be unchanged.
-	route, err := db.Query.FindFrontlineRouteByFQDN(ctx, h.DB.RO(), fqdn)
+	route, err := h.DB.FindFrontlineRouteByFQDN(ctx, fqdn)
 	require.NoError(t, err, "victim frontline route must not be deleted")
 	require.Equal(t, frontlineRouteID, route.ID)
 	require.Equal(t, victimProject.ID, route.ProjectID)
 
 	// The attacker's own custom_domains row must be gone.
-	_, err = db.Query.FindCustomDomainById(ctx, h.DB.RO(), attackerDomainID)
+	_, err = h.DB.FindCustomDomainById(ctx, attackerDomainID)
 	require.True(t, db.IsNotFound(err), "attacker custom domain row should be deleted")
 }
 
@@ -192,7 +192,7 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 	})
 
 	domainID := uid.New(uid.DomainPrefix)
-	require.NoError(t, db.Query.InsertCustomDomain(ctx, h.DB.RW(), db.InsertCustomDomainParams{
+	require.NoError(t, h.DB.InsertCustomDomain(ctx, db.InsertCustomDomainParams{
 		ID:                 domainID,
 		WorkspaceID:        ws,
 		ProjectID:          project.ID,
@@ -205,7 +205,7 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 		TargetCname:        "owner-target.cname.unkey.com",
 		CreatedAt:          now,
 	}))
-	require.NoError(t, db.Query.InsertFrontlineRoute(ctx, h.DB.RW(), db.InsertFrontlineRouteParams{
+	require.NoError(t, h.DB.InsertFrontlineRoute(ctx, db.InsertFrontlineRouteParams{
 		ID:                       uid.New(uid.FrontlineRoutePrefix),
 		ProjectID:                project.ID,
 		AppID:                    app.ID,
@@ -227,9 +227,9 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 	_, err := svc.DeleteCustomDomain(ctx, req)
 	require.NoError(t, err)
 
-	_, err = db.Query.FindFrontlineRouteByFQDN(ctx, h.DB.RO(), fqdn)
+	_, err = h.DB.FindFrontlineRouteByFQDN(ctx, fqdn)
 	require.True(t, db.IsNotFound(err), "owner's frontline route should be deleted")
 
-	_, err = db.Query.FindCustomDomainById(ctx, h.DB.RO(), domainID)
+	_, err = h.DB.FindCustomDomainById(ctx, domainID)
 	require.True(t, db.IsNotFound(err), "owner's custom domain row should be deleted")
 }

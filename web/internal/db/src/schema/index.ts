@@ -27,7 +27,6 @@ export * from "./acme_users";
 export * from "./custom_domains";
 export * from "./acme_challenges";
 
-export * from "./sentinels";
 export * from "./instances";
 export * from "./certificates";
 export * from "./frontline_routes";
