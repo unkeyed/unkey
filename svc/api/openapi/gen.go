@@ -68,6 +68,13 @@ const (
 	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 
+// Defines values for V2DeploymentsCreateDeploymentRequestBodySource.
+const (
+	Deployment V2DeploymentsCreateDeploymentRequestBodySource = "deployment"
+	Git        V2DeploymentsCreateDeploymentRequestBodySource = "git"
+	Image      V2DeploymentsCreateDeploymentRequestBodySource = "image"
+)
+
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
 const (
 	Decrement V2KeysUpdateCreditsRequestBodyOperation = "decrement"
@@ -1190,6 +1197,58 @@ type V2DeployGitCommit struct {
 
 	// Timestamp Commit timestamp in milliseconds
 	Timestamp *int64 `json:"timestamp,omitempty"`
+}
+
+// V2DeploymentsCreateDeploymentRequestBody Create a deployment. Set source, then provide the fields for that source.
+type V2DeploymentsCreateDeploymentRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Branch Branch to build (its HEAD). Used when source is git. Omit branch and commitSha to use the app's default branch.
+	Branch *string `json:"branch,omitempty"`
+
+	// CommitSha Commit to build (full or abbreviated SHA). Used when source is git. Takes precedence over branch.
+	CommitSha *string `json:"commitSha,omitempty"`
+
+	// DeploymentId Existing deployment to redeploy. Required when source is deployment.
+	DeploymentId *string `json:"deploymentId,omitempty"`
+
+	// DockerImage Docker image to deploy as-is. Required when source is image.
+	DockerImage *string `json:"dockerImage,omitempty"`
+
+	// EnvironmentSlug Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	EnvironmentSlug ResourceIdentifier `json:"environmentSlug"`
+
+	// ForkRepository Fork to build from, as "owner/repo". Used when source is git. Requires commitSha.
+	ForkRepository *string `json:"forkRepository,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Source Where the deployment comes from. image: a prebuilt Docker image. git: build
+	// from the app's connected GitHub repository. deployment: re-run an existing deployment.
+	Source V2DeploymentsCreateDeploymentRequestBodySource `json:"source"`
+}
+
+// V2DeploymentsCreateDeploymentRequestBodySource Where the deployment comes from. image: a prebuilt Docker image. git: build
+// from the app's connected GitHub repository. deployment: re-run an existing deployment.
+type V2DeploymentsCreateDeploymentRequestBodySource string
+
+// V2DeploymentsCreateDeploymentResponseBody defines model for V2DeploymentsCreateDeploymentResponseBody.
+type V2DeploymentsCreateDeploymentResponseBody struct {
+	Data V2DeploymentsCreateDeploymentResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsCreateDeploymentResponseData defines model for V2DeploymentsCreateDeploymentResponseData.
+type V2DeploymentsCreateDeploymentResponseData struct {
+	// DeploymentId Unique deployment identifier. Poll deployments.getDeployment with this id to watch status.
+	DeploymentId string `json:"deploymentId"`
 }
 
 // V2EnvironmentsAddEnvironmentVariablesRequestBody defines model for V2EnvironmentsAddEnvironmentVariablesRequestBody.
@@ -3214,6 +3273,9 @@ type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody
 
 // DeployGetDeploymentJSONRequestBody defines body for DeployGetDeployment for application/json ContentType.
 type DeployGetDeploymentJSONRequestBody = V2DeployGetDeploymentRequestBody
+
+// DeploymentsCreateDeploymentJSONRequestBody defines body for DeploymentsCreateDeployment for application/json ContentType.
+type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentRequestBody
 
 // EnvironmentsAddEnvironmentVariablesJSONRequestBody defines body for EnvironmentsAddEnvironmentVariables for application/json ContentType.
 type EnvironmentsAddEnvironmentVariablesJSONRequestBody = V2EnvironmentsAddEnvironmentVariablesRequestBody
