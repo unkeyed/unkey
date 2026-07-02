@@ -22,6 +22,7 @@ type DeployServiceClient interface {
 	CancelDeployment(ctx context.Context, req *v1.CancelDeploymentRequest) (*v1.CancelDeploymentResponse, error)
 	StopDeployment(ctx context.Context, req *v1.StopDeploymentRequest) (*v1.StopDeploymentResponse, error)
 	WakeDeployment(ctx context.Context, req *v1.WakeDeploymentRequest) (*v1.WakeDeploymentResponse, error)
+	CancelDeploy(ctx context.Context, req *v1.CancelDeployRequest) (*v1.CancelDeployResponse, error)
 }
 
 var _ DeployServiceClient = (*ConnectDeployServiceClient)(nil)
@@ -131,6 +132,19 @@ func (c *ConnectDeployServiceClient) WakeDeployment(ctx context.Context, req *v1
 	ctx, span := tracing.Start(ctx, "DeployService.WakeDeployment")
 	defer span.End()
 	resp, err := c.inner.WakeDeployment(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectDeployServiceClient) CancelDeploy(ctx context.Context, req *v1.CancelDeployRequest) (*v1.CancelDeployResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.CancelDeploy")
+	defer span.End()
+	resp, err := c.inner.CancelDeploy(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

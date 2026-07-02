@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploysub"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
@@ -24,6 +25,8 @@ type Service struct {
 	allowUnauthenticatedDeployments bool
 	bearer                          string
 	dedup                           *dedup.Service
+	deploysub                       *deploysub.Manager
+	enforceDeployGate               bool
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeployService
@@ -56,6 +59,12 @@ type Config struct {
 	AllowUnauthenticatedDeployments bool
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
+	// DeploySub manages Stripe Deploy-subscription cancellation. Nil disables CancelDeploy.
+	DeploySub *deploysub.Manager
+	// EnforceDeployGate hard-blocks deployment creation for workspaces with
+	// no Deploy entitlement (same switch as project creation). False runs in
+	// observe mode: logs what it would block but allows creation.
+	EnforceDeployGate bool
 }
 
 // New creates a new [Service] with the given configuration.
@@ -70,5 +79,7 @@ func New(cfg Config) *Service {
 		allowUnauthenticatedDeployments:   cfg.AllowUnauthenticatedDeployments,
 		bearer:                            cfg.Bearer,
 		dedup:                             dedup.New(cfg.Database, cfg.RestateAdmin),
+		deploysub:                         cfg.DeploySub,
+		enforceDeployGate:                 cfg.EnforceDeployGate,
 	}
 }

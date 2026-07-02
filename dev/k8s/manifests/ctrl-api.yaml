@@ -43,6 +43,17 @@ data:
     [stripe]
     webhook_secret = "${STRIPE_WEBHOOK_SECRET}"
     secret_key = "${STRIPE_SECRET_KEY}"
+    # Deploy price lookup_keys, used by CancelDeploy to classify a subscription's
+    # items (plan-fee vs metered) when cancelling. Same handles the dashboard
+    # uses; set them in dev/.env.stripe to match your test account's prices.
+    deploy_starter_lookup_key = "${STRIPE_DEPLOY_STARTER_LOOKUP_KEY}"
+    deploy_pro_lookup_key = "${STRIPE_DEPLOY_PRO_LOOKUP_KEY}"
+    deploy_business_lookup_key = "${STRIPE_DEPLOY_BUSINESS_LOOKUP_KEY}"
+    deploy_meter_cpu_lookup_key = "${STRIPE_DEPLOY_METER_CPU_LOOKUP_KEY}"
+    deploy_meter_memory_lookup_key = "${STRIPE_DEPLOY_METER_MEMORY_LOOKUP_KEY}"
+    deploy_meter_egress_lookup_key = "${STRIPE_DEPLOY_METER_EGRESS_LOOKUP_KEY}"
+    deploy_meter_disk_lookup_key = "${STRIPE_DEPLOY_METER_DISK_LOOKUP_KEY}"
+    deploy_meter_active_keys_lookup_key = "${STRIPE_DEPLOY_METER_ACTIVE_KEYS_LOOKUP_KEY}"
 
 ---
 apiVersion: apps/v1

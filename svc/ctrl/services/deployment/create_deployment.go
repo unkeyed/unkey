@@ -91,6 +91,30 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
+	// Entitlement gate, mirroring project creation: cancel clears deploy_plan
+	// but leaves the projects behind, so without this a cancelled (or never
+	// entitled) workspace could keep starting new compute through an existing
+	// project — teardown only stops what it snapshotted. Observe mode (the
+	// default) logs would-block instead of failing.
+	entitlement, err := db.Query.FindWorkspaceDeployEntitlement(ctx, s.db.RO(), ctxLoad.workspaceID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to load workspace entitlement: %w", err))
+	}
+	if !deployEntitled(entitlement.DeployPlan, entitlement.DeployPlanOverride) {
+		if s.enforceDeployGate {
+			return nil, connect.NewError(
+				connect.CodeFailedPrecondition,
+				fmt.Errorf("workspace %q has no Compute plan", ctxLoad.workspaceID),
+			)
+		}
+		logger.Warn("deploy gate would block deployment creation",
+			"event", "deploy_gate.would_block",
+			"workspaceId", ctxLoad.workspaceID,
+			"projectId", req.Msg.GetProjectId(),
+		)
+	}
+
 	keyspaceID := req.Msg.GetKeyspaceId()
 	var keyAuthID *string
 	if keyspaceID != "" {

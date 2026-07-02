@@ -35,6 +35,8 @@ type MockDeploymentClient struct {
 	AuthorizeDeploymentCalls []*ctrlv1.AuthorizeDeploymentRequest
 	CancelDeploymentFunc     func(context.Context, *ctrlv1.CancelDeploymentRequest) (*ctrlv1.CancelDeploymentResponse, error)
 	CancelDeploymentCalls    []*ctrlv1.CancelDeploymentRequest
+	CancelDeployFunc         func(context.Context, *ctrlv1.CancelDeployRequest) (*ctrlv1.CancelDeployResponse, error)
+	CancelDeployCalls        []*ctrlv1.CancelDeployRequest
 }
 
 func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
@@ -115,4 +117,14 @@ func (m *MockDeploymentClient) CancelDeployment(ctx context.Context, req *ctrlv1
 		return m.CancelDeploymentFunc(ctx, req)
 	}
 	return &ctrlv1.CancelDeploymentResponse{}, nil
+}
+
+func (m *MockDeploymentClient) CancelDeploy(ctx context.Context, req *ctrlv1.CancelDeployRequest) (*ctrlv1.CancelDeployResponse, error) {
+	m.mu.Lock()
+	m.CancelDeployCalls = append(m.CancelDeployCalls, req)
+	m.mu.Unlock()
+	if m.CancelDeployFunc != nil {
+		return m.CancelDeployFunc(ctx, req)
+	}
+	return &ctrlv1.CancelDeployResponse{}, nil
 }
