@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // SupersededByNewerCommitMessage is stamped onto the in-flight deployment
@@ -63,7 +63,7 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 		return nil
 	}
 
-	older, err := db.Query.ListOlderActiveDeploymentsForDedup(ctx, s.db.RO(), db.ListOlderActiveDeploymentsForDedupParams{
+	older, err := s.db.ListOlderActiveDeploymentsForDedup(ctx, db.ListOlderActiveDeploymentsForDedupParams{
 		AppID:         newer.AppID,
 		EnvironmentID: newer.EnvironmentID,
 		GitBranch:     sql.NullString{Valid: true, String: newer.GitBranch},
@@ -96,7 +96,7 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 	// ONE query to stamp all in-flight steps with the superseded marker.
 	// First-write-wins (WHERE ended_at IS NULL) so the Deploy handler's
 	// own step-end is a no-op and our marker wins.
-	err = db.Query.EndActiveDeploymentStepsForDeployments(ctx, s.db.RW(), db.EndActiveDeploymentStepsForDeploymentsParams{
+	err = s.db.EndActiveDeploymentStepsForDeployments(ctx, db.EndActiveDeploymentStepsForDeploymentsParams{
 		EndedAt:       now,
 		Error:         sql.NullString{Valid: true, String: SupersededByNewerCommitMessage},
 		DeploymentIds: deploymentIDs,
@@ -109,7 +109,7 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 	}
 
 	// ONE query to transition all siblings to superseded.
-	err = db.Query.UpdateDeploymentStatusBatch(ctx, s.db.RW(), db.UpdateDeploymentStatusBatchParams{
+	err = s.db.UpdateDeploymentStatusBatch(ctx, db.UpdateDeploymentStatusBatchParams{
 		Status:    db.DeploymentsStatusSuperseded,
 		UpdatedAt: now,
 		Ids:       deploymentIDs,

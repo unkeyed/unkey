@@ -14,9 +14,9 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 type AcmeUser struct {
@@ -46,7 +46,7 @@ type UserConfig struct {
 }
 
 func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
-	foundUser, err := db.Query.FindAcmeUserByWorkspaceID(ctx, cfg.DB.RO(), cfg.WorkspaceID)
+	foundUser, err := cfg.DB.FindAcmeUserByWorkspaceID(ctx, cfg.WorkspaceID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return register(ctx, cfg)
@@ -101,7 +101,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 
 		user.Registration = reg
 
-		if updateErr := db.Query.UpdateAcmeUserRegistrationURI(ctx, cfg.DB.RW(), db.UpdateAcmeUserRegistrationURIParams{
+		if updateErr := cfg.DB.UpdateAcmeUserRegistrationURI(ctx, db.UpdateAcmeUserRegistrationURIParams{
 			ID:              foundUser.ID,
 			RegistrationUri: sql.NullString{Valid: true, String: reg.URI},
 		}); updateErr != nil {
@@ -139,7 +139,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 	}
 
 	id := uid.New("acme")
-	err = db.Query.InsertAcmeUser(ctx, cfg.DB.RW(), db.InsertAcmeUserParams{
+	err = cfg.DB.InsertAcmeUser(ctx, db.InsertAcmeUserParams{
 		ID:           id,
 		WorkspaceID:  cfg.WorkspaceID,
 		EncryptedKey: resp.GetEncrypted(),
@@ -162,7 +162,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 
 	user.Registration = reg
 
-	err = db.Query.UpdateAcmeUserRegistrationURI(ctx, cfg.DB.RW(), db.UpdateAcmeUserRegistrationURIParams{
+	err = cfg.DB.UpdateAcmeUserRegistrationURI(ctx, db.UpdateAcmeUserRegistrationURIParams{
 		ID:              id,
 		RegistrationUri: sql.NullString{Valid: true, String: reg.URI},
 	})

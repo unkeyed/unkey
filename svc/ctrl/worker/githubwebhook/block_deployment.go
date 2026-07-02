@@ -6,8 +6,8 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // blockDeploymentForApproval creates a GitHub commit status to signal that
@@ -21,7 +21,7 @@ func (s *Service) blockDeploymentForApproval(
 	deploymentID string,
 ) error {
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-		return db.Query.FindWorkspaceByID(runCtx, s.db.RO(), project.WorkspaceID)
+		return s.db.FindWorkspaceByID(runCtx, project.WorkspaceID)
 	}, restate.WithName("find workspace for approval log url"), restate.WithMaxRetryDuration(30*time.Second))
 	if err != nil {
 		return err

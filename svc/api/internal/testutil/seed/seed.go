@@ -186,12 +186,13 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 
 // CreateAppRequest configures the app to create.
 type CreateAppRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	Name          string
-	Slug          string
-	DefaultBranch string
+	ID               string
+	WorkspaceID      string
+	ProjectID        string
+	Name             string
+	Slug             string
+	DefaultBranch    string
+	DeleteProtection bool
 }
 
 // CreateApp creates an app within a project.
@@ -205,7 +206,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		Name:             req.Name,
 		Slug:             req.Slug,
 		DefaultBranch:    req.DefaultBranch,
-		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
+		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
@@ -253,6 +254,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		EnvironmentID: req.ID,
 		Dockerfile:    sql.NullString{Valid: true, String: "Dockerfile"},
 		DockerContext: ".",
+		BuildCommand:  sql.NullString{Valid: false, String: ""},
 		WatchPaths:    nil,
 		AutoDeploy:    true,
 		CreatedAt:     now,

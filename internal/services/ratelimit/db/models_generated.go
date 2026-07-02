@@ -842,137 +842,6 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
-type SentinelsDeployStatus string
-
-const (
-	SentinelsDeployStatusIdle        SentinelsDeployStatus = "idle"
-	SentinelsDeployStatusProgressing SentinelsDeployStatus = "progressing"
-	SentinelsDeployStatusReady       SentinelsDeployStatus = "ready"
-	SentinelsDeployStatusFailed      SentinelsDeployStatus = "failed"
-)
-
-func (e *SentinelsDeployStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SentinelsDeployStatus(s)
-	case string:
-		*e = SentinelsDeployStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SentinelsDeployStatus: %T", src)
-	}
-	return nil
-}
-
-type NullSentinelsDeployStatus struct {
-	SentinelsDeployStatus SentinelsDeployStatus
-	Valid                 bool // Valid is true if SentinelsDeployStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSentinelsDeployStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.SentinelsDeployStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SentinelsDeployStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSentinelsDeployStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SentinelsDeployStatus), nil
-}
-
-type SentinelsDesiredState string
-
-const (
-	SentinelsDesiredStateRunning  SentinelsDesiredState = "running"
-	SentinelsDesiredStateStandby  SentinelsDesiredState = "standby"
-	SentinelsDesiredStateArchived SentinelsDesiredState = "archived"
-)
-
-func (e *SentinelsDesiredState) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SentinelsDesiredState(s)
-	case string:
-		*e = SentinelsDesiredState(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SentinelsDesiredState: %T", src)
-	}
-	return nil
-}
-
-type NullSentinelsDesiredState struct {
-	SentinelsDesiredState SentinelsDesiredState
-	Valid                 bool // Valid is true if SentinelsDesiredState is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSentinelsDesiredState) Scan(value interface{}) error {
-	if value == nil {
-		ns.SentinelsDesiredState, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SentinelsDesiredState.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSentinelsDesiredState) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SentinelsDesiredState), nil
-}
-
-type SentinelsHealth string
-
-const (
-	SentinelsHealthUnknown   SentinelsHealth = "unknown"
-	SentinelsHealthPaused    SentinelsHealth = "paused"
-	SentinelsHealthHealthy   SentinelsHealth = "healthy"
-	SentinelsHealthUnhealthy SentinelsHealth = "unhealthy"
-)
-
-func (e *SentinelsHealth) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SentinelsHealth(s)
-	case string:
-		*e = SentinelsHealth(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SentinelsHealth: %T", src)
-	}
-	return nil
-}
-
-type NullSentinelsHealth struct {
-	SentinelsHealth SentinelsHealth
-	Valid           bool // Valid is true if SentinelsHealth is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSentinelsHealth) Scan(value interface{}) error {
-	if value == nil {
-		ns.SentinelsHealth, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SentinelsHealth.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSentinelsHealth) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SentinelsHealth), nil
-}
-
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -1032,6 +901,7 @@ type AppBuildSetting struct {
 	EnvironmentID string          `db:"environment_id"`
 	Dockerfile    sql.NullString  `db:"dockerfile"`
 	DockerContext string          `db:"docker_context"`
+	BuildCommand  sql.NullString  `db:"build_command"`
 	WatchPaths    json.RawMessage `db:"watch_paths"`
 	AutoDeploy    bool            `db:"auto_deploy"`
 	CreatedAt     int64           `db:"created_at"`
@@ -1578,28 +1448,6 @@ type RolesPermission struct {
 	WorkspaceID  string        `db:"workspace_id"`
 	CreatedAtM   int64         `db:"created_at_m"`
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
-}
-
-type Sentinel struct {
-	Pk                uint64                `db:"pk"`
-	ID                string                `db:"id"`
-	WorkspaceID       string                `db:"workspace_id"`
-	ProjectID         string                `db:"project_id"`
-	EnvironmentID     string                `db:"environment_id"`
-	K8sName           string                `db:"k8s_name"`
-	K8sAddress        string                `db:"k8s_address"`
-	RegionID          string                `db:"region_id"`
-	Image             string                `db:"image"`
-	RunningImage      string                `db:"running_image"`
-	DesiredState      SentinelsDesiredState `db:"desired_state"`
-	Health            SentinelsHealth       `db:"health"`
-	DesiredReplicas   int32                 `db:"desired_replicas"`
-	AvailableReplicas int32                 `db:"available_replicas"`
-	DeployStatus      SentinelsDeployStatus `db:"deploy_status"`
-	CpuMillicores     int32                 `db:"cpu_millicores"`
-	MemoryMib         int32                 `db:"memory_mib"`
-	CreatedAt         int64                 `db:"created_at"`
-	UpdatedAt         sql.NullInt64         `db:"updated_at"`
 }
 
 type Workspace struct {

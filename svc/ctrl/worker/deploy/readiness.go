@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	restate "github.com/restatedev/sdk-go"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // waitForDeployments blocks until enough regions are healthy, or
@@ -117,7 +117,7 @@ func (w *Workflow) checkInstancesHealthy(
 	regionMinReplicas map[string]uint32,
 	requiredRegions int,
 ) (bool, error) {
-	instances, err := db.Query.FindInstancesByDeploymentId(ctx, w.db.RO(), deploymentID)
+	instances, err := w.db.FindInstancesByDeploymentId(ctx, deploymentID)
 	if err != nil {
 		return false, err
 	}
