@@ -17,6 +17,7 @@ go_library(
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",
+        "//svc/api/internal/auditactor",
         "//svc/api/openapi",
     ],
 )

@@ -19,6 +19,7 @@ go_library(
         "//pkg/retry",
         "//pkg/uid",
         "//pkg/zen",
+        "//svc/api/internal/auditactor",
         "//svc/api/openapi",
     ],
 )
