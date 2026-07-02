@@ -18,6 +18,7 @@ FROM
   key_verifications_per_month_v3
 WHERE
   outcome = 'VALID'
+  AND source != 'gateway'
 GROUP BY
   workspace_id,
   year,
