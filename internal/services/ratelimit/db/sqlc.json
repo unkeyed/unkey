@@ -38,7 +38,7 @@
     {
       "name": "bulk-insert",
       "process": {
-        "cmd": "../../../../pkg/db/plugins/dist/bulk-insert"
+        "cmd": "../../../../pkg/mysql/plugins/dist/bulk-insert"
       }
     }
   ]

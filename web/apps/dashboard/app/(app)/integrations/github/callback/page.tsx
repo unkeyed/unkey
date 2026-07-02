@@ -51,15 +51,18 @@ export default function Page() {
   });
 
   useEffect(() => {
-    if (!state || installationIdNumber === null || !code) {
+    if (!state || installationIdNumber === null) {
       return;
     }
 
     if (mutation.isIdle) {
+      // `code` is absent when an existing user returns from editing an
+      // already-authorized installation. The server only requires it when
+      // binding an installation the workspace does not already own.
       mutation.mutate({
         state,
         installationId: installationIdNumber,
-        code,
+        code: code ?? undefined,
       });
     }
   }, [mutation, state, installationIdNumber, code]);
@@ -81,19 +84,6 @@ export default function Page() {
         <Empty>
           <Empty.Title>Missing installation</Empty.Title>
           <Empty.Description>Missing or invalid GitHub installation id.</Empty.Description>
-        </Empty>
-      </div>
-    );
-  }
-
-  if (!code) {
-    return (
-      <div className="w-full min-h-[60vh] flex justify-center items-center">
-        <Empty>
-          <Empty.Title>Missing authorization</Empty.Title>
-          <Empty.Description>
-            Missing GitHub authorization code. Please restart the installation from Unkey.
-          </Empty.Description>
         </Empty>
       </div>
     );

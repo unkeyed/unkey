@@ -2,9 +2,9 @@ package app
 
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Service implements the AppService Restate virtual object for durable
