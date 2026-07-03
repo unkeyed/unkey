@@ -9,11 +9,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Config holds the handler's dependencies.
@@ -119,7 +119,7 @@ func (h *Handler) Handle(
 	sort.Strings(workspaceIDs)
 
 	workspaces, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesForDeployBillingByIDsRow, error) {
-		return db.Query.ListWorkspacesForDeployBillingByIDs(rc, h.db.RO(), workspaceIDs)
+		return h.db.ListWorkspacesForDeployBillingByIDs(rc, workspaceIDs)
 	}, restate.WithName("fetch workspace billing identities"))
 	if err != nil {
 		return nil, fmt.Errorf("fetch workspace billing identities: %w", err)

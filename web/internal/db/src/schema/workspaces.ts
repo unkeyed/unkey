@@ -11,7 +11,6 @@ import { projects } from "./projects";
 import { quotas } from "./quota";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
-import { sentinels } from "./sentinels";
 import { deleteProtection } from "./util/delete_protection";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 
@@ -98,6 +97,5 @@ export const workspacesRelations = relations(workspaces, ({ many, one }) => ({
   clickhouseSettings: one(clickhouseWorkspaceSettings),
 
   projects: many(projects),
-  sentinels: many(sentinels),
   certificates: many(certificates),
 }));

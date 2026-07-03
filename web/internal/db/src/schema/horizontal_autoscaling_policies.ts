@@ -6,7 +6,7 @@ import { workspaces } from "./workspaces";
 /**
  * A reusable horizontal autoscaling policy.
  *
- * Other tables (e.g. app_regional_settings, sentinels) reference this via horizontalAutoscalingPolicyId.
+ * Other tables (e.g. app_regional_settings) reference this via horizontalAutoscalingPolicyId.
  * If no policy is referenced, static replica counts are used.
  */
 export const horizontalAutoscalingPolicies = mysqlTable(

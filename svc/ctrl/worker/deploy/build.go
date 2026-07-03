@@ -32,10 +32,10 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/validation"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
@@ -681,7 +681,7 @@ func (w *Workflow) buildGitSolverOptions(
 // getOrCreateDepotProject retrieves the Depot project ID for an Unkey project,
 // creating one if it doesn't exist.
 func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
-	project, err := db.Query.FindProjectById(ctx, w.db.RO(), unkeyProjectID)
+	project, err := w.db.FindProjectById(ctx, unkeyProjectID)
 	if err != nil {
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
@@ -722,7 +722,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 	depotProjectID := createResp.Msg.GetProject().GetProjectId()
 
 	now := time.Now().UnixMilli()
-	err = db.Query.UpdateProjectDepotID(ctx, w.db.RW(), db.UpdateProjectDepotIDParams{
+	err = w.db.UpdateProjectDepotID(ctx, db.UpdateProjectDepotIDParams{
 		DepotProjectID: sql.NullString{
 			String: depotProjectID,
 			Valid:  true,

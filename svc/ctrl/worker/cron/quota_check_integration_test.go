@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func TestRunQuotaCheck_Integration(t *testing.T) {
@@ -73,7 +73,7 @@ func TestRunQuotaCheck_Integration(t *testing.T) {
 	t.Run("skips disabled workspaces", func(t *testing.T) {
 		ws := h.Seed.CreateWorkspaceWithQuota(h.Ctx, seed.CreateWorkspaceWithQuotaRequest{RequestsPerMonth: 100_000})
 
-		_, err := db.Query.UpdateWorkspaceEnabled(h.Ctx, h.DB.RW(), db.UpdateWorkspaceEnabledParams{
+		_, err := h.DB.UpdateWorkspaceEnabled(h.Ctx, db.UpdateWorkspaceEnabledParams{
 			Enabled: false,
 			ID:      ws.ID,
 		})

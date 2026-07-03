@@ -12,11 +12,11 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/hash"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Resources represents seed data created for tests
@@ -55,10 +55,10 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		K8sNamespace: sql.NullString{Valid: true, String: uid.DNS1035()},
 	}
 
-	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
+	err := s.DB.InsertWorkspace(ctx, params)
 	require.NoError(s.t, err)
 
-	ws, err := db.Query.FindWorkspaceByID(ctx, s.DB.RW(), params.ID)
+	ws, err := s.DB.FindWorkspaceByID(ctx, params.ID)
 	require.NoError(s.t, err)
 
 	return ws
@@ -77,7 +77,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	keySpace, err := db.Query.FindKeySpaceByID(ctx, s.DB.RW(), s.Resources.RootApi.KeyAuthID.String)
+	keySpace, err := s.DB.FindKeySpaceByID(ctx, s.Resources.RootApi.KeyAuthID.String)
 	require.NoError(s.t, err)
 	s.Resources.RootKeySpace = keySpace
 }
@@ -94,7 +94,7 @@ type CreateApiRequest struct {
 
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	keySpaceID := uid.New(uid.KeySpacePrefix)
-	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
+	err := s.DB.InsertKeySpace(ctx, db.InsertKeySpaceParams{
 		ID:                 keySpaceID,
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
@@ -105,7 +105,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	require.NoError(s.t, err)
 
 	apiID := uid.New("api")
-	err = db.Query.InsertApi(ctx, s.DB.RW(), db.InsertApiParams{
+	err = s.DB.InsertApi(ctx, db.InsertApiParams{
 		ID:          apiID,
 		Name:        ptr.SafeDeref(req.Name, "test-api"),
 		WorkspaceID: req.WorkspaceID,
@@ -116,7 +116,7 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 	})
 	require.NoError(s.t, err)
 
-	api, err := db.Query.FindApiByID(ctx, s.DB.RW(), apiID)
+	api, err := s.DB.FindApiByID(ctx, apiID)
 	require.NoError(s.t, err)
 
 	return api
@@ -131,7 +131,7 @@ type CreateProjectRequest struct {
 }
 
 func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db.Project {
-	err := db.Query.InsertProject(ctx, h.DB.RW(), db.InsertProjectParams{
+	err := h.DB.InsertProject(ctx, db.InsertProjectParams{
 		ID:               req.ID,
 		WorkspaceID:      req.WorkspaceID,
 		Name:             req.Name,
@@ -142,7 +142,7 @@ func (h *Seeder) CreateProject(ctx context.Context, req CreateProjectRequest) db
 	})
 	require.NoError(h.t, err)
 
-	project, err := db.Query.FindProjectById(ctx, h.DB.RO(), req.ID)
+	project, err := h.DB.FindProjectById(ctx, req.ID)
 	require.NoError(h.t, err)
 
 	return db.Project{
@@ -172,7 +172,7 @@ type CreateEnvironmentRequest struct {
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
 	now := time.Now().UnixMilli()
 
-	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
+	err := s.DB.InsertEnvironment(ctx, db.InsertEnvironmentParams{
 		ID:          req.ID,
 		WorkspaceID: req.WorkspaceID,
 		ProjectID:   req.ProjectID,
@@ -185,7 +185,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	require.NoError(s.t, err)
 
 	// Insert default app build settings for this (app, environment) pair.
-	err = db.Query.UpsertAppBuildSettings(ctx, s.DB.RW(), db.UpsertAppBuildSettingsParams{
+	err = s.DB.UpsertAppBuildSettings(ctx, db.UpsertAppBuildSettingsParams{
 		WorkspaceID:   req.WorkspaceID,
 		AppID:         req.AppID,
 		EnvironmentID: req.ID,
@@ -200,7 +200,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	require.NoError(s.t, err)
 
 	// Insert default app runtime settings for this (app, environment) pair.
-	err = db.Query.UpsertAppRuntimeSettings(ctx, s.DB.RW(), db.UpsertAppRuntimeSettingsParams{
+	err = s.DB.UpsertAppRuntimeSettings(ctx, db.UpsertAppRuntimeSettingsParams{
 		WorkspaceID:      req.WorkspaceID,
 		AppID:            req.AppID,
 		EnvironmentID:    req.ID,
@@ -219,7 +219,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	})
 	require.NoError(s.t, err)
 
-	environment, err := db.Query.FindEnvironmentById(ctx, s.DB.RO(), req.ID)
+	environment, err := s.DB.FindEnvironmentById(ctx, req.ID)
 	require.NoError(s.t, err)
 
 	return db.Environment{
@@ -248,7 +248,7 @@ type CreateAppRequest struct {
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	now := time.Now().UnixMilli()
 
-	err := db.Query.InsertApp(ctx, s.DB.RW(), db.InsertAppParams{
+	err := s.DB.InsertApp(ctx, db.InsertAppParams{
 		ID:               req.ID,
 		WorkspaceID:      req.WorkspaceID,
 		ProjectID:        req.ProjectID,
@@ -261,7 +261,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	})
 	require.NoError(s.t, err)
 
-	app, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
+	app, err := s.DB.FindAppById(ctx, req.ID)
 	require.NoError(s.t, err)
 
 	return app
@@ -273,7 +273,7 @@ func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest
 	now := time.Now().UnixMilli()
 
 	// Seed default build settings
-	err := db.Query.UpsertAppBuildSettings(ctx, s.DB.RW(), db.UpsertAppBuildSettingsParams{
+	err := s.DB.UpsertAppBuildSettings(ctx, db.UpsertAppBuildSettingsParams{
 		WorkspaceID:   req.WorkspaceID,
 		AppID:         req.ID,
 		EnvironmentID: environmentID,
@@ -288,7 +288,7 @@ func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest
 	require.NoError(s.t, err)
 
 	// Seed default runtime settings
-	err = db.Query.UpsertAppRuntimeSettings(ctx, s.DB.RW(), db.UpsertAppRuntimeSettingsParams{
+	err = s.DB.UpsertAppRuntimeSettings(ctx, db.UpsertAppRuntimeSettingsParams{
 		WorkspaceID:      req.WorkspaceID,
 		AppID:            req.ID,
 		EnvironmentID:    environmentID,
@@ -332,7 +332,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		createdAt = time.Now().UnixMilli()
 	}
 
-	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
+	err := s.DB.InsertDeployment(ctx, db.InsertDeploymentParams{
 		ID:                            id,
 		K8sName:                       uid.New("k8s"),
 		WorkspaceID:                   req.WorkspaceID,
@@ -366,7 +366,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	})
 	require.NoError(s.t, err)
 
-	deployment, err := db.Query.FindDeploymentById(ctx, s.DB.RO(), id)
+	deployment, err := s.DB.FindDeploymentById(ctx, id)
 	require.NoError(s.t, err)
 
 	return deployment
@@ -395,13 +395,13 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		PendingMigrationID: sql.NullString{Valid: false, String: ""},
 	}
 
-	err := db.Query.InsertKey(ctx, s.DB.RW(), insertKeyParams)
+	err := s.DB.InsertKey(ctx, insertKeyParams)
 	require.NoError(s.t, err)
 
 	if len(permissions) > 0 {
 		for _, permission := range permissions {
 			permissionID := uid.New(uid.TestPrefix)
-			err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
+			err := s.DB.InsertPermission(ctx, db.InsertPermissionParams{
 				PermissionID: permissionID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
 				Name:         permission,
@@ -413,7 +413,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
 			if errors.As(err, &mysqlErr) {
 				require.True(s.t, db.IsDuplicateKeyError(err), "Expected duplicate key error, got MySQL error number %d", mysqlErr.Number)
-				existing, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, s.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
+				existing, findErr := s.DB.FindPermissionByNameAndWorkspaceID(ctx, db.FindPermissionByNameAndWorkspaceIDParams{
 					WorkspaceID: s.Resources.RootWorkspace.ID,
 					Name:        permission,
 				})
@@ -424,7 +424,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				require.NoError(s.t, err)
 			}
 
-			err = db.Query.InsertKeyPermission(ctx, s.DB.RW(), db.InsertKeyPermissionParams{
+			err = s.DB.InsertKeyPermission(ctx, db.InsertKeyPermissionParams{
 				PermissionID: permissionID,
 				KeyID:        insertKeyParams.ID,
 				WorkspaceID:  s.Resources.RootWorkspace.ID,
@@ -473,7 +473,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	key := uid.New("")
 	start := key[:4]
 
-	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
+	err := s.DB.InsertKey(ctx, db.InsertKeyParams{
 		ID:                 keyID,
 		KeySpaceID:         req.KeySpaceID,
 		WorkspaceID:        req.WorkspaceID,
@@ -501,7 +501,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	if req.Deleted {
-		err = db.Query.SoftDeleteKeyByID(ctx, s.DB.RW(), db.SoftDeleteKeyByIDParams{
+		err = s.DB.SoftDeleteKeyByID(ctx, db.SoftDeleteKeyByIDParams{
 			Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 			ID:  keyID,
 		})
@@ -515,7 +515,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 			Data:    key,
 		})
 		require.NoError(s.t, encryptErr)
-		err = db.Query.InsertKeyEncryption(ctx, s.DB.RW(), db.InsertKeyEncryptionParams{
+		err = s.DB.InsertKeyEncryption(ctx, db.InsertKeyEncryptionParams{
 			WorkspaceID:     req.WorkspaceID,
 			KeyID:           keyID,
 			CreatedAt:       time.Now().UnixMilli(),
@@ -527,7 +527,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 
 	for _, role := range req.Roles {
 		r := s.CreateRole(ctx, role)
-		err = db.Query.InsertKeyRole(ctx, s.DB.RW(), db.InsertKeyRoleParams{
+		err = s.DB.InsertKeyRole(ctx, db.InsertKeyRoleParams{
 			KeyID:       keyID,
 			RoleID:      r.ID,
 			WorkspaceID: req.WorkspaceID,
@@ -539,7 +539,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 
 	for _, permission := range req.Permissions {
 		perm := s.CreatePermission(ctx, permission)
-		err = db.Query.InsertKeyPermission(ctx, s.DB.RW(), db.InsertKeyPermissionParams{
+		err = s.DB.InsertKeyPermission(ctx, db.InsertKeyPermissionParams{
 			KeyID:        keyID,
 			PermissionID: perm.ID,
 			WorkspaceID:  req.WorkspaceID,
@@ -575,7 +575,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 	var err error
 
 	if req.IdentityID != nil {
-		err = db.Query.InsertIdentityRatelimit(ctx, s.DB.RW(), db.InsertIdentityRatelimitParams{
+		err = s.DB.InsertIdentityRatelimit(ctx, db.InsertIdentityRatelimitParams{
 			ID:          ratelimitID,
 			WorkspaceID: req.WorkspaceID,
 			IdentityID:  sql.NullString{String: *req.IdentityID, Valid: true},
@@ -588,7 +588,7 @@ func (s *Seeder) CreateRatelimit(ctx context.Context, req CreateRatelimitRequest
 	}
 
 	if req.KeyID != nil {
-		err = db.Query.InsertKeyRatelimit(ctx, s.DB.RW(), db.InsertKeyRatelimitParams{
+		err = s.DB.InsertKeyRatelimit(ctx, db.InsertKeyRatelimitParams{
 			ID:          ratelimitID,
 			WorkspaceID: req.WorkspaceID,
 			KeyID:       sql.NullString{String: *req.KeyID, Valid: true},
@@ -635,7 +635,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Identity WorkspaceID must be set"))
 
 	identityID := uid.New(uid.IdentityPrefix)
-	err := db.Query.InsertIdentity(ctx, s.DB.RW(), db.InsertIdentityParams{
+	err := s.DB.InsertIdentity(ctx, db.InsertIdentityParams{
 		ID:          identityID,
 		ExternalID:  req.ExternalID,
 		WorkspaceID: req.WorkspaceID,
@@ -678,7 +678,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 	roleID := uid.New(uid.RolePrefix)
 	createdAt := time.Now().UnixMilli()
 
-	err := db.Query.InsertRole(ctx, s.DB.RW(), db.InsertRoleParams{
+	err := s.DB.InsertRole(ctx, db.InsertRoleParams{
 		RoleID:      roleID,
 		WorkspaceID: req.WorkspaceID,
 		Name:        req.Name,
@@ -689,7 +689,7 @@ func (s *Seeder) CreateRole(ctx context.Context, req CreateRoleRequest) db.Role 
 
 	for _, permission := range req.Permissions {
 		perm := s.CreatePermission(ctx, permission)
-		err = db.Query.InsertRolePermission(ctx, s.DB.RW(), db.InsertRolePermissionParams{
+		err = s.DB.InsertRolePermission(ctx, db.InsertRolePermissionParams{
 			RoleID:       roleID,
 			PermissionID: perm.ID,
 			WorkspaceID:  req.WorkspaceID,
@@ -735,7 +735,7 @@ func (s *Seeder) CreateWorkspaceWithQuota(ctx context.Context, req CreateWorkspa
 	ws := s.CreateWorkspace(ctx)
 
 	if req.RequestsPerMonth > 0 {
-		err := db.Query.UpsertQuota(ctx, s.DB.RW(), db.UpsertQuotaParams{
+		err := s.DB.UpsertQuota(ctx, db.UpsertQuotaParams{
 			WorkspaceID:            ws.ID,
 			RequestsPerMonth:       req.RequestsPerMonth,
 			AuditLogsRetentionDays: req.AuditLogsRetentionDays,
@@ -758,7 +758,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 	permissionID := uid.New(uid.PermissionPrefix)
 	createdAt := time.Now().UnixMilli()
 
-	err := db.Query.InsertPermission(ctx, s.DB.RW(), db.InsertPermissionParams{
+	err := s.DB.InsertPermission(ctx, db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  req.WorkspaceID,
 		Name:         req.Name,
@@ -788,14 +788,14 @@ type CreateRegionRequest struct {
 func (s *Seeder) CreateRegion(ctx context.Context, req CreateRegionRequest) db.Region {
 	id := uid.New(uid.RegionPrefix)
 
-	err := db.Query.UpsertRegion(ctx, s.DB.RW(), db.UpsertRegionParams{
+	err := s.DB.UpsertRegion(ctx, db.UpsertRegionParams{
 		ID:       id,
 		Name:     req.Name,
 		Platform: req.Platform,
 	})
 	require.NoError(s.t, err)
 
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.DB.RO(), db.FindRegionByPlatformAndNameParams{
+	region, err := s.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
 		Platform: req.Platform,
 		Name:     req.Name,
 	})
@@ -817,7 +817,7 @@ func (s *Seeder) CreateInstance(ctx context.Context, req CreateInstanceRequest) 
 	id := uid.New("inst")
 	k8sName := uid.New("k8s")
 
-	err := db.Query.UpsertInstance(ctx, s.DB.RW(), db.UpsertInstanceParams{
+	err := s.DB.UpsertInstance(ctx, db.UpsertInstanceParams{
 		ID:            id,
 		DeploymentID:  req.DeploymentID,
 		WorkspaceID:   req.WorkspaceID,

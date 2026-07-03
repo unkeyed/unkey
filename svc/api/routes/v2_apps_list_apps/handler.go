@@ -1,0 +1,133 @@
+package handler
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+)
+
+type (
+	Request  = openapi.V2AppsListAppsRequestBody
+	Response = openapi.V2AppsListAppsResponseBody
+)
+
+// Handler implements zen.Route interface for the v2 apps list apps endpoint
+type Handler struct {
+	DB db.Database
+}
+
+// Method returns the HTTP method this route responds to
+func (h *Handler) Method() string {
+	return "POST"
+}
+
+// Path returns the URL path pattern this route matches
+func (h *Handler) Path() string {
+	return "/v2/apps.listApps"
+}
+
+// Handle processes the HTTP request
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	principal, err := s.GetPrincipal()
+	if err != nil {
+		return err
+	}
+
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
+
+	project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
+		WorkspaceID: principal.WorkspaceID,
+		Project:     req.Project,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New(
+				"project not found",
+				fault.Code(codes.Data.Project.NotFound.URN()),
+				fault.Internal("project not found"),
+				fault.Public("The requested project does not exist."),
+			)
+		}
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve project."),
+		)
+	}
+
+	err = principal.Authorize(rbac.T(rbac.Tuple{
+		ResourceType: rbac.App,
+		ResourceID:   "*",
+		Action:       rbac.ReadApp,
+	}))
+	if err != nil {
+		return fault.New(
+			"project not found",
+			fault.Code(codes.Data.Project.NotFound.URN()),
+			fault.Internal("authorization failed; returning not found to avoid leaking project existence"),
+			fault.Public("The requested project does not exist."),
+		)
+	}
+
+	limit := ptr.SafeDeref(req.Limit, 100)
+	cursor := ptr.SafeDeref(req.Cursor, "")
+
+	rows, err := db.Query.ListAppsByProject(ctx, h.DB.RO(), db.ListAppsByProjectParams{
+		ProjectID: project.ID,
+		IDCursor:  cursor,
+		Limit:     int32(limit + 1), // nolint:gosec
+	})
+	if err != nil {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error"),
+			fault.Public("Failed to retrieve apps."),
+		)
+	}
+
+	hasMore := len(rows) > limit
+	var nextCursor *string
+	if hasMore {
+		nextCursor = ptr.P(rows[limit].ID)
+		rows = rows[:limit]
+	}
+
+	data := make([]openapi.App, len(rows))
+	for i, row := range rows {
+		data[i] = openapi.App{
+			Id:                  row.ID,
+			Name:                row.Name,
+			Slug:                row.Slug,
+			ProjectId:           row.ProjectID,
+			DefaultBranch:       row.DefaultBranch,
+			CurrentDeploymentId: row.CurrentDeploymentID.String,
+			IsRolledBack:        row.IsRolledBack,
+			DeleteProtection:    row.DeleteProtection.Bool,
+			CreatedAt:           row.CreatedAt,
+			UpdatedAt:           row.UpdatedAt.Int64,
+		}
+	}
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: data,
+		Pagination: &openapi.Pagination{
+			Cursor:  nextCursor,
+			HasMore: hasMore,
+		},
+	})
+}

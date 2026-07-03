@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -91,6 +92,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Identity scoping is intentionally separate from the RBAC permission system.
 	// Permissions gate what operations a principal can perform; identity scoping
 	// gates which keys are visible to a portal session.
+	//
+	// Portal-authenticated deletes are attributed to a portalEndUser actor so
+	// customers can see end-user activity in their audit logs.
 	switch src := principal.Source.(type) {
 	case authprincipal.PortalSessionSource:
 		// An empty externalId is a broken invariant: a portal session should
@@ -111,6 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 	}
+	actor := auditactor.FromPrincipal(principal)
 
 	// Permission check
 	err = principal.Authorize(rbac.Or(
@@ -157,10 +162,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			{
 				Event:         auditlog.KeyDeleteEvent,
 				WorkspaceID:   principal.WorkspaceID,
-				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-				ActorID:       principal.Subject.ID,
-				ActorName:     principal.Subject.Name,
-				ActorMeta:     map[string]any{},
+				ActorType:     actor.Type,
+				ActorID:       actor.ID,
+				ActorName:     actor.Name,
+				ActorMeta:     actor.Meta,
 				Display:       fmt.Sprintf("%s %s", description, key.ID),
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),

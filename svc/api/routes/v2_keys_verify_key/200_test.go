@@ -742,3 +742,37 @@ func TestVerifyKeyWithURNPermission(t *testing.T) {
 	require.Equal(t, openapi.VALID, res.Body.Data.Code)
 	require.True(t, res.Body.Data.Valid)
 }
+
+func TestNoVerifyPermissionReturnsNotFound(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:               h.DB,
+		Keys:             h.Keys,
+		Auditlogs:        h.Auditlogs,
+		KeyVerifications: h.KeyVerifications,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+	})
+	rootKeyWithoutVerify := h.CreateRootKey(workspace.ID, "api.*.read_key")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyWithoutVerify)},
+	}
+
+	req := handler.Request{
+		Key: key.Key,
+	}
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+	require.NotNil(t, res.Body)
+	require.Equal(t, openapi.NOTFOUND, res.Body.Data.Code, "Key should be not found but got %s", res.Body.Data.Code)
+	require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+}

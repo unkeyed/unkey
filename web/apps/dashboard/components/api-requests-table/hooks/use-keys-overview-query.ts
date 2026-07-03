@@ -160,12 +160,21 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  // Clamp page to valid range after data/totalPages updates
+  // Clamp page to valid range after data/totalPages updates. Gate on
+  // !isFetching so the clamp never runs against stale totalPages: with
+  // keepPreviousData, `data` (and thus totalPages) reflects the previous
+  // query while a filter/sort/time change is in flight, which would
+  // otherwise clamp the page based on the old result set. The `data` guard
+  // also avoids clamping a deep-linked page to 1 before the first result
+  // loads (totalPages is 1 until then).
   useEffect(() => {
+    if (isFetching || !data) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [isFetching, data, normalizedPage, totalPages, setPage]);
 
   // Prefetch the next few pages
   useEffect(() => {

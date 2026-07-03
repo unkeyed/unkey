@@ -56,24 +56,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Check if the principal has ANY verify permissions at all.
-	// If not, return a proper permissions error immediately without looking up the key.
-	// This prevents returning NOT_FOUND for every request when the principal lacks any verify permission.
-	if !rbac.HasAnyPermission(principal.Permissions, rbac.Api, rbac.VerifyKey) {
-		return principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.VerifyKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "<API_ID>",
-				Action:       rbac.VerifyKey,
-			}),
-		))
-	}
-
 	// Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
