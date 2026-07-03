@@ -1,7 +1,7 @@
-import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
 import { InfoTooltip, toast } from "@unkey/ui";
+import { useUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
 import { StatusBadge } from "./components/status-badge";
 import { useKeyStatus } from "./use-key-status";
 
@@ -13,19 +13,7 @@ type StatusDisplayProps = {
 
 export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayProps) => {
   const { primary, count, isLoading, statuses, isError } = useKeyStatus(keyAuthId, keyData);
-  const utils = trpc.useUtils();
-
-  const enableKeyMutation = trpc.api.keys.enableKey.useMutation({
-    onSuccess: async () => {
-      toast.success("Key enabled successfully!");
-      await utils.api.keys.list.invalidate({ keyAuthId });
-    },
-    onError: (error) => {
-      toast.error("Failed to enable key", {
-        description: error.message || "An unknown error occurred.",
-      });
-    },
-  });
+  const enableKeyMutation = useUpdateKeyStatus();
 
   if (isLoading) {
     return (
@@ -105,7 +93,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
                           }
 
                           if (keyData?.id) {
-                            enableKeyMutation.mutate({ keyId: keyData.id });
+                            enableKeyMutation.mutate({ keyIds: [keyData.id], enabled: true });
                           } else {
                             toast.error("Could not enable key: Missing key information.");
                           }
