@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "audit",
+    srcs = ["audit.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/audit",
+    visibility = ["//svc/ctrl:__subpackages__"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//pkg/auditlog",
+        "//svc/ctrl/internal/actor",
+        "//svc/ctrl/internal/auditlogs",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

@@ -6,9 +6,9 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
@@ -52,7 +52,7 @@ func (s *Service) syncDeployments(
 ) error {
 	var afterPk uint64
 	for {
-		rows, err := db.Query.ListAllDeploymentTopologiesByRegion(ctx, s.db.RO(), db.ListAllDeploymentTopologiesByRegionParams{
+		rows, err := s.db.ListAllDeploymentTopologiesByRegion(ctx, db.ListAllDeploymentTopologiesByRegionParams{
 			RegionID: regionID,
 			AfterPk:  afterPk,
 			Limit:    changePageSize,

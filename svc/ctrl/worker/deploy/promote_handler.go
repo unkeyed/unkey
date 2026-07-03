@@ -6,9 +6,9 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Promote reassigns all sticky domains to a deployment and clears the rolled back state.
@@ -35,7 +35,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 	// Get target deployment
 	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(stepCtx, w.db.RO(), req.GetTargetDeploymentId())
+		return w.db.FindDeploymentById(stepCtx, req.GetTargetDeploymentId())
 	}, restate.WithName("finding target deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -49,7 +49,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 
 	// Get app from deployment's app_id
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
-		return db.Query.FindAppById(stepCtx, w.db.RO(), targetDeployment.AppID)
+		return w.db.FindAppById(stepCtx, targetDeployment.AppID)
 	}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -88,7 +88,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	var routeIDs []string
 	if !isConfirmingRollback {
 		frontlineRoutes, findErr := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
-			return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
+			return w.db.FindFrontlineRouteForPromotion(stepCtx, db.FindFrontlineRouteForPromotionParams{
 				EnvironmentID: targetDeployment.EnvironmentID,
 				Sticky: []db.FrontlineRoutesSticky{
 					db.FrontlineRoutesStickyLive,
@@ -142,7 +142,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	var oldDeploymentID string
 	if isConfirmingRollback {
 		oldDeploymentID, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
-			return db.Query.FindLatestReadyDeploymentByAppAndEnv(stepCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
+			return w.db.FindLatestReadyDeploymentByAppAndEnv(stepCtx, db.FindLatestReadyDeploymentByAppAndEnvParams{
 				AppID:         targetDeployment.AppID,
 				EnvironmentID: targetDeployment.EnvironmentID,
 				ExcludeID:     targetDeployment.ID,

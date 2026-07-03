@@ -136,10 +136,13 @@ export function useApiKeysListQuery({
 
   // Clamp page to valid range after data loads
   useEffect(() => {
+    if (!data) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [data, normalizedPage, totalPages, setPage]);
 
   // Prefetch adjacent pages for instant navigation
   useEffect(() => {

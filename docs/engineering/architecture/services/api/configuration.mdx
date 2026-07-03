@@ -102,8 +102,8 @@ token = "${UNKEY_VAULT_TOKEN}"
     <ResponseField name="auth.audience" type="string">
       Optional expected JWT `aud` claim for `type = "jwt"`. Verification
       requires the configured value to appear in the token's `aud` list. The
-      Unkey WorkOS environment uses a JWT template that sets `aud` to
-      `["app.unkey.com", "api.unkey.com"]`, so set
+      Unkey WorkOS environments use a JWT template that sets `aud` to
+      `["api.unkey.com"]`, so set
       `audience = "api.unkey.com"` on the WorkOS entry. Omit this field only
       for providers that do not emit an audience claim. Setting it rejects
       tokens without a matching `aud`, so when introducing the claim, add it
@@ -285,8 +285,23 @@ available. The API verifies that token through a `type = "jwt"` auth entry
 configured with the WorkOS issuer and JWKS URL. The WorkOS JWT template includes
 the organization as `org.id`, and the API reads Unkey RBAC permissions from the
 token's `permissions` claim. The template also sets `aud` to
-`["app.unkey.com", "api.unkey.com"]`, and the auth entry pins
-`audience = "api.unkey.com"`.
+`["api.unkey.com"]`, and the auth entry pins `audience = "api.unkey.com"`.
+
+Each WorkOS environment (production, canary) must configure this JWT template
+in the WorkOS dashboard under Authentication settings:
+
+```json
+{
+  "org": { "id": {{organization.id}} },
+  "aud": ["api.unkey.com"]
+}
+```
+
+The `aud` value must be a JSON array. The API parses `aud` as a string list and
+rejects tokens that carry it as a bare string, so a string-valued template
+claim fails verification with "Invalid bearer token". Without the template, or
+with a missing `aud` claim, every forwarded WorkOS access token fails the
+audience check the same way.
 
 Local development still uses a dashboard-minted fallback JWT when no WorkOS
 access token exists. For that path, the dashboard needs a signing secret and the

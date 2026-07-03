@@ -10,10 +10,10 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
 )
 
@@ -57,10 +57,10 @@ func TestCreateProjectWritesAuditLog(t *testing.T) {
 	projectID := res.Msg.GetId()
 	require.True(t, strings.HasPrefix(projectID, "proj_"))
 
-	_, err = db.Query.FindProjectById(ctx, h.DB.RO(), projectID)
+	_, err = h.DB.FindProjectById(ctx, projectID)
 	require.NoError(t, err, "project row should be committed")
 
-	rows, err := db.Query.ListClickhouseOutboxByWorkspace(ctx, h.DB.RO(), workspaceID)
+	rows, err := h.DB.ListClickhouseOutboxByWorkspace(ctx, workspaceID)
 	require.NoError(t, err)
 
 	var found bool

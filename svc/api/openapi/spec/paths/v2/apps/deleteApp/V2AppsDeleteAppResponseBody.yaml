@@ -1,0 +1,18 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    "$ref": "../../../../common/Meta.yaml"
+  data:
+    "$ref": "../../../../common/EmptyResponse.yaml"
+additionalProperties: false
+examples:
+  success:
+    summary: Deletion enqueued
+    description: App deletion was successfully enqueued
+    value:
+      meta:
+        requestId: req_1234abcd
+      data: {}
