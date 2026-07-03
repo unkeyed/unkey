@@ -64,3 +64,8 @@ actions:
   - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["openapiSpecPath"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["buildCommand"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["V2EnvironmentsUpdateSettingsRequestBody"]["properties"]["buildCommand"]
+    update:
+      nullable: true

@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/oapi-codegen/nullable"
@@ -56,6 +57,8 @@ func TestUpdateSettings400(t *testing.T) {
 		// only openapiSpecPath and the healthcheck path are guarded.
 		{name: "dockerfile empty", req: handler.Request{Dockerfile: nullable.NewNullableWithValue("")}},
 		{name: "rootDirectory empty", req: handler.Request{RootDirectory: ptr("")}},
+		{name: "buildCommand empty", req: handler.Request{BuildCommand: nullable.NewNullableWithValue("")}},
+		{name: "buildCommand over maxLength", req: handler.Request{BuildCommand: nullable.NewNullableWithValue(strings.Repeat("x", 1001))}},
 		{name: "openapiSpecPath no slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("openapi.yaml")}},
 		{name: "openapiSpecPath space", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/open api.yaml")}},
 		{name: "openapiSpecPath traversal", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("/../openapi.yaml")}},

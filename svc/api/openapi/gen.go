@@ -1194,6 +1194,10 @@ type V2EnvironmentsUpdateSettingsRequestBody struct {
 	// Omit to leave unchanged.
 	AutoDeploy *bool `json:"autoDeploy,omitempty"`
 
+	// BuildCommand Overrides the build command auto-detected by Railpack.
+	// Omit to leave unchanged; set null to clear and fall back to auto-detection.
+	BuildCommand nullable.Nullable[string] `json:"buildCommand,omitempty"`
+
 	// Command Override container entrypoint command.
 	// Omit to leave unchanged.
 	Command *[]string `json:"command,omitempty"`

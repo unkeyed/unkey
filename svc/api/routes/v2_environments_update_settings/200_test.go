@@ -56,6 +56,36 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.False(t, got.AutoDeploy)
 	})
 
+	t.Run("build command set then clear", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		call(t, handler.Request{
+			Project:      env.projectID,
+			App:          env.appID,
+			Environment:  env.environmentID,
+			BuildCommand: nullable.NewNullableWithValue("pnpm --filter api build"),
+		})
+
+		got, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.True(t, got.BuildCommand.Valid)
+		require.Equal(t, "pnpm --filter api build", got.BuildCommand.String)
+
+		call(t, handler.Request{
+			Project:      env.projectID,
+			App:          env.appID,
+			Environment:  env.environmentID,
+			BuildCommand: nullable.NewNullNullable[string](),
+		})
+
+		got, err = db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.False(t, got.BuildCommand.Valid, "build command should be cleared")
+	})
+
 	t.Run("runtime settings with healthcheck defaults", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		call(t, handler.Request{

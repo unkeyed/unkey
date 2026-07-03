@@ -11,6 +11,10 @@ SET
         WHEN CAST(sqlc.arg('docker_context_specified') AS UNSIGNED) = 1 THEN sqlc.arg('docker_context')
         ELSE t.docker_context
     END,
+    build_command = CASE
+        WHEN CAST(sqlc.arg('build_command_specified') AS UNSIGNED) = 1 THEN sqlc.narg('build_command')
+        ELSE t.build_command
+    END,
     watch_paths = CASE
         WHEN CAST(sqlc.arg('watch_paths_specified') AS UNSIGNED) = 1 THEN sqlc.arg('watch_paths')
         ELSE t.watch_paths

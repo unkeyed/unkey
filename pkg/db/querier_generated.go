@@ -3105,6 +3105,10 @@ type Querier interface {
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE t.docker_context
 	//      END,
+	//      build_command = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.build_command
+	//      END,
 	//      watch_paths = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE t.watch_paths

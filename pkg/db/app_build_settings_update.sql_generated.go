@@ -23,6 +23,10 @@ SET
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE t.docker_context
     END,
+    build_command = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE t.build_command
+    END,
     watch_paths = CASE
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE t.watch_paths
@@ -42,6 +46,8 @@ type UpdateAppBuildSettingsParams struct {
 	Dockerfile             sql.NullString     `db:"dockerfile"`
 	DockerContextSpecified int64              `db:"docker_context_specified"`
 	DockerContext          string             `db:"docker_context"`
+	BuildCommandSpecified  int64              `db:"build_command_specified"`
+	BuildCommand           sql.NullString     `db:"build_command"`
 	WatchPathsSpecified    int64              `db:"watch_paths_specified"`
 	WatchPaths             dbtype.StringSlice `db:"watch_paths"`
 	AutoDeploySpecified    int64              `db:"auto_deploy_specified"`
@@ -65,6 +71,10 @@ type UpdateAppBuildSettingsParams struct {
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE t.docker_context
 //	    END,
+//	    build_command = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE t.build_command
+//	    END,
 //	    watch_paths = CASE
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE t.watch_paths
@@ -83,6 +93,8 @@ func (q *Queries) UpdateAppBuildSettings(ctx context.Context, db DBTX, arg Updat
 		arg.Dockerfile,
 		arg.DockerContextSpecified,
 		arg.DockerContext,
+		arg.BuildCommandSpecified,
+		arg.BuildCommand,
 		arg.WatchPathsSpecified,
 		arg.WatchPaths,
 		arg.AutoDeploySpecified,

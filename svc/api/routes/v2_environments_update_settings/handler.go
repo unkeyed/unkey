@@ -113,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	hasBuild := req.Dockerfile.IsSpecified() || req.RootDirectory != nil ||
-		req.WatchPaths != nil || req.AutoDeploy != nil
+		req.BuildCommand.IsSpecified() || req.WatchPaths != nil || req.AutoDeploy != nil
 	hasRuntime := req.Port != nil || req.CpuMillicores != nil || req.MemoryMib != nil ||
 		req.StorageMib != nil || req.Command != nil || req.Healthcheck.IsSpecified() ||
 		req.ShutdownSignal != nil || req.UpstreamProtocol != nil || req.OpenapiSpecPath.IsSpecified()
@@ -225,6 +225,8 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		Dockerfile:             sql.NullString{Valid: false, String: ""},
 		DockerContextSpecified: 0,
 		DockerContext:          "",
+		BuildCommandSpecified:  0,
+		BuildCommand:           sql.NullString{Valid: false, String: ""},
 		WatchPathsSpecified:    0,
 		WatchPaths:             nil,
 		AutoDeploySpecified:    0,
@@ -240,6 +242,12 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 	if req.RootDirectory != nil {
 		params.DockerContextSpecified = 1
 		params.DockerContext = *req.RootDirectory
+	}
+	if req.BuildCommand.IsSpecified() {
+		params.BuildCommandSpecified = 1
+		if !req.BuildCommand.IsNull() {
+			params.BuildCommand = sql.NullString{Valid: true, String: req.BuildCommand.MustGet()}
+		}
 	}
 	if req.WatchPaths != nil {
 		params.WatchPathsSpecified = 1

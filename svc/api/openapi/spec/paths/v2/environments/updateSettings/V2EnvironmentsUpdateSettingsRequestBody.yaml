@@ -30,6 +30,16 @@ properties:
       Use "." for the repository root, or set a subdirectory when your app
       is nested (e.g., services/api). Omit to leave unchanged.
     example: .
+  buildCommand:
+    type:
+      - string
+      - "null"
+    minLength: 1
+    maxLength: 1000
+    description: |
+      Overrides the build command auto-detected by Railpack.
+      Omit to leave unchanged; set null to clear and fall back to auto-detection.
+    example: pnpm --filter api build
   watchPaths:
     type: array
     maxItems: 10
