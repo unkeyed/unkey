@@ -1,0 +1,20 @@
+---
+description: pstack per-role model choices (overrides skill defaults)
+alwaysApply: true
+---
+# pstack model configuration. One line per role. Delete a line to fall back to the skill default.
+feature, refactoring: composer-2.5-fast
+bug-fix: gpt-5.5-high-fast
+perf-issue: gpt-5.5-high-fast
+hillclimb: gpt-5.5-high-fast
+judgment and prose: claude-opus-4-8-thinking-xhigh
+how explorer: composer-2.5-fast
+how explainer: claude-opus-4-8-thinking-xhigh
+how critics: claude-opus-4-8-thinking-xhigh, gpt-5.5-high-fast, claude-fable-5-thinking-xhigh
+why investigators: composer-2.5-fast
+why synthesizer: claude-opus-4-8-thinking-xhigh
+reflect tooling: composer-2.5-fast
+reflect judgment, divergent, synthesizer: claude-opus-4-8-thinking-xhigh
+arena runners: claude-opus-4-8-thinking-xhigh, gpt-5.5-high-fast, claude-fable-5-thinking-xhigh
+architect runners: claude-opus-4-8-thinking-xhigh, gpt-5.5-high-fast, claude-fable-5-thinking-xhigh
+interrogate reviewers: claude-opus-4-8-thinking-xhigh, gpt-5.5-high-fast, claude-fable-5-thinking-xhigh

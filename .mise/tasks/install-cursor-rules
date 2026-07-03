@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Install repo .cursor/rules into ~/.cursor/rules"
+set -euo pipefail
+
+"$(git rev-parse --show-toplevel)/dev/install-cursor-rules.sh"
