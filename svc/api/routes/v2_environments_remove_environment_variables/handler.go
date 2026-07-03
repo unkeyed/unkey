@@ -84,68 +84,73 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	existing, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, h.DB.RO(), db.FindAppEnvVarsByAppAndEnvParams{
-		AppID:         env.AppID,
-		EnvironmentID: env.ID,
-	})
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to retrieve environment variables."),
-		)
-	}
-
-	keys := make([]string, 0, len(existing))
-	for _, e := range existing {
-		if slices.Contains(req.Variables, e.Key) {
-			keys = append(keys, e.Key)
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		existing, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, tx, db.FindAppEnvVarsByAppAndEnvParams{
+			AppID:         env.AppID,
+			EnvironmentID: env.ID,
+		})
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve environment variables."),
+			)
 		}
-	}
 
-	if len(keys) > 0 {
-		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-			if err := db.Query.DeleteAppEnvVarsByKeys(ctx, tx, db.DeleteAppEnvVarsByKeysParams{
-				AppID:         env.AppID,
-				EnvironmentID: env.ID,
-				EnvKeys:       keys,
-			}); err != nil {
-				return fault.Wrap(
-					err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("unable to remove variables"),
-					fault.Public("We're unable to remove the environment variables."),
-				)
+		keys := make([]string, 0, len(existing))
+		for _, e := range existing {
+			if slices.Contains(req.Variables, e.Key) {
+				keys = append(keys, e.Key)
 			}
+		}
 
-			return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-				{
-					WorkspaceID:   principal.WorkspaceID,
-					Event:         auditlog.EnvironmentUpdateEvent,
-					Display:       fmt.Sprintf("Removed environment variables from environment %s", env.ID),
-					ActorID:       principal.Subject.ID,
-					ActorName:     principal.Subject.Name,
-					ActorMeta:     map[string]any{},
-					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-					RemoteIP:      s.Location(),
-					UserAgent:     s.UserAgent(),
-					CorrelationID: "",
-					Resources: []auditlog.AuditLogResource{
-						{
-							ID:          env.ID,
-							Type:        auditlog.EnvironmentResourceType,
-							Meta:        map[string]any{"keys": keys},
-							Name:        env.Slug,
-							DisplayName: env.Slug,
-						},
+		if len(keys) == 0 {
+			return nil
+		}
+
+		if err := db.Query.DeleteAppEnvVarsByKeys(ctx, tx, db.DeleteAppEnvVarsByKeysParams{
+			AppID:         env.AppID,
+			EnvironmentID: env.ID,
+			EnvKeys:       keys,
+		}); err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to remove variables"),
+				fault.Public("We're unable to remove the environment variables."),
+			)
+		}
+
+		auditLogs := make([]auditlog.AuditLog, 0, len(keys))
+		for _, key := range keys {
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID:   principal.WorkspaceID,
+				Event:         auditlog.EnvironmentUpdateEvent,
+				Display:       fmt.Sprintf("Removed environment variable %s from environment %s", key, env.ID),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          env.ID,
+						Type:        auditlog.EnvironmentResourceType,
+						Meta:        map[string]any{"key": key},
+						Name:        env.Slug,
+						DisplayName: env.Slug,
 					},
 				},
 			})
-		})
-		if err != nil {
-			return err
 		}
+
+		return h.Auditlogs.Insert(ctx, tx, auditLogs)
+	})
+	if err != nil {
+		return err
 	}
 
 	return s.JSON(http.StatusOK, Response{
