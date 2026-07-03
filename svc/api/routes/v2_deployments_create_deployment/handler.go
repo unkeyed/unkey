@@ -153,11 +153,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
 	if err != nil {
-		// ctrl re-validates and may report a precondition failure (for example a
-		// git build that cannot proceed). HandleError would fold that into a
-		// generic 500, so surface it as a 412 here instead. ctrl's messages can
-		// carry raw upstream detail and let callers probe internal state, so we
-		// never forward them: log the detail and return one fixed public reason.
+		// ctrl may report a precondition failure; HandleError would turn it into
+		// a 500, so surface a 412 instead. Don't forward ctrl's message: it can
+		// carry upstream detail and lets callers probe internal state. Log it,
+		// return a fixed reason.
 		var connectErr *connect.Error
 		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeFailedPrecondition {
 			return fault.Wrap(

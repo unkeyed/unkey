@@ -381,9 +381,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			s.github, repoConn.InstallationID, repoConn.RepositoryFullName,
 			s.allowUnauthenticatedDeployments,
 		); err != nil {
-			// This error can contain the raw GitHub API response body. Since it
-			// may end up in front of API callers, log the full detail here and
-			// hand back a generic reason that reveals nothing about upstream.
+			// This error may carry the raw GitHub response body, which can reach
+			// API callers. Log the detail, return a generic reason.
 			logger.Error("failed to resolve git commit metadata",
 				"app_id", c.app.ID,
 				"repository", repoConn.RepositoryFullName,
