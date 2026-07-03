@@ -72,12 +72,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
 			ResourceID:   "*",
-			Action:       rbac.SetEnvironmentVariables,
+			Action:       rbac.RemoveEnvironmentVariables,
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
 			ResourceID:   env.ID,
-			Action:       rbac.SetEnvironmentVariables,
+			Action:       rbac.RemoveEnvironmentVariables,
 		}),
 	))
 	if err != nil {
@@ -107,6 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if len(keys) > 0 {
 		err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 			if err := db.Query.DeleteAppEnvVarsByKeys(ctx, tx, db.DeleteAppEnvVarsByKeysParams{
+				AppID:         env.AppID,
 				EnvironmentID: env.ID,
 				EnvKeys:       keys,
 			}); err != nil {

@@ -24,12 +24,12 @@ func TestRemoveEnvironmentVariablesForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard permission", permissions: []string{"environment.*.set_environment_variables"}, shouldPass: true},
-		{name: "specific permission", permissions: []string{fmt.Sprintf("environment.%s.set_environment_variables", env.environmentID)}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.set_environment_variables"}, shouldPass: true},
+		{name: "wildcard permission", permissions: []string{"environment.*.remove_environment_variables"}, shouldPass: true},
+		{name: "specific permission", permissions: []string{fmt.Sprintf("environment.%s.remove_environment_variables", env.environmentID)}, shouldPass: true},
+		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.remove_environment_variables"}, shouldPass: true},
 		{name: "update action is not enough", permissions: []string{"environment.*.update_environment"}, shouldPass: false},
 		{name: "read action is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},
-		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.set_environment_variables", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
+		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.remove_environment_variables", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}

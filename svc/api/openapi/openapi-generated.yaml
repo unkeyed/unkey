@@ -6547,8 +6547,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `environment.*.set_environment_variables` (for any environment)
-                - `environment.<environment_id>.set_environment_variables` (for a specific environment)
+                - `environment.*.remove_environment_variables` (for any environment)
+                - `environment.<environment_id>.remove_environment_variables` (for a specific environment)
             operationId: environments.removeEnvironmentVariables
             requestBody:
                 content:
@@ -6592,7 +6592,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `environment.*.set_environment_variables`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.remove_environment_variables`)
                 "404":
                     content:
                         application/json:

@@ -12,11 +12,13 @@ import (
 
 const deleteAppEnvVarsByKeys = `-- name: DeleteAppEnvVarsByKeys :exec
 DELETE FROM app_environment_variables
-WHERE environment_id = ?
+WHERE app_id = ?
+  AND environment_id = ?
   AND ` + "`" + `key` + "`" + ` IN (/*SLICE:env_keys*/?)
 `
 
 type DeleteAppEnvVarsByKeysParams struct {
+	AppID         string   `db:"app_id"`
 	EnvironmentID string   `db:"environment_id"`
 	EnvKeys       []string `db:"env_keys"`
 }
@@ -24,11 +26,13 @@ type DeleteAppEnvVarsByKeysParams struct {
 // Deletes an environment's variables whose key is in the provided set.
 //
 //	DELETE FROM app_environment_variables
-//	WHERE environment_id = ?
+//	WHERE app_id = ?
+//	  AND environment_id = ?
 //	  AND `key` IN (/*SLICE:env_keys*/?)
 func (q *Queries) DeleteAppEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteAppEnvVarsByKeysParams) error {
 	query := deleteAppEnvVarsByKeys
 	var queryParams []interface{}
+	queryParams = append(queryParams, arg.AppID)
 	queryParams = append(queryParams, arg.EnvironmentID)
 	if len(arg.EnvKeys) > 0 {
 		for _, v := range arg.EnvKeys {

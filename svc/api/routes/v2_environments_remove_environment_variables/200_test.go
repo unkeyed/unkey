@@ -19,7 +19,7 @@ func TestRemoveEnvironmentVariablesSuccessfully(t *testing.T) {
 
 	ctx := context.Background()
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_environment_variables")
+	rootKey := h.CreateRootKey(workspace.ID, "environment.*.remove_environment_variables")
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) handler.Response {
