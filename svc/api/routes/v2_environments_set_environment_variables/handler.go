@@ -226,7 +226,7 @@ func (h *Handler) encryptValues(
 			"vault not configured",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 			fault.Internal("vault not configured"),
-			fault.Public("Environment variables are not available on this deployment."),
+			fault.Public("Environment variables cannot be decrypted, because vault is not configured."),
 		)
 	}
 
