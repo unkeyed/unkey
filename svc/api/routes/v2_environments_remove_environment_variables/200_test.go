@@ -76,21 +76,26 @@ func TestRemoveEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Empty(t, raw)
 	})
 
-	t.Run("emits a single audit event with only the keys that existed", func(t *testing.T) {
+	t.Run("emits one audit event per removed key, grouped by correlation id", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVar(t, h, env, "ALPHA", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
 		seedVar(t, h, env, "BETA", "v", db.AppEnvironmentVariablesTypeRecoverable, false)
 
-		// Duplicates and a non-existent key (KEBAP) in the request: the audit log
-		// records only the keys that were actually present and removed.
+		// Duplicates and a non-existent key (KEBAP) in the request: only the keys
+		// that were actually present and removed get an audit log.
 		call(t, makeRequest(env, []string{"BETA", "ALPHA", "BETA", "ALPHA", "KEBAP"}))
 
 		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
-		require.Len(t, logs, 1)
-		require.Contains(t, logs[0].Description, "Removed environment variables")
+		require.Len(t, logs, 2)
 
-		require.Len(t, logs[0].Targets, 1)
-		keys := fmt.Sprintf("%v", logs[0].Targets[0].Meta["keys"])
+		keys := make([]string, 0, len(logs))
+		for _, l := range logs {
+			require.Contains(t, l.Description, "Removed environment variable")
+			require.Len(t, l.Targets, 1)
+			require.NotEmpty(t, l.CorrelationID)
+			require.Equal(t, logs[0].CorrelationID, l.CorrelationID)
+			keys = append(keys, fmt.Sprintf("%v", l.Targets[0].Meta["key"]))
+		}
 		require.Contains(t, keys, "ALPHA")
 		require.Contains(t, keys, "BETA")
 		require.NotContains(t, keys, "KEBAP")
