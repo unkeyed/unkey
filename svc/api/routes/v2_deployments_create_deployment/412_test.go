@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -39,11 +40,14 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 }
 
 // TestControlPlanePreconditionFailure verifies a FailedPrecondition from ctrl is
-// surfaced as 412 rather than the 503 that HandleError would otherwise produce.
+// surfaced as 412 rather than the 503 that HandleError would otherwise produce,
+// and that ctrl's raw message is masked so upstream detail cannot leak or be
+// probed through the caller-facing error.
 func TestControlPlanePreconditionFailure(t *testing.T) {
 	h := testutil.NewHarness(t)
+	const ctrlSecret = "status 403: {\"message\":\"rate limit for installation 12345\"}"
 	capture := &ctrlCapture{
-		err: connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("build cannot proceed")),
+		err: connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to resolve git commit metadata: %s", ctrlSecret)),
 	}
 	route := newRoute(h, capture)
 	h.Register(route)
@@ -65,4 +69,7 @@ func TestControlPlanePreconditionFailure(t *testing.T) {
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/application/precondition_failed", res.Body.Error.Type)
 	require.True(t, capture.called, "ctrl should have been called")
+	require.NotContains(t, res.Body.Error.Detail, ctrlSecret, "ctrl raw message must not leak to the caller")
+	require.NotContains(t, res.Body.Error.Detail, "rate limit", "upstream detail must not leak to the caller")
+	require.False(t, strings.Contains(res.RawBody, "installation 12345"), "internal identifiers must not leak in the response body")
 }

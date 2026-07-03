@@ -155,16 +155,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		// ctrl re-validates and may report a precondition failure (for example a
 		// git build that cannot proceed). HandleError would fold that into a
-		// generic 500, so surface it as a 412 here instead. ctrl's precondition
-		// messages are reached only after this handler has authorized the caller
-		// for the target environment, so they reference the caller's own
-		// resources and are safe to surface directly.
+		// generic 500, so surface it as a 412 here instead. ctrl's messages can
+		// carry raw upstream detail and let callers probe internal state, so we
+		// never forward them: log the detail and return one fixed public reason.
 		var connectErr *connect.Error
 		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeFailedPrecondition {
 			return fault.Wrap(
 				err,
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Public(connectErr.Message()),
+				fault.Internal("ctrl reported a precondition failure: "+connectErr.Message()),
+				fault.Public("The deployment could not be started because a precondition was not met. Verify the app's repository connection, branch, commit, and current deployment, then try again."),
 			)
 		}
 		return ctrlclient.HandleError(err, "create deployment")
