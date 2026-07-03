@@ -1,18 +1,42 @@
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
+import type { FormValues } from "../edit-rbac/update-key-rbac.schema";
+
+type UpdateKeyRbacResult = {
+  keyId: string;
+  success: boolean;
+  rolesAssigned: number;
+  directPermissionsAssigned: number;
+  totalEffectivePermissions: number;
+};
+
+type UpdateKeyRbacVariables = FormValues & {
+  totalEffectivePermissions: number;
+};
 
 export const useUpdateKeyRbac = (
-  onSuccess: (data: {
-    keyId: string;
-    success: boolean;
-    rolesAssigned: number;
-    directPermissionsAssigned: number;
-    totalEffectivePermissions: number;
-  }) => void,
+  onSuccess: (data: UpdateKeyRbacResult) => void,
 ) => {
   const trpcUtils = trpc.useUtils();
 
-  const updateKeyRbac = trpc.key.update.rbac.update.useMutation({
+  const updateKeyRbac = useMutation<UpdateKeyRbacResult, unknown, UpdateKeyRbacVariables>({
+    mutationFn: async (variables) => {
+      await getUnkeyClient().keys.updateKey({
+        keyId: variables.keyId,
+        roles: variables.roleNames,
+        permissions: variables.directPermissionSlugs,
+      });
+
+      return {
+        keyId: variables.keyId,
+        success: true,
+        rolesAssigned: variables.roleNames.length,
+        directPermissionsAssigned: variables.directPermissionSlugs.length,
+        totalEffectivePermissions: variables.totalEffectivePermissions,
+      };
+    },
     onSuccess(data) {
       trpcUtils.key.connectedRolesAndPerms.invalidate();
       trpcUtils.api.keys.list.invalidate();
@@ -47,43 +71,13 @@ export const useUpdateKeyRbac = (
     },
 
     onError(err) {
-      console.error("Key RBAC update failed:", err);
-
-      if (err.data?.code === "NOT_FOUND") {
-        toast.error("Key Update Failed", {
-          description:
-            "We are unable to find the correct key. Please try again or contact support@unkey.com.",
-        });
-      } else if (err.data?.code === "BAD_REQUEST") {
-        let description = "Please check your selections and try again.";
-
-        if (err.message.includes("roles")) {
-          description =
-            "One or more selected roles do not exist in this workspace. Please refresh and try again.";
-        } else if (err.message.includes("permissions")) {
-          description =
-            "One or more selected permissions do not exist in this workspace. Please refresh and try again.";
-        }
-
-        toast.error("Invalid Selection", {
-          description,
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We are unable to update RBAC for this key. Please try again or contact support@unkey.com",
-        });
-      } else {
-        toast.error("Failed to Update Key RBAC", {
-          description:
-            err.message ||
-            "An unexpected error occurred while updating roles and permissions. Please try again or contact support@unkey.com",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      }
+      toast.error("Failed to Update Key RBAC", {
+        description: getErrorMessage(err),
+        action: {
+          label: "Contact Support",
+          onClick: () => window.open("mailto:support@unkey.com", "_blank"),
+        },
+      });
     },
   });
 
