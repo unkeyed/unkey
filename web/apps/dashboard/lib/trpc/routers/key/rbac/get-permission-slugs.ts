@@ -90,10 +90,7 @@ export const getPermissionSlugs = workspaceProcedure
         });
       }
 
-      if (
-        permissionSlugs.length > 0 &&
-        directPermissions.length !== permissionSlugs.length
-      ) {
+      if (permissionSlugs.length > 0 && directPermissions.length !== permissionSlugs.length) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "One or more permissions not found or access denied",

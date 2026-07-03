@@ -16,9 +16,7 @@ type UpdateKeyRbacVariables = FormValues & {
   totalEffectivePermissions: number;
 };
 
-export const useUpdateKeyRbac = (
-  onSuccess: (data: UpdateKeyRbacResult) => void,
-) => {
+export const useUpdateKeyRbac = (onSuccess: (data: UpdateKeyRbacResult) => void) => {
   const trpcUtils = trpc.useUtils();
 
   const updateKeyRbac = useMutation<UpdateKeyRbacResult, unknown, UpdateKeyRbacVariables>({

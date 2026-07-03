@@ -141,9 +141,8 @@ export const getKeysTableActionItems = (
 
           const currentRoleNames = connectedData?.roles?.map((r) => r.name) ?? [];
           const directPermissionSlugs =
-            connectedData?.permissions
-              ?.filter((p) => p.source === "direct")
-              ?.map((p) => p.slug) ?? [];
+            connectedData?.permissions?.filter((p) => p.source === "direct")?.map((p) => p.slug) ??
+            [];
 
           // Prefetch dependent data that requires connectedData
           const dependentPrefetches = [];
