@@ -55,7 +55,8 @@ type Querier interface {
 	// Deletes an environment's variables whose key is in the provided set.
 	//
 	//  DELETE FROM app_environment_variables
-	//  WHERE environment_id = ?
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
 	//    AND `key` IN (/*SLICE:env_keys*/?)
 	DeleteAppEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteAppEnvVarsByKeysParams) error
 	//DeleteAppRegionalSettingsByEnvironmentId
