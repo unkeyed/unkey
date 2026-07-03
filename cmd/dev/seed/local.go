@@ -456,7 +456,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			"workspace.*.read_workspace",
 			"environment.*.create_deployment",
 			"environment.*.read_deployment",
-			// Deprecated: kept until the deprecated /v2/deploy.* endpoints are removed.
+			"project.*.generate_upload_url",
 			"project.*.create_deployment",
 			"project.*.read_deployment",
 		}

@@ -105,7 +105,7 @@ tags:
   - name: apps
     description: App management operations
   - name: deploy
-    description: Deployment operations (deprecated)
+    description: Deployment operations
   - name: deployments
     description: Deployment operations
   - name: environments
@@ -145,7 +145,6 @@ paths:
   # Deployments Endpoints
   /v2/deployments.createDeployment:
     $ref: "./spec/paths/v2/deployments/createDeployment/index.yaml"
-  # Deprecated: use /v2/deployments.createDeployment
   /v2/deploy.createDeployment:
     $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
   /v2/deploy.getDeployment:

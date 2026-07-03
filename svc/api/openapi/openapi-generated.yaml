@@ -10966,7 +10966,7 @@ tags:
       name: apis
     - description: App management operations
       name: apps
-    - description: Deployment operations (deprecated)
+    - description: Deployment operations
       name: deploy
     - description: Deployment operations
       name: deployments
