@@ -125,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				"vault not configured",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("vault not configured"),
-				fault.Public("Environment variables cannot be decrypted because the secret vault is not configured on this deployment."),
+				fault.Public("Environment variables cannot be decrypted, because vault is not configured."),
 			)
 		}
 
