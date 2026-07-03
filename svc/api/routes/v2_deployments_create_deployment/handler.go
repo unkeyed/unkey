@@ -135,9 +135,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 	case openapi.DeploymentSourceDeployment:
-		gitCommit, dockerImage, redeployErr := h.resolveRedeploy(ctx, principal.WorkspaceID, environment.AppID, environment.ID, *req.DeploymentId)
-		if redeployErr != nil {
-			return redeployErr
+		gitCommit, dockerImage, err := h.resolveRedeploy(ctx, principal.WorkspaceID, environment.AppID, environment.ID, *req.DeploymentId)
+		if err != nil {
+			return err
 		}
 		ctrlReq.GitCommit = gitCommit
 		ctrlReq.DockerImage = dockerImage
