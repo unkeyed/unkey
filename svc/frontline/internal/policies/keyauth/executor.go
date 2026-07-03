@@ -14,8 +14,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
@@ -98,6 +100,10 @@ func (e *Executor) Execute(
 		verifyOpts = append(verifyOpts, keys.WithPermissions(query))
 	}
 
+	if rls := cfg.GetRatelimits(); len(rls) > 0 {
+		verifyOpts = append(verifyOpts, keys.WithRateLimits(toVerifyRatelimits(rls)))
+	}
+
 	if err := verifier.Verify(ctx, verifyOpts...); err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
@@ -149,6 +155,33 @@ func (e *Executor) Execute(
 		)
 	}
 	return p, nil
+}
+
+// toVerifyRatelimits converts the policy's rate limit selectors into the
+// verifyKey-style options consumed by KeyService. This reuses the exact
+// enforcement path the API uses for verifyKey's ratelimits parameter, so
+// gateway-enforced limits behave identically to application-enforced ones.
+func toVerifyRatelimits(rls []*frontlinev1.KeyRatelimit) []openapi.KeysVerifyKeyRatelimit {
+	out := make([]openapi.KeysVerifyKeyRatelimit, 0, len(rls))
+	for _, rl := range rls {
+		entry := openapi.KeysVerifyKeyRatelimit{
+			Name:     rl.GetName(),
+			Cost:     nil,
+			Duration: nil,
+			Limit:    nil,
+		}
+		if rl.Limit != nil {
+			entry.Limit = ptr.P(int(rl.GetLimit()))
+		}
+		if rl.Duration != nil {
+			entry.Duration = ptr.P(int(rl.GetDuration()))
+		}
+		if rl.Cost != nil {
+			entry.Cost = ptr.P(int(rl.GetCost()))
+		}
+		out = append(out, entry)
+	}
+	return out
 }
 
 // keyspaceAllowed reports whether the key's keyspace is in the policy's

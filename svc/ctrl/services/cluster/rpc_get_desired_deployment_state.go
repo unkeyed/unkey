@@ -5,8 +5,8 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // GetDesiredDeploymentState returns the target state for a single deployment in the caller's
@@ -31,7 +31,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		return nil, err
 	}
 
-	row, err := db.Query.FindDeploymentTopologyByDeploymentAndRegion(ctx, s.db.RO(), db.FindDeploymentTopologyByDeploymentAndRegionParams{
+	row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
 		DeploymentID: req.Msg.GetDeploymentId(),
 		RegionID:     region.ID,
 	})

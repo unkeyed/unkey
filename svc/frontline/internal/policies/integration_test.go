@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -291,6 +292,26 @@ func (h *testHarness) seedKeyWithIdentity(ctx context.Context, wsID, ksID string
 		KeyID:       keyID,
 		RawKey:      rawKey,
 	}
+}
+
+// seedKeyRatelimit attaches a named rate limit to a key. When autoApply is
+// true the limit is enforced on every verification; otherwise it must be
+// referenced by name to take effect.
+func (h *testHarness) seedKeyRatelimit(ctx context.Context, wsID, keyID, name string, limit, durationMs uint64, autoApply bool) {
+	h.t.Helper()
+
+	err := db.Query.InsertKeyRatelimit(ctx, h.db.RW(), db.InsertKeyRatelimitParams{
+		ID:          uid.New("rl"),
+		WorkspaceID: wsID,
+		KeyID:       sql.NullString{String: keyID, Valid: true},
+		Name:        name,
+		Limit:       limit,
+		Duration:    durationMs,
+		AutoApply:   autoApply,
+		CreatedAt:   time.Now().UnixMilli(),
+		UpdatedAt:   sql.NullInt64{Valid: false},
+	})
+	require.NoError(h.t, err)
 }
 
 func newSession(t *testing.T, req *http.Request) *zen.Session {
@@ -635,6 +656,160 @@ func TestEvaluate_MatchFiltering(t *testing.T) {
 	result, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 	require.NoError(t, err)
 	require.Nil(t, result.Principal)
+}
+
+// --- KeyAuth rate limit integration tests ---
+
+// TestKeyAuth_AutoAppliedRatelimitEnforcedWithoutPolicyConfig guards the
+// pre-existing behavior: an auto-applied key rate limit is enforced even when
+// the KeyAuth policy declares no `ratelimits`. The new policy field must be
+// purely additive and must not gate auto-apply enforcement.
+func TestKeyAuth_AutoAppliedRatelimitEnforcedWithoutPolicyConfig(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+	// Auto-applied limit: enforced on every verification regardless of policy.
+	h.seedKeyRatelimit(ctx, s.WorkspaceID, s.KeyID, "auto", 1, 60000, true)
+
+	// Plain KeyAuth policy with no `ratelimits` configured.
+	policies := []*frontlinev1.Policy{keyAuthPolicy("auth", []string{s.KeySpaceID})}
+
+	t.Run("first request allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s.RawKey)
+		sess := newSession(t, req)
+		result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+	})
+
+	t.Run("second request rate limited by auto-applied limit", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s.RawKey)
+		sess := newSession(t, req)
+		_, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rate limited")
+	})
+}
+
+// TestKeyAuth_EnforcesNamedKeyRatelimit verifies that a KeyAuth policy can
+// enforce a named, non-auto-applied rate limit on the key, matching the
+// verifyKey ratelimits parameter behavior.
+func TestKeyAuth_EnforcesNamedKeyRatelimit(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+	// Non-auto-applied limit: it only takes effect when the policy references it.
+	h.seedKeyRatelimit(ctx, s.WorkspaceID, s.KeyID, "expensive", 1, 60000, false)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &frontlinev1.Policy_Keyauth{
+				Keyauth: &frontlinev1.KeyAuth{
+					KeySpaceIds: []string{s.KeySpaceID},
+					Ratelimits: []*frontlinev1.KeyRatelimit{
+						{Name: "expensive"},
+					},
+				},
+			},
+		},
+	}
+
+	t.Run("first request allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s.RawKey)
+		sess := newSession(t, req)
+		result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+	})
+
+	t.Run("second request rate limited", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s.RawKey)
+		sess := newSession(t, req)
+		_, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rate limited")
+	})
+}
+
+// TestKeyAuth_NamedRatelimitNotFound rejects requests when the policy
+// references a named limit that does not exist on the key and provides no
+// inline override.
+func TestKeyAuth_NamedRatelimitNotFound(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &frontlinev1.Policy_Keyauth{
+				Keyauth: &frontlinev1.KeyAuth{
+					KeySpaceIds: []string{s.KeySpaceID},
+					Ratelimits: []*frontlinev1.KeyRatelimit{
+						{Name: "does-not-exist"},
+					},
+				},
+			},
+		},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+s.RawKey)
+	sess := newSession(t, req)
+	_, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+	require.Error(t, err)
+}
+
+// TestKeyAuth_InlineRatelimitOverride enforces an inline limit defined entirely
+// in the policy, without any matching rate limit configured on the key.
+func TestKeyAuth_InlineRatelimitOverride(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	policies := []*frontlinev1.Policy{
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &frontlinev1.Policy_Keyauth{
+				Keyauth: &frontlinev1.KeyAuth{
+					KeySpaceIds: []string{s.KeySpaceID},
+					Ratelimits: []*frontlinev1.KeyRatelimit{
+						{
+							Name:     "inline",
+							Limit:    ptr.P(int64(1)),
+							Duration: ptr.P(int64(60000)),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	t.Run("first request allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s.RawKey)
+		sess := newSession(t, req)
+		result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+	})
+
+	t.Run("second request rate limited", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s.RawKey)
+		sess := newSession(t, req)
+		_, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rate limited")
+	})
 }
 
 // --- RateLimit integration tests ---

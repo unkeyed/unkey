@@ -57,6 +57,33 @@ func TestSecurityFilterInjection(t *testing.T) {
 		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' LIMIT 100", result)
 	})
 
+	t.Run("fails closed when a filter has no allowed values", func(t *testing.T) {
+		parser := chquery.NewParser(chquery.Config{
+			WorkspaceID: "ws_test",
+			SecurityFilters: []chquery.SecurityFilter{
+				{
+					Column:        "key_id",
+					AllowedValues: []string{}, // Scoped principal that may see nothing
+				},
+			},
+			Limit: 100,
+			TableAliases: map[string]string{
+				"key_verifications": "default.key_verifications_raw_v2",
+			},
+			AllowedTables: []string{
+				"default.key_verifications_raw_v2",
+			},
+		})
+
+		query := "SELECT COUNT(*) FROM key_verifications"
+		result, err := parser.Parse(context.Background(), query)
+		require.NoError(t, err)
+
+		// Empty allowed values must render as a constant-false predicate, not be
+		// dropped, so the query returns zero rows instead of leaking the workspace.
+		require.Equal(t, "SELECT COUNT(*) FROM default.key_verifications_raw_v2 WHERE workspace_id = 'ws_test' AND (0) LIMIT 100", result)
+	})
+
 	t.Run("injects single key_space_id filter", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{
 			WorkspaceID: "ws_test",
