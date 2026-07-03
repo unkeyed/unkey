@@ -16,7 +16,10 @@ go_library(
         "//pkg/fault",
         "//pkg/ptr",
         "//pkg/rbac",
+        "//pkg/rbac/permissions",
+        "//pkg/urn",
         "//pkg/zen",
+        "//svc/api/internal/auditactor",
         "//svc/api/openapi",
     ],
 )

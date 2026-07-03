@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -41,7 +40,7 @@ func TestRunKeyRefill_Integration(t *testing.T) {
 
 		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 
-		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
+		key, err := h.DB.FindKeyByID(h.Ctx, keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
@@ -68,7 +67,7 @@ func TestRunKeyRefill_Integration(t *testing.T) {
 
 		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 
-		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
+		key, err := h.DB.FindKeyByID(h.Ctx, keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
@@ -97,7 +96,7 @@ func TestRunKeyRefill_Integration(t *testing.T) {
 		_, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
+		key, err := h.DB.FindKeyByID(h.Ctx, keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})
@@ -121,7 +120,7 @@ func TestRunKeyRefill_Integration(t *testing.T) {
 		_, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
+		key, err := h.DB.FindKeyByID(h.Ctx, keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})
@@ -205,7 +204,7 @@ func TestRunKeyRefill_Integration(t *testing.T) {
 
 		require.GreaterOrEqual(t, resp.GetKeysRefilled(), int32(1))
 
-		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
+		key, err := h.DB.FindKeyByID(h.Ctx, keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
@@ -230,7 +229,7 @@ func TestRunKeyRefill_Integration(t *testing.T) {
 		_, err := callRunKeyRefill(h, testDateKey)
 		require.NoError(t, err)
 
-		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
+		key, err := h.DB.FindKeyByID(h.Ctx, keyResp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})

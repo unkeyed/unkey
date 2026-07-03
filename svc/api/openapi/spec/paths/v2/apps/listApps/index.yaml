@@ -1,0 +1,146 @@
+post:
+  tags:
+    - apps
+  summary: List apps
+  description: |
+    Retrieve a paginated list of apps within a project.
+
+    Use this to enumerate every app in a project. Results are ordered by app id and paginated; when `hasMore` is true, pass the returned `cursor` to fetch the next page.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `app.*.read_app` (to read apps in any project)
+  operationId: apps.listApps
+  x-speakeasy-name-override: listApps
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2AppsListAppsRequestBody.yaml"
+        examples:
+          basic:
+            summary: List a project's apps
+            description: List the first page of apps in the given project
+            value:
+              project: payments-service
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2AppsListAppsResponseBody.yaml"
+          examples:
+            appList:
+              summary: App list
+              description: Successfully retrieved a page of apps
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  - id: app_1234abcd
+                    name: Payments API
+                    slug: payments-api
+                    projectId: proj_1234abcd
+                    defaultBranch: main
+                    currentDeploymentId: dep_1234abcd
+                    isRolledBack: false
+                    deleteProtection: false
+                    createdAt: 1704067200000
+                    updatedAt: 1704153600000
+                  - id: app_5678efgh
+                    name: Billing API
+                    slug: billing-api
+                    projectId: proj_1234abcd
+                    defaultBranch: main
+                    isRolledBack: false
+                    deleteProtection: false
+                    createdAt: 1704240000000
+                pagination:
+                  hasMore: false
+      description: |
+        Successfully retrieved a paginated list of apps. Use the pagination cursor for additional results when `hasMore: true`.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            invalidLimit:
+              summary: Invalid limit
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The limit must be between 1 and 100.
+                  status: 400
+                  type: validation-error
+                  errors:
+                    - location: body.limit
+                      message: must be less than or equal to 100
+                      fix: Use a limit between 1 and 100
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `app.*.read_app`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'app.*.read_app' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - The requested project does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            projectNotFound:
+              summary: Project not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested project does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"
