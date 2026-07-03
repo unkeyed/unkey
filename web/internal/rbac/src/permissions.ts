@@ -77,6 +77,10 @@ export const projectActions = z.enum([
   "update_project",
   "delete_project",
   "create_app",
+  // Deprecated: moved to environment scope. Kept until the deprecated
+  // /v2/deploy.* endpoints are removed.
+  "create_deployment",
+  "read_deployment",
 ]);
 export const appActions = z.enum(["read_app", "update_app", "delete_app"]);
 export const environmentActions = z.enum([

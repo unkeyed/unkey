@@ -456,6 +456,9 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			"workspace.*.read_workspace",
 			"environment.*.create_deployment",
 			"environment.*.read_deployment",
+			// Deprecated: kept until the deprecated /v2/deploy.* endpoints are removed.
+			"project.*.create_deployment",
+			"project.*.read_deployment",
 		}
 
 		permissionParams := make([]db.InsertPermissionParams, len(allPermissions))

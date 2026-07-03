@@ -1,0 +1,24 @@
+type: object
+description: Optional git commit information
+properties:
+  commitSha:
+    type: string
+    description: Git commit SHA
+    example: "a1b2c3d4e5f6"
+  commitMessage:
+    type: string
+    description: Git commit message
+    example: "feat: add new feature"
+  authorHandle:
+    type: string
+    description: Git author handle/username
+    example: "johndoe"
+  authorAvatarUrl:
+    type: string
+    description: Git author avatar URL
+    example: "https://avatars.githubusercontent.com/u/123456"
+  timestamp:
+    type: integer
+    format: int64
+    description: Commit timestamp in milliseconds
+    example: 1704067200000
