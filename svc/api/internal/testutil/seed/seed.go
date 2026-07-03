@@ -672,12 +672,18 @@ type CreatePermissionRequest struct {
 
 // CreateDeploymentRequest configures the deployment to create.
 type CreateDeploymentRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	AppID         string
-	EnvironmentID string
-	GitBranch     string
+	ID                     string
+	WorkspaceID            string
+	ProjectID              string
+	AppID                  string
+	EnvironmentID          string
+	GitBranch              string
+	GitCommitSha           string
+	GitCommitMessage       string
+	GitCommitAuthorHandle  string
+	GitCommitAuthorAvatar  string
+	GitCommitTimestamp     int64
+	ForkRepositoryFullName string
 }
 
 // CreateDeployment creates a deployment within a project and environment.
@@ -695,13 +701,13 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
-		GitCommitSha:                  sql.NullString{Valid: false},
+		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),
-		GitCommitMessage:              sql.NullString{Valid: false},
-		GitCommitAuthorHandle:         sql.NullString{Valid: false},
-		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false},
-		GitCommitTimestamp:            sql.NullInt64{Valid: false},
+		GitCommitMessage:              sql.NullString{String: req.GitCommitMessage, Valid: req.GitCommitMessage != ""},
+		GitCommitAuthorHandle:         sql.NullString{String: req.GitCommitAuthorHandle, Valid: req.GitCommitAuthorHandle != ""},
+		GitCommitAuthorAvatarUrl:      sql.NullString{String: req.GitCommitAuthorAvatar, Valid: req.GitCommitAuthorAvatar != ""},
+		GitCommitTimestamp:            sql.NullInt64{Int64: req.GitCommitTimestamp, Valid: req.GitCommitTimestamp != 0},
 		EncryptedEnvironmentVariables: []byte{},
 		Command:                       nil,
 		Status:                        db.DeploymentsStatusPending,
@@ -713,7 +719,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: req.ForkRepositoryFullName, Valid: req.ForkRepositoryFullName != ""},
 		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
 		TriggeredBy:                   sql.NullString{Valid: false},
 		TriggerReason:                 sql.NullString{Valid: false},

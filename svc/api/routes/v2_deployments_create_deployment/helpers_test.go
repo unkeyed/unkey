@@ -45,6 +45,18 @@ func authHeaders(rootKey string) http.Header {
 	}
 }
 
+// setDeploymentImage records a built container image on a deployment, mimicking
+// what ctrl persists after a successful build.
+func setDeploymentImage(t *testing.T, h *testutil.Harness, deploymentID, image string) {
+	t.Helper()
+	err := db.Query.UpdateDeploymentImage(context.Background(), h.DB.RW(), db.UpdateDeploymentImageParams{
+		Image:     sql.NullString{String: image, Valid: true},
+		UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		ID:        deploymentID,
+	})
+	require.NoError(t, err)
+}
+
 // connectRepo attaches a GitHub repository connection to an app so git-sourced
 // deployments pass the handler's precondition check.
 func connectRepo(t *testing.T, h *testutil.Harness, workspaceID, projectID, appID string) {

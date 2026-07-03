@@ -143,7 +143,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctrlReq.DockerImage = dockerImage
 
 	default:
-		return fault.New("unknown source",
+		return fault.New(
+			"unknown source",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("unknown source reached switch after validation"),
 			fault.Public("Unknown source. Use image, git, or deployment."),
@@ -153,14 +154,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
 	if err != nil {
 		// ctrl re-validates and may report a precondition failure (for example a
-		// git build that cannot proceed). HandleError maps that to 503, so surface
-		// it as a 412 here instead.
+		// git build that cannot proceed). HandleError would fold that into a
+		// generic 500, so surface it as a 412 here instead. ctrl's precondition
+		// messages are reached only after this handler has authorized the caller
+		// for the target environment, so they reference the caller's own
+		// resources and are safe to surface directly.
 		var connectErr *connect.Error
 		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeFailedPrecondition {
 			return fault.Wrap(
 				err,
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("control plane reported a failed precondition"),
 				fault.Public(connectErr.Message()),
 			)
 		}
@@ -181,7 +184,8 @@ func validateSourceFields(req Request) error {
 	switch req.Source {
 	case openapi.DeploymentSourceImage:
 		if !hasValue(req.DockerImage) {
-			return fault.New("missing dockerImage",
+			return fault.New(
+				"missing dockerImage",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("dockerImage missing for image source"),
 				fault.Public("A dockerImage is required when source is image."),
@@ -190,7 +194,8 @@ func validateSourceFields(req Request) error {
 
 	case openapi.DeploymentSourceGit:
 		if hasValue(req.ForkRepository) && !hasValue(req.CommitSha) {
-			return fault.New("forkRepository requires commitSha",
+			return fault.New(
+				"forkRepository requires commitSha",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("forkRepository set without commitSha"),
 				fault.Public("forkRepository requires commitSha."),
@@ -199,7 +204,8 @@ func validateSourceFields(req Request) error {
 
 	case openapi.DeploymentSourceDeployment:
 		if !hasValue(req.DeploymentId) {
-			return fault.New("missing deploymentId",
+			return fault.New(
+				"missing deploymentId",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("deploymentId missing for deployment source"),
 				fault.Public("A deploymentId is required when source is deployment."),
@@ -207,7 +213,8 @@ func validateSourceFields(req Request) error {
 		}
 
 	default:
-		return fault.New("unknown source",
+		return fault.New(
+			"unknown source",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("unknown source value"),
 			fault.Public("Unknown source. Use image, git, or deployment."),
@@ -239,10 +246,20 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 		)
 	}
 
-	_, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
+	_, err = db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
 	switch {
-	case repoErr == nil:
-		// nolint: exhaustruct // only commit metadata is carried forward
+	case err == nil:
+		if deployment.GitBranch.String == "" && deployment.GitCommitSha.String == "" {
+			if deployment.Image.String == "" {
+				return nil, "", fault.New(
+					"deployment not redeployable",
+					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+					fault.Internal("redeploy target has neither git metadata nor image"),
+					fault.Public("This deployment cannot be redeployed because it never produced an image."),
+				)
+			}
+			return nil, deployment.Image.String, nil
+		}
 		return &ctrlv1.GitCommitInfo{
 			CommitSha:       deployment.GitCommitSha.String,
 			Branch:          deployment.GitBranch.String,
@@ -250,11 +267,12 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 			AuthorHandle:    deployment.GitCommitAuthorHandle.String,
 			AuthorAvatarUrl: deployment.GitCommitAuthorAvatarUrl.String,
 			Timestamp:       deployment.GitCommitTimestamp.Int64,
+			ForkRepository:  deployment.ForkRepositoryFullName.String,
 		}, "", nil
-	case db.IsNotFound(repoErr):
+	case db.IsNotFound(err):
 		return nil, deployment.Image.String, nil
 	default:
-		return nil, "", fault.Wrap(repoErr, fault.Internal("failed to check repo connection"))
+		return nil, "", fault.Wrap(err, fault.Internal("failed to check repo connection"))
 	}
 }
 

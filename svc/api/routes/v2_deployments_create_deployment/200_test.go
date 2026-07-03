@@ -201,6 +201,131 @@ func TestRedeployImageReuse(t *testing.T) {
 	require.Nil(t, capture.req.GitCommit, "an app without a repo connection reuses the image instead of rebuilding")
 }
 
+// TestRedeployForkDeployment covers redeploying a deployment that was built from
+// a fork. The fork repository and full commit metadata must be carried forward
+// so ctrl resolves the commit against the fork, not the base repo.
+func TestRedeployForkDeployment(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:                     uid.New(uid.DeploymentPrefix),
+		WorkspaceID:            setup.Workspace.ID,
+		ProjectID:              setup.Project.ID,
+		AppID:                  setup.App.ID,
+		EnvironmentID:          setup.Environment.ID,
+		GitBranch:              "feature",
+		GitCommitSha:           "9f2c1a7",
+		GitCommitMessage:       "add KEBAP endpoint",
+		GitCommitAuthorHandle:  "contributor",
+		GitCommitAuthorAvatar:  "https://example.com/avatar.png",
+		GitCommitTimestamp:     1700000000,
+		ForkRepositoryFullName: "contributor/acme-api",
+	})
+
+	req := handler.Request{
+		Project:         setup.Project.Slug,
+		App:             setup.App.Slug,
+		EnvironmentSlug: setup.Environment.Slug,
+		Source:          openapi.DeploymentSourceDeployment,
+		DeploymentId:    ptr.P(dep.ID),
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
+	require.True(t, capture.called)
+	require.NotNil(t, capture.req.GitCommit)
+	require.Equal(t, "contributor/acme-api", capture.req.GitCommit.ForkRepository, "fork must be carried forward")
+	require.Equal(t, "9f2c1a7", capture.req.GitCommit.CommitSha)
+	require.Equal(t, "feature", capture.req.GitCommit.Branch)
+	require.Equal(t, "add KEBAP endpoint", capture.req.GitCommit.CommitMessage)
+	require.Equal(t, "contributor", capture.req.GitCommit.AuthorHandle)
+	require.Equal(t, int64(1700000000), capture.req.GitCommit.Timestamp)
+	require.Empty(t, capture.req.DockerImage)
+}
+
+// TestRedeployImageDeploymentOnConnectedApp covers an image-origin deployment
+// being redeployed after the app later gained a repo connection. The recorded
+// image must be reused; the handler must not fabricate an empty git commit that
+// ctrl would turn into a default-branch build.
+func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
+
+	// Image-origin deployment: no git commit, but a built image on record.
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	setDeploymentImage(t, h, dep.ID, "nginx:latest")
+
+	req := handler.Request{
+		Project:         setup.Project.Slug,
+		App:             setup.App.Slug,
+		EnvironmentSlug: setup.Environment.Slug,
+		Source:          openapi.DeploymentSourceDeployment,
+		DeploymentId:    ptr.P(dep.ID),
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
+	require.True(t, capture.called)
+	require.Nil(t, capture.req.GitCommit, "an image-origin deployment has no commit to rebuild even on a connected app")
+	require.Equal(t, "nginx:latest", capture.req.DockerImage, "must reuse the recorded image")
+}
+
+// TestRedeployDeploymentWithoutBuiltImage covers a deployment that never produced
+// an image and has no git commit (e.g. a pending or failed build). It cannot be
+// reproduced, so the handler must refuse rather than send an empty request.
+func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
+	h := testutil.NewHarness(t)
+	capture := &ctrlCapture{}
+	route := newRoute(h, capture)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+
+	req := handler.Request{
+		Project:         setup.Project.Slug,
+		App:             setup.App.Slug,
+		EnvironmentSlug: setup.Environment.Slug,
+		Source:          openapi.DeploymentSourceDeployment,
+		DeploymentId:    ptr.P(dep.ID),
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.False(t, capture.called, "ctrl must not be called for an unreproducible deployment")
+}
+
 func TestSpecificEnvironmentPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	capture := &ctrlCapture{}

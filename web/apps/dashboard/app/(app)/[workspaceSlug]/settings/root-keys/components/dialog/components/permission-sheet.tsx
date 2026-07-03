@@ -199,7 +199,9 @@ export const PermissionSheet = ({
                       selected={selectedPermissions}
                       searchValue={searchValue}
                       scope={scope}
-                      onPermissionChange={(permissions) => handleAppPermissionChange(id, permissions)}
+                      onPermissionChange={(permissions) =>
+                        handleAppPermissionChange(id, permissions)
+                      }
                     >
                       {environments.length > 0 && (
                         <div className="flex flex-col">
