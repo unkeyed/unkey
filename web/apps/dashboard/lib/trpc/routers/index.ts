@@ -148,7 +148,6 @@ import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { updateKeyRbac } from "./key/rbac/update-rbac";
 import { rerollRootKey } from "./key/reroll";
-import { updateKeyMetadata } from "./key/updateMetadata";
 import { updateKeyOwner } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
@@ -238,7 +237,6 @@ export const router = t.router({
       timeseries: keyDetailsVerificationsTimeseries,
     }),
     update: t.router({
-      metadata: updateKeyMetadata,
       ownerId: updateKeyOwner,
       ratelimit: updateKeyRatelimit,
       remaining: updateKeyRemaining,

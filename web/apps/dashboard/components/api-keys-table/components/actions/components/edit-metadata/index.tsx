@@ -56,22 +56,10 @@ export const EditMetadata = ({ keyDetails, isOpen, onClose }: EditMetadataProps)
 
   const onSubmit = async (data: MetadataFormValues) => {
     try {
-      if (data.metadata.enabled && data.metadata.data) {
-        await updateMetadata.mutateAsync({
-          keyId: keyDetails.id,
-          metadata: {
-            enabled: data.metadata.enabled,
-            data: data.metadata.data,
-          },
-        });
-      } else {
-        await updateMetadata.mutateAsync({
-          keyId: keyDetails.id,
-          metadata: {
-            enabled: false,
-          },
-        });
-      }
+      await updateMetadata.mutateAsync({
+        keyId: keyDetails.id,
+        meta: data.metadata.enabled ? JSON.parse(data.metadata.data) : null,
+      });
     } catch {
       // useEditMetadata already shows a toast, but we still need to
       // prevent unhandled rejection noise in the console.
