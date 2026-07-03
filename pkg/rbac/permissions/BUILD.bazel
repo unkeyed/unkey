@@ -9,7 +9,6 @@ go_library(
         "keys.go",
         "keyspaces.go",
         "projects.go",
-        "rbac.go",
         "ratelimit_namespaces.go",
         "ratelimit_overrides.go",
         "rbac.go",
