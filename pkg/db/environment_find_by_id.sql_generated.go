@@ -10,16 +10,18 @@ import (
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
-SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, slug, description, deletion_id, delete_protection, created_at, updated_at
 FROM environments
 WHERE id = ?
+  AND deletion_id IS NULL
 `
 
 // FindEnvironmentById
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, deletion_id, delete_protection, created_at, updated_at
 //	FROM environments
 //	WHERE id = ?
+//	  AND deletion_id IS NULL
 func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentById, id)
 	var i Environment
@@ -31,6 +33,7 @@ func (q *Queries) FindEnvironmentById(ctx context.Context, db DBTX, id string) (
 		&i.AppID,
 		&i.Slug,
 		&i.Description,
+		&i.DeletionID,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

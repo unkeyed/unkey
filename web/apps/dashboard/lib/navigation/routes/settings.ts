@@ -23,6 +23,10 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
+  scheduledDeletions({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/scheduled-deletions", { workspaceSlug });
+  },
+
   billing({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/billing", { workspaceSlug });
   },

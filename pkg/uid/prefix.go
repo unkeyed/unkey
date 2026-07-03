@@ -39,4 +39,5 @@ const (
 	DeploymentPrefix     Prefix = "d"
 	FrontlineRoutePrefix Prefix = "flr"
 	CertificatePrefix    Prefix = "cert"
+	DeletionPrefix       Prefix = "del"
 )

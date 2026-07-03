@@ -17,12 +17,37 @@ export const helloWorld = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
+export const newNavigation = flag<boolean, Entities>({
+  key: "new-navigation",
+  description: "Renders the redesigned top breadcrumb header and contextual sidebar",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
 // deployBilling gates the entire Unkey Deploy billing UI (subscribe / change /
 // cancel, usage, credits). Defaults off so prod shows nothing until we flip
 // workspaces in for the GA rollout.
 export const deployBilling = flag<boolean, Entities>({
   key: "deploy-billing",
   description: "Show the Unkey Deploy billing UI. Off until GA rollout.",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
+
+export const deletionRecoveryPage = flag<boolean, Entities>({
+  key: "deletion-recovery-page",
+  description:
+    "Workspace Settings > Scheduled Deletions page: list of resources in their soft-delete grace window with a Restore action. Gates the page, sidebar entry, and settings sub-navbar entry.",
   defaultValue: false,
   options: [
     { value: false, label: "Off" },

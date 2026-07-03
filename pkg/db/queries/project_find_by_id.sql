@@ -1,4 +1,5 @@
 -- name: FindProjectById :one
 SELECT *
 FROM projects
-WHERE id = ?;
+WHERE id = ?
+  AND deletion_id IS NULL;

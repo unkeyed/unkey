@@ -6,6 +6,7 @@ CREATE TABLE `environments` (
 	`app_id` varchar(64) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`description` varchar(255) NOT NULL DEFAULT '',
+	`deletion_id` varchar(64),
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
@@ -15,4 +16,6 @@ CREATE TABLE `environments` (
 );
 
 CREATE INDEX `environments_project_idx` ON `environments` (`project_id`);
+
+CREATE INDEX `environments_deletion_id_idx` ON `environments` (`deletion_id`);
 

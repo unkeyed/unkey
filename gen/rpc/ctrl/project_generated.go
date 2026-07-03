@@ -16,6 +16,7 @@ import (
 type ProjectServiceClient interface {
 	CreateProject(ctx context.Context, req *v1.CreateProjectRequest) (*v1.CreateProjectResponse, error)
 	DeleteProject(ctx context.Context, req *v1.DeleteProjectRequest) (*v1.DeleteProjectResponse, error)
+	RestoreProject(ctx context.Context, req *v1.RestoreProjectRequest) (*v1.RestoreProjectResponse, error)
 }
 
 var _ ProjectServiceClient = (*ConnectProjectServiceClient)(nil)
@@ -47,6 +48,19 @@ func (c *ConnectProjectServiceClient) DeleteProject(ctx context.Context, req *v1
 	ctx, span := tracing.Start(ctx, "ProjectService.DeleteProject")
 	defer span.End()
 	resp, err := c.inner.DeleteProject(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectProjectServiceClient) RestoreProject(ctx context.Context, req *v1.RestoreProjectRequest) (*v1.RestoreProjectResponse, error) {
+	ctx, span := tracing.Start(ctx, "ProjectService.RestoreProject")
+	defer span.End()
+	resp, err := c.inner.RestoreProject(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

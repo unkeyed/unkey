@@ -10,8 +10,10 @@ import (
 )
 
 const findEnvironmentByAppIdAndSlug = `-- name: FindEnvironmentByAppIdAndSlug :one
-SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
-WHERE app_id = ? AND slug = ?
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.deletion_id, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+WHERE app_id = ?
+  AND slug = ?
+  AND deletion_id IS NULL
 `
 
 type FindEnvironmentByAppIdAndSlugParams struct {
@@ -25,8 +27,10 @@ type FindEnvironmentByAppIdAndSlugRow struct {
 
 // FindEnvironmentByAppIdAndSlug
 //
-//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
-//	WHERE app_id = ? AND slug = ?
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.deletion_id, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
+//	WHERE app_id = ?
+//	  AND slug = ?
+//	  AND deletion_id IS NULL
 func (q *Queries) FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByAppIdAndSlug, arg.AppID, arg.Slug)
 	var i FindEnvironmentByAppIdAndSlugRow
@@ -38,6 +42,7 @@ func (q *Queries) FindEnvironmentByAppIdAndSlug(ctx context.Context, db DBTX, ar
 		&i.Environment.AppID,
 		&i.Environment.Slug,
 		&i.Environment.Description,
+		&i.Environment.DeletionID,
 		&i.Environment.DeleteProtection,
 		&i.Environment.CreatedAt,
 		&i.Environment.UpdatedAt,

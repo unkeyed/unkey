@@ -11,8 +11,13 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Delete removes an app by delegating environment cleanup to each environment's
-// virtual object, then deleting app-level resources and the app record itself.
+// DeletePermanently removes the app by waiting for each environment's
+// permanent delete to complete before deleting app-level resources and
+// the app row itself. Sequential synchronous Requests keep the cascade
+// ordered: when this handler returns, every descendant is gone.
+//
+// The deletions row is owned by the cascade root (project) — this
+// handler does not touch it.
 //
 // The app.delete audit log is written here as a durable step rather than on the
 // RPC that enqueued this workflow: a Restate enqueue can't share a transaction
@@ -22,13 +27,13 @@ import (
 // groups under one correlation ID.
 //
 // Key: app_id
-func (s *Service) Delete(
+func (s *Service) DeletePermanently(
 	ctx restate.ObjectContext,
-	req *hydrav1.DeleteAppRequest,
-) (*hydrav1.DeleteAppResponse, error) {
+	req *hydrav1.DeleteAppPermanentlyRequest,
+) (*hydrav1.DeleteAppPermanentlyResponse, error) {
 	appID := restate.Key(ctx)
 
-	logger.Info("starting app deletion", "app_id", appID)
+	logger.Info("starting app permanent deletion", "app_id", appID)
 
 	// Capture the app's metadata before the cascade deletes the row, so the
 	// audit log written at the end still has a name/slug to display.
@@ -47,13 +52,15 @@ func (s *Service) Delete(
 	}
 
 	for _, envID := range envIDs {
-		logger.Info("deleting environment", "app_id", appID, "environment_id", envID)
-
-		envClient := hydrav1.NewEnvironmentServiceClient(ctx, envID)
-		envClient.Delete().Send(&hydrav1.DeleteEnvironmentRequest{
-			Actor:         req.GetActor(),
-			CorrelationId: req.GetCorrelationId(),
-		})
+		logger.Info("deleting environment permanently", "app_id", appID, "environment_id", envID)
+		if _, err := hydrav1.NewEnvironmentServiceClient(ctx, envID).
+			DeletePermanently().
+			Request(&hydrav1.DeleteEnvironmentPermanentlyRequest{
+				Actor:         req.GetActor(),
+				CorrelationId: req.GetCorrelationId(),
+			}); err != nil {
+			return nil, fmt.Errorf("environment %s permanent delete: %w", envID, err)
+		}
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -68,24 +75,26 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete app: %w", err)
 	}
 
-	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
-		Actor:         req.GetActor(),
-		CorrelationID: req.GetCorrelationId(),
-		WorkspaceID:   app.WorkspaceID,
-		Event:         auditlog.AppDeleteEvent,
-		Display:       fmt.Sprintf("Deleted app %s", app.ID),
-		Resource: auditlog.AuditLogResource{
-			ID:          app.ID,
-			Type:        auditlog.AppResourceType,
-			Meta:        map[string]any{"name": app.Name, "slug": app.Slug, "projectId": app.ProjectID},
-			Name:        app.Name,
-			DisplayName: app.Name,
-		},
-	}); err != nil {
-		return nil, fmt.Errorf("insert audit log: %w", err)
+	if req.GetCorrelationId() != "" {
+		if err := audit.Insert(ctx, s.auditlogs, audit.Event{
+			Actor:         req.GetActor(),
+			CorrelationID: req.GetCorrelationId(),
+			WorkspaceID:   app.WorkspaceID,
+			Event:         auditlog.AppDeleteEvent,
+			Display:       fmt.Sprintf("Deleted app %s", app.ID),
+			Resource: auditlog.AuditLogResource{
+				ID:          app.ID,
+				Type:        auditlog.AppResourceType,
+				Meta:        map[string]any{"name": app.Name, "slug": app.Slug, "projectId": app.ProjectID},
+				Name:        app.Name,
+				DisplayName: app.Name,
+			},
+		}); err != nil {
+			return nil, fmt.Errorf("insert audit log: %w", err)
+		}
 	}
 
-	logger.Info("app deletion complete", "app_id", appID)
+	logger.Info("app permanent deletion complete", "app_id", appID)
 
-	return &hydrav1.DeleteAppResponse{}, nil
+	return &hydrav1.DeleteAppPermanentlyResponse{}, nil
 }

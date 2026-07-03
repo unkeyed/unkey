@@ -54,6 +54,15 @@ type CronServiceClient interface {
 	// paused/wedged invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
+	// RunPermanentDelete sweeps every resource type that supports a delayed
+	// hard-delete (delete_permanently_at column). For each resource it
+	// selects rows whose timestamp has elapsed and triggers the existing
+	// per-resource Delete VO cascade. Stateless; key is the fixed slug
+	// "permanent-delete" so a wedged invocation cannot block other
+	// every-minute handlers. Per-resource Delete VOs are serialized on
+	// their resource id, so a re-send is queued safely behind any
+	// in-flight cascade.
+	RunPermanentDelete(opts ...sdk_go.ClientOption) sdk_go.Client[*RunPermanentDeleteRequest, *RunPermanentDeleteResponse]
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
@@ -127,6 +136,14 @@ func (c *cronServiceClient) RunRatelimitGlobalCountersCleanup(opts ...sdk_go.Cli
 	return sdk_go.WithRequestType[*RunRatelimitGlobalCountersCleanupRequest](sdk_go.Object[*RunRatelimitGlobalCountersCleanupResponse](c.ctx, "hydra.v1.CronService", c.key, "RunRatelimitGlobalCountersCleanup", cOpts...))
 }
 
+func (c *cronServiceClient) RunPermanentDelete(opts ...sdk_go.ClientOption) sdk_go.Client[*RunPermanentDeleteRequest, *RunPermanentDeleteResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunPermanentDeleteRequest](sdk_go.Object[*RunPermanentDeleteResponse](c.ctx, "hydra.v1.CronService", c.key, "RunPermanentDelete", cOpts...))
+}
+
 func (c *cronServiceClient) RunAuditLogOutboxCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -177,6 +194,15 @@ type CronServiceIngressClient interface {
 	// paused/wedged invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup() ingress.Requester[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
+	// RunPermanentDelete sweeps every resource type that supports a delayed
+	// hard-delete (delete_permanently_at column). For each resource it
+	// selects rows whose timestamp has elapsed and triggers the existing
+	// per-resource Delete VO cascade. Stateless; key is the fixed slug
+	// "permanent-delete" so a wedged invocation cannot block other
+	// every-minute handlers. Per-resource Delete VOs are serialized on
+	// their resource id, so a re-send is queued safely behind any
+	// in-flight cascade.
+	RunPermanentDelete() ingress.Requester[*RunPermanentDeleteRequest, *RunPermanentDeleteResponse]
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
@@ -233,6 +259,11 @@ func (c *cronServiceIngressClient) RunAuditLogExport() ingress.Requester[*RunAud
 func (c *cronServiceIngressClient) RunRatelimitGlobalCountersCleanup() ingress.Requester[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse](c.client, c.serviceName, "RunRatelimitGlobalCountersCleanup", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunPermanentDelete() ingress.Requester[*RunPermanentDeleteRequest, *RunPermanentDeleteResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunPermanentDeleteRequest, *RunPermanentDeleteResponse](c.client, c.serviceName, "RunPermanentDelete", &c.key, &codec)
 }
 
 func (c *cronServiceIngressClient) RunAuditLogOutboxCleanup() ingress.Requester[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse] {
@@ -293,6 +324,15 @@ type CronServiceServer interface {
 	// paused/wedged invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(ctx sdk_go.ObjectContext, req *RunRatelimitGlobalCountersCleanupRequest) (*RunRatelimitGlobalCountersCleanupResponse, error)
+	// RunPermanentDelete sweeps every resource type that supports a delayed
+	// hard-delete (delete_permanently_at column). For each resource it
+	// selects rows whose timestamp has elapsed and triggers the existing
+	// per-resource Delete VO cascade. Stateless; key is the fixed slug
+	// "permanent-delete" so a wedged invocation cannot block other
+	// every-minute handlers. Per-resource Delete VOs are serialized on
+	// their resource id, so a re-send is queued safely behind any
+	// in-flight cascade.
+	RunPermanentDelete(ctx sdk_go.ObjectContext, req *RunPermanentDeleteRequest) (*RunPermanentDeleteResponse, error)
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
@@ -334,6 +374,9 @@ func (UnimplementedCronServiceServer) RunAuditLogExport(ctx sdk_go.ObjectContext
 func (UnimplementedCronServiceServer) RunRatelimitGlobalCountersCleanup(ctx sdk_go.ObjectContext, req *RunRatelimitGlobalCountersCleanupRequest) (*RunRatelimitGlobalCountersCleanupResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunRatelimitGlobalCountersCleanup not implemented"), 501)
 }
+func (UnimplementedCronServiceServer) RunPermanentDelete(ctx sdk_go.ObjectContext, req *RunPermanentDeleteRequest) (*RunPermanentDeleteResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RunPermanentDelete not implemented"), 501)
+}
 func (UnimplementedCronServiceServer) RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunAuditLogOutboxCleanup not implemented"), 501)
 }
@@ -367,6 +410,7 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunKeyLastUsedSync", sdk_go.NewObjectHandler(srv.RunKeyLastUsedSync))
 	router = router.Handler("RunAuditLogExport", sdk_go.NewObjectHandler(srv.RunAuditLogExport))
 	router = router.Handler("RunRatelimitGlobalCountersCleanup", sdk_go.NewObjectHandler(srv.RunRatelimitGlobalCountersCleanup))
+	router = router.Handler("RunPermanentDelete", sdk_go.NewObjectHandler(srv.RunPermanentDelete))
 	router = router.Handler("RunAuditLogOutboxCleanup", sdk_go.NewObjectHandler(srv.RunAuditLogOutboxCleanup))
 	router = router.Handler("RunDeployBillingPush", sdk_go.NewObjectHandler(srv.RunDeployBillingPush))
 	router = router.Handler("RunScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.RunScaleDownIdlePreviewDeployments))

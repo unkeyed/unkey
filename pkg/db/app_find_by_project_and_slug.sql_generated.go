@@ -10,10 +10,11 @@ import (
 )
 
 const findAppByProjectAndSlug = `-- name: FindAppByProjectAndSlug :one
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.deletion_id, apps.delete_protection, apps.created_at, apps.updated_at
 FROM apps
 WHERE apps.project_id = ?
   AND apps.slug = ?
+  AND apps.deletion_id IS NULL
 `
 
 type FindAppByProjectAndSlugParams struct {
@@ -27,10 +28,11 @@ type FindAppByProjectAndSlugRow struct {
 
 // FindAppByProjectAndSlug
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.deletion_id, apps.delete_protection, apps.created_at, apps.updated_at
 //	FROM apps
 //	WHERE apps.project_id = ?
 //	  AND apps.slug = ?
+//	  AND apps.deletion_id IS NULL
 func (q *Queries) FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error) {
 	row := db.QueryRowContext(ctx, findAppByProjectAndSlug, arg.ProjectID, arg.Slug)
 	var i FindAppByProjectAndSlugRow
@@ -44,6 +46,7 @@ func (q *Queries) FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg Find
 		&i.App.DefaultBranch,
 		&i.App.CurrentDeploymentID,
 		&i.App.IsRolledBack,
+		&i.App.DeletionID,
 		&i.App.DeleteProtection,
 		&i.App.CreatedAt,
 		&i.App.UpdatedAt,

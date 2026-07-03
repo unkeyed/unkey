@@ -10,9 +10,10 @@ import (
 )
 
 const listAppsByProject = `-- name: ListAppsByProject :many
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.deletion_id, apps.delete_protection, apps.created_at, apps.updated_at
 FROM apps
 WHERE project_id = ?
+  AND deletion_id IS NULL
   AND id >= ?
 ORDER BY id ASC
 LIMIT ?
@@ -26,9 +27,10 @@ type ListAppsByProjectParams struct {
 
 // ListAppsByProject
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.deletion_id, apps.delete_protection, apps.created_at, apps.updated_at
 //	FROM apps
 //	WHERE project_id = ?
+//	  AND deletion_id IS NULL
 //	  AND id >= ?
 //	ORDER BY id ASC
 //	LIMIT ?
@@ -51,6 +53,7 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsBy
 			&i.DefaultBranch,
 			&i.CurrentDeploymentID,
 			&i.IsRolledBack,
+			&i.DeletionID,
 			&i.DeleteProtection,
 			&i.CreatedAt,
 			&i.UpdatedAt,

@@ -22,7 +22,15 @@ export const listProjects = workspaceProcedure
         updatedAt: projects.updatedAt,
       })
       .from(projects)
-      .where(eq(projects.workspaceId, workspaceId))
+      .where(
+        and(
+          eq(projects.workspaceId, workspaceId),
+          // Hide projects with a scheduled hard-delete; they appear on
+          // the dedicated Scheduled Deletions page until the cron sweep
+          // purges them or the user restores.
+          sql`${projects.deletionId} IS NULL`,
+        ),
+      )
       .orderBy(desc(projects.updatedAt));
 
     if (projectRows.length === 0) {

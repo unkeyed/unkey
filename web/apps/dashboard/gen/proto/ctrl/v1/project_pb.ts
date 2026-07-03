@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/project.proto.
  */
 export const file_ctrl_v1_project: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL3Byb2plY3QucHJvdG8SB2N0cmwudjEiawoUQ3JlYXRlUHJvamVjdFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIiMKFUNyZWF0ZVByb2plY3RSZXNwb25zZRIKCgJpZBgBIAEoCSJNChREZWxldGVQcm9qZWN0UmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iFwoVRGVsZXRlUHJvamVjdFJlc3BvbnNlMrQBCg5Qcm9qZWN0U2VydmljZRJQCg1DcmVhdGVQcm9qZWN0Eh0uY3RybC52MS5DcmVhdGVQcm9qZWN0UmVxdWVzdBoeLmN0cmwudjEuQ3JlYXRlUHJvamVjdFJlc3BvbnNlIgASUAoNRGVsZXRlUHJvamVjdBIdLmN0cmwudjEuRGVsZXRlUHJvamVjdFJlcXVlc3QaHi5jdHJsLnYxLkRlbGV0ZVByb2plY3RSZXNwb25zZSIAQosBCgtjb20uY3RybC52MUIMUHJvamVjdFByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_actor]);
+  fileDesc("ChVjdHJsL3YxL3Byb2plY3QucHJvdG8SB2N0cmwudjEiawoUQ3JlYXRlUHJvamVjdFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIiMKFUNyZWF0ZVByb2plY3RSZXNwb25zZRIKCgJpZBgBIAEoCSJNChREZWxldGVQcm9qZWN0UmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEiEKBWFjdG9yGAIgASgLMhIuY3RybC52MS5BY3RvckluZm8iNgoVRGVsZXRlUHJvamVjdFJlc3BvbnNlEh0KFWRlbGV0ZV9wZXJtYW5lbnRseV9hdBgBIAEoAyIrChVSZXN0b3JlUHJvamVjdFJlcXVlc3QSEgoKcHJvamVjdF9pZBgBIAEoCSIYChZSZXN0b3JlUHJvamVjdFJlc3BvbnNlMokCCg5Qcm9qZWN0U2VydmljZRJQCg1DcmVhdGVQcm9qZWN0Eh0uY3RybC52MS5DcmVhdGVQcm9qZWN0UmVxdWVzdBoeLmN0cmwudjEuQ3JlYXRlUHJvamVjdFJlc3BvbnNlIgASUAoNRGVsZXRlUHJvamVjdBIdLmN0cmwudjEuRGVsZXRlUHJvamVjdFJlcXVlc3QaHi5jdHJsLnYxLkRlbGV0ZVByb2plY3RSZXNwb25zZSIAElMKDlJlc3RvcmVQcm9qZWN0Eh4uY3RybC52MS5SZXN0b3JlUHJvamVjdFJlcXVlc3QaHy5jdHJsLnYxLlJlc3RvcmVQcm9qZWN0UmVzcG9uc2UiAEKLAQoLY29tLmN0cmwudjFCDFByb2plY3RQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw", [file_ctrl_v1_actor]);
 
 /**
  * @generated from message ctrl.v1.CreateProjectRequest
@@ -89,6 +89,13 @@ export const DeleteProjectRequestSchema: GenMessage<DeleteProjectRequest> = /*@_
  * @generated from message ctrl.v1.DeleteProjectResponse
  */
 export type DeleteProjectResponse = Message<"ctrl.v1.DeleteProjectResponse"> & {
+  /**
+   * Epoch-ms at which the cron sweep is expected to permanently delete
+   * the project. Until then, callers can undo via RestoreProject.
+   *
+   * @generated from field: int64 delete_permanently_at = 1;
+   */
+  deletePermanentlyAt: bigint;
 };
 
 /**
@@ -97,6 +104,36 @@ export type DeleteProjectResponse = Message<"ctrl.v1.DeleteProjectResponse"> & {
  */
 export const DeleteProjectResponseSchema: GenMessage<DeleteProjectResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_project, 3);
+
+/**
+ * @generated from message ctrl.v1.RestoreProjectRequest
+ */
+export type RestoreProjectRequest = Message<"ctrl.v1.RestoreProjectRequest"> & {
+  /**
+   * @generated from field: string project_id = 1;
+   */
+  projectId: string;
+};
+
+/**
+ * Describes the message ctrl.v1.RestoreProjectRequest.
+ * Use `create(RestoreProjectRequestSchema)` to create a new message.
+ */
+export const RestoreProjectRequestSchema: GenMessage<RestoreProjectRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_project, 4);
+
+/**
+ * @generated from message ctrl.v1.RestoreProjectResponse
+ */
+export type RestoreProjectResponse = Message<"ctrl.v1.RestoreProjectResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.RestoreProjectResponse.
+ * Use `create(RestoreProjectResponseSchema)` to create a new message.
+ */
+export const RestoreProjectResponseSchema: GenMessage<RestoreProjectResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_project, 5);
 
 /**
  * @generated from service ctrl.v1.ProjectService
@@ -113,7 +150,10 @@ export const ProjectService: GenService<{
     output: typeof CreateProjectResponseSchema;
   },
   /**
-   * Delete a project and all associated resources
+   * Schedule a project for permanent deletion after a grace period. The
+   * project is hidden from the API immediately; a cron sweep performs the
+   * actual cascade once the grace period has elapsed. Use RestoreProject
+   * to cancel before the cron fires.
    *
    * @generated from rpc ctrl.v1.ProjectService.DeleteProject
    */
@@ -121,6 +161,18 @@ export const ProjectService: GenService<{
     methodKind: "unary";
     input: typeof DeleteProjectRequestSchema;
     output: typeof DeleteProjectResponseSchema;
+  },
+  /**
+   * Cancel a previously scheduled DeleteProject. No-op if the project is
+   * not currently scheduled for deletion. Fails if the project no longer
+   * exists (the cron has already run).
+   *
+   * @generated from rpc ctrl.v1.ProjectService.RestoreProject
+   */
+  restoreProject: {
+    methodKind: "unary";
+    input: typeof RestoreProjectRequestSchema;
+    output: typeof RestoreProjectResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ctrl_v1_project, 0);

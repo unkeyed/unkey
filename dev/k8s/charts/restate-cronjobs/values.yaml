@@ -31,6 +31,11 @@ jobs:
     urlPath: "hydra.v1.CronService/ratelimit-global-counters-cleanup/RunRatelimitGlobalCountersCleanup/send"
     idempotencyKey: "ratelimit-global-counters-cleanup-$(date -u +%Y-%m-%dT%H)"
 
+  permanent-delete:
+    schedule: "*/5 * * * *"
+    urlPath: "hydra.v1.CronService/permanent-delete/RunPermanentDelete/send"
+    idempotencyKey: "permanent-delete-$(date -u +%Y-%m-%dT%H:%M)"
+
   # Daily sweep of already-exported audit log outbox rows past the 30-day
   # retention window. Stateless, cutoff-bounded DELETE; the fixed slug key
   # keeps a paused/wedged run from blocking the every-minute handlers.

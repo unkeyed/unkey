@@ -2,4 +2,5 @@
 SELECT sqlc.embed(apps)
 FROM apps
 WHERE apps.project_id = sqlc.arg(project_id)
-  AND apps.slug = sqlc.arg(slug);
+  AND apps.slug = sqlc.arg(slug)
+  AND apps.deletion_id IS NULL;

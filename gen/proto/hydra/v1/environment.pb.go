@@ -23,11 +23,11 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// DeleteEnvironmentRequest carries the caller identity and correlation ID into
-// the durable workflow so the environment.delete audit log is written as part
-// of the retried deletion unit. Environment deletes are cascade-only (no direct
-// RPC), so these always arrive from a parent app or project teardown.
-type DeleteEnvironmentRequest struct {
+// DeleteEnvironmentPermanentlyRequest carries the caller identity and
+// correlation ID into the durable workflow so the environment.delete audit log
+// is written as part of the retried deletion unit. Environment deletes are
+// cascade-only, so these always arrive from a parent app or project teardown.
+type DeleteEnvironmentPermanentlyRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Actor *v1.ActorInfo          `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
 	// correlation_id groups this deletion with the parent teardown's other audit
@@ -37,20 +37,20 @@ type DeleteEnvironmentRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteEnvironmentRequest) Reset() {
-	*x = DeleteEnvironmentRequest{}
+func (x *DeleteEnvironmentPermanentlyRequest) Reset() {
+	*x = DeleteEnvironmentPermanentlyRequest{}
 	mi := &file_hydra_v1_environment_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteEnvironmentRequest) String() string {
+func (x *DeleteEnvironmentPermanentlyRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteEnvironmentRequest) ProtoMessage() {}
+func (*DeleteEnvironmentPermanentlyRequest) ProtoMessage() {}
 
-func (x *DeleteEnvironmentRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteEnvironmentPermanentlyRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_environment_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -62,45 +62,45 @@ func (x *DeleteEnvironmentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteEnvironmentRequest.ProtoReflect.Descriptor instead.
-func (*DeleteEnvironmentRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteEnvironmentPermanentlyRequest.ProtoReflect.Descriptor instead.
+func (*DeleteEnvironmentPermanentlyRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *DeleteEnvironmentRequest) GetActor() *v1.ActorInfo {
+func (x *DeleteEnvironmentPermanentlyRequest) GetActor() *v1.ActorInfo {
 	if x != nil {
 		return x.Actor
 	}
 	return nil
 }
 
-func (x *DeleteEnvironmentRequest) GetCorrelationId() string {
+func (x *DeleteEnvironmentPermanentlyRequest) GetCorrelationId() string {
 	if x != nil {
 		return x.CorrelationId
 	}
 	return ""
 }
 
-type DeleteEnvironmentResponse struct {
+type DeleteEnvironmentPermanentlyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteEnvironmentResponse) Reset() {
-	*x = DeleteEnvironmentResponse{}
+func (x *DeleteEnvironmentPermanentlyResponse) Reset() {
+	*x = DeleteEnvironmentPermanentlyResponse{}
 	mi := &file_hydra_v1_environment_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteEnvironmentResponse) String() string {
+func (x *DeleteEnvironmentPermanentlyResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteEnvironmentResponse) ProtoMessage() {}
+func (*DeleteEnvironmentPermanentlyResponse) ProtoMessage() {}
 
-func (x *DeleteEnvironmentResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteEnvironmentPermanentlyResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_environment_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -112,22 +112,210 @@ func (x *DeleteEnvironmentResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteEnvironmentResponse.ProtoReflect.Descriptor instead.
-func (*DeleteEnvironmentResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteEnvironmentPermanentlyResponse.ProtoReflect.Descriptor instead.
+func (*DeleteEnvironmentPermanentlyResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{1}
+}
+
+type MarkEnvironmentForDeletionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeletionId    string                 `protobuf:"bytes,1,opt,name=deletion_id,json=deletionId,proto3" json:"deletion_id,omitempty"`
+	Actor         *v1.ActorInfo          `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkEnvironmentForDeletionRequest) Reset() {
+	*x = MarkEnvironmentForDeletionRequest{}
+	mi := &file_hydra_v1_environment_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkEnvironmentForDeletionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkEnvironmentForDeletionRequest) ProtoMessage() {}
+
+func (x *MarkEnvironmentForDeletionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_environment_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkEnvironmentForDeletionRequest.ProtoReflect.Descriptor instead.
+func (*MarkEnvironmentForDeletionRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *MarkEnvironmentForDeletionRequest) GetDeletionId() string {
+	if x != nil {
+		return x.DeletionId
+	}
+	return ""
+}
+
+func (x *MarkEnvironmentForDeletionRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *MarkEnvironmentForDeletionRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type MarkEnvironmentForDeletionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkEnvironmentForDeletionResponse) Reset() {
+	*x = MarkEnvironmentForDeletionResponse{}
+	mi := &file_hydra_v1_environment_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkEnvironmentForDeletionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkEnvironmentForDeletionResponse) ProtoMessage() {}
+
+func (x *MarkEnvironmentForDeletionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_environment_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkEnvironmentForDeletionResponse.ProtoReflect.Descriptor instead.
+func (*MarkEnvironmentForDeletionResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{3}
+}
+
+type RestoreEnvironmentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeletionId    string                 `protobuf:"bytes,1,opt,name=deletion_id,json=deletionId,proto3" json:"deletion_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreEnvironmentRequest) Reset() {
+	*x = RestoreEnvironmentRequest{}
+	mi := &file_hydra_v1_environment_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreEnvironmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreEnvironmentRequest) ProtoMessage() {}
+
+func (x *RestoreEnvironmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_environment_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreEnvironmentRequest.ProtoReflect.Descriptor instead.
+func (*RestoreEnvironmentRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RestoreEnvironmentRequest) GetDeletionId() string {
+	if x != nil {
+		return x.DeletionId
+	}
+	return ""
+}
+
+type RestoreEnvironmentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreEnvironmentResponse) Reset() {
+	*x = RestoreEnvironmentResponse{}
+	mi := &file_hydra_v1_environment_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreEnvironmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreEnvironmentResponse) ProtoMessage() {}
+
+func (x *RestoreEnvironmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_environment_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreEnvironmentResponse.ProtoReflect.Descriptor instead.
+func (*RestoreEnvironmentResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{5}
 }
 
 var File_hydra_v1_environment_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_environment_proto_rawDesc = "" +
 	"\n" +
-	"\x1ahydra/v1/environment.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"k\n" +
-	"\x18DeleteEnvironmentRequest\x12(\n" +
+	"\x1ahydra/v1/environment.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"v\n" +
+	"#DeleteEnvironmentPermanentlyRequest\x12(\n" +
 	"\x05actor\x18\x01 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
-	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x1b\n" +
-	"\x19DeleteEnvironmentResponse2o\n" +
-	"\x12EnvironmentService\x12S\n" +
-	"\x06Delete\x12\".hydra.v1.DeleteEnvironmentRequest\x1a#.hydra.v1.DeleteEnvironmentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x96\x01\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"&\n" +
+	"$DeleteEnvironmentPermanentlyResponse\"\x95\x01\n" +
+	"!MarkEnvironmentForDeletionRequest\x12\x1f\n" +
+	"\vdeletion_id\x18\x01 \x01(\tR\n" +
+	"deletionId\x12(\n" +
+	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"$\n" +
+	"\"MarkEnvironmentForDeletionResponse\"<\n" +
+	"\x19RestoreEnvironmentRequest\x12\x1f\n" +
+	"\vdeletion_id\x18\x01 \x01(\tR\n" +
+	"deletionId\"\x1c\n" +
+	"\x1aRestoreEnvironmentResponse2\xd8\x02\n" +
+	"\x12EnvironmentService\x12t\n" +
+	"\x11DeletePermanently\x12-.hydra.v1.DeleteEnvironmentPermanentlyRequest\x1a..hydra.v1.DeleteEnvironmentPermanentlyResponse\"\x00\x12n\n" +
+	"\x0fMarkForDeletion\x12+.hydra.v1.MarkEnvironmentForDeletionRequest\x1a,.hydra.v1.MarkEnvironmentForDeletionResponse\"\x00\x12V\n" +
+	"\aRestore\x12#.hydra.v1.RestoreEnvironmentRequest\x1a$.hydra.v1.RestoreEnvironmentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x96\x01\n" +
 	"\fcom.hydra.v1B\x10EnvironmentProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -142,21 +330,30 @@ func file_hydra_v1_environment_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_environment_proto_rawDescData
 }
 
-var file_hydra_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hydra_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_environment_proto_goTypes = []any{
-	(*DeleteEnvironmentRequest)(nil),  // 0: hydra.v1.DeleteEnvironmentRequest
-	(*DeleteEnvironmentResponse)(nil), // 1: hydra.v1.DeleteEnvironmentResponse
-	(*v1.ActorInfo)(nil),              // 2: ctrl.v1.ActorInfo
+	(*DeleteEnvironmentPermanentlyRequest)(nil),  // 0: hydra.v1.DeleteEnvironmentPermanentlyRequest
+	(*DeleteEnvironmentPermanentlyResponse)(nil), // 1: hydra.v1.DeleteEnvironmentPermanentlyResponse
+	(*MarkEnvironmentForDeletionRequest)(nil),    // 2: hydra.v1.MarkEnvironmentForDeletionRequest
+	(*MarkEnvironmentForDeletionResponse)(nil),   // 3: hydra.v1.MarkEnvironmentForDeletionResponse
+	(*RestoreEnvironmentRequest)(nil),            // 4: hydra.v1.RestoreEnvironmentRequest
+	(*RestoreEnvironmentResponse)(nil),           // 5: hydra.v1.RestoreEnvironmentResponse
+	(*v1.ActorInfo)(nil),                         // 6: ctrl.v1.ActorInfo
 }
 var file_hydra_v1_environment_proto_depIdxs = []int32{
-	2, // 0: hydra.v1.DeleteEnvironmentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 1: hydra.v1.EnvironmentService.Delete:input_type -> hydra.v1.DeleteEnvironmentRequest
-	1, // 2: hydra.v1.EnvironmentService.Delete:output_type -> hydra.v1.DeleteEnvironmentResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6, // 0: hydra.v1.DeleteEnvironmentPermanentlyRequest.actor:type_name -> ctrl.v1.ActorInfo
+	6, // 1: hydra.v1.MarkEnvironmentForDeletionRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 2: hydra.v1.EnvironmentService.DeletePermanently:input_type -> hydra.v1.DeleteEnvironmentPermanentlyRequest
+	2, // 3: hydra.v1.EnvironmentService.MarkForDeletion:input_type -> hydra.v1.MarkEnvironmentForDeletionRequest
+	4, // 4: hydra.v1.EnvironmentService.Restore:input_type -> hydra.v1.RestoreEnvironmentRequest
+	1, // 5: hydra.v1.EnvironmentService.DeletePermanently:output_type -> hydra.v1.DeleteEnvironmentPermanentlyResponse
+	3, // 6: hydra.v1.EnvironmentService.MarkForDeletion:output_type -> hydra.v1.MarkEnvironmentForDeletionResponse
+	5, // 7: hydra.v1.EnvironmentService.Restore:output_type -> hydra.v1.RestoreEnvironmentResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_environment_proto_init() }
@@ -170,7 +367,7 @@ func file_hydra_v1_environment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_environment_proto_rawDesc), len(file_hydra_v1_environment_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -22,12 +22,19 @@ export const apps = mysqlTable(
     currentDeploymentId: varchar("current_deployment_id", { length: 256 }),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
+    // FK to deletions.id. NULL means the app is live; non-NULL means
+    // the app is in its soft-delete grace window. Set by
+    // AppService.MarkForDeletion (either directly or via the project
+    // cascade) and cleared by AppService.Restore.
+    deletionId: varchar("deletion_id", { length: 64 }),
+
     ...deleteProtection,
     ...lifecycleDates,
   },
   (table) => [
     uniqueIndex("apps_project_slug_idx").on(table.projectId, table.slug),
     index("apps_workspace_idx").on(table.workspaceId),
+    index("apps_deletion_id_idx").on(table.deletionId),
   ],
 );
 

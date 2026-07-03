@@ -52,6 +52,16 @@ service CronService {
   // Hourly schedule.
   rpc RunRatelimitGlobalCountersCleanup(RunRatelimitGlobalCountersCleanupRequest) returns (RunRatelimitGlobalCountersCleanupResponse) {}
 
+  // RunPermanentDelete sweeps every resource type that supports a delayed
+  // hard-delete (delete_permanently_at column). For each resource it
+  // selects rows whose timestamp has elapsed and triggers the existing
+  // per-resource Delete VO cascade. Stateless; key is the fixed slug
+  // "permanent-delete" so a wedged invocation cannot block other
+  // every-minute handlers. Per-resource Delete VOs are serialized on
+  // their resource id, so a re-send is queued safely behind any
+  // in-flight cascade.
+  rpc RunPermanentDelete(RunPermanentDeleteRequest) returns (RunPermanentDeleteResponse) {}
+
   // RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
   // rows (deleted_at stamped) older than the retention window so the outbox
   // stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
@@ -99,6 +109,20 @@ message RunRatelimitGlobalCountersCleanupRequest {}
 message RunRatelimitGlobalCountersCleanupResponse {
   // Number of rows deleted.
   int64 rows_deleted = 1;
+}
+
+message RunPermanentDeleteRequest {}
+message RunPermanentDeleteResponse {
+  // Sum of triggered Delete cascades across every resource sweeper.
+  int32 total_triggered = 1;
+  // Per-resource breakdown so operators can see what got swept on a
+  // given tick. Resource names are stable identifiers (e.g. "project").
+  repeated PermanentDeleteSweepResult sweeps = 2;
+}
+
+message PermanentDeleteSweepResult {
+  string resource = 1;
+  int32 triggered = 2;
 }
 
 message RunAuditLogOutboxCleanupRequest {}

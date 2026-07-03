@@ -24,6 +24,7 @@ go_library(
         "//svc/ctrl/worker/deploy",
         "//svc/ctrl/worker/deployment",
         "//svc/ctrl/worker/keylastusedsync",
+        "//svc/ctrl/worker/project",
         "//svc/vault/testutil",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
         "@com_github_restatedev_sdk_go//ingress",

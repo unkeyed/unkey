@@ -10,7 +10,7 @@ import (
 )
 
 const findAppByProjectAndIdOrSlug = `-- name: FindAppByProjectAndIdOrSlug :one
-SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.deletion_id, a.delete_protection, a.created_at, a.updated_at
 FROM apps a
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 WHERE a.workspace_id = ?
@@ -27,7 +27,7 @@ type FindAppByProjectAndIdOrSlugParams struct {
 
 // FindAppByProjectAndIdOrSlug
 //
-//	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+//	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.deletion_id, a.delete_protection, a.created_at, a.updated_at
 //	FROM apps a
 //	JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 //	WHERE a.workspace_id = ?
@@ -53,6 +53,7 @@ func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg 
 		&i.DefaultBranch,
 		&i.CurrentDeploymentID,
 		&i.IsRolledBack,
+		&i.DeletionID,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

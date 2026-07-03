@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	legacydb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -18,21 +19,22 @@ import (
 // are gone by the time anyone could look, so this is never user-visible.
 const envDeletedMessage = "Environment deleted"
 
-// Delete removes an environment and all associated resources.
+// DeletePermanently removes an environment and all associated resources.
 //
 // In-flight deployments are cancelled first so the cascade below doesn't
 // drop deployment rows out from under workflows that are still mid-build.
 // This handler is the single chokepoint for deployment row deletion;
-// project and app deletes fan out to here via the virtual object cascade.
+// project and app permanent-deletes fan out to here via the virtual
+// object cascade.
 //
 // Key: environment_id
-func (s *Service) Delete(
+func (s *Service) DeletePermanently(
 	ctx restate.ObjectContext,
-	req *hydrav1.DeleteEnvironmentRequest,
-) (*hydrav1.DeleteEnvironmentResponse, error) {
+	req *hydrav1.DeleteEnvironmentPermanentlyRequest,
+) (*hydrav1.DeleteEnvironmentPermanentlyResponse, error) {
 	envID := restate.Key(ctx)
 
-	logger.Info("starting environment deletion", "environment_id", envID)
+	logger.Info("starting environment permanent deletion", "environment_id", envID)
 
 	// Capture env metadata before the row is deleted, for the audit log.
 	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
@@ -58,8 +60,12 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete custom domains: %w", err)
 	}
 
+	// Paginated to bound transaction size for environments with many
+	// routes; loop continues until a partial page comes back, which
+	// guarantees the table is empty for this env. Every row has
+	// environment_id NOT NULL so this catches all sticky variants.
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteFrontlineRoutesByEnvironmentId(runCtx, envID)
+		return s.deleteFrontlineRoutes(runCtx, envID)
 	}, restate.WithName("delete frontline routes")); err != nil {
 		return nil, fmt.Errorf("delete frontline routes: %w", err)
 	}
@@ -112,27 +118,57 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete environment: %w", err)
 	}
 
-	// The environment has no display name, so its slug stands in.
-	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
-		Actor:         req.GetActor(),
-		CorrelationID: req.GetCorrelationId(),
-		WorkspaceID:   env.WorkspaceID,
-		Event:         auditlog.EnvironmentDeleteEvent,
-		Display:       fmt.Sprintf("Deleted environment %s", env.Slug),
-		Resource: auditlog.AuditLogResource{
-			ID:          env.ID,
-			Type:        auditlog.EnvironmentResourceType,
-			Meta:        map[string]any{"slug": env.Slug, "appId": env.AppID, "projectId": env.ProjectID},
-			Name:        env.Slug,
-			DisplayName: env.Slug,
-		},
-	}); err != nil {
-		return nil, fmt.Errorf("insert audit log: %w", err)
+	if req.GetCorrelationId() != "" {
+		// The environment has no display name, so its slug stands in.
+		if err := audit.Insert(ctx, s.auditlogs, audit.Event{
+			Actor:         req.GetActor(),
+			CorrelationID: req.GetCorrelationId(),
+			WorkspaceID:   env.WorkspaceID,
+			Event:         auditlog.EnvironmentDeleteEvent,
+			Display:       fmt.Sprintf("Deleted environment %s", env.Slug),
+			Resource: auditlog.AuditLogResource{
+				ID:          env.ID,
+				Type:        auditlog.EnvironmentResourceType,
+				Meta:        map[string]any{"slug": env.Slug, "appId": env.AppID, "projectId": env.ProjectID},
+				Name:        env.Slug,
+				DisplayName: env.Slug,
+			},
+		}); err != nil {
+			return nil, fmt.Errorf("insert audit log: %w", err)
+		}
 	}
 
 	logger.Info("environment deletion complete", "environment_id", envID)
 
-	return &hydrav1.DeleteEnvironmentResponse{}, nil
+	return &hydrav1.DeleteEnvironmentPermanentlyResponse{}, nil
+}
+
+// frontlineRouteBatchLimit caps how many rows a single DELETE round
+// takes. Bounded transaction size protects against replication lag /
+// row-lock blowups for environments that accumulated many routes.
+const frontlineRouteBatchLimit = 1000
+
+// deleteFrontlineRoutes deletes every frontline route for envID in
+// bounded batches. Loops until a partial page comes back, which is the
+// signal that the table is empty for this env id (the WHERE clause
+// matched fewer than batchLimit rows).
+func (s *Service) deleteFrontlineRoutes(ctx restate.RunContext, envID string) error {
+	for {
+		res, err := legacydb.Query.DeleteFrontlineRoutesByEnvironmentId(ctx, s.db.RW(), legacydb.DeleteFrontlineRoutesByEnvironmentIdParams{
+			EnvironmentID: envID,
+			Limit:         frontlineRouteBatchLimit,
+		})
+		if err != nil {
+			return err
+		}
+		affected, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected < frontlineRouteBatchLimit {
+			return nil
+		}
+	}
 }
 
 // cancelProgressingDeployments aborts in-flight Restate invocations, then

@@ -18,9 +18,25 @@ import (
 // ProjectService manages project lifecycle.
 // Key: project_id
 type ProjectServiceClient interface {
-	// Delete removes a project and cleans up associated resources.
-	// Key: project_id
-	Delete(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteProjectRequest, *DeleteProjectResponse]
+	// DeletePermanently removes the project and cascades hard cleanup
+	// through every descendant. Invoked by the permanent-delete cron
+	// sweep once the grace window has elapsed, or directly if no grace
+	// window is desired.
+	DeletePermanently(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteProjectPermanentlyRequest, *DeleteProjectPermanentlyResponse]
+	// MarkForDeletion enters the soft-delete grace window. The caller
+	// (the public ctrl handler) mints the deletion_id and the
+	// delete_permanently_at; this handler inserts the deletions row and
+	// points the project's deletion_id at it, then Sends MarkForDeletion
+	// to every live app under it carrying the same deletion_id.
+	// Descendants reuse the id (no new deletion row) so the cascade tree
+	// shares one identifier.
+	MarkForDeletion(opts ...sdk_go.ClientOption) sdk_go.Client[*MarkProjectForDeletionRequest, *MarkProjectForDeletionResponse]
+	// Restore reverses MarkForDeletion for this project and every
+	// descendant whose deletion_id matches the project's. Independently-
+	// deleted children (different deletion_id) are left alone. Deployment
+	// status is not reversed; the user is expected to trigger a fresh
+	// deployment.
+	Restore(opts ...sdk_go.ClientOption) sdk_go.Client[*RestoreProjectRequest, *RestoreProjectResponse]
 }
 
 type projectServiceClient struct {
@@ -37,21 +53,53 @@ func NewProjectServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.Clie
 		cOpts,
 	}
 }
-func (c *projectServiceClient) Delete(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteProjectRequest, *DeleteProjectResponse] {
+func (c *projectServiceClient) DeletePermanently(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteProjectPermanentlyRequest, *DeleteProjectPermanentlyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*DeleteProjectRequest](sdk_go.Object[*DeleteProjectResponse](c.ctx, "hydra.v1.ProjectService", c.key, "Delete", cOpts...))
+	return sdk_go.WithRequestType[*DeleteProjectPermanentlyRequest](sdk_go.Object[*DeleteProjectPermanentlyResponse](c.ctx, "hydra.v1.ProjectService", c.key, "DeletePermanently", cOpts...))
+}
+
+func (c *projectServiceClient) MarkForDeletion(opts ...sdk_go.ClientOption) sdk_go.Client[*MarkProjectForDeletionRequest, *MarkProjectForDeletionResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*MarkProjectForDeletionRequest](sdk_go.Object[*MarkProjectForDeletionResponse](c.ctx, "hydra.v1.ProjectService", c.key, "MarkForDeletion", cOpts...))
+}
+
+func (c *projectServiceClient) Restore(opts ...sdk_go.ClientOption) sdk_go.Client[*RestoreProjectRequest, *RestoreProjectResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RestoreProjectRequest](sdk_go.Object[*RestoreProjectResponse](c.ctx, "hydra.v1.ProjectService", c.key, "Restore", cOpts...))
 }
 
 // ProjectServiceIngressClient is the ingress client API for hydra.v1.ProjectService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type ProjectServiceIngressClient interface {
-	// Delete removes a project and cleans up associated resources.
-	// Key: project_id
-	Delete() ingress.Requester[*DeleteProjectRequest, *DeleteProjectResponse]
+	// DeletePermanently removes the project and cascades hard cleanup
+	// through every descendant. Invoked by the permanent-delete cron
+	// sweep once the grace window has elapsed, or directly if no grace
+	// window is desired.
+	DeletePermanently() ingress.Requester[*DeleteProjectPermanentlyRequest, *DeleteProjectPermanentlyResponse]
+	// MarkForDeletion enters the soft-delete grace window. The caller
+	// (the public ctrl handler) mints the deletion_id and the
+	// delete_permanently_at; this handler inserts the deletions row and
+	// points the project's deletion_id at it, then Sends MarkForDeletion
+	// to every live app under it carrying the same deletion_id.
+	// Descendants reuse the id (no new deletion row) so the cascade tree
+	// shares one identifier.
+	MarkForDeletion() ingress.Requester[*MarkProjectForDeletionRequest, *MarkProjectForDeletionResponse]
+	// Restore reverses MarkForDeletion for this project and every
+	// descendant whose deletion_id matches the project's. Independently-
+	// deleted children (different deletion_id) are left alone. Deployment
+	// status is not reversed; the user is expected to trigger a fresh
+	// deployment.
+	Restore() ingress.Requester[*RestoreProjectRequest, *RestoreProjectResponse]
 }
 
 type projectServiceIngressClient struct {
@@ -68,9 +116,19 @@ func NewProjectServiceIngressClient(client *ingress.Client, key string) ProjectS
 	}
 }
 
-func (c *projectServiceIngressClient) Delete() ingress.Requester[*DeleteProjectRequest, *DeleteProjectResponse] {
+func (c *projectServiceIngressClient) DeletePermanently() ingress.Requester[*DeleteProjectPermanentlyRequest, *DeleteProjectPermanentlyResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*DeleteProjectRequest, *DeleteProjectResponse](c.client, c.serviceName, "Delete", &c.key, &codec)
+	return ingress.NewRequester[*DeleteProjectPermanentlyRequest, *DeleteProjectPermanentlyResponse](c.client, c.serviceName, "DeletePermanently", &c.key, &codec)
+}
+
+func (c *projectServiceIngressClient) MarkForDeletion() ingress.Requester[*MarkProjectForDeletionRequest, *MarkProjectForDeletionResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*MarkProjectForDeletionRequest, *MarkProjectForDeletionResponse](c.client, c.serviceName, "MarkForDeletion", &c.key, &codec)
+}
+
+func (c *projectServiceIngressClient) Restore() ingress.Requester[*RestoreProjectRequest, *RestoreProjectResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RestoreProjectRequest, *RestoreProjectResponse](c.client, c.serviceName, "Restore", &c.key, &codec)
 }
 
 // ProjectServiceServer is the server API for hydra.v1.ProjectService service.
@@ -80,9 +138,25 @@ func (c *projectServiceIngressClient) Delete() ingress.Requester[*DeleteProjectR
 // ProjectService manages project lifecycle.
 // Key: project_id
 type ProjectServiceServer interface {
-	// Delete removes a project and cleans up associated resources.
-	// Key: project_id
-	Delete(ctx sdk_go.ObjectContext, req *DeleteProjectRequest) (*DeleteProjectResponse, error)
+	// DeletePermanently removes the project and cascades hard cleanup
+	// through every descendant. Invoked by the permanent-delete cron
+	// sweep once the grace window has elapsed, or directly if no grace
+	// window is desired.
+	DeletePermanently(ctx sdk_go.ObjectContext, req *DeleteProjectPermanentlyRequest) (*DeleteProjectPermanentlyResponse, error)
+	// MarkForDeletion enters the soft-delete grace window. The caller
+	// (the public ctrl handler) mints the deletion_id and the
+	// delete_permanently_at; this handler inserts the deletions row and
+	// points the project's deletion_id at it, then Sends MarkForDeletion
+	// to every live app under it carrying the same deletion_id.
+	// Descendants reuse the id (no new deletion row) so the cascade tree
+	// shares one identifier.
+	MarkForDeletion(ctx sdk_go.ObjectContext, req *MarkProjectForDeletionRequest) (*MarkProjectForDeletionResponse, error)
+	// Restore reverses MarkForDeletion for this project and every
+	// descendant whose deletion_id matches the project's. Independently-
+	// deleted children (different deletion_id) are left alone. Deployment
+	// status is not reversed; the user is expected to trigger a fresh
+	// deployment.
+	Restore(ctx sdk_go.ObjectContext, req *RestoreProjectRequest) (*RestoreProjectResponse, error)
 }
 
 // UnimplementedProjectServiceServer should be embedded to have
@@ -92,8 +166,14 @@ type ProjectServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedProjectServiceServer struct{}
 
-func (UnimplementedProjectServiceServer) Delete(ctx sdk_go.ObjectContext, req *DeleteProjectRequest) (*DeleteProjectResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Delete not implemented"), 501)
+func (UnimplementedProjectServiceServer) DeletePermanently(ctx sdk_go.ObjectContext, req *DeleteProjectPermanentlyRequest) (*DeleteProjectPermanentlyResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method DeletePermanently not implemented"), 501)
+}
+func (UnimplementedProjectServiceServer) MarkForDeletion(ctx sdk_go.ObjectContext, req *MarkProjectForDeletionRequest) (*MarkProjectForDeletionResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method MarkForDeletion not implemented"), 501)
+}
+func (UnimplementedProjectServiceServer) Restore(ctx sdk_go.ObjectContext, req *RestoreProjectRequest) (*RestoreProjectResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Restore not implemented"), 501)
 }
 func (UnimplementedProjectServiceServer) testEmbeddedByValue() {}
 
@@ -114,6 +194,8 @@ func NewProjectServiceServer(srv ProjectServiceServer, opts ...sdk_go.ServiceDef
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.ProjectService", sOpts...)
-	router = router.Handler("Delete", sdk_go.NewObjectHandler(srv.Delete))
+	router = router.Handler("DeletePermanently", sdk_go.NewObjectHandler(srv.DeletePermanently))
+	router = router.Handler("MarkForDeletion", sdk_go.NewObjectHandler(srv.MarkForDeletion))
+	router = router.Handler("Restore", sdk_go.NewObjectHandler(srv.Restore))
 	return router
 }

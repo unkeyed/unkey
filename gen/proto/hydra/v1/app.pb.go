@@ -23,10 +23,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// DeleteAppRequest carries the caller identity and correlation ID into the
-// durable workflow so the app.delete audit log can be written as part of the
-// retried deletion unit rather than best-effort on the synchronous RPC path.
-type DeleteAppRequest struct {
+// DeleteAppPermanentlyRequest carries the caller identity and correlation ID
+// into the durable workflow so the app.delete audit log can be written as part
+// of the retried deletion unit rather than best-effort on the synchronous RPC path.
+type DeleteAppPermanentlyRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Actor *v1.ActorInfo          `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
 	// correlation_id groups this deletion with the other audit events from the
@@ -37,20 +37,20 @@ type DeleteAppRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteAppRequest) Reset() {
-	*x = DeleteAppRequest{}
+func (x *DeleteAppPermanentlyRequest) Reset() {
+	*x = DeleteAppPermanentlyRequest{}
 	mi := &file_hydra_v1_app_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteAppRequest) String() string {
+func (x *DeleteAppPermanentlyRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteAppRequest) ProtoMessage() {}
+func (*DeleteAppPermanentlyRequest) ProtoMessage() {}
 
-func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteAppPermanentlyRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_app_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -62,45 +62,45 @@ func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteAppRequest.ProtoReflect.Descriptor instead.
-func (*DeleteAppRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteAppPermanentlyRequest.ProtoReflect.Descriptor instead.
+func (*DeleteAppPermanentlyRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_app_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *DeleteAppRequest) GetActor() *v1.ActorInfo {
+func (x *DeleteAppPermanentlyRequest) GetActor() *v1.ActorInfo {
 	if x != nil {
 		return x.Actor
 	}
 	return nil
 }
 
-func (x *DeleteAppRequest) GetCorrelationId() string {
+func (x *DeleteAppPermanentlyRequest) GetCorrelationId() string {
 	if x != nil {
 		return x.CorrelationId
 	}
 	return ""
 }
 
-type DeleteAppResponse struct {
+type DeleteAppPermanentlyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteAppResponse) Reset() {
-	*x = DeleteAppResponse{}
+func (x *DeleteAppPermanentlyResponse) Reset() {
+	*x = DeleteAppPermanentlyResponse{}
 	mi := &file_hydra_v1_app_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteAppResponse) String() string {
+func (x *DeleteAppPermanentlyResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteAppResponse) ProtoMessage() {}
+func (*DeleteAppPermanentlyResponse) ProtoMessage() {}
 
-func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteAppPermanentlyResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_app_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -112,23 +112,214 @@ func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteAppResponse.ProtoReflect.Descriptor instead.
-func (*DeleteAppResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteAppPermanentlyResponse.ProtoReflect.Descriptor instead.
+func (*DeleteAppPermanentlyResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_app_proto_rawDescGZIP(), []int{1}
+}
+
+type MarkAppForDeletionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// deletion_id is the single shared id minted at the cascade root.
+	DeletionId    string        `protobuf:"bytes,1,opt,name=deletion_id,json=deletionId,proto3" json:"deletion_id,omitempty"`
+	Actor         *v1.ActorInfo `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
+	CorrelationId string        `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkAppForDeletionRequest) Reset() {
+	*x = MarkAppForDeletionRequest{}
+	mi := &file_hydra_v1_app_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkAppForDeletionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkAppForDeletionRequest) ProtoMessage() {}
+
+func (x *MarkAppForDeletionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_app_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkAppForDeletionRequest.ProtoReflect.Descriptor instead.
+func (*MarkAppForDeletionRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_app_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *MarkAppForDeletionRequest) GetDeletionId() string {
+	if x != nil {
+		return x.DeletionId
+	}
+	return ""
+}
+
+func (x *MarkAppForDeletionRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *MarkAppForDeletionRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type MarkAppForDeletionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkAppForDeletionResponse) Reset() {
+	*x = MarkAppForDeletionResponse{}
+	mi := &file_hydra_v1_app_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkAppForDeletionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkAppForDeletionResponse) ProtoMessage() {}
+
+func (x *MarkAppForDeletionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_app_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkAppForDeletionResponse.ProtoReflect.Descriptor instead.
+func (*MarkAppForDeletionResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_app_proto_rawDescGZIP(), []int{3}
+}
+
+type RestoreAppRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// deletion_id is the cascade root's id. A child whose own deletion_id
+	// does not match is left alone (it was deleted independently).
+	DeletionId    string `protobuf:"bytes,1,opt,name=deletion_id,json=deletionId,proto3" json:"deletion_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreAppRequest) Reset() {
+	*x = RestoreAppRequest{}
+	mi := &file_hydra_v1_app_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreAppRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreAppRequest) ProtoMessage() {}
+
+func (x *RestoreAppRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_app_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreAppRequest.ProtoReflect.Descriptor instead.
+func (*RestoreAppRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_app_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RestoreAppRequest) GetDeletionId() string {
+	if x != nil {
+		return x.DeletionId
+	}
+	return ""
+}
+
+type RestoreAppResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreAppResponse) Reset() {
+	*x = RestoreAppResponse{}
+	mi := &file_hydra_v1_app_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreAppResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreAppResponse) ProtoMessage() {}
+
+func (x *RestoreAppResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_app_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreAppResponse.ProtoReflect.Descriptor instead.
+func (*RestoreAppResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_app_proto_rawDescGZIP(), []int{5}
 }
 
 var File_hydra_v1_app_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x12hydra/v1/app.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"c\n" +
-	"\x10DeleteAppRequest\x12(\n" +
+	"\x12hydra/v1/app.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"n\n" +
+	"\x1bDeleteAppPermanentlyRequest\x12(\n" +
 	"\x05actor\x18\x01 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
-	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x13\n" +
-	"\x11DeleteAppResponse2W\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x1e\n" +
+	"\x1cDeleteAppPermanentlyResponse\"\x8d\x01\n" +
+	"\x19MarkAppForDeletionRequest\x12\x1f\n" +
+	"\vdeletion_id\x18\x01 \x01(\tR\n" +
+	"deletionId\x12(\n" +
+	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x03 \x01(\tR\rcorrelationId\"\x1c\n" +
+	"\x1aMarkAppForDeletionResponse\"4\n" +
+	"\x11RestoreAppRequest\x12\x1f\n" +
+	"\vdeletion_id\x18\x01 \x01(\tR\n" +
+	"deletionId\"\x14\n" +
+	"\x12RestoreAppResponse2\xa0\x02\n" +
 	"\n" +
-	"AppService\x12C\n" +
-	"\x06Delete\x12\x1a.hydra.v1.DeleteAppRequest\x1a\x1b.hydra.v1.DeleteAppResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x8e\x01\n" +
+	"AppService\x12d\n" +
+	"\x11DeletePermanently\x12%.hydra.v1.DeleteAppPermanentlyRequest\x1a&.hydra.v1.DeleteAppPermanentlyResponse\"\x00\x12^\n" +
+	"\x0fMarkForDeletion\x12#.hydra.v1.MarkAppForDeletionRequest\x1a$.hydra.v1.MarkAppForDeletionResponse\"\x00\x12F\n" +
+	"\aRestore\x12\x1b.hydra.v1.RestoreAppRequest\x1a\x1c.hydra.v1.RestoreAppResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x8e\x01\n" +
 	"\fcom.hydra.v1B\bAppProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -143,21 +334,30 @@ func file_hydra_v1_app_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_app_proto_rawDescData
 }
 
-var file_hydra_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hydra_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_app_proto_goTypes = []any{
-	(*DeleteAppRequest)(nil),  // 0: hydra.v1.DeleteAppRequest
-	(*DeleteAppResponse)(nil), // 1: hydra.v1.DeleteAppResponse
-	(*v1.ActorInfo)(nil),      // 2: ctrl.v1.ActorInfo
+	(*DeleteAppPermanentlyRequest)(nil),  // 0: hydra.v1.DeleteAppPermanentlyRequest
+	(*DeleteAppPermanentlyResponse)(nil), // 1: hydra.v1.DeleteAppPermanentlyResponse
+	(*MarkAppForDeletionRequest)(nil),    // 2: hydra.v1.MarkAppForDeletionRequest
+	(*MarkAppForDeletionResponse)(nil),   // 3: hydra.v1.MarkAppForDeletionResponse
+	(*RestoreAppRequest)(nil),            // 4: hydra.v1.RestoreAppRequest
+	(*RestoreAppResponse)(nil),           // 5: hydra.v1.RestoreAppResponse
+	(*v1.ActorInfo)(nil),                 // 6: ctrl.v1.ActorInfo
 }
 var file_hydra_v1_app_proto_depIdxs = []int32{
-	2, // 0: hydra.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 1: hydra.v1.AppService.Delete:input_type -> hydra.v1.DeleteAppRequest
-	1, // 2: hydra.v1.AppService.Delete:output_type -> hydra.v1.DeleteAppResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6, // 0: hydra.v1.DeleteAppPermanentlyRequest.actor:type_name -> ctrl.v1.ActorInfo
+	6, // 1: hydra.v1.MarkAppForDeletionRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 2: hydra.v1.AppService.DeletePermanently:input_type -> hydra.v1.DeleteAppPermanentlyRequest
+	2, // 3: hydra.v1.AppService.MarkForDeletion:input_type -> hydra.v1.MarkAppForDeletionRequest
+	4, // 4: hydra.v1.AppService.Restore:input_type -> hydra.v1.RestoreAppRequest
+	1, // 5: hydra.v1.AppService.DeletePermanently:output_type -> hydra.v1.DeleteAppPermanentlyResponse
+	3, // 6: hydra.v1.AppService.MarkForDeletion:output_type -> hydra.v1.MarkAppForDeletionResponse
+	5, // 7: hydra.v1.AppService.Restore:output_type -> hydra.v1.RestoreAppResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_app_proto_init() }
@@ -171,7 +371,7 @@ func file_hydra_v1_app_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_app_proto_rawDesc), len(file_hydra_v1_app_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
