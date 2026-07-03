@@ -191,11 +191,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-			{
+		keys := slices.Sorted(maps.Keys(byKey))
+		auditLogs := make([]auditlog.AuditLog, 0, len(keys))
+		for _, key := range keys {
+			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.EnvironmentUpdateEvent,
-				Display:       fmt.Sprintf("Added environment variables to environment %s", env.ID),
+				Display:       fmt.Sprintf("Added environment variable %s to environment %s", key, env.ID),
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
@@ -207,13 +209,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						ID:          env.ID,
 						Type:        auditlog.EnvironmentResourceType,
-						Meta:        map[string]any{"keys": slices.Sorted(maps.Keys(byKey))},
+						Meta:        map[string]any{"key": key},
 						Name:        env.Slug,
 						DisplayName: env.Slug,
 					},
 				},
-			},
-		})
+			})
+		}
+
+		return h.Auditlogs.Insert(ctx, tx, auditLogs)
 	})
 	if err != nil {
 		return err

@@ -88,7 +88,7 @@ func TestAddEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Equal(t, "", raw["PLAIN"].description)
 	})
 
-	t.Run("emits a single audit event with the created key set", func(t *testing.T) {
+	t.Run("emits one correlated audit event per created key", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
@@ -97,11 +97,16 @@ func TestAddEnvironmentVariablesSuccessfully(t *testing.T) {
 		}))
 
 		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
-		require.Len(t, logs, 1)
-		require.Contains(t, logs[0].Description, "Added environment variables")
+		require.Len(t, logs, 2)
 
-		require.Len(t, logs[0].Targets, 1)
-		keys := fmt.Sprintf("%v", logs[0].Targets[0].Meta["keys"])
+		keys := make([]string, 0, len(logs))
+		for _, l := range logs {
+			require.Contains(t, l.Description, "Added environment variable")
+			require.Len(t, l.Targets, 1)
+			require.NotEmpty(t, l.CorrelationID)
+			require.Equal(t, logs[0].CorrelationID, l.CorrelationID)
+			keys = append(keys, fmt.Sprintf("%v", l.Targets[0].Meta["key"]))
+		}
 		require.Contains(t, keys, "ALPHA")
 		require.Contains(t, keys, "BETA")
 	})
