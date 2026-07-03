@@ -22,18 +22,14 @@ export const BatchEditExternalId = ({
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
 
-  const updateKeyOwner = useBatchEditExternalId(() => {
+  const updateExternalId = useBatchEditExternalId(() => {
     onClose();
   });
 
   const handleSubmit = () => {
-    updateKeyOwner.mutate({
+    updateExternalId.mutate({
       keyIds: selectedKeyIds,
-      ownerType: "v2",
-      identity: {
-        id: selectedIdentityId,
-        externalId: selectedExternalId,
-      },
+      externalId: selectedExternalId,
     });
   };
 
@@ -53,13 +49,9 @@ export const BatchEditExternalId = ({
   };
 
   const clearSelection = async () => {
-    await updateKeyOwner.mutateAsync({
+    await updateExternalId.mutateAsync({
       keyIds: selectedKeyIds,
-      ownerType: "v2",
-      identity: {
-        id: null,
-        externalId: null,
-      },
+      externalId: null,
     });
   };
 
@@ -87,7 +79,7 @@ export const BatchEditExternalId = ({
                   variant="primary"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
+                  loading={updateExternalId.isLoading}
                   onClick={handleSubmit}
                 >
                   Update External ID
@@ -99,7 +91,7 @@ export const BatchEditExternalId = ({
                   color="danger"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
+                  loading={updateExternalId.isLoading}
                   onClick={handleClearButtonClick}
                   ref={clearButtonRef}
                   disabled={!hasKeysWithExternalIds}
@@ -147,7 +139,7 @@ export const BatchEditExternalId = ({
               setSelectedIdentityId(identityId);
               setSelectedExternalId(externalId);
             }}
-            disabled={updateKeyOwner.isLoading}
+            disabled={updateExternalId.isLoading}
           />
         </div>
       </DialogContainer>
