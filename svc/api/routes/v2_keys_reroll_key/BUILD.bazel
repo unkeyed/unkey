@@ -21,6 +21,7 @@ go_library(
         "//pkg/uid",
         "//pkg/urn",
         "//pkg/zen",
+        "//svc/api/internal/auditactor",
         "//svc/api/openapi",
     ],
 )

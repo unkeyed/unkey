@@ -18,8 +18,10 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/hash",
+        "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",
+        "//svc/api/openapi",
         "//svc/frontline/internal/policies/principal",
     ],
 )

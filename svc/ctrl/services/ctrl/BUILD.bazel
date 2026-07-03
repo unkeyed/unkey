@@ -13,7 +13,7 @@ go_library(
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//pkg/buildinfo",
-        "//pkg/db",
+        "//svc/ctrl/internal/db",
         "@com_connectrpc_connect//:connect",
     ],
 )

@@ -22,7 +22,6 @@ go_test(
     deps = [
         "//internal/services/portal",
         "//pkg/auth/principal",
-        "//pkg/rbac",
         "//pkg/zen",
         "@com_github_stretchr_testify//require",
     ],

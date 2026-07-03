@@ -216,6 +216,14 @@ export const workspacePermissions = {
       description: "Read and list any app in this workspace",
       permission: "app.*.read_app",
     },
+    update_app: {
+      description: "Update apps in any project in this workspace",
+      permission: "app.*.update_app",
+    },
+    delete_app: {
+      description: "Delete apps in any project in this workspace",
+      permission: "app.*.delete_app",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -311,6 +319,14 @@ export function appPermissions(appId: string): {
       read_app: {
         description: "Read this app.",
         permission: `app.${appId}.read_app`,
+      },
+      update_app: {
+        description: "Update apps in this project.",
+        permission: `app.${appId}.update_app`,
+      },
+      delete_app: {
+        description: "Delete apps in this project.",
+        permission: `app.${appId}.delete_app`,
       },
     },
   };

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file frontline/policies/v1/keyauth.proto.
  */
 export const file_frontline_policies_v1_keyauth: GenFile = /*@__PURE__*/
-  fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEva2V5YXV0aC5wcm90bxIMZnJvbnRsaW5lLnYxIoIBCgdLZXlBdXRoEhUKDWtleV9zcGFjZV9pZHMYASADKAkSLAoJbG9jYXRpb25zGAIgAygLMhkuZnJvbnRsaW5lLnYxLktleUxvY2F0aW9uEh0KEHBlcm1pc3Npb25fcXVlcnkYBSABKAlIAIgBAUITChFfcGVybWlzc2lvbl9xdWVyeSK9AQoLS2V5TG9jYXRpb24SMwoGYmVhcmVyGAEgASgLMiEuZnJvbnRsaW5lLnYxLkJlYXJlclRva2VuTG9jYXRpb25IABIxCgZoZWFkZXIYAiABKAsyHy5mcm9udGxpbmUudjEuSGVhZGVyS2V5TG9jYXRpb25IABI6CgtxdWVyeV9wYXJhbRgDIAEoCzIjLmZyb250bGluZS52MS5RdWVyeVBhcmFtS2V5TG9jYXRpb25IAEIKCghsb2NhdGlvbiIVChNCZWFyZXJUb2tlbkxvY2F0aW9uIjcKEUhlYWRlcktleUxvY2F0aW9uEgwKBG5hbWUYASABKAkSFAoMc3RyaXBfcHJlZml4GAIgASgJIiUKFVF1ZXJ5UGFyYW1LZXlMb2NhdGlvbhIMCgRuYW1lGAEgASgJQq4BChBjb20uZnJvbnRsaW5lLnYxQgxLZXlhdXRoUHJvdG9QAVo7Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9mcm9udGxpbmUvdjE7ZnJvbnRsaW5ldjGiAgNGWFiqAgxGcm9udGxpbmUuVjHKAgxGcm9udGxpbmVcVjHiAhhGcm9udGxpbmVcVjFcR1BCTWV0YWRhdGHqAg1Gcm9udGxpbmU6OlYxYgZwcm90bzM");
+  fileDesc("CiNmcm9udGxpbmUvcG9saWNpZXMvdjEva2V5YXV0aC5wcm90bxIMZnJvbnRsaW5lLnYxIrIBCgdLZXlBdXRoEhUKDWtleV9zcGFjZV9pZHMYASADKAkSLAoJbG9jYXRpb25zGAIgAygLMhkuZnJvbnRsaW5lLnYxLktleUxvY2F0aW9uEh0KEHBlcm1pc3Npb25fcXVlcnkYBSABKAlIAIgBARIuCgpyYXRlbGltaXRzGAYgAygLMhouZnJvbnRsaW5lLnYxLktleVJhdGVsaW1pdEITChFfcGVybWlzc2lvbl9xdWVyeSJ6CgxLZXlSYXRlbGltaXQSDAoEbmFtZRgBIAEoCRISCgVsaW1pdBgCIAEoA0gAiAEBEhUKCGR1cmF0aW9uGAMgASgDSAGIAQESEQoEY29zdBgEIAEoA0gCiAEBQggKBl9saW1pdEILCglfZHVyYXRpb25CBwoFX2Nvc3QivQEKC0tleUxvY2F0aW9uEjMKBmJlYXJlchgBIAEoCzIhLmZyb250bGluZS52MS5CZWFyZXJUb2tlbkxvY2F0aW9uSAASMQoGaGVhZGVyGAIgASgLMh8uZnJvbnRsaW5lLnYxLkhlYWRlcktleUxvY2F0aW9uSAASOgoLcXVlcnlfcGFyYW0YAyABKAsyIy5mcm9udGxpbmUudjEuUXVlcnlQYXJhbUtleUxvY2F0aW9uSABCCgoIbG9jYXRpb24iFQoTQmVhcmVyVG9rZW5Mb2NhdGlvbiI3ChFIZWFkZXJLZXlMb2NhdGlvbhIMCgRuYW1lGAEgASgJEhQKDHN0cmlwX3ByZWZpeBgCIAEoCSIlChVRdWVyeVBhcmFtS2V5TG9jYXRpb24SDAoEbmFtZRgBIAEoCUKuAQoQY29tLmZyb250bGluZS52MUIMS2V5YXV0aFByb3RvUAFaO2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vZnJvbnRsaW5lL3YxO2Zyb250bGluZXYxogIDRlhYqgIMRnJvbnRsaW5lLlYxygIMRnJvbnRsaW5lXFYx4gIYRnJvbnRsaW5lXFYxXEdQQk1ldGFkYXRh6gINRnJvbnRsaW5lOjpWMWIGcHJvdG8z");
 
 /**
  * KeyAuth authenticates requests using Unkey API keys. This is the primary
@@ -83,6 +83,26 @@ export type KeyAuth = Message<"frontline.v1.KeyAuth"> & {
    * @generated from field: optional string permission_query = 5;
    */
   permissionQuery?: string;
+
+  /**
+   * Rate limits to enforce on the verified key, mirroring the `ratelimits`
+   * field of Unkey's verifyKey API. Each entry references a rate limit by
+   * name, matching how the API behaves when verifying a key directly.
+   *
+   * This is in addition to any auto-applied limits configured on the key or
+   * its identity, which are always enforced. Use this field to enforce named
+   * limits that are not auto-applied, or to override the limit, window, or
+   * cost of a limit for this route. If a named limit does not exist on the
+   * key (and there is no inline limit/duration override), the request is
+   * rejected.
+   *
+   * Example: to enforce the "expensive" limit defined on keys in this key
+   * space for the route this policy matches, add a single entry with
+   * name "expensive".
+   *
+   * @generated from field: repeated frontline.v1.KeyRatelimit ratelimits = 6;
+   */
+  ratelimits: KeyRatelimit[];
 };
 
 /**
@@ -91,6 +111,61 @@ export type KeyAuth = Message<"frontline.v1.KeyAuth"> & {
  */
 export const KeyAuthSchema: GenMessage<KeyAuth> = /*@__PURE__*/
   messageDesc(file_frontline_policies_v1_keyauth, 0);
+
+/**
+ * KeyRatelimit selects a rate limit to enforce on the verified key. It mirrors
+ * the per-request `ratelimits` entries accepted by Unkey's verifyKey API so
+ * that gateway-enforced limits behave identically to application-enforced ones.
+ *
+ * @generated from message frontline.v1.KeyRatelimit
+ */
+export type KeyRatelimit = Message<"frontline.v1.KeyRatelimit"> & {
+  /**
+   * References an existing rate limit configured on the key (or its identity)
+   * by name. Key rate limits take precedence over identity rate limits with
+   * the same name. Required.
+   *
+   * If the named limit does not exist on the key and no inline limit and
+   * duration are provided below, the request is rejected.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Optional override for the maximum number of requests allowed within the
+   * window. When set together with duration, defines an inline limit that
+   * does not need to exist on the key. When unset, the limit configured on
+   * the key is used.
+   *
+   * @generated from field: optional int64 limit = 2;
+   */
+  limit?: bigint;
+
+  /**
+   * Optional override for the window duration in milliseconds. When set
+   * together with limit, defines an inline limit that does not need to exist
+   * on the key. When unset, the duration configured on the key is used.
+   *
+   * @generated from field: optional int64 duration = 3;
+   */
+  duration?: bigint;
+
+  /**
+   * Optional override for how many tokens this request consumes from the
+   * limit. Defaults to 1 when unset.
+   *
+   * @generated from field: optional int64 cost = 4;
+   */
+  cost?: bigint;
+};
+
+/**
+ * Describes the message frontline.v1.KeyRatelimit.
+ * Use `create(KeyRatelimitSchema)` to create a new message.
+ */
+export const KeyRatelimitSchema: GenMessage<KeyRatelimit> = /*@__PURE__*/
+  messageDesc(file_frontline_policies_v1_keyauth, 1);
 
 /**
  * KeyLocation specifies where in the HTTP request to look for an API key.
@@ -141,7 +216,7 @@ export type KeyLocation = Message<"frontline.v1.KeyLocation"> & {
  * Use `create(KeyLocationSchema)` to create a new message.
  */
 export const KeyLocationSchema: GenMessage<KeyLocation> = /*@__PURE__*/
-  messageDesc(file_frontline_policies_v1_keyauth, 1);
+  messageDesc(file_frontline_policies_v1_keyauth, 2);
 
 /**
  * BearerTokenLocation extracts the API key from the Authorization header
@@ -158,7 +233,7 @@ export type BearerTokenLocation = Message<"frontline.v1.BearerTokenLocation"> & 
  * Use `create(BearerTokenLocationSchema)` to create a new message.
  */
 export const BearerTokenLocationSchema: GenMessage<BearerTokenLocation> = /*@__PURE__*/
-  messageDesc(file_frontline_policies_v1_keyauth, 2);
+  messageDesc(file_frontline_policies_v1_keyauth, 3);
 
 /**
  * HeaderKeyLocation extracts the API key from a named request header. This
@@ -192,7 +267,7 @@ export type HeaderKeyLocation = Message<"frontline.v1.HeaderKeyLocation"> & {
  * Use `create(HeaderKeyLocationSchema)` to create a new message.
  */
 export const HeaderKeyLocationSchema: GenMessage<HeaderKeyLocation> = /*@__PURE__*/
-  messageDesc(file_frontline_policies_v1_keyauth, 3);
+  messageDesc(file_frontline_policies_v1_keyauth, 4);
 
 /**
  * QueryParamKeyLocation extracts the API key from a URL query parameter.
@@ -213,5 +288,5 @@ export type QueryParamKeyLocation = Message<"frontline.v1.QueryParamKeyLocation"
  * Use `create(QueryParamKeyLocationSchema)` to create a new message.
  */
 export const QueryParamKeyLocationSchema: GenMessage<QueryParamKeyLocation> = /*@__PURE__*/
-  messageDesc(file_frontline_policies_v1_keyauth, 4);
+  messageDesc(file_frontline_policies_v1_keyauth, 5);
 

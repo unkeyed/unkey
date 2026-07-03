@@ -8,6 +8,7 @@ package hydrav1
 
 import (
 	_ "github.com/restatedev/sdk-go/generated/dev/restate/sdk"
+	v1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -22,8 +23,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// DeleteEnvironmentRequest carries the caller identity and correlation ID into
+// the durable workflow so the environment.delete audit log is written as part
+// of the retried deletion unit. Environment deletes are cascade-only (no direct
+// RPC), so these always arrive from a parent app or project teardown.
 type DeleteEnvironmentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Actor *v1.ActorInfo          `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
+	// correlation_id groups this deletion with the parent teardown's other audit
+	// events. Threaded down from the app/project workflow.
+	CorrelationId string `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -56,6 +65,20 @@ func (x *DeleteEnvironmentRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteEnvironmentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteEnvironmentRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_environment_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *DeleteEnvironmentRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *DeleteEnvironmentRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
 }
 
 type DeleteEnvironmentResponse struct {
@@ -98,8 +121,10 @@ var File_hydra_v1_environment_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_environment_proto_rawDesc = "" +
 	"\n" +
-	"\x1ahydra/v1/environment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x1a\n" +
-	"\x18DeleteEnvironmentRequest\"\x1b\n" +
+	"\x1ahydra/v1/environment.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"k\n" +
+	"\x18DeleteEnvironmentRequest\x12(\n" +
+	"\x05actor\x18\x01 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\x1b\n" +
 	"\x19DeleteEnvironmentResponse2o\n" +
 	"\x12EnvironmentService\x12S\n" +
 	"\x06Delete\x12\".hydra.v1.DeleteEnvironmentRequest\x1a#.hydra.v1.DeleteEnvironmentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x96\x01\n" +
@@ -121,15 +146,17 @@ var file_hydra_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_hydra_v1_environment_proto_goTypes = []any{
 	(*DeleteEnvironmentRequest)(nil),  // 0: hydra.v1.DeleteEnvironmentRequest
 	(*DeleteEnvironmentResponse)(nil), // 1: hydra.v1.DeleteEnvironmentResponse
+	(*v1.ActorInfo)(nil),              // 2: ctrl.v1.ActorInfo
 }
 var file_hydra_v1_environment_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.EnvironmentService.Delete:input_type -> hydra.v1.DeleteEnvironmentRequest
-	1, // 1: hydra.v1.EnvironmentService.Delete:output_type -> hydra.v1.DeleteEnvironmentResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: hydra.v1.DeleteEnvironmentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 1: hydra.v1.EnvironmentService.Delete:input_type -> hydra.v1.DeleteEnvironmentRequest
+	1, // 2: hydra.v1.EnvironmentService.Delete:output_type -> hydra.v1.DeleteEnvironmentResponse
+	2, // [2:3] is the sub-list for method output_type
+	1, // [1:2] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_environment_proto_init() }

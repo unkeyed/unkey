@@ -6,8 +6,8 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/ctrl/dedup",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/db",
         "//pkg/logger",
         "//pkg/restate/admin",
+        "//svc/ctrl/internal/db",
     ],
 )

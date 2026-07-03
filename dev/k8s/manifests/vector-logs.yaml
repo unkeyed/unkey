@@ -129,7 +129,9 @@ data:
     .attributes = {}
 
     # Try to parse structured logs (JSON or key=value)
-    raw_message = string!(.message)
+    # Strip ANSI color codes first: colorized level words (e.g. \x1b[31mERROR)
+    # would otherwise defeat the severity regexes and can corrupt JSON/logfmt parsing.
+    raw_message = strip_ansi_escape_codes(string!(.message))
     parsed, err = parse_json(raw_message)
     if err == null && is_object(parsed) {
         # JSON structured log - keep nested structure
@@ -156,7 +158,12 @@ data:
             del(.attributes.level)
             del(.attributes.severity)
         } else {
-            # Plain text log - comprehensive severity detection
+            # Plain text log - store the decolorized message (the structured
+            # branches above already do this via raw_message; this branch must too,
+            # otherwise .message keeps its original ANSI codes).
+            .message = raw_message
+
+            # Comprehensive severity detection.
             # After multiline merge, we scan the ENTIRE content for error indicators
             # Based on: https://betterstack.com/community/guides/logging/log-levels-explained/
             msg_lower = downcase(raw_message)
