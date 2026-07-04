@@ -1233,6 +1233,12 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
+	//ListCustomDomainsByEnvironmentID
+	//
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
+	//  FROM custom_domains
+	//  WHERE environment_id = ?
+	ListCustomDomainsByEnvironmentID(ctx context.Context, environmentID string) ([]CustomDomain, error)
 	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
 	// Used by the unified WatchDeploymentChanges stream. Does not filter by resource_type.
 	//
