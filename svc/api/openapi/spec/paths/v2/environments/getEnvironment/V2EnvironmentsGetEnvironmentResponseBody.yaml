@@ -17,9 +17,6 @@ examples:
         requestId: req_1234abcd
       data:
         id: env_1234abcd
-        projectId: proj_1234abcd
-        appId: app_1234abcd
-        slug: production
         description: Production environment
         deleteProtection: false
         createdAt: 1704067200000

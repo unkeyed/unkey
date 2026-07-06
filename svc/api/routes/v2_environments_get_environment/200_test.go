@@ -79,9 +79,6 @@ func TestGetEnvironment(t *testing.T) {
 				require.NotEmpty(t, res.Body.Meta.RequestId)
 				require.Equal(t, environment.ID, res.Body.Data.Id)
 				require.True(t, strings.HasPrefix(res.Body.Data.Id, "env_"), "id should have env_ prefix: %s", res.Body.Data.Id)
-				require.Equal(t, project.ID, res.Body.Data.ProjectId)
-				require.Equal(t, app.ID, res.Body.Data.AppId)
-				require.Equal(t, "production", res.Body.Data.Slug)
 				require.Equal(t, "Production environment", res.Body.Data.Description)
 				require.False(t, res.Body.Data.DeleteProtection)
 				require.Greater(t, res.Body.Data.CreatedAt, int64(0))
@@ -133,8 +130,6 @@ func TestGetEnvironment(t *testing.T) {
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Equal(t, environment.ID, res.Body.Data.Id)
-
-		require.Equal(t, "no-settings", res.Body.Data.Slug)
 		require.Greater(t, res.Body.Data.CreatedAt, int64(0))
 
 		require.Nil(t, res.Body.Data.Runtime)
