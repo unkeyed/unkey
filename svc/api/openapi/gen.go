@@ -106,9 +106,6 @@ type App struct {
 	// Name Human-readable name for this app.
 	Name string `json:"name"`
 
-	// ProjectId The unique identifier of the project this app belongs to.
-	ProjectId string `json:"projectId"`
-
 	// Slug URL-safe handle for this app, unique within its project.
 	// Chosen at creation time.
 	Slug string `json:"slug"`

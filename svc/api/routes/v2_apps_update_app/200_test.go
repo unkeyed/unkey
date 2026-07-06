@@ -76,7 +76,6 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		require.Equal(t, newName, res.Body.Data.Name)
 		require.Equal(t, slug, res.Body.Data.Slug)
 		require.Equal(t, "main", res.Body.Data.DefaultBranch)
-		require.Equal(t, project.ID, res.Body.Data.ProjectId)
 		require.False(t, res.Body.Data.DeleteProtection)
 		require.Greater(t, res.Body.Data.UpdatedAt, int64(0))
 

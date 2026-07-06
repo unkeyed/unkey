@@ -2976,7 +2976,6 @@ components:
                 - id
                 - name
                 - slug
-                - projectId
                 - defaultBranch
                 - isRolledBack
                 - deleteProtection
@@ -2998,11 +2997,6 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
-                projectId:
-                    type: string
-                    description: |
-                        The unique identifier of the project this app belongs to.
-                    example: proj_1234abcd
                 defaultBranch:
                     type: string
                     description: |
@@ -5261,7 +5255,6 @@ paths:
                                             id: app_1234abcd
                                             isRolledBack: false
                                             name: Payments API
-                                            projectId: proj_1234abcd
                                             slug: payments-api
                                             updatedAt: 1704153600000
                                         meta:
@@ -5375,7 +5368,6 @@ paths:
                                               id: app_1234abcd
                                               isRolledBack: false
                                               name: Payments API
-                                              projectId: proj_1234abcd
                                               slug: payments-api
                                               updatedAt: 1704153600000
                                             - createdAt: 1704240000000
@@ -5384,7 +5376,6 @@ paths:
                                               id: app_5678efgh
                                               isRolledBack: false
                                               name: Billing API
-                                              projectId: proj_1234abcd
                                               slug: billing-api
                                         meta:
                                             requestId: req_1234abcd
@@ -5533,7 +5524,6 @@ paths:
                                             id: app_1234abcd
                                             isRolledBack: false
                                             name: Payments API
-                                            projectId: proj_1234abcd
                                             slug: payments-api
                                             updatedAt: 1704153600000
                                         meta:
