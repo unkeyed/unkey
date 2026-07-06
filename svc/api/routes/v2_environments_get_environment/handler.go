@@ -94,20 +94,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		DeleteProtection: environment.DeleteProtection.Bool,
 		CreatedAt:        environment.CreatedAt,
 		UpdatedAt:        environment.UpdatedAt.Int64,
-		Port:             nil,
-		CpuMillicores:    nil,
-		MemoryMib:        nil,
-		StorageMib:       nil,
-		Command:          nil,
-		Healthcheck:      nil,
-		ShutdownSignal:   nil,
-		UpstreamProtocol: nil,
-		OpenapiSpecPath:  nil,
-		Dockerfile:       nil,
-		RootDirectory:    nil,
-		BuildCommand:     nil,
-		WatchPaths:       nil,
-		AutoDeploy:       nil,
+		Runtime:          nil,
+		Build:            nil,
 		Regions:          nil,
 	}
 
@@ -127,18 +115,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	if !db.IsNotFound(err) {
 		rs := runtime.AppRuntimeSetting
-		data.Port = ptr.P(int(rs.Port))
-		data.CpuMillicores = ptr.P(int(rs.CpuMillicores))
-		data.MemoryMib = ptr.P(int(rs.MemoryMib))
-		data.StorageMib = ptr.P(int(rs.StorageMib))
-		data.Command = ptr.P([]string(rs.Command))
-		data.ShutdownSignal = ptr.P(openapi.EnvironmentShutdownSignal(rs.ShutdownSignal))
-		data.UpstreamProtocol = ptr.P(openapi.EnvironmentUpstreamProtocol(rs.UpstreamProtocol))
+		rt := openapi.EnvironmentRuntime{
+			Port:             int(rs.Port),
+			CpuMillicores:    int(rs.CpuMillicores),
+			MemoryMib:        int(rs.MemoryMib),
+			StorageMib:       int(rs.StorageMib),
+			Command:          []string(rs.Command),
+			ShutdownSignal:   openapi.EnvironmentRuntimeShutdownSignal(rs.ShutdownSignal),
+			UpstreamProtocol: openapi.EnvironmentRuntimeUpstreamProtocol(rs.UpstreamProtocol),
+			Healthcheck:      nil,
+			OpenapiSpecPath:  nil,
+		}
 		if rs.OpenapiSpecPath.Valid {
-			data.OpenapiSpecPath = ptr.P(rs.OpenapiSpecPath.String)
+			rt.OpenapiSpecPath = ptr.P(rs.OpenapiSpecPath.String)
 		}
 		if hc := rs.Healthcheck.Healthcheck; hc != nil {
-			data.Healthcheck = &openapi.EnvironmentHealthcheck{
+			rt.Healthcheck = &openapi.EnvironmentHealthcheck{
 				Method:              openapi.EnvironmentHealthcheckMethod(hc.Method),
 				Path:                hc.Path,
 				IntervalSeconds:     ptr.P(hc.IntervalSeconds),
@@ -147,6 +139,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				InitialDelaySeconds: ptr.P(hc.InitialDelaySeconds),
 			}
 		}
+		data.Runtime = &rt
 	}
 
 	build, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
@@ -162,15 +155,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 	if !db.IsNotFound(err) {
+		bs := openapi.EnvironmentBuild{
+			RootDirectory: build.DockerContext,
+			WatchPaths:    []string(build.WatchPaths),
+			AutoDeploy:    build.AutoDeploy,
+			Dockerfile:    nil,
+			BuildCommand:  nil,
+		}
 		if build.Dockerfile.Valid {
-			data.Dockerfile = ptr.P(build.Dockerfile.String)
+			bs.Dockerfile = ptr.P(build.Dockerfile.String)
 		}
-		data.RootDirectory = ptr.P(build.DockerContext)
 		if build.BuildCommand.Valid {
-			data.BuildCommand = ptr.P(build.BuildCommand.String)
+			bs.BuildCommand = ptr.P(build.BuildCommand.String)
 		}
-		data.WatchPaths = ptr.P([]string(build.WatchPaths))
-		data.AutoDeploy = ptr.P(build.AutoDeploy)
+		data.Build = &bs
 	}
 
 	regional, err := db.Query.FindAppRegionalSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRegionalSettingsByAppAndEnvParams{

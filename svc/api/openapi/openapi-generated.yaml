@@ -3209,29 +3209,51 @@ components:
                     example: 1704153600000
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+                runtime:
+                    "$ref": "#/components/schemas/EnvironmentRuntime"
+                build:
+                    "$ref": "#/components/schemas/EnvironmentBuild"
+                regions:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/EnvironmentRegion"
+                    description: |
+                        Per-region deployment settings for this environment.
+                        Empty until regional settings are configured.
+            additionalProperties: false
+        EnvironmentRuntime:
+            type: object
+            description: |
+                Runtime settings that control how the container runs.
+                Omitted until the environment has runtime settings.
+            required:
+                - port
+                - cpuMillicores
+                - memoryMib
+                - storageMib
+                - command
+                - shutdownSignal
+                - upstreamProtocol
+            properties:
                 port:
                     type: integer
                     description: |
                         Port the container listens on.
-                        Omitted until the environment has runtime settings.
                     example: 8080
                 cpuMillicores:
                     type: integer
                     description: |
                         CPU allocation in millicores (1000 = one vCPU).
-                        Omitted until the environment has runtime settings.
                     example: 250
                 memoryMib:
                     type: integer
                     description: |
                         Memory allocation in mebibytes.
-                        Omitted until the environment has runtime settings.
                     example: 256
                 storageMib:
                     type: integer
                     description: |
                         Ephemeral storage allocation in mebibytes.
-                        Omitted until the environment has runtime settings.
                     example: 0
                 command:
                     type: array
@@ -3239,7 +3261,6 @@ components:
                         type: string
                     description: |
                         Container entrypoint command override.
-                        Omitted until the environment has runtime settings.
                     example: ["node", "server.js"]
                 healthcheck:
                     "$ref": "#/components/schemas/EnvironmentHealthcheck"
@@ -3252,7 +3273,6 @@ components:
                         - SIGKILL
                     description: |
                         Signal sent to the container on shutdown.
-                        Omitted until the environment has runtime settings.
                     example: SIGTERM
                 upstreamProtocol:
                     type: string
@@ -3261,13 +3281,23 @@ components:
                         - h2c
                     description: |
                         Protocol used to reach the container.
-                        Omitted until the environment has runtime settings.
                     example: http1
                 openapiSpecPath:
                     type: string
                     description: |
                         Path to the OpenAPI spec served by the container, if any.
                     example: /openapi.yaml
+            additionalProperties: false
+        EnvironmentBuild:
+            type: object
+            description: |
+                Build settings that control how the app is built.
+                Omitted until the environment has build settings.
+            required:
+                - rootDirectory
+                - watchPaths
+                - autoDeploy
+            properties:
                 dockerfile:
                     type: string
                     description: |
@@ -3277,7 +3307,6 @@ components:
                     type: string
                     description: |
                         The directory the app is built from. "." for the repository root.
-                        Omitted until the environment has build settings.
                     example: .
                 buildCommand:
                     type: string
@@ -3292,21 +3321,26 @@ components:
                         type: string
                     description: |
                         Paths that trigger a rebuild when changed.
-                        Omitted until the environment has build settings.
                     example: ["src/**"]
                 autoDeploy:
                     type: boolean
                     description: |
                         Whether pushes automatically trigger a deployment.
-                        Omitted until the environment has build settings.
                     example: true
-                regions:
-                    type: array
-                    items:
-                        "$ref": "#/components/schemas/EnvironmentRegion"
-                    description: |
-                        Per-region deployment settings for this environment.
-                        Empty until regional settings are configured.
+            additionalProperties: false
+        EnvironmentRegion:
+            type: object
+            description: Replica bounds for a single region the environment deploys to.
+            required:
+                - name
+                - replicas
+            properties:
+                name:
+                    type: string
+                    description: Region name, such as us-east-1.
+                    example: us-east-1
+                replicas:
+                    "$ref": "#/components/schemas/Replicas"
             additionalProperties: false
         EnvironmentHealthcheck:
             type: object
@@ -3347,20 +3381,6 @@ components:
                     description: |
                         Delay before the first probe runs, in seconds.
                     example: 5
-            additionalProperties: false
-        EnvironmentRegion:
-            type: object
-            description: Replica bounds for a single region the environment deploys to.
-            required:
-                - name
-                - replicas
-            properties:
-                name:
-                    type: string
-                    description: Region name, such as us-east-1.
-                    example: us-east-1
-                replicas:
-                    "$ref": "#/components/schemas/Replicas"
             additionalProperties: false
         Replicas:
             type: object
