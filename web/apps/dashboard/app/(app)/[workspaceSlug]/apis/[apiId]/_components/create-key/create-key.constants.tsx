@@ -1,4 +1,4 @@
-import { CalendarClock, ChartPie, Code, Gauge, Key2 } from "@unkey/icons";
+import { CalendarClock, ChartPie, Code, Gauge, Key2, ShieldKey } from "@unkey/icons";
 import type { StepNamesFrom } from "@unkey/ui";
 import type { SectionState } from "./types";
 
@@ -7,6 +7,7 @@ import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setu
 import { UsageSetup } from "./components/credits-setup";
 import { ExpirationSetup } from "./components/expiration-setup";
 import { GeneralSetup } from "./components/general-setup";
+import { RbacSetup } from "./components/rbac-setup";
 
 export const UNNAMED_KEY = "Unnamed Key" as const;
 export const SECTIONS = [
@@ -33,6 +34,12 @@ export const SECTIONS = [
     label: "Expiration",
     icon: CalendarClock,
     content: () => <ExpirationSetup />,
+  },
+  {
+    id: "rbac",
+    label: "Permissions",
+    icon: ShieldKey,
+    content: () => <RbacSetup />,
   },
   {
     id: "metadata",

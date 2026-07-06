@@ -17,15 +17,17 @@ export const searchRolesPermissions = workspaceProcedure
     const workspaceId = ctx.workspace.id;
 
     try {
+      const searchTerm = `%${query}%`;
+
       const permissionsQuery = await db.query.permissions.findMany({
         where: (permission, { and, eq, or, like }) => {
           return and(
             eq(permission.workspaceId, workspaceId),
             or(
-              like(permission.id, query),
-              like(permission.slug, query),
-              like(permission.name, query),
-              like(permission.description, query),
+              like(permission.id, searchTerm),
+              like(permission.slug, searchTerm),
+              like(permission.name, searchTerm),
+              like(permission.description, searchTerm),
             ),
           );
         },
