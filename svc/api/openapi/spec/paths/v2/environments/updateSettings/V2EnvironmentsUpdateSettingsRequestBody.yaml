@@ -104,8 +104,9 @@ properties:
     description: |
       HTTP healthcheck configuration.
       Omit to leave unchanged; set null to remove.
-    allOf:
+    anyOf:
       - "$ref": "../../../../common/EnvironmentHealthcheck.yaml"
+      - type: "null"
   shutdownSignal:
     "$ref": "../../../../common/EnvironmentShutdownSignal.yaml"
     description: |

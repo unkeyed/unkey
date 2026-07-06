@@ -754,8 +754,9 @@ components:
                     description: |
                         HTTP healthcheck configuration.
                         Omit to leave unchanged; set null to remove.
-                    allOf:
+                    anyOf:
                         - "$ref": "#/components/schemas/EnvironmentHealthcheck"
+                        - type: "null"
                 shutdownSignal:
                     "$ref": "#/components/schemas/EnvironmentShutdownSignal"
                     description: |

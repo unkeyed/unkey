@@ -86,6 +86,185 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 		require.False(t, got.BuildCommand.Valid, "build command should be cleared")
 	})
 
+	t.Run("watchPaths omit preserves, empty clears", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			WatchPaths:  ptr([]string{"src/**", "lib/**"}),
+		})
+		got, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, []string{"src/**", "lib/**"}, []string(got.WatchPaths))
+
+		// Omitting watchPaths must leave the stored list untouched.
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			AutoDeploy:  ptr(false),
+		})
+		got, err = db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, []string{"src/**", "lib/**"}, []string(got.WatchPaths), "omitted watchPaths must be preserved")
+
+		// An empty array is a meaningful value that clears the list.
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			WatchPaths:  ptr([]string{}),
+		})
+		got, err = db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Empty(t, []string(got.WatchPaths), "empty watchPaths must clear the list")
+	})
+
+	t.Run("command omit preserves, empty clears", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			Command:     ptr([]string{"./server", "--prod"}),
+		})
+		rt, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, []string{"./server", "--prod"}, []string(rt.AppRuntimeSetting.Command))
+
+		// Omit command, touch another runtime field: command must be preserved.
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			Port:        ptr(9090),
+		})
+		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, []string{"./server", "--prod"}, []string(rt.AppRuntimeSetting.Command), "omitted command must be preserved")
+
+		// An empty array is a meaningful value that clears the command.
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			Command:     ptr([]string{}),
+		})
+		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.Empty(t, []string(rt.AppRuntimeSetting.Command), "empty command must clear the list")
+	})
+
+	t.Run("healthcheck partial sets defaults, omit preserves, null removes", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+
+		// Only the required method and path; the optional fields take defaults.
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
+				Method: openapi.GET,
+				Path:   "/health",
+			}),
+		})
+		rt, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.True(t, rt.AppRuntimeSetting.Healthcheck.Valid)
+		hc := rt.AppRuntimeSetting.Healthcheck.Healthcheck
+		require.NotNil(t, hc)
+		require.Equal(t, "GET", hc.Method)
+		require.Equal(t, "/health", hc.Path)
+		require.Equal(t, 10, hc.IntervalSeconds, "default applied")
+		require.Equal(t, 5, hc.TimeoutSeconds, "default applied")
+		require.Equal(t, 3, hc.FailureThreshold, "default applied")
+		require.Equal(t, 0, hc.InitialDelaySeconds, "default applied")
+
+		// Omit healthcheck, touch another runtime field: healthcheck must be preserved.
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			Port:        ptr(9090),
+		})
+		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.True(t, rt.AppRuntimeSetting.Healthcheck.Valid, "omitted healthcheck must be preserved")
+		require.NotNil(t, rt.AppRuntimeSetting.Healthcheck.Healthcheck)
+		require.Equal(t, "/health", rt.AppRuntimeSetting.Healthcheck.Healthcheck.Path)
+
+		// Null removes the healthcheck.
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			Healthcheck: nullable.NewNullNullable[openapi.EnvironmentHealthcheck](),
+		})
+		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.False(t, rt.AppRuntimeSetting.Healthcheck.Valid, "null healthcheck must remove it")
+	})
+
+	t.Run("nullable string fields omit preserves", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+
+		call(t, handler.Request{
+			Project:         env.projectID,
+			App:             env.appID,
+			Environment:     env.environmentID,
+			Dockerfile:      nullable.NewNullableWithValue("Dockerfile.prod"),
+			BuildCommand:    nullable.NewNullableWithValue("pnpm --filter api build"),
+			OpenapiSpecPath: nullable.NewNullableWithValue("/openapi.yaml"),
+		})
+
+		// Touch one unrelated field in each settings group; the nullable fields
+		// above are omitted and must survive the partial update.
+		call(t, handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			AutoDeploy:  ptr(true),
+			Port:        ptr(9090),
+		})
+
+		build, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.True(t, build.Dockerfile.Valid, "omitted dockerfile must be preserved")
+		require.Equal(t, "Dockerfile.prod", build.Dockerfile.String)
+		require.True(t, build.BuildCommand.Valid, "omitted buildCommand must be preserved")
+		require.Equal(t, "pnpm --filter api build", build.BuildCommand.String)
+
+		rt, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+			AppID: env.appID, EnvironmentID: env.environmentID,
+		})
+		require.NoError(t, err)
+		require.True(t, rt.AppRuntimeSetting.OpenapiSpecPath.Valid, "omitted openapiSpecPath must be preserved")
+		require.Equal(t, "/openapi.yaml", rt.AppRuntimeSetting.OpenapiSpecPath.String)
+	})
+
 	t.Run("runtime settings with healthcheck defaults", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		call(t, handler.Request{
