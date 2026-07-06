@@ -93,15 +93,13 @@ func TestListEnvironmentsSuccessfully(t *testing.T) {
 
 			// Settings are returned inline, same as getEnvironment.
 			// CreateEnvironment seeds default runtime and build settings.
-			require.NotNil(t, e.CpuMillicores)
-			require.Equal(t, 100, *e.CpuMillicores)
-			require.NotNil(t, e.MemoryMib)
-			require.Equal(t, 128, *e.MemoryMib)
-			require.NotNil(t, e.RootDirectory)
-			require.Equal(t, ".", *e.RootDirectory)
-			require.NotNil(t, e.AutoDeploy)
-			require.True(t, *e.AutoDeploy)
-			require.Nil(t, e.BuildCommand, "no build command configured")
+			require.NotNil(t, e.Runtime)
+			require.Equal(t, 100, e.Runtime.CpuMillicores)
+			require.Equal(t, 128, e.Runtime.MemoryMib)
+			require.NotNil(t, e.Build)
+			require.Equal(t, ".", e.Build.RootDirectory)
+			require.True(t, e.Build.AutoDeploy)
+			require.Nil(t, e.Build.BuildCommand, "no build command configured")
 			require.Nil(t, e.Regions, "no regional settings seeded")
 		}
 	})
