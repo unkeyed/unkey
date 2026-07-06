@@ -1,0 +1,157 @@
+post:
+  tags:
+    - deployments
+  summary: List deployments
+  description: |
+    Retrieve a paginated list of deployments within a workspace, newest first.
+
+    Filter by project, app, environment, and lifecycle status. All filters are
+    optional; with none set, every deployment in the workspace is returned.
+    Filters nest: `app` requires `project`, and `environment` requires both
+    `project` and `app`. Results are paginated; when `hasMore` is true, pass the
+    returned `cursor` to fetch the next page.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.read_deployment` (to read deployments in any environment)
+    - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
+  operationId: deployments.listDeployments
+  x-speakeasy-name-override: listDeployments
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsListDeploymentsRequestBody.yaml"
+        examples:
+          workspaceWide:
+            summary: List all deployments
+            description: List the first page of deployments in the workspace
+            value: {}
+          byEnvironment:
+            summary: List an environment's deployments
+            description: Restrict to one environment, providing the full hierarchy
+            value:
+              project: payments-service
+              app: payments-api
+              environment: production
+  responses:
+    "200":
+      description: |
+        Successfully retrieved a paginated list of deployments. Use the pagination cursor for additional results when `hasMore: true`.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsListDeploymentsResponseBody.yaml"
+          examples:
+            deploymentList:
+              summary: Deployment list
+              description: Successfully retrieved a page of deployments
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  - id: dep_1234abcd
+                    status: ready
+                    runtime:
+                      cpuMillicores: 250
+                      memoryMib: 256
+                      storageMib: 0
+                      port: 8080
+                      command: ["node", "server.js"]
+                      shutdownSignal: SIGTERM
+                      upstreamProtocol: http1
+                    createdAt: 1704153600000
+                  - id: dep_5678efgh
+                    status: failed
+                    runtime:
+                      cpuMillicores: 250
+                      memoryMib: 256
+                      storageMib: 0
+                      port: 8080
+                      command: []
+                      shutdownSignal: SIGTERM
+                      upstreamProtocol: http1
+                    createdAt: 1704067200000
+                pagination:
+                  hasMore: false
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            missingParent:
+              summary: Missing parent filter
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: The 'environment' filter requires both 'project' and 'app' to be set.
+                  status: 400
+                  type: validation-error
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.read_deployment`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Forbidden
+                  detail: Your root key requires the 'environment.*.read_deployment' permission to perform this operation
+                  status: 403
+                  type: forbidden
+    "404":
+      description: Not Found - A referenced project, app, or environment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            projectNotFound:
+              summary: Project not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested project does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

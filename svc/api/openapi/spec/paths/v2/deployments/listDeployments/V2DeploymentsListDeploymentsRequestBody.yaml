@@ -1,0 +1,65 @@
+type: object
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Restrict results to a single project, identified by its ID or slug.
+      Required when filtering by `app` or `environment`.
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Restrict results to a single app, identified by its ID or slug.
+      Requires `project` to also be set.
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Restrict results to a single environment, identified by its ID or slug.
+      Requires `project` and `app` to also be set.
+  status:
+    type: array
+    maxItems: 13
+    items:
+      "$ref": "../../../../common/DeploymentStatus.yaml"
+    description: |
+      Restrict results to deployments in any of the given lifecycle statuses.
+      Omit to return deployments in every status.
+    example: ["ready", "failed"]
+  limit:
+    type: integer
+    description: |
+      Maximum number of deployments to return per request.
+      Balance between response size and number of pagination calls needed.
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: |
+      Pagination cursor from a previous response to fetch the next page.
+      Use when `hasMore: true` in the previous response.
+additionalProperties: false
+description: |
+  Filter deployments within a workspace. All filters are optional; with none
+  set, every deployment in the workspace is returned, newest first.
+examples:
+  workspaceWide:
+    summary: List all deployments in the workspace
+    description: List the first page of deployments, newest first
+    value: {}
+  byProject:
+    summary: List a project's deployments
+    description: Restrict to a single project, located by slug
+    value:
+      project: payments-service
+  byEnvironment:
+    summary: List an environment's deployments
+    description: Restrict to one environment, providing the full hierarchy
+    value:
+      project: payments-service
+      app: payments-api
+      environment: production
+  byStatus:
+    summary: List only failed or building deployments
+    description: Filter across the workspace by lifecycle status
+    value:
+      status: ["failed", "building"]

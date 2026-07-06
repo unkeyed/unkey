@@ -1360,6 +1360,46 @@ type V2DeploymentsGetDeploymentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2DeploymentsListDeploymentsRequestBody Filter deployments within a workspace. All filters are optional; with none
+// set, every deployment in the workspace is returned, newest first.
+type V2DeploymentsListDeploymentsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App *ResourceIdentifier `json:"app,omitempty"`
+
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment *ResourceIdentifier `json:"environment,omitempty"`
+
+	// Limit Maximum number of deployments to return per request.
+	// Balance between response size and number of pagination calls needed.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project *ResourceIdentifier `json:"project,omitempty"`
+
+	// Status Restrict results to deployments in any of the given lifecycle statuses.
+	// Omit to return deployments in every status.
+	Status *[]DeploymentStatus `json:"status,omitempty"`
+}
+
+// V2DeploymentsListDeploymentsResponseBody defines model for V2DeploymentsListDeploymentsResponseBody.
+type V2DeploymentsListDeploymentsResponseBody struct {
+	// Data Array of deployments, ordered newest first.
+	Data []Deployment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
 type V2EnvironmentsGetEnvironmentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -3463,6 +3503,9 @@ type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentR
 
 // DeploymentsGetDeploymentJSONRequestBody defines body for DeploymentsGetDeployment for application/json ContentType.
 type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequestBody
+
+// DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
+type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody
