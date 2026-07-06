@@ -3,7 +3,8 @@ import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 
-export const MAX_PERMS_FETCH_LIMIT = 100;
+// No need to fetch more than 10 items, because combobox allows seeing 6 items at a time so even if users scroll 10 items are more than enough.
+export const MAX_PERMS_FETCH_LIMIT = 10;
 export const useFetchPermissions = (limit = MAX_PERMS_FETCH_LIMIT) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     trpc.key.update.rbac.permissions.query.useInfiniteQuery(
