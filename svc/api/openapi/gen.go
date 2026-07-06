@@ -205,6 +205,9 @@ type Environment struct {
 	// Omitted until the environment has runtime settings.
 	Runtime *EnvironmentRuntime `json:"runtime,omitempty"`
 
+	// Slug Human-readable slug of the environment, unique within its app.
+	Slug string `json:"slug"`
+
 	// UpdatedAt Unix timestamp in milliseconds when the environment was last updated.
 	// Omitted if the environment has never been updated.
 	UpdatedAt int64 `json:"updatedAt,omitempty"`

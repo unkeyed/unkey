@@ -79,6 +79,7 @@ func TestGetEnvironment(t *testing.T) {
 				require.NotEmpty(t, res.Body.Meta.RequestId)
 				require.Equal(t, environment.ID, res.Body.Data.Id)
 				require.True(t, strings.HasPrefix(res.Body.Data.Id, "env_"), "id should have env_ prefix: %s", res.Body.Data.Id)
+				require.Equal(t, "production", res.Body.Data.Slug)
 				require.Equal(t, "Production environment", res.Body.Data.Description)
 				require.False(t, res.Body.Data.DeleteProtection)
 				require.Greater(t, res.Body.Data.CreatedAt, int64(0))

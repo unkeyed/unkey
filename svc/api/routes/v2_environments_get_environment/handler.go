@@ -87,6 +87,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	data := openapi.Environment{
 		Id:               environment.ID,
+		Slug:             environment.Slug,
 		Description:      environment.Description,
 		DeleteProtection: environment.DeleteProtection.Bool,
 		CreatedAt:        environment.CreatedAt,
