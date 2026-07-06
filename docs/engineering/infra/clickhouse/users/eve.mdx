@@ -1,0 +1,28 @@
+---
+title: eve
+description: Read-only analytics user for ad-hoc data exploration
+---
+
+Human exploration user. Gets read access to the analytics tables but not the
+raw request/response streams.
+
+Uses a direct `GRANT SELECT ON default.*` plus targeted `REVOKE`s instead of
+`readonly_role` because the role grants every table in `default`, including the
+raw tables that store request and response bodies, headers, IP addresses, and
+free-form logs. Those can contain customer PII and secrets (for example
+`Authorization` headers or API keys in request bodies), which an exploration
+user has no reason to read. The direct-grant-then-revoke shape still auto-picks
+up new rollup tables while keeping the four raw streams out.
+
+```sql
+CREATE USER IF NOT EXISTS eve IDENTIFIED WITH sha256_password BY '<password>';
+
+-- Read access to the default database.
+GRANT SELECT ON default.* TO eve;
+
+-- Exclude the raw streams that carry bodies / headers / IPs / free-form logs.
+REVOKE SELECT ON default.api_requests_raw_v2      FROM eve;  -- request/response bodies, headers, IP, UA
+REVOKE SELECT ON default.frontline_requests_raw_v1 FROM eve;  -- request/response bodies, headers, IP, UA
+REVOKE SELECT ON default.runtime_logs_raw_v1      FROM eve;  -- free-form app log messages + attributes
+REVOKE SELECT ON default.audit_logs_raw_v1        FROM eve;  -- actor / target / meta JSON
+```

@@ -75,8 +75,23 @@ type KeyAuth struct {
 	//
 	// Limits: maximum 1000 characters, maximum 100 permission terms.
 	PermissionQuery *string `protobuf:"bytes,5,opt,name=permission_query,json=permissionQuery,proto3,oneof" json:"permission_query,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Rate limits to enforce on the verified key, mirroring the `ratelimits`
+	// field of Unkey's verifyKey API. Each entry references a rate limit by
+	// name, matching how the API behaves when verifying a key directly.
+	//
+	// This is in addition to any auto-applied limits configured on the key or
+	// its identity, which are always enforced. Use this field to enforce named
+	// limits that are not auto-applied, or to override the limit, window, or
+	// cost of a limit for this route. If a named limit does not exist on the
+	// key (and there is no inline limit/duration override), the request is
+	// rejected.
+	//
+	// Example: to enforce the "expensive" limit defined on keys in this key
+	// space for the route this policy matches, add a single entry with
+	// name "expensive".
+	Ratelimits    []*KeyRatelimit `protobuf:"bytes,6,rep,name=ratelimits,proto3" json:"ratelimits,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *KeyAuth) Reset() {
@@ -130,6 +145,99 @@ func (x *KeyAuth) GetPermissionQuery() string {
 	return ""
 }
 
+func (x *KeyAuth) GetRatelimits() []*KeyRatelimit {
+	if x != nil {
+		return x.Ratelimits
+	}
+	return nil
+}
+
+// KeyRatelimit selects a rate limit to enforce on the verified key. It mirrors
+// the per-request `ratelimits` entries accepted by Unkey's verifyKey API so
+// that gateway-enforced limits behave identically to application-enforced ones.
+type KeyRatelimit struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// References an existing rate limit configured on the key (or its identity)
+	// by name. Key rate limits take precedence over identity rate limits with
+	// the same name. Required.
+	//
+	// If the named limit does not exist on the key and no inline limit and
+	// duration are provided below, the request is rejected.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Optional override for the maximum number of requests allowed within the
+	// window. When set together with duration, defines an inline limit that
+	// does not need to exist on the key. When unset, the limit configured on
+	// the key is used.
+	Limit *int64 `protobuf:"varint,2,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
+	// Optional override for the window duration in milliseconds. When set
+	// together with limit, defines an inline limit that does not need to exist
+	// on the key. When unset, the duration configured on the key is used.
+	Duration *int64 `protobuf:"varint,3,opt,name=duration,proto3,oneof" json:"duration,omitempty"`
+	// Optional override for how many tokens this request consumes from the
+	// limit. Defaults to 1 when unset.
+	Cost          *int64 `protobuf:"varint,4,opt,name=cost,proto3,oneof" json:"cost,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyRatelimit) Reset() {
+	*x = KeyRatelimit{}
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyRatelimit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyRatelimit) ProtoMessage() {}
+
+func (x *KeyRatelimit) ProtoReflect() protoreflect.Message {
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyRatelimit.ProtoReflect.Descriptor instead.
+func (*KeyRatelimit) Descriptor() ([]byte, []int) {
+	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *KeyRatelimit) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *KeyRatelimit) GetLimit() int64 {
+	if x != nil && x.Limit != nil {
+		return *x.Limit
+	}
+	return 0
+}
+
+func (x *KeyRatelimit) GetDuration() int64 {
+	if x != nil && x.Duration != nil {
+		return *x.Duration
+	}
+	return 0
+}
+
+func (x *KeyRatelimit) GetCost() int64 {
+	if x != nil && x.Cost != nil {
+		return *x.Cost
+	}
+	return 0
+}
+
 // KeyLocation specifies where in the HTTP request to look for an API key.
 // Multiple locations can be configured on a [KeyAuth] policy to support
 // different client conventions. Frontline tries each location in order and
@@ -148,7 +256,7 @@ type KeyLocation struct {
 
 func (x *KeyLocation) Reset() {
 	*x = KeyLocation{}
-	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[1]
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -160,7 +268,7 @@ func (x *KeyLocation) String() string {
 func (*KeyLocation) ProtoMessage() {}
 
 func (x *KeyLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[1]
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -173,7 +281,7 @@ func (x *KeyLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyLocation.ProtoReflect.Descriptor instead.
 func (*KeyLocation) Descriptor() ([]byte, []int) {
-	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{1}
+	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *KeyLocation) GetLocation() isKeyLocation_Location {
@@ -251,7 +359,7 @@ type BearerTokenLocation struct {
 
 func (x *BearerTokenLocation) Reset() {
 	*x = BearerTokenLocation{}
-	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[2]
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -263,7 +371,7 @@ func (x *BearerTokenLocation) String() string {
 func (*BearerTokenLocation) ProtoMessage() {}
 
 func (x *BearerTokenLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[2]
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -276,7 +384,7 @@ func (x *BearerTokenLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BearerTokenLocation.ProtoReflect.Descriptor instead.
 func (*BearerTokenLocation) Descriptor() ([]byte, []int) {
-	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{2}
+	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{3}
 }
 
 // HeaderKeyLocation extracts the API key from a named request header. This
@@ -298,7 +406,7 @@ type HeaderKeyLocation struct {
 
 func (x *HeaderKeyLocation) Reset() {
 	*x = HeaderKeyLocation{}
-	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[3]
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +418,7 @@ func (x *HeaderKeyLocation) String() string {
 func (*HeaderKeyLocation) ProtoMessage() {}
 
 func (x *HeaderKeyLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[3]
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +431,7 @@ func (x *HeaderKeyLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeaderKeyLocation.ProtoReflect.Descriptor instead.
 func (*HeaderKeyLocation) Descriptor() ([]byte, []int) {
-	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{3}
+	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *HeaderKeyLocation) GetName() string {
@@ -351,7 +459,7 @@ type QueryParamKeyLocation struct {
 
 func (x *QueryParamKeyLocation) Reset() {
 	*x = QueryParamKeyLocation{}
-	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[4]
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -363,7 +471,7 @@ func (x *QueryParamKeyLocation) String() string {
 func (*QueryParamKeyLocation) ProtoMessage() {}
 
 func (x *QueryParamKeyLocation) ProtoReflect() protoreflect.Message {
-	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[4]
+	mi := &file_frontline_policies_v1_keyauth_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -376,7 +484,7 @@ func (x *QueryParamKeyLocation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryParamKeyLocation.ProtoReflect.Descriptor instead.
 func (*QueryParamKeyLocation) Descriptor() ([]byte, []int) {
-	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{4}
+	return file_frontline_policies_v1_keyauth_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *QueryParamKeyLocation) GetName() string {
@@ -390,12 +498,23 @@ var File_frontline_policies_v1_keyauth_proto protoreflect.FileDescriptor
 
 const file_frontline_policies_v1_keyauth_proto_rawDesc = "" +
 	"\n" +
-	"#frontline/policies/v1/keyauth.proto\x12\ffrontline.v1\"\xab\x01\n" +
+	"#frontline/policies/v1/keyauth.proto\x12\ffrontline.v1\"\xe7\x01\n" +
 	"\aKeyAuth\x12\"\n" +
 	"\rkey_space_ids\x18\x01 \x03(\tR\vkeySpaceIds\x127\n" +
 	"\tlocations\x18\x02 \x03(\v2\x19.frontline.v1.KeyLocationR\tlocations\x12.\n" +
-	"\x10permission_query\x18\x05 \x01(\tH\x00R\x0fpermissionQuery\x88\x01\x01B\x13\n" +
-	"\x11_permission_query\"\xd9\x01\n" +
+	"\x10permission_query\x18\x05 \x01(\tH\x00R\x0fpermissionQuery\x88\x01\x01\x12:\n" +
+	"\n" +
+	"ratelimits\x18\x06 \x03(\v2\x1a.frontline.v1.KeyRatelimitR\n" +
+	"ratelimitsB\x13\n" +
+	"\x11_permission_query\"\x97\x01\n" +
+	"\fKeyRatelimit\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
+	"\x05limit\x18\x02 \x01(\x03H\x00R\x05limit\x88\x01\x01\x12\x1f\n" +
+	"\bduration\x18\x03 \x01(\x03H\x01R\bduration\x88\x01\x01\x12\x17\n" +
+	"\x04cost\x18\x04 \x01(\x03H\x02R\x04cost\x88\x01\x01B\b\n" +
+	"\x06_limitB\v\n" +
+	"\t_durationB\a\n" +
+	"\x05_cost\"\xd9\x01\n" +
 	"\vKeyLocation\x12;\n" +
 	"\x06bearer\x18\x01 \x01(\v2!.frontline.v1.BearerTokenLocationH\x00R\x06bearer\x129\n" +
 	"\x06header\x18\x02 \x01(\v2\x1f.frontline.v1.HeaderKeyLocationH\x00R\x06header\x12F\n" +
@@ -423,24 +542,26 @@ func file_frontline_policies_v1_keyauth_proto_rawDescGZIP() []byte {
 	return file_frontline_policies_v1_keyauth_proto_rawDescData
 }
 
-var file_frontline_policies_v1_keyauth_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_frontline_policies_v1_keyauth_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_frontline_policies_v1_keyauth_proto_goTypes = []any{
 	(*KeyAuth)(nil),               // 0: frontline.v1.KeyAuth
-	(*KeyLocation)(nil),           // 1: frontline.v1.KeyLocation
-	(*BearerTokenLocation)(nil),   // 2: frontline.v1.BearerTokenLocation
-	(*HeaderKeyLocation)(nil),     // 3: frontline.v1.HeaderKeyLocation
-	(*QueryParamKeyLocation)(nil), // 4: frontline.v1.QueryParamKeyLocation
+	(*KeyRatelimit)(nil),          // 1: frontline.v1.KeyRatelimit
+	(*KeyLocation)(nil),           // 2: frontline.v1.KeyLocation
+	(*BearerTokenLocation)(nil),   // 3: frontline.v1.BearerTokenLocation
+	(*HeaderKeyLocation)(nil),     // 4: frontline.v1.HeaderKeyLocation
+	(*QueryParamKeyLocation)(nil), // 5: frontline.v1.QueryParamKeyLocation
 }
 var file_frontline_policies_v1_keyauth_proto_depIdxs = []int32{
-	1, // 0: frontline.v1.KeyAuth.locations:type_name -> frontline.v1.KeyLocation
-	2, // 1: frontline.v1.KeyLocation.bearer:type_name -> frontline.v1.BearerTokenLocation
-	3, // 2: frontline.v1.KeyLocation.header:type_name -> frontline.v1.HeaderKeyLocation
-	4, // 3: frontline.v1.KeyLocation.query_param:type_name -> frontline.v1.QueryParamKeyLocation
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	2, // 0: frontline.v1.KeyAuth.locations:type_name -> frontline.v1.KeyLocation
+	1, // 1: frontline.v1.KeyAuth.ratelimits:type_name -> frontline.v1.KeyRatelimit
+	3, // 2: frontline.v1.KeyLocation.bearer:type_name -> frontline.v1.BearerTokenLocation
+	4, // 3: frontline.v1.KeyLocation.header:type_name -> frontline.v1.HeaderKeyLocation
+	5, // 4: frontline.v1.KeyLocation.query_param:type_name -> frontline.v1.QueryParamKeyLocation
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_frontline_policies_v1_keyauth_proto_init() }
@@ -449,7 +570,8 @@ func file_frontline_policies_v1_keyauth_proto_init() {
 		return
 	}
 	file_frontline_policies_v1_keyauth_proto_msgTypes[0].OneofWrappers = []any{}
-	file_frontline_policies_v1_keyauth_proto_msgTypes[1].OneofWrappers = []any{
+	file_frontline_policies_v1_keyauth_proto_msgTypes[1].OneofWrappers = []any{}
+	file_frontline_policies_v1_keyauth_proto_msgTypes[2].OneofWrappers = []any{
 		(*KeyLocation_Bearer)(nil),
 		(*KeyLocation_Header)(nil),
 		(*KeyLocation_QueryParam)(nil),
@@ -460,7 +582,7 @@ func file_frontline_policies_v1_keyauth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_frontline_policies_v1_keyauth_proto_rawDesc), len(file_frontline_policies_v1_keyauth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

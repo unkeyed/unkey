@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package hydra.v1;
 
+import "ctrl/v1/actor.proto";
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
@@ -16,6 +17,15 @@ service EnvironmentService {
   rpc Delete(DeleteEnvironmentRequest) returns (DeleteEnvironmentResponse) {}
 }
 
-message DeleteEnvironmentRequest {}
+// DeleteEnvironmentRequest carries the caller identity and correlation ID into
+// the durable workflow so the environment.delete audit log is written as part
+// of the retried deletion unit. Environment deletes are cascade-only (no direct
+// RPC), so these always arrive from a parent app or project teardown.
+message DeleteEnvironmentRequest {
+  ctrl.v1.ActorInfo actor = 1;
+  // correlation_id groups this deletion with the parent teardown's other audit
+  // events. Threaded down from the app/project workflow.
+  string correlation_id = 2;
+}
 
 message DeleteEnvironmentResponse {}

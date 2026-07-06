@@ -11,10 +11,10 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // ScrapeSpec fetches the OpenAPI spec from a running deployment and persists it
@@ -28,7 +28,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	deploymentID := req.GetDeploymentId()
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(runCtx, s.db.RO(), deploymentID)
+		return s.db.FindDeploymentById(runCtx, deploymentID)
 	}, restate.WithName("find deployment"))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -41,7 +41,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	}
 
 	settings, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppRuntimeSettingsByAppAndEnvRow, error) {
-		return db.Query.FindAppRuntimeSettingsByAppAndEnv(runCtx, s.db.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
+		return s.db.FindAppRuntimeSettingsByAppAndEnv(runCtx, db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
 		})
@@ -61,7 +61,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	specPath := settings.AppRuntimeSetting.OpenapiSpecPath.String
 
 	route, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FrontlineRoute, error) {
-		return db.Query.FindFrontlineRouteByDeploymentIDAndSticky(runCtx, s.db.RO(), db.FindFrontlineRouteByDeploymentIDAndStickyParams{
+		return s.db.FindFrontlineRouteByDeploymentIDAndSticky(runCtx, db.FindFrontlineRouteByDeploymentIDAndStickyParams{
 			DeploymentID: deploymentID,
 			Sticky:       db.FrontlineRoutesStickyDeployment,
 		})
@@ -87,7 +87,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	var baseURL *url.URL
 	if isLocal {
 		instances, instErr := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Instance, error) {
-			return db.Query.FindInstancesByDeploymentId(runCtx, s.db.RO(), deploymentID)
+			return s.db.FindInstancesByDeploymentId(runCtx, deploymentID)
 		}, restate.WithName("find instances"))
 		if instErr != nil {
 			return nil, fault.Wrap(instErr, fault.Public("Failed to find instances."))
@@ -156,7 +156,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.UpsertOpenApiSpec(runCtx, s.db.RW(), db.UpsertOpenApiSpecParams{
+		return s.db.UpsertOpenApiSpec(runCtx, db.UpsertOpenApiSpecParams{
 			ID:             uid.New(uid.OpenApiSpecPrefix),
 			PortalConfigID: sql.NullString{Valid: false},
 			WorkspaceID:    deployment.WorkspaceID,

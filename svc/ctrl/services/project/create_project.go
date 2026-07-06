@@ -10,11 +10,11 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // CreateProject creates an empty project. Apps and their environments are
@@ -41,7 +41,7 @@ func (s *Service) CreateProject(
 	// Authoritative entitlement gate: CLI, API, and git-triggered deploys skip
 	// the dashboard, so creation is enforced here, not just in the UI. Observe
 	// mode (the default) logs would-block instead of failing.
-	entitlement, err := db.Query.FindWorkspaceDeployEntitlement(ctx, s.db.RO(), workspaceID)
+	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, workspaceID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("workspace %q not found", workspaceID))
@@ -65,7 +65,7 @@ func (s *Service) CreateProject(
 	now := time.Now().UnixMilli()
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.Query.InsertProject(txCtx, tx, db.InsertProjectParams{
+		if txErr := db.NewQueries(tx).InsertProject(txCtx, db.InsertProjectParams{
 			ID:               projectID,
 			WorkspaceID:      workspaceID,
 			Name:             req.Msg.GetName(),

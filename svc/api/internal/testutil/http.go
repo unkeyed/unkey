@@ -467,12 +467,13 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Default",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:               uid.New(uid.AppPrefix),
+		WorkspaceID:      workspace.ID,
+		ProjectID:        project.ID,
+		Name:             "Default",
+		Slug:             "default",
+		DefaultBranch:    "main",
+		DeleteProtection: false,
 	})
 
 	var environment db.Environment
