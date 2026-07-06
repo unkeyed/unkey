@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "v2_billing_list_plans",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_billing_list_plans",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/billing",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/ptr",
+        "//pkg/rbac",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "v2_billing_list_plans_test",
+    srcs = ["200_test.go"],
+    deps = [
+        ":v2_billing_list_plans",
+        "//internal/services/billing",
+        "//pkg/db",
+        "//pkg/ratecard",
+        "//pkg/uid",
+        "//svc/api/internal/testutil",
+        "//svc/api/internal/testutil/seed",
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -17,10 +17,12 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/billing"
 	cachesvc "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/svc/api/internal/stripeconnect"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -160,7 +162,7 @@ func Run(ctx context.Context, cfg Config) error {
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	apiRequests := batch.NewNoop[schema.ApiRequest]()
 	keyVerifications := batch.NewNoop[schema.KeyVerification]()
-	ratelimits := batch.NewNoop[schema.Ratelimit]()
+	ratelimits := batch.NewNoop[schema.RatelimitV3]()
 
 	if cfg.ClickHouse.URL != "" {
 		chClient, chErr := clickhouse.New(clickhouse.Config{
@@ -189,7 +191,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+		ratelimits = clickhouse.NewBuffer[schema.RatelimitV3](chClient, "default.ratelimits_raw_v3", clickhouse.BufferConfig{
 			Name:          "ratelimits",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -441,24 +443,26 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:             database,
-		ClickHouse:           ch,
-		ApiRequests:          apiRequests,
-		RatelimitEvents:      ratelimits,
-		KeyVerifications:     keyVerifications,
-		Keys:                 keySvc,
-		Auth:                 authSvc,
-		Validator:            validator,
-		Ratelimit:            rlSvc,
-		Auditlogs:            auditlogSvc,
-		Caches:               caches,
-		Vault:                vaultClient,
-		CtrlDeploymentClient: ctrlDeploymentClient,
-		CtrlProjectClient:    ctrlProjectClient,
-		CtrlAppClient:        ctrlAppClient,
-		PprofEnabled:         pprofEnabled,
-		PprofUsername:        pprofUsername,
-		PprofPassword:        pprofPassword,
+		Database:              database,
+		ClickHouse:            ch,
+		ApiRequests:           apiRequests,
+		RatelimitEvents:       ratelimits,
+		KeyVerifications:      keyVerifications,
+		Keys:                  keySvc,
+		Auth:                  authSvc,
+		Validator:             validator,
+		Ratelimit:             rlSvc,
+		Auditlogs:             auditlogSvc,
+		BillingResolver:       billing.NewResolver(database),
+		StripeConnectVerifier: newStripeConnectVerifier(cfg.StripeSecretKey),
+		Caches:                caches,
+		Vault:                 vaultClient,
+		CtrlDeploymentClient:  ctrlDeploymentClient,
+		CtrlProjectClient:     ctrlProjectClient,
+		CtrlAppClient:         ctrlAppClient,
+		PprofEnabled:          pprofEnabled,
+		PprofUsername:         pprofUsername,
+		PprofPassword:         pprofPassword,
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
@@ -495,4 +499,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("API server shut down successfully")
 	return nil
+}
+
+// newStripeConnectVerifier returns the real verifier when a platform Stripe
+// key is configured, else a fail-closed disabled verifier.
+func newStripeConnectVerifier(secretKey string) stripeconnect.Verifier {
+	if secretKey == "" {
+		return stripeconnect.NewDisabledVerifier()
+	}
+	return stripeconnect.NewStripeVerifier(secretKey)
 }

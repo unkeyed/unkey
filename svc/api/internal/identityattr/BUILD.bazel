@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "identityattr",
+    srcs = ["identityattr.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/internal/identityattr",
+    visibility = ["//svc/api:__subpackages__"],
+    deps = [
+        "//internal/services/caches",
+        "//pkg/cache",
+        "//pkg/db",
+    ],
+)

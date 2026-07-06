@@ -5,9 +5,11 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/billing"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/svc/api/internal/stripeconnect"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auth"
@@ -41,8 +43,9 @@ type Services struct {
 	// ApiRequests buffers API request events for ClickHouse.
 	ApiRequests *batch.BatchProcessor[schema.ApiRequest]
 
-	// RatelimitEvents buffers ratelimit events for ClickHouse.
-	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
+	// RatelimitEvents buffers ratelimit events for ClickHouse. v3 carries
+	// end-user identity attribution resolved at check time.
+	RatelimitEvents *batch.BatchProcessor[schema.RatelimitV3]
 
 	// KeyVerifications buffers key verification outcomes for ClickHouse. Owned
 	// by the v2 keys.verifyKey handler.
@@ -56,6 +59,14 @@ type Services struct {
 
 	// Auditlogs records security-relevant events for compliance and debugging.
 	Auditlogs auditlogs.AuditLogService
+
+	// BillingResolver resolves the rate card in force for an end-user
+	// identity and period, shared by the billing export routes.
+	BillingResolver *billing.Resolver
+
+	// StripeConnectVerifier proves control of a connected account before the
+	// link route persists it. Disabled verifier when no platform key is set.
+	StripeConnectVerifier stripeconnect.Verifier
 
 	// Caches holds various cache instances for performance optimization,
 	// including API metadata, key data, and rate limit namespace caches.

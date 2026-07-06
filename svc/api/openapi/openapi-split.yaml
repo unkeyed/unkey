@@ -100,6 +100,8 @@ security:
 tags:
   - name: analytics
     description: Analytics query operations
+  - name: billing
+    description: End-user billing operations
   - name: apis
     description: API management operations
   - name: apps
@@ -127,6 +129,20 @@ paths:
   # Analytics Endpoints
   /v2/analytics.getVerifications:
     $ref: "./spec/paths/v2/analytics/getVerifications/index.yaml"
+
+  # Billing Endpoints
+  /v2/billing.getUsage:
+    $ref: "./spec/paths/v2/billing/getUsage/index.yaml"
+  /v2/billing.getInvoiceDraft:
+    $ref: "./spec/paths/v2/billing/getInvoiceDraft/index.yaml"
+  /v2/billing.listPlans:
+    $ref: "./spec/paths/v2/billing/listPlans/index.yaml"
+  /v2/billing.selectPlan:
+    $ref: "./spec/paths/v2/billing/selectPlan/index.yaml"
+  /v2/billing.linkStripeConnect:
+    $ref: "./spec/paths/v2/billing/linkStripeConnect/index.yaml"
+  /v2/billing.unlinkStripeConnect:
+    $ref: "./spec/paths/v2/billing/unlinkStripeConnect/index.yaml"
 
   # API Endpoints
   /v2/apis.createApi:

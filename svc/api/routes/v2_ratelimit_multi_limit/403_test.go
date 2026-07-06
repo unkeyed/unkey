@@ -34,6 +34,7 @@ func TestWorkspacePermissions(t *testing.T) {
 		Ratelimit:      h.Ratelimit,
 		DB:             h.DB,
 		NamespaceCache: h.Caches.RatelimitNamespace,
+		IdentityCache:  h.Caches.IdentityByExternalID,
 		Auditlogs:      h.Auditlogs,
 	}
 
@@ -73,6 +74,7 @@ func TestInsufficientPermissions(t *testing.T) {
 		Ratelimit:      h.Ratelimit,
 		DB:             h.DB,
 		NamespaceCache: h.Caches.RatelimitNamespace,
+		IdentityCache:  h.Caches.IdentityByExternalID,
 		Auditlogs:      h.Auditlogs,
 	}
 

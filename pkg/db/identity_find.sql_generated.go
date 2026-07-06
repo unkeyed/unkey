@@ -12,7 +12,7 @@ import (
 
 const findIdentity = `-- name: FindIdentity :one
 SELECT
-    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.billing_provider, i.billing_external_customer_id, i.rate_card_id, i.selected_rate_card_id, i.created_at, i.updated_at,
     COALESCE(
         (SELECT JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -50,22 +50,26 @@ type FindIdentityParams struct {
 }
 
 type FindIdentityRow struct {
-	Pk          uint64        `db:"pk"`
-	ID          string        `db:"id"`
-	ExternalID  string        `db:"external_id"`
-	WorkspaceID string        `db:"workspace_id"`
-	Environment string        `db:"environment"`
-	Meta        []byte        `db:"meta"`
-	Deleted     bool          `db:"deleted"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
-	Ratelimits  interface{}   `db:"ratelimits"`
+	Pk                        uint64                    `db:"pk"`
+	ID                        string                    `db:"id"`
+	ExternalID                string                    `db:"external_id"`
+	WorkspaceID               string                    `db:"workspace_id"`
+	Environment               string                    `db:"environment"`
+	Meta                      []byte                    `db:"meta"`
+	Deleted                   bool                      `db:"deleted"`
+	BillingProvider           IdentitiesBillingProvider `db:"billing_provider"`
+	BillingExternalCustomerID sql.NullString            `db:"billing_external_customer_id"`
+	RateCardID                sql.NullString            `db:"rate_card_id"`
+	SelectedRateCardID        sql.NullString            `db:"selected_rate_card_id"`
+	CreatedAt                 int64                     `db:"created_at"`
+	UpdatedAt                 sql.NullInt64             `db:"updated_at"`
+	Ratelimits                interface{}               `db:"ratelimits"`
 }
 
 // FindIdentity
 //
 //	SELECT
-//	    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+//	    i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.billing_provider, i.billing_external_customer_id, i.rate_card_id, i.selected_rate_card_id, i.created_at, i.updated_at,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
 //	            JSON_OBJECT(
@@ -112,6 +116,10 @@ func (q *Queries) FindIdentity(ctx context.Context, db DBTX, arg FindIdentityPar
 		&i.Environment,
 		&i.Meta,
 		&i.Deleted,
+		&i.BillingProvider,
+		&i.BillingExternalCustomerID,
+		&i.RateCardID,
+		&i.SelectedRateCardID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Ratelimits,

@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "billing",
+    srcs = [
+        "billable_resources.go",
+        "resolver.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/billing",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/ratecard",
+        "//pkg/uid",
+    ],
+)
+
+go_test(
+    name = "billing_test",
+    srcs = ["resolver_test.go"],
+    embed = [":billing"],
+    deps = [
+        "//pkg/db",
+        "//pkg/ratecard",
+        "//pkg/testutil/containers",
+        "//pkg/uid",
+        "@com_github_stretchr_testify//require",
+    ],
+)

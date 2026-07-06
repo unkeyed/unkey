@@ -90,6 +90,7 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsRatelimitNamespaceNotFound,
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
+				codes.UnkeyDataErrorsRateCardNotFound,
 				codes.UnkeyDataErrorsAuditLogNotFound,
 				codes.UnkeyDataErrorsPortalConfigNotFound:
 				return s.ProblemJSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
@@ -106,6 +107,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Bad Request errors - General validation
 			case codes.UnkeyAppErrorsValidationInvalidInput,
+				codes.UnkeyDataErrorsRateCardNotSelectable,
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,

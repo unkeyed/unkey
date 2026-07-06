@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    type: object
+    required:
+      - rateCardId
+    properties:
+      rateCardId:
+        type: string
+        description: The recorded selection.
+    additionalProperties: false

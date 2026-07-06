@@ -1,0 +1,42 @@
+post:
+  tags:
+    - billing
+  security:
+    - rootKey: []
+  x-speakeasy-name-override: unlinkStripeConnect
+  operationId: billing.unlinkStripeConnect
+  summary: Unlink the workspace's Stripe connected account
+  description: |
+    Deletes the stored connected-account reference; the period-close push
+    skips the workspace afterwards. Recorded billing periods are unaffected.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2BillingUnlinkStripeConnectRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2BillingUnlinkStripeConnectResponseBody.yaml"
+      description: Account unlinked
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid authentication
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Unlinking failed

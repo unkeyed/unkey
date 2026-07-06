@@ -25,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/identityattr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -36,9 +37,10 @@ type (
 // Handler implements zen.Route interface for the v2 ratelimit multiLimit endpoint
 type Handler struct {
 	DB              db.Database
-	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
+	RatelimitEvents *batch.BatchProcessor[schema.RatelimitV3]
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
+	IdentityCache   cache.Cache[cache.ScopedKey, db.Identity]
 	Auditlogs       auditlogs.AuditLogService
 	TestMode        bool
 }
@@ -201,14 +203,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Log to ClickHouse if enabled
 	if s.ShouldLogRequestToClickHouse() {
 		startMillis := start.UnixMilli()
+		// Best-effort end-user attribution per distinct identifier; the cache
+		// makes repeated identifiers within one request cheap.
+		attributed := make(map[string][2]string, len(results))
 		for i, result := range results {
 			meta := checkMetadata[i]
-			h.RatelimitEvents.Buffer(schema.Ratelimit{
+			ids, ok := attributed[meta.identifier]
+			if !ok {
+				identityID, externalID := identityattr.Resolve(ctx, h.IdentityCache, h.DB, principal.WorkspaceID, meta.identifier)
+				ids = [2]string{identityID, externalID}
+				attributed[meta.identifier] = ids
+			}
+			h.RatelimitEvents.Buffer(schema.RatelimitV3{
 				RequestID:   s.RequestID(),
 				WorkspaceID: principal.WorkspaceID,
 				Time:        startMillis,
 				NamespaceID: meta.namespaceID,
 				Identifier:  meta.identifier,
+				IdentityID:  ids[0],
+				ExternalID:  ids[1],
 				Passed:      result.Success,
 				Latency:     float64(latency) / float64(len(results)),
 				OverrideID:  meta.overrideID,

@@ -1,0 +1,9 @@
+type: object
+required:
+  - connectedAccountId
+properties:
+  connectedAccountId:
+    type: string
+    pattern: "^acct_[a-zA-Z0-9]+$"
+    description: The Stripe connected account id (acct_...) from Connect onboarding.
+additionalProperties: false

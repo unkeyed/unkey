@@ -20,6 +20,7 @@ go_library(
         "//pkg/restate/restateutil",
         "//svc/ctrl/internal/billingmeter",
         "//svc/ctrl/internal/db",
+        "//svc/ctrl/worker/cron/enduserbillingpush",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )
@@ -29,6 +30,7 @@ go_test(
     srcs = ["billing_test.go"],
     embed = [":deploybilling"],
     deps = [
+        "//pkg/billingperiod",
         "//pkg/clickhouse",
         "@com_github_stretchr_testify//require",
     ],

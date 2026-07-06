@@ -34,6 +34,10 @@ const (
 
 	// App represents app resources within a project
 	App ResourceType = "app"
+
+	// Billing represents end-user billing resources: rate cards, billable
+	// usage export, invoice drafts, and plan selection.
+	Billing ResourceType = "billing"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -151,6 +155,22 @@ const (
 
 	// RemovePermissionFromRole permits unassigning permissions from roles
 	RemovePermissionFromRole ActionType = "remove_permission_from_role"
+)
+
+// Predefined billing actions. These constants define operations that can be
+// performed on end-user billing resources.
+const (
+	// ReadBilling permits reading per-identity billable usage and invoice
+	// drafts, and listing selectable rate cards.
+	ReadBilling ActionType = "read_billing"
+
+	// UpdateBilling permits recording an end-user's rate-card selection.
+	UpdateBilling ActionType = "update_billing"
+
+	// ManageBilling permits linking and unlinking the workspace's Stripe
+	// Connect account — the reference all money-movement dispatch targets.
+	// Grant it as sparingly as key-encryption permissions.
+	ManageBilling ActionType = "manage_billing"
 )
 
 // Predefined identity actions. These constants define operations that can be

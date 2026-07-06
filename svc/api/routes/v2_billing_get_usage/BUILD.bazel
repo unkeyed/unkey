@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "v2_billing_get_usage",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_billing_get_usage",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/billing",
+        "//pkg/clickhouse",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/ptr",
+        "//pkg/rbac",
+        "//pkg/zen",
+        "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "v2_billing_get_usage_test",
+    srcs = ["200_test.go"],
+    deps = [
+        ":v2_billing_get_usage",
+        "//internal/services/billing",
+        "//pkg/clickhouse/schema",
+        "//pkg/db",
+        "//pkg/uid",
+        "//svc/api/internal/testutil",
+        "//svc/api/internal/testutil/seed",
+        "@com_github_stretchr_testify//require",
+    ],
+)

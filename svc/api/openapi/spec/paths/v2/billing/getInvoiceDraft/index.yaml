@@ -1,0 +1,51 @@
+post:
+  tags:
+    - billing
+  security:
+    - rootKey: []
+  x-speakeasy-name-override: getInvoiceDraft
+  operationId: billing.getInvoiceDraft
+  summary: Get a priced invoice draft per end-user
+  description: |
+    Returns invoice line items per end-user identity for one billing period,
+    with amounts computed from the rate card resolved for each identity
+    (end-user selection, else assignment, else workspace default). The card
+    resolved for a period is recorded on first billing and never re-priced.
+    Post the draft to your own billing provider (Stripe, Paddle, Polar, ...).
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2BillingGetInvoiceDraftRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2BillingGetInvoiceDraftResponseBody.yaml"
+      description: Invoice draft returned successfully
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid period or filter
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid authentication
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Draft computation failed

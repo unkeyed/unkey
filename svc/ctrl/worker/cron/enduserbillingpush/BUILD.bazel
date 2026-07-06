@@ -1,0 +1,38 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "enduserbillingpush",
+    srcs = [
+        "periodclose.go",
+        "vault.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/cron/enduserbillingpush",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//gen/rpc/vault",
+        "//internal/services/billing",
+        "//pkg/assert",
+        "//pkg/clickhouse",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/logger",
+        "//pkg/ratecard",
+        "//svc/ctrl/internal/enduserbilling",
+    ],
+)
+
+go_test(
+    name = "enduserbillingpush_test",
+    srcs = ["periodclose_test.go"],
+    embed = [":enduserbillingpush"],
+    deps = [
+        "//pkg/clickhouse",
+        "//pkg/db",
+        "//pkg/ratecard",
+        "//pkg/testutil/containers",
+        "//pkg/uid",
+        "//svc/ctrl/internal/enduserbilling",
+        "@com_github_stretchr_testify//require",
+    ],
+)

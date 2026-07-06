@@ -3,6 +3,7 @@ package deploybilling
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -14,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/enduserbillingpush"
 )
 
 // Config holds the handler's dependencies.
@@ -30,14 +32,20 @@ type Config struct {
 	// Heartbeat is pinged on successful completion. Must not be nil; use
 	// healthcheck.NewNoop() if monitoring is not configured.
 	Heartbeat healthcheck.Heartbeat
+	// EndUserBilling optionally closes the same billing period for end-user
+	// billing (customers billing their own users via Stripe Connect). Nil
+	// disables the phase. It shares this cron's monthly tick because the
+	// proto toolchain to mint a dedicated CronService RPC is unavailable.
+	EndUserBilling *enduserbillingpush.PeriodClose
 }
 
 // Handler executes RunDeployBillingPush.
 type Handler struct {
-	usage     UsageReader
-	pusher    billingmeter.Pusher
-	db        db.Database
-	heartbeat healthcheck.Heartbeat
+	usage          UsageReader
+	pusher         billingmeter.Pusher
+	db             db.Database
+	heartbeat      healthcheck.Heartbeat
+	endUserBilling *enduserbillingpush.PeriodClose
 }
 
 // New constructs a Handler.
@@ -50,10 +58,11 @@ func New(cfg Config) (*Handler, error) {
 		return nil, err
 	}
 	return &Handler{
-		usage:     cfg.UsageReader,
-		pusher:    cfg.Pusher,
-		db:        cfg.DB,
-		heartbeat: cfg.Heartbeat,
+		usage:          cfg.UsageReader,
+		pusher:         cfg.Pusher,
+		db:             cfg.DB,
+		heartbeat:      cfg.Heartbeat,
+		endUserBilling: cfg.EndUserBilling,
 	}, nil
 }
 
@@ -82,6 +91,20 @@ func (h *Handler) Handle(
 	nowTime, err := restateutil.Now(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get current time: %w", err)
+	}
+
+	// End-user billing phase: independent of Deploy usage, so it runs before
+	// the deploy-usage early return. One journaled step; errors inside a
+	// workspace are collected in the summary, not fatal to the deploy push.
+	//
+	// Unlike the Deploy push (which reports absolute, set-wins meter events for
+	// the open month), end-user billing dispatches ADDITIVE Stripe invoice
+	// items, so it must only ever bill a CLOSED period: it bills the month
+	// before the tick's period, never the open one. runEndUserBilling also
+	// gates on a short settle window and relies on per-identity run-once
+	// markers so the hourly cadence bills each closed period exactly once.
+	if h.endUserBilling != nil {
+		h.runEndUserBilling(ctx, p, nowTime)
 	}
 	// The ClickHouse usage query is bounded in milliseconds; the Stripe meter
 	// event timestamp is unix seconds. Both come from the one journaled "now"
@@ -178,6 +201,63 @@ func (h *Handler) Handle(
 		"meters_pushed", metersPushed,
 	)
 	return &hydrav1.RunDeployBillingPushResponse{}, nil
+}
+
+// endUserBillingSettleDays is how many days into the current month the
+// previous month must have been closed before its end-user usage is billed.
+// It gives late-arriving usage events (timestamped in the closed month but
+// ingested early in the new one) time to settle in ClickHouse before the
+// additive invoice items are cut. The hourly cadence bills the closed month on
+// the first tick past this window; per-identity run-once markers keep every
+// later tick a no-op.
+const endUserBillingSettleDays = 2
+
+// runEndUserBilling closes end-user billing for the month BEFORE p (the most
+// recently closed period), gated on the settle window. Per-workspace failures
+// are collected in the summary rather than failing the step, so one customer's
+// misconfiguration never blocks the Deploy push or another customer's billing;
+// a non-empty summary is surfaced at Warn.
+// closedPeriodToBill returns the closed month that end-user billing should
+// bill for the tick's (open) period p, and whether the settle window has
+// elapsed. The billed month is always p's predecessor (closed, usage final);
+// ready is false until the current month is at least endUserBillingSettleDays
+// old, giving late-arriving usage time to settle before the additive invoice
+// items are cut. Pure so it can be tested without a restate context.
+func closedPeriodToBill(p billingperiod.Period, nowTime time.Time) (year, month int, ready bool) {
+	closed := p.Start().AddDate(0, -1, 0)
+	return closed.Year(), int(closed.Month()), nowTime.Day() >= endUserBillingSettleDays
+}
+
+func (h *Handler) runEndUserBilling(ctx restate.ObjectContext, p billingperiod.Period, nowTime time.Time) {
+	year, month, ready := closedPeriodToBill(p, nowTime)
+	if !ready {
+		logger.Info("end-user billing deferred until closed period settles",
+			"closed_year", year, "closed_month", month, "day_of_month", nowTime.Day(),
+		)
+		return
+	}
+
+	euSummary, euErr := restate.Run(ctx, func(rc restate.RunContext) (enduserbillingpush.Summary, error) {
+		return h.endUserBilling.Run(rc, year, month)
+	}, restate.WithName("end-user billing period close"))
+	if euErr != nil {
+		// A hard failure (e.g. listing connected workspaces) is logged, not
+		// propagated: the Deploy push must still run. The step is journaled, so
+		// the next tick retries the closed period, and run-once markers keep it
+		// safe.
+		logger.Error("end-user billing period close failed",
+			"closed_year", year, "closed_month", month, "error", euErr.Error(),
+		)
+		return
+	}
+	if len(euSummary.Errors) > 0 {
+		logger.Warn("end-user billing period close completed with per-workspace failures",
+			"closed_year", year, "closed_month", month,
+			"workspaces", euSummary.Workspaces,
+			"records_pushed", euSummary.RecordsPushed,
+			"failures", len(euSummary.Errors),
+		)
+	}
 }
 
 // pingHeartbeat reports a successful run to the monitoring heartbeat.

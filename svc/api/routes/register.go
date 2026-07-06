@@ -57,6 +57,12 @@ import (
 	v2KeysWhoami "github.com/unkeyed/unkey/svc/api/routes/v2_keys_whoami"
 
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
+	v2BillingGetInvoiceDraft "github.com/unkeyed/unkey/svc/api/routes/v2_billing_get_invoice_draft"
+	v2BillingGetUsage "github.com/unkeyed/unkey/svc/api/routes/v2_billing_get_usage"
+	v2BillingLinkStripeConnect "github.com/unkeyed/unkey/svc/api/routes/v2_billing_link_stripe_connect"
+	v2BillingListPlans "github.com/unkeyed/unkey/svc/api/routes/v2_billing_list_plans"
+	v2BillingSelectPlan "github.com/unkeyed/unkey/svc/api/routes/v2_billing_select_plan"
+	v2BillingUnlinkStripeConnect "github.com/unkeyed/unkey/svc/api/routes/v2_billing_unlink_stripe_connect"
 
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
@@ -153,6 +159,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			RatelimitEvents: svc.RatelimitEvents,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
+			IdentityCache:   svc.Caches.IdentityByExternalID,
 			Auditlogs:       svc.Auditlogs,
 			TestMode:        srv.Flags().TestMode,
 		},
@@ -166,6 +173,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			RatelimitEvents: svc.RatelimitEvents,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
+			IdentityCache:   svc.Caches.IdentityByExternalID,
 			Auditlogs:       svc.Auditlogs,
 			TestMode:        srv.Flags().TestMode,
 		},
@@ -582,6 +590,62 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 			Caches:                     svc.Caches,
+		},
+	)
+
+	// ---------------------------------------------------------------------------
+	// v2/billing
+
+	// v2/billing.getUsage
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2BillingGetUsage.Handler{
+			ClickHouse: svc.ClickHouse,
+			Resolver:   svc.BillingResolver,
+		},
+	)
+
+	// v2/billing.getInvoiceDraft
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2BillingGetInvoiceDraft.Handler{
+			ClickHouse: svc.ClickHouse,
+			Resolver:   svc.BillingResolver,
+		},
+	)
+
+	// v2/billing.listPlans
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2BillingListPlans.Handler{
+			DB:       svc.Database,
+			Resolver: svc.BillingResolver,
+		},
+	)
+
+	// v2/billing.selectPlan
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2BillingSelectPlan.Handler{
+			DB: svc.Database,
+		},
+	)
+
+	// v2/billing.linkStripeConnect
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2BillingLinkStripeConnect.Handler{
+			DB:       svc.Database,
+			Vault:    svc.Vault,
+			Verifier: svc.StripeConnectVerifier,
+		},
+	)
+
+	// v2/billing.unlinkStripeConnect
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2BillingUnlinkStripeConnect.Handler{
+			DB: svc.Database,
 		},
 	)
 

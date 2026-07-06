@@ -1,0 +1,55 @@
+post:
+  tags:
+    - billing
+  security:
+    - rootKey: []
+  x-speakeasy-name-override: listPlans
+  operationId: billing.listPlans
+  summary: List rate cards an end-user may pick
+  description: |
+    Returns the workspace's selectable rate cards (the allowed set) together
+    with the end-user's currently effective card. Call this from your backend
+    to render a plan-selection surface for the end-user.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2BillingListPlansRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2BillingListPlansResponseBody.yaml"
+      description: Plans returned successfully
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid request
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid authentication
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "404":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+      description: Identity not found
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Listing failed

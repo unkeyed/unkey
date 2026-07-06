@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/enduserbillingpush"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
@@ -86,6 +87,10 @@ type Config struct {
 	// push. Pass the concrete *clickhouse.Client (the meter query is not on
 	// the ClickHouse interface). Nil disables the push.
 	BillingUsageReader deploybilling.UsageReader
+	// EndUserBilling optionally closes each billing period for end-user
+	// billing (Stripe Connect push). Nil disables the phase.
+	EndUserBilling *enduserbillingpush.PeriodClose
+
 	// StripeSecretKey authenticates the Deploy billing push to Stripe. Empty
 	// disables the push.
 	StripeSecretKey string
@@ -167,10 +172,11 @@ func New(cfg Config) (*Service, error) {
 		billingPusher = billingmeter.NewStripe(cfg.StripeSecretKey)
 	}
 	deployBillingH, err := deploybilling.New(deploybilling.Config{
-		UsageReader: cfg.BillingUsageReader,
-		Pusher:      billingPusher,
-		DB:          cfg.DB,
-		Heartbeat:   cfg.Heartbeats.DeployBillingPush,
+		UsageReader:    cfg.BillingUsageReader,
+		Pusher:         billingPusher,
+		DB:             cfg.DB,
+		Heartbeat:      cfg.Heartbeats.DeployBillingPush,
+		EndUserBilling: cfg.EndUserBilling,
 	})
 	if err != nil {
 		return nil, err

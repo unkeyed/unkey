@@ -227,6 +227,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		// Deploy billing push disabled in tests: nil reader + empty Stripe key
 		// make the handler a no-op.
 		BillingUsageReader: nil,
+		EndUserBilling:     nil,
 		StripeSecretKey:    "",
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:        healthcheck.NewNoop(),

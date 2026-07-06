@@ -96,6 +96,15 @@ type dataIdentity struct {
 	Duplicate Code
 }
 
+// dataRateCard defines errors related to rate card operations.
+type dataRateCard struct {
+	// NotFound indicates the requested rate card was not found.
+	NotFound Code
+
+	// NotSelectable indicates the rate card is not in the end-user selectable set.
+	NotSelectable Code
+}
+
 // dataAuditLog defines errors related to audit log operations.
 type dataAuditLog struct {
 	// NotFound indicates the requested audit log was not found.
@@ -134,6 +143,7 @@ type UnkeyDataErrors struct {
 	RatelimitNamespace dataRatelimitNamespace
 	RatelimitOverride  dataRatelimitOverride
 	Identity           dataIdentity
+	RateCard           dataRateCard
 	AuditLog           dataAuditLog
 	PortalConfig       dataPortalConfig
 	Analytics          dataAnalytics
@@ -199,6 +209,11 @@ var Data = UnkeyDataErrors{
 	Identity: dataIdentity{
 		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "identity_not_found"},
 		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "identity_already_exists"},
+	},
+
+	RateCard: dataRateCard{
+		NotFound:      Code{SystemUnkey, CategoryUnkeyData, "rate_card_not_found"},
+		NotSelectable: Code{SystemUnkey, CategoryUnkeyData, "rate_card_not_selectable"},
 	},
 
 	AuditLog: dataAuditLog{

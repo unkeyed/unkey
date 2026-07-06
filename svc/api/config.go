@@ -337,6 +337,11 @@ type Config struct {
 	// When a customer has a verified custom domain, that domain is used instead.
 	PortalBaseURL string `toml:"portal_base_url" config:"default=https://portal.unkey.com"`
 
+	// StripeSecretKey is the platform Stripe secret key used to verify
+	// connected accounts for end-user billing. Empty disables Connect
+	// linking (the link route fails closed).
+	StripeSecretKey string `toml:"stripe_secret_key"`
+
 	// Auth configures the ordered authentication resolver chain.
 	Auth AuthConfigs `toml:"auth"`
 

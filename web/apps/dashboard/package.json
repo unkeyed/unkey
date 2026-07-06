@@ -49,6 +49,7 @@
     "@trpc/server": "10.45.2",
     "@unkey/api": "2.3.4",
     "@unkey/clickhouse": "workspace:^",
+    "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",
     "@unkey/error": "workspace:^",

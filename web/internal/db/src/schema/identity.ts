@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -18,6 +26,29 @@ export const identities = mysqlTable(
     environment: varchar("environment", { length: 256 }).notNull().default("default"),
     meta: json("meta").$type<Record<string, unknown>>(),
     deleted: boolean("deleted").notNull().default(false),
+    /**
+     * Billing binding: which provider bills this identity's usage. "none"
+     * disables billing, "stripe_connect" pushes usage to the workspace's
+     * connected Stripe account, "export" serves it via the billing export API.
+     */
+    billingProvider: mysqlEnum("billing_provider", ["none", "stripe_connect", "export"])
+      .notNull()
+      .default("none"),
+    /**
+     * Provider-side customer reference for this end-user, e.g. the Stripe
+     * customer id on the workspace's connected account.
+     */
+    billingExternalCustomerId: varchar("billing_external_customer_id", { length: 256 }),
+    /**
+     * Rate card assigned by the workspace owner; falls back to the workspace
+     * default when null.
+     */
+    rateCardId: varchar("rate_card_id", { length: 256 }),
+    /**
+     * Rate card the end-user picked from the workspace's selectable set.
+     * Takes precedence over rateCardId when set and still selectable.
+     */
+    selectedRateCardId: varchar("selected_rate_card_id", { length: 256 }),
     ...lifecycleDates,
   },
   (table) => ({

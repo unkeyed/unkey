@@ -1,0 +1,55 @@
+post:
+  tags:
+    - billing
+  security:
+    - rootKey: []
+  x-speakeasy-name-override: selectPlan
+  operationId: billing.selectPlan
+  summary: Record an end-user's rate-card selection
+  description: |
+    Records the end-user's pick from the workspace's selectable rate cards.
+    The selection takes effect for periods that have not been billed yet —
+    a period already recorded keeps its card.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2BillingSelectPlanRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2BillingSelectPlanResponseBody.yaml"
+      description: Selection recorded
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: The rate card is not selectable or the request is invalid
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid authentication
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "404":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+      description: Identity or rate card not found
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Selection failed

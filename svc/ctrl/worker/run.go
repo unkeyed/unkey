@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -37,6 +38,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/enduserbilling"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
@@ -44,6 +46,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/enduserbillingpush"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -175,6 +178,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// (GetInstanceMeterUsage) is not on the ClickHouse interface. Nil until
 	// ClickHouse is configured, which leaves the billing push disabled.
 	var billingUsageReader deploybilling.UsageReader
+	var endUserUsageReader enduserbillingpush.UsageReader
 	buildSteps := batch.NewNoop[schema.BuildStepV1]()
 	buildStepLogs := batch.NewNoop[schema.BuildStepLogV1]()
 
@@ -187,6 +191,7 @@ func Run(ctx context.Context, cfg Config) error {
 		} else {
 			ch = chClient
 			billingUsageReader = chClient
+			endUserUsageReader = chClient
 
 			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, "default.build_steps_v1", clickhouse.BufferConfig{
 				Name:          "build_steps",
@@ -466,6 +471,29 @@ func Run(ctx context.Context, cfg Config) error {
 	// failure semantics — e.g. forcing PauseOnMaxAttempts on singleton-
 	// keyed VOs wedges every subsequent tick under that key. Per-handler
 	// options below mirror each task's pre-consolidation behavior.
+	// End-user billing period close: enabled only when Stripe, ClickHouse and
+	// Vault are all configured. Inert otherwise, and even when enabled it only
+	// acts on workspaces that completed a verified Connect account link.
+	var endUserBilling *enduserbillingpush.PeriodClose
+	if cfg.Billing.StripeSecretKey != "" && endUserUsageReader != nil && vaultClient != nil {
+		appDB, appDBErr := pkgdb.New(pkgdb.Config{
+			PrimaryDSN:  cfg.Database,
+			ReadOnlyDSN: "",
+		})
+		if appDBErr != nil {
+			return fmt.Errorf("create app database for end-user billing: %w", appDBErr)
+		}
+		endUserBilling, err = enduserbillingpush.New(enduserbillingpush.Config{
+			DB:     appDB,
+			Usage:  endUserUsageReader,
+			Vault:  enduserbillingpush.NewVaultDecrypter(vaultClient),
+			Pusher: enduserbilling.NewStripeConnectPusher(enduserbilling.NewStripeInvoiceItems(cfg.Billing.StripeSecretKey)),
+		})
+		if err != nil {
+			return fmt.Errorf("create end-user billing period close: %w", err)
+		}
+	}
+
 	cronSvc, err := cron.New(cron.Config{
 		DB:                        database,
 		Clickhouse:                ch,
@@ -473,6 +501,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
 		BillingUsageReader:        billingUsageReader,
+		EndUserBilling:            endUserBilling,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:        cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),

@@ -175,6 +175,9 @@ importers:
       '@unkey/api':
         specifier: 2.3.4
         version: 2.3.4
+      '@unkey/billing':
+        specifier: workspace:^
+        version: link:../../internal/billing
       '@unkey/clickhouse':
         specifier: workspace:^
         version: link:../../internal/clickhouse

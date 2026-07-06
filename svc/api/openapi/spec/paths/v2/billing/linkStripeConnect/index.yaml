@@ -1,0 +1,50 @@
+post:
+  tags:
+    - billing
+  security:
+    - rootKey: []
+  x-speakeasy-name-override: linkStripeConnect
+  operationId: billing.linkStripeConnect
+  summary: Link a Stripe connected account for end-user billing
+  description: |
+    Verifies that the connected account belongs to Unkey's platform (complete
+    Stripe Connect onboarding first) and stores its reference encrypted. The
+    period-close push then targets this account. Requires the manage_billing
+    permission — grant it as sparingly as key-encryption permissions.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2BillingLinkStripeConnectRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2BillingLinkStripeConnectResponseBody.yaml"
+      description: Account linked
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: The account could not be verified as connected to Unkey's platform
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid authentication
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Linking failed

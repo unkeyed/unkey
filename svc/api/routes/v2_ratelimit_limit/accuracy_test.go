@@ -60,6 +60,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 										Ratelimit:       h.Ratelimit,
 										DB:              h.DB,
 										NamespaceCache:  h.Caches.RatelimitNamespace,
+										IdentityCache:   h.Caches.IdentityByExternalID,
 										Auditlogs:       h.Auditlogs,
 									}
 									h.Register(route)

@@ -269,6 +269,91 @@ func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
 }
 
+type BillingBillableResourcesResourceType string
+
+const (
+	BillingBillableResourcesResourceTypeKeyspace  BillingBillableResourcesResourceType = "keyspace"
+	BillingBillableResourcesResourceTypeNamespace BillingBillableResourcesResourceType = "namespace"
+)
+
+func (e *BillingBillableResourcesResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BillingBillableResourcesResourceType(s)
+	case string:
+		*e = BillingBillableResourcesResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BillingBillableResourcesResourceType: %T", src)
+	}
+	return nil
+}
+
+type NullBillingBillableResourcesResourceType struct {
+	BillingBillableResourcesResourceType BillingBillableResourcesResourceType
+	Valid                                bool // Valid is true if BillingBillableResourcesResourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBillingBillableResourcesResourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.BillingBillableResourcesResourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BillingBillableResourcesResourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBillingBillableResourcesResourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BillingBillableResourcesResourceType), nil
+}
+
+type BillingPeriodRateCardsResolvedFrom string
+
+const (
+	BillingPeriodRateCardsResolvedFromSelection        BillingPeriodRateCardsResolvedFrom = "selection"
+	BillingPeriodRateCardsResolvedFromAssignment       BillingPeriodRateCardsResolvedFrom = "assignment"
+	BillingPeriodRateCardsResolvedFromWorkspaceDefault BillingPeriodRateCardsResolvedFrom = "workspace_default"
+)
+
+func (e *BillingPeriodRateCardsResolvedFrom) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BillingPeriodRateCardsResolvedFrom(s)
+	case string:
+		*e = BillingPeriodRateCardsResolvedFrom(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BillingPeriodRateCardsResolvedFrom: %T", src)
+	}
+	return nil
+}
+
+type NullBillingPeriodRateCardsResolvedFrom struct {
+	BillingPeriodRateCardsResolvedFrom BillingPeriodRateCardsResolvedFrom
+	Valid                              bool // Valid is true if BillingPeriodRateCardsResolvedFrom is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBillingPeriodRateCardsResolvedFrom) Scan(value interface{}) error {
+	if value == nil {
+		ns.BillingPeriodRateCardsResolvedFrom, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BillingPeriodRateCardsResolvedFrom.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBillingPeriodRateCardsResolvedFrom) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BillingPeriodRateCardsResolvedFrom), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -758,6 +843,49 @@ func (ns NullFrontlineRoutesSticky) Value() (driver.Value, error) {
 	return string(ns.FrontlineRoutesSticky), nil
 }
 
+type IdentitiesBillingProvider string
+
+const (
+	IdentitiesBillingProviderNone          IdentitiesBillingProvider = "none"
+	IdentitiesBillingProviderStripeConnect IdentitiesBillingProvider = "stripe_connect"
+	IdentitiesBillingProviderExport        IdentitiesBillingProvider = "export"
+)
+
+func (e *IdentitiesBillingProvider) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = IdentitiesBillingProvider(s)
+	case string:
+		*e = IdentitiesBillingProvider(s)
+	default:
+		return fmt.Errorf("unsupported scan type for IdentitiesBillingProvider: %T", src)
+	}
+	return nil
+}
+
+type NullIdentitiesBillingProvider struct {
+	IdentitiesBillingProvider IdentitiesBillingProvider
+	Valid                     bool // Valid is true if IdentitiesBillingProvider is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullIdentitiesBillingProvider) Scan(value interface{}) error {
+	if value == nil {
+		ns.IdentitiesBillingProvider, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.IdentitiesBillingProvider.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullIdentitiesBillingProvider) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.IdentitiesBillingProvider), nil
+}
+
 type InstancesStatus string
 
 const (
@@ -842,6 +970,48 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.KeyMigrationsAlgorithm), nil
+}
+
+type WorkspaceBillingSettingsStripeConnectStatus string
+
+const (
+	WorkspaceBillingSettingsStripeConnectStatusPending WorkspaceBillingSettingsStripeConnectStatus = "pending"
+	WorkspaceBillingSettingsStripeConnectStatusLinked  WorkspaceBillingSettingsStripeConnectStatus = "linked"
+)
+
+func (e *WorkspaceBillingSettingsStripeConnectStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = WorkspaceBillingSettingsStripeConnectStatus(s)
+	case string:
+		*e = WorkspaceBillingSettingsStripeConnectStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for WorkspaceBillingSettingsStripeConnectStatus: %T", src)
+	}
+	return nil
+}
+
+type NullWorkspaceBillingSettingsStripeConnectStatus struct {
+	WorkspaceBillingSettingsStripeConnectStatus WorkspaceBillingSettingsStripeConnectStatus
+	Valid                                       bool // Valid is true if WorkspaceBillingSettingsStripeConnectStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullWorkspaceBillingSettingsStripeConnectStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.WorkspaceBillingSettingsStripeConnectStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.WorkspaceBillingSettingsStripeConnectStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullWorkspaceBillingSettingsStripeConnectStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.WorkspaceBillingSettingsStripeConnectStatus), nil
 }
 
 type AcmeChallenge struct {
@@ -954,6 +1124,30 @@ type AppRuntimeSetting struct {
 	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
 	CreatedAt        int64                              `db:"created_at"`
 	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
+}
+
+type BillingBillableResource struct {
+	Pk           uint64                               `db:"pk"`
+	ID           string                               `db:"id"`
+	WorkspaceID  string                               `db:"workspace_id"`
+	ResourceType BillingBillableResourcesResourceType `db:"resource_type"`
+	ResourceID   string                               `db:"resource_id"`
+	CreatedAt    int64                                `db:"created_at"`
+	UpdatedAt    sql.NullInt64                        `db:"updated_at"`
+}
+
+type BillingPeriodRateCard struct {
+	Pk           uint64                             `db:"pk"`
+	ID           string                             `db:"id"`
+	WorkspaceID  string                             `db:"workspace_id"`
+	IdentityID   string                             `db:"identity_id"`
+	Year         int32                              `db:"year"`
+	Month        int32                              `db:"month"`
+	RateCardID   string                             `db:"rate_card_id"`
+	ResolvedFrom BillingPeriodRateCardsResolvedFrom `db:"resolved_from"`
+	PushedAt     sql.NullInt64                      `db:"pushed_at"`
+	CreatedAt    int64                              `db:"created_at"`
+	UpdatedAt    sql.NullInt64                      `db:"updated_at"`
 }
 
 type Certificate struct {
@@ -1183,15 +1377,19 @@ type HorizontalAutoscalingPolicy struct {
 }
 
 type Identity struct {
-	Pk          uint64        `db:"pk"`
-	ID          string        `db:"id"`
-	ExternalID  string        `db:"external_id"`
-	WorkspaceID string        `db:"workspace_id"`
-	Environment string        `db:"environment"`
-	Meta        []byte        `db:"meta"`
-	Deleted     bool          `db:"deleted"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	Pk                        uint64                    `db:"pk"`
+	ID                        string                    `db:"id"`
+	ExternalID                string                    `db:"external_id"`
+	WorkspaceID               string                    `db:"workspace_id"`
+	Environment               string                    `db:"environment"`
+	Meta                      []byte                    `db:"meta"`
+	Deleted                   bool                      `db:"deleted"`
+	BillingProvider           IdentitiesBillingProvider `db:"billing_provider"`
+	BillingExternalCustomerID sql.NullString            `db:"billing_external_customer_id"`
+	RateCardID                sql.NullString            `db:"rate_card_id"`
+	SelectedRateCardID        sql.NullString            `db:"selected_rate_card_id"`
+	CreatedAt                 int64                     `db:"created_at"`
+	UpdatedAt                 sql.NullInt64             `db:"updated_at"`
 }
 
 type Instance struct {
@@ -1375,6 +1573,19 @@ type Quotas struct {
 	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
 }
 
+type RateCard struct {
+	Pk          uint64          `db:"pk"`
+	ID          string          `db:"id"`
+	WorkspaceID string          `db:"workspace_id"`
+	Name        string          `db:"name"`
+	Currency    string          `db:"currency"`
+	Config      json.RawMessage `db:"config"`
+	Selectable  bool            `db:"selectable"`
+	Archived    bool            `db:"archived"`
+	CreatedAt   int64           `db:"created_at"`
+	UpdatedAt   sql.NullInt64   `db:"updated_at"`
+}
+
 type Ratelimit struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
@@ -1481,4 +1692,16 @@ type Workspace struct {
 	CreatedAtM           int64           `db:"created_at_m"`
 	UpdatedAtM           sql.NullInt64   `db:"updated_at_m"`
 	DeletedAtM           sql.NullInt64   `db:"deleted_at_m"`
+}
+
+type WorkspaceBillingSetting struct {
+	Pk                           uint64                                          `db:"pk"`
+	ID                           string                                          `db:"id"`
+	WorkspaceID                  string                                          `db:"workspace_id"`
+	DefaultRateCardID            sql.NullString                                  `db:"default_rate_card_id"`
+	StripeConnectEncrypted       sql.NullString                                  `db:"stripe_connect_encrypted"`
+	StripeConnectEncryptionKeyID sql.NullString                                  `db:"stripe_connect_encryption_key_id"`
+	StripeConnectStatus          NullWorkspaceBillingSettingsStripeConnectStatus `db:"stripe_connect_status"`
+	CreatedAt                    int64                                           `db:"created_at"`
+	UpdatedAt                    sql.NullInt64                                   `db:"updated_at"`
 }

@@ -17,6 +17,7 @@ go_library(
         "//svc/ctrl/worker/cron/auditlogcleanup",
         "//svc/ctrl/worker/cron/auditlogexport",
         "//svc/ctrl/worker/cron/deploybilling",
+        "//svc/ctrl/worker/cron/enduserbillingpush",
         "//svc/ctrl/worker/cron/idlepreview",
         "//svc/ctrl/worker/cron/keylastusedsync",
         "//svc/ctrl/worker/cron/keyrefill",

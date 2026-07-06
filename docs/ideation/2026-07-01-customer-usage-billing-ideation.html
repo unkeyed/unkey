@@ -1,0 +1,347 @@
+<title>Ideation: Customer Usage Billing</title>
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #15181d;
+    --surface-2: #1b1f26;
+    --border: #2a2f38;
+    --text: #e6e9ee;
+    --muted: #9aa4b2;
+    --accent: #4ea1ff;
+    --accent-text: #8cc2ff;
+    --accent-soft: #12233a;
+    --good: #46c68a;
+    --good-text: #7fe0b0;
+    --good-soft: #10241b;
+    --warn: #e0b24e;
+    --warn-text: #f0cd7f;
+    --warn-soft: #2a2312;
+    --danger-text: #ff9a9a;
+    --danger-soft: #2c1618;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 15px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin-inline: auto; padding: 3rem 1.5rem 4rem; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .4rem; letter-spacing: -.02em; }
+  h2 { font-size: 1.3rem; margin: 2.6rem 0 1rem; padding-bottom: .4rem; border-bottom: 1px solid var(--border); letter-spacing: -.01em; }
+  h3 { font-size: 1.1rem; margin: 0 0 .3rem; letter-spacing: -.01em; }
+  p { max-width: 72ch; }
+  a { color: var(--accent-text); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .85em; background: var(--surface-2); padding: .1em .4em; border-radius: 4px; border: 1px solid var(--border); }
+  .eyebrow { text-transform: uppercase; font-size: .7rem; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
+  .meta { display: flex; flex-wrap: wrap; gap: .5rem .9rem; margin: 1rem 0 0; font-size: .82rem; color: var(--muted); }
+  .meta b { color: var(--text); font-weight: 600; }
+  .lede { font-size: 1.05rem; color: var(--muted); max-width: 74ch; }
+
+  .axes { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+  .axes li { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .6rem .9rem; }
+  .axes .ax-name { font-weight: 600; color: var(--accent-text); }
+
+  .stats { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1.4rem 0; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .55rem .9rem; }
+  .stat b { display: block; font-size: 1.35rem; line-height: 1.1; }
+  .stat span { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+  .jump { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0 1.6rem; }
+  .jump ol { margin: .3rem 0 0; padding-left: 1.3rem; }
+  .jump li { margin: .2rem 0; }
+
+  article.idea { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem 1.5rem; margin: 1.1rem 0; }
+  .idea-head { display: flex; align-items: baseline; gap: .7rem; flex-wrap: wrap; margin-bottom: .5rem; }
+  .rank { font-family: var(--mono); font-size: .95rem; color: var(--accent-text); font-weight: 700; }
+  .chips { display: flex; gap: .45rem; flex-wrap: wrap; margin: .5rem 0 .9rem; }
+  .chip { font-size: .72rem; padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+  .chip.axis { background: var(--accent-soft); color: var(--accent-text); border-color: #26436b; }
+  .chip.conf-high { background: var(--good-soft); color: var(--good-text); border-color: #1f4634; }
+  .chip.conf-med { background: var(--warn-soft); color: var(--warn-text); border-color: #4a3d18; }
+  .chip.cx { background: var(--surface-2); }
+  .idea dl { margin: .6rem 0 0; }
+  .idea dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 700; margin-top: .85rem; }
+  .idea dd { margin: .2rem 0 0; }
+  .basis { font-family: var(--mono); font-size: .82rem; background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: .55rem .8rem; white-space: pre-wrap; }
+  .basis.reasoned { border-left-color: var(--warn); }
+  .basis.external { border-left-color: var(--good); }
+  figure { margin: 1.1rem 0 .3rem; }
+  figure svg { max-width: 100%; height: auto; display: block; }
+  figcaption { font-size: .78rem; color: var(--muted); margin-top: .4rem; }
+  .svg-scroll { overflow-x: auto; }
+
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .9rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  td.num { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+
+  .callout { background: var(--accent-soft); border: 1px solid #26436b; border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
+  .callout .eyebrow { color: var(--accent-text); }
+  footer.composition-signal { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .75rem; color: var(--muted); }
+  .grounding p, .grounding li { color: var(--text); }
+  .grounding ul { max-width: 74ch; }
+</style>
+
+<div class="wrap">
+
+<div class="eyebrow">Compound Engineering &middot; Ideation</div>
+<h1>Billing your end-users, natively</h1>
+<p class="lede">Unkey already holds the four inputs a billing engine needs &mdash; the metered event, the identity, the rate-limit counters, and the credit balance. Today customers export all of it and bill out-of-band. These are the strongest directions for closing that last mile inside Unkey.</p>
+
+<div class="meta">
+  <span><b>Date:</b> <time datetime="2026-07-01">2026-07-01</time></span>
+  <span><b>Topic:</b> customer-usage-billing</span>
+  <span><b>Mode:</b> repo-grounded</span>
+  <span><b>Focus:</b> let Unkey customers bill their own end-users for usage (API keys, standalone ratelimits, credits)</span>
+</div>
+
+<div class="stats">
+  <div class="stat"><b>47</b><span>raw ideas</span></div>
+  <div class="stat"><b>7</b><span>survivors</span></div>
+  <div class="stat"><b>5</b><span>topic axes</span></div>
+  <div class="stat"><b>5</b><span>ideation frames</span></div>
+</div>
+
+<h2 id="grounding">Codebase Context</h2>
+<div class="grounding">
+<p>Unkey is a Go + TypeScript monorepo (MySQL for operational state, ClickHouse for analytics). The billing landscape breaks into a universal pipeline &mdash; <b>meter &rarr; aggregate &rarr; rate &rarr; invoice &rarr; collect</b>. Unkey already runs the left half of that pipeline for <em>its own</em> billing; the customer-facing right half does not exist yet.</p>
+
+<figure>
+  <div class="svg-scroll">
+  <svg viewBox="0 0 900 220" role="img" aria-label="Billing pipeline: Unkey has meter and aggregate; rate, invoice, and collect are the customer-facing gap" font-family="ui-sans-serif, sans-serif">
+    <defs>
+      <marker id="arw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9aa4b2"/></marker>
+    </defs>
+    <text x="10" y="26" fill="#9aa4b2" font-size="12" font-weight="600" letter-spacing="1">THE UNIVERSAL BILLING PIPELINE</text>
+    <!-- stages -->
+    <g font-size="14" font-weight="600">
+      <rect x="10"  y="55" width="150" height="66" rx="8" fill="#10241b" stroke="#1f4634"/>
+      <text x="85"  y="82" fill="#7fe0b0" text-anchor="middle">Meter</text>
+      <text x="85"  y="102" fill="#7fe0b0" text-anchor="middle" font-size="11" font-weight="400">verify / ratelimit</text>
+
+      <rect x="185" y="55" width="150" height="66" rx="8" fill="#10241b" stroke="#1f4634"/>
+      <text x="260" y="82" fill="#7fe0b0" text-anchor="middle">Aggregate</text>
+      <text x="260" y="102" fill="#7fe0b0" text-anchor="middle" font-size="11" font-weight="400">ClickHouse rollups</text>
+
+      <rect x="360" y="55" width="150" height="66" rx="8" fill="#2c1618" stroke="#5a2a2c"/>
+      <text x="435" y="82" fill="#ff9a9a" text-anchor="middle">Rate</text>
+      <text x="435" y="102" fill="#ff9a9a" text-anchor="middle" font-size="11" font-weight="400">no rate cards</text>
+
+      <rect x="535" y="55" width="150" height="66" rx="8" fill="#2c1618" stroke="#5a2a2c"/>
+      <text x="610" y="82" fill="#ff9a9a" text-anchor="middle">Invoice</text>
+      <text x="610" y="102" fill="#ff9a9a" text-anchor="middle" font-size="11" font-weight="400">no export/draft</text>
+
+      <rect x="710" y="55" width="150" height="66" rx="8" fill="#2c1618" stroke="#5a2a2c"/>
+      <text x="785" y="82" fill="#ff9a9a" text-anchor="middle">Collect</text>
+      <text x="785" y="102" fill="#ff9a9a" text-anchor="middle" font-size="11" font-weight="400">no Connect</text>
+    </g>
+    <!-- arrows -->
+    <g stroke="#9aa4b2" stroke-width="1.6">
+      <line x1="160" y1="88" x2="182" y2="88" marker-end="url(#arw)"/>
+      <line x1="335" y1="88" x2="357" y2="88" marker-end="url(#arw)"/>
+      <line x1="510" y1="88" x2="532" y2="88" marker-end="url(#arw)"/>
+      <line x1="685" y1="88" x2="707" y2="88" marker-end="url(#arw)"/>
+    </g>
+    <!-- brackets -->
+    <text x="185" y="160" fill="#7fe0b0" font-size="12.5" font-weight="600">&#9492; Unkey runs this today (for its own billing)</text>
+    <text x="360" y="185" fill="#ff9a9a" font-size="12.5" font-weight="600">&#9492; The customer-facing gap &mdash; where these ideas live</text>
+  </svg>
+  </div>
+  <figcaption>Unkey owns the hard, data-heavy left half. The value is in exposing the right half to customers, keyed to <em>their</em> end-users.</figcaption>
+</figure>
+
+<p><b>What Unkey captures.</b> ClickHouse <code>key_verifications_raw_v2</code> records <code>workspace_id, identity_id, external_id, key_id, outcome, spent_credits, tags</code> and preserves <code>external_id</code> through every per-minute/hour/day/month materialized view. Credits live in MySQL <code>keys.remaining_requests</code> with <code>refill_amount</code>/<code>refill_day</code> and atomic decrement/refill queries.</p>
+<p><b>Two structural gaps.</b> (1) The terminal <code>billable_verifications_per_month_v2</code> / <code>billable_ratelimits_per_month_v2</code> tables collapse everything to <code>workspace_id</code> &mdash; there is no per-end-user billable rollup. (2) <code>ratelimits_raw_v2</code> has <b>no</b> <code>external_id</code>/<code>identity_id</code> column at all (only a free-text <code>identifier</code>), so standalone-ratelimit usage &mdash; one of the three things the customer named &mdash; cannot be attributed to an end-user today.</p>
+<p><b>What exists but points inward.</b> A working Stripe meter pusher (<code>svc/ctrl/internal/billingmeter/stripe.go</code>), a tiered-pricing engine (<code>web/internal/billing/src/tiers.ts</code>), and invoice webhooks all bill <em>Unkey's own</em> customers. There is no Stripe Connect, no customer-facing invoice/usage-export API, no customer-defined rate cards, no customer webhooks. The <code>identities</code> table (the natural billable subject) carries <code>external_id</code> + a <code>meta</code> JSON blob and <b>zero</b> billing fields. The end-user Portal is a placeholder.</p>
+<p><b>External landscape (2026).</b> Every metering vendor &mdash; Stripe Billing Meters, Metronome, Orb, Lago, OpenMeter, Amberflo &mdash; forces customers to instrument and ship usage events. <a href="https://zuplo.com/features/api-monetization">Zuplo</a> is the closest analog ("the gateway is the meter"). The validated positioning: Unkey uniquely already holds the metered event <em>and</em> the subject mapping, so it can shortcut the ingestion + subject-mapping step everyone else makes customers build. Learnings: <a href="https://github.com/unkeyed/unkey/blob/main/docs/engineering/architecture/rfcs/0005-analytics-api.mdx">RFC 0005</a> (analytics API with <code>externalId</code>/<code>groupBy=identity</code>) and a <a href="https://github.com/unkeyed/unkey/blob/main/docs/product/cookbook/usage-billing.mdx">usage-billing cookbook</a> that today teaches the DIY pattern.</p>
+</div>
+
+<h2 id="axes">Topic Axes</h2>
+<ul class="axes">
+  <li><span class="ax-name">Metering &amp; aggregation</span> &mdash; turning raw verification/ratelimit/credit events into per-end-user billable quantities (per-identity rollups, idempotency, late events, ratelimit attribution).</li>
+  <li><span class="ax-name">Pricing &amp; rating</span> &mdash; what to charge: per-request/tiered/credit-burndown/ratelimit-based models, customer-defined rate cards, markup, currency.</li>
+  <li><span class="ax-name">Invoicing &amp; collection</span> &mdash; producing invoices/charges and moving money: Stripe Connect, invoice records, export, payment rails, dunning.</li>
+  <li><span class="ax-name">Identity &amp; subject mapping</span> &mdash; mapping usage to the customer's end-user/org as a billable subject (identities, <code>external_id</code>, entitlements, per-identity plans).</li>
+  <li><span class="ax-name">Surfacing &amp; self-serve</span> &mdash; how the customer and their end-users see and manage it: dashboards, end-user portal, pricing pages, usage widgets, alerts, webhooks.</li>
+</ul>
+
+<h2 id="ideas">Ranked Ideas</h2>
+<div class="jump">
+  <div class="eyebrow">Jump to</div>
+  <ol>
+    <li><a href="#i1">Per-identity usage rollup &mdash; the billable-subject data layer</a></li>
+    <li><a href="#i2">Identity as a first-class billing subject</a></li>
+    <li><a href="#i3">Customer-defined rate cards on Unkey's own pricing engine</a></li>
+    <li><a href="#i5">Zero-liability usage-export &amp; invoice-draft API</a> <em>(recommended first ship)</em></li>
+    <li><a href="#i4">Stripe Connect &mdash; bill your end-users on your behalf</a></li>
+    <li><a href="#i6">Embeddable end-user usage &amp; billing surfaces</a></li>
+    <li><a href="#i7">Immutable signed billing snapshots for audit &amp; disputes</a></li>
+  </ol>
+</div>
+
+<div class="callout">
+  <div class="eyebrow">The shape of the decision</div>
+  <p style="margin:.4rem 0 0">Ideas 1&ndash;2 are the <b>foundation</b> everything else attaches to (a per-end-user rollup, and an identity that can carry billing). Idea 3 is <b>what to charge</b>. Then the real strategic fork: <b>Idea 5</b> (Unkey hands over data/draft invoices, never touches money) versus <b>Idea 4</b> (Unkey becomes merchant-of-record and moves the money). Ideas 6&ndash;7 make it visible and defensible.</p>
+</div>
+
+<article class="idea" id="i1">
+  <div class="idea-head"><span class="rank">1.</span><h3>Per-identity usage rollup &mdash; the billable-subject data layer</h3></div>
+  <div class="chips"><span class="chip axis">metering &amp; aggregation</span><span class="chip conf-high">Confidence 85%</span><span class="chip cx">Complexity: Medium</span></div>
+  <dl>
+    <dt>Description</dt>
+    <dd>Add a <code>billable_usage_per_identity_per_month</code> materialized view keyed on <code>(workspace_id, external_id, year, month)</code> summing verifications, <code>spent_credits</code>, and passed ratelimits &mdash; sourced from the per-day views that <em>already</em> preserve <code>external_id</code>. This is the single primitive every other idea depends on: one canonical per-end-user number, computed idempotently, instead of re-scanning raw events at query time. It must also close the ratelimit-attribution gap: <code>ratelimits_raw_v2</code> has no identity column, so ratelimit usage needs either identity written into the raw event on the hot path, or a rate-time join &mdash; a genuine tradeoff (see downsides). The <code>tags Array(String)</code> dimension already flows through the rollup, so per-feature billing (e.g. <code>tag:gpt4</code>) comes almost for free.</dd>
+    <dt>Basis</dt>
+    <dd class="basis">direct: per-day/per-month views GROUP BY external_id/identity_id (pkg/clickhouse/schema/004,005), but billable_verifications_per_month_v2 (019) &amp; billable_ratelimits_per_month_v2 (018) group only by (workspace_id, year, month). ratelimits_raw_v2 (006) indexed by identifier only, no external_id/identity_id. tags Array(String) grouped through per-month view with bloom-filter index. [verifier: sound]</dd>
+    <dt>Rationale</dt>
+    <dd>The data is already partitioned the right way &mdash; the last aggregation hop simply throws the <code>external_id</code> dimension away. Rebuilding it once as an idempotent view means every downstream consumer (rate cards, invoices, portal, webhooks) reads one source of truth instead of re-deriving it, and it is the only thing that makes ratelimit billing possible at all.</dd>
+    <dt>Downsides</dt>
+    <dd><code>external_id</code> cardinality can be enormous (a customer's entire end-user base), so the view's storage/query cost and TTL need real design. The ratelimit fix forces a hot-path vs. query-time-join choice, and standalone-ratelimit <code>identifier</code> is an arbitrary caller-supplied string that does not always resolve to an owning key/identity &mdash; attribution is not universal.</dd>
+  </dl>
+  <figure>
+    <div class="svg-scroll">
+    <svg viewBox="0 0 880 200" role="img" aria-label="Data flow: raw events preserve external_id through per-day rollups, but the billable monthly table drops it; the new view keeps it" font-family="ui-sans-serif, sans-serif">
+      <defs><marker id="arw2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9aa4b2"/></marker></defs>
+      <g font-size="12.5">
+        <rect x="10" y="60" width="160" height="60" rx="8" fill="#1b1f26" stroke="#2a2f38"/>
+        <text x="90" y="85" fill="#e6e9ee" text-anchor="middle" font-weight="600">raw_v2</text>
+        <text x="90" y="104" fill="#7fe0b0" text-anchor="middle" font-size="11">has external_id</text>
+
+        <rect x="210" y="60" width="160" height="60" rx="8" fill="#1b1f26" stroke="#2a2f38"/>
+        <text x="290" y="85" fill="#e6e9ee" text-anchor="middle" font-weight="600">per_day_v3</text>
+        <text x="290" y="104" fill="#7fe0b0" text-anchor="middle" font-size="11">keeps external_id</text>
+
+        <rect x="410" y="20" width="200" height="60" rx="8" fill="#2c1618" stroke="#5a2a2c"/>
+        <text x="510" y="45" fill="#ff9a9a" text-anchor="middle" font-weight="600">billable_..._per_month_v2</text>
+        <text x="510" y="64" fill="#ff9a9a" text-anchor="middle" font-size="11">drops to workspace_id only</text>
+
+        <rect x="410" y="100" width="200" height="62" rx="8" fill="#10241b" stroke="#1f4634"/>
+        <text x="510" y="126" fill="#7fe0b0" text-anchor="middle" font-weight="600">NEW per_identity_per_month</text>
+        <text x="510" y="145" fill="#7fe0b0" text-anchor="middle" font-size="11">keyed by external_id</text>
+
+        <rect x="670" y="100" width="190" height="62" rx="8" fill="#12233a" stroke="#26436b"/>
+        <text x="765" y="126" fill="#8cc2ff" text-anchor="middle" font-weight="600">rate cards, invoices,</text>
+        <text x="765" y="145" fill="#8cc2ff" text-anchor="middle" font-size="11">portal, webhooks</text>
+      </g>
+      <g stroke="#9aa4b2" stroke-width="1.6" fill="none">
+        <line x1="170" y1="90" x2="207" y2="90" marker-end="url(#arw2)"/>
+        <path d="M370,80 C392,70 392,55 408,52" marker-end="url(#arw2)"/>
+        <path d="M370,100 C392,112 392,128 408,130" marker-end="url(#arw2)"/>
+        <line x1="610" y1="131" x2="667" y2="131" marker-end="url(#arw2)"/>
+      </g>
+    </svg>
+    </div>
+    <figcaption>The <code>external_id</code> dimension survives all the way to the per-day view and is discarded only at the last hop. The new view keeps it &mdash; and becomes the source of truth everything downstream reads.</figcaption>
+  </figure>
+</article>
+
+<article class="idea" id="i2">
+  <div class="idea-head"><span class="rank">2.</span><h3>Identity as a first-class billing subject</h3></div>
+  <div class="chips"><span class="chip axis">identity &amp; subject mapping</span><span class="chip conf-high">Confidence 85%</span><span class="chip cx">Complexity: Medium</span></div>
+  <dl>
+    <dt>Description</dt>
+    <dd>Promote the <code>identities</code> record from an auth/ratelimit-scoping object into a billing subject by giving it structured billing fields &mdash; a <code>billing_customer_id</code> (the end-user's Stripe customer), a <code>rate_card_id</code> reference, currency, and plan &mdash; instead of forcing customers to stuff Stripe IDs into the unstructured 1MB <code>meta</code> JSON and re-parse them. The identity is already the join key across keys, ratelimits, and (via Idea 1) usage; making it also the join to "who pays and what they pay" removes the customer's need to maintain a shadow <code>external_id &rarr; stripe_customer</code> reconciliation table.</dd>
+    <dt>Basis</dt>
+    <dd class="basis">direct: identities table (web/internal/db/src/schema/identity.ts) carries only external_id + meta JSON + environment; "No billing metadata fields on identity today: no stripe_id, plan, email, or pricing-tier columns." Workspace is the sole billing subject (workspaces.stripe_customer_id). [verifier: sound &mdash; significant data-model decision]</dd>
+    <dt>Rationale</dt>
+    <dd>Billing is currently hard-wired one level too high (workspace). Every per-end-user idea &mdash; rate cards, Connect payouts, statements &mdash; needs to resolve an identity to a payer. This is the smallest schema change that makes "point at an end-user and know who to charge" a first-class operation rather than customer-maintained glue.</dd>
+    <dt>Downsides</dt>
+    <dd>Introduces Unkey's second billing-subject type ever (after workspace), with multi-tenancy and migration implications. The current cookbook pattern ("put Stripe ID in <code>meta</code>") would need a deprecation path. Couples the auth primitive to billing concerns some customers won't use.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i3">
+  <div class="idea-head"><span class="rank">3.</span><h3>Customer-defined rate cards on Unkey's own pricing engine</h3></div>
+  <div class="chips"><span class="chip axis">pricing &amp; rating</span><span class="chip conf-high">Confidence 80%</span><span class="chip cx">Complexity: Medium</span></div>
+  <dl>
+    <dt>Description</dt>
+    <dd>Expose the tiered-pricing engine Unkey already uses to bill itself (<code>tiers.ts</code>: <code>billingTier</code> with <code>firstUnit/lastUnit/centsPerUnit</code>) as a <em>customer-configurable</em> rate card attached to an identity or API, priced on the dimensions Unkey already emits: per-VALID-verification, per-<code>spent_credits</code>, per-passed-ratelimit. Ships with a zero-config default: a "cost-plus" rate card auto-derived from Unkey's own subscription tiers plus a single markup multiplier, so a customer gets working billing on day one with one number instead of a rate-card builder.</dd>
+    <dt>Basis</dt>
+    <dd class="basis">direct: web/internal/billing/src/tiers.ts implements tiered distribution ("accumulating from lowest to highest with null centsPerUnit = free"); subscriptions.ts encodes Unkey's own $0.0001/verification, $0.00001/ratelimit tiers. "No API to define or apply custom pricing to keys, identities, or APIs for end-user billing." [verifier: sound; cost-plus variant is a reasonable extension]</dd>
+    <dt>Rationale</dt>
+    <dd>The rating logic is the part everyone else sells as their core product &mdash; and Unkey already built and battle-tests it on its own invoices. The gap is only that pricing is hardcoded to Unkey-as-seller. Generalizing one proven component removes the top reason customers fall back to spreadsheets.</dd>
+    <dt>Downsides</dt>
+    <dd>Has no home until Idea 2 exists (a rate card needs a subject to attach to). Pricing-model surface area grows fast (currency, rounding, proration, minimums). The cost-plus default is only lightly evidenced beyond "the engine exists."</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i5">
+  <div class="idea-head"><span class="rank">4.</span><h3>Zero-liability usage-export &amp; invoice-draft API <span style="font-size:.8rem;color:var(--good-text);font-weight:600">&middot; recommended first ship</span></h3></div>
+  <div class="chips"><span class="chip axis">invoicing &amp; collection</span><span class="chip conf-high">Confidence 85%</span><span class="chip cx">Complexity: Low&ndash;Medium</span></div>
+  <dl>
+    <dt>Description</dt>
+    <dd>A <code>POST /v2/billing.exportUsage</code> endpoint returning per-identity billable quantities (JSON/CSV) for a period &mdash; and, one step further, a pre-computed Stripe invoice-draft payload (rated via Idea 3) the customer posts to <em>their own</em> Stripe. Unkey never touches money. Optionally pair it with an authoritative-counts webhook the customer diffs against their own logs (a reconciliation-tolerance feed), turning Unkey's number into the trusted source of truth. Reuses the exact <code>register.go</code> + <code>zen.Route</code> + OpenAPI pattern that <code>v2/analytics.getVerifications</code> already uses.</dd>
+    <dt>Basis</dt>
+    <dd class="basis">direct: no data-export surfaces exist (no CSV/JSON download of billable usage, no bulk export routes); route pattern confirmed at svc/api/routes/register.go (RegisterRoute + zen.Route) with the analytics handler as a working template. [verifier: sound &mdash; lowest-risk, well-grounded MVP]</dd>
+    <dt>Rationale</dt>
+    <dd>This is the most literal answer to the complaint ("they have to extract all the data and then bill their own users") &mdash; and it carries none of the compliance/liability weight of moving money. It ships fast on the Idea 1 rollup, de-risks the bigger bet, and is a clean predecessor to Connect (Idea 5).</dd>
+    <dt>Downsides</dt>
+    <dd>Leaves the actual billing to the customer &mdash; it removes the export toil but not the "run your own Stripe integration" step. Less differentiated than merchant-of-record. The invoice-draft half still depends on rate cards (Idea 3) to be more than raw counts.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i4">
+  <div class="idea-head"><span class="rank">5.</span><h3>Stripe Connect &mdash; bill your end-users on your behalf</h3></div>
+  <div class="chips"><span class="chip axis">invoicing &amp; collection</span><span class="chip conf-med">Confidence 60%</span><span class="chip cx">Complexity: High</span></div>
+  <dl>
+    <dt>Description</dt>
+    <dd>Add Stripe Connect so a customer links their own Stripe account and Unkey posts meter events / draft invoices directly to it (<code>on_behalf_of</code> / destination), keyed to the end-user's Stripe customer resolved from the identity's billing profile (Idea 2). The monthly cron and meter-posting shape from <code>deploybilling</code> / <code>billingmeter/stripe.go</code> is the conceptual template; Unkey becomes the platform biller, its customer stays merchant-of-record.</dd>
+    <dt>Basis</dt>
+    <dd class="basis">direct: billingmeter/stripe.go already posts month-to-date meter totals keyed by StripeCustomerID; "No evidence of Stripe Connect (on_behalf_of/marketplace billing)." external: Stripe Connect / AWS Marketplace metered SaaS as the platform-as-biller pattern. [verifier: weak on the reuse claim &mdash; Connect needs a different auth/account model (connected-account tokens, Stripe-Account header), not just parameterizing the existing customer-id field]</dd>
+    <dt>Rationale</dt>
+    <dd>This is the differentiated version of the whole feature: the customer stops running any billing integration at all. It reuses the metering pipeline's customer-ID-parametric shape and is the natural v2 once the export API (Idea 4) proves demand.</dd>
+    <dt>Downsides</dt>
+    <dd>Connect is a materially larger build than the pusher reuse implies &mdash; different auth model, KYC/onboarding, and payout flows. It is a strategic and liability decision (does Unkey want to sit near other people's money) as much as an engineering one, and warrants explicit go/no-go.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i6">
+  <div class="idea-head"><span class="rank">6.</span><h3>Embeddable end-user usage &amp; billing surfaces</h3></div>
+  <div class="chips"><span class="chip axis">surfacing &amp; self-serve</span><span class="chip conf-med">Confidence 65%</span><span class="chip cx">Complexity: Medium&ndash;High</span></div>
+  <dl>
+    <dt>Description</dt>
+    <dd>Turn the placeholder end-user Portal and existing usage-chart primitives into real per-identity billing surfaces, sourced from the Idea 1 rollup. Decomposes into distinct pieces (worth scoping separately): (a) fill the branded Portal's "coming soon" analytics with per-identity usage/cost; (b) an <em>embeddable</em> usage/cost widget the customer drops into their own app; (c) a <code>v2/billing.getStatement</code> endpoint with opening/closing/itemized lines the end-user can dispute; (d) <code>usage.threshold_crossed</code> / <code>invoice.ready</code> webhooks.</dd>
+    <dt>Basis</dt>
+    <dd class="basis">direct: Portal analytics is a placeholder ("Analytics dashboard coming soon"); usage-sparkline.tsx / usage-popover.tsx primitives already exist but are unwired to per-identity data; session carries ExternalID but no billing/usage fields; "no webhook events for customers &mdash; webhooks are internal only." [verifier: sound, but this is really 4 ideas &mdash; de-bundle before scheduling]</dd>
+    <dt>Rationale</dt>
+    <dd>Customers billing their end-users need those end-users to <em>see</em> the usage that justifies the bill. An embeddable widget spares every customer from building the same reporting UI, and the branded Portal shell + chart components already exist &mdash; the missing piece is wiring the billing numbers in.</dd>
+    <dt>Downsides</dt>
+    <dd>Bundles four different scopes/owners (UI, embeddable component, API, webhooks) with different risk profiles. Embedding into customer apps raises auth-scoping and branding surface area. Lower leverage than the data/pricing foundation it sits on.</dd>
+  </dl>
+</article>
+
+<article class="idea" id="i7">
+  <div class="idea-head"><span class="rank">7.</span><h3>Immutable signed billing snapshots for audit &amp; disputes</h3></div>
+  <div class="chips"><span class="chip axis">metering &amp; aggregation</span><span class="chip conf-med">Confidence 70%</span><span class="chip cx">Complexity: Medium</span></div>
+  <dl>
+    <dt>Description</dt>
+    <dd>At each period close, freeze the per-identity rollup (Idea 1) into an immutable, hash-signed <code>billing_period_ledger</code> row with long retention, decoupling billing evidence from the 90-day raw-event TTL. Late-arriving events land as a <em>visible adjustment line</em> in the next period rather than silently restating a closed one &mdash; the toll-road / bank-statement reconciliation model. Customers (and their end-users) bill from a snapshot they can independently verify.</dd>
+    <dt>Basis</dt>
+    <dd class="basis">direct: key_verifications_raw_v2 has a 90-day TTL (schema 001); per-month view retains 3 years; billingmeter/stripe.go deliberately sets no event-level idempotency key and uses absolute month-to-date ("last") totals &mdash; note this is an INTENTIONAL design (a stable id would make Stripe hard-400 on re-runs), so this idea adds an audit ledger, it does not "fix" a bug. [verifier: sound &mdash; refuted the "idempotency is missing" framing; this snapshot idea stands corrected on that basis]</dd>
+    <dt>Rationale</dt>
+    <dd>The moment real money moves off Unkey's data, disputes and audits become a compliance requirement. Unkey's raw retention is tuned for observability, not finance &mdash; a frozen, signed monthly snapshot turns that limitation into an auditability guarantee competitors don't offer, and prevents the "show me the line items from 4 months ago" support escalation.</dd>
+    <dt>Downsides</dt>
+    <dd>Added storage and a period-close job to operate and monitor. Signing/verification is only worth it once customers actually bill on the data. Adjustment-line semantics (how late is too late) need a clear, communicated policy.</dd>
+  </dl>
+</article>
+
+<h2 id="rejected">Rejection Summary</h2>
+<table>
+  <thead><tr><th class="num">#</th><th>Idea</th><th>Reason cut</th></tr></thead>
+  <tbody>
+    <tr><td class="num">R1</td><td>Prepaid credit wallets / packs for end-users</td><td>Strong, distinct model, but reframes Unkey as a wallet/payments product; <code>remaining_requests</code> is an integer request quota, not a dollar-value pack &mdash; bigger strategic leap. Better as a <code>ce-brainstorm</code> variant of the pricing direction.</td></tr>
+    <tr><td class="num">R2</td><td>Entitlement withholding / real-time spend gate</td><td>Genuinely valuable (prevents runaway unpayable end-user bills via <code>USAGE_EXCEEDED</code> + <code>auto_apply</code>), but layers on top of rate cards + identity billing. Deferred follow-on, not a standalone foundation decision.</td></tr>
+    <tr><td class="num">R3</td><td>Fare-capping best-price cap per identity</td><td>A rating-policy feature sitting on the rollup + rate cards, not a new infra primitive. Fold into pricing once the foundation exists.</td></tr>
+    <tr><td class="num">R4</td><td>Real-time cost on the verification response</td><td>Not independently buildable &mdash; depends on rate cards (Idea 3) existing first. Scope as a dependent UX follow-on.</td></tr>
+    <tr><td class="num">R5</td><td>RTB dual-count reconciliation feed</td><td>Duplicate: same deliverable as the export/webhook idea with a tolerance framing bolted on. Merged into Idea 4.</td></tr>
+    <tr><td class="num">R6</td><td>Idempotent snapshot billing ("harden" the meter)</td><td>Basis refuted &mdash; the absent idempotency key is intentional (<code>stripe.go</code>: a stable id makes Stripe hard-400 on re-runs). Valid instinct merged into Idea 7 with corrected framing.</td></tr>
+    <tr><td class="num">R7</td><td>Bill-per-feature via the <code>tags</code> dimension</td><td>Sound but mechanically an extension of Idea 1 (tags already flow to the rollup). Merged into Idea 1.</td></tr>
+    <tr><td class="num">R8</td><td>Ratelimit &rarr; identity attribution fix</td><td>Load-bearing, but it is the precondition for the rollup rather than a separate direction. Merged into Idea 1 (with the hot-path vs. join tradeoff called out).</td></tr>
+  </tbody>
+</table>
+
+<footer class="composition-signal">Composed 2026-07-01 by ce-ideate from user prompt: "let our customers bill their users for usage from API keys, standalone ratelimits, and credits." 47 raw candidates across 5 frames &rarr; fresh-context basis verification &rarr; 7 survivors. Evidence dossiers: <code>/tmp/compound-engineering/ce-ideate/5efc583e/</code>.</footer>
+
+</div>

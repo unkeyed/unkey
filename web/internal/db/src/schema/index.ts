@@ -5,6 +5,7 @@ export * from "./keys";
 export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./identity";
+export * from "./billing";
 export * from "./quota";
 export * from "./clickhouse_outbox";
 export * from "./environments";

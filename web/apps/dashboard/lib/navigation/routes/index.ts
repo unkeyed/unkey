@@ -9,6 +9,7 @@ import { authRoutes } from "./auth";
 import { authorizationRoutes } from "./authorization";
 import { identityRoutes } from "./identities";
 import { logRoutes } from "./logs";
+import { monetizationRoutes } from "./monetization";
 import { projectRoutes } from "./projects";
 import { ratelimitRoutes } from "./ratelimits";
 import { settingsRoutes } from "./settings";
@@ -23,6 +24,7 @@ export const routes = {
   apis: apiRoutes,
   authorization: authorizationRoutes,
   identities: identityRoutes,
+  monetization: monetizationRoutes,
   audit: auditRoutes,
   logs: logRoutes,
   auth: authRoutes,

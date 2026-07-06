@@ -1,0 +1,70 @@
+type: object
+required:
+  - identityId
+  - externalId
+  - priced
+  - lineItems
+properties:
+  identityId:
+    type: string
+    description: Unkey identity id of the end-user.
+  externalId:
+    type: string
+    description: Your identifier for the end-user.
+  priced:
+    type: boolean
+    description: |
+      False when no rate card resolves for this identity (no selection,
+      assignment, or workspace default) — line items then carry quantities
+      with no amounts.
+  rateCardId:
+    type: string
+    description: The rate card in force for this identity and period.
+  rateCardName:
+    type: string
+    description: Name of the rate card in force.
+  currency:
+    type: string
+    description: ISO 4217 currency of the amounts.
+  resolvedFrom:
+    type: string
+    enum:
+      - selection
+      - assignment
+      - workspace_default
+    description: Which precedence step produced the rate card.
+  lineItems:
+    type: array
+    items:
+      type: object
+      required:
+        - dimension
+        - quantity
+      properties:
+        dimension:
+          type: string
+          enum:
+            - verifications
+            - credits
+            - ratelimits
+          description: Metered dimension this line bills.
+        quantity:
+          type: integer
+          format: int64
+          description: Billable quantity in the period.
+        amountCents:
+          type: string
+          description: Exact amount in cents as a decimal string (e.g. "27447.185").
+        amountCentsRounded:
+          type: integer
+          format: int64
+          description: Amount rounded half-up to whole cents.
+      additionalProperties: false
+  totalCents:
+    type: string
+    description: Exact total in cents as a decimal string.
+  totalCentsRounded:
+    type: integer
+    format: int64
+    description: Total rounded half-up to whole cents.
+additionalProperties: false

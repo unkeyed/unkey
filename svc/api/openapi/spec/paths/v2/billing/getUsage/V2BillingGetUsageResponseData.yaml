@@ -1,0 +1,27 @@
+type: object
+required:
+  - identityId
+  - externalId
+  - verifications
+  - spentCredits
+  - ratelimitsPassed
+properties:
+  identityId:
+    type: string
+    description: Unkey identity id of the end-user.
+  externalId:
+    type: string
+    description: Your identifier for the end-user.
+  verifications:
+    type: integer
+    format: int64
+    description: Count of VALID key verifications in the period.
+  spentCredits:
+    type: integer
+    format: int64
+    description: Credits consumed by this identity's verifications in the period.
+  ratelimitsPassed:
+    type: integer
+    format: int64
+    description: Passed, identity-attributed standalone ratelimit checks in the period.
+additionalProperties: false

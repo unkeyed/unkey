@@ -527,6 +527,178 @@ components:
                 data:
                     "$ref": "#/components/schemas/App"
             additionalProperties: false
+        V2BillingGetInvoiceDraftRequestBody:
+            type: object
+            required:
+                - year
+                - month
+            properties:
+                year:
+                    type: integer
+                    minimum: 2020
+                    maximum: 2100
+                    description: Billing period year (UTC).
+                month:
+                    type: integer
+                    minimum: 1
+                    maximum: 12
+                    description: Billing period month (UTC, 1-12).
+                externalId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: Restrict the draft to one end-user identity by its external id.
+            additionalProperties: false
+        V2BillingGetInvoiceDraftResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    type: array
+                    description: One draft entry per end-user identity with usage in the period.
+                    items:
+                        "$ref": "#/components/schemas/V2BillingGetInvoiceDraftResponseData"
+        V2BillingGetUsageRequestBody:
+            type: object
+            required:
+                - year
+                - month
+            properties:
+                year:
+                    type: integer
+                    minimum: 2020
+                    maximum: 2100
+                    description: Billing period year (UTC).
+                    example: 2026
+                month:
+                    type: integer
+                    minimum: 1
+                    maximum: 12
+                    description: Billing period month (UTC, 1-12).
+                    example: 6
+                externalId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: Restrict the result to one end-user identity by its external id.
+            additionalProperties: false
+        V2BillingGetUsageResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    type: array
+                    description: One entry per end-user identity with billable usage in the period.
+                    items:
+                        "$ref": "#/components/schemas/V2BillingGetUsageResponseData"
+        V2BillingLinkStripeConnectRequestBody:
+            type: object
+            required:
+                - connectedAccountId
+            properties:
+                connectedAccountId:
+                    type: string
+                    pattern: "^acct_[a-zA-Z0-9]+$"
+                    description: The Stripe connected account id (acct_...) from Connect onboarding.
+            additionalProperties: false
+        V2BillingLinkStripeConnectResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    type: object
+                    required:
+                        - connectedAccountId
+                    properties:
+                        connectedAccountId:
+                            type: string
+                            description: The verified, linked connected account id.
+                    additionalProperties: false
+        V2BillingListPlansRequestBody:
+            type: object
+            required:
+                - externalId
+            properties:
+                externalId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: Your identifier for the end-user whose plans to list.
+            additionalProperties: false
+        V2BillingListPlansResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2BillingListPlansResponseData"
+        V2BillingSelectPlanRequestBody:
+            type: object
+            required:
+                - externalId
+                - rateCardId
+            properties:
+                externalId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: Your identifier for the end-user making the selection.
+                rateCardId:
+                    type: string
+                    minLength: 1
+                    description: The selectable rate card the end-user picked.
+            additionalProperties: false
+        V2BillingSelectPlanResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    type: object
+                    required:
+                        - rateCardId
+                    properties:
+                        rateCardId:
+                            type: string
+                            description: The recorded selection.
+                    additionalProperties: false
+        V2BillingUnlinkStripeConnectRequestBody:
+            type: object
+            additionalProperties: false
+        V2BillingUnlinkStripeConnectResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    type: object
+                    required:
+                        - unlinked
+                    properties:
+                        unlinked:
+                            type: boolean
+                    additionalProperties: false
         V2DeployCreateDeploymentRequestBody:
             type: object
             required:
@@ -3022,6 +3194,139 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
+        V2BillingGetInvoiceDraftResponseData:
+            type: object
+            required:
+                - identityId
+                - externalId
+                - priced
+                - lineItems
+            properties:
+                identityId:
+                    type: string
+                    description: Unkey identity id of the end-user.
+                externalId:
+                    type: string
+                    description: Your identifier for the end-user.
+                priced:
+                    type: boolean
+                    description: |
+                        False when no rate card resolves for this identity (no selection,
+                        assignment, or workspace default) — line items then carry quantities
+                        with no amounts.
+                rateCardId:
+                    type: string
+                    description: The rate card in force for this identity and period.
+                rateCardName:
+                    type: string
+                    description: Name of the rate card in force.
+                currency:
+                    type: string
+                    description: ISO 4217 currency of the amounts.
+                resolvedFrom:
+                    type: string
+                    enum:
+                        - selection
+                        - assignment
+                        - workspace_default
+                    description: Which precedence step produced the rate card.
+                lineItems:
+                    type: array
+                    items:
+                        type: object
+                        required:
+                            - dimension
+                            - quantity
+                        properties:
+                            dimension:
+                                type: string
+                                enum:
+                                    - verifications
+                                    - credits
+                                    - ratelimits
+                                description: Metered dimension this line bills.
+                            quantity:
+                                type: integer
+                                format: int64
+                                description: Billable quantity in the period.
+                            amountCents:
+                                type: string
+                                description: Exact amount in cents as a decimal string (e.g. "27447.185").
+                            amountCentsRounded:
+                                type: integer
+                                format: int64
+                                description: Amount rounded half-up to whole cents.
+                        additionalProperties: false
+                totalCents:
+                    type: string
+                    description: Exact total in cents as a decimal string.
+                totalCentsRounded:
+                    type: integer
+                    format: int64
+                    description: Total rounded half-up to whole cents.
+            additionalProperties: false
+        V2BillingGetUsageResponseData:
+            type: object
+            required:
+                - identityId
+                - externalId
+                - verifications
+                - spentCredits
+                - ratelimitsPassed
+            properties:
+                identityId:
+                    type: string
+                    description: Unkey identity id of the end-user.
+                externalId:
+                    type: string
+                    description: Your identifier for the end-user.
+                verifications:
+                    type: integer
+                    format: int64
+                    description: Count of VALID key verifications in the period.
+                spentCredits:
+                    type: integer
+                    format: int64
+                    description: Credits consumed by this identity's verifications in the period.
+                ratelimitsPassed:
+                    type: integer
+                    format: int64
+                    description: Passed, identity-attributed standalone ratelimit checks in the period.
+            additionalProperties: false
+        V2BillingListPlansResponseData:
+            type: object
+            required:
+                - plans
+            properties:
+                plans:
+                    type: array
+                    description: Rate cards the end-user may pick (the workspace's selectable set).
+                    items:
+                        type: object
+                        required:
+                            - id
+                            - name
+                            - currency
+                        properties:
+                            id:
+                                type: string
+                            name:
+                                type: string
+                            currency:
+                                type: string
+                                description: ISO 4217 currency code.
+                            config:
+                                description: Tiered prices per metered dimension, for rendering pricing.
+                        additionalProperties: false
+                selectedRateCardId:
+                    type: string
+                    description: The card the end-user has picked, when any.
+                effectiveRateCardId:
+                    type: string
+                    description: |
+                        The card currently in force for new periods (selection, else
+                        assignment, else workspace default), when any resolves.
+            additionalProperties: false
         V2DeployGitCommit:
             type: object
             description: Optional git commit information
@@ -5359,6 +5664,315 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: updateApp
+    /v2/billing.getInvoiceDraft:
+        post:
+            description: |
+                Returns invoice line items per end-user identity for one billing period,
+                with amounts computed from the rate card resolved for each identity
+                (end-user selection, else assignment, else workspace default). The card
+                resolved for a period is recorded on first billing and never re-priced.
+                Post the draft to your own billing provider (Stripe, Paddle, Polar, ...).
+            operationId: billing.getInvoiceDraft
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2BillingGetInvoiceDraftRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2BillingGetInvoiceDraftResponseBody'
+                    description: Invoice draft returned successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid period or filter
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid authentication
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Draft computation failed
+            security:
+                - rootKey: []
+            summary: Get a priced invoice draft per end-user
+            tags:
+                - billing
+            x-speakeasy-name-override: getInvoiceDraft
+    /v2/billing.getUsage:
+        post:
+            description: |
+                Returns billable quantities (VALID verifications, credits spent, attributed
+                ratelimit passes) per end-user identity for one billing period, read from
+                the pre-aggregated per-identity rollup. Quantities only — use
+                billing.getInvoiceDraft for amounts priced by the resolved rate card.
+            operationId: billing.getUsage
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2BillingGetUsageRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2BillingGetUsageResponseBody'
+                    description: Usage returned successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid period or filter
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid authentication
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Query failed
+            security:
+                - rootKey: []
+            summary: Get per-end-user billable usage
+            tags:
+                - billing
+            x-speakeasy-name-override: getUsage
+    /v2/billing.linkStripeConnect:
+        post:
+            description: |
+                Verifies that the connected account belongs to Unkey's platform (complete
+                Stripe Connect onboarding first) and stores its reference encrypted. The
+                period-close push then targets this account. Requires the manage_billing
+                permission — grant it as sparingly as key-encryption permissions.
+            operationId: billing.linkStripeConnect
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2BillingLinkStripeConnectRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2BillingLinkStripeConnectResponseBody'
+                    description: Account linked
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: The account could not be verified as connected to Unkey's platform
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid authentication
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Linking failed
+            security:
+                - rootKey: []
+            summary: Link a Stripe connected account for end-user billing
+            tags:
+                - billing
+            x-speakeasy-name-override: linkStripeConnect
+    /v2/billing.listPlans:
+        post:
+            description: |
+                Returns the workspace's selectable rate cards (the allowed set) together
+                with the end-user's currently effective card. Call this from your backend
+                to render a plan-selection surface for the end-user.
+            operationId: billing.listPlans
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2BillingListPlansRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2BillingListPlansResponseBody'
+                    description: Plans returned successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid authentication
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Identity not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Listing failed
+            security:
+                - rootKey: []
+            summary: List rate cards an end-user may pick
+            tags:
+                - billing
+            x-speakeasy-name-override: listPlans
+    /v2/billing.selectPlan:
+        post:
+            description: |
+                Records the end-user's pick from the workspace's selectable rate cards.
+                The selection takes effect for periods that have not been billed yet —
+                a period already recorded keeps its card.
+            operationId: billing.selectPlan
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2BillingSelectPlanRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2BillingSelectPlanResponseBody'
+                    description: Selection recorded
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: The rate card is not selectable or the request is invalid
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid authentication
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Identity or rate card not found
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Selection failed
+            security:
+                - rootKey: []
+            summary: Record an end-user's rate-card selection
+            tags:
+                - billing
+            x-speakeasy-name-override: selectPlan
+    /v2/billing.unlinkStripeConnect:
+        post:
+            description: |
+                Deletes the stored connected-account reference; the period-close push
+                skips the workspace afterwards. Recorded billing periods are unaffected.
+            operationId: billing.unlinkStripeConnect
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2BillingUnlinkStripeConnectRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2BillingUnlinkStripeConnectResponseBody'
+                    description: Account unlinked
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid authentication
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permissions
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Unlinking failed
+            security:
+                - rootKey: []
+            summary: Unlink the workspace's Stripe connected account
+            tags:
+                - billing
+            x-speakeasy-name-override: unlinkStripeConnect
     /v2/deploy.createDeployment:
         post:
             description: |
@@ -9311,6 +9925,8 @@ servers:
 tags:
     - description: Analytics query operations
       name: analytics
+    - description: End-user billing operations
+      name: billing
     - description: API management operations
       name: apis
     - description: App management operations

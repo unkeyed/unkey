@@ -1,0 +1,50 @@
+post:
+  tags:
+    - billing
+  security:
+    - rootKey: []
+  x-speakeasy-name-override: getUsage
+  operationId: billing.getUsage
+  summary: Get per-end-user billable usage
+  description: |
+    Returns billable quantities (VALID verifications, credits spent, attributed
+    ratelimit passes) per end-user identity for one billing period, read from
+    the pre-aggregated per-identity rollup. Quantities only — use
+    billing.getInvoiceDraft for amounts priced by the resolved rate card.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2BillingGetUsageRequestBody.yaml"
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2BillingGetUsageResponseBody.yaml"
+      description: Usage returned successfully
+    "400":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+      description: Invalid period or filter
+    "401":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+      description: Missing or invalid authentication
+    "403":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+      description: Insufficient permissions
+    "500":
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+      description: Query failed

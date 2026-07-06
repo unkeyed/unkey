@@ -1,0 +1,64 @@
+---
+title: End-user billing rollup backfill
+---
+
+The per-identity billable rollups that end-user billing reads from are
+populated by materialized views:
+
+- `billable_verifications_per_identity_per_month_v1`
+- `billable_credits_per_identity_per_month_v1`
+- `billable_ratelimits_per_identity_per_month_v1`
+
+A materialized view only sees rows inserted after it was created. Any usage
+that predates the views is invisible to per-identity billing until it is
+backfilled once. Run a backfill before a workspace bills a period whose usage
+was recorded before the views existed (for example, the month in which the
+feature shipped, or any earlier month).
+
+## When to run
+
+- Only for a **closed** period (a past month). A period still accruing usage
+  would be rebuilt from a moving source and could disagree with the live views.
+- Verifications and credits are recoverable for as long as their source
+  `key_verifications_per_month_v3` is retained (3 years).
+- Ratelimits are derived from `ratelimits_raw_v3`, which has a 1-month TTL.
+  Only the most recently closed month can be reconstructed; older raw rows are
+  gone and the monthly rollup, once written, is the only record.
+
+## How it works
+
+The backfill is idempotent by period: for each rollup it deletes the period's
+existing rows, then re-derives them from the source with the same aggregation
+the view uses. Because it writes directly into the rollup table (not the
+source), it never re-triggers a view, and the delete makes a re-run safe -- it
+recomputes the period's total instead of adding to it.
+
+## Running it
+
+Preferred: call the tested helper, which runs all three rollups with the
+correct synchronization:
+
+```go
+// ch is a *pkg/clickhouse.Client
+err := ch.BackfillBillableIdentityRollups(ctx, year, month)
+```
+
+Equivalent raw SQL, if running directly against ClickHouse (repeat per rollup;
+`mutations_sync = 1` makes the delete complete before the insert):
+
+```sql
+ALTER TABLE default.billable_verifications_per_identity_per_month_v1
+DELETE WHERE year = {year:Int32} AND month = {month:Int32}
+SETTINGS mutations_sync = 1;
+
+INSERT INTO default.billable_verifications_per_identity_per_month_v1
+  (year, month, workspace_id, identity_id, external_id, count)
+SELECT toYear(time), toMonth(time), workspace_id, identity_id, external_id, sum(count)
+FROM default.key_verifications_per_month_v3
+WHERE outcome = 'VALID' AND external_id != ''
+  AND toYear(time) = {year:Int32} AND toMonth(time) = {month:Int32}
+GROUP BY workspace_id, identity_id, external_id, toYear(time), toMonth(time);
+```
+
+After running, verify with `GetBillableUsagePerIdentity` (or the invoice-draft
+API) that the period's quantities match expectations before billing it.

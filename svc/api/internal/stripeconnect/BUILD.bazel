@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "stripeconnect",
+    srcs = ["verifier.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/internal/stripeconnect",
+    visibility = ["//svc/api:__subpackages__"],
+    deps = [
+        "//pkg/fault",
+        "@com_github_stripe_stripe_go_v86//:stripe-go",
+    ],
+)

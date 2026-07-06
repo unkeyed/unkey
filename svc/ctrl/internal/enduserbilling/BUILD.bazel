@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "enduserbilling",
+    srcs = [
+        "interface.go",
+        "noop.go",
+        "stripeconnect.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/enduserbilling",
+    visibility = ["//svc/ctrl:__subpackages__"],
+    deps = [
+        "//pkg/fault",
+        "@com_github_stripe_stripe_go_v86//:stripe-go",
+    ],
+)
+
+go_test(
+    name = "enduserbilling_test",
+    srcs = [
+        "interface_test.go",
+        "stripeconnect_test.go",
+    ],
+    embed = [":enduserbilling"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

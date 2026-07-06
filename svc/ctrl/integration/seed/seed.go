@@ -651,15 +651,19 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 	}
 
 	return db.Identity{
-		Pk:          0, // db internal
-		ID:          identityID,
-		ExternalID:  req.ExternalID,
-		WorkspaceID: req.WorkspaceID,
-		Environment: "",
-		Meta:        metaBytes,
-		Deleted:     false,
-		CreatedAt:   time.Now().UnixMilli(),
-		UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
+		Pk:                        0, // db internal
+		ID:                        identityID,
+		ExternalID:                req.ExternalID,
+		WorkspaceID:               req.WorkspaceID,
+		Environment:               "",
+		Meta:                      metaBytes,
+		Deleted:                   false,
+		BillingProvider:           db.IdentitiesBillingProviderNone,
+		BillingExternalCustomerID: sql.NullString{Valid: false, String: ""},
+		RateCardID:                sql.NullString{Valid: false, String: ""},
+		SelectedRateCardID:        sql.NullString{Valid: false, String: ""},
+		CreatedAt:                 time.Now().UnixMilli(),
+		UpdatedAt:                 sql.NullInt64{Valid: false, Int64: 0},
 	}
 }
 

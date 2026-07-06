@@ -2,8 +2,10 @@ package deploybilling
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 )
 
@@ -36,5 +38,39 @@ func TestAggregateUsage(t *testing.T) {
 
 	t.Run("empty input yields empty map", func(t *testing.T) {
 		require.Empty(t, aggregateUsage(nil))
+	})
+}
+
+func TestClosedPeriodToBill(t *testing.T) {
+	utc := func(y int, m time.Month, d int) time.Time {
+		return time.Date(y, m, d, 12, 0, 0, 0, time.UTC)
+	}
+
+	t.Run("bills the month before the open period, never the open one", func(t *testing.T) {
+		p, err := billingperiod.Parse("2026-07")
+		require.NoError(t, err)
+		year, month, ready := closedPeriodToBill(p, utc(2026, time.July, 15))
+		require.Equal(t, 2026, year)
+		require.Equal(t, int(time.June), month, "the open month (July) is never billed; its predecessor is")
+		require.True(t, ready)
+	})
+
+	t.Run("crosses the year boundary", func(t *testing.T) {
+		p, err := billingperiod.Parse("2026-01")
+		require.NoError(t, err)
+		year, month, _ := closedPeriodToBill(p, utc(2026, time.January, 15))
+		require.Equal(t, 2025, year)
+		require.Equal(t, int(time.December), month)
+	})
+
+	t.Run("defers until the settle window elapses", func(t *testing.T) {
+		p, err := billingperiod.Parse("2026-07")
+		require.NoError(t, err)
+		// First day of the new month: the just-closed month may still be
+		// receiving late-arriving events, so billing is deferred.
+		_, _, ready := closedPeriodToBill(p, utc(2026, time.July, 1))
+		require.False(t, ready, "day 1 is inside the settle window")
+		_, _, ready = closedPeriodToBill(p, utc(2026, time.July, endUserBillingSettleDays))
+		require.True(t, ready, "billing is ready once the settle window has elapsed")
 	})
 }

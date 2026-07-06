@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ratecard",
+    srcs = ["ratecard.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/ratecard",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/fault"],
+)
+
+go_test(
+    name = "ratecard_test",
+    srcs = ["ratecard_test.go"],
+    embed = [":ratecard"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

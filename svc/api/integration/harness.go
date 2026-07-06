@@ -196,7 +196,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				api.PortalSessionAuthConfig{},
 				api.RootKeyAuthConfig{Enabled: nil},
 			},
-			PortalBaseURL: "https://portal.test.local",
+			PortalBaseURL:   "https://portal.test.local",
+			StripeSecretKey: "",
 		}
 
 		// Start API server in goroutine

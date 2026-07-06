@@ -2,6 +2,7 @@ import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   BracketsSquareDots,
+  Coins,
   Cube,
   Fingerprint,
   Gauge,
@@ -60,6 +61,13 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       href: `/${slug}/identities`,
       icon: Fingerprint,
       isActive: top === "identities",
+    },
+    {
+      key: "monetization",
+      label: "Monetization",
+      href: routes.monetization.overview({ workspaceSlug: slug }),
+      icon: Coins,
+      isActive: top === "monetization",
     },
     {
       key: "audit",

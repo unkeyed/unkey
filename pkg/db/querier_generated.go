@@ -16,6 +16,15 @@ type Querier interface {
 	//  SET token = ?, authorization = ?, updated_at = ?
 	//  WHERE domain_id = ?
 	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
+	// Unlink: delete the encrypted reference so the period-close push skips the
+	// workspace. Recorded period rate cards and rollups are unaffected.
+	//
+	//  UPDATE workspace_billing_settings
+	//  SET stripe_connect_encrypted = NULL,
+	//      stripe_connect_encryption_key_id = NULL,
+	//      stripe_connect_status = NULL
+	//  WHERE workspace_id = ?
+	ClearWorkspaceBillingStripeConnect(ctx context.Context, db DBTX, workspaceID string) error
 	//CompareAndSwapDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -64,6 +73,13 @@ type Querier interface {
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
 	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	// Disables a keyspace/namespace for billing (removes it from the billable set).
+	//
+	//  DELETE FROM billing_billable_resources
+	//  WHERE workspace_id = ?
+	//    AND resource_type = ?
+	//    AND resource_id = ?
+	DeleteBillingBillableResource(ctx context.Context, db DBTX, arg DeleteBillingBillableResourceParams) error
 	//DeleteCiliumNetworkPoliciesByEnvironmentId
 	//
 	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
@@ -399,6 +415,15 @@ type Querier interface {
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 	//  WHERE a.id = ?
 	FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
+	//FindBillingPeriodRateCard
+	//
+	//  SELECT pk, id, workspace_id, identity_id, year, month, rate_card_id, resolved_from, pushed_at, created_at, updated_at
+	//  FROM billing_period_rate_cards
+	//  WHERE workspace_id = ?
+	//    AND identity_id = ?
+	//    AND year = ?
+	//    AND month = ?
+	FindBillingPeriodRateCard(ctx context.Context, db DBTX, arg FindBillingPeriodRateCardParams) (BillingPeriodRateCard, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
@@ -636,7 +661,7 @@ type Querier interface {
 	FindGithubRepoConnectionByProjectId(ctx context.Context, db DBTX, projectID string) (FindGithubRepoConnectionByProjectIdRow, error)
 	//FindIdentities
 	//
-	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, billing_provider, billing_external_customer_id, rate_card_id, selected_rate_card_id, created_at, updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ?
 	//   AND deleted = ?
@@ -644,14 +669,14 @@ type Querier interface {
 	FindIdentities(ctx context.Context, db DBTX, arg FindIdentitiesParams) ([]Identity, error)
 	//FindIdentitiesByExternalId
 	//
-	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, billing_provider, billing_external_customer_id, rate_card_id, selected_rate_card_id, created_at, updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ? AND external_id IN (/*SLICE:externalIds*/?) AND deleted = ?
 	FindIdentitiesByExternalId(ctx context.Context, db DBTX, arg FindIdentitiesByExternalIdParams) ([]Identity, error)
 	//FindIdentity
 	//
 	//  SELECT
-	//      i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.created_at, i.updated_at,
+	//      i.pk, i.id, i.external_id, i.workspace_id, i.environment, i.meta, i.deleted, i.billing_provider, i.billing_external_customer_id, i.rate_card_id, i.selected_rate_card_id, i.created_at, i.updated_at,
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
 	//              JSON_OBJECT(
@@ -683,7 +708,7 @@ type Querier interface {
 	FindIdentity(ctx context.Context, db DBTX, arg FindIdentityParams) (FindIdentityRow, error)
 	//FindIdentityByExternalID
 	//
-	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, billing_provider, billing_external_customer_id, rate_card_id, selected_rate_card_id, created_at, updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ?
 	//    AND external_id = ?
@@ -691,7 +716,7 @@ type Querier interface {
 	FindIdentityByExternalID(ctx context.Context, db DBTX, arg FindIdentityByExternalIDParams) (Identity, error)
 	//FindIdentityByID
 	//
-	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, created_at, updated_at
+	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, billing_provider, billing_external_customer_id, rate_card_id, selected_rate_card_id, created_at, updated_at
 	//  FROM identities
 	//  WHERE workspace_id = ?
 	//    AND id = ?
@@ -1143,6 +1168,13 @@ type Querier interface {
 	//  FROM `quota`
 	//  WHERE workspace_id = ?
 	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error)
+	//FindRateCardByID
+	//
+	//  SELECT pk, id, workspace_id, name, currency, config, selectable, archived, created_at, updated_at
+	//  FROM rate_cards
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	FindRateCardByID(ctx context.Context, db DBTX, arg FindRateCardByIDParams) (RateCard, error)
 	//FindRatelimitNamespace
 	//
 	//  SELECT pk, id, workspace_id, name, created_at_m, updated_at_m, deleted_at_m,
@@ -1281,6 +1313,12 @@ type Querier interface {
 	//    AND verification_status = 'verified'
 	//  LIMIT 1
 	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, db DBTX, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
+	//FindWorkspaceBillingSettings
+	//
+	//  SELECT pk, id, workspace_id, default_rate_card_id, stripe_connect_encrypted, stripe_connect_encryption_key_id, stripe_connect_status, created_at, updated_at
+	//  FROM workspace_billing_settings
+	//  WHERE workspace_id = ?
+	FindWorkspaceBillingSettings(ctx context.Context, db DBTX, workspaceID string) (WorkspaceBillingSetting, error)
 	//FindWorkspaceByID
 	//
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
@@ -1446,6 +1484,29 @@ type Querier interface {
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
+	// First write wins: the card resolved when a period is first billed stays
+	// recorded, so later card changes never re-price a closed period (R18).
+	//
+	//  INSERT IGNORE INTO billing_period_rate_cards (
+	//      id,
+	//      workspace_id,
+	//      identity_id,
+	//      year,
+	//      month,
+	//      rate_card_id,
+	//      resolved_from,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertBillingPeriodRateCard(ctx context.Context, db DBTX, arg InsertBillingPeriodRateCardParams) error
 	//InsertCertificate
 	//
 	//  INSERT INTO certificates (id, workspace_id, hostname, certificate, encrypted_private_key, created_at)
@@ -2035,6 +2096,28 @@ type Querier interface {
 	//      ?, ?, ?, ?, ?, ?, ?
 	//  )
 	InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error
+	//InsertRateCard
+	//
+	//  INSERT INTO rate_cards (
+	//      id,
+	//      workspace_id,
+	//      name,
+	//      currency,
+	//      config,
+	//      selectable,
+	//      archived,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      false,
+	//      ?
+	//  )
+	InsertRateCard(ctx context.Context, db DBTX, arg InsertRateCardParams) error
 	//InsertRatelimitNamespace
 	//
 	//  INSERT INTO
@@ -2181,6 +2264,24 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
+	// All resources a workspace has enabled for end-user billing. Presence of a row
+	// means the keyspace/namespace is billable; absence means excluded.
+	//
+	//  SELECT pk, id, workspace_id, resource_type, resource_id, created_at, updated_at
+	//  FROM billing_billable_resources
+	//  WHERE workspace_id = ?
+	//  ORDER BY resource_type, resource_id
+	ListBillingBillableResources(ctx context.Context, db DBTX, workspaceID string) ([]BillingBillableResource, error)
+	// Identities whose usage is pushed to a billing provider at period close.
+	//
+	//  SELECT pk, id, external_id, workspace_id, environment, meta, deleted, billing_provider, billing_external_customer_id, rate_card_id, selected_rate_card_id, created_at, updated_at
+	//  FROM identities
+	//  WHERE workspace_id = ?
+	//    AND billing_provider = ?
+	//    AND deleted = false
+	//  ORDER BY pk
+	//  LIMIT ? OFFSET ?
+	ListBillingBoundIdentities(ctx context.Context, db DBTX, arg ListBillingBoundIdentitiesParams) ([]Identity, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
@@ -2570,6 +2671,14 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
+	//ListRateCardsByWorkspace
+	//
+	//  SELECT pk, id, workspace_id, name, currency, config, selectable, archived, created_at, updated_at
+	//  FROM rate_cards
+	//  WHERE workspace_id = ?
+	//    AND archived = false
+	//  ORDER BY name
+	ListRateCardsByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]RateCard, error)
 	//ListRatelimitOverridesByNamespaceID
 	//
 	//  SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
@@ -2694,6 +2803,25 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, db DBTX, arg ListRunningDeploymentsByBranchParams) ([]string, error)
+	//ListSelectableRateCards
+	//
+	//  SELECT pk, id, workspace_id, name, currency, config, selectable, archived, created_at, updated_at
+	//  FROM rate_cards
+	//  WHERE workspace_id = ?
+	//    AND selectable = true
+	//    AND archived = false
+	//  ORDER BY name
+	ListSelectableRateCards(ctx context.Context, db DBTX, workspaceID string) ([]RateCard, error)
+	// Only fully-linked workspaces are billed: accounts mid-onboarding
+	// (status "pending") are excluded until Stripe reports details_submitted.
+	//
+	//  SELECT pk, id, workspace_id, default_rate_card_id, stripe_connect_encrypted, stripe_connect_encryption_key_id, stripe_connect_status, created_at, updated_at
+	//  FROM workspace_billing_settings
+	//  WHERE stripe_connect_encrypted IS NOT NULL
+	//    AND stripe_connect_status = 'linked'
+	//  ORDER BY pk
+	//  LIMIT ? OFFSET ?
+	ListStripeConnectedWorkspaces(ctx context.Context, db DBTX, arg ListStripeConnectedWorkspacesParams) ([]WorkspaceBillingSetting, error)
 	//ListWorkspaces
 	//
 	//  SELECT
@@ -2749,6 +2877,18 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// Records that this identity+period was successfully pushed to the billing
+	// provider. Idempotent: only stamps pushed_at the first time (COALESCE keeps
+	// the earliest push timestamp), so a retry after a crash never moves it.
+	//
+	//  UPDATE billing_period_rate_cards
+	//  SET pushed_at = COALESCE(pushed_at, ?),
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND identity_id = ?
+	//    AND year = ?
+	//    AND month = ?
+	MarkBillingPeriodRateCardPushed(ctx context.Context, db DBTX, arg MarkBillingPeriodRateCardPushedParams) error
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
 	// insert is confirmed. Called inside the same transaction that selected
 	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
@@ -2865,6 +3005,28 @@ type Querier interface {
 	//      tier = 'Free'
 	//  WHERE id = ?
 	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
+	//SetWorkspaceBillingStripeConnect
+	//
+	//  INSERT INTO workspace_billing_settings (
+	//      id,
+	//      workspace_id,
+	//      stripe_connect_encrypted,
+	//      stripe_connect_encryption_key_id,
+	//      stripe_connect_status,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      stripe_connect_encrypted = VALUES(stripe_connect_encrypted),
+	//      stripe_connect_encryption_key_id = VALUES(stripe_connect_encryption_key_id),
+	//      stripe_connect_status = VALUES(stripe_connect_status),
+	//      updated_at = VALUES(created_at)
+	SetWorkspaceBillingStripeConnect(ctx context.Context, db DBTX, arg SetWorkspaceBillingStripeConnectParams) error
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`
@@ -3157,6 +3319,31 @@ type Querier interface {
 	//  WHERE
 	//      id = ?
 	UpdateIdentity(ctx context.Context, db DBTX, arg UpdateIdentityParams) error
+	//UpdateIdentityBillingBinding
+	//
+	//  UPDATE identities
+	//  SET billing_provider = ?,
+	//      billing_external_customer_id = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	//    AND deleted = false
+	UpdateIdentityBillingBinding(ctx context.Context, db DBTX, arg UpdateIdentityBillingBindingParams) error
+	//UpdateIdentityRateCard
+	//
+	//  UPDATE identities
+	//  SET rate_card_id = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	//    AND deleted = false
+	UpdateIdentityRateCard(ctx context.Context, db DBTX, arg UpdateIdentityRateCardParams) error
+	//UpdateIdentitySelectedRateCard
+	//
+	//  UPDATE identities
+	//  SET selected_rate_card_id = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	//    AND deleted = false
+	UpdateIdentitySelectedRateCard(ctx context.Context, db DBTX, arg UpdateIdentitySelectedRateCardParams) error
 	//UpdateKey
 	//
 	//  UPDATE `keys` k SET
@@ -3412,6 +3599,24 @@ type Querier interface {
 	//      openapi_spec_path = VALUES(openapi_spec_path),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsParams) error
+	// Enables a keyspace/namespace for billing. Idempotent: the unique
+	// (workspace_id, resource_type, resource_id) index makes a repeat enable a
+	// no-op rather than a duplicate row.
+	//
+	//  INSERT IGNORE INTO billing_billable_resources (
+	//      id,
+	//      workspace_id,
+	//      resource_type,
+	//      resource_id,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	UpsertBillingBillableResource(ctx context.Context, db DBTX, arg UpsertBillingBillableResourceParams) error
 	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
 	//
 	//  INSERT INTO clusters (
@@ -3602,6 +3807,22 @@ type Querier interface {
 	//      beta_features = VALUES(beta_features),
 	//      name = VALUES(name)
 	UpsertWorkspace(ctx context.Context, db DBTX, arg UpsertWorkspaceParams) error
+	//UpsertWorkspaceBillingSettingsDefaultRateCard
+	//
+	//  INSERT INTO workspace_billing_settings (
+	//      id,
+	//      workspace_id,
+	//      default_rate_card_id,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  ) ON DUPLICATE KEY UPDATE
+	//      default_rate_card_id = VALUES(default_rate_card_id),
+	//      updated_at = VALUES(created_at)
+	UpsertWorkspaceBillingSettingsDefaultRateCard(ctx context.Context, db DBTX, arg UpsertWorkspaceBillingSettingsDefaultRateCardParams) error
 }
 
 var _ Querier = (*Queries)(nil)

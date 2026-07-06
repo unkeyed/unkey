@@ -4,6 +4,8 @@ go_library(
     name = "clickhouse",
     srcs = [
         "audit_logs.go",
+        "billable_identity.go",
+        "billable_identity_backfill.go",
         "billable_ratelimits.go",
         "billable_usage.go",
         "billable_verifications.go",
@@ -39,6 +41,7 @@ go_test(
     name = "clickhouse_test",
     size = "large",
     srcs = [
+        "billable_identity_test.go",
         "billable_usage_test.go",
         "errors_test.go",
         "instance_events_test.go",

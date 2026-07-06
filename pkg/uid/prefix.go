@@ -4,26 +4,28 @@ package uid
 type Prefix string
 
 const (
-	KeyPrefix                 Prefix = "key"
-	APIPrefix                 Prefix = "api"
-	RequestPrefix             Prefix = "req"
-	WorkspacePrefix           Prefix = "ws"
-	KeySpacePrefix            Prefix = "ks" // keyspace
-	RolePrefix                Prefix = "role"
-	TestPrefix                Prefix = "test" // for tests only
-	RatelimitNamespacePrefix  Prefix = "rlns"
-	RatelimitOverridePrefix   Prefix = "rlor"
-	PermissionPrefix          Prefix = "perm"
-	IdentityPrefix            Prefix = "id"
-	RatelimitPrefix           Prefix = "rl"
-	AuditLogPrefix            Prefix = "log"
-	CorrelationPrefix         Prefix = "cor"
-	InstancePrefix            Prefix = "ins"
-	FrontlinePrefix           Prefix = "fl"
-	CiliumNetworkPolicyPrefix Prefix = "net"
-	ClusterPrefix             Prefix = "cls"
-	RegionPrefix              Prefix = "rgn"
-	OrgPrefix                 Prefix = "org"
+	KeyPrefix                   Prefix = "key"
+	APIPrefix                   Prefix = "api"
+	RequestPrefix               Prefix = "req"
+	WorkspacePrefix             Prefix = "ws"
+	KeySpacePrefix              Prefix = "ks" // keyspace
+	RolePrefix                  Prefix = "role"
+	TestPrefix                  Prefix = "test" // for tests only
+	RatelimitNamespacePrefix    Prefix = "rlns"
+	RatelimitOverridePrefix     Prefix = "rlor"
+	PermissionPrefix            Prefix = "perm"
+	IdentityPrefix              Prefix = "id"
+	RatelimitPrefix             Prefix = "rl"
+	RateCardPrefix              Prefix = "rc"
+	BillingPeriodRateCardPrefix Prefix = "bprc"
+	AuditLogPrefix              Prefix = "log"
+	CorrelationPrefix           Prefix = "cor"
+	InstancePrefix              Prefix = "ins"
+	FrontlinePrefix             Prefix = "fl"
+	CiliumNetworkPolicyPrefix   Prefix = "net"
+	ClusterPrefix               Prefix = "cls"
+	RegionPrefix                Prefix = "rgn"
+	OrgPrefix                   Prefix = "org"
 
 	// Portal prefixes
 	PortalSessionTokenPrefix Prefix = "pst"

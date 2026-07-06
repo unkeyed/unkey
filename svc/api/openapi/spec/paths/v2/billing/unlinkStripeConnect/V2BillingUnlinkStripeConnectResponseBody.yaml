@@ -1,0 +1,15 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    type: object
+    required:
+      - unlinked
+    properties:
+      unlinked:
+        type: boolean
+    additionalProperties: false

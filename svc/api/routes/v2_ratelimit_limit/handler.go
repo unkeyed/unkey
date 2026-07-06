@@ -26,6 +26,7 @@ import (
 	sf "github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/identityattr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -37,9 +38,10 @@ type (
 // Handler implements zen.Route interface for the v2 ratelimit limit endpoint
 type Handler struct {
 	DB              db.Database
-	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
+	RatelimitEvents *batch.BatchProcessor[schema.RatelimitV3]
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
+	IdentityCache   cache.Cache[cache.ScopedKey, db.Identity]
 	Auditlogs       auditlogs.AuditLogService
 	TestMode        bool
 	createFlight    sf.Group[db.FindRatelimitNamespace]
@@ -167,12 +169,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	latency := time.Since(t0).Milliseconds()
 	if s.ShouldLogRequestToClickHouse() {
 		nowMillis := time.Now().UnixMilli()
-		h.RatelimitEvents.Buffer(schema.Ratelimit{
+		// Best-effort end-user attribution for per-identity billing: matches
+		// the identifier against the workspace's identities (empty on no match).
+		identityID, externalID := identityattr.Resolve(ctx, h.IdentityCache, h.DB, principal.WorkspaceID, req.Identifier)
+		h.RatelimitEvents.Buffer(schema.RatelimitV3{
 			RequestID:   s.RequestID(),
 			WorkspaceID: principal.WorkspaceID,
 			Time:        nowMillis,
 			NamespaceID: ns.ID,
 			Identifier:  req.Identifier,
+			IdentityID:  identityID,
+			ExternalID:  externalID,
 			Passed:      result.Success,
 			Latency:     float64(latency),
 			OverrideID:  overrideID,

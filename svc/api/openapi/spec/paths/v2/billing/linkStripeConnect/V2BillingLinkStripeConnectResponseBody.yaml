@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    type: object
+    required:
+      - connectedAccountId
+    properties:
+      connectedAccountId:
+        type: string
+        description: The verified, linked connected account id.
+    additionalProperties: false

@@ -24,6 +24,20 @@ const (
 	UpdateKeyCreditsRefillIntervalMonthly UpdateKeyCreditsRefillInterval = "monthly"
 )
 
+// Defines values for V2BillingGetInvoiceDraftResponseDataLineItemsDimension.
+const (
+	Credits       V2BillingGetInvoiceDraftResponseDataLineItemsDimension = "credits"
+	Ratelimits    V2BillingGetInvoiceDraftResponseDataLineItemsDimension = "ratelimits"
+	Verifications V2BillingGetInvoiceDraftResponseDataLineItemsDimension = "verifications"
+)
+
+// Defines values for V2BillingGetInvoiceDraftResponseDataResolvedFrom.
+const (
+	Assignment       V2BillingGetInvoiceDraftResponseDataResolvedFrom = "assignment"
+	Selection        V2BillingGetInvoiceDraftResponseDataResolvedFrom = "selection"
+	WorkspaceDefault V2BillingGetInvoiceDraftResponseDataResolvedFrom = "workspace_default"
+)
+
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
 	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
@@ -879,6 +893,202 @@ type V2AppsUpdateAppRequestBody struct {
 // V2AppsUpdateAppResponseBody defines model for V2AppsUpdateAppResponseBody.
 type V2AppsUpdateAppResponseBody struct {
 	Data App `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2BillingGetInvoiceDraftRequestBody defines model for V2BillingGetInvoiceDraftRequestBody.
+type V2BillingGetInvoiceDraftRequestBody struct {
+	// ExternalId Restrict the draft to one end-user identity by its external id.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// Month Billing period month (UTC, 1-12).
+	Month int `json:"month"`
+
+	// Year Billing period year (UTC).
+	Year int `json:"year"`
+}
+
+// V2BillingGetInvoiceDraftResponseBody defines model for V2BillingGetInvoiceDraftResponseBody.
+type V2BillingGetInvoiceDraftResponseBody struct {
+	// Data One draft entry per end-user identity with usage in the period.
+	Data []V2BillingGetInvoiceDraftResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2BillingGetInvoiceDraftResponseData defines model for V2BillingGetInvoiceDraftResponseData.
+type V2BillingGetInvoiceDraftResponseData struct {
+	// Currency ISO 4217 currency of the amounts.
+	Currency *string `json:"currency,omitempty"`
+
+	// ExternalId Your identifier for the end-user.
+	ExternalId string `json:"externalId"`
+
+	// IdentityId Unkey identity id of the end-user.
+	IdentityId string `json:"identityId"`
+	LineItems  []struct {
+		// AmountCents Exact amount in cents as a decimal string (e.g. "27447.185").
+		AmountCents *string `json:"amountCents,omitempty"`
+
+		// AmountCentsRounded Amount rounded half-up to whole cents.
+		AmountCentsRounded *int64 `json:"amountCentsRounded,omitempty"`
+
+		// Dimension Metered dimension this line bills.
+		Dimension V2BillingGetInvoiceDraftResponseDataLineItemsDimension `json:"dimension"`
+
+		// Quantity Billable quantity in the period.
+		Quantity int64 `json:"quantity"`
+	} `json:"lineItems"`
+
+	// Priced False when no rate card resolves for this identity (no selection,
+	// assignment, or workspace default) — line items then carry quantities
+	// with no amounts.
+	Priced bool `json:"priced"`
+
+	// RateCardId The rate card in force for this identity and period.
+	RateCardId *string `json:"rateCardId,omitempty"`
+
+	// RateCardName Name of the rate card in force.
+	RateCardName *string `json:"rateCardName,omitempty"`
+
+	// ResolvedFrom Which precedence step produced the rate card.
+	ResolvedFrom *V2BillingGetInvoiceDraftResponseDataResolvedFrom `json:"resolvedFrom,omitempty"`
+
+	// TotalCents Exact total in cents as a decimal string.
+	TotalCents *string `json:"totalCents,omitempty"`
+
+	// TotalCentsRounded Total rounded half-up to whole cents.
+	TotalCentsRounded *int64 `json:"totalCentsRounded,omitempty"`
+}
+
+// V2BillingGetInvoiceDraftResponseDataLineItemsDimension Metered dimension this line bills.
+type V2BillingGetInvoiceDraftResponseDataLineItemsDimension string
+
+// V2BillingGetInvoiceDraftResponseDataResolvedFrom Which precedence step produced the rate card.
+type V2BillingGetInvoiceDraftResponseDataResolvedFrom string
+
+// V2BillingGetUsageRequestBody defines model for V2BillingGetUsageRequestBody.
+type V2BillingGetUsageRequestBody struct {
+	// ExternalId Restrict the result to one end-user identity by its external id.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// Month Billing period month (UTC, 1-12).
+	Month int `json:"month"`
+
+	// Year Billing period year (UTC).
+	Year int `json:"year"`
+}
+
+// V2BillingGetUsageResponseBody defines model for V2BillingGetUsageResponseBody.
+type V2BillingGetUsageResponseBody struct {
+	// Data One entry per end-user identity with billable usage in the period.
+	Data []V2BillingGetUsageResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2BillingGetUsageResponseData defines model for V2BillingGetUsageResponseData.
+type V2BillingGetUsageResponseData struct {
+	// ExternalId Your identifier for the end-user.
+	ExternalId string `json:"externalId"`
+
+	// IdentityId Unkey identity id of the end-user.
+	IdentityId string `json:"identityId"`
+
+	// RatelimitsPassed Passed, identity-attributed standalone ratelimit checks in the period.
+	RatelimitsPassed int64 `json:"ratelimitsPassed"`
+
+	// SpentCredits Credits consumed by this identity's verifications in the period.
+	SpentCredits int64 `json:"spentCredits"`
+
+	// Verifications Count of VALID key verifications in the period.
+	Verifications int64 `json:"verifications"`
+}
+
+// V2BillingLinkStripeConnectRequestBody defines model for V2BillingLinkStripeConnectRequestBody.
+type V2BillingLinkStripeConnectRequestBody struct {
+	// ConnectedAccountId The Stripe connected account id (acct_...) from Connect onboarding.
+	ConnectedAccountId string `json:"connectedAccountId"`
+}
+
+// V2BillingLinkStripeConnectResponseBody defines model for V2BillingLinkStripeConnectResponseBody.
+type V2BillingLinkStripeConnectResponseBody struct {
+	Data struct {
+		// ConnectedAccountId The verified, linked connected account id.
+		ConnectedAccountId string `json:"connectedAccountId"`
+	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2BillingListPlansRequestBody defines model for V2BillingListPlansRequestBody.
+type V2BillingListPlansRequestBody struct {
+	// ExternalId Your identifier for the end-user whose plans to list.
+	ExternalId string `json:"externalId"`
+}
+
+// V2BillingListPlansResponseBody defines model for V2BillingListPlansResponseBody.
+type V2BillingListPlansResponseBody struct {
+	Data V2BillingListPlansResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2BillingListPlansResponseData defines model for V2BillingListPlansResponseData.
+type V2BillingListPlansResponseData struct {
+	// EffectiveRateCardId The card currently in force for new periods (selection, else
+	// assignment, else workspace default), when any resolves.
+	EffectiveRateCardId *string `json:"effectiveRateCardId,omitempty"`
+
+	// Plans Rate cards the end-user may pick (the workspace's selectable set).
+	Plans []struct {
+		// Config Tiered prices per metered dimension, for rendering pricing.
+		Config interface{} `json:"config,omitempty"`
+
+		// Currency ISO 4217 currency code.
+		Currency string `json:"currency"`
+		Id       string `json:"id"`
+		Name     string `json:"name"`
+	} `json:"plans"`
+
+	// SelectedRateCardId The card the end-user has picked, when any.
+	SelectedRateCardId *string `json:"selectedRateCardId,omitempty"`
+}
+
+// V2BillingSelectPlanRequestBody defines model for V2BillingSelectPlanRequestBody.
+type V2BillingSelectPlanRequestBody struct {
+	// ExternalId Your identifier for the end-user making the selection.
+	ExternalId string `json:"externalId"`
+
+	// RateCardId The selectable rate card the end-user picked.
+	RateCardId string `json:"rateCardId"`
+}
+
+// V2BillingSelectPlanResponseBody defines model for V2BillingSelectPlanResponseBody.
+type V2BillingSelectPlanResponseBody struct {
+	Data struct {
+		// RateCardId The recorded selection.
+		RateCardId string `json:"rateCardId"`
+	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2BillingUnlinkStripeConnectRequestBody defines model for V2BillingUnlinkStripeConnectRequestBody.
+type V2BillingUnlinkStripeConnectRequestBody = map[string]interface{}
+
+// V2BillingUnlinkStripeConnectResponseBody defines model for V2BillingUnlinkStripeConnectResponseBody.
+type V2BillingUnlinkStripeConnectResponseBody struct {
+	Data struct {
+		Unlinked bool `json:"unlinked"`
+	} `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -2737,6 +2947,24 @@ type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
 
 // AppsUpdateAppJSONRequestBody defines body for AppsUpdateApp for application/json ContentType.
 type AppsUpdateAppJSONRequestBody = V2AppsUpdateAppRequestBody
+
+// BillingGetInvoiceDraftJSONRequestBody defines body for BillingGetInvoiceDraft for application/json ContentType.
+type BillingGetInvoiceDraftJSONRequestBody = V2BillingGetInvoiceDraftRequestBody
+
+// BillingGetUsageJSONRequestBody defines body for BillingGetUsage for application/json ContentType.
+type BillingGetUsageJSONRequestBody = V2BillingGetUsageRequestBody
+
+// BillingLinkStripeConnectJSONRequestBody defines body for BillingLinkStripeConnect for application/json ContentType.
+type BillingLinkStripeConnectJSONRequestBody = V2BillingLinkStripeConnectRequestBody
+
+// BillingListPlansJSONRequestBody defines body for BillingListPlans for application/json ContentType.
+type BillingListPlansJSONRequestBody = V2BillingListPlansRequestBody
+
+// BillingSelectPlanJSONRequestBody defines body for BillingSelectPlan for application/json ContentType.
+type BillingSelectPlanJSONRequestBody = V2BillingSelectPlanRequestBody
+
+// BillingUnlinkStripeConnectJSONRequestBody defines body for BillingUnlinkStripeConnect for application/json ContentType.
+type BillingUnlinkStripeConnectJSONRequestBody = V2BillingUnlinkStripeConnectRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 type DeployCreateDeploymentJSONRequestBody = V2DeployCreateDeploymentRequestBody

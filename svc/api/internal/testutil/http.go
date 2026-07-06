@@ -71,7 +71,7 @@ type Harness struct {
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
 	KeyVerifications           *batch.BatchProcessor[schema.KeyVerification]
-	RatelimitEvents            *batch.BatchProcessor[schema.Ratelimit]
+	RatelimitEvents            *batch.BatchProcessor[schema.RatelimitV3]
 	Ratelimit                  ratelimit.Service
 	Vault                      vault.VaultServiceClient
 	AnalyticsConnectionManager analytics.ConnectionManager
@@ -148,7 +148,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 
 	var ch clickhouse.ClickHouse
 	var keyVerifications *batch.BatchProcessor[schema.KeyVerification]
-	var ratelimitsfer *batch.BatchProcessor[schema.Ratelimit]
+	var ratelimitsfer *batch.BatchProcessor[schema.RatelimitV3]
 	if cfg.ClickHouse {
 		var err error
 		chClient, err := clickhouse.New(clickhouse.Config{
@@ -169,7 +169,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		})
 		t.Cleanup(keyVerifications.Close)
 
-		ratelimitsfer = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+		ratelimitsfer = clickhouse.NewBuffer[schema.RatelimitV3](chClient, "default.ratelimits_raw_v3", clickhouse.BufferConfig{
 			Name:          "ratelimits",
 			BatchSize:     10,
 			BufferSize:    100,
@@ -182,7 +182,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	} else {
 		keyVerifications = batch.NewNoop[schema.KeyVerification]()
 		t.Cleanup(keyVerifications.Close)
-		ratelimitsfer = batch.NewNoop[schema.Ratelimit]()
+		ratelimitsfer = batch.NewNoop[schema.RatelimitV3]()
 		t.Cleanup(ratelimitsfer.Close)
 	}
 

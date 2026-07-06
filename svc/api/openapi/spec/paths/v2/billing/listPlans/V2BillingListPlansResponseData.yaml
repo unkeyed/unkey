@@ -1,0 +1,33 @@
+type: object
+required:
+  - plans
+properties:
+  plans:
+    type: array
+    description: Rate cards the end-user may pick (the workspace's selectable set).
+    items:
+      type: object
+      required:
+        - id
+        - name
+        - currency
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        currency:
+          type: string
+          description: ISO 4217 currency code.
+        config:
+          description: Tiered prices per metered dimension, for rendering pricing.
+      additionalProperties: false
+  selectedRateCardId:
+    type: string
+    description: The card the end-user has picked, when any.
+  effectiveRateCardId:
+    type: string
+    description: |
+      The card currently in force for new periods (selection, else
+      assignment, else workspace default), when any resolves.
+additionalProperties: false

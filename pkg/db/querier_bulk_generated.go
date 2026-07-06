@@ -14,6 +14,8 @@ type BulkQuerier interface {
 	InsertApps(ctx context.Context, db DBTX, args []InsertAppParams) error
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, args []UpsertAppRegionalSettingsParams) error
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
+	UpsertBillingBillableResource(ctx context.Context, db DBTX, args []UpsertBillingBillableResourceParams) error
+	InsertBillingPeriodRateCards(ctx context.Context, db DBTX, args []InsertBillingPeriodRateCardParams) error
 	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
 	InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, args []InsertCiliumNetworkPolicyParams) error
 	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
@@ -51,10 +53,13 @@ type BulkQuerier interface {
 	InsertPortalSessionTokens(ctx context.Context, db DBTX, args []InsertPortalSessionTokenParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuotaParams) error
+	InsertRateCards(ctx context.Context, db DBTX, args []InsertRateCardParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error
 	InsertRatelimitOverrides(ctx context.Context, db DBTX, args []InsertRatelimitOverrideParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
+	SetWorkspaceBillingStripeConnect(ctx context.Context, db DBTX, args []SetWorkspaceBillingStripeConnectParams) error
+	UpsertWorkspaceBillingSettingsDefaultRateCard(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingSettingsDefaultRateCardParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 	UpsertWorkspace(ctx context.Context, db DBTX, args []UpsertWorkspaceParams) error
 }

@@ -25,6 +25,7 @@ go_library(
         "//pkg/singleflight",
         "//pkg/uid",
         "//pkg/zen",
+        "//svc/api/internal/identityattr",
         "//svc/api/openapi",
     ],
 )

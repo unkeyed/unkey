@@ -56,6 +56,12 @@ type Caches struct {
 	// JWT principals quickly; long stale window keeps the effectively
 	// immutable org-to-workspace mapping served from memory.
 	WorkspaceByOrgID cache.Cache[string, db.Workspace]
+
+	// IdentityByExternalID caches identity lookups by external_id within a
+	// workspace, used to attribute standalone ratelimit events to end-user
+	// identities at check time. Keys are cache.ScopedKey (workspace +
+	// external_id) and values are db.Identity.
+	IdentityByExternalID cache.Cache[cache.ScopedKey, db.Identity]
 }
 
 // Close shuts down the caches and cleans up resources.
@@ -184,6 +190,17 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	identityByExternalID, err := cache.New(cache.Config[cache.ScopedKey, db.Identity]{
+		Fresh:    time.Minute,
+		Stale:    24 * time.Hour,
+		MaxSize:  1_000_000,
+		Resource: "identity_by_external_id",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
@@ -194,5 +211,6 @@ func New(config Config) (Caches, error) {
 		WorkspaceQuota:        middleware.WithTracing(workspaceQuota),
 		PortalSession:         middleware.WithTracing(portalSession),
 		WorkspaceByOrgID:      middleware.WithTracing(workspaceByOrgID),
+		IdentityByExternalID:  middleware.WithTracing(identityByExternalID),
 	}, nil
 }

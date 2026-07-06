@@ -43,6 +43,28 @@ type Ratelimit struct {
 	Tokens uint64 `ch:"tokens" json:"tokens"`
 }
 
+// RatelimitV3 represents the v3 ratelimit raw table structure. It extends v2
+// with end-user identity attribution: identity_id/external_id are resolved at
+// check time (identifier matched against the workspace's identities) and are
+// empty when the identifier matched no identity. Ingestion writes v3 only; a
+// mirror MV forwards rows into ratelimits_raw_v2 for the existing rollups.
+type RatelimitV3 struct {
+	RequestID   string  `ch:"request_id" json:"request_id"`
+	Time        int64   `ch:"time" json:"time"`
+	WorkspaceID string  `ch:"workspace_id" json:"workspace_id"`
+	NamespaceID string  `ch:"namespace_id" json:"namespace_id"`
+	Identifier  string  `ch:"identifier" json:"identifier"`
+	IdentityID  string  `ch:"identity_id" json:"identity_id"`
+	ExternalID  string  `ch:"external_id" json:"external_id"`
+	Passed      bool    `ch:"passed" json:"passed"`
+	Latency     float64 `ch:"latency" json:"latency"`
+	OverrideID  string  `ch:"override_id" json:"override_id"`
+	Limit       uint64  `ch:"limit" json:"limit"`
+	Remaining   uint64  `ch:"remaining" json:"remaining"`
+	ResetAt     int64   `ch:"reset_at" json:"reset_at"`
+	Tokens      uint64  `ch:"tokens" json:"tokens"`
+}
+
 // ApiRequest represents the v2 API request raw table structure.
 // This matches the api_requests_raw_v2 table schema with query parameters
 // and region field compared to v1.

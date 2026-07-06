@@ -1,0 +1,15 @@
+type: object
+required:
+  - externalId
+  - rateCardId
+properties:
+  externalId:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: Your identifier for the end-user making the selection.
+  rateCardId:
+    type: string
+    minLength: 1
+    description: The selectable rate card the end-user picked.
+additionalProperties: false

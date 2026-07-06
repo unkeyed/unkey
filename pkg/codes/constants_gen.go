@@ -157,6 +157,13 @@ const (
 	// Duplicate indicates the requested identity already exists.
 	UnkeyDataErrorsIdentityDuplicate URN = "err:unkey:data:identity_already_exists"
 
+	// RateCard
+
+	// NotFound indicates the requested rate card was not found.
+	UnkeyDataErrorsRateCardNotFound URN = "err:unkey:data:rate_card_not_found"
+	// NotSelectable indicates the rate card is not in the end-user selectable set.
+	UnkeyDataErrorsRateCardNotSelectable URN = "err:unkey:data:rate_card_not_selectable"
+
 	// AuditLog
 
 	// NotFound indicates the requested audit log was not found.

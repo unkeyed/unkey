@@ -53,6 +53,49 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type IdentitiesBillingProvider string
+
+const (
+	IdentitiesBillingProviderNone          IdentitiesBillingProvider = "none"
+	IdentitiesBillingProviderStripeConnect IdentitiesBillingProvider = "stripe_connect"
+	IdentitiesBillingProviderExport        IdentitiesBillingProvider = "export"
+)
+
+func (e *IdentitiesBillingProvider) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = IdentitiesBillingProvider(s)
+	case string:
+		*e = IdentitiesBillingProvider(s)
+	default:
+		return fmt.Errorf("unsupported scan type for IdentitiesBillingProvider: %T", src)
+	}
+	return nil
+}
+
+type NullIdentitiesBillingProvider struct {
+	IdentitiesBillingProvider IdentitiesBillingProvider
+	Valid                     bool // Valid is true if IdentitiesBillingProvider is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullIdentitiesBillingProvider) Scan(value interface{}) error {
+	if value == nil {
+		ns.IdentitiesBillingProvider, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.IdentitiesBillingProvider.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullIdentitiesBillingProvider) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.IdentitiesBillingProvider), nil
+}
+
 type KeyMigrationsAlgorithm string
 
 const (
@@ -110,15 +153,19 @@ type Api struct {
 }
 
 type Identity struct {
-	Pk          uint64        `db:"pk"`
-	ID          string        `db:"id"`
-	ExternalID  string        `db:"external_id"`
-	WorkspaceID string        `db:"workspace_id"`
-	Environment string        `db:"environment"`
-	Meta        []byte        `db:"meta"`
-	Deleted     bool          `db:"deleted"`
-	CreatedAt   int64         `db:"created_at"`
-	UpdatedAt   sql.NullInt64 `db:"updated_at"`
+	Pk                        uint64                    `db:"pk"`
+	ID                        string                    `db:"id"`
+	ExternalID                string                    `db:"external_id"`
+	WorkspaceID               string                    `db:"workspace_id"`
+	Environment               string                    `db:"environment"`
+	Meta                      []byte                    `db:"meta"`
+	Deleted                   bool                      `db:"deleted"`
+	BillingProvider           IdentitiesBillingProvider `db:"billing_provider"`
+	BillingExternalCustomerID sql.NullString            `db:"billing_external_customer_id"`
+	RateCardID                sql.NullString            `db:"rate_card_id"`
+	SelectedRateCardID        sql.NullString            `db:"selected_rate_card_id"`
+	CreatedAt                 int64                     `db:"created_at"`
+	UpdatedAt                 sql.NullInt64             `db:"updated_at"`
 }
 
 type Key struct {
