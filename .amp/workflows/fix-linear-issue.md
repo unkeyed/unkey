@@ -47,9 +47,9 @@ When the user provides a Linear issue identifier.
 
 6. **Build and test** - Verify the fix works:
    ```bash
-   # For Go code - always run full build and test, bazel caching handles efficiency
-   bazel build //...
-   bazel test //...
+   # For Go code
+   mise run build
+   mise run test
    
    # For TypeScript code
    pnpm --dir=web build

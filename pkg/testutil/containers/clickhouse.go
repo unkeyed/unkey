@@ -181,7 +181,7 @@ func splitSQLStatements(sql string) []string {
 
 // clickhouseSchemaDir returns the path to the ClickHouse schema directory.
 func clickhouseSchemaDir() string {
-	// Try Bazel runfiles first
+	// Try test runfiles first.
 	if runfiles := os.Getenv("TEST_SRCDIR"); runfiles != "" {
 		workspace := os.Getenv("TEST_WORKSPACE")
 		if workspace != "" {

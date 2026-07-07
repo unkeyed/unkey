@@ -18,11 +18,6 @@
 bin
 dist
 
-bazel-*
-bazel-bin
-bazel-out
-bazel-testlogs
-
 dev/data
 dev/config/depot.json
 
