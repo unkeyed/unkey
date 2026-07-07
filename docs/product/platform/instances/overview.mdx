@@ -1,6 +1,6 @@
 ---
 title: Instances
-description: "Understand instances in Unkey, running container replicas of your app deployed to specific regions with automatic scaling and routing."
+description: "Understand instances in Unkey, running copies of your app deployed to specific regions with automatic scaling and routing."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -35,6 +35,22 @@ Running multiple instances in a region provides redundancy and distributes load.
 <Note>
   During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
 </Note>
+
+## High availability
+
+High availability depends on how many instances you run in each region and how many regions you select. If you configure too few instances, Unkey can't guarantee that your app stays available during infrastructure interruptions.
+
+Use this model when choosing an instance count:
+
+| Instances per region | Availability expectation |
+| -------------------- | ------------------------ |
+| 1                    | No high availability guarantee. If the instance stops, your app can become unavailable in that region. |
+| 2                    | Designed to keep at least 1 instance available during one underlying infrastructure interruption in the region. |
+| 3                    | Designed to keep at least 2 instances available during one underlying infrastructure interruption in the region. |
+
+For production workloads that need high availability, configure at least 2 instances per region. Use 3 instances when you want extra capacity during an interruption.
+
+Regional availability is separate from instance availability. To tolerate a regional outage, deploy to at least 2 regions. Each region still needs enough instances for the availability level you want.
 
 ## Resource allocation
 

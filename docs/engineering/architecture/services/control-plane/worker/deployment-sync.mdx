@@ -75,7 +75,10 @@ Unrecognized or nil events are treated as errors to prevent silently skipping ch
 
 ### Periodic full resync
 
-The watcher resets its cursor to 0 every 5 minutes, triggering a full sync. This acts as a consistency safety net: if a change was missed (e.g., a `deployment_changes` row was cleaned up before the agent processed it), the periodic full sync will reconcile the drift.
+The watcher runs a full sync every 10 minutes. This acts as a consistency safety
+net: if a change was missed (for example, a `deployment_changes` row was cleaned
+up before the agent processed it), the periodic full sync will reconcile the
+drift.
 
 ## Writing changes
 
