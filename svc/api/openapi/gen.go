@@ -2593,6 +2593,9 @@ type V2ProjectsListProjectsRequestBody struct {
 	// Limit Maximum number of projects to return per request.
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter projects. Returns projects whose ID, name, or slug contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2ProjectsListProjectsResponseBody defines model for V2ProjectsListProjectsResponseBody.
