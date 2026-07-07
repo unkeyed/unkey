@@ -3,11 +3,11 @@ import { z } from "zod";
 
 export const identityLogsPayload = z.object({
   identityId: z.string(),
-  limit: z.int(),
+  limit: z.int().min(1).max(100),
   startTime: z.int(),
   endTime: z.int(),
   since: z.string(),
-  cursor: z.number().nullable().optional().nullable(),
+  cursor: z.number().nullable().optional(),
   tags: z
     .array(
       z.object({
