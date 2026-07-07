@@ -20,7 +20,7 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
             value={workspaceId}
             variant="ghost"
             toastMessage={workspaceId}
-            className="h-4 w-4 shrink-0"
+            className="shrink-0"
           />
         </div>
       </div>
