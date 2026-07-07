@@ -986,6 +986,9 @@ type V2AppsListAppsRequestBody struct {
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
+
+	// Search Free-form text to filter apps. Returns apps whose ID, name, or slug contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2AppsListAppsResponseBody defines model for V2AppsListAppsResponseBody.

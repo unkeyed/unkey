@@ -9,6 +9,7 @@ go_library(
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
+        "//pkg/mysql",
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",
