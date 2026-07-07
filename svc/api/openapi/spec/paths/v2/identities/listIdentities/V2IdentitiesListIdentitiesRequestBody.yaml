@@ -18,6 +18,6 @@ properties:
     maxLength: 256
     description: Free-form text to filter identities. Returns identities whose
       ID or external ID contains the search string. Matching is
-      case-insensitive and wildcard characters are matched literally.
+      case-insensitive.
     example: user_123
 additionalProperties: false

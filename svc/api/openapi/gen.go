@@ -1072,7 +1072,7 @@ type V2IdentitiesListIdentitiesRequestBody struct {
 	// Limit The maximum number of identities to return in a single request. Use this to control response size and loading performance.
 	Limit *int `json:"limit,omitempty"`
 
-	// Search Free-form text to filter identities. Returns identities whose ID or external ID contains the search string. Matching is case-insensitive and wildcard characters are matched literally.
+	// Search Free-form text to filter identities. Returns identities whose ID or external ID contains the search string. Matching is case-insensitive.
 	Search *string `json:"search,omitempty"`
 }
 
