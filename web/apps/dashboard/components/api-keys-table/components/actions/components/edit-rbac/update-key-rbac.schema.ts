@@ -3,8 +3,8 @@ import { z } from "zod";
 
 export const updateKeyRbacSchema = z.object({
   keyId: z.string().min(1, "Key ID is required"),
-  roleIds: z.array(z.string()),
-  directPermissionIds: z.array(z.string()),
+  roleNames: z.array(z.string()),
+  directPermissionSlugs: z.array(z.string()),
 });
 
 export type FormValues = z.infer<typeof updateKeyRbacSchema>;

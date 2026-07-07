@@ -91,10 +91,14 @@ export function scrubUrl(url: string): string {
     // Redact token-like segments embedded directly in the path.
     parsed.pathname = parsed.pathname.replace(TOKEN_LIKE, REDACTED);
 
+    // Drop the fragment entirely. It is never useful for debugging and can carry
+    // bearer credentials, e.g. the one-time share id in `/share#<id>` links.
+    parsed.hash = "";
+
     const wasRelative = !/^[a-z][a-z0-9+.-]*:\/\//i.test(url);
     if (wasRelative) {
       // Reconstruct the relative form to avoid leaking the dummy origin.
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      return `${parsed.pathname}${parsed.search}`;
     }
     return parsed.toString();
   } catch {

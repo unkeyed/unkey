@@ -1,0 +1,153 @@
+---
+title: "Create a key migration"
+description: "How to set up a key migration when a customer wants to import existing API keys into Unkey"
+---
+
+Customers with existing API keys can import them into Unkey through
+[`/v2/keys.migrateKeys`](https://www.unkey.com/docs/api-reference/keys/migrate-api-keys).
+Before they can call that endpoint, someone on our side has to create a
+migration for their workspace. This runbook covers how to do that and what to
+send back to the customer.
+
+## How key migrations work
+
+A migration is a row in the `key_migrations` table
+(`pkg/mysql/schema/key_migrations.sql`) with three fields: the customer-facing
+`id` (what they pass as `migrationId`), the `workspace_id` it is scoped to, and
+the `algorithm` that describes how their existing keys are hashed.
+
+When the customer calls `/v2/keys.migrateKeys`
+(`svc/api/routes/v2_keys_migrate_keys/handler.go`), we store their hashes
+verbatim and mark each key with `pending_migration_id`. Hashes that already
+exist are returned in the `failed` array instead of failing the request.
+Identities, roles, and permissions referenced by the imported keys are created
+on the fly if they do not exist yet.
+
+The algorithm decides what happens at verification time:
+
+- `sha256`: the customer submits the base64 encoded (standard encoding, not
+  URL-safe) SHA-256 hash of the full key. This is exactly Unkey's native hash
+  format (`pkg/hash`), so migrated keys verify through the normal
+  `/v2/keys.verifyKey` lookup with no extra parameters. Hex encoded SHA-256
+  does not work.
+- `github.com/seamapi/prefixed-api-key`: for keys in the Seam
+  `prefix_shortToken_longToken` format. The customer submits the hex encoded
+  SHA-256 hash of the long token only. These keys are found during
+  verification only when the customer includes `migrationId` in the
+  `/v2/keys.verifyKey` request. On the first successful verification we
+  re-hash the key to our native format, set the display prefix, and clear
+  `pending_migration_id` (`internal/services/keys/get_migrated.go`).
+
+Any other hash scheme (bcrypt, hex SHA-256 of the full key, HMAC, etc.)
+requires a code change: add a value to the `algorithm` enum in
+`pkg/mysql/schema/key_migrations.sql` and a case to the switch in
+`internal/services/keys/get_migrated.go`. Scope that with the team before
+promising it to a customer.
+
+## What to ask the customer
+
+Before creating anything, you need their workspace ID, what system the keys
+live in today, the exact hash algorithm and encoding, the key format
+(prefixes, separators), and a rough key count. The
+[public migration guide](https://www.unkey.com/docs/platform/apis/migrations/introduction)
+asks them to include most of this in their first email.
+
+If they still have plaintext keys, steer them to `sha256`: they hash the keys
+themselves and everything works with zero special handling. Only use the
+prefixed-api-key algorithm when they exclusively store hashes of a token
+segment and cannot re-hash.
+
+## Create the migration
+
+Connect to the production MySQL database and insert the migration row. The
+`id` is customer-facing and globally unique; use the `mig_<customer>`
+convention, for example `mig_acme`:
+
+```sql
+INSERT INTO key_migrations (id, workspace_id, algorithm)
+VALUES ('mig_acme', 'ws_XXX', 'sha256');
+```
+
+Double-check the workspace ID belongs to the requesting customer before
+inserting. Both `/v2/keys.migrateKeys` and the verification lookup resolve the
+migration scoped to the caller's workspace, so a wrong workspace ID surfaces
+to the customer as `err:unkey:data:migration_not_found`.
+
+Confirm the row:
+
+```sql
+SELECT id, workspace_id, algorithm FROM key_migrations WHERE id = 'mig_acme';
+```
+
+## Reply to the customer
+
+Send them the `migrationId`, state the exact hash format the migration
+expects, and link the endpoint docs. Fill in the placeholders, and for the
+`sha256` algorithm state the format as "sha256 hashed and base64 encoded".
+
+```text
+Hey <name>,
+
+I've created a new migration for you, the id is mig_<customer> and
+you'll need that in the api request below.
+This migration expects your existing keys as <exact hash format the
+migration was created with>. Let me know if that is going to be a problem.
+
+To migrate your keys into unkey, all you need to do is call this endpoint:
+https://www.unkey.com/docs/api-reference/keys/migrate-api-keys
+For example:
+
+curl -X POST https://api.unkey.com/v2/keys.migrateKeys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -d '{
+    "migrationId": "mig_<customer>",
+    "apiId": "<UNKEY_API_ID_FROM_THE_DASHBOARD>",
+    "keys": [
+      {
+        "hash": "<HASHED_KEY>"
+      }
+    ]
+  }'
+
+Each key can carry optional fields like externalId, meta, ratelimits, or
+expiry, see the docs above. You can send keys in batches too of course.
+
+To verify migrated keys, call our /v2/keys.verifyKey endpoint and include
+the migrationId:
+https://www.unkey.com/docs/api-reference/keys/verify-api-key
+
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
+  -d '{
+    "key": "<THE_KEY_AS_SENT_BY_YOUR_USER>",
+    "migrationId": "mig_<customer>"
+  }'
+
+Keep sending the migrationId until every active key has been verified at
+least once, after that you can drop it.
+
+There's also a step-by-step guide if you want more detail:
+https://www.unkey.com/docs/platform/apis/migrations/keys
+
+Let me know if you need help with anything.
+<your name>
+```
+
+Always telling the customer to pass `migrationId` during verification is
+deliberate: for `sha256` migrations it is redundant (the native lookup finds
+the key directly and the parameter is ignored), but for every other algorithm
+it is required, and a template that works for both cannot be applied wrong.
+
+## After the customer migrates
+
+The endpoint returns HTTP 200 even on partial success. If the customer
+reports entries in the `failed` array, those hashes already exist in the
+system, usually from an earlier partial run. Look the hashes up in the `keys`
+table to confirm whether they belong to the same workspace before advising
+the customer to skip or clean them up.
+
+Keys imported under a migration keep `pending_migration_id` set until their
+first verification through the migration path. For `sha256` migrations the
+column stays set (the native lookup never consults it), which is harmless.

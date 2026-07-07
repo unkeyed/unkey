@@ -20,9 +20,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/retry"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 )
 
 type (
@@ -112,6 +115,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	// Portal-authenticated rerolls are attributed to a portalEndUser actor so
+	// customers can see end-user activity in their audit logs.
+	actor := auditactor.FromPrincipal(principal)
+
 	keyData := db.ToKeyData(key)
 
 	checks := rbac.Or(
@@ -125,6 +132,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.CreateKey,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID),
+			permissions.CreateKey{},
+		),
 	)
 
 	if keyData.EncryptionKeyID.Valid {
@@ -141,6 +152,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ResourceID:   "*",
 					Action:       rbac.EncryptKey,
 				}),
+				rbac.U(
+					urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
+					permissions.EncryptKey{},
+				),
 			),
 		)
 	}
@@ -362,10 +377,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.KeyRerollEvent,
-				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-				ActorID:       principal.Subject.ID,
-				ActorName:     principal.Subject.Name,
-				ActorMeta:     map[string]any{},
+				ActorType:     actor.Type,
+				ActorID:       actor.ID,
+				ActorName:     actor.Name,
+				ActorMeta:     actor.Meta,
 				Display:       fmt.Sprintf("Rerolled key (%s) to (%s)", req.KeyId, keyID),
 				RemoteIP:      s.Location(),
 				UserAgent:     s.UserAgent(),

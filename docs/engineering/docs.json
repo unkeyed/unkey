@@ -158,6 +158,7 @@
                 "group": "Krane",
                 "pages": [
                   "architecture/services/krane/overview",
+                  "architecture/services/krane/deployment",
                   "architecture/services/krane/secrets",
                   "architecture/services/krane/configuration"
                 ]
@@ -210,6 +211,10 @@
           {
             "group": "Infra",
             "pages": ["infra/index"]
+          },
+          {
+            "group": "Runbooks",
+            "pages": ["infra/runbooks/key-migration"]
           },
          {
             "group": "ClickHouse",

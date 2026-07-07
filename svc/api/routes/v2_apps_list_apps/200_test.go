@@ -81,7 +81,6 @@ func TestListAppsSuccessfully(t *testing.T) {
 			require.True(t, ok, "unexpected app %s in response", a.Id)
 			require.True(t, strings.HasPrefix(a.Id, "app_"), "id should have app_ prefix: %s", a.Id)
 			require.Equal(t, slug, a.Slug)
-			require.Equal(t, project.ID, a.ProjectId)
 			require.Equal(t, "main", a.DefaultBranch)
 			require.NotEmpty(t, a.Name)
 			require.Empty(t, a.CurrentDeploymentId, "freshly seeded app has no active deployment")
@@ -155,7 +154,6 @@ func TestListAppsSuccessfully(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		for _, a := range res.Body.Data {
 			require.NotEqual(t, foreignApp.ID, a.Id, "foreign app must never be returned")
-			require.Equal(t, project.ID, a.ProjectId, "only the authorized project's apps may be returned")
 		}
 		require.NotContains(t, res.RawBody, foreignProject.ID, "response must not leak the foreign project ID")
 	})

@@ -9,6 +9,7 @@ export * from "./quota";
 export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
+export * from "./shared_secrets";
 
 // Deployment platform tables
 export * from "./projects";

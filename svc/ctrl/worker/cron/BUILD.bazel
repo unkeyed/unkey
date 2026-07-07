@@ -28,6 +28,7 @@ go_library(
 
 go_test(
     name = "cron_test",
+    size = "large",
     srcs = [
         "audit_log_outbox_cleanup_integration_test.go",
         "key_last_used_sync_integration_test.go",

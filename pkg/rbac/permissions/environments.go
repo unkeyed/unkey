@@ -2,6 +2,22 @@ package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
 
+// ReadEnvironment authorizes reading a specific environment.
+//
+// Valid resource: urn.Environment.
+type ReadEnvironment struct{}
+
+func (ReadEnvironment) ActionFor(urn.Environment) {}
+func (ReadEnvironment) String() string            { return "read_environment" }
+
+// UpdateEnvironment authorizes updating a specific environment's settings.
+//
+// Valid resource: urn.Environment.
+type UpdateEnvironment struct{}
+
+func (UpdateEnvironment) ActionFor(urn.Environment) {}
+func (UpdateEnvironment) String() string            { return "update_environment" }
+
 // CreateDeployment authorizes creating deployments in an environment.
 //
 // Valid resource: urn.Environment.

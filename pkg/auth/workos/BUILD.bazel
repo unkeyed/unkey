@@ -14,6 +14,7 @@ go_library(
         "//pkg/auth/principal",
         "//pkg/logger",
         "//pkg/rbac",
+        "//pkg/rbac/permissions",
         "//pkg/urn",
         "//pkg/zen",
     ],

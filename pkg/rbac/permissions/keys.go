@@ -10,6 +10,14 @@ type ReadKey struct{}
 func (ReadKey) ActionFor(urn.Key) {}
 func (ReadKey) String() string    { return "read_key" }
 
+// UpdateKey authorizes updating key resources.
+//
+// Valid resource: urn.Key.
+type UpdateKey struct{}
+
+func (UpdateKey) ActionFor(urn.Key) {}
+func (UpdateKey) String() string    { return "update_key" }
+
 // EncryptKey authorizes creating recoverable encrypted keys.
 //
 // Valid resource: urn.Key.
@@ -33,3 +41,11 @@ type VerifyKey struct{}
 
 func (VerifyKey) ActionFor(urn.Key) {}
 func (VerifyKey) String() string    { return "verify_key" }
+
+// DeleteKey authorizes deleting key resources.
+//
+// Valid resource: urn.Key.
+type DeleteKey struct{}
+
+func (DeleteKey) ActionFor(urn.Key) {}
+func (DeleteKey) String() string    { return "delete_key" }
