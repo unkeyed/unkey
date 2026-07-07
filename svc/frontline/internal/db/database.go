@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 )
 
 // DBTX is the database interface required by generated query methods. It mirrors
