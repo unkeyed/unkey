@@ -8,7 +8,9 @@ go_library(
     deps = [
         "//pkg/codes",
         "//pkg/db",
+        "//pkg/db/types",
         "//pkg/fault",
+        "//pkg/mysql",
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",

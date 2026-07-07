@@ -2593,6 +2593,11 @@ type Querier interface {
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
 	//    AND p.id >= ?
+	//    -- search and description_search carry the same pre-escaped LIKE pattern built
+	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
+	//    -- because sqlc types each param after the compared column, and description's
+	//    -- dbtype.NullString override conflicts with the plain string columns.
+	//    AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
 	//  ORDER BY p.id
 	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)

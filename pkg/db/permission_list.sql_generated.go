@@ -7,6 +7,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const listPermissions = `-- name: ListPermissions :many
@@ -14,14 +17,21 @@ SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m
 FROM permissions p
 WHERE p.workspace_id = ?
   AND p.id >= ?
+  -- search and description_search carry the same pre-escaped LIKE pattern built
+  -- by mysql.SearchContains; NULL disables the filter. They are separate params
+  -- because sqlc types each param after the compared column, and description's
+  -- dbtype.NullString override conflicts with the plain string columns.
+  AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
 ORDER BY p.id
 LIMIT ?
 `
 
 type ListPermissionsParams struct {
-	WorkspaceID string `db:"workspace_id"`
-	IDCursor    string `db:"id_cursor"`
-	Limit       int32  `db:"limit"`
+	WorkspaceID       string            `db:"workspace_id"`
+	IDCursor          string            `db:"id_cursor"`
+	Search            sql.NullString    `db:"search"`
+	DescriptionSearch dbtype.NullString `db:"description_search"`
+	Limit             int32             `db:"limit"`
 }
 
 // ListPermissions
@@ -30,10 +40,24 @@ type ListPermissionsParams struct {
 //	FROM permissions p
 //	WHERE p.workspace_id = ?
 //	  AND p.id >= ?
+//	  -- search and description_search carry the same pre-escaped LIKE pattern built
+//	  -- by mysql.SearchContains; NULL disables the filter. They are separate params
+//	  -- because sqlc types each param after the compared column, and description's
+//	  -- dbtype.NullString override conflicts with the plain string columns.
+//	  AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
 //	ORDER BY p.id
 //	LIMIT ?
 func (q *Queries) ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error) {
-	rows, err := db.QueryContext(ctx, listPermissions, arg.WorkspaceID, arg.IDCursor, arg.Limit)
+	rows, err := db.QueryContext(ctx, listPermissions,
+		arg.WorkspaceID,
+		arg.IDCursor,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.DescriptionSearch,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

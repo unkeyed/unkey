@@ -2407,6 +2407,9 @@ type V2PermissionsListPermissionsRequestBody struct {
 
 	// Limit Maximum number of permissions to return in a single response.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter permissions. Returns permissions whose ID, name, slug, or description contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2PermissionsListPermissionsResponseBody defines model for V2PermissionsListPermissionsResponseBody.

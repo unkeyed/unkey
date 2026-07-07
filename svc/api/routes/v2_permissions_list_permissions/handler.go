@@ -2,14 +2,18 @@ package handler
 
 import (
 	"context"
+	"net/http"
+	"strings"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"net/http"
 )
 
 type (
@@ -48,6 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	cursor := ptr.SafeDeref(req.Cursor, "")
 	limit := ptr.SafeDeref(req.Limit, 100)
+	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
@@ -64,8 +69,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctx,
 		h.DB.RO(),
 		db.ListPermissionsParams{
-			WorkspaceID: principal.WorkspaceID,
-			IDCursor:    cursor,
+			WorkspaceID:       principal.WorkspaceID,
+			IDCursor:          cursor,
+			Search:            search,
+			DescriptionSearch: dbtype.NullString(search),
 			//nolint:gosec
 			Limit: int32(limit) + 1,
 		},
