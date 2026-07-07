@@ -14,7 +14,6 @@ import { environments } from "./environments";
 import { instances } from "./instances";
 import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
-import { sentinels } from "./sentinels";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { longblob } from "./util/longblob";
 import { workspaces } from "./workspaces";
@@ -160,7 +159,6 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
     references: [openapiSpecs.deploymentId],
   }),
 
-  sentinels: many(sentinels),
   instances: many(instances),
   steps: many(deploymentSteps),
 }));

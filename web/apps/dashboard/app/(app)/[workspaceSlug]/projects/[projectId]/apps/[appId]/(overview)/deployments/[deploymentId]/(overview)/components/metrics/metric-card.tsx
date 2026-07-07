@@ -131,7 +131,7 @@ export function MetricCard({
           <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
           {secondaryValue && (
             <>
-              <span className="text-grayA-9 text-[11px]">/</span>
+              <span className="text-grayA-9 text-[11px]">·</span>
               <span className="text-gray-12 font-medium text-[12px] tabular-nums">
                 {secondaryText}
               </span>

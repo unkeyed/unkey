@@ -24,6 +24,7 @@ post:
   x-speakeasy-name-override: listKeys
   security:
     - rootKey: []
+    - dashboard: []
   requestBody:
     content:
       application/json:

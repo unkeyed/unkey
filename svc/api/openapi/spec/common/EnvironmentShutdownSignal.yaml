@@ -1,0 +1,9 @@
+type: string
+enum:
+  - SIGTERM
+  - SIGINT
+  - SIGQUIT
+  - SIGKILL
+description: |
+  Signal sent to the container on shutdown.
+example: SIGTERM

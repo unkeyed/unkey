@@ -54,16 +54,9 @@ TODO: Replace with JWT-based auth once `auth.unkey.cloud` is in place.
   Base domain for custom CNAME targets.
 </ResponseField>
 
-<ResponseField name="database" type="object" required>
-  MySQL configuration.
-  <Expandable title="Fields">
-    <ResponseField name="database.primary" type="string" required>
-      Primary MySQL DSN.
-    </ResponseField>
-    <ResponseField name="database.readonly_replica" type="string">
-      Optional read replica DSN.
-    </ResponseField>
-  </Expandable>
+<ResponseField name="database" type="string" required>
+  MySQL DSN. The control plane API uses one read-write connection for all
+  queries.
 </ResponseField>
 
 <ResponseField name="restate" type="object">
@@ -118,9 +111,7 @@ auth_token = "${UNKEY_AUTH_TOKEN}"
 default_domain = "${UNKEY_DEFAULT_DOMAIN}"
 regional_domain = "${UNKEY_REGIONAL_DOMAIN}"
 cname_domain = "${UNKEY_CNAME_DOMAIN}"
-
-[database]
-primary = "${UNKEY_DATABASE_PRIMARY}"
+database = "${UNKEY_DATABASE_PRIMARY}"
 
 [restate]
 url = "${UNKEY_RESTATE_URL}"

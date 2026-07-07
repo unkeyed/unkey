@@ -23,7 +23,7 @@ This opens a browser, walks you through GitHub's App creation UI, then writes:
 - `dev/.env.github`: app ID, webhook secret, app name
 - `dev/.github-private-key.pem`: private key for ctrl-worker
 - `web/apps/dashboard/.github-private-key.pem`: private key for the dashboard
-- `web/apps/dashboard/.env`: `GITHUB_APP_ID` and `NEXT_PUBLIC_GITHUB_APP_NAME`
+- `web/apps/dashboard/.env`: `GITHUB_APP_ID`, `NEXT_PUBLIC_GITHUB_APP_NAME`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
 
 ### Step 2: Start the dev environment
 
