@@ -9,7 +9,7 @@ go_library(
         "ingress.go",
         "static.go",
     ],
-    importpath = "github.com/unkeyed/unkey/pkg/db/sqlcomment",
+    importpath = "github.com/unkeyed/unkey/pkg/mysql/sqlcomment",
     visibility = ["//visibility:public"],
     deps = ["//pkg/buildinfo"],
 )

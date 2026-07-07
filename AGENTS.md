@@ -133,7 +133,7 @@ Report failed or skipped verification honestly.
 
 Unkey runs on PlanetScale Vitess. Every production MySQL query should carry SQLCommenter tags so Query Insights can attribute load by service, operation, and deploy.
 
-- Go: inject tags through `db.Config.Tags` and `sqlcomment.ForService` in service `run.go`. See [`pkg/db/sqlcomment`](pkg/db/sqlcomment/doc.go).
+- Go: inject tags through `db.Config.Tags` and `sqlcomment.ForService` in service `run.go`. See [`pkg/mysql/sqlcomment`](pkg/mysql/sqlcomment/doc.go).
 - TypeScript: use `createCommentedPool` from `@unkey/db` instead of raw `mysql.createPool`.
 - Never put high-cardinality values (user ids, key ids, request ids) in SQL comments.
 - Full guide: [`docs/engineering/infra/planetscale/query-insights-tags.mdx`](docs/engineering/infra/planetscale/query-insights-tags.mdx).

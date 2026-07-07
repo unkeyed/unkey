@@ -13,8 +13,8 @@ go_library(
     deps = [
         "//pkg/cli",
         "//pkg/db",
-        "//pkg/db/sqlcomment",
         "//pkg/jwt",
+        "//pkg/mysql/sqlcomment",
         "//pkg/runner",
     ],
 )

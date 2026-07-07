@@ -17,8 +17,8 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/frontline/internal/db",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/db/sqlcomment",
         "//pkg/db/types",
         "//pkg/mysql",
+        "//pkg/mysql/sqlcomment",
     ],
 )

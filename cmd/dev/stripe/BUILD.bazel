@@ -14,7 +14,7 @@ go_library(
     deps = [
         "//pkg/cli",
         "//pkg/db",
-        "//pkg/db/sqlcomment",
+        "//pkg/mysql/sqlcomment",
         "//pkg/tui",
         "@com_github_stripe_stripe_go_v86//:stripe-go",
     ],

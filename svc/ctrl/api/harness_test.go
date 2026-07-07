@@ -20,7 +20,7 @@ import (
 	restateServer "github.com/restatedev/sdk-go/server"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/config"
-	"github.com/unkeyed/unkey/pkg/db/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"

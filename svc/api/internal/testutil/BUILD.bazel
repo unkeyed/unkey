@@ -34,7 +34,7 @@ go_library(
         "//pkg/clock",
         "//pkg/counter",
         "//pkg/db",
-        "//pkg/db/sqlcomment",
+        "//pkg/mysql/sqlcomment",
         "//pkg/rbac",
         "//pkg/testutil/containers",
         "//pkg/uid",

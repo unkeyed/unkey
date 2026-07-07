@@ -2,7 +2,7 @@
 // so PlanetScale Query Insights can attribute query load to services, operations,
 // and deploys.
 //
-// Tags are injected at the database client boundary ([pkg/mysql.Replica], [pkg/db.Replica]) so
+// Tags are injected at the database client boundary ([pkg/mysql.Replica]) so
 // sqlc-generated call sites stay unchanged. sqlc operation names are parsed from
 // the leading `-- name: OperationName` header that sqlc embeds in query strings.
 //

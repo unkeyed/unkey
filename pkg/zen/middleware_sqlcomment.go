@@ -3,7 +3,7 @@ package zen
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/pkg/db/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 )
 
 // WithSQLComment attaches the matched HTTP route pattern to the request context

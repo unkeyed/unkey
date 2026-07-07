@@ -14,7 +14,7 @@ go_library(
         "//pkg/config",
         "//pkg/counter",
         "//pkg/db",
-        "//pkg/db/sqlcomment",
+        "//pkg/mysql/sqlcomment",
         "//pkg/testutil/containers",
         "//svc/api",
         "//svc/api/internal/testutil/seed",

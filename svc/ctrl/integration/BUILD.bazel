@@ -6,7 +6,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/ctrl/integration",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/db/sqlcomment",
+        "//pkg/mysql/sqlcomment",
         "//pkg/mysql/types",
         "//pkg/testutil/containers",
         "//pkg/uid",

@@ -19,9 +19,9 @@ go_library(
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
         "//pkg/db",
-        "//pkg/db/sqlcomment",
         "//pkg/db/types",
         "//pkg/logger",
+        "//pkg/mysql/sqlcomment",
         "//pkg/uid",
     ],
 )

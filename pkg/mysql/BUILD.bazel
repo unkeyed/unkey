@@ -19,10 +19,10 @@ go_library(
     deps = [
         "//pkg/assert",
         "//pkg/codes",
-        "//pkg/db/sqlcomment",
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/mysql/metrics",
+        "//pkg/mysql/sqlcomment",
         "//pkg/otel/tracing",
         "//pkg/retry",
         "@com_github_go_sql_driver_mysql//:mysql",

@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/unkeyed/unkey/pkg/db/sqlcomment"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
