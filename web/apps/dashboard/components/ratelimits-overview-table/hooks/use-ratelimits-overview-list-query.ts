@@ -6,10 +6,11 @@ import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 type UseRatelimitsOverviewListQueryParams = {
   limit?: number;
@@ -31,6 +32,20 @@ export function useRatelimitsOverviewListPaginated({
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const normalizedPage = Math.max(1, page);
 
+  // Filters, query time, and sort all invalidate the current OFFSET, so any
+  // of them changing resets pagination.
+  const filtersKey = useMemo(
+    () =>
+      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    [filters, timestamp, sorts],
+  );
+
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
+
   const queryParams = useMemo<RatelimitQueryOverviewLogsPayload>(() => {
     const params: RatelimitQueryOverviewLogsPayload = {
       limit,
@@ -40,7 +55,7 @@ export function useRatelimitsOverviewListPaginated({
       status: { filters: [] },
       namespaceId,
       since: "",
-      page: normalizedPage,
+      page: queryPage,
       sorts: sorts.length > 0 ? sorts : null,
     };
 
@@ -88,27 +103,7 @@ export function useRatelimitsOverviewListPaginated({
     });
 
     return params;
-  }, [filters, limit, timestamp, namespaceId, sorts, normalizedPage]);
-
-  // Reset to page 1 when filters, sort, or query time change — the current
-  // OFFSET is only meaningful relative to the current ordering.
-  const filtersKey = useMemo(
-    () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
-    [filters, timestamp, sorts],
-  );
-
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  }, [filters, limit, timestamp, namespaceId, sorts, queryPage]);
 
   const utils = trpc.useUtils();
 
@@ -123,16 +118,15 @@ export function useRatelimitsOverviewListPaginated({
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   usePageClamp({
-    page: normalizedPage,
+    page: queryPage,
     totalPages,
-    isFetching,
-    hasData: data !== undefined,
+    data,
     setPage,
   });
 
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
+      const nextPage = queryPage + i;
       if (nextPage > totalPages) {
         break;
       }
@@ -141,7 +135,7 @@ export function useRatelimitsOverviewListPaginated({
         { staleTime: Number.POSITIVE_INFINITY },
       );
     }
-  }, [normalizedPage, totalPages, queryParams, utils.ratelimit.overview.logs.query]);
+  }, [queryPage, totalPages, queryParams, utils.ratelimit.overview.logs.query]);
 
   const historicalLogs = data?.ratelimitOverviewLogs ?? [];
 
@@ -163,7 +157,7 @@ export function useRatelimitsOverviewListPaginated({
     isLoading: isInitialLoading,
     isFetching,
     isNavigating,
-    page: normalizedPage,
+    page: queryPage,
     pageSize: limit,
     totalPages,
     totalCount,

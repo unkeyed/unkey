@@ -5,10 +5,11 @@ import {
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { ApiKeysQueryPayload, ApiKeysSortField } from "../schema/api-keys.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -74,27 +75,21 @@ export function useApiKeysListQuery({
     [sorting, setSortParams, setPage],
   );
 
-  // Reset to page 1 when filters change, but not on initial mount
   const filtersKey = useMemo(
     () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
     [filters],
   );
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
 
   const queryParams = useMemo(() => {
     const params: ApiKeysQueryPayload = {
       limit: normalizedPageSize,
-      page: normalizedPage,
+      page: queryPage,
       ...Object.fromEntries(keysListFilterFieldNames.map((field) => [field, []])),
       keyAuthId,
       sortBy: sortParams?.[0]?.column ?? "lastUsedAt",
@@ -120,7 +115,7 @@ export function useApiKeysListQuery({
     }
 
     return params;
-  }, [filters, keyAuthId, normalizedPage, normalizedPageSize, sortParams]);
+  }, [filters, keyAuthId, queryPage, normalizedPageSize, sortParams]);
 
   const utils = trpc.useUtils();
 
@@ -136,17 +131,16 @@ export function useApiKeysListQuery({
   const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
 
   usePageClamp({
-    page: normalizedPage,
+    page: queryPage,
     totalPages,
-    isFetching,
-    hasData: data !== undefined,
+    data,
     setPage,
   });
 
   // Prefetch adjacent pages for instant navigation
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
+      const nextPage = queryPage + i;
       if (nextPage > totalPages) {
         break;
       }
@@ -155,7 +149,7 @@ export function useApiKeysListQuery({
         { staleTime: Number.POSITIVE_INFINITY },
       );
     }
-  }, [normalizedPage, totalPages, queryParams, utils.api.keys.list]);
+  }, [queryPage, totalPages, queryParams, utils.api.keys.list]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -172,7 +166,7 @@ export function useApiKeysListQuery({
     isLoading,
     isInitialLoading,
     isFetching,
-    page: normalizedPage,
+    page: queryPage,
     pageSize: normalizedPageSize,
     totalPages,
     totalCount,

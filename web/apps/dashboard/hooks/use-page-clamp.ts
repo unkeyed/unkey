@@ -1,32 +1,37 @@
 import { useEffect } from "react";
 
 type UsePageClampArgs = {
-  /** Current 1-based page from URL state. */
+  /**
+   * The transition-aware page from usePageTransition — never the raw URL
+   * page. With keepPreviousData, `data` (and thus totalPages) reflects the
+   * previous query while a filter/search/time change is in flight, and
+   * clamping the outgoing page against those totals would race the
+   * reset-to-page-1 effect — including on cache hits, where no fetch state
+   * ever flips. The transition-aware page is 1 during that window, which
+   * makes the clamp a no-op.
+   */
   page: number;
-  /** Total pages derived from the latest settled result (min 1). */
+  /** Total pages derived from the latest result (min 1). */
   totalPages: number;
-  /** True while a query for new params is in flight. */
-  isFetching: boolean;
-  /** True once the query has produced a result at least once. */
-  hasData: boolean;
+  /** Latest query result, passed as-is — nullish means no result yet. */
+  data: unknown;
   setPage: (page: number) => void;
 };
 
-// usePageClamp snaps `page` back into [1, totalPages] once the current query
-// has settled. It gates on !isFetching because paginated list queries use
-// keepPreviousData: while a filter/sort/time change is in flight, `data` (and
-// thus totalPages) still reflects the previous query, so clamping mid-fetch
-// would race the reset-to-page-1 effect and land on a page derived from the
-// old result set. The hasData guard keeps a deep-linked page (e.g. ?page=7)
-// from snapping to 1 before the first result loads, when totalPages still
-// collapses to 1.
-export function usePageClamp({ page, totalPages, isFetching, hasData, setPage }: UsePageClampArgs) {
+// usePageClamp snaps `page` back into [1, totalPages] once the query has a
+// result. The data guard keeps a deep-linked page (?page=7) from snapping to
+// 1 before the first response, when totalPages still collapses to 1. The
+// clamp is deliberately eager — no isFetching gate — so an out-of-range page
+// within an unchanged result set (e.g. a hand-edited ?page=999) snaps back
+// instantly using the already-known totals instead of waiting for the dead
+// page's request to settle or exhaust retries.
+export function usePageClamp({ page, totalPages, data, setPage }: UsePageClampArgs) {
   useEffect(() => {
-    if (isFetching || !hasData) {
+    if (data == null) {
       return;
     }
     if (page > totalPages) {
       setPage(totalPages);
     }
-  }, [isFetching, hasData, page, totalPages, setPage]);
+  }, [data, page, totalPages, setPage]);
 }

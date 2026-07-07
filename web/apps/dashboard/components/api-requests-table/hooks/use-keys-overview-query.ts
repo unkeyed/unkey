@@ -3,11 +3,12 @@ import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/h
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { KeysQueryOverviewLogsPayload, SortFields } from "../schema/keys-overview.schema";
 
 type UseLogsQueryParams = {
@@ -30,6 +31,20 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     return filters.some((filter) => filter.field === "startTime" || filter.field === "endTime");
   }, [filters]);
 
+  // Filters, query time, and sort all invalidate the current OFFSET, so any
+  // of them changing resets pagination.
+  const filtersKey = useMemo(
+    () =>
+      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    [filters, timestamp, sorts],
+  );
+
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
+
   const queryParams = useMemo(() => {
     const params: KeysQueryOverviewLogsPayload = {
       limit,
@@ -43,7 +58,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
       apiId,
       since: "",
       sorts: sorts.length > 0 ? sorts : null,
-      page: normalizedPage,
+      page: queryPage,
       useTimeFrameFilter: hasTimeFrameFilter,
     };
 
@@ -126,28 +141,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     });
 
     return params;
-  }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter, normalizedPage]);
-
-  // Reset to page 1 when filters, sort, or query time change — the current
-  // OFFSET is only meaningful relative to the current ordering, so changing
-  // any of these invalidates it.
-  const filtersKey = useMemo(
-    () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
-    [filters, timestamp, sorts],
-  );
-
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter, queryPage]);
 
   const utils = trpc.useUtils();
 
@@ -162,17 +156,16 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   usePageClamp({
-    page: normalizedPage,
+    page: queryPage,
     totalPages,
-    isFetching,
-    hasData: data !== undefined,
+    data,
     setPage,
   });
 
   // Prefetch the next few pages
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
+      const nextPage = queryPage + i;
       if (nextPage > totalPages) {
         break;
       }
@@ -181,7 +174,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
         { staleTime: Number.POSITIVE_INFINITY },
       );
     }
-  }, [normalizedPage, totalPages, queryParams, utils.api.keys.query]);
+  }, [queryPage, totalPages, queryParams, utils.api.keys.query]);
 
   const historicalLogs = useMemo(() => {
     if (!data) {
@@ -215,7 +208,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     isLoading: isInitialLoading,
     isFetching,
     isNavigating,
-    page: normalizedPage,
+    page: queryPage,
     pageSize: limit,
     totalPages,
     totalCount,

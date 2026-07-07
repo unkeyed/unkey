@@ -6,10 +6,11 @@ import type { RootKeysFilterValue } from "@/app/(app)/[workspaceSlug]/settings/r
 import { useFilters } from "@/app/(app)/[workspaceSlug]/settings/root-keys/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { RootKeysQueryPayload, RootKeysSortField } from "../schema/query-logs.schema";
 
 const PREFETCH_PAGES_AHEAD = 2;
@@ -108,30 +109,23 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     [filters],
   );
 
-  // Reset to page 1 only when filter content actually changes (not on initial mount).
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
 
   const baseParams = useMemo<RootKeysFilterParams>(() => buildQueryParams(filters), [filters]);
 
   const queryParams = useMemo(
     () => ({
       ...baseParams,
-      page: normalizedPage,
+      page: queryPage,
       limit: normalizedPageSize,
       sortBy: sortParams?.[0]?.column ?? "createdAt",
       sortOrder: sortParams?.[0]?.direction ?? "desc",
     }),
-    [baseParams, normalizedPage, normalizedPageSize, sortParams],
+    [baseParams, queryPage, normalizedPageSize, sortParams],
   );
 
   const utils = trpc.useUtils();
@@ -149,17 +143,16 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
 
   usePageClamp({
-    page: normalizedPage,
+    page: queryPage,
     totalPages,
-    isFetching,
-    hasData: data !== undefined,
+    data,
     setPage,
   });
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
+      const nextPage = queryPage + i;
       if (nextPage > totalPages) {
         break;
       }
@@ -168,7 +161,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
         { staleTime: Number.POSITIVE_INFINITY },
       );
     }
-  }, [normalizedPage, totalPages, queryParams, utils.settings.rootKeys.query]);
+  }, [queryPage, totalPages, queryParams, utils.settings.rootKeys.query]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -186,7 +179,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     isInitialLoading,
     isPending: isFetching,
     isFetching,
-    page: normalizedPage,
+    page: queryPage,
     pageSize: normalizedPageSize,
     totalPages,
     totalCount,

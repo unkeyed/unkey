@@ -3,6 +3,7 @@ import {
   parseAsSortArray,
 } from "@/components/logs/validation/utils/nuqs-parsers";
 import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -171,28 +172,11 @@ export function usePaginatedListQuery<
     [filters],
   );
 
-  // Reset to page 1 only when filter content actually changes, not on mount.
-  // The useEffect below syncs URL state for subsequent renders, but the render
-  // that observes the filter change still sees the old normalizedPage — without
-  // queryPage below, that render would fire one stale request for the previous
-  // page against the new filters before setPage(1) commits. The null guard
-  // keeps first-mount URL-persisted pages intact; we only override on a real
-  // filter transition.
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  const queryPage =
-    prevFiltersKeyRef.current !== null && filtersKey !== prevFiltersKeyRef.current
-      ? 1
-      : normalizedPage;
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
 
   const filterParams = useMemo<TFilterParams>(() => {
     const params = Object.fromEntries(
@@ -251,8 +235,7 @@ export function usePaginatedListQuery<
   usePageClamp({
     page: queryPage,
     totalPages,
-    isFetching,
-    hasData: data !== undefined,
+    data,
     setPage,
   });
 

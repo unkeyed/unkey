@@ -1,7 +1,9 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
+import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
 import { trpc } from "@/lib/trpc/client";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { type AuditLogsQueryPayload, DEFAULT_BUCKET_NAME } from "../schema/audit-logs.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -10,24 +12,23 @@ const PREFETCH_PAGES_AHEAD = 2;
 export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const normalizedPage = Math.max(1, page);
 
   const filtersKey = useMemo(
     () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
     [filters],
   );
 
-  const prevFiltersKeyRef = useRef(filtersKey);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current !== filtersKey) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
 
   const queryParams = useMemo(() => {
     const params: AuditLogsQueryPayload = {
       limit: pageSize,
-      page,
+      page: queryPage,
       startTime: undefined,
       endTime: undefined,
       events: { filters: [] },
@@ -80,7 +81,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     }
 
     return params;
-  }, [filters, pageSize, page]);
+  }, [filters, pageSize, queryPage]);
 
   const utils = trpc.useUtils();
 
@@ -94,15 +95,16 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  useEffect(() => {
-    if (data && page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, page, totalPages, setPage]);
+  usePageClamp({
+    page: queryPage,
+    totalPages,
+    data,
+    setPage,
+  });
 
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = page + i;
+      const nextPage = queryPage + i;
       if (nextPage > totalPages) {
         break;
       }
@@ -111,7 +113,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
         { staleTime: Number.POSITIVE_INFINITY },
       );
     }
-  }, [page, totalPages, queryParams, utils.audit.logs]);
+  }, [queryPage, totalPages, queryParams, utils.audit.logs]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -127,7 +129,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     auditLogs: data?.auditLogs ?? [],
     isLoading,
     isFetching,
-    page,
+    page: queryPage,
     pageSize,
     totalPages,
     totalCount,
