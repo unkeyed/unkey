@@ -77,16 +77,6 @@ export const updateRegions = workspaceProcedure
     const defaultReplicas = existingSettings.at(0)?.replicas ?? 1;
     const defaultPolicyId = existingSettings.at(0)?.horizontalAutoscalingPolicyId ?? null;
 
-    await db
-      .delete(appRegionalSettings)
-      .where(
-        and(
-          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
-          eq(appRegionalSettings.environmentId, input.environmentId),
-          notInArray(appRegionalSettings.regionId, requestedRegionIds),
-        ),
-      );
-
     const toInsert = requestedRegionIds
       .filter((regionId) => !existingRegionIds.has(regionId))
       .map((regionId) => ({
@@ -98,7 +88,22 @@ export const updateRegions = workspaceProcedure
         horizontalAutoscalingPolicyId: defaultPolicyId,
       }));
 
-    if (toInsert.length > 0) {
-      await db.insert(appRegionalSettings).values(toInsert);
-    }
+    // The delete and insert must be atomic: a failed insert after a committed
+    // delete would leave the environment with regions removed but their
+    // replacements never written.
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(appRegionalSettings)
+        .where(
+          and(
+            eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+            eq(appRegionalSettings.environmentId, input.environmentId),
+            notInArray(appRegionalSettings.regionId, requestedRegionIds),
+          ),
+        );
+
+      if (toInsert.length > 0) {
+        await tx.insert(appRegionalSettings).values(toInsert);
+      }
+    });
   });
