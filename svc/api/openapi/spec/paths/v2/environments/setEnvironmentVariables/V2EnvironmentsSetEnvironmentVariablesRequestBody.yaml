@@ -1,0 +1,76 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+  - variables
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  variables:
+    type: array
+    maxItems: 50
+    items:
+      "$ref": "../../../../common/EnvironmentVariableInput.yaml"
+    description: |
+      The variables to upsert. Each entry is created if its key is new or fully
+      overwritten if the key already exists. Existing variables whose keys are
+      not in this list are left untouched, unless `prune` is true.
+
+      Each entry is written exactly as sent, never merged with the current
+      state. Only `value` is required; omitted optional fields (`kind`,
+      `description`) fall back to their defaults rather than any previous value,
+      so overwriting a variable without a `description` clears it.
+
+      Each key may appear at most once; a duplicate key is rejected with a 400.
+      The whole operation is atomic: if any part fails the environment is left
+      unchanged. All values are encrypted at rest. Limited to 50 variables per
+      request.
+  prune:
+    type: boolean
+    default: false
+    description: |-
+      Optional. Defaults to false. When false, the variables above are upserted
+      and any existing variable not in the list is kept. When true, this becomes
+      a full replace: after upserting, every variable not in the list is deleted.
+      Combined with an empty `variables` list, `prune: true` resets the entire
+      environment by deleting every variable.
+additionalProperties: false
+examples:
+  upsert:
+    summary: Upsert (default) - change one variable, keep the rest
+    description: |-
+      Without `prune`, only the listed variables are created or overwritten.
+      Every other variable, including write-only secrets you can no longer read
+      back, is left untouched. Here LOG_LEVEL is flipped to info and nothing else
+      is affected.
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      variables:
+        - key: LOG_LEVEL
+          value: info
+          kind: recoverable
+  replace:
+    summary: Full replace with prune
+    description: |-
+      With `prune: true`, the listed variables become the entire environment.
+      Any variable not in the list is deleted.
+    value:
+      project: payments
+      app: payments-api
+      environment: production
+      prune: true
+      variables:
+        - key: DATABASE_URL
+          value: postgresql://user:pass@host:5432/db
+          kind: writeonly
+        - key: LOG_LEVEL
+          value: debug
+          kind: recoverable
+          description: Application log verbosity
