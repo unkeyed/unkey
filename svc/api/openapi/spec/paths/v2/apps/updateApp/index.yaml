@@ -58,7 +58,6 @@ post:
                   id: app_1234abcd
                   name: Payments API
                   slug: payments-api
-                  projectId: proj_1234abcd
                   defaultBranch: main
                   isRolledBack: false
                   deleteProtection: true

@@ -110,7 +110,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
-			ProjectId:           row.ProjectID,
 			DefaultBranch:       row.DefaultBranch,
 			CurrentDeploymentId: row.CurrentDeploymentID.String,
 			IsRolledBack:        row.IsRolledBack,

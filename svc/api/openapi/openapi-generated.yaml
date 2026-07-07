@@ -599,6 +599,208 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2DeployGetDeploymentResponseData"
+        V2EnvironmentsGetEnvironmentRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2EnvironmentsGetEnvironmentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/Environment"
+            additionalProperties: false
+        V2EnvironmentsListEnvironmentsRequestBody:
+            type: object
+            required:
+                - project
+                - app
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+        V2EnvironmentsListEnvironmentsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/Environment"
+                    description: Array of environments in the app, ordered by environment id.
+            additionalProperties: false
+        V2EnvironmentsUpdateSettingsRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                dockerfile:
+                    type:
+                        - string
+                        - "null"
+                    minLength: 1
+                    maxLength: 500
+                    description: |
+                        Path to the Dockerfile used for builds.
+                        Omit to leave unchanged; set null to clear and fall back to Railpack.
+                    example: ./Dockerfile
+                rootDirectory:
+                    type: string
+                    minLength: 1
+                    maxLength: 500
+                    description: |
+                        The directory your app lives in. Unkey builds from here.
+                        Use "." for the repository root, or set a subdirectory when your app
+                        is nested (e.g., services/api). Omit to leave unchanged.
+                    example: .
+                buildCommand:
+                    type:
+                        - string
+                        - "null"
+                    minLength: 1
+                    maxLength: 1000
+                    description: |
+                        Overrides the build command auto-detected by Railpack.
+                        Omit to leave unchanged; set null to clear and fall back to auto-detection.
+                    example: pnpm --filter api build
+                watchPaths:
+                    type: array
+                    maxItems: 10
+                    items:
+                        type: string
+                        maxLength: 500
+                    description: |
+                        Glob paths that trigger auto-deploys when changed.
+                        Omit to leave unchanged.
+                autoDeploy:
+                    type: boolean
+                    description: |
+                        Whether pushes auto-deploy.
+                        Omit to leave unchanged.
+                    example: true
+                port:
+                    type: integer
+                    minimum: 1
+                    maximum: 65535
+                    description: |
+                        Container port the app listens on.
+                        Omit to leave unchanged.
+                    example: 8080
+                cpuMillicores:
+                    type: integer
+                    minimum: 250
+                    multipleOf: 250
+                    description: |
+                        CPU allocation in millicores. Minimum 250 (1/4 vCPU), in steps of 250.
+                        The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+                        Omit to leave unchanged.
+                    example: 1000
+                memoryMib:
+                    type: integer
+                    minimum: 256
+                    multipleOf: 256
+                    description: |
+                        Memory allocation in MiB. Minimum 256, in steps of 256.
+                        The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+                        Omit to leave unchanged.
+                    example: 512
+                storageMib:
+                    type: integer
+                    minimum: 0
+                    multipleOf: 512
+                    description: |
+                        Ephemeral storage allocation in MiB, in steps of 512 (0 for none).
+                        The upper bound is your workspace's per-instance quota; exceeding it returns 400.
+                        Omit to leave unchanged.
+                    example: 1024
+                command:
+                    type: array
+                    maxItems: 10
+                    items:
+                        type: string
+                        maxLength: 4096
+                    description: |
+                        Override container entrypoint command.
+                        Omit to leave unchanged.
+                healthcheck:
+                    description: |
+                        HTTP healthcheck configuration.
+                        Omit to leave unchanged; set null to remove.
+                    anyOf:
+                        - "$ref": "#/components/schemas/EnvironmentHealthcheck"
+                        - type: "null"
+                shutdownSignal:
+                    "$ref": "#/components/schemas/EnvironmentShutdownSignal"
+                    description: |
+                        Signal sent to the container on shutdown.
+                        Omit to leave unchanged.
+                upstreamProtocol:
+                    "$ref": "#/components/schemas/EnvironmentUpstreamProtocol"
+                    description: |
+                        Protocol used to reach the upstream container.
+                        Omit to leave unchanged.
+                openapiSpecPath:
+                    type:
+                        - string
+                        - "null"
+                    minLength: 1
+                    maxLength: 512
+                    pattern: '^(/[\w\-]+)+(\.[\w]+)?$'
+                    description: |
+                        Path to the OpenAPI spec file within the build. Must start with a slash.
+                        Omit to leave unchanged; set null to clear.
+                    example: /openapi.yaml
+                regions:
+                    type: array
+                    minItems: 1
+                    maxItems: 5
+                    items:
+                        "$ref": "#/components/schemas/EnvironmentRegion"
+                    description: |
+                        Desired set of regions with per-region replica bounds.
+                        Omit to leave regions unchanged; when present, this replaces the full set
+                        (regions absent from the list are removed). At least one region is required;
+                        an empty list is rejected because an environment cannot have zero regions.
+            additionalProperties: false
+        V2EnvironmentsUpdateSettingsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2IdentitiesCreateIdentityRequestBody:
             type: object
             required:
@@ -2956,7 +3158,6 @@ components:
                 - id
                 - name
                 - slug
-                - projectId
                 - defaultBranch
                 - isRolledBack
                 - deleteProtection
@@ -2978,11 +3179,6 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
-                projectId:
-                    type: string
-                    description: |
-                        The unique identifier of the project this app belongs to.
-                    example: proj_1234abcd
                 defaultBranch:
                     type: string
                     description: |
@@ -3126,6 +3322,262 @@ components:
                     format: int64
                     description: Unix timestamp in milliseconds
                     example: 1704067200000
+        Environment:
+            type: object
+            required:
+                - id
+                - slug
+                - description
+                - deleteProtection
+                - createdAt
+            properties:
+                id:
+                    type: string
+                    description: |
+                        The unique identifier of the environment, generated by Unkey.
+                    example: env_1234abcd
+                slug:
+                    type: string
+                    description: |
+                        Human-readable slug of the environment, unique within its app.
+                    example: production
+                description:
+                    type: string
+                    description: |
+                        Human-readable description of this environment.
+                        Empty string if none was provided.
+                    example: Production environment
+                deleteProtection:
+                    type: boolean
+                    description: |
+                        Whether delete protection is enabled for this environment.
+                        When true, the environment cannot be deleted until protection is disabled.
+                    example: false
+                createdAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: |
+                        Unix timestamp in milliseconds when the environment was created.
+                    example: 1704067200000
+                updatedAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854776000
+                    description: |
+                        Unix timestamp in milliseconds when the environment was last updated.
+                        Omitted if the environment has never been updated.
+                    example: 1704153600000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+                runtime:
+                    "$ref": "#/components/schemas/EnvironmentRuntime"
+                build:
+                    "$ref": "#/components/schemas/EnvironmentBuild"
+                regions:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/EnvironmentRegion"
+                    description: |
+                        Per-region deployment settings for this environment.
+                        Empty until regional settings are configured.
+            additionalProperties: false
+        EnvironmentRuntime:
+            type: object
+            description: |
+                Runtime settings that control how the container runs.
+                Omitted until the environment has runtime settings.
+            required:
+                - port
+                - cpuMillicores
+                - memoryMib
+                - storageMib
+                - command
+                - shutdownSignal
+                - upstreamProtocol
+            properties:
+                port:
+                    type: integer
+                    description: |
+                        Port the container listens on.
+                    example: 8080
+                cpuMillicores:
+                    type: integer
+                    description: |
+                        CPU allocation in millicores (1000 = one vCPU).
+                    example: 250
+                memoryMib:
+                    type: integer
+                    description: |
+                        Memory allocation in mebibytes.
+                    example: 256
+                storageMib:
+                    type: integer
+                    description: |
+                        Ephemeral storage allocation in mebibytes.
+                    example: 0
+                command:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Container entrypoint command override.
+                    example: ["node", "server.js"]
+                healthcheck:
+                    "$ref": "#/components/schemas/EnvironmentHealthcheck"
+                shutdownSignal:
+                    "$ref": "#/components/schemas/EnvironmentShutdownSignal"
+                upstreamProtocol:
+                    "$ref": "#/components/schemas/EnvironmentUpstreamProtocol"
+                openapiSpecPath:
+                    type: string
+                    description: |
+                        Path to the OpenAPI spec served by the container, if any.
+                    example: /openapi.yaml
+            additionalProperties: false
+        EnvironmentBuild:
+            type: object
+            description: |
+                Build settings that control how the app is built.
+                Omitted until the environment has build settings.
+            required:
+                - rootDirectory
+                - watchPaths
+                - autoDeploy
+            properties:
+                dockerfile:
+                    type: string
+                    description: |
+                        Path to the Dockerfile used to build the app, if any.
+                    example: Dockerfile
+                rootDirectory:
+                    type: string
+                    description: |
+                        The directory the app is built from. "." for the repository root.
+                    example: .
+                buildCommand:
+                    type: string
+                    description: |
+                        Overrides the build command auto-detected by Railpack, so monorepos can
+                        scope the build to a single app. Omitted when left to auto-detection or
+                        for Dockerfile builds.
+                    example: pnpm --filter api build
+                watchPaths:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        Paths that trigger a rebuild when changed.
+                    example: ["src/**"]
+                autoDeploy:
+                    type: boolean
+                    description: |
+                        Whether pushes automatically trigger a deployment.
+                    example: true
+            additionalProperties: false
+        EnvironmentRegion:
+            type: object
+            description: Replica bounds for a single region the environment deploys to.
+            required:
+                - name
+                - replicas
+            properties:
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                    description: Region name, such as us-east-1.
+                    example: us-east-1
+                replicas:
+                    "$ref": "#/components/schemas/Replicas"
+            additionalProperties: false
+        EnvironmentHealthcheck:
+            type: object
+            required:
+                - method
+                - path
+            properties:
+                method:
+                    type: string
+                    enum:
+                        - GET
+                        - POST
+                    description: |
+                        HTTP method used to probe the container.
+                    example: GET
+                path:
+                    type: string
+                    minLength: 1
+                    maxLength: 512
+                    pattern: '^(/[\w\-]+)+(\.[\w]+)?$'
+                    description: |
+                        HTTP path probed on the container. Must start with a slash.
+                    example: /healthz
+                intervalSeconds:
+                    type: integer
+                    minimum: 1
+                    maximum: 3600
+                    description: |
+                        How often the probe runs, in seconds. Defaults to 10 when omitted.
+                    example: 10
+                timeoutSeconds:
+                    type: integer
+                    minimum: 1
+                    maximum: 3600
+                    description: |
+                        Per-probe timeout, in seconds. Defaults to 5 when omitted.
+                    example: 2
+                failureThreshold:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+                    description: |
+                        Consecutive failures before the container is restarted. Defaults to 3 when omitted.
+                    example: 3
+                initialDelaySeconds:
+                    type: integer
+                    minimum: 0
+                    maximum: 3600
+                    description: |
+                        Delay before the first probe runs, in seconds. Defaults to 0 when omitted.
+                    example: 5
+            additionalProperties: false
+        EnvironmentShutdownSignal:
+            type: string
+            enum:
+                - SIGTERM
+                - SIGINT
+                - SIGQUIT
+                - SIGKILL
+            description: |
+                Signal sent to the container on shutdown.
+            example: SIGTERM
+        EnvironmentUpstreamProtocol:
+            type: string
+            enum:
+                - http1
+                - h2c
+            description: |
+                Protocol used to reach the container.
+            example: http1
+        Replicas:
+            type: object
+            description: Min and max replica bounds for autoscaling in a region.
+            required:
+                - min
+                - max
+            properties:
+                min:
+                    type: integer
+                    description: Minimum number of replicas.
+                    example: 1
+                max:
+                    type: integer
+                    description: Maximum number of replicas.
+                    example: 3
+            additionalProperties: false
         RatelimitRequest:
             type: object
             required:
@@ -5002,7 +5454,6 @@ paths:
                                             id: app_1234abcd
                                             isRolledBack: false
                                             name: Payments API
-                                            projectId: proj_1234abcd
                                             slug: payments-api
                                             updatedAt: 1704153600000
                                         meta:
@@ -5116,7 +5567,6 @@ paths:
                                               id: app_1234abcd
                                               isRolledBack: false
                                               name: Payments API
-                                              projectId: proj_1234abcd
                                               slug: payments-api
                                               updatedAt: 1704153600000
                                             - createdAt: 1704240000000
@@ -5125,7 +5575,6 @@ paths:
                                               id: app_5678efgh
                                               isRolledBack: false
                                               name: Billing API
-                                              projectId: proj_1234abcd
                                               slug: billing-api
                                         meta:
                                             requestId: req_1234abcd
@@ -5274,7 +5723,6 @@ paths:
                                             id: app_1234abcd
                                             isRolledBack: false
                                             name: Payments API
-                                            projectId: proj_1234abcd
                                             slug: payments-api
                                             updatedAt: 1704153600000
                                         meta:
@@ -5496,6 +5944,440 @@ paths:
                 - deploy
             x-speakeasy-group: internal
             x-speakeasy-name-override: getDeployment
+    /v2/environments.getEnvironment:
+        post:
+            description: |
+                Retrieve a single environment by its id.
+
+                Use this to fetch environment details after creation or to verify an environment exists before performing operations.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.read_environment` (to read any environment)
+                - `environment.<environment_id>.read_environment` (to read a specific environment)
+            operationId: environments.getEnvironment
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            getById:
+                                description: Fetch an environment using its unique identifier
+                                summary: Retrieve by environment ID
+                                value:
+                                    app: payments-api
+                                    environment: env_1234abcd
+                                    project: payments
+                            getBySlug:
+                                description: Fetch an environment using its slug
+                                summary: Retrieve by environment slug
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2EnvironmentsGetEnvironmentRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                environment:
+                                    description: Successfully retrieved an environment
+                                    summary: Environment details
+                                    value:
+                                        data:
+                                            build:
+                                                autoDeploy: true
+                                                buildCommand: pnpm --filter api build
+                                                dockerfile: Dockerfile
+                                                rootDirectory: .
+                                                watchPaths:
+                                                    - src/**
+                                            createdAt: 1704067200000
+                                            deleteProtection: false
+                                            description: Production environment
+                                            id: env_1234abcd
+                                            regions:
+                                                - name: us-east-1
+                                                  replicas:
+                                                    max: 3
+                                                    min: 1
+                                            runtime:
+                                                command:
+                                                    - node
+                                                    - server.js
+                                                cpuMillicores: 250
+                                                memoryMib: 256
+                                                port: 8080
+                                                shutdownSignal: SIGTERM
+                                                storageMib: 0
+                                                upstreamProtocol: http1
+                                            slug: production
+                                            updatedAt: 1704153600000
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2EnvironmentsGetEnvironmentResponseBody'
+                    description: |
+                        Successfully retrieved the environment.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'environment.*.read_environment' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_environment`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                environmentNotFound:
+                                    summary: Environment not found
+                                    value:
+                                        error:
+                                            detail: The requested environment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested environment does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Get environment
+            tags:
+                - environments
+            x-speakeasy-name-override: getEnvironment
+    /v2/environments.listEnvironments:
+        post:
+            description: |
+                Retrieve the environments within an app.
+
+                Use this to enumerate every environment in an app. Identify the app by its project slug and app slug. Results are ordered by environment id. An app has only a handful of environments, so all of them are returned in a single response.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `environment.*.read_environment` (to read environments in any app)
+            operationId: environments.listEnvironments
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            basic:
+                                description: List the environments in the given app
+                                summary: List an app's environments
+                                value:
+                                    app: payments-api
+                                    project: payments-service
+                        schema:
+                            $ref: '#/components/schemas/V2EnvironmentsListEnvironmentsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                environmentList:
+                                    description: Successfully retrieved a page of environments
+                                    summary: Environment list
+                                    value:
+                                        data:
+                                            - build:
+                                                autoDeploy: true
+                                                dockerfile: Dockerfile
+                                                rootDirectory: .
+                                                watchPaths:
+                                                    - src/**
+                                              createdAt: 1704067200000
+                                              deleteProtection: false
+                                              description: Production environment
+                                              id: env_1234abcd
+                                              regions:
+                                                - name: us-east-1
+                                                  replicas:
+                                                    max: 3
+                                                    min: 1
+                                              runtime:
+                                                command:
+                                                    - node
+                                                    - server.js
+                                                cpuMillicores: 250
+                                                memoryMib: 256
+                                                port: 8080
+                                                shutdownSignal: SIGTERM
+                                                storageMib: 0
+                                                upstreamProtocol: http1
+                                              slug: production
+                                              updatedAt: 1704153600000
+                                            - build:
+                                                autoDeploy: true
+                                                buildCommand: pnpm --filter api build
+                                                rootDirectory: .
+                                                watchPaths:
+                                                    - src/**
+                                              createdAt: 1704240000000
+                                              deleteProtection: false
+                                              description: Staging environment
+                                              id: env_5678efgh
+                                              runtime:
+                                                command:
+                                                    - node
+                                                    - server.js
+                                                cpuMillicores: 250
+                                                memoryMib: 256
+                                                port: 8080
+                                                shutdownSignal: SIGTERM
+                                                storageMib: 0
+                                                upstreamProtocol: http1
+                                              slug: staging
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2EnvironmentsListEnvironmentsResponseBody'
+                    description: |
+                        Successfully retrieved the app's environments.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                missingApp:
+                                    summary: Missing required field
+                                    value:
+                                        error:
+                                            detail: The app field is required.
+                                            errors:
+                                                - fix: Provide the app id or slug
+                                                  location: body.app
+                                                  message: missing required field
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'environment.*.read_environment' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_environment`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                appNotFound:
+                                    summary: App not found
+                                    value:
+                                        error:
+                                            detail: The requested app does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested app does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: List environments
+            tags:
+                - environments
+            x-speakeasy-name-override: listEnvironments
+    /v2/environments.updateSettings:
+        post:
+            description: |
+                Update the build, runtime, and regional settings for an environment.
+
+                All settings fields are optional. Omit a field to leave it unchanged. For
+                nullable fields (`dockerfile`, `healthcheck`, `openapiSpecPath`), send null
+                to clear the value. When `regions` is present it replaces the full set of
+                regions for the environment.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.update_environment` (to update any environment)
+                - `environment.<environment_id>.update_environment` (to update a specific environment)
+            operationId: environments.updateSettings
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            setRegions:
+                                description: Deploy to a single region with replica bounds
+                                summary: Replace the region set
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments
+                                    regions:
+                                        - name: us-east-1
+                                          replicas:
+                                            max: 3
+                                            min: 1
+                            setRuntime:
+                                description: Adjust CPU and memory, locating the environment by slug
+                                summary: Update runtime resources
+                                value:
+                                    app: payments-api
+                                    cpuMillicores: 2000
+                                    environment: production
+                                    memoryMib: 1024
+                                    project: payments
+                        schema:
+                            $ref: '#/components/schemas/V2EnvironmentsUpdateSettingsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                success:
+                                    description: Environment settings were successfully updated
+                                    summary: Settings updated
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2EnvironmentsUpdateSettingsResponseBody'
+                    description: |
+                        Successfully updated the environment settings.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'environment.*.update_environment' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.update_environment`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                environmentNotFound:
+                                    summary: Environment not found
+                                    value:
+                                        error:
+                                            detail: The requested environment does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The requested environment does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Update environment settings
+            tags:
+                - environments
+            x-speakeasy-name-override: updateSettings
     /v2/identities.createIdentity:
         post:
             description: |
@@ -9327,6 +10209,8 @@ tags:
       name: apps
     - description: Deployment operations
       name: deploy
+    - description: Environment management operations
+      name: environments
     - description: Identity management operations
       name: identities
     - description: API key management operations

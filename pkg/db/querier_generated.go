@@ -60,6 +60,14 @@ type Querier interface {
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
 	DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	// Deletes an environment's regional rows whose region is not in the desired set,
+	// reconciling the stored set to exactly the provided regions in one statement.
+	//
+	//  DELETE FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND region_id NOT IN (/*SLICE:region_ids*/?)
+	DeleteAppRegionalSettingsNotInRegions(ctx context.Context, db DBTX, arg DeleteAppRegionalSettingsNotInRegionsParams) error
 	//DeleteAppRuntimeSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
@@ -551,6 +559,18 @@ type Querier interface {
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
+	//FindEnvironmentByIdentifiers
+	//
+	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
+	//  FROM environments e
+	//  JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  WHERE e.workspace_id = ?
+	//    AND (p.id = ? OR p.slug = ?)
+	//    AND (a.id = ? OR a.slug = ?)
+	//    AND (e.id = ? OR e.slug = ?)
+	//  LIMIT 1
+	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
@@ -1736,6 +1756,24 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertGithubRepoConnection(ctx context.Context, db DBTX, arg InsertGithubRepoConnectionParams) error
+	//InsertHorizontalAutoscalingPolicy
+	//
+	//  INSERT INTO horizontal_autoscaling_policies (
+	//      id,
+	//      workspace_id,
+	//      replicas_min,
+	//      replicas_max,
+	//      cpu_threshold,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg InsertHorizontalAutoscalingPolicyParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -2168,10 +2206,53 @@ type Querier interface {
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, db DBTX, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
+	// Returns the build settings for every environment in an app, for callers
+	// that build multiple environments at once and group by environment_id.
+	//
+	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
+	//  FROM app_build_settings
+	//  WHERE app_id = ?
+	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
 	ListAppIdsByProject(ctx context.Context, db DBTX, projectID string) ([]string, error)
+	// Returns per-region settings for every environment in an app, including the
+	// autoscaling policy bounds (if attached). Callers group by environment_id.
+	//
+	//  SELECT
+	//  	ars.environment_id,
+	//  	ars.region_id,
+	//  	r.name AS region_name,
+	//  	ars.replicas,
+	//  	r.can_schedule AS region_can_schedule,
+	//  	hap.replicas_min AS autoscaling_replicas_min,
+	//  	hap.replicas_max AS autoscaling_replicas_max,
+	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
+	//  	hap.memory_threshold AS autoscaling_threshold_memory
+	//  FROM app_regional_settings ars
+	//  JOIN regions r ON r.id = ars.region_id
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  WHERE ars.app_id = ?
+	ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error)
+	// Returns the current regional rows for reconciliation, including the
+	// horizontal_autoscaling_policy_id that FindAppRegionalSettingsByAppAndEnv omits.
+	//
+	//  SELECT
+	//      region_id,
+	//      replicas,
+	//      horizontal_autoscaling_policy_id
+	//  FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	ListAppRegionalSettingsByAppEnv(ctx context.Context, db DBTX, arg ListAppRegionalSettingsByAppEnvParams) ([]ListAppRegionalSettingsByAppEnvRow, error)
+	// Returns the runtime settings for every environment in an app, for callers
+	// that build multiple environments at once and group by environment_id.
+	//
+	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  FROM app_runtime_settings
+	//  WHERE app_id = ?
+	ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRuntimeSettingsByAppRow, error)
 	//ListAppsByProject
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
@@ -2268,6 +2349,14 @@ type Querier interface {
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
 	ListEnvironmentIdsByApp(ctx context.Context, db DBTX, appID string) ([]string, error)
+	// An app has only a handful of environments, so this returns all of them
+	// without pagination.
+	//
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  FROM environments
+	//  WHERE app_id = ?
+	//  ORDER BY id ASC
+	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
@@ -2736,6 +2825,13 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
+	// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
+	// This serializes region reconciliation, which reads the current set then replaces it.
+	//
+	//  SELECT id FROM environments
+	//  WHERE id = ?
+	//  FOR UPDATE
+	LockEnvironmentForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.
 	// This should be called at the start of a transaction before modifying identity-related data.
 	//
@@ -2997,6 +3093,36 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateApp(ctx context.Context, db DBTX, arg UpdateAppParams) error
+	// Updates only the columns whose *_specified flag is 1, preserving all others.
+	// columns cannot overwrite each other. dockerfile is clearable (narg -> NULL).
+	//
+	//  UPDATE app_build_settings t
+	//  SET
+	//      dockerfile = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.dockerfile
+	//      END,
+	//      docker_context = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.docker_context
+	//      END,
+	//      build_command = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.build_command
+	//      END,
+	//      watch_paths = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.watch_paths
+	//      END,
+	//      auto_deploy = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.auto_deploy
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -3006,6 +3132,53 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, db DBTX, arg UpdateAppDeploymentsParams) error
+	// Updates only the columns whose *_specified flag is 1, preserving all others.
+	// sentinel_config is intentionally absent from the SET list so it is preserved
+	// without a prior read. healthcheck and openapi_spec_path are clearable (narg).
+	//
+	//  UPDATE app_runtime_settings t
+	//  SET
+	//      port = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.port
+	//      END,
+	//      cpu_millicores = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.cpu_millicores
+	//      END,
+	//      memory_mib = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.memory_mib
+	//      END,
+	//      storage_mib = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.storage_mib
+	//      END,
+	//      command = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.command
+	//      END,
+	//      healthcheck = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.healthcheck
+	//      END,
+	//      shutdown_signal = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.shutdown_signal
+	//      END,
+	//      upstream_protocol = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.upstream_protocol
+	//      END,
+	//      openapi_spec_path = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.openapi_spec_path
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
 	//UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
 	//
 	//  UPDATE cilium_network_policies
@@ -3149,6 +3322,16 @@ type Querier interface {
 	//  SET deployment_id = ?
 	//  WHERE id = ?
 	UpdateFrontlineRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateFrontlineRouteDeploymentIdParams) error
+	//UpdateHorizontalAutoscalingPolicy
+	//
+	//  UPDATE horizontal_autoscaling_policies
+	//  SET
+	//      replicas_min = ?,
+	//      replicas_max = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	UpdateHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg UpdateHorizontalAutoscalingPolicyParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -3350,9 +3533,11 @@ type Querier interface {
 	//      environment_id,
 	//      region_id,
 	//      replicas,
+	//      horizontal_autoscaling_policy_id,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3363,6 +3548,7 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      replicas = VALUES(replicas),
+	//      horizontal_autoscaling_policy_id = VALUES(horizontal_autoscaling_policy_id),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, arg UpsertAppRegionalSettingsParams) error
 	//UpsertAppRuntimeSettings

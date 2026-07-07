@@ -1,0 +1,52 @@
+type: object
+description: |
+  Runtime settings that control how the container runs.
+  Omitted until the environment has runtime settings.
+required:
+  - port
+  - cpuMillicores
+  - memoryMib
+  - storageMib
+  - command
+  - shutdownSignal
+  - upstreamProtocol
+properties:
+  port:
+    type: integer
+    description: |
+      Port the container listens on.
+    example: 8080
+  cpuMillicores:
+    type: integer
+    description: |
+      CPU allocation in millicores (1000 = one vCPU).
+    example: 250
+  memoryMib:
+    type: integer
+    description: |
+      Memory allocation in mebibytes.
+    example: 256
+  storageMib:
+    type: integer
+    description: |
+      Ephemeral storage allocation in mebibytes.
+    example: 0
+  command:
+    type: array
+    items:
+      type: string
+    description: |
+      Container entrypoint command override.
+    example: ["node", "server.js"]
+  healthcheck:
+    "$ref": "./EnvironmentHealthcheck.yaml"
+  shutdownSignal:
+    "$ref": "./EnvironmentShutdownSignal.yaml"
+  upstreamProtocol:
+    "$ref": "./EnvironmentUpstreamProtocol.yaml"
+  openapiSpecPath:
+    type: string
+    description: |
+      Path to the OpenAPI spec served by the container, if any.
+    example: /openapi.yaml
+additionalProperties: false
