@@ -22,6 +22,7 @@ post:
   x-speakeasy-name-override: removePermissions
   security:
     - rootKey: []
+    - dashboard: []
   requestBody:
     required: true
     content:

@@ -11,6 +11,7 @@ go_library(
         "projects.go",
         "ratelimit_namespaces.go",
         "ratelimit_overrides.go",
+        "rbac.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/rbac/permissions",
     visibility = ["//visibility:public"],

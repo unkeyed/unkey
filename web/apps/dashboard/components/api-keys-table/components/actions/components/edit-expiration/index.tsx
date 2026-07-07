@@ -62,10 +62,7 @@ export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationPr
     try {
       await updateExpiration.mutateAsync({
         keyId: keyDetails.id,
-        expiration: {
-          enabled: data.expiration.enabled,
-          data: data.expiration.enabled ? data.expiration.data : undefined,
-        },
+        expires: data.expiration.enabled ? data.expiration.data : null,
       });
     } catch {
       // `useEditExpiration` already shows a toast, but we still need to

@@ -149,3 +149,72 @@ func TestKeyDeleteSuccess(t *testing.T) {
 		require.Equal(t, sql.ErrNoRows, err)
 	})
 }
+
+// TestKeyDeleteWithURNPermission guarantees WorkOS-translated `keys:delete`
+// permissions authorize key revocation without legacy API tuple grants.
+func TestKeyDeleteWithURNPermission(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+
+	t.Run("specific keyspace", func(t *testing.T) {
+		t.Parallel()
+
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+		rootKey := h.CreateRootKey(workspace.ID, deleteKeyPermission(workspace.ID, api.KeyAuthID.String, "*"))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId: key.KeyID,
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("all keyspaces", func(t *testing.T) {
+		t.Parallel()
+
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+		rootKey := h.CreateRootKey(workspace.ID, deleteAnyKeyPermission(workspace.ID))
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			KeyId: key.KeyID,
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+	})
+}
+
+func deleteKeyPermission(workspaceID string, keyspaceID string, keyID string) string {
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#delete_key", workspaceID, keyspaceID, keyID)
+}
+
+func deleteAnyKeyPermission(workspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:keyspaces/*/keys/*#delete_key", workspaceID)
+}

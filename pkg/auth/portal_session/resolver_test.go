@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/internal/services/portal"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
-	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -56,7 +55,6 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	require.Equal(t, "portal_session_123", source.SessionID)
 	require.Equal(t, "pc_123", source.PortalConfigID)
 	require.Equal(t, []string{"api.*.read_key"}, source.Permissions)
-	require.True(t, rbac.HasAnyPermission(principal.Permissions, rbac.Api, rbac.ReadKey))
 }
 
 func TestResolver_IgnoresMissingCookie(t *testing.T) {

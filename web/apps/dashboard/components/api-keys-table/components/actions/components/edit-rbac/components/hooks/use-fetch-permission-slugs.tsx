@@ -2,14 +2,14 @@
 import { trpc } from "@/lib/trpc/client";
 
 export const useFetchPermissionSlugs = (
-  roleIds: string[] = [],
-  directPermissionIds: string[] = [],
+  roleNames: string[] = [],
+  directPermissionSlugs: string[] = [],
   enabled = true,
 ) => {
   const { data, isLoading, error, refetch } = trpc.key.queryPermissionSlugs.useQuery(
     {
-      roleIds,
-      permissionIds: directPermissionIds,
+      roleNames,
+      permissionSlugs: directPermissionSlugs,
     },
     {
       enabled,

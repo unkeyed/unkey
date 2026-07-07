@@ -5,7 +5,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // StopDeployment is the public Restate entrypoint for putting a running
@@ -18,7 +18,7 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 	}
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
-		return db.Query.FindDeploymentById(runCtx, w.db.RO(), deploymentID)
+		return w.db.FindDeploymentById(runCtx, deploymentID)
 	}, restate.WithName("find deployment for stop"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -32,7 +32,7 @@ func (w *Workflow) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDe
 	}
 
 	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-		return db.Query.FindEnvironmentById(runCtx, w.db.RO(), deployment.EnvironmentID)
+		return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 	}, restate.WithName("find environment for stop"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {

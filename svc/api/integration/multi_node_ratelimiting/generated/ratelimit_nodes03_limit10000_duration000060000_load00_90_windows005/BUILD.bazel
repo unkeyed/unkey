@@ -2,6 +2,7 @@ load("@rules_go//go:def.bzl", "go_test")
 
 go_test(
     name = "ratelimit_nodes03_limit10000_duration000060000_load00_90_windows005_test",
+    size = "large",
     srcs = ["generated_test.go"],
     deps = [
         "//pkg/clock",

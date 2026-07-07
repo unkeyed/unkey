@@ -30,17 +30,6 @@ type Querier interface {
 	//  JOIN deployments d ON i.deployment_id = d.id
 	//  WHERE d.app_id = ?
 	CountInstancesByAppId(ctx context.Context, db DBTX, appID string) (int64, error)
-	//CountSentinelsByAppId
-	//
-	//  SELECT COUNT(*) as count
-	//  FROM sentinels s
-	//  JOIN environments e ON s.environment_id = e.id
-	//  WHERE e.app_id = ?
-	CountSentinelsByAppId(ctx context.Context, db DBTX, appID string) (int64, error)
-	//CountSentinelsByProjectId
-	//
-	//  SELECT COUNT(*) as count FROM sentinels WHERE project_id = ?
-	CountSentinelsByProjectId(ctx context.Context, db DBTX, projectID string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -63,14 +52,25 @@ type Querier interface {
 	//
 	//  DELETE FROM apps WHERE id = ?
 	DeleteAppById(ctx context.Context, db DBTX, id string) error
-	//DeleteAppEnvVarsByEnvironmentId
+	// Deletes an environment's variables whose key is in the provided set.
 	//
-	//  DELETE FROM app_environment_variables WHERE environment_id = ?
-	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND `key` IN (/*SLICE:env_keys*/?)
+	DeleteAppEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteAppEnvVarsByKeysParams) error
 	//DeleteAppRegionalSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
 	DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	// Deletes an environment's regional rows whose region is not in the desired set,
+	// reconciling the stored set to exactly the provided regions in one statement.
+	//
+	//  DELETE FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND region_id NOT IN (/*SLICE:region_ids*/?)
+	DeleteAppRegionalSettingsNotInRegions(ctx context.Context, db DBTX, arg DeleteAppRegionalSettingsNotInRegionsParams) error
 	//DeleteAppRuntimeSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
@@ -129,6 +129,19 @@ type Querier interface {
 	//
 	//  DELETE FROM deployments WHERE environment_id = ?
 	DeleteDeploymentsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteEnvVarsByEnvironmentId
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	DeleteEnvVarsByEnvironmentId(ctx context.Context, db DBTX, arg DeleteEnvVarsByEnvironmentIdParams) error
+	//DeleteEnvVarsByKeys
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND `key` IN (/*SLICE:env_keys*/?)
+	DeleteEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteEnvVarsByKeysParams) error
 	//DeleteEnvironmentById
 	//
 	//  DELETE FROM environments WHERE id = ?
@@ -289,14 +302,6 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
-	//DeleteSentinelsByEnvironmentId
-	//
-	//  DELETE FROM sentinels WHERE environment_id = ?
-	DeleteSentinelsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
-	//DeleteSentinelsByProjectId
-	//
-	//  DELETE FROM sentinels WHERE project_id = ?
-	DeleteSentinelsByProjectId(ctx context.Context, db DBTX, projectID string) error
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -570,6 +575,18 @@ type Querier interface {
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, db DBTX, id string) (Environment, error)
+	//FindEnvironmentByIdentifiers
+	//
+	//  SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at
+	//  FROM environments e
+	//  JOIN apps a ON a.id = e.app_id AND a.workspace_id = e.workspace_id
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  WHERE e.workspace_id = ?
+	//    AND (p.id = ? OR p.slug = ?)
+	//    AND (a.id = ? OR a.slug = ?)
+	//    AND (e.id = ? OR e.slug = ?)
+	//  LIMIT 1
+	FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error)
 	//FindEnvironmentByProjectIdAndSlug
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, slug, description, delete_protection, created_at, updated_at
@@ -1272,28 +1289,6 @@ type Querier interface {
 	//
 	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
-	//FindSentinelByID
-	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
-	//  WHERE id = ? LIMIT 1
-	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
-	// Returns the sentinel fields ReportSentinelStatus needs to decide whether
-	// a rollout has converged: deploy_status (gates), image comparison, and
-	// desired replica count.
-	//
-	//  SELECT
-	//      id,
-	//      deploy_status,
-	//      image AS desired_image,
-	//      running_image,
-	//      desired_replicas
-	//  FROM sentinels
-	//  WHERE k8s_name = ? LIMIT 1
-	FindSentinelDeployContextByK8sName(ctx context.Context, db DBTX, k8sName string) (FindSentinelDeployContextByK8sNameRow, error)
-	//FindSentinelsByEnvironmentID
-	//
-	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
-	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindValidPortalSession
 	//
 	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
@@ -1346,19 +1341,6 @@ type Querier interface {
 	//  FROM `workspaces` w
 	//  WHERE w.id = ?
 	FindWorkspaceDeployEntitlement(ctx context.Context, db DBTX, id string) (FindWorkspaceDeployEntitlementRow, error)
-	// FlipSentinelDeployStatusIfProgressing flips deploy_status from progressing
-	// to the target status, guarding against concurrent writers (e.g. the Deploy
-	// worker marking failed on timeout) by only updating rows whose current
-	// status is still 'progressing'. Returns the number of rows affected; the
-	// caller should treat 0 as "someone else already moved this sentinel out of
-	// progressing" and skip follow-up side effects (NotifyReady, etc.).
-	//
-	//  UPDATE sentinels SET
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	//    AND deploy_status = 'progressing'
-	FlipSentinelDeployStatusIfProgressing(ctx context.Context, db DBTX, arg FlipSentinelDeployStatusIfProgressingParams) (int64, error)
 	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
 	// Used during full sync to establish the starting version for incremental polling.
 	//
@@ -1497,8 +1479,8 @@ type Querier interface {
 	InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) error
 	//InsertAppEnvironmentVariable
 	//
-	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
-	//  VALUES (?, ?, ?, ?, ?, ?, ?)
+	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
 	//InsertCertificate
 	//
@@ -1790,6 +1772,24 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertGithubRepoConnection(ctx context.Context, db DBTX, arg InsertGithubRepoConnectionParams) error
+	//InsertHorizontalAutoscalingPolicy
+	//
+	//  INSERT INTO horizontal_autoscaling_policies (
+	//      id,
+	//      workspace_id,
+	//      replicas_min,
+	//      replicas_max,
+	//      cpu_threshold,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg InsertHorizontalAutoscalingPolicyParams) error
 	//InsertIdentity
 	//
 	//  INSERT INTO `identities` (
@@ -2167,36 +2167,6 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
-	//InsertSentinel
-	//
-	//  INSERT INTO sentinels (
-	//      id,
-	//      workspace_id,
-	//      environment_id,
-	//      project_id,
-	//      k8s_address,
-	//      k8s_name,
-	//      region_id,
-	//      image,
-	//      desired_replicas,
-	//      cpu_millicores,
-	//      memory_mib,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertSentinel(ctx context.Context, db DBTX, arg InsertSentinelParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -2252,25 +2222,62 @@ type Querier interface {
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, db DBTX, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
-	// ListAllSentinelsByRegion returns sentinels for a region, paginated by pk.
-	// Used during full sync (version=0) to bootstrap krane agents with current state.
+	// Returns the build settings for every environment in an app, for callers
+	// that build multiple environments at once and group by environment_id.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
-	//  WHERE region_id = ? AND pk > ?
-	//  ORDER BY pk ASC
-	//  LIMIT ?
-	ListAllSentinelsByRegion(ctx context.Context, db DBTX, arg ListAllSentinelsByRegionParams) ([]Sentinel, error)
+	//  SELECT pk, workspace_id, app_id, environment_id, dockerfile, docker_context, build_command, watch_paths, auto_deploy, created_at, updated_at
+	//  FROM app_build_settings
+	//  WHERE app_id = ?
+	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
 	ListAppIdsByProject(ctx context.Context, db DBTX, projectID string) ([]string, error)
+	// Returns per-region settings for every environment in an app, including the
+	// autoscaling policy bounds (if attached). Callers group by environment_id.
+	//
+	//  SELECT
+	//  	ars.environment_id,
+	//  	ars.region_id,
+	//  	r.name AS region_name,
+	//  	ars.replicas,
+	//  	r.can_schedule AS region_can_schedule,
+	//  	hap.replicas_min AS autoscaling_replicas_min,
+	//  	hap.replicas_max AS autoscaling_replicas_max,
+	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
+	//  	hap.memory_threshold AS autoscaling_threshold_memory
+	//  FROM app_regional_settings ars
+	//  JOIN regions r ON r.id = ars.region_id
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  WHERE ars.app_id = ?
+	ListAppRegionalSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRegionalSettingsByAppRow, error)
+	// Returns the current regional rows for reconciliation, including the
+	// horizontal_autoscaling_policy_id that FindAppRegionalSettingsByAppAndEnv omits.
+	//
+	//  SELECT
+	//      region_id,
+	//      replicas,
+	//      horizontal_autoscaling_policy_id
+	//  FROM app_regional_settings
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	ListAppRegionalSettingsByAppEnv(ctx context.Context, db DBTX, arg ListAppRegionalSettingsByAppEnvParams) ([]ListAppRegionalSettingsByAppEnvRow, error)
+	// Returns the runtime settings for every environment in an app, for callers
+	// that build multiple environments at once and group by environment_id.
+	//
+	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.storage_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.upstream_protocol, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  FROM app_runtime_settings
+	//  WHERE app_id = ?
+	ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]ListAppRuntimeSettingsByAppRow, error)
 	//ListAppsByProject
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE project_id = ?
-	//  ORDER BY created_at ASC
-	ListAppsByProject(ctx context.Context, db DBTX, projectID string) ([]ListAppsByProjectRow, error)
+	//    AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
@@ -2330,17 +2337,6 @@ type Querier interface {
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg ListDesiredNetworkPoliciesParams) ([]CiliumNetworkPolicy, error)
-	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
-	// Used during bootstrap to stream all running sentinels to krane.
-	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at
-	//  FROM `sentinels`
-	//  WHERE (? = '' OR region_id = ?)
-	//      AND desired_state = ?
-	//      AND id > ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDesiredSentinelsParams) ([]Sentinel, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2369,6 +2365,14 @@ type Querier interface {
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
 	ListEnvironmentIdsByApp(ctx context.Context, db DBTX, appID string) ([]string, error)
+	// An app has only a handful of environments, so this returns all of them
+	// without pagination.
+	//
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at
+	//  FROM environments
+	//  WHERE app_id = ?
+	//  ORDER BY id ASC
+	ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
@@ -2795,17 +2799,6 @@ type Querier interface {
 	//    AND id != ?
 	//  ORDER BY created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, db DBTX, arg ListRunningDeploymentsByBranchParams) ([]string, error)
-	// ListRunningSentinelIDsAndImages returns IDs, images, and regions of all
-	// running sentinels, paginated by id. Used by the rollout service to plan
-	// wave assignments without fetching full sentinel rows.
-	//
-	//  SELECT id, image, region_id
-	//  FROM sentinels
-	//  WHERE desired_state = 'running'
-	//    AND id > ?
-	//  ORDER BY id ASC
-	//  LIMIT ?
-	ListRunningSentinelIDsAndImages(ctx context.Context, db DBTX, arg ListRunningSentinelIDsAndImagesParams) ([]ListRunningSentinelIDsAndImagesRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT
@@ -2847,6 +2840,13 @@ type Querier interface {
 	//  ORDER BY w.id ASC
 	//  LIMIT 100
 	ListWorkspacesForQuotaCheck(ctx context.Context, db DBTX, cursor string) ([]ListWorkspacesForQuotaCheckRow, error)
+	// Acquires an exclusive lock on the environment row to prevent concurrent modifications.
+	// This serializes region reconciliation, which reads the current set then replaces it.
+	//
+	//  SELECT id FROM environments
+	//  WHERE id = ?
+	//  FOR UPDATE
+	LockEnvironmentForUpdate(ctx context.Context, db DBTX, id string) (string, error)
 	// Acquires an exclusive lock on the identity row to prevent concurrent modifications.
 	// This should be called at the start of a transaction before modifying identity-related data.
 	//
@@ -3084,6 +3084,60 @@ type Querier interface {
 	//  SET delete_protection = ?
 	//  WHERE id = ?
 	UpdateApiDeleteProtection(ctx context.Context, db DBTX, arg UpdateApiDeleteProtectionParams) error
+	//UpdateApp
+	//
+	//  UPDATE apps a
+	//  SET
+	//      name = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE a.name
+	//      END,
+	//      slug = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE a.slug
+	//      END,
+	//      default_branch = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE a.default_branch
+	//      END,
+	//      delete_protection = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE a.delete_protection
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND id = ?
+	UpdateApp(ctx context.Context, db DBTX, arg UpdateAppParams) error
+	// Updates only the columns whose *_specified flag is 1, preserving all others.
+	// columns cannot overwrite each other. dockerfile is clearable (narg -> NULL).
+	//
+	//  UPDATE app_build_settings t
+	//  SET
+	//      dockerfile = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.dockerfile
+	//      END,
+	//      docker_context = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.docker_context
+	//      END,
+	//      build_command = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.build_command
+	//      END,
+	//      watch_paths = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.watch_paths
+	//      END,
+	//      auto_deploy = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.auto_deploy
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -3093,6 +3147,53 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, db DBTX, arg UpdateAppDeploymentsParams) error
+	// Updates only the columns whose *_specified flag is 1, preserving all others.
+	// sentinel_config is intentionally absent from the SET list so it is preserved
+	// without a prior read. healthcheck and openapi_spec_path are clearable (narg).
+	//
+	//  UPDATE app_runtime_settings t
+	//  SET
+	//      port = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.port
+	//      END,
+	//      cpu_millicores = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.cpu_millicores
+	//      END,
+	//      memory_mib = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.memory_mib
+	//      END,
+	//      storage_mib = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.storage_mib
+	//      END,
+	//      command = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.command
+	//      END,
+	//      healthcheck = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.healthcheck
+	//      END,
+	//      shutdown_signal = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.shutdown_signal
+	//      END,
+	//      upstream_protocol = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.upstream_protocol
+	//      END,
+	//      openapi_spec_path = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE t.openapi_spec_path
+	//      END,
+	//      updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	//    AND environment_id = ?
+	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
 	//UpdateCiliumNetworkPolicyByEnvironmentRegionAndName
 	//
 	//  UPDATE cilium_network_policies
@@ -3236,6 +3337,16 @@ type Querier interface {
 	//  SET deployment_id = ?
 	//  WHERE id = ?
 	UpdateFrontlineRouteDeploymentId(ctx context.Context, db DBTX, arg UpdateFrontlineRouteDeploymentIdParams) error
+	//UpdateHorizontalAutoscalingPolicy
+	//
+	//  UPDATE horizontal_autoscaling_policies
+	//  SET
+	//      replicas_min = ?,
+	//      replicas_max = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	//    AND workspace_id = ?
+	UpdateHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg UpdateHorizontalAutoscalingPolicyParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -3390,39 +3501,6 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
-	// UpdateSentinelConfig updates a sentinel's configuration and deploy status.
-	// Used by SentinelService.Deploy() to apply new config before triggering krane.
-	//
-	//  UPDATE sentinels SET
-	//    image = ?,
-	//    cpu_millicores = ?,
-	//    memory_mib = ?,
-	//    desired_replicas = ?,
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateSentinelConfig(ctx context.Context, db DBTX, arg UpdateSentinelConfigParams) error
-	// UpdateSentinelDeployStatus updates only the deploy status field.
-	// Used after convergence check or rollback completes.
-	//
-	//  UPDATE sentinels SET
-	//    deploy_status = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateSentinelDeployStatus(ctx context.Context, db DBTX, arg UpdateSentinelDeployStatusParams) error
-	// UpdateSentinelObservedState writes observed state from a krane agent:
-	// the current health, available replica count, and the image that is
-	// actually running on the pods. The running image is used to detect
-	// rollout convergence — a deploy is only complete when running_image
-	// matches the desired image.
-	//
-	//  UPDATE sentinels SET
-	//    available_replicas = ?,
-	//    health = ?,
-	//    running_image = ?,
-	//    updated_at = ?
-	//  WHERE k8s_name = ?
-	UpdateSentinelObservedState(ctx context.Context, db DBTX, arg UpdateSentinelObservedStateParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
@@ -3470,9 +3548,11 @@ type Querier interface {
 	//      environment_id,
 	//      region_id,
 	//      replicas,
+	//      horizontal_autoscaling_policy_id,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3483,6 +3563,7 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      replicas = VALUES(replicas),
+	//      horizontal_autoscaling_policy_id = VALUES(horizontal_autoscaling_policy_id),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, arg UpsertAppRegionalSettingsParams) error
 	//UpsertAppRuntimeSettings

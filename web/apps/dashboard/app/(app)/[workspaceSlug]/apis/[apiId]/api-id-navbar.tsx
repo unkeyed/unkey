@@ -22,6 +22,7 @@ interface ApiLayoutData {
     keyspaceDefaults: {
       prefix?: string;
       bytes?: number;
+      recoverable?: boolean;
     } | null;
   };
   keyAuth: {

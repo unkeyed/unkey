@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "auditactor",
+    srcs = ["actor.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/internal/auditactor",
+    visibility = ["//svc/api:__subpackages__"],
+    deps = [
+        "//pkg/auditlog",
+        "//pkg/auth/principal",
+    ],
+)

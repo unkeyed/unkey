@@ -12,7 +12,7 @@ import { useSearchPermissions } from "./hooks/use-search-keys-permissions";
 
 type PermissionFieldProps = {
   value: string[];
-  onChange: (ids: string[]) => void;
+  onChange: (slugs: string[]) => void;
   error?: string;
   disabled?: boolean;
   assignedPermsDetails: KeyPermission[];
@@ -33,8 +33,12 @@ export const PermissionField = ({
     useFetchPermissions();
   const { searchResults, isSearching } = useSearchPermissions(searchValue);
 
-  // Watch roleIds from form context
-  const selectedRoleIds = useWatch({ name: "roleIds", defaultValue: [] });
+  const selectedRoleNames = useWatch({ name: "roleNames", defaultValue: [] });
+  const selectedRoleIds = useMemo(() => {
+    return assignedRoleDetails
+      .filter((role) => selectedRoleNames.includes(role.name))
+      .map((role) => role.id);
+  }, [assignedRoleDetails, selectedRoleNames]);
 
   // Calculate permissions inherited from currently selected roles
   const inheritedPermissions = useMemo(() => {
@@ -46,7 +50,7 @@ export const PermissionField = ({
         permission.roleId &&
         selectedRoleIds.includes(permission.roleId)
       ) {
-        inherited.set(permission.id, permission);
+        inherited.set(permission.slug, permission);
       }
     });
 
@@ -54,7 +58,7 @@ export const PermissionField = ({
   }, [assignedPermsDetails, selectedRoleIds]);
 
   // All effective permissions (inherited + direct)
-  const allEffectivePermissionIds = useMemo(() => {
+  const allEffectivePermissionSlugs = useMemo(() => {
     return new Set([...inheritedPermissions.keys(), ...value]);
   }, [inheritedPermissions, value]);
 
@@ -92,13 +96,13 @@ export const PermissionField = ({
       }
 
       // Don't show permissions that are already effective (inherited or direct)
-      if (allEffectivePermissionIds.has(option.value)) {
+      if (allEffectivePermissionSlugs.has(option.value)) {
         return false;
       }
 
       return true;
     });
-  }, [baseOptions, allEffectivePermissionIds]);
+  }, [baseOptions, allEffectivePermissionSlugs]);
 
   // Combined list for display: inherited permissions + direct permissions
   const displayPermissions = useMemo(() => {
@@ -113,15 +117,13 @@ export const PermissionField = ({
     });
 
     // Add direct permissions
-    value.forEach((permissionId) => {
-      // Skip if already added as inherited
-      if (inheritedPermissions.has(permissionId)) {
+    value.forEach((permissionSlug) => {
+      if (inheritedPermissions.has(permissionSlug)) {
         return;
       }
 
-      // Check if it's a known direct permission from original data
       const directPermission = assignedPermsDetails.find(
-        (p) => p.id === permissionId && p.source === "direct",
+        (p) => p.slug === permissionSlug && p.source === "direct",
       );
 
       if (directPermission) {
@@ -132,8 +134,7 @@ export const PermissionField = ({
         return;
       }
 
-      // Check loaded permissions (newly added)
-      const loadedPerm = allPermissions.find((p) => p.id === permissionId);
+      const loadedPerm = allPermissions.find((p) => p.slug === permissionSlug);
       if (loadedPerm) {
         permissionsList.push({
           ...loadedPerm,
@@ -143,18 +144,16 @@ export const PermissionField = ({
         return;
       }
 
-      // Fallback for unknown permissions
       permissionsList.push({
-        id: permissionId,
-        name: permissionId,
-        slug: permissionId,
+        id: permissionSlug,
+        name: permissionSlug,
+        slug: permissionSlug,
         description: null,
         source: "direct" as const,
         isInherited: false,
       });
     });
 
-    // Sort: inherited first, then direct
     return permissionsList.sort((a, b) => {
       if (a.isInherited && !b.isInherited) {
         return -1;
@@ -166,23 +165,20 @@ export const PermissionField = ({
     });
   }, [inheritedPermissions, value, assignedPermsDetails, allPermissions]);
 
-  const handleRemovePermission = (permissionId: string) => {
-    // Cannot remove inherited permissions
-    if (inheritedPermissions.has(permissionId)) {
+  const handleRemovePermission = (permissionSlug: string) => {
+    if (inheritedPermissions.has(permissionSlug)) {
       return;
     }
 
-    // Remove from direct permissions
-    onChange(value.filter((id) => id !== permissionId));
+    onChange(value.filter((slug) => slug !== permissionSlug));
   };
 
-  const handleAddPermission = (permissionId: string) => {
-    // Don't add if already inherited or directly assigned
-    if (allEffectivePermissionIds.has(permissionId)) {
+  const handleAddPermission = (permissionSlug: string) => {
+    if (allEffectivePermissionSlugs.has(permissionSlug)) {
       return;
     }
 
-    onChange([...value, permissionId]);
+    onChange([...value, permissionSlug]);
     setSearchValue("");
   };
   const isComboboxLoading = isLoading || (isSearching && trimmedSearchVal.length > 0);
@@ -226,7 +222,7 @@ export const PermissionField = ({
       />
 
       <SelectedItemsList
-        items={displayPermissions}
+        items={displayPermissions.map((permission) => ({ ...permission, id: permission.slug }))}
         disabled={disabled}
         onRemoveItem={handleRemovePermission}
         isItemRemovable={(permission) => !permission.isInherited}
