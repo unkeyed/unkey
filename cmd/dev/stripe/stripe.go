@@ -6,11 +6,9 @@ package stripe
 
 import (
 	"errors"
-	"fmt"
-	"strings"
-	"time"
 
 	stripesdk "github.com/stripe/stripe-go/v86"
+	devstripe "github.com/unkeyed/unkey/internal/devtools/stripe"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -47,19 +45,9 @@ func keyFlag() cli.Flag {
 // newClient builds a Stripe client, refusing live keys: these tools mutate
 // billing state and exist for local testing only.
 func newClient(cmd *cli.Command) (*stripesdk.Client, error) {
-	key := cmd.RequireString("stripe-secret-key")
-	if !strings.HasPrefix(key, "sk_test_") && !strings.HasPrefix(key, "rk_test_") {
-		return nil, fmt.Errorf("refusing to run: the Stripe key is not a test-mode key")
-	}
-
-	return stripesdk.NewClient(key, stripesdk.WithBackends(stripesdk.NewBackendsWithConfig(&stripesdk.BackendConfig{
-		//nolint:exhaustruct // defaults are fine for everything but the logger
-		// Every error is returned and rendered by the command itself; the
-		// SDK's default stderr printer would double-report them, raw and ugly.
-		LeveledLogger: &stripesdk.LeveledLogger{Level: stripesdk.LevelNull},
-	}))), nil
+	return devstripe.NewClient(cmd.RequireString("stripe-secret-key"))
 }
 
 func formatTime(unixSeconds int64) string {
-	return time.Unix(unixSeconds, 0).UTC().Format(time.RFC3339)
+	return devstripe.FormatTime(unixSeconds)
 }

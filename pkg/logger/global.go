@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -114,6 +115,25 @@ func AddBaseAttrs(attrs ...slog.Attr) {
 	defer mu.Unlock()
 	innerHandler = innerHandler.WithAttrs(attrs)
 	rebuild()
+}
+
+// Quiet discards all global logger output until the returned restore function
+// runs. Interactive TUIs call this because the default handler captures stderr
+// at init and reassigning os.Stderr does not stop existing writers.
+func Quiet() func() {
+	mu.Lock()
+	defer mu.Unlock()
+	prev := innerHandler
+	innerHandler = slog.NewTextHandler(io.Discard, &slog.HandlerOptions{ //nolint:exhaustruct
+		Level: slog.LevelDebug,
+	})
+	rebuild()
+	return func() {
+		mu.Lock()
+		defer mu.Unlock()
+		innerHandler = prev
+		rebuild()
+	}
 }
 
 // SetSampler configures the sampling strategy for wide events. The sampler
