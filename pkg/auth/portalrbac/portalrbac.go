@@ -76,8 +76,8 @@ func ParseAll(raw []string) ([]Capability, error) {
 // Grant is the simplified authorization a portal session carries: a set of
 // capabilities scoped to a set of keyspaces within one workspace.
 type Grant struct {
-	WorkspaceID string
-	KeyspaceIDs []string
+	WorkspaceID  string
+	KeyspaceIDs  []string
 	Capabilities []Capability
 }
 

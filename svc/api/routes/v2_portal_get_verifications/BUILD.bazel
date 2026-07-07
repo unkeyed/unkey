@@ -6,8 +6,12 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications",
     visibility = ["//visibility:public"],
     deps = [
+        "//internal/services/caches",
+        "//internal/services/keys/db",
+        "//pkg/cache",
         "//pkg/clickhouse",
         "//pkg/codes",
+        "//pkg/db",
         "//pkg/fault",
         "//pkg/ptr",
         "//pkg/rbac",
@@ -19,7 +23,10 @@ go_library(
 
 go_test(
     name = "v2_portal_get_verifications_test",
-    srcs = ["200_test.go"],
+    srcs = [
+        "200_test.go",
+        "400_test.go",
+    ],
     deps = [
         ":v2_portal_get_verifications",
         "//pkg/clickhouse/schema",

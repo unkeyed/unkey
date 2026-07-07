@@ -27,7 +27,11 @@ type (
 // newHandler builds the standalone portal.getVerifications handler backed by the
 // harness's shared ClickHouse client.
 func newHandler(h *testutil.Harness) *handler.Handler {
-	return &handler.Handler{ClickHouse: h.ClickHouse}
+	return &handler.Handler{
+		ClickHouse: h.ClickHouse,
+		DB:         h.DB,
+		QuotaCache: h.Caches.WorkspaceQuota,
+	}
 }
 
 // sumTotals adds up the Total across every bucket in the timeseries.
@@ -110,8 +114,8 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		}
 	}
 
-	buffer(keyA.KeyID, externalA, identityA.ID, 3)         // A live key
-	buffer(keyADeleted.KeyID, externalA, identityA.ID, 2)  // A deleted key
+	buffer(keyA.KeyID, externalA, identityA.ID, 3)            // A live key
+	buffer(keyADeleted.KeyID, externalA, identityA.ID, 2)     // A deleted key
 	buffer(keyB.KeyID, identityB.ExternalID, identityB.ID, 5) // B key (must not leak)
 
 	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})

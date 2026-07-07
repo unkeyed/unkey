@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/portal"
-	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/portalrbac"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 

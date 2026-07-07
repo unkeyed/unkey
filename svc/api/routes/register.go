@@ -668,6 +668,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
 			ClickHouse: svc.ClickHouse,
+			DB:         svc.Database,
+			QuotaCache: svc.Caches.WorkspaceQuota,
 		},
 	)
 
