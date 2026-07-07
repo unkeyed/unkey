@@ -70,19 +70,44 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Environment: ptr.SafeDeref(req.Environment, ""),
 		})
 		if err != nil {
-			return resolveError(err, "project", "The requested project does not exist.")
+			// project/app/environment not-found all return the project-not-found code
+			// so a caller cannot probe which level was missing.
+			if db.IsNotFound(err) {
+				return fault.New(
+					"project not found",
+					fault.Code(codes.Data.Project.NotFound.URN()),
+					fault.Internal("project not found"),
+					fault.Public("The requested project does not exist."),
+				)
+			}
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve deployments."),
+			)
 		}
 		projectID = scope.ProjectID
 
 		if req.App != nil {
 			if !scope.AppID.Valid {
-				return notFound("app", "The requested app does not exist.")
+				return fault.New(
+					"app not found",
+					fault.Code(codes.Data.Project.NotFound.URN()),
+					fault.Internal("app not found"),
+					fault.Public("The requested app does not exist."),
+				)
 			}
 			appID = scope.AppID.String
 		}
 		if req.Environment != nil {
 			if !scope.EnvironmentID.Valid {
-				return notFound("environment", "The requested environment does not exist.")
+				return fault.New(
+					"environment not found",
+					fault.Code(codes.Data.Project.NotFound.URN()),
+					fault.Internal("environment not found"),
+					fault.Public("The requested environment does not exist."),
+				)
 			}
 			environmentID = scope.EnvironmentID.String
 		}
@@ -106,9 +131,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
 	var statuses []db.DeploymentsStatus
-	filterStatus := ""
-	if req.Status != nil && len(*req.Status) > 0 {
-		filterStatus = "true"
+	if req.Status != nil {
 		statuses = make([]db.DeploymentsStatus, len(*req.Status))
 		for i, st := range *req.Status {
 			statuses[i] = db.DeploymentsStatus(st)
@@ -116,14 +139,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	rows, err := db.Query.ListDeployments(ctx, h.DB.RO(), db.ListDeploymentsParams{
-		WorkspaceID:   principal.WorkspaceID,
-		ProjectID:     projectID,
-		AppID:         appID,
-		EnvironmentID: environmentID,
-		FilterStatus:  filterStatus,
-		Statuses:      statuses,
-		CursorID:      cursor,
-		Limit:         int32(limit + 1), // nolint:gosec
+		WorkspaceID:     principal.WorkspaceID,
+		ProjectID:       projectID,
+		AppID:           appID,
+		EnvironmentID:   environmentID,
+		HasStatusFilter: len(statuses) > 0,
+		Statuses:        statuses,
+		CursorID:        cursor,
+		Limit:           int32(limit + 1), // nolint:gosec
 	})
 	if err != nil {
 		return fault.Wrap(
@@ -156,30 +179,4 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			HasMore: hasMore,
 		},
 	})
-}
-
-// notFound builds the 404 returned when a requested project, app, or
-// environment does not resolve. All three use the project-not-found code so a
-// caller cannot tell which level was missing by probing.
-func notFound(resource, public string) error {
-	return fault.New(
-		resource+" not found",
-		fault.Code(codes.Data.Project.NotFound.URN()),
-		fault.Internal(resource+" not found"),
-		fault.Public(public),
-	)
-}
-
-// resolveError maps a resolver lookup failure to a 404, masking not-found and
-// database errors alike so filter probing cannot leak resource existence.
-func resolveError(err error, resource, public string) error {
-	if db.IsNotFound(err) {
-		return notFound(resource, public)
-	}
-	return fault.Wrap(
-		err,
-		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-		fault.Internal("database error"),
-		fault.Public("Failed to retrieve deployments."),
-	)
 }

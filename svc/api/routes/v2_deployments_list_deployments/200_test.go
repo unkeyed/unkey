@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -241,6 +242,86 @@ func TestListFilterByStatus(t *testing.T) {
 	require.Empty(t, failed.Body.Data)
 }
 
+// An explicit empty status array disables the filter (same as omitting it): the
+// has_status_filter gate keeps the empty IN (NULL) from matching nothing.
+func TestListEmptyStatusFilter(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.read_deployment"},
+	})
+
+	const total = 3
+	for range total {
+		h.CreateDeployment(seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+		})
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
+		Status: ptr.P([]openapi.DeploymentStatus{}),
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, total, "empty status array must not filter anything out")
+}
+
+// A multi-value status filter returns deployments in any of the listed statuses
+// and excludes the rest.
+func TestListFilterByMultipleStatuses(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.read_deployment"},
+	})
+
+	pending := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        db.DeploymentsStatusPending,
+	})
+	failed := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        db.DeploymentsStatusFailed,
+	})
+	// A ready deployment that must be excluded by the filter below.
+	h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        db.DeploymentsStatusReady,
+	})
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
+		Status: ptr.P([]openapi.DeploymentStatus{openapi.DeploymentStatusPending, openapi.DeploymentStatusFailed}),
+	})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 2)
+
+	got := map[string]bool{}
+	for _, d := range res.Body.Data {
+		got[d.Id] = true
+	}
+	require.True(t, got[pending.ID], "pending deployment missing from multi-status result")
+	require.True(t, got[failed.ID], "failed deployment missing from multi-status result")
+}
+
 func TestListEmptyWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
@@ -254,4 +335,132 @@ func TestListEmptyWorkspace(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Empty(t, res.Body.Data)
 	require.False(t, res.Body.Pagination.HasMore)
+}
+
+// Deployments are returned newest-first. pk is assigned in insertion order, so
+// the response must be the reverse of the order they were created in.
+func TestListNewestFirst(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.read_deployment"},
+	})
+
+	const total = 5
+	insertionOrder := make([]string, 0, total)
+	for range total {
+		dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+		})
+		insertionOrder = append(insertionOrder, dep.ID)
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, total)
+
+	want := make([]string, total)
+	for i, id := range insertionOrder {
+		want[total-1-i] = id
+	}
+	got := make([]string, total)
+	for i, d := range res.Body.Data {
+		got[i] = d.Id
+	}
+	require.Equal(t, want, got, "deployments must be returned newest-first")
+}
+
+// A workspace-wide list must only return the caller's deployments; another
+// workspace's deployments must never leak in.
+func TestListWorkspaceIsolation(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.read_deployment"},
+	})
+	other := h.CreateTestDeploymentSetup()
+
+	mine := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   caller.Workspace.ID,
+		ProjectID:     caller.Project.ID,
+		AppID:         caller.App.ID,
+		EnvironmentID: caller.Environment.ID,
+	})
+	h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   other.Workspace.ID,
+		ProjectID:     other.Project.ID,
+		AppID:         other.App.ID,
+		EnvironmentID: other.Environment.ID,
+	})
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(caller.RootKey), handler.Request{})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, mine.ID, res.Body.Data[0].Id)
+}
+
+// Paging with a small limit must walk the cursor across every page, returning
+// each deployment exactly once with no gaps or duplicates, and stop with a nil
+// cursor when hasMore is false.
+func TestListPagination(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.read_deployment"},
+	})
+
+	const total = 5
+	created := map[string]bool{}
+	for range total {
+		dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+		})
+		created[dep.ID] = true
+	}
+
+	seen := map[string]bool{}
+	var cursor *string
+	pages := 0
+	for {
+		req := handler.Request{Limit: ptr.P(2), Cursor: cursor}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
+		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+		require.LessOrEqual(t, len(res.Body.Data), 2)
+
+		for _, d := range res.Body.Data {
+			require.False(t, seen[d.Id], "deployment %s returned on more than one page", d.Id)
+			seen[d.Id] = true
+		}
+
+		pages++
+		require.Less(t, pages, 10, "pagination did not terminate")
+
+		if !res.Body.Pagination.HasMore {
+			require.Nil(t, res.Body.Pagination.Cursor)
+			break
+		}
+		require.NotNil(t, res.Body.Pagination.Cursor)
+		cursor = res.Body.Pagination.Cursor
+	}
+
+	require.Len(t, seen, total)
+	for id := range created {
+		require.True(t, seen[id], "deployment %s missing from paginated results", id)
+	}
 }

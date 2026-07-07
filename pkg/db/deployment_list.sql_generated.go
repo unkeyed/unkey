@@ -16,55 +16,41 @@ WHERE d.workspace_id = ?
   AND (? = '' OR d.project_id = ?)
   AND (? = '' OR d.app_id = ?)
   AND (? = '' OR d.environment_id = ?)
-  AND (? = '' OR d.status IN (/*SLICE:statuses*/?))
+  AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
   AND (
     ? = ''
-    OR (d.created_at, d.id) < (SELECT c.created_at, c.id FROM ` + "`" + `deployments` + "`" + ` c WHERE c.id = ?)
+    OR d.pk < (SELECT c.pk FROM ` + "`" + `deployments` + "`" + ` c WHERE c.id = ?)
   )
-ORDER BY d.created_at DESC, d.id DESC
+ORDER BY d.pk DESC
 LIMIT ?
 `
 
 type ListDeploymentsParams struct {
-	WorkspaceID   string              `db:"workspace_id"`
-	ProjectID     string              `db:"project_id"`
-	AppID         string              `db:"app_id"`
-	EnvironmentID string              `db:"environment_id"`
-	FilterStatus  interface{}         `db:"filter_status"`
-	Statuses      []DeploymentsStatus `db:"statuses"`
-	CursorID      string              `db:"cursor_id"`
-	Limit         int32               `db:"limit"`
+	WorkspaceID     string              `db:"workspace_id"`
+	ProjectID       string              `db:"project_id"`
+	AppID           string              `db:"app_id"`
+	EnvironmentID   string              `db:"environment_id"`
+	HasStatusFilter interface{}         `db:"has_status_filter"`
+	Statuses        []DeploymentsStatus `db:"statuses"`
+	CursorID        string              `db:"cursor_id"`
+	Limit           int32               `db:"limit"`
 }
 
-// Lists a workspace's deployments newest-first for the listDeployments endpoint.
-// workspace_id is always filtered by equality, so the (workspace_id, created_at,
-// id) index serves the filter, the keyset range, and the ORDER BY from a single
-// range scan with no filesort.
-// project/app/environment/status are optional filters: an empty arg disables
-// that clause via the OR short-circuit, so one query serves every combination.
-// sqlc renders an empty status set as `IN (NULL)`, which matches nothing, so
-// filter_status gates the whole status clause: empty lists every status, any
-// non-empty value restricts to the supplied set.
-// The OR-guards make project/app/environment/status non-sargable, so they apply
-// as residual predicates on top of the workspace scan rather than driving their
-// own index. Fine while per-workspace deployment counts stay bounded; if a deep
-// filter on a large workspace ever gets hot, split it into a sargable per-scope
-// variant.
-// Cursor is a deployment id: an empty cursor is the first page; otherwise we
-// look up that row's (created_at, id) and page strictly before it, matching the
-// ORDER BY so the keyset is stable across ties in created_at.
+// Order by pk (chronological) so paging is index scan
+// has_status_filter gates the status clause; without it sqlc renders an empty
+// status set as IN (NULL), which matches nothing.
 //
 //	SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
 //	WHERE d.workspace_id = ?
 //	  AND (? = '' OR d.project_id = ?)
 //	  AND (? = '' OR d.app_id = ?)
 //	  AND (? = '' OR d.environment_id = ?)
-//	  AND (? = '' OR d.status IN (/*SLICE:statuses*/?))
+//	  AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
 //	  AND (
 //	    ? = ''
-//	    OR (d.created_at, d.id) < (SELECT c.created_at, c.id FROM `deployments` c WHERE c.id = ?)
+//	    OR d.pk < (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
 //	  )
-//	ORDER BY d.created_at DESC, d.id DESC
+//	ORDER BY d.pk DESC
 //	LIMIT ?
 func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error) {
 	query := listDeployments
@@ -76,7 +62,7 @@ func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeployme
 	queryParams = append(queryParams, arg.AppID)
 	queryParams = append(queryParams, arg.EnvironmentID)
 	queryParams = append(queryParams, arg.EnvironmentID)
-	queryParams = append(queryParams, arg.FilterStatus)
+	queryParams = append(queryParams, arg.HasStatusFilter)
 	if len(arg.Statuses) > 0 {
 		for _, v := range arg.Statuses {
 			queryParams = append(queryParams, v)

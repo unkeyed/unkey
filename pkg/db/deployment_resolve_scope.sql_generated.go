@@ -49,18 +49,12 @@ type ResolveDeploymentScopeRow struct {
 	EnvironmentID sql.NullString `db:"environment_id"`
 }
 
-// Resolves the optional project/app/environment filters (each an id or slug) to
-// concrete ids for the listDeployments endpoint, in one query. project is
-// required; app and environment are optional and resolved via LEFT JOIN, so a
-// level that is absent or does not match comes back NULL. The caller reads a
-// NULL id for a level it did request as "not found". Hierarchy is enforced by
-// the join keys: an app must belong to the resolved project, an environment to
-// the resolved app.
-// The project is resolved through a UNION of an id seek and a slug seek (each
-// hits an index) rather than `id = ? OR slug = ?`, which would scan every
-// project in the workspace. app/environment keep the OR-guard because the join
-// first seeks them by their parent id (project_id, app_id) down to a handful of
-// rows, so the residual id-or-slug filter is cheap.
+// Resolves a project (required) + optional app/environment, each an id or slug, to
+// their ids in one query. app/environment LEFT JOIN on the parent id, so a value that
+// doesn't match yields NULL for that level (caller reads NULL as not-found).
+// Project uses UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which
+// can't use both indexes and would scan the workspace. app/environment keep the OR
+// since the parent-id join already narrows them to a few rows.
 //
 //	SELECT
 //	    p.id AS project_id,

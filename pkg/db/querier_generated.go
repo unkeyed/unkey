@@ -2327,35 +2327,21 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
-	// Lists a workspace's deployments newest-first for the listDeployments endpoint.
-	// workspace_id is always filtered by equality, so the (workspace_id, created_at,
-	// id) index serves the filter, the keyset range, and the ORDER BY from a single
-	// range scan with no filesort.
-	// project/app/environment/status are optional filters: an empty arg disables
-	// that clause via the OR short-circuit, so one query serves every combination.
-	// sqlc renders an empty status set as `IN (NULL)`, which matches nothing, so
-	// filter_status gates the whole status clause: empty lists every status, any
-	// non-empty value restricts to the supplied set.
-	// The OR-guards make project/app/environment/status non-sargable, so they apply
-	// as residual predicates on top of the workspace scan rather than driving their
-	// own index. Fine while per-workspace deployment counts stay bounded; if a deep
-	// filter on a large workspace ever gets hot, split it into a sargable per-scope
-	// variant.
-	// Cursor is a deployment id: an empty cursor is the first page; otherwise we
-	// look up that row's (created_at, id) and page strictly before it, matching the
-	// ORDER BY so the keyset is stable across ties in created_at.
+	// Order by pk (chronological) so paging is index scan
+	// has_status_filter gates the status clause; without it sqlc renders an empty
+	// status set as IN (NULL), which matches nothing.
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
 	//  WHERE d.workspace_id = ?
 	//    AND (? = '' OR d.project_id = ?)
 	//    AND (? = '' OR d.app_id = ?)
 	//    AND (? = '' OR d.environment_id = ?)
-	//    AND (? = '' OR d.status IN (/*SLICE:statuses*/?))
+	//    AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
 	//    AND (
 	//      ? = ''
-	//      OR (d.created_at, d.id) < (SELECT c.created_at, c.id FROM `deployments` c WHERE c.id = ?)
+	//      OR d.pk < (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
 	//    )
-	//  ORDER BY d.created_at DESC, d.id DESC
+	//  ORDER BY d.pk DESC
 	//  LIMIT ?
 	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
@@ -3136,18 +3122,12 @@ type Querier interface {
 	//      tier = 'Free'
 	//  WHERE id = ?
 	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
-	// Resolves the optional project/app/environment filters (each an id or slug) to
-	// concrete ids for the listDeployments endpoint, in one query. project is
-	// required; app and environment are optional and resolved via LEFT JOIN, so a
-	// level that is absent or does not match comes back NULL. The caller reads a
-	// NULL id for a level it did request as "not found". Hierarchy is enforced by
-	// the join keys: an app must belong to the resolved project, an environment to
-	// the resolved app.
-	// The project is resolved through a UNION of an id seek and a slug seek (each
-	// hits an index) rather than `id = ? OR slug = ?`, which would scan every
-	// project in the workspace. app/environment keep the OR-guard because the join
-	// first seeks them by their parent id (project_id, app_id) down to a handful of
-	// rows, so the residual id-or-slug filter is cheap.
+	// Resolves a project (required) + optional app/environment, each an id or slug, to
+	// their ids in one query. app/environment LEFT JOIN on the parent id, so a value that
+	// doesn't match yields NULL for that level (caller reads NULL as not-found).
+	// Project uses UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which
+	// can't use both indexes and would scan the workspace. app/environment keep the OR
+	// since the parent-id join already narrows them to a few rows.
 	//
 	//  SELECT
 	//      p.id AS project_id,

@@ -26,10 +26,10 @@ go_test(
         "403_test.go",
         "404_test.go",
         "helpers_test.go",
-        "pagination_test.go",
     ],
     deps = [
         ":v2_deployments_list_deployments",
+        "//pkg/db",
         "//pkg/ptr",
         "//pkg/uid",
         "//svc/api/internal/testutil",

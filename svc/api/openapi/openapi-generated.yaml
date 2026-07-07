@@ -6815,9 +6815,9 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.read_deployment` (to read deployments in any environment)
-                - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
+                Your root key must have the `environment.*.read_deployment` permission.
+                Listing spans environments, so a grant on a single environment is not
+                sufficient.
             operationId: deployments.listDeployments
             requestBody:
                 content:
