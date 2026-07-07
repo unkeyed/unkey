@@ -51,21 +51,21 @@ export const updateRegions = workspaceProcedure
 
     const existingRegionIds = new Set(existingSettings.map((s) => s.regionId));
 
-    // app_regional_settings.regionId FK-references regions.id, but the FK alone
-    // would not reject an unknown id. Every requested region must exist. New
-    // regions must also be schedulable, but a region already assigned to this
-    // environment is allowed to stay even after its canSchedule flag flips off
-    // — the UI intentionally keeps such regions selected (with a warning), so
-    // rejecting them here would lock the user out of region management.
-    const knownRegionIds = new Set(knownRegions.map((region) => region.id));
+    // A region already assigned to this environment is always allowed to remain,
+    // even if it has since gone unschedulable or been removed from the regions
+    // table entirely. There is no FK from app_regional_settings.region_id, so a
+    // decommissioned region can linger here; the UI keeps such regions selected
+    // (with a warning), and rejecting them would lock the user out of region
+    // management. Newly added regions must both exist and be schedulable, which
+    // membership in schedulableRegionIds (known AND canSchedule) already covers.
     const schedulableRegionIds = new Set(
       knownRegions.filter((region) => region.canSchedule).map((region) => region.id),
     );
     const invalidRegionIds = requestedRegionIds.filter((id) => {
-      if (!knownRegionIds.has(id)) {
-        return true;
+      if (existingRegionIds.has(id)) {
+        return false;
       }
-      return !existingRegionIds.has(id) && !schedulableRegionIds.has(id);
+      return !schedulableRegionIds.has(id);
     });
     if (invalidRegionIds.length > 0) {
       throw new TRPCError({
