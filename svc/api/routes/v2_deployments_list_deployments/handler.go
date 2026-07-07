@@ -42,6 +42,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	limit := ptr.SafeDeref(req.Limit, 100)
+	cursor := ptr.SafeDeref(req.Cursor, "")
+
+	err = principal.Authorize(rbac.T(rbac.Tuple{
+		ResourceType: rbac.Environment,
+		ResourceID:   "*",
+		Action:       rbac.ReadDeployment,
+	}))
+	if err != nil {
+		return err
+	}
+
 	// Filters nest: an app lives in a project, an environment lives in an app.
 	// Requiring the parents keeps resolution unambiguous when a slug is passed.
 	if req.App != nil && req.Project == nil {
@@ -70,8 +82,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Environment: ptr.SafeDeref(req.Environment, ""),
 		})
 		if err != nil {
-			// project/app/environment not-found all return the project-not-found code
-			// so a caller cannot probe which level was missing.
 			if db.IsNotFound(err) {
 				return fault.New(
 					"project not found",
@@ -93,7 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if !scope.AppID.Valid {
 				return fault.New(
 					"app not found",
-					fault.Code(codes.Data.Project.NotFound.URN()),
+					fault.Code(codes.Data.App.NotFound.URN()),
 					fault.Internal("app not found"),
 					fault.Public("The requested app does not exist."),
 				)
@@ -104,7 +114,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if !scope.EnvironmentID.Valid {
 				return fault.New(
 					"environment not found",
-					fault.Code(codes.Data.Project.NotFound.URN()),
+					fault.Code(codes.Data.Environment.NotFound.URN()),
 					fault.Internal("environment not found"),
 					fault.Public("The requested environment does not exist."),
 				)
@@ -112,23 +122,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			environmentID = scope.EnvironmentID.String
 		}
 	}
-
-	err = principal.Authorize(rbac.T(rbac.Tuple{
-		ResourceType: rbac.Environment,
-		ResourceID:   "*",
-		Action:       rbac.ReadDeployment,
-	}))
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
-			fault.Internal("insufficient permissions"),
-			fault.Public("Your root key requires the 'environment.*.read_deployment' permission to perform this operation."),
-		)
-	}
-
-	limit := ptr.SafeDeref(req.Limit, 100)
-	cursor := ptr.SafeDeref(req.Cursor, "")
 
 	var statuses []db.DeploymentsStatus
 	if req.Status != nil {

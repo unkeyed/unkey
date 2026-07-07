@@ -53,3 +53,20 @@ func TestListEnvironmentFilterRequiresWildcard(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }
+
+// Authorization is checked before the scope is resolved: a caller without the
+// permission gets 403 even for a project that does not exist, so a 404 can never
+// be used to probe which resources exist.
+func TestListForbiddenBeforeResolve(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	rootKey := h.CreateRootKey(setup.Workspace.ID, "environment."+setup.Environment.ID+".read_deployment")
+
+	req := handler.Request{Project: rid(uid.New(uid.ProjectPrefix))}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
+	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+}
