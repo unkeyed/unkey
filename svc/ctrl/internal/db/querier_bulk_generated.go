@@ -44,6 +44,7 @@ type BulkQuerier interface {
 	UpsertQuota(ctx context.Context, args []UpsertQuotaParams) error
 	InsertRoles(ctx context.Context, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, args []InsertRolePermissionParams) error
+	InsertWorkspaceBillings(ctx context.Context, args []InsertWorkspaceBillingParams) error
 	InsertWorkspaces(ctx context.Context, args []InsertWorkspaceParams) error
 }
 

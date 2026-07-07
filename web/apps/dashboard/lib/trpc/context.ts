@@ -10,8 +10,9 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
   const authResult = await getAuth(req as NextRequest);
   const { userId, orgId } = authResult;
 
-  let ws: Awaited<ReturnType<typeof db.query.workspaces.findFirst<{ with: { quotas: true } }>>> =
-    undefined;
+  let ws: Awaited<
+    ReturnType<typeof db.query.workspaces.findFirst<{ with: { quotas: true; billing: true } }>>
+  > = undefined;
 
   // Only attempt workspace query if we have both userId and orgId
   // This prevents unnecessary queries during auth setup phase
@@ -22,6 +23,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
         with: {
           quotas: true,
+          billing: true,
         },
       });
     } catch (_error) {
@@ -46,7 +48,23 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
           profile: authResult.user ?? null,
         }
       : null,
-    workspace: ws,
+    // Billing state now lives on the workspace_billing relation. Surface it under
+    // the legacy workspace field names so existing ctx.workspace.<field> reads
+    // keep working and read the fresh values from the billing row rather than the
+    // stale columns still on workspaces. Writers target workspaceBilling directly.
+    workspace: ws
+      ? {
+          ...ws,
+          tier: ws.billing?.tier ?? "Free",
+          stripeCustomerId: ws.billing?.stripeCustomerId ?? null,
+          stripeSubscriptionId: ws.billing?.stripeSubscriptionId ?? null,
+          deployPlan: ws.billing?.plan ?? null,
+          deployPlanOverride: ws.billing?.planOverride ?? null,
+          deploySpendBudgetCents: ws.billing?.spendBudgetCents ?? null,
+          deploySpendBudgetStop: ws.billing?.spendBudgetStop ?? false,
+          deploySpendSuspended: ws.billing?.spendSuspended ?? false,
+        }
+      : ws,
     tenant: authResult.orgId
       ? {
           id: authResult.orgId,

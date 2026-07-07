@@ -36,9 +36,9 @@ export type LinkDeployResult =
  * Links a subscription-mode Compute checkout onto its workspace: verifies the
  * session belongs to the workspace and was paid, that the resulting
  * subscription is live and carries a recognized Deploy plan, then writes
- * `stripeCustomerId` + `stripeSubscriptionId` + `deployPlan` optimistically
- * (mirroring subscribeDeploy; the customer.subscription.* webhook then derives
- * the same value and no-ops).
+ * `stripeCustomerId` + `stripeSubscriptionId` + `plan` to workspace_billing
+ * optimistically (mirroring subscribeDeploy; the customer.subscription.* webhook
+ * then derives the same value and no-ops).
  *
  * Shared by `/success` (fast-path when the user returns) and the
  * `checkout.session.completed` webhook (guaranteed, fires even if the user
@@ -120,10 +120,13 @@ export async function linkDeploySubscription(
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq: eqFn, isNull }) =>
       and(eqFn(table.id, input.expectedWorkspaceId), isNull(table.deletedAtM)),
+    with: { billing: true },
   });
   if (!ws) {
     return { ok: false, reason: "workspace_not_found", message: "Workspace not found." };
   }
+
+  const recordedSubscriptionId = ws.billing?.stripeSubscriptionId ?? null;
 
   // Idempotency + conflict: re-entry (webhook + /success, refresh, redelivery)
   // for the same subscription is a success no-op; a *different* LIVE existing
@@ -132,13 +135,13 @@ export async function linkDeploySubscription(
   // subscription outright, and the deleted-webhook that clears the column may
   // lag) is safe to repoint away from — refusing would strand this checkout's
   // paid subscription instead.
-  if (ws.stripeSubscriptionId === subscriptionId) {
-    if (ws.deployPlan === plan) {
+  if (recordedSubscriptionId === subscriptionId) {
+    if (ws.billing?.plan === plan) {
       return { ok: true, plan, alreadyLinked: true };
     }
-  } else if (ws.stripeSubscriptionId) {
+  } else if (recordedSubscriptionId) {
     const recorded = await stripe.subscriptions
-      .retrieve(ws.stripeSubscriptionId)
+      .retrieve(recordedSubscriptionId)
       .catch((err: unknown) => {
         if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
           return null;
@@ -156,9 +159,9 @@ export async function linkDeploySubscription(
 
   await db.transaction(async (tx) => {
     await tx
-      .update(schema.workspaces)
-      .set({ stripeCustomerId, stripeSubscriptionId: subscriptionId, deployPlan: plan })
-      .where(eq(schema.workspaces.id, ws.id));
+      .update(schema.workspaceBilling)
+      .set({ stripeCustomerId, stripeSubscriptionId: subscriptionId, plan })
+      .where(eq(schema.workspaceBilling.workspaceId, ws.id));
     await insertAuditLogs(tx, {
       workspaceId: ws.id,
       actor: input.audit.actor,

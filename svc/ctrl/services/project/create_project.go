@@ -48,7 +48,7 @@ func (s *Service) CreateProject(
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace: %w", err))
 	}
-	if !deployEntitled(entitlement.DeployPlan, entitlement.DeployPlanOverride) {
+	if !deployEntitled(entitlement.Plan, entitlement.PlanOverride) {
 		if s.enforceDeployGate {
 			return nil, connect.NewError(
 				connect.CodeFailedPrecondition,

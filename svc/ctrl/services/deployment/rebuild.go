@@ -131,7 +131,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		trigger:        db.DeploymentsTriggerUnkey,
 		triggeredBy:    "",
 		triggerReason:  reason,
-		spendSuspended: entitlement.DeploySpendSuspended,
+		spendSuspended: entitlement.SpendSuspended.Bool,
 	}
 
 	if useGit {

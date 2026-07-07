@@ -12,15 +12,16 @@ import (
 
 const findWorkspaceDeployEntitlement = `-- name: FindWorkspaceDeployEntitlement :one
 SELECT
-   w.deploy_plan,
-   w.deploy_plan_override
+   b.plan,
+   b.plan_override
 FROM ` + "`" + `workspaces` + "`" + ` w
+LEFT JOIN ` + "`" + `workspace_billing` + "`" + ` b ON b.workspace_id = w.id
 WHERE w.id = ?
 `
 
 type FindWorkspaceDeployEntitlementRow struct {
-	DeployPlan         sql.NullString `db:"deploy_plan"`
-	DeployPlanOverride sql.NullString `db:"deploy_plan_override"`
+	Plan         sql.NullString `db:"plan"`
+	PlanOverride sql.NullString `db:"plan_override"`
 }
 
 // Reads the Unkey Deploy entitlement signals for the project-creation gate:
@@ -31,13 +32,14 @@ type FindWorkspaceDeployEntitlementRow struct {
 // is insensitive to workspace column ordering.
 //
 //	SELECT
-//	   w.deploy_plan,
-//	   w.deploy_plan_override
+//	   b.plan,
+//	   b.plan_override
 //	FROM `workspaces` w
+//	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 //	WHERE w.id = ?
 func (q *Queries) FindWorkspaceDeployEntitlement(ctx context.Context, db DBTX, id string) (FindWorkspaceDeployEntitlementRow, error) {
 	row := db.QueryRowContext(ctx, findWorkspaceDeployEntitlement, id)
 	var i FindWorkspaceDeployEntitlementRow
-	err := row.Scan(&i.DeployPlan, &i.DeployPlanOverride)
+	err := row.Scan(&i.Plan, &i.PlanOverride)
 	return i, err
 }

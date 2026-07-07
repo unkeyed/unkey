@@ -14,10 +14,11 @@ SELECT
    w.name,
    w.slug,
    w.org_id,
-   w.deploy_spend_budget_cents,
-   w.deploy_spend_budget_stop,
-   w.deploy_spend_suspended
+   b.spend_budget_cents,
+   b.spend_budget_stop,
+   b.spend_suspended
 FROM `workspaces` w
-WHERE (w.deploy_spend_budget_cents IS NOT NULL OR w.deploy_spend_suspended = TRUE)
+LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
+WHERE (b.spend_budget_cents IS NOT NULL OR b.spend_suspended = TRUE)
   AND w.enabled = true
   AND w.deleted_at_m IS NULL;

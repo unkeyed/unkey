@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, eq, schema } from "@/lib/db";
+import { db, schema } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -44,12 +44,17 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
 
     await db
       .transaction(async (tx) => {
+        // Upsert: binding the Stripe customer is the first billing write a
+        // workspace gets, so create the billing row if none exists yet (a
+        // workspace created before it had one). On conflict only the customer
+        // id is set, leaving tier and the rest of the row untouched.
         await tx
-          .update(schema.workspaces)
-          .set({
+          .insert(schema.workspaceBilling)
+          .values({
+            workspaceId: ctx.workspace.id,
             stripeCustomerId,
           })
-          .where(eq(schema.workspaces.id, ctx.workspace.id));
+          .onDuplicateKeyUpdate({ set: { stripeCustomerId } });
 
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,

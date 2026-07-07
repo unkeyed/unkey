@@ -163,11 +163,11 @@ export const updateSubscription = workspaceProcedure
 
     await db.transaction(async (tx) => {
       await tx
-        .update(schema.workspaces)
+        .update(schema.workspaceBilling)
         .set({
           tier: newProduct.name,
         })
-        .where(eq(schema.workspaces.id, ctx.workspace.id));
+        .where(eq(schema.workspaceBilling.workspaceId, ctx.workspace.id));
 
       await tx
         .insert(schema.quotas)

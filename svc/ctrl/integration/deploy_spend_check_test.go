@@ -104,10 +104,10 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateStopped
 	}, 10*time.Second, 200*time.Millisecond, "compute should be suspended (current cleared, desired_state stopped)")
 
-	// The check persisted the suspension to the workspace's column.
-	ws, err := h.DB.FindWorkspaceByID(ctx, dep.WorkspaceID)
+	// The check persisted the suspension to the workspace's billing row.
+	billing, err := h.DB.FindWorkspaceBillingByWorkspaceID(ctx, dep.WorkspaceID)
 	require.NoError(t, err)
-	require.True(t, ws.DeploySpendSuspended, "suspend should set deploy_spend_suspended")
+	require.True(t, billing.SpendSuspended, "suspend should set spend_suspended")
 
 	// A later run with a budget raised above the frozen overage resumes compute.
 	// The orchestrator would now pass CurrentlySuspended=true from the column.
@@ -135,10 +135,10 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 		return getErr == nil && got.DesiredState == db.DeploymentsDesiredStateRunning
 	}, 10*time.Second, 200*time.Millisecond, "compute should be resumed (current restored, desired_state running)")
 
-	// Resume cleared the column.
-	ws, err = h.DB.FindWorkspaceByID(ctx, dep.WorkspaceID)
+	// Resume cleared the billing row's flag.
+	billing, err = h.DB.FindWorkspaceBillingByWorkspaceID(ctx, dep.WorkspaceID)
 	require.NoError(t, err)
-	require.False(t, ws.DeploySpendSuspended, "resume should clear deploy_spend_suspended")
+	require.False(t, billing.SpendSuspended, "resume should clear spend_suspended")
 }
 
 // TestDeploySpendCheck_ResumeOnBudgetRemoved exercises the budget-removal path:
@@ -183,9 +183,9 @@ func TestDeploySpendCheck_ResumeOnBudgetRemoved(t *testing.T) {
 	require.False(t, resp.GetSuspended(), "budget removed while suspended should resume")
 
 	require.Eventually(t, func() bool {
-		ws, getErr := h.DB.FindWorkspaceByID(ctx, dep.WorkspaceID)
-		return getErr == nil && !ws.DeploySpendSuspended
-	}, 10*time.Second, 200*time.Millisecond, "budget removal should clear deploy_spend_suspended")
+		billing, getErr := h.DB.FindWorkspaceBillingByWorkspaceID(ctx, dep.WorkspaceID)
+		return getErr == nil && !billing.SpendSuspended
+	}, 10*time.Second, 200*time.Millisecond, "budget removal should clear spend_suspended")
 }
 
 // TestDeploySpendCheck_ResumeOnStopDisabled exercises turning off stopping
@@ -225,7 +225,7 @@ func TestDeploySpendCheck_ResumeOnStopDisabled(t *testing.T) {
 	require.False(t, resp.GetSuspended(), "turning off stop while suspended should resume")
 
 	require.Eventually(t, func() bool {
-		ws, getErr := h.DB.FindWorkspaceByID(ctx, dep.WorkspaceID)
-		return getErr == nil && !ws.DeploySpendSuspended
-	}, 10*time.Second, 200*time.Millisecond, "stop disabled should clear deploy_spend_suspended")
+		billing, getErr := h.DB.FindWorkspaceBillingByWorkspaceID(ctx, dep.WorkspaceID)
+		return getErr == nil && !billing.SpendSuspended
+	}, 10*time.Second, 200*time.Millisecond, "stop disabled should clear spend_suspended")
 }
