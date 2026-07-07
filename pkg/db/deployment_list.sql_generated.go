@@ -36,7 +36,6 @@ type ListDeploymentsParams struct {
 	Limit           int32               `db:"limit"`
 }
 
-// Order by pk (chronological) so paging is index scan
 // has_status_filter gates the status clause; without it sqlc renders an empty
 // status set as IN (NULL), which matches nothing.
 //

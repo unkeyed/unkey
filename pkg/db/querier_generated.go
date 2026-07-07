@@ -2327,7 +2327,6 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
-	// Order by pk (chronological) so paging is index scan
 	// has_status_filter gates the status clause; without it sqlc renders an empty
 	// status set as IN (NULL), which matches nothing.
 	//
