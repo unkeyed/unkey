@@ -4,8 +4,10 @@ type UsePageTransitionArgs = {
   /**
    * Stable string key of everything that invalidates the current page — the
    * OFFSET is only meaningful relative to the query that produced it, so the
-   * key must cover filters, search, and the time window (sort order does not
-   * change totals and may be omitted).
+   * key must cover filters, search, and the time window. Sort order does not
+   * change totals, so it is safe to omit — but then a sort handler that wants
+   * pagination reset must call setPage(1) itself (see onSortingChange in the
+   * table hooks that do this).
    */
   transitionKey: string;
   /** Current 1-based page from URL state. */
