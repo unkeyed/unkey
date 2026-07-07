@@ -1,5 +1,6 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/identities/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import { usePageClamp } from "@/hooks/use-page-clamp";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
@@ -156,12 +157,13 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const totalCount = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
-  // Clamp page to valid range after data/totalPages updates.
-  useEffect(() => {
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [normalizedPage, totalPages, setPage]);
+  usePageClamp({
+    page: normalizedPage,
+    totalPages,
+    isFetching,
+    hasData: data !== undefined,
+    setPage,
+  });
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {

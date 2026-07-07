@@ -4,6 +4,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import { usePageClamp } from "@/hooks/use-page-clamp";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
@@ -134,12 +135,13 @@ export function useApiKeysListQuery({
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
 
-  // Clamp page to valid range after data loads
-  useEffect(() => {
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [normalizedPage, totalPages, setPage]);
+  usePageClamp({
+    page: normalizedPage,
+    totalPages,
+    isFetching,
+    hasData: data !== undefined,
+    setPage,
+  });
 
   // Prefetch adjacent pages for instant navigation
   useEffect(() => {

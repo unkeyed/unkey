@@ -2,6 +2,7 @@ import {
   type SortUrlValue,
   parseAsSortArray,
 } from "@/components/logs/validation/utils/nuqs-parsers";
+import { usePageClamp } from "@/hooks/use-page-clamp";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -247,15 +248,13 @@ export function usePaginatedListQuery<
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
 
-  // Clamp page to valid range after data/totalPages updates.
-  useEffect(() => {
-    if (data == null) {
-      return;
-    }
-    if (queryPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, queryPage, totalPages, setPage]);
+  usePageClamp({
+    page: queryPage,
+    totalPages,
+    isFetching,
+    hasData: data !== undefined,
+    setPage,
+  });
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {

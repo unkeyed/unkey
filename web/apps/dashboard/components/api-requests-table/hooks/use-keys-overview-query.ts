@@ -2,6 +2,7 @@ import { keysOverviewFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
+import { usePageClamp } from "@/hooks/use-page-clamp";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
@@ -160,21 +161,13 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  // Clamp page to valid range after data/totalPages updates. Gate on
-  // !isFetching so the clamp never runs against stale totalPages: with
-  // keepPreviousData, `data` (and thus totalPages) reflects the previous
-  // query while a filter/sort/time change is in flight, which would
-  // otherwise clamp the page based on the old result set. The `data` guard
-  // also avoids clamping a deep-linked page to 1 before the first result
-  // loads (totalPages is 1 until then).
-  useEffect(() => {
-    if (isFetching || !data) {
-      return;
-    }
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [isFetching, data, normalizedPage, totalPages, setPage]);
+  usePageClamp({
+    page: normalizedPage,
+    totalPages,
+    isFetching,
+    hasData: data !== undefined,
+    setPage,
+  });
 
   // Prefetch the next few pages
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { keyDetailsFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { usePageClamp } from "@/hooks/use-page-clamp";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
@@ -164,12 +165,13 @@ export function useKeyDetailsLogsQuery({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  // Clamp page to valid range after data/totalPages updates
-  useEffect(() => {
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [normalizedPage, totalPages, setPage]);
+  usePageClamp({
+    page: normalizedPage,
+    totalPages,
+    isFetching,
+    hasData: logData !== undefined,
+    setPage,
+  });
 
   // Prefetch the next few pages
   useEffect(() => {
