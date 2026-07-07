@@ -1,4 +1,8 @@
 -- name: ListIdentities :many
+-- ListIdentities returns one page of a workspace's identities with their
+-- ratelimits aggregated into a JSON array (empty array when none exist).
+-- Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
+-- pages deterministic, and the empty-string cursor starts from the first row.
 SELECT
     i.id,
     i.external_id,
