@@ -16,10 +16,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -148,7 +148,7 @@ func (h *Handler) Handle(
 		batchIDs := workspaceIDs[i:min(i+batchSize, len(workspaceIDs))]
 
 		batch, fetchErr := restate.Run(ctx, func(rc restate.RunContext) ([]db.GetWorkspacesForQuotaCheckByIDsRow, error) {
-			return db.Query.GetWorkspacesForQuotaCheckByIDs(rc, h.db.RO(), batchIDs)
+			return h.db.GetWorkspacesForQuotaCheckByIDs(rc, batchIDs)
 		}, restate.WithName(fmt.Sprintf("fetch workspaces batch %d", i/batchSize)))
 		if fetchErr != nil {
 			return nil, fmt.Errorf("fetch workspaces: %w", fetchErr)

@@ -59,6 +59,50 @@ message KeyAuth {
   //
   // Limits: maximum 1000 characters, maximum 100 permission terms.
   optional string permission_query = 5;
+
+  // Rate limits to enforce on the verified key, mirroring the `ratelimits`
+  // field of Unkey's verifyKey API. Each entry references a rate limit by
+  // name, matching how the API behaves when verifying a key directly.
+  //
+  // This is in addition to any auto-applied limits configured on the key or
+  // its identity, which are always enforced. Use this field to enforce named
+  // limits that are not auto-applied, or to override the limit, window, or
+  // cost of a limit for this route. If a named limit does not exist on the
+  // key (and there is no inline limit/duration override), the request is
+  // rejected.
+  //
+  // Example: to enforce the "expensive" limit defined on keys in this key
+  // space for the route this policy matches, add a single entry with
+  // name "expensive".
+  repeated KeyRatelimit ratelimits = 6;
+}
+
+// KeyRatelimit selects a rate limit to enforce on the verified key. It mirrors
+// the per-request `ratelimits` entries accepted by Unkey's verifyKey API so
+// that gateway-enforced limits behave identically to application-enforced ones.
+message KeyRatelimit {
+  // References an existing rate limit configured on the key (or its identity)
+  // by name. Key rate limits take precedence over identity rate limits with
+  // the same name. Required.
+  //
+  // If the named limit does not exist on the key and no inline limit and
+  // duration are provided below, the request is rejected.
+  string name = 1;
+
+  // Optional override for the maximum number of requests allowed within the
+  // window. When set together with duration, defines an inline limit that
+  // does not need to exist on the key. When unset, the limit configured on
+  // the key is used.
+  optional int64 limit = 2;
+
+  // Optional override for the window duration in milliseconds. When set
+  // together with limit, defines an inline limit that does not need to exist
+  // on the key. When unset, the duration configured on the key is used.
+  optional int64 duration = 3;
+
+  // Optional override for how many tokens this request consumes from the
+  // limit. Defaults to 1 when unset.
+  optional int64 cost = 4;
 }
 
 // KeyLocation specifies where in the HTTP request to look for an API key.

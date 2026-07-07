@@ -9,6 +9,7 @@ export * from "./quota";
 export * from "./clickhouse_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
+export * from "./shared_secrets";
 
 // Deployment platform tables
 export * from "./projects";
@@ -27,7 +28,6 @@ export * from "./acme_users";
 export * from "./custom_domains";
 export * from "./acme_challenges";
 
-export * from "./sentinels";
 export * from "./instances";
 export * from "./certificates";
 export * from "./frontline_routes";

@@ -1,0 +1,28 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+examples:
+  getById:
+    summary: Retrieve by environment ID
+    description: Fetch an environment using its unique identifier
+    value:
+      project: payments
+      app: payments-api
+      environment: env_1234abcd
+  getBySlug:
+    summary: Retrieve by environment slug
+    description: Fetch an environment using its slug
+    value:
+      project: payments
+      app: payments-api
+      environment: production

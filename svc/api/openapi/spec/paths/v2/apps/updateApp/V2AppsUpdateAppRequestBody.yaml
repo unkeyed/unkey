@@ -1,0 +1,56 @@
+type: object
+required:
+  - project
+  - app
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  name:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      New human-readable name for the app.
+      Omit this field to leave the current name unchanged.
+    example: Payments API
+  slug:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  defaultBranch:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      New default git branch deployments track for this app.
+      Omit this field to leave the current branch unchanged.
+    example: main
+  deleteProtection:
+    type: boolean
+    description: |
+      Enable or disable delete protection for the app.
+      Omit this field to leave the current setting unchanged.
+    example: true
+additionalProperties: false
+examples:
+  rename:
+    summary: Rename an app by ID
+    description: Update only the display name, locating the app by its ID
+    value:
+      project: payments
+      app: app_1234abcd
+      name: Payments API
+  changeSlug:
+    summary: Change an app slug by slug
+    description: Locate the app by its current slug and assign a new one
+    value:
+      project: payments
+      app: payments-service
+      slug: payments-api
+  protect:
+    summary: Toggle delete protection
+    description: Enable delete protection without changing the name
+    value:
+      project: payments
+      app: app_1234abcd
+      deleteProtection: true

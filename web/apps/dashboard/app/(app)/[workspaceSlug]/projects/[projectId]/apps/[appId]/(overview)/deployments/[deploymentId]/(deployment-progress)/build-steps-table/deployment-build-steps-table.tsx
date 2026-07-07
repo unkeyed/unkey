@@ -40,9 +40,14 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
     setExpandedIds((prev) => (prev.has(stepId) ? prev : new Set(prev).add(stepId)));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        containerRef.current
-          ?.querySelector<HTMLElement>(`[data-row-id="${stepId}"]`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const el = containerRef.current?.querySelector<HTMLElement>(`[data-row-id="${stepId}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (el) {
+          // Restart the animation so it re-fires even when the row is already in view.
+          el.classList.remove("animate-error-blink");
+          void el.offsetWidth;
+          el.classList.add("animate-error-blink");
+        }
       });
     });
   }, [stepId, tick]);

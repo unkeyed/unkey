@@ -3,7 +3,6 @@ import { auth as authProvider } from "@/lib/auth/server";
 import { type InsertWorkspace, db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { freeTierQuotas } from "@/lib/quotas";
-import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { dns1035, newId } from "@unkey/id";
 import { z } from "zod";
@@ -106,11 +105,6 @@ export const createWorkspace = protectedProcedure
           },
         ]);
 
-        // Invalidate workspace cache for the new orgId and current user's orgId
-        // The new orgId needs invalidation for consistency (though it's new)
-        // The current user's orgId needs invalidation since they're switching away
-        await invalidateWorkspaceCache(orgId);
-        await invalidateWorkspaceCache(ctx.tenant.id);
         return orgId;
       })
       .catch((err) => {

@@ -16,6 +16,8 @@ go_library(
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/rbac",
+        "//pkg/rbac/permissions",
+        "//pkg/urn",
         "//pkg/zen",
         "//svc/api/openapi",
         "@com_github_oapi_codegen_nullable//:nullable",

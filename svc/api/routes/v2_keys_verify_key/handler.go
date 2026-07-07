@@ -19,6 +19,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -52,24 +54,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
-	}
-
-	// Check if the principal has ANY verify permissions at all.
-	// If not, return a proper permissions error immediately without looking up the key.
-	// This prevents returning NOT_FOUND for every request when the principal lacks any verify permission.
-	if !rbac.HasAnyPermission(principal.Permissions, rbac.Api, rbac.VerifyKey) {
-		return principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.VerifyKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "<API_ID>",
-				Action:       rbac.VerifyKey,
-			}),
-		))
 	}
 
 	// Request validation
@@ -129,6 +113,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Key.ApiID,
 			Action:       rbac.VerifyKey,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+			permissions.VerifyKey{},
+		),
 	))
 	if err != nil {
 		// Return 200 OK with NOT_FOUND because returning a permission error here

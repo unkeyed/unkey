@@ -7,7 +7,6 @@ import {
   findDeployItems,
 } from "@/lib/stripe/deployBilling";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
-import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -150,8 +149,6 @@ export const subscribeDeploy = workspaceProcedure
         context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
       });
     });
-
-    await invalidateWorkspaceCache(ctx.tenant.id);
   });
 
 /**

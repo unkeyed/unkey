@@ -24,6 +24,9 @@ const schema = z.object({
   autoDeploy: z.boolean().default(true),
   dockerfile: z.string(),
   dockerContext: z.string(),
+  // Empty means "let Railpack auto-detect". Overrides Railpack's build command
+  // so monorepos can scope the build to a single app.
+  buildCommand: z.string().default(""),
   watchPaths: z.array(z.string()).default([]),
   // Runtime settings
   port: z.number().int(),
@@ -60,8 +63,6 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
     },
     retry: 3,
     syncMode: "on-demand",
-    // Setting don't change that often and we already do revalidation on submit so no need to poll it short
-    refetchInterval: 30_000,
     queryFn: async (ctx) => {
       const options = ctx.meta?.loadSubsetOptions;
 
@@ -105,6 +106,8 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   // Empty means "no Dockerfile configured" — the app is built with Railpack.
   dockerfile: "",
   dockerContext: ".",
+  // Empty means "let Railpack auto-detect" the build command.
+  buildCommand: "",
   port: 8080,
   cpuMillicores: 250,
   memoryMib: 256,
@@ -131,6 +134,7 @@ function flattenSettingsResponse(
     autoDeploy: build?.autoDeploy ?? d.autoDeploy,
     dockerfile: build?.dockerfile ?? d.dockerfile,
     dockerContext: build?.dockerContext || d.dockerContext,
+    buildCommand: build?.buildCommand ?? d.buildCommand,
     watchPaths: build?.watchPaths ?? [],
     port: runtime?.port ?? d.port,
     cpuMillicores: runtime?.cpuMillicores ?? d.cpuMillicores,
@@ -188,6 +192,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.build.updateDockerContext.mutate({
         environmentId,
         dockerContext: modified.dockerContext,
+      }),
+    );
+  }
+
+  if (modified.buildCommand !== original.buildCommand) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.build.updateBuildCommand.mutate({
+        environmentId,
+        buildCommand: modified.buildCommand,
       }),
     );
   }
