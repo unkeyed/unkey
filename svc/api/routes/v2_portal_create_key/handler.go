@@ -10,7 +10,8 @@ import (
 
 // Handler serves the portal-scoped variant of keys.createKey. It authenticates
 // only portal sessions and forces the created key to belong to the session's
-// external identity.
+// external identity. It reuses the createKey core unchanged, supplying the
+// external identity as a normal request field.
 type Handler struct {
 	*createkey.Handler
 }
@@ -24,5 +25,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	return h.Handler.Serve(ctx, s, externalID)
+
+	req, err := zen.BindBody[createkey.Request](s)
+	if err != nil {
+		return err
+	}
+
+	// Force ownership to the session identity, ignoring any externalId the
+	// client sent. From here the shared core treats it like any other request.
+	req.ExternalId = &externalID
+
+	return h.Handler.CreateKey(ctx, s, req)
 }

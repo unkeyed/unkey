@@ -20,15 +20,12 @@ type (
 	Response = deletekey.Response
 )
 
-// newHandler builds the portal.deleteKey handler backed by a configured
-// keys.deleteKey handler.
+// newHandler builds the portal.deleteKey handler.
 func newHandler(h *testutil.Harness) *handler.Handler {
 	return &handler.Handler{
-		Handler: &deletekey.Handler{
-			DB:        h.DB,
-			Auditlogs: h.Auditlogs,
-			KeyCache:  h.Caches.VerificationKeyByHash,
-		},
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 }
 

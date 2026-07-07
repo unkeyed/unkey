@@ -43,17 +43,8 @@ func (h *Handler) Path() string {
 	return "/v2/keys.deleteKey"
 }
 
-// Handle processes the HTTP request without identity scoping.
+// Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	return h.Serve(ctx, s, "")
-}
-
-// Serve processes the HTTP request. When scopeExternalID is non-empty the
-// caller may only delete a key owned by that external identity; any other key
-// returns 404 so the caller cannot probe for keys it does not own. The portal
-// route passes the portal session's external identity here; protected routes
-// pass an empty string.
-func (h *Handler) Serve(ctx context.Context, s *zen.Session, scopeExternalID string) error {
 	// Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -93,26 +84,6 @@ func (h *Handler) Serve(ctx context.Context, s *zen.Session, scopeExternalID str
 		)
 	}
 
-	// A scoped caller (the portal route) may only delete keys that belong to its
-	// own external identity. Fail closed: if the key has no identity, or the
-	// identity does not match, return a 404 so the caller cannot probe for keys
-	// it does not own.
-	//
-	// Identity scoping is intentionally separate from the RBAC permission system.
-	// Permissions gate what operations a principal can perform; identity scoping
-	// gates which keys are visible.
-	//
-	// Portal-authenticated deletes are attributed to a portalEndUser actor so
-	// customers can see end-user activity in their audit logs.
-	if scopeExternalID != "" {
-		if !key.IdentityExternalID.Valid || key.IdentityExternalID.String != scopeExternalID {
-			return fault.New("key not found",
-				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key identity does not match scoped externalId"),
-				fault.Public("The specified key was not found."),
-			)
-		}
-	}
 	actor := auditactor.FromPrincipal(principal)
 
 	// Permission check

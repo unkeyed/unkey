@@ -669,11 +669,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		portalMiddlewares,
 		&v2PortalDeleteKey.Handler{
-			Handler: &v2KeysDeleteKey.Handler{
-				KeyCache:  svc.Caches.VerificationKeyByHash,
-				DB:        svc.Database,
-				Auditlogs: svc.Auditlogs,
-			},
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
