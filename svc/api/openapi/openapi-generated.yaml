@@ -711,6 +711,11 @@ components:
                     type: string
                     description: Pagination cursor from a previous response. Use this to fetch subsequent pages of results when the response contains a cursor value.
                     example: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter identities. Returns identities whose ID or external ID contains the search string. Matching is case-insensitive and wildcard characters are matched literally.
+                    example: user_123
             additionalProperties: false
         V2IdentitiesListIdentitiesResponseBody:
             type: object
@@ -5837,6 +5842,11 @@ paths:
                                 value:
                                     cursor: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
                                     limit: 50
+                            withSearch:
+                                summary: Search by ID or external ID
+                                value:
+                                    limit: 50
+                                    search: user_123
                         schema:
                             $ref: '#/components/schemas/V2IdentitiesListIdentitiesRequestBody'
                 required: true

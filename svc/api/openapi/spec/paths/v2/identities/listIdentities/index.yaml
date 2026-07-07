@@ -28,6 +28,11 @@ post:
             value:
               limit: 50
               cursor: cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
+          withSearch:
+            summary: Search by ID or external ID
+            value:
+              limit: 50
+              search: user_123
     required: true
   responses:
     "200":

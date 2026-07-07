@@ -2292,7 +2292,7 @@ type Querier interface {
 	//  WHERE installation_id = ?
 	//    AND repository_id = ?
 	ListGithubRepoConnections(ctx context.Context, db DBTX, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
-	//ListIdentities
+	// search is a pre-escaped LIKE pattern built by mysql.LikeContains; NULL disables the filter
 	//
 	//  SELECT
 	//      i.id,
@@ -2321,6 +2321,7 @@ type Querier interface {
 	//  WHERE i.workspace_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
+	//  AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
 	//  ORDER BY i.id ASC
 	//  LIMIT ?
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)

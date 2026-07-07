@@ -342,6 +342,90 @@ func TestSuccess(t *testing.T) {
 		require.Nil(t, res.Body.Pagination.Cursor)
 	})
 
+	t.Run("search", func(t *testing.T) {
+		// Fresh workspace so search results are not polluted by other subtests
+		searchWorkspaceID := uid.New(uid.WorkspacePrefix)
+
+		tx, err := h.DB.RW().Begin(ctx)
+		require.NoError(t, err)
+		defer func() {
+			err := tx.Rollback()
+			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
+		}()
+
+		err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
+			ID:        searchWorkspaceID,
+			Name:      "Search Workspace",
+			Slug:      uid.New("slug"),
+			OrgID:     uid.New(uid.OrgPrefix),
+			CreatedAt: time.Now().UnixMilli(),
+		})
+		require.NoError(t, err)
+
+		identityIDs := make(map[string]string)
+		for _, externalID := range []string{"acme_alice", "acme_bob", "discount_100%_user"} {
+			identityID := uid.New(uid.IdentityPrefix)
+			identityIDs[externalID] = identityID
+			err = db.Query.InsertIdentity(ctx, tx, db.InsertIdentityParams{
+				ID:          identityID,
+				ExternalID:  externalID,
+				WorkspaceID: searchWorkspaceID,
+				Environment: "default",
+				CreatedAt:   time.Now().UnixMilli(),
+				Meta:        nil,
+			})
+			require.NoError(t, err)
+		}
+
+		err = tx.Commit()
+		require.NoError(t, err)
+
+		searchKey := h.CreateRootKey(searchWorkspaceID, "identity.*.read_identity")
+		searchHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", searchKey)},
+		}
+
+		list := func(t *testing.T, search string) []string {
+			t.Helper()
+			req := handler.Request{Search: &search}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, searchHeaders, req)
+			require.Equal(t, 200, res.Status, "expected 200, got: %d, response: %s", res.Status, res.RawBody)
+			externalIDs := make([]string, 0, len(res.Body.Data))
+			for _, identity := range res.Body.Data {
+				externalIDs = append(externalIDs, identity.ExternalId)
+			}
+			return externalIDs
+		}
+
+		t.Run("matches external id substring", func(t *testing.T) {
+			require.Equal(t, []string{"acme_alice"}, list(t, "alice"))
+		})
+
+		t.Run("matches identity id substring", func(t *testing.T) {
+			require.Equal(t, []string{"acme_bob"}, list(t, identityIDs["acme_bob"]))
+		})
+
+		t.Run("is case insensitive", func(t *testing.T) {
+			require.Equal(t, []string{"acme_alice"}, list(t, "ACME_ALICE"))
+			require.ElementsMatch(t, []string{"acme_alice", "acme_bob"}, list(t, "Acme"))
+		})
+
+		t.Run("wildcards match literally", func(t *testing.T) {
+			// Unescaped, "%" would match every identity and "b_b" would match "bob"
+			require.Equal(t, []string{"discount_100%_user"}, list(t, "100%"))
+			require.Empty(t, list(t, "b_b"))
+		})
+
+		t.Run("no matches returns empty list", func(t *testing.T) {
+			require.Empty(t, list(t, "does-not-exist"))
+		})
+
+		t.Run("whitespace-only search returns all", func(t *testing.T) {
+			require.ElementsMatch(t, []string{"acme_alice", "acme_bob", "discount_100%_user"}, list(t, "   "))
+		})
+	})
+
 	// Test for verifying the complete response structure
 	t.Run("verify complete response structure", func(t *testing.T) {
 		// Make a basic request
