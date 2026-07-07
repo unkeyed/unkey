@@ -67,22 +67,39 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Equal(t, db.AppEnvironmentVariablesTypeWriteonly, raw["PLAIN"].varType)
 	})
 
-	t.Run("replace removes vars absent from payload", func(t *testing.T) {
+	t.Run("upsert leaves vars absent from payload untouched", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "OLD_ONE", "x", db.AppEnvironmentVariablesTypeRecoverable)
-		seedVar(t, h, env, "OLD_TWO", "y", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "KEEP_ONE", "KEBAP", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "KEEP_TWO", "y", db.AppEnvironmentVariablesTypeRecoverable)
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "KEEP_ONE", Value: "updated", Kind: ptr(openapi.Recoverable)},
+		}))
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Len(t, raw, 2)
+		require.Equal(t, "updated", decrypt(t, env.environmentID, raw["KEEP_ONE"].value))
+		_, ok := raw["KEEP_TWO"]
+		require.True(t, ok, "KEEP_TWO must survive: it was not in the payload and prune is false")
+	})
+
+	t.Run("set creates a new key alongside existing vars", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVar(t, h, env, "EXISTING", "x", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "NEW_ONE", Value: "z"},
 		}))
 
 		raw := listRawVars(t, h, env.environmentID)
-		require.Len(t, raw, 1)
-		_, ok := raw["NEW_ONE"]
-		require.True(t, ok)
+		require.Len(t, raw, 2)
+		_, hasExisting := raw["EXISTING"]
+		_, hasNew := raw["NEW_ONE"]
+		require.True(t, hasExisting)
+		require.True(t, hasNew)
 	})
 
-	t.Run("existing var in payload is updated in place", func(t *testing.T) {
+	t.Run("existing var in payload is overwritten", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVar(t, h, env, "API_KEY", "old", db.AppEnvironmentVariablesTypeRecoverable)
 
@@ -95,7 +112,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Equal(t, "new", decrypt(t, env.environmentID, raw["API_KEY"].value))
 	})
 
-	t.Run("complete reset: omitted optional fields fall back to defaults", func(t *testing.T) {
+	t.Run("overwrite is a hard overwrite: omitted optional fields fall back to defaults", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVarFull(t, h, env, "SECRET", "old", db.AppEnvironmentVariablesTypeRecoverable, "db password")
 
@@ -111,29 +128,66 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		require.Empty(t, raw["SECRET"].description)
 	})
 
-	t.Run("emits a single audit event with the applied key set", func(t *testing.T) {
+	t.Run("prune removes vars absent from payload", func(t *testing.T) {
 		env := seedEnvironment(t, h)
-		seedVar(t, h, env, "EXISTING", "old", db.AppEnvironmentVariablesTypeRecoverable)
-		seedVar(t, h, env, "DROP", "x", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "OLD_ONE", "x", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "OLD_TWO", "y", db.AppEnvironmentVariablesTypeRecoverable)
 
-		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "EXISTING", Value: "new"},
-			{Key: "NEW", Value: "v"},
-		}))
+		req := makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "NEW_ONE", Value: "z"},
+		})
+		req.Prune = ptr(true)
+		call(t, req)
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Len(t, raw, 1)
+		_, ok := raw["NEW_ONE"]
+		require.True(t, ok)
+	})
+
+	t.Run("prune replaces the set and overwrites a surviving key", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVar(t, h, env, "KEEP", "old", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "GONE", "x", db.AppEnvironmentVariablesTypeRecoverable)
+
+		req := makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "KEEP", Value: "new", Kind: ptr(openapi.Recoverable)},
+		})
+		req.Prune = ptr(true)
+		call(t, req)
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Len(t, raw, 1)
+		require.Equal(t, "new", decrypt(t, env.environmentID, raw["KEEP"].value))
+		_, gone := raw["GONE"]
+		require.False(t, gone)
 
 		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
 		require.Len(t, logs, 1)
-		require.Contains(t, logs[0].Description, "Set environment variables")
-
-		require.Len(t, logs[0].Targets, 1)
-		keys := fmt.Sprintf("%v", logs[0].Targets[0].Meta["keys"])
-		require.Contains(t, keys, "EXISTING")
-		require.Contains(t, keys, "NEW")
-		// Removals are implicit: DROP is simply absent from the applied set.
-		require.NotContains(t, keys, "DROP")
+		require.Equal(t, "KEEP", fmt.Sprintf("%v", logs[0].Targets[0].Meta["key"]))
+		require.Equal(t, "true", fmt.Sprintf("%v", logs[0].Targets[0].Meta["prune"]))
 	})
 
-	t.Run("empty payload clears all vars", func(t *testing.T) {
+	t.Run("prune with empty payload clears all vars", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVar(t, h, env, "ONE", "a", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "TWO", "b", db.AppEnvironmentVariablesTypeRecoverable)
+
+		req := makeRequest(env, []openapi.EnvironmentVariableInput{})
+		req.Prune = ptr(true)
+		call(t, req)
+
+		raw := listRawVars(t, h, env.environmentID)
+		require.Empty(t, raw)
+
+		// The wipe has no keys to log per-var, so it emits one summary event.
+		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
+		require.Len(t, logs, 1)
+		require.Contains(t, logs[0].Description, "Pruned all environment variables")
+		require.Equal(t, "true", fmt.Sprintf("%v", logs[0].Targets[0].Meta["prune"]))
+	})
+
+	t.Run("empty payload without prune is a no-op", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		seedVar(t, h, env, "ONE", "a", db.AppEnvironmentVariablesTypeRecoverable)
 		seedVar(t, h, env, "TWO", "b", db.AppEnvironmentVariablesTypeRecoverable)
@@ -141,6 +195,35 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{}))
 
 		raw := listRawVars(t, h, env.environmentID)
-		require.Empty(t, raw)
+		require.Len(t, raw, 2, "an empty payload without prune must not touch existing vars")
+	})
+
+	t.Run("emits one correlated audit event per applied key", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		seedVar(t, h, env, "EXISTING", "old", db.AppEnvironmentVariablesTypeRecoverable)
+		seedVar(t, h, env, "IDLE", "z", db.AppEnvironmentVariablesTypeRecoverable)
+
+		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
+			{Key: "EXISTING", Value: "new"},
+			{Key: "NEW", Value: "v"},
+		}))
+
+		// Exactly one log per applied key: IDLE was untouched and gets none.
+		logs := h.FindAuditLogsByTargetID(ctx, t, env.environmentID)
+		require.Len(t, logs, 2)
+
+		seen := make(map[string]bool)
+		for _, l := range logs {
+			require.Contains(t, l.Description, "Set environment variable")
+			require.Len(t, l.Targets, 1)
+			seen[fmt.Sprintf("%v", l.Targets[0].Meta["key"])] = true
+			require.Equal(t, "false", fmt.Sprintf("%v", l.Targets[0].Meta["prune"]))
+		}
+		require.True(t, seen["EXISTING"])
+		require.True(t, seen["NEW"])
+
+		// Separate entries are auto-correlated so one set call is traceable as a unit.
+		require.NotEmpty(t, logs[0].CorrelationID)
+		require.Equal(t, logs[0].CorrelationID, logs[1].CorrelationID)
 	})
 }

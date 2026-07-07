@@ -52,10 +52,6 @@ type Querier interface {
 	//
 	//  DELETE FROM apps WHERE id = ?
 	DeleteAppById(ctx context.Context, db DBTX, id string) error
-	//DeleteAppEnvVarsByEnvironmentId
-	//
-	//  DELETE FROM app_environment_variables WHERE environment_id = ?
-	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
 	//DeleteAppRegionalSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
@@ -126,6 +122,19 @@ type Querier interface {
 	//
 	//  DELETE FROM deployments WHERE environment_id = ?
 	DeleteDeploymentsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteEnvVarsByEnvironmentId
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	DeleteEnvVarsByEnvironmentId(ctx context.Context, db DBTX, arg DeleteEnvVarsByEnvironmentIdParams) error
+	//DeleteEnvVarsByKeys
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND `key` IN (/*SLICE:env_keys*/?)
+	DeleteEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteEnvVarsByKeysParams) error
 	//DeleteEnvironmentById
 	//
 	//  DELETE FROM environments WHERE id = ?

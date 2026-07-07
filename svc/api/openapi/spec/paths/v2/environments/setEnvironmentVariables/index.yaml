@@ -3,19 +3,23 @@ post:
     - environments
   summary: Set environment variables
   description: |
-    Replace all environment variables for an environment in a single atomic
+    Create or update environment variables for an environment in a single atomic
     request.
 
-    This is a complete reset: the payload fully replaces the existing set. Every
-    variable is written exactly as sent, and any key absent from the payload is
-    removed. Nothing is merged with the current state, so omitted optional fields
-    fall back to their defaults rather than the previous value. Sending the full
-    desired set at once avoids partial-update states where dependent variables
-    (such as a username and password) drift out of sync across deployments.
+    By default this is an upsert: each variable in the payload is created if new
+    or fully overwritten if the key already exists, and any variable not in the
+    payload is left untouched. This lets you change one variable without
+    re-sending the others, which matters for write-only secrets you can no longer
+    read back.
 
-    Values are always encrypted at rest. Set `kind: recoverable` to allow a
-    value to be read back; it defaults to `writeonly`, which can never be read
-    back through the API.
+    Set `prune: true` to make it a full replace instead: after upserting, every
+    variable not in the payload is deleted. Sending `prune: true` with an empty
+    `variables` list resets the environment by deleting every variable.
+
+    Each variable is written exactly as sent, never merged, so omitted optional
+    fields fall back to their defaults rather than the previous value. Values are
+    always encrypted at rest. Set `kind: recoverable` to allow a value to be read
+    back; it defaults to `writeonly`, which can never be read back through the API.
 
     **Required Permissions**
 
@@ -32,13 +36,31 @@ post:
         schema:
           "$ref": "./V2EnvironmentsSetEnvironmentVariablesRequestBody.yaml"
         examples:
-          setVariables:
-            summary: Replace the variable set
-            description: Locate the environment by slug and set its variables
+          upsert:
+            summary: Upsert (default) - change one variable, keep the rest
+            description: |-
+              Without `prune`, only the listed variables are created or
+              overwritten. Every other variable, including write-only secrets you
+              can no longer read back, is left untouched. Here LOG_LEVEL is
+              flipped to info and nothing else is affected.
             value:
               project: payments
               app: payments-api
               environment: production
+              variables:
+                - key: LOG_LEVEL
+                  value: info
+                  kind: recoverable
+          replace:
+            summary: Full replace with prune
+            description: |-
+              With `prune: true`, the listed variables become the entire
+              environment. Any variable not in the list is deleted.
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              prune: true
               variables:
                 - key: DATABASE_URL
                   value: postgresql://user:pass@host:5432/db
@@ -47,6 +69,17 @@ post:
                   value: debug
                   kind: recoverable
                   description: Application log verbosity
+          reset:
+            summary: Reset - delete every variable
+            description: |-
+              An empty `variables` list with `prune: true` deletes every variable
+              in the environment.
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              prune: true
+              variables: []
     required: true
   responses:
     "200":

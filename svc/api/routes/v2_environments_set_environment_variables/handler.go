@@ -115,6 +115,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	pruned := ptr.SafeDeref(req.Prune, false)
+	keys := slices.Sorted(maps.Keys(byKey))
+
 	now := time.Now().UnixMilli()
 	newEnvVars := make([]db.InsertAppEnvironmentVariableParams, 0, len(byKey))
 	for key, v := range byKey {
@@ -159,29 +162,51 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		if err := db.Query.DeleteAppEnvVarsByEnvironmentId(ctx, tx, env.ID); err != nil {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to delete variables"),
-				fault.Public("We're unable to set the environment variables."),
-			)
+		switch {
+		case pruned:
+			if err := db.Query.DeleteEnvVarsByEnvironmentId(ctx, tx, db.DeleteEnvVarsByEnvironmentIdParams{
+				AppID:         env.AppID,
+				EnvironmentID: env.ID,
+			}); err != nil {
+				return fault.Wrap(
+					err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("unable to delete variables"),
+					fault.Public("We're unable to set the environment variables."),
+				)
+			}
+		case len(keys) > 0:
+			if err := db.Query.DeleteEnvVarsByKeys(ctx, tx, db.DeleteEnvVarsByKeysParams{
+				AppID:         env.AppID,
+				EnvironmentID: env.ID,
+				EnvKeys:       keys,
+			}); err != nil {
+				return fault.Wrap(
+					err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("unable to delete variables"),
+					fault.Public("We're unable to set the environment variables."),
+				)
+			}
 		}
 
-		if err = db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newEnvVars); err != nil {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("unable to insert variables"),
-				fault.Public("We're unable to set the environment variables."),
-			)
+		if len(newEnvVars) > 0 {
+			if err = db.BulkQuery.InsertAppEnvironmentVariables(ctx, tx, newEnvVars); err != nil {
+				return fault.Wrap(
+					err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("unable to insert variables"),
+					fault.Public("We're unable to set the environment variables."),
+				)
+			}
 		}
 
-		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
-			{
+		auditLogs := make([]auditlog.AuditLog, 0, len(keys))
+		for _, key := range keys {
+			auditLogs = append(auditLogs, auditlog.AuditLog{
 				WorkspaceID:   principal.WorkspaceID,
 				Event:         auditlog.EnvironmentUpdateEvent,
-				Display:       fmt.Sprintf("Set environment variables for environment %s", env.ID),
+				Display:       fmt.Sprintf("Set environment variable %s for environment %s", key, env.ID),
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
 				ActorMeta:     map[string]any{},
@@ -193,13 +218,41 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					{
 						ID:          env.ID,
 						Type:        auditlog.EnvironmentResourceType,
-						Meta:        map[string]any{"keys": slices.Sorted(maps.Keys(byKey))},
+						Meta:        map[string]any{"key": key, "prune": pruned},
 						Name:        env.Slug,
 						DisplayName: env.Slug,
 					},
 				},
-			},
-		})
+			})
+		}
+
+		// A prune with an empty payload wipes everything but yields no per-key
+		// logs, so record the destructive action on its own.
+		if len(auditLogs) == 0 && pruned {
+			auditLogs = append(auditLogs, auditlog.AuditLog{
+				WorkspaceID:   principal.WorkspaceID,
+				Event:         auditlog.EnvironmentUpdateEvent,
+				Display:       fmt.Sprintf("Pruned all environment variables for environment %s", env.ID),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          env.ID,
+						Type:        auditlog.EnvironmentResourceType,
+						Meta:        map[string]any{"prune": pruned},
+						Name:        env.Slug,
+						DisplayName: env.Slug,
+					},
+				},
+			})
+		}
+
+		return h.Auditlogs.Insert(ctx, tx, auditLogs)
 	})
 	if err != nil {
 		return err
@@ -226,7 +279,7 @@ func (h *Handler) encryptValues(
 			"vault not configured",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 			fault.Internal("vault not configured"),
-			fault.Public("Environment variables cannot be decrypted, because vault is not configured."),
+			fault.Public("Environment variables cannot be encrypted, because vault is not configured."),
 		)
 	}
 

@@ -1226,13 +1226,21 @@ type V2EnvironmentsSetEnvironmentVariablesRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
 
-	// Variables The complete desired set of variables. This fully replaces the existing
-	// set: every entry is written exactly as sent, and any key absent from the
-	// list is removed. An empty array therefore removes every variable.
+	// Prune Optional. Defaults to false. When false, the variables above are upserted
+	// and any existing variable not in the list is kept. When true, this becomes
+	// a full replace: after upserting, every variable not in the list is deleted.
+	// Combined with an empty `variables` list, `prune: true` resets the entire
+	// environment by deleting every variable.
+	Prune *bool `json:"prune,omitempty"`
+
+	// Variables The variables to upsert. Each entry is created if its key is new or fully
+	// overwritten if the key already exists. Existing variables whose keys are
+	// not in this list are left untouched, unless `prune` is true.
 	//
-	// Nothing is merged with the current state. Only `value` is required on each
-	// entry; omitted optional fields (`kind`, `description`) fall back to their
-	// defaults rather than any previous value.
+	// Each entry is written exactly as sent, never merged with the current
+	// state. Only `value` is required; omitted optional fields (`kind`,
+	// `description`) fall back to their defaults rather than any previous value,
+	// so overwriting a variable without a `description` clears it.
 	//
 	// Each key may appear at most once; a duplicate key is rejected with a 400.
 	// The whole operation is atomic: if any part fails the environment is left
