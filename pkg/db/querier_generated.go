@@ -2381,7 +2381,7 @@ type Querier interface {
 	//  WHERE installation_id = ?
 	//    AND repository_id = ?
 	ListGithubRepoConnections(ctx context.Context, db DBTX, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
-	// search is a pre-escaped LIKE pattern built by mysql.ContainsPattern; NULL disables the filter
+	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT
 	//      i.id,
