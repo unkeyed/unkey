@@ -50,7 +50,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor)
-	search := mysql.LikeContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
+	search := mysql.ContainsPattern(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	// Query one extra record to check if there are more results
 	identities, err := db.Query.ListIdentities(ctx, h.DB.RO(), db.ListIdentitiesParams{

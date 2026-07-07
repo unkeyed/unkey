@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestLikeContains guarantees that LIKE wildcards in user input are escaped so
-// a search can never widen its own match, and that an empty search yields an
-// invalid NullString to disable the filter.
-func TestLikeContains(t *testing.T) {
+// TestContainsPattern guarantees that LIKE wildcards in user input are
+// escaped so a search can never widen its own match, and that an empty search
+// yields an invalid NullString to disable the filter.
+func TestContainsPattern(t *testing.T) {
 	testCases := []struct {
 		name   string
 		search string
@@ -45,7 +45,7 @@ func TestLikeContains(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.want, LikeContains(tc.search))
+			require.Equal(t, tc.want, ContainsPattern(tc.search))
 		})
 	}
 }

@@ -63,7 +63,7 @@ type ListIdentitiesRow struct {
 	Ratelimits  interface{}   `db:"ratelimits"`
 }
 
-// search is a pre-escaped LIKE pattern built by mysql.LikeContains; NULL disables the filter
+// search is a pre-escaped LIKE pattern built by mysql.ContainsPattern; NULL disables the filter
 //
 //	SELECT
 //	    i.id,
