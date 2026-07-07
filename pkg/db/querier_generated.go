@@ -2727,7 +2727,7 @@ type Querier interface {
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
 	ListRepoConnectionDeployContexts(ctx context.Context, db DBTX, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
-	//ListRoles
+	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -2747,6 +2747,7 @@ type Querier interface {
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
 	//  AND r.id >= ?
+	//  AND (? IS NULL OR r.id LIKE ? OR r.name LIKE ? OR r.description LIKE ?)
 	//  ORDER BY r.id
 	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)

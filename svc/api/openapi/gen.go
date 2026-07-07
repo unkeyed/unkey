@@ -2437,6 +2437,9 @@ type V2PermissionsListRolesRequestBody struct {
 	// Use larger values when you need to process many roles efficiently.
 	// Results exceeding this limit will be paginated with a cursor for continuation.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter roles. Returns roles whose ID, name, or description contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2PermissionsListRolesResponseBody defines model for V2PermissionsListRolesResponseBody.

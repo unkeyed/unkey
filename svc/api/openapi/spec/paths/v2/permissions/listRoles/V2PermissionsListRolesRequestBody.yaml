@@ -20,4 +20,10 @@ properties:
       Each response containing more results will include a cursor value that can be used here.
       Leave empty or omit this field to start from the beginning of the role list.
     example: "eyJrZXkiOiJyb2xlXzEyMzQifQ=="
+  search:
+    type: string
+    maxLength: 256
+    description: Free-form text to filter roles. Returns roles whose ID, name,
+      or description contains the search string. Matching is case-insensitive.
+    example: admin
 additionalProperties: false
