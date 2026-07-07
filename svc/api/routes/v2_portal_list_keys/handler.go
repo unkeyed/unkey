@@ -24,5 +24,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	return h.Handler.Serve(ctx, s, externalID)
+
+	req, err := zen.BindBody[listkeys.Request](s)
+	if err != nil {
+		return err
+	}
+
+	// Force the listing to the session identity, ignoring any externalId the
+	// client sent. From here the shared core treats it like any other request.
+	req.ExternalId = &externalID
+
+	return h.Handler.ListKeys(ctx, s, req)
 }

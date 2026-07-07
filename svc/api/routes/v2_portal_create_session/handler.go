@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -18,6 +17,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
+
+// storedGrant is the JSON shape persisted in the portal session's permissions
+// column: the simplified capability model the resolver later expands into RBAC
+// via portalrbac. It must stay in sync with the shape parsed in
+// internal/services/portal.GetSession.
+type storedGrant struct {
+	KeyspaceIDs []string `json:"keyspaceIds"`
+	Permissions []string `json:"permissions"`
+}
 
 type (
 	Request  = openapi.V2PortalCreateSessionRequestBody
@@ -34,28 +42,36 @@ type Handler struct {
 func (h *Handler) Method() string { return "POST" }
 func (h *Handler) Path() string   { return "/v2/portal.createSession" }
 
-// validatePermissionFormat checks that each permission string is a valid
-// RBAC tuple: exactly 3 dot-separated non-empty segments.
-func validatePermissionFormat(permissions []string) error {
-	for _, p := range permissions {
-		parts := strings.Split(p, ".")
-		if len(parts) != 3 {
-			return fault.New("invalid permission format",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal(fmt.Sprintf("permission %q does not have 3 dot-separated segments", p)),
-				fault.Public(fmt.Sprintf("Permission %q is invalid. Expected format: {resourceType}.{resourceId}.{action}", p)),
+// validateKeyspacesOwned confirms every keyspace id belongs to the workspace, so
+// a portal session can never be scoped to keyspaces the caller does not own.
+func (h *Handler) validateKeyspacesOwned(ctx context.Context, workspaceID string, keyspaceIDs []string) error {
+	rows, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
+		WorkspaceID: workspaceID,
+		KeyAuthIds:  keyspaceIDs,
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error looking up keyspaces"),
+			fault.Public("Failed to validate keyspaces."),
+		)
+	}
+
+	owned := make(map[string]struct{}, len(rows))
+	for _, r := range rows {
+		owned[r.KeyAuthID] = struct{}{}
+	}
+
+	for _, id := range keyspaceIDs {
+		if _, ok := owned[id]; !ok {
+			return fault.New("keyspace not found",
+				fault.Code(codes.Data.KeySpace.NotFound.URN()),
+				fault.Internal(fmt.Sprintf("keyspace %q not found in workspace", id)),
+				fault.Public(fmt.Sprintf("Keyspace %q was not found.", id)),
 			)
 		}
-		for _, segment := range parts {
-			if segment == "" {
-				return fault.New("invalid permission format",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal(fmt.Sprintf("permission %q contains an empty segment", p)),
-					fault.Public(fmt.Sprintf("Permission %q is invalid. Segments must not be empty.", p)),
-				)
-			}
-		}
 	}
+
 	return nil
 }
 
@@ -67,10 +83,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
-		return err
-	}
-
-	if err := validatePermissionFormat(req.Permissions); err != nil {
 		return err
 	}
 
@@ -111,6 +123,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// The capability vocabulary is enforced by the OpenAPI enum at the request
+	// boundary; here we confirm the caller owns every keyspace it is scoping the
+	// session to, so a session can never be minted against another workspace's
+	// keyspaces.
+	if err := h.validateKeyspacesOwned(ctx, workspaceID, req.KeyspaceIds); err != nil {
+		return err
+	}
+
 	// Determine the portal URL: prefer a verified custom domain for the app,
 	// fall back to the configured base URL (e.g. https://portal.unkey.com).
 	portalBaseURL := h.PortalBaseURL
@@ -132,11 +152,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	sessionTokenID := string(uid.PortalSessionTokenPrefix) + "_" + uid.Secure()
 	expiresAt := now.Add(15 * time.Minute).UnixMilli()
 
-	permissionsJSON, err := json.Marshal(req.Permissions)
+	verbs := make([]string, len(req.Permissions))
+	for i, p := range req.Permissions {
+		verbs[i] = string(p)
+	}
+
+	permissionsJSON, err := json.Marshal(storedGrant{
+		KeyspaceIDs: req.KeyspaceIds,
+		Permissions: verbs,
+	})
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("failed to marshal permissions"),
+			fault.Internal("failed to marshal portal session grant"),
 			fault.Public("An internal error occurred."),
 		)
 	}

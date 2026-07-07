@@ -212,10 +212,6 @@ paths:
     $ref: "./spec/paths/v2/portal/exchangeSession/index.yaml"
   /v2/portal.listKeys:
     $ref: "./spec/paths/v2/portal/listKeys/index.yaml"
-  /v2/portal.createKey:
-    $ref: "./spec/paths/v2/portal/createKey/index.yaml"
-  /v2/portal.deleteKey:
-    $ref: "./spec/paths/v2/portal/deleteKey/index.yaml"
   /v2/portal.rerollKey:
     $ref: "./spec/paths/v2/portal/rerollKey/index.yaml"
   /v2/portal.getVerifications:

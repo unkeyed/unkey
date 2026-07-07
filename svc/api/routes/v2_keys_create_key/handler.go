@@ -16,6 +16,7 @@ import (
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
@@ -53,20 +54,8 @@ func (h *Handler) Path() string {
 	return "/v2/keys.createKey"
 }
 
-// Handle processes the HTTP request.
+// Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
-	return h.CreateKey(ctx, s, req)
-}
-
-// CreateKey creates a key from an already-bound request. req.ExternalId is
-// authoritative: the public route passes the client's value through; the portal
-// route overwrites it with the session's external identity before calling. This
-// core has no notion of portal vs. public.
-func (h *Handler) CreateKey(ctx context.Context, s *zen.Session, req Request) error {
 	// Mint a correlation ID for this user action so the dashboard can drill
 	// from any one of the audit events (key.create + N permission binds + N
 	// role binds) to the rest. Nested helpers that call Auditlogs.Insert
@@ -75,6 +64,12 @@ func (h *Handler) CreateKey(ctx context.Context, s *zen.Session, req Request) er
 
 	// 1. Authentication
 	principal, err := s.GetPrincipal()
+	if err != nil {
+		return err
+	}
+
+	// 2. Request validation
+	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
@@ -128,9 +123,23 @@ func (h *Handler) CreateKey(ctx context.Context, s *zen.Session, req Request) er
 		)
 	}
 
+	// Portal sessions are scoped to a single external identity. Force the
+	// externalId on the request so the created key is always owned by the
+	// session's identity, regardless of what the client sends.
+	//
 	// Portal-authenticated actions are attributed to a portalEndUser actor so
-	// customers can see end-user activity in their audit logs; auditactor derives
-	// this from the principal, so this core stays portal-agnostic.
+	// customers can see end-user activity in their audit logs.
+	switch src := principal.Source.(type) {
+	case authprincipal.PortalSessionSource:
+		if src.ExternalID == "" {
+			return fault.New("portal session missing identity",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("portal session externalId is empty"),
+				fault.Public("An internal error occurred."),
+			)
+		}
+		req.ExternalId = &src.ExternalID
+	}
 	actor := auditactor.FromPrincipal(principal)
 
 	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)

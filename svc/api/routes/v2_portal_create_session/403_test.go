@@ -52,7 +52,8 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	req := handler.Request{
 		Slug:        "disabled-portal",
 		ExternalId:  "user_123",
-		Permissions: []string{"api.*.read_key"},
+		KeyspaceIds: []string{"ks_example"},
+		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)

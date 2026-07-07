@@ -23,7 +23,8 @@ func TestCreateSessionUnauthorized(t *testing.T) {
 	req := handler.Request{
 		Slug:        "test-portal",
 		ExternalId:  "user_123",
-		Permissions: []string{"api.*.read_key"},
+		KeyspaceIds: []string{"ks_example"},
+		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}
 
 	t.Run("invalid bearer token", func(t *testing.T) {

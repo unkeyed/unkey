@@ -25,6 +25,12 @@ type Querier interface {
 
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
+	// GetVerificationsByExternalID returns a zero-filled verification timeseries
+	// for a single end user (workspace_id + external_id), optionally narrowed to
+	// one key. Used by the portal getVerifications endpoint. Bucket granularity
+	// is chosen from the window size.
+	GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error)
+
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
 	// GetBillableUsageAboveThreshold returns total billable usage for workspaces that exceed a minimum threshold.

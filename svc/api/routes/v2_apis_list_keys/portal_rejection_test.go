@@ -149,10 +149,7 @@ func TestProtectedRouteRejectsPortalSession(t *testing.T) {
 
 	setup := setupPortalSessionTest(t, h)
 
-	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{
-		fmt.Sprintf("api.%s.read_key", setup.apiID),
-		fmt.Sprintf("api.%s.read_api", setup.apiID),
-	})
+	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{setup.keySpaceID}, []string{"keys:read"})
 
 	req := handler.Request{
 		ApiId: setup.apiID,

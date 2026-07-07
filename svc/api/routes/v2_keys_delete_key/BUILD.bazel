@@ -9,6 +9,7 @@ go_library(
         "//internal/services/auditlogs",
         "//internal/services/keys/db",
         "//pkg/auditlog",
+        "//pkg/auth/principal",
         "//pkg/cache",
         "//pkg/codes",
         "//pkg/db",

@@ -3,42 +3,47 @@ package handler_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	getverifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
+
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
 
 type (
-	Request  = getverifications.Request
-	Response = getverifications.Response
+	Request  = openapi.V2PortalGetVerificationsRequestBody
+	Response = openapi.V2PortalGetVerificationsResponseBody
 )
 
-// newHandler builds the portal.getVerifications handler backed by a configured
-// analytics.getVerifications handler.
+// newHandler builds the standalone portal.getVerifications handler backed by the
+// harness's shared ClickHouse client.
 func newHandler(h *testutil.Harness) *handler.Handler {
-	return &handler.Handler{
-		Handler: &getverifications.Handler{
-			DB:                         h.DB,
-			AnalyticsConnectionManager: h.AnalyticsConnectionManager,
-			Caches:                     h.Caches,
-		},
-	}
+	return &handler.Handler{ClickHouse: h.ClickHouse}
 }
 
-// TestPortalSessionAnalyticsScopedToOwnKeys verifies that a portal session only
-// sees verification events for keys belonging to its own externalId, even when
-// other identities in the same workspace have their own verification events.
+// sumTotals adds up the Total across every bucket in the timeseries.
+func sumTotals(points []openapi.V2PortalGetVerificationsDataPoint) int64 {
+	var total int64
+	for _, p := range points {
+		total += p.Total
+	}
+	return total
+}
+
+// TestPortalSessionAnalyticsScopedToOwnKeys verifies a portal session only sees
+// verification events attributed to its own externalId, even when another
+// identity in the same workspace has its own events, and that events for a
+// soft-deleted key still count (scoping is by external_id at write time, not by
+// current key ownership).
 func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
@@ -51,7 +56,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	route := newHandler(h)
 	h.Register(route, h.PortalMiddleware()...)
 
-	// Identity A (the portal session's identity) owns one key.
+	// Identity A (the portal session's identity) owns one live key.
 	externalA := "portal_user_A"
 	identityA := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
@@ -63,20 +68,17 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		IdentityID:  ptr.P(identityA.ID),
 	})
 
-	// A also has a soft-deleted key. Its verification events carry A's external_id
-	// (denormalized at write time), so they remain visible after the key is
-	// deleted: identity scoping filters on external_id, not on current key
-	// ownership.
+	// A also has a soft-deleted key; its events carry A's external_id and must
+	// still be counted.
 	keyADeleted := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
 		IdentityID:  ptr.P(identityA.ID),
 	})
-	err := db.Query.SoftDeleteKeyByID(context.Background(), h.DB.RW(), db.SoftDeleteKeyByIDParams{
+	require.NoError(t, db.Query.SoftDeleteKeyByID(context.Background(), h.DB.RW(), db.SoftDeleteKeyByIDParams{
 		Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		ID:  keyADeleted.KeyID,
-	})
-	require.NoError(t, err)
+	}))
 
 	// Identity B owns a different key whose events must never be visible to A.
 	identityB := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -91,203 +93,49 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 
 	now := time.Now().UnixMilli()
 
-	// 3 events for A's live key.
-	for i := range 3 {
-		h.KeyVerifications.Buffer(schema.KeyVerification{
-			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        now - int64(i*1000),
-			WorkspaceID: workspace.ID,
-			KeySpaceID:  api.KeyAuthID.String,
-			KeyID:       keyA.KeyID,
-			Region:      "us-west-1",
-			Outcome:     "VALID",
-			IdentityID:  identityA.ID,
-			ExternalID:  externalA,
-			Tags:        []string{},
-		})
+	buffer := func(keyID, externalID, identityID string, n int) {
+		for i := range n {
+			h.KeyVerifications.Buffer(schema.KeyVerification{
+				RequestID:   uid.New(uid.RequestPrefix),
+				Time:        now - int64(i*1000),
+				WorkspaceID: workspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+				KeyID:       keyID,
+				Region:      "us-west-1",
+				Outcome:     "VALID",
+				IdentityID:  identityID,
+				ExternalID:  externalID,
+				Tags:        []string{},
+			})
+		}
 	}
 
-	// 2 events for A's soft-deleted key; these must still be counted.
-	for i := range 2 {
-		h.KeyVerifications.Buffer(schema.KeyVerification{
-			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        now - int64(i*1000),
-			WorkspaceID: workspace.ID,
-			KeySpaceID:  api.KeyAuthID.String,
-			KeyID:       keyADeleted.KeyID,
-			Region:      "us-west-1",
-			Outcome:     "VALID",
-			IdentityID:  identityA.ID,
-			ExternalID:  externalA,
-			Tags:        []string{},
-		})
-	}
+	buffer(keyA.KeyID, externalA, identityA.ID, 3)         // A live key
+	buffer(keyADeleted.KeyID, externalA, identityA.ID, 2)  // A deleted key
+	buffer(keyB.KeyID, identityB.ExternalID, identityB.ID, 5) // B key (must not leak)
 
-	// 5 events for B's key.
-	for i := range 5 {
-		h.KeyVerifications.Buffer(schema.KeyVerification{
-			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        now - int64(i*1000),
-			WorkspaceID: workspace.ID,
-			KeySpaceID:  api.KeyAuthID.String,
-			KeyID:       keyB.KeyID,
-			Region:      "us-east-1",
-			Outcome:     "VALID",
-			IdentityID:  identityB.ID,
-			ExternalID:  identityB.ExternalID,
-			Tags:        []string{},
-		})
-	}
+	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})
 
-	headers := h.CreatePortalSession(workspace.ID, externalA, []string{
-		"api.*.read_analytics",
-	})
-
+	// Window of ~1h ending just after now -> minute-bucket granularity.
 	req := Request{
-		Query: "SELECT COUNT(*) as count FROM key_verifications_v1",
+		StartTime: now - int64(time.Hour/time.Millisecond),
+		EndTime:   now + int64(time.Minute/time.Millisecond),
 	}
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		res := testutil.CallRoute[Request, Response](h, route, headers, req)
 		require.Equal(c, 200, res.Status)
 		require.NotNil(c, res.Body)
-		require.Len(c, res.Body.Data, 1)
 
-		// A's 3 live-key events plus 2 deleted-key events = 5, never B's 5.
-		count, ok := res.Body.Data[0]["count"]
-		require.True(c, ok, "count field should exist")
-		require.Equal(c, float64(5), count, "portal session should see its own keys' events, including deleted keys, but never another identity's")
+		// A's 3 live-key events + 2 deleted-key events = 5, never B's 5.
+		require.Equal(c, int64(5), sumTotals(res.Body.Data),
+			"portal session should see its own keys' events (including deleted keys) but never another identity's")
 	}, 30*time.Second, time.Second)
 }
 
-// TestPortalSessionAnalyticsNonWildcardPermission verifies the combined filter
-// path: a portal session scoped to a single API via a non-wildcard
-// api.<id>.read_analytics permission gets both a key_space_id filter (from the
-// permission) and an external_id filter (from identity scoping). It must see
-// only its own identity's events within the permitted API, never its events in
-// other APIs nor other identities' events in the permitted API.
-func TestPortalSessionAnalyticsNonWildcardPermission(t *testing.T) {
-	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
-
-	workspace := h.CreateWorkspace()
-	api1 := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-	})
-	api2 := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-	})
-	h.SetupAnalytics(workspace.ID)
-
-	route := newHandler(h)
-	h.Register(route, h.PortalMiddleware()...)
-
-	// Identity A owns a key in each API.
-	externalA := "portal_user_A"
-	identityA := h.CreateIdentity(seed.CreateIdentityRequest{
-		WorkspaceID: workspace.ID,
-		ExternalID:  externalA,
-	})
-	keyA1 := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api1.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
-	})
-	keyA2 := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api2.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
-	})
-
-	// Identity B owns a key in api1 whose events must never be visible to A.
-	identityB := h.CreateIdentity(seed.CreateIdentityRequest{
-		WorkspaceID: workspace.ID,
-		ExternalID:  "portal_user_B",
-	})
-	keyB1 := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api1.KeyAuthID.String,
-		IdentityID:  ptr.P(identityB.ID),
-	})
-
-	now := time.Now().UnixMilli()
-
-	// 4 events for A's api1 key (the only events that should be counted).
-	for i := range 4 {
-		h.KeyVerifications.Buffer(schema.KeyVerification{
-			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        now - int64(i*1000),
-			WorkspaceID: workspace.ID,
-			KeySpaceID:  api1.KeyAuthID.String,
-			KeyID:       keyA1.KeyID,
-			Region:      "us-west-1",
-			Outcome:     "VALID",
-			IdentityID:  identityA.ID,
-			ExternalID:  externalA,
-			Tags:        []string{},
-		})
-	}
-
-	// 3 events for A's api2 key; excluded by the key_space_id filter.
-	for i := range 3 {
-		h.KeyVerifications.Buffer(schema.KeyVerification{
-			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        now - int64(i*1000),
-			WorkspaceID: workspace.ID,
-			KeySpaceID:  api2.KeyAuthID.String,
-			KeyID:       keyA2.KeyID,
-			Region:      "us-west-1",
-			Outcome:     "VALID",
-			IdentityID:  identityA.ID,
-			ExternalID:  externalA,
-			Tags:        []string{},
-		})
-	}
-
-	// 5 events for B's api1 key; excluded by the external_id filter.
-	for i := range 5 {
-		h.KeyVerifications.Buffer(schema.KeyVerification{
-			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        now - int64(i*1000),
-			WorkspaceID: workspace.ID,
-			KeySpaceID:  api1.KeyAuthID.String,
-			KeyID:       keyB1.KeyID,
-			Region:      "us-east-1",
-			Outcome:     "VALID",
-			IdentityID:  identityB.ID,
-			ExternalID:  identityB.ExternalID,
-			Tags:        []string{},
-		})
-	}
-
-	// Permission is scoped to api1 only (non-wildcard); the query must reference
-	// api1's key_space_id so authorization resolves to the api1 permission.
-	headers := h.CreatePortalSession(workspace.ID, externalA, []string{
-		fmt.Sprintf("api.%s.read_analytics", api1.ID),
-	})
-
-	req := Request{
-		Query: fmt.Sprintf("SELECT COUNT(*) as count FROM key_verifications_v1 WHERE key_space_id = '%s'", api1.KeyAuthID.String),
-	}
-
-	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		res := testutil.CallRoute[Request, Response](h, route, headers, req)
-		require.Equal(c, 200, res.Status)
-		require.NotNil(c, res.Body)
-		require.Len(c, res.Body.Data, 1)
-
-		// Only A's 4 api1 events: not A's 3 api2 events (key_space_id filter),
-		// not B's 5 api1 events (external_id filter).
-		count, ok := res.Body.Data[0]["count"]
-		require.True(c, ok, "count field should exist")
-		require.Equal(c, float64(4), count, "combined key_space_id + external_id filters should yield only the session's identity in the permitted API")
-	}, 30*time.Second, time.Second)
-}
-
-// TestPortalSessionAnalyticsNoKeysReturnsEmpty verifies that a portal session
-// whose identity owns no keys sees none of another identity's data: the
-// external_id filter matches no rows, so an aggregate query returns a zero
-// count rather than an error or another identity's events.
-func TestPortalSessionAnalyticsNoKeysReturnsEmpty(t *testing.T) {
+// TestPortalSessionAnalyticsKeyIdFilter verifies the optional keyId narrows the
+// timeseries to a single key while staying scoped to the session identity.
+func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
@@ -299,81 +147,91 @@ func TestPortalSessionAnalyticsNoKeysReturnsEmpty(t *testing.T) {
 	route := newHandler(h)
 	h.Register(route, h.PortalMiddleware()...)
 
-	// Another identity has events; the portal session's identity has zero keys.
-	otherIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
+	externalA := "portal_user_A"
+	identityA := h.CreateIdentity(seed.CreateIdentityRequest{
 		WorkspaceID: workspace.ID,
-		ExternalID:  "portal_user_B",
+		ExternalID:  externalA,
+	})
+	targetKey := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		IdentityID:  ptr.P(identityA.ID),
 	})
 	otherKey := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(otherIdentity.ID),
+		IdentityID:  ptr.P(identityA.ID),
 	})
 
 	now := time.Now().UnixMilli()
-	for i := range 5 {
+	for i := range 4 {
+		h.KeyVerifications.Buffer(schema.KeyVerification{
+			RequestID:   uid.New(uid.RequestPrefix),
+			Time:        now - int64(i*1000),
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			KeyID:       targetKey.KeyID,
+			Region:      "us-west-1",
+			Outcome:     "VALID",
+			IdentityID:  identityA.ID,
+			ExternalID:  externalA,
+			Tags:        []string{},
+		})
+	}
+	for i := range 6 {
 		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 			KeyID:       otherKey.KeyID,
-			Region:      "us-east-1",
+			Region:      "us-west-1",
 			Outcome:     "VALID",
-			IdentityID:  otherIdentity.ID,
-			ExternalID:  otherIdentity.ExternalID,
+			IdentityID:  identityA.ID,
+			ExternalID:  externalA,
 			Tags:        []string{},
 		})
 	}
 
-	headers := h.CreatePortalSession(workspace.ID, "portal_user_zero_keys", []string{
-		"api.*.read_analytics",
-	})
+	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})
 
 	req := Request{
-		Query: "SELECT COUNT(*) as count FROM key_verifications_v1",
+		StartTime: now - int64(time.Hour/time.Millisecond),
+		EndTime:   now + int64(time.Minute/time.Millisecond),
+		KeyId:     ptr.P(targetKey.KeyID),
 	}
 
-	// The query executes against ClickHouse with an external_id filter that
-	// matches no rows, so the count is zero. EventuallyWithT tolerates the
-	// analytics table not being immediately queryable after setup.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		res := testutil.CallRoute[Request, Response](h, route, headers, req)
 		require.Equal(c, 200, res.Status)
 		require.NotNil(c, res.Body)
-		require.Len(c, res.Body.Data, 1)
-
-		count, ok := res.Body.Data[0]["count"]
-		require.True(c, ok, "count field should exist")
-		require.Equal(c, float64(0), count, "session with no keys must see none of another identity's events")
+		require.Equal(c, int64(4), sumTotals(res.Body.Data),
+			"keyId filter should return only the target key's events")
 	}, 30*time.Second, time.Second)
 }
 
-// TestPortalSessionAnalyticsWithoutPermissionForbidden verifies that RBAC
-// authorization is enforced even when the session's identity owns no keys. The
-// zero-keys path must not short-circuit before Authorize, otherwise a session
-// lacking read_analytics would receive an empty 200 instead of a 403.
-func TestPortalSessionAnalyticsWithoutPermissionForbidden(t *testing.T) {
-	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+// TestPortalSessionAnalyticsRequiresReadAnalytics verifies that a portal session
+// whose permissions do not include a read_analytics grant is rejected, even
+// though the endpoint is otherwise scoped to its own identity. The workspace
+// owner gates analytics access via the session permissions.
+func TestPortalSessionAnalyticsRequiresReadAnalytics(t *testing.T) {
+	// No ClickHouse needed: the handler rejects on the permission check before it
+	// ever queries analytics.
+	h := testutil.NewHarness(t, testutil.HarnessConfig{})
 
 	workspace := h.CreateWorkspace()
-	_ = h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-	})
-	h.SetupAnalytics(workspace.ID)
-
 	route := newHandler(h)
 	h.Register(route, h.PortalMiddleware()...)
 
-	// Session owns no keys AND has no read_analytics permission.
-	headers := h.CreatePortalSession(workspace.ID, "portal_user_no_perm", []string{
-		"api.*.read_api",
+	// Session granted key access but not analytics.
+	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{"ks_none"}, []string{"keys:read"})
+
+	now := time.Now().UnixMilli()
+	res := testutil.CallRoute[Request, Response](h, route, headers, Request{
+		StartTime: now - int64(time.Hour/time.Millisecond),
+		EndTime:   now + int64(time.Minute/time.Millisecond),
 	})
 
-	req := Request{
-		Query: "SELECT COUNT(*) as count FROM key_verifications_v1",
-	}
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 403, res.Status, "session without read_analytics must be forbidden even with zero keys")
+	require.Equal(t, 403, res.Status,
+		"portal session without read_analytics must be forbidden from reading analytics")
 }

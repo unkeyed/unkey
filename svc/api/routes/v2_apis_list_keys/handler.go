@@ -45,25 +45,25 @@ func (h *Handler) Path() string {
 	return "/v2/apis.listKeys"
 }
 
-// Handle processes the HTTP request without identity scoping.
+// Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	return h.Serve(ctx, s, "")
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
+	return h.ListKeys(ctx, s, req)
 }
 
-// Serve processes the HTTP request. When scopeExternalID is non-empty the
-// listing is restricted to keys owned by that external identity, regardless of
-// any externalId in the request body. The portal route passes the portal
-// session's external identity here; protected routes pass an empty string.
-func (h *Handler) Serve(ctx context.Context, s *zen.Session, scopeExternalID string) error {
+// ListKeys lists keys for an already-bound request. req.ExternalId is
+// authoritative: the public route passes the client's filter through; the portal
+// route overwrites it with the session's external identity before calling. This
+// core has no notion of portal vs. public.
+func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req Request) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
-	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
 		WorkspaceID: principal.WorkspaceID,
 		Key:         req.ApiId,
@@ -194,17 +194,6 @@ func (h *Handler) Serve(ctx context.Context, s *zen.Session, scopeExternalID str
 				fault.Internal("api not set up for key encryption"), fault.Public("The requested API does not support key encryption."),
 			)
 		}
-	}
-
-	// A scoped caller (the portal route) may only list keys owned by its own
-	// external identity. Override any user-supplied externalId filter so the
-	// caller can only see its own keys.
-	//
-	// Identity scoping is intentionally separate from the RBAC permission system.
-	// Permissions gate what operations a principal can perform; identity scoping
-	// gates what data is visible.
-	if scopeExternalID != "" {
-		req.ExternalId = &scopeExternalID
 	}
 
 	limit := ptr.SafeDeref(req.Limit, 100)

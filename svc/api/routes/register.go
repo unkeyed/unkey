@@ -58,9 +58,7 @@ import (
 
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
-	v2PortalCreateKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_key"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
-	v2PortalDeleteKey "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_key"
 	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
 	v2PortalGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
 	v2PortalListKeys "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
@@ -652,29 +650,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
-	// v2/portal.createKey
-	srv.RegisterRoute(
-		portalMiddlewares,
-		&v2PortalCreateKey.Handler{
-			Handler: &v2KeysCreateKey.Handler{
-				DB:        svc.Database,
-				Keys:      svc.Keys,
-				Auditlogs: svc.Auditlogs,
-				Vault:     svc.Vault,
-			},
-		},
-	)
-
-	// v2/portal.deleteKey
-	srv.RegisterRoute(
-		portalMiddlewares,
-		&v2PortalDeleteKey.Handler{
-			DB:        svc.Database,
-			Auditlogs: svc.Auditlogs,
-			KeyCache:  svc.Caches.VerificationKeyByHash,
-		},
-	)
-
 	// v2/portal.rerollKey
 	srv.RegisterRoute(
 		portalMiddlewares,
@@ -692,11 +667,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
-			Handler: &v2AnalyticsGetVerifications.Handler{
-				DB:                         svc.Database,
-				AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
-				Caches:                     svc.Caches,
-			},
+			ClickHouse: svc.ClickHouse,
 		},
 	)
 

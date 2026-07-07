@@ -363,12 +363,18 @@ func (h *Harness) PortalMiddleware() []zen.Middleware {
 // external identity, and permissions, and returns request headers (including the
 // portal_session cookie) suitable for [CallRoute]. Use it to exercise portal
 // routes as an authenticated end user.
-func (h *Harness) CreatePortalSession(workspaceID, externalID string, permissions []string) http.Header {
+func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceIDs, permissions []string) http.Header {
 	h.t.Helper()
 
 	sessionID := uid.New(uid.PortalSessionPrefix)
 
-	permsJSON, err := json.Marshal(permissions)
+	permsJSON, err := json.Marshal(struct {
+		KeyspaceIDs []string `json:"keyspaceIds"`
+		Permissions []string `json:"permissions"`
+	}{
+		KeyspaceIDs: keyspaceIDs,
+		Permissions: permissions,
+	})
 	require.NoError(h.t, err)
 
 	err = db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{

@@ -3,7 +3,6 @@ package handler_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
@@ -143,10 +142,7 @@ func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
 	setup := setupPortalSessionTest(t, h)
 
 	// Portal session for user A with read permissions
-	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{
-		fmt.Sprintf("api.%s.read_key", setup.apiID),
-		fmt.Sprintf("api.%s.read_api", setup.apiID),
-	})
+	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{setup.keySpaceID}, []string{"keys:read"})
 
 	req := Request{
 		ApiId: setup.apiID,
@@ -178,10 +174,7 @@ func TestPortalSessionOverridesSuppliedExternalID(t *testing.T) {
 	setup := setupPortalSessionTest(t, h)
 
 	// Portal session for user A
-	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{
-		fmt.Sprintf("api.%s.read_key", setup.apiID),
-		fmt.Sprintf("api.%s.read_api", setup.apiID),
-	})
+	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{setup.keySpaceID}, []string{"keys:read"})
 
 	// Attempt to supply user B's externalId — should be overridden
 	req := Request{
@@ -211,10 +204,7 @@ func TestPortalSessionNonExistentIdentityReturnsEmpty(t *testing.T) {
 	setup := setupPortalSessionTest(t, h)
 
 	// Portal session for a user that has no identity record
-	headers := h.CreatePortalSession(setup.workspace.ID, "non_existent_user", []string{
-		fmt.Sprintf("api.%s.read_key", setup.apiID),
-		fmt.Sprintf("api.%s.read_api", setup.apiID),
-	})
+	headers := h.CreatePortalSession(setup.workspace.ID, "non_existent_user", []string{setup.keySpaceID}, []string{"keys:read"})
 
 	req := Request{
 		ApiId: setup.apiID,

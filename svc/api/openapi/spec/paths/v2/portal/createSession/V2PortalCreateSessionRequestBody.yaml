@@ -2,6 +2,7 @@ type: object
 required:
   - slug
   - externalId
+  - keyspaceIds
   - permissions
 properties:
   slug:
@@ -23,22 +24,39 @@ properties:
       The end user's identifier in the customer's system.
       Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
     example: user_123
+  keyspaceIds:
+    type: array
+    items:
+      type: string
+      minLength: 1
+    minItems: 1
+    description: |
+      The keyspaces the end user's key capabilities apply to. Key permissions
+      (`keys:*`) are scoped to these keyspaces; the end user can never see or act
+      on keys outside them. Must be keyspaces in the caller's workspace.
+    example: ["ks_1a2b3c", "ks_4d5e6f"]
   permissions:
     type: array
     items:
       type: string
-      pattern: "^[^.]+\\.[^.]+\\.[^.]+$"
+      enum:
+        - "keys:read"
+        - "keys:create"
+        - "keys:reroll"
+        - "analytics:read"
     minItems: 1
     description: |
-      List of RBAC tuple permissions defining what the end user can do in the Portal.
-      Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
-      Use `*` as resourceId to grant access to all resources of that type.
+      The capabilities granted to the end user in the Portal, from a fixed
+      vocabulary. All capabilities are scoped to this end user: key capabilities
+      (`keys:*`) apply only to keys the end user owns within `keyspaceIds`, and
+      `analytics:read` returns only the end user's own verification events. An
+      end user can never see another identity's keys or analytics.
 
-      Tab visibility is derived from the action segment:
-      - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
-      - Analytics tab: `read_analytics`
-      - Docs tab: visible when any permission is present
-    example: ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]
+      Tab visibility is derived from the capabilities:
+      - Keys tab: any `keys:*` capability
+      - Analytics tab: `analytics:read`
+      - Docs tab: visible when any capability is present
+    example: ["keys:read", "keys:reroll", "analytics:read"]
   preview:
     type: boolean
     default: false

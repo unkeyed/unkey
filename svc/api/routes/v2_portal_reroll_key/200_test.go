@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -58,9 +57,7 @@ func TestPortalSessionRerollOwnKey(t *testing.T) {
 		IdentityID:  ptr.P(identity.ID),
 	})
 
-	headers := h.CreatePortalSession(workspace.ID, externalID, []string{
-		fmt.Sprintf("api.%s.create_key", api.ID),
-	})
+	headers := h.CreatePortalSession(workspace.ID, externalID, []string{api.KeyAuthID.String}, []string{"keys:reroll"})
 
 	req := Request{
 		KeyId: key.KeyID,
@@ -107,9 +104,7 @@ func TestPortalSessionCannotRerollOtherIdentityKey(t *testing.T) {
 	})
 
 	// Session belongs to user A but holds create_key permission on the API.
-	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{
-		fmt.Sprintf("api.%s.create_key", api.ID),
-	})
+	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{api.KeyAuthID.String}, []string{"keys:reroll"})
 
 	req := Request{
 		KeyId: otherKey.KeyID,
@@ -138,9 +133,7 @@ func TestPortalSessionCannotRerollKeyWithoutIdentity(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{
-		fmt.Sprintf("api.%s.create_key", api.ID),
-	})
+	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{api.KeyAuthID.String}, []string{"keys:reroll"})
 
 	req := Request{
 		KeyId: keyWithoutIdentity.KeyID,

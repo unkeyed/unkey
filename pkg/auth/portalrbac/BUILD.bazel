@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "portalrbac",
+    srcs = ["portalrbac.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/auth/portalrbac",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/rbac",
+        "//pkg/rbac/permissions",
+        "//pkg/urn",
+    ],
+)
+
+go_test(
+    name = "portalrbac_test",
+    srcs = ["portalrbac_test.go"],
+    deps = [
+        ":portalrbac",
+        "//pkg/rbac",
+        "//pkg/rbac/permissions",
+        "//pkg/urn",
+        "@com_github_stretchr_testify//require",
+    ],
+)

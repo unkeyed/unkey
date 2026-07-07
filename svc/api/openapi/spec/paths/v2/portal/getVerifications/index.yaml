@@ -3,12 +3,14 @@ post:
     - portal
   summary: Get portal verifications
   description: |
-    Query key verification analytics for the authenticated portal session's end
-    user.
+    Return a verification analytics timeseries for the authenticated portal
+    session's end user.
 
-    This is the portal-scoped variant of `analytics.getVerifications`. It
-    authenticates only with a portal session cookie and always restricts results
-    to verification events attributed to the session's external identity.
+    Authenticates only with a portal session cookie and always restricts results
+    to verification events attributed to the session's external identity. Unlike
+    `analytics.getVerifications`, this endpoint takes a fixed time window (no
+    query language) and returns a zero-filled, outcome-broken-out timeseries.
+    Bucket granularity is chosen automatically from the window size.
   operationId: portal.getVerifications
   x-speakeasy-name-override: getVerifications
   security:
@@ -17,14 +19,14 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "../../analytics/getVerifications/V2AnalyticsGetVerificationsRequestBody.yaml"
+          "$ref": "./V2PortalGetVerificationsRequestBody.yaml"
     required: true
   responses:
     "200":
       content:
         application/json:
           schema:
-            "$ref": "../../analytics/getVerifications/V2AnalyticsGetVerificationsResponseBody.yaml"
+            "$ref": "./V2PortalGetVerificationsResponseBody.yaml"
       description: |
         Successfully retrieved verification analytics.
     "400":

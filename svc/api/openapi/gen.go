@@ -88,6 +88,14 @@ const (
 	VALID                   V2KeysVerifyKeyResponseDataCode = "VALID"
 )
 
+// Defines values for V2PortalCreateSessionRequestBodyPermissions.
+const (
+	AnalyticsRead V2PortalCreateSessionRequestBodyPermissions = "analytics:read"
+	KeysCreate    V2PortalCreateSessionRequestBodyPermissions = "keys:create"
+	KeysRead      V2PortalCreateSessionRequestBodyPermissions = "keys:read"
+	KeysReroll    V2PortalCreateSessionRequestBodyPermissions = "keys:reroll"
+)
+
 // App defines model for App.
 type App struct {
 	// CreatedAt Unix timestamp in milliseconds when the app was created.
@@ -2565,15 +2573,22 @@ type V2PortalCreateSessionRequestBody struct {
 	// Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
 	ExternalId string `json:"externalId"`
 
-	// Permissions List of RBAC tuple permissions defining what the end user can do in the Portal.
-	// Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
-	// Use `*` as resourceId to grant access to all resources of that type.
+	// KeyspaceIds The keyspaces the end user's key capabilities apply to. Key permissions
+	// (`keys:*`) are scoped to these keyspaces; the end user can never see or act
+	// on keys outside them. Must be keyspaces in the caller's workspace.
+	KeyspaceIds []string `json:"keyspaceIds"`
+
+	// Permissions The capabilities granted to the end user in the Portal, from a fixed
+	// vocabulary. All capabilities are scoped to this end user: key capabilities
+	// (`keys:*`) apply only to keys the end user owns within `keyspaceIds`, and
+	// `analytics:read` returns only the end user's own verification events. An
+	// end user can never see another identity's keys or analytics.
 	//
-	// Tab visibility is derived from the action segment:
-	// - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
-	// - Analytics tab: `read_analytics`
-	// - Docs tab: visible when any permission is present
-	Permissions []string `json:"permissions"`
+	// Tab visibility is derived from the capabilities:
+	// - Keys tab: any `keys:*` capability
+	// - Analytics tab: `analytics:read`
+	// - Docs tab: visible when any capability is present
+	Permissions []V2PortalCreateSessionRequestBodyPermissions `json:"permissions"`
 
 	// Preview When true, creates a preview session for testing the portal experience.
 	Preview *bool `json:"preview,omitempty"`
@@ -2584,6 +2599,9 @@ type V2PortalCreateSessionRequestBody struct {
 	// must not start or end with a hyphen, and must not contain consecutive hyphens.
 	Slug string `json:"slug"`
 }
+
+// V2PortalCreateSessionRequestBodyPermissions defines model for V2PortalCreateSessionRequestBody.Permissions.
+type V2PortalCreateSessionRequestBodyPermissions string
 
 // V2PortalCreateSessionResponseBody defines model for V2PortalCreateSessionResponseBody.
 type V2PortalCreateSessionResponseBody struct {
@@ -2624,6 +2642,63 @@ type V2PortalExchangeSessionResponseData struct {
 
 	// Token The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
 	Token string `json:"token"`
+}
+
+// V2PortalGetVerificationsDataPoint defines model for V2PortalGetVerificationsDataPoint.
+type V2PortalGetVerificationsDataPoint struct {
+	// Disabled Verifications rejected because the key was disabled.
+	Disabled int64 `json:"disabled"`
+
+	// Expired Verifications rejected because the key was expired.
+	Expired int64 `json:"expired"`
+
+	// Forbidden Verifications rejected as forbidden.
+	Forbidden int64 `json:"forbidden"`
+
+	// InsufficientPermissions Verifications rejected for insufficient permissions.
+	InsufficientPermissions int64 `json:"insufficientPermissions"`
+
+	// RateLimited Verifications rejected because a rate limit was exceeded.
+	RateLimited int64 `json:"rateLimited"`
+
+	// Time Bucket start as a unix timestamp in milliseconds.
+	Time int64 `json:"time"`
+
+	// Total Total verifications in this bucket, across all outcomes.
+	Total int64 `json:"total"`
+
+	// UsageExceeded Verifications rejected because remaining usage was exhausted.
+	UsageExceeded int64 `json:"usageExceeded"`
+
+	// Valid Verifications with a VALID outcome.
+	Valid int64 `json:"valid"`
+}
+
+// V2PortalGetVerificationsRequestBody defines model for V2PortalGetVerificationsRequestBody.
+type V2PortalGetVerificationsRequestBody struct {
+	// EndTime End of the query window as a unix timestamp in milliseconds (exclusive).
+	// Bucket granularity (minute, hour, or day) is chosen automatically from the
+	// window size.
+	EndTime int64 `json:"endTime"`
+
+	// KeyId Optional. Restrict results to a single key. The key must belong to the
+	// authenticated end user; results are always scoped to the session identity
+	// regardless of this value.
+	KeyId *string `json:"keyId,omitempty"`
+
+	// StartTime Start of the query window as a unix timestamp in milliseconds (inclusive).
+	StartTime int64 `json:"startTime"`
+}
+
+// V2PortalGetVerificationsResponseBody defines model for V2PortalGetVerificationsResponseBody.
+type V2PortalGetVerificationsResponseBody struct {
+	// Data Zero-filled verification timeseries for the authenticated end user, ordered
+	// by time ascending. Buckets with no verifications are present with zero
+	// counts so the series is contiguous across the requested window.
+	Data []V2PortalGetVerificationsDataPoint `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // V2ProjectsCreateProjectRequestBody defines model for V2ProjectsCreateProjectRequestBody.
@@ -3233,20 +3308,14 @@ type PermissionsListPermissionsJSONRequestBody = V2PermissionsListPermissionsReq
 // PermissionsListRolesJSONRequestBody defines body for PermissionsListRoles for application/json ContentType.
 type PermissionsListRolesJSONRequestBody = V2PermissionsListRolesRequestBody
 
-// PortalCreateKeyJSONRequestBody defines body for PortalCreateKey for application/json ContentType.
-type PortalCreateKeyJSONRequestBody = V2KeysCreateKeyRequestBody
-
 // PortalCreateSessionJSONRequestBody defines body for PortalCreateSession for application/json ContentType.
 type PortalCreateSessionJSONRequestBody = V2PortalCreateSessionRequestBody
-
-// PortalDeleteKeyJSONRequestBody defines body for PortalDeleteKey for application/json ContentType.
-type PortalDeleteKeyJSONRequestBody = V2KeysDeleteKeyRequestBody
 
 // PortalExchangeSessionJSONRequestBody defines body for PortalExchangeSession for application/json ContentType.
 type PortalExchangeSessionJSONRequestBody = V2PortalExchangeSessionRequestBody
 
 // PortalGetVerificationsJSONRequestBody defines body for PortalGetVerifications for application/json ContentType.
-type PortalGetVerificationsJSONRequestBody = V2AnalyticsGetVerificationsRequestBody
+type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
 
 // PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
 type PortalListKeysJSONRequestBody = V2ApisListKeysRequestBody

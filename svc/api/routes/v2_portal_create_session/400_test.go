@@ -49,10 +49,14 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	validKeyspaces := []string{"ks_example"}
+	validPerms := []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"}
+
 	t.Run("missing externalId", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
-			Permissions: []string{"api.*.read_key"},
+			KeyspaceIds: validKeyspaces,
+			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -63,28 +67,8 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "",
-			Permissions: []string{"api.*.read_key"},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("missing permissions", func(t *testing.T) {
-		req := handler.Request{
-			Slug:       "test-portal",
-			ExternalId: "user_123",
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("empty permissions array", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_123",
-			Permissions: []string{},
+			KeyspaceIds: validKeyspaces,
+			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -94,7 +78,8 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	t.Run("missing slug", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key"},
+			KeyspaceIds: validKeyspaces,
+			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -105,75 +90,80 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "",
 			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key"},
+			KeyspaceIds: validKeyspaces,
+			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
-	// --- Permission format validation tests ---
-
-	t.Run("old format rejected", func(t *testing.T) {
+	t.Run("missing keyspaceIds", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"keys:read"},
+			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("two segments rejected", func(t *testing.T) {
+	t.Run("empty keyspaceIds array", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"api.read_key"},
+			KeyspaceIds: []string{},
+			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("four segments rejected", func(t *testing.T) {
+	t.Run("missing permissions", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key.extra"},
+			KeyspaceIds: validKeyspaces,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("empty middle segment rejected", func(t *testing.T) {
+	t.Run("empty permissions array", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"api..read_key"},
+			KeyspaceIds: validKeyspaces,
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("empty first segment rejected", func(t *testing.T) {
+	// --- Capability vocabulary validation (enforced by the OpenAPI enum) ---
+
+	t.Run("unknown capability rejected", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{".*.read_key"},
+			KeyspaceIds: validKeyspaces,
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:destroy"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("empty last segment rejected", func(t *testing.T) {
+	t.Run("legacy rbac tuple rejected", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"api.*."},
+			KeyspaceIds: validKeyspaces,
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -184,7 +174,8 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key", "keys:read"},
+			KeyspaceIds: validKeyspaces,
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read", "api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
