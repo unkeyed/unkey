@@ -375,7 +375,7 @@ func createOrAttachReusableContainer(
 
 // findReusableContainer returns a stable test container by name.
 //
-// Reusable names are shared across Bazel test processes, so the labels guard
+// Reusable names are shared across Go test processes, so the labels guard
 // against accidentally attaching to a developer-owned container with the same
 // name.
 func findReusableContainer(

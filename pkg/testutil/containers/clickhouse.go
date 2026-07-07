@@ -31,7 +31,7 @@ type ClickHouseConfig struct {
 
 // ClickHouse starts a ClickHouse container and returns connection info.
 //
-// The container is reused by stable Docker name across Bazel test processes.
+// The container is reused by stable Docker name across Go test processes.
 func ClickHouse(t testing.TB, opts ...Opt) ClickHouseConfig {
 	t.Helper()
 

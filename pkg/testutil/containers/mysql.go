@@ -47,7 +47,7 @@ func WithDiskStorage() MySQLOpt {
 
 // MySQL starts a MySQL container and returns connection info.
 //
-// The container is reused by stable Docker name across Bazel test processes.
+// The container is reused by stable Docker name across Go test processes.
 func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 	t.Helper()
 

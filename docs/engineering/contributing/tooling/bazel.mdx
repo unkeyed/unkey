@@ -1,31 +1,24 @@
 ---
 title: "Bazel"
-description: "Why Unkey uses Bazel and how to work with it"
+description: "Legacy notes for the previous Bazel workflow"
 ---
 
-## The problem
+Bazel is no longer the primary build or test workflow for Unkey. The
+repository keeps some Bazel files temporarily to keep migration pull requests
+reviewable, but active development uses mise, Rask, Go build, Docker, and
+GoReleaser.
 
-Integration tests were a bottleneck. Running the full test suite required spinning up Docker images and dependencies, which made tests slow. Change detection was also unreliable, so tests were skipped when they should have run.
+## Replacement workflows
 
-We tried to solve this with CI path filters and conditional logic. It became expensive to maintain and still missed cases. Confidence in CI dropped because it was unclear which tests actually ran.
+Use these pages for active tooling:
 
-## Why Bazel
+- [Mise](/contributing/tooling/mise) covers tool installation and task
+  execution.
+- [Builds](/contributing/tooling/builds) covers Docker images and release
+  image packaging.
+- [Testing](/contributing/quality/testing) covers Rask-based Go test runs.
 
-Bazel builds a dependency graph across the repo. Every file, package, and test declares its dependencies. When a file changes, Bazel knows exactly which targets are affected.
-
-Bazel also caches build and test results based on exact inputs. If inputs have not changed, Bazel reuses the cached result instead of rebuilding. This applies locally and can be shared through remote caching.
-
-## How this helps
-
-With Bazel, CI change detection is accurate. Go changes run only the tests that depend on them. Documentation or frontend changes do not trigger Go tests.
-
-This reduces feedback time and increases confidence. If Bazel says a test passed, it ran against the current code. If it reused cache, the inputs are identical to a known pass.
-
-## Working with Bazel
-
-Bazel uses `BUILD.bazel` files to define targets and dependencies. Gazelle generates these for Go code. Use mise tasks for common operations.
-
-### Running tests
+## Common commands
 
 Run the full suite:
 
@@ -36,7 +29,7 @@ mise run test
 Run tests for a specific package:
 
 ```bash
-mise exec -- bazel test //pkg/cache:cache_test
+mise exec -- rask ./pkg/cache
 ```
 
 ### Building
@@ -46,29 +39,3 @@ Build all Go artifacts:
 ```bash
 mise run build
 ```
-
-### Keeping BUILD files in sync
-
-When you add Go files or change imports, update BUILD files:
-
-```bash
-mise run bazel
-```
-
-This runs `bazel mod tidy` and `bazel run //:gazelle`.
-
-After code generation, the generate target also updates BUILD files:
-
-```bash
-mise run generate
-```
-
-### Installation
-
-If you do not have Bazel installed, install the pinned toolchain with mise:
-
-```bash
-mise install
-```
-
-This installs bazelisk, which downloads the correct Bazel version for the repo.

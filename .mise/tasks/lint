@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Run Go lint checks"
+set -euo pipefail
+
+export GOCACHE="${GOCACHE:-$PWD/.cache/go-build}"
+export GOLANGCI_LINT_CACHE="${GOLANGCI_LINT_CACHE:-$PWD/.cache/golangci-lint}"
+
+packages="$(go list -f '{{if or .GoFiles .CgoFiles .TestGoFiles}}{{.Dir}}{{end}}' ./... | sed '/^$/d' | sed "s#^$PWD#.#")"
+
+golangci-lint run ${packages}
