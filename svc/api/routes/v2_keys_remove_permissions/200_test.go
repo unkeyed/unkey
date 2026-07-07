@@ -38,6 +38,43 @@ func TestSuccess(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	t.Run("urn update_key permission can remove permissions", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID: workspace.ID,
+		})
+		keyName := "urn-remove-permission-key"
+		permissionName := "documents.write.urn.remove"
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Name:        &keyName,
+			Permissions: []seed.CreatePermissionRequest{
+				{
+					WorkspaceID: workspace.ID,
+					Name:        permissionName,
+					Slug:        permissionName,
+				},
+			},
+		})
+
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
+		urnHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", urnRootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, urnHeaders, handler.Request{
+			KeyId:       key.KeyID,
+			Permissions: []string{permissionName},
+		})
+
+		require.Equal(t, 200, res.Status)
+		finalPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), key.KeyID)
+		require.NoError(t, err)
+		require.Empty(t, finalPermissions)
+	})
+
 	t.Run("remove single permission by name", func(t *testing.T) {
 		// Create API with keyring using testutil helper
 		defaultPrefix := "test"

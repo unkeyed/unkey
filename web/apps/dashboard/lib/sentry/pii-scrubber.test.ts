@@ -37,6 +37,11 @@ describe("scrubUrl", () => {
     expect(scrubUrl("/projects/abc/apps?page=2")).toBe("/projects/abc/apps?page=2");
   });
 
+  it("drops the fragment entirely (it can carry the /share bearer id)", () => {
+    expect(scrubUrl("/share#ss_abc123")).toBe("/share");
+    expect(scrubUrl("https://app.unkey.com/share#ss_abc123")).toBe("https://app.unkey.com/share");
+  });
+
   it("never throws on malformed input", () => {
     expect(() => scrubUrl("http://[::1::bad")).not.toThrow();
     expect(scrubUrl("")).toBe("");

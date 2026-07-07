@@ -1,8 +1,9 @@
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "@unkey/icons";
-import { Badge } from "@unkey/ui";
+import { Badge, InfoTooltip } from "@unkey/ui";
 import { HighlightMatch } from "../shared/highlight-match";
 import { EnvVarBaseRow } from "./env-var-base-row";
+import { EnvVarGroupActionMenu } from "./env-var-group-action-menu";
 import { type DisplayRow, EnvVarItemRow } from "./env-var-item-row";
 
 type GroupRowProps = {
@@ -48,9 +49,11 @@ export function GroupRow({
         <div className="flex items-center px-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 max-w-[250px]">
-                <HighlightMatch text={row.key} query={deferredQuery} />
-              </span>
+              <InfoTooltip content={row.key} position={{ side: "top" }} asChild>
+                <span className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 max-w-[250px]">
+                  <HighlightMatch text={row.key} query={deferredQuery} />
+                </span>
+              </InfoTooltip>
               {row.hasWriteonly && (
                 <Badge
                   className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
@@ -77,6 +80,7 @@ export function GroupRow({
         </span>
       }
       timestamp={row.latestUpdatedAt}
+      actionsCell={<EnvVarGroupActionMenu groupKey={row.key} items={row.items} />}
       expandedContent={
         isExpanded ? (
           <div className="divide-y divide-grayA-3 bg-grayA-2 border-t border-grayA-4">

@@ -2,6 +2,8 @@
 
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { Switch } from "@/components/ui/switch";
+import { SENTINEL_LIMITS } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { trpc } from "@/lib/trpc/client";
 import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -18,7 +20,12 @@ import {
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import type { ReactNode } from "react";
 import { useController, useFormContext, useFormState, useWatch } from "react-hook-form";
-import type { KeyLocationFormValues, KeyLocationType, PolicyFormValues } from "../schema";
+import type {
+  KeyLocationFormValues,
+  KeyLocationType,
+  KeyauthRatelimitFormValues,
+  PolicyFormValues,
+} from "../schema";
 import { Sep, Strong } from "./summary-helpers";
 
 type KeyauthFormValues = Extract<PolicyFormValues, { type: "keyauth" }>;
@@ -46,10 +53,62 @@ export function KeyAuthFields() {
     field: { value: permissionQuery, onChange: setPermissionQuery },
   } = useController({ control, name: "permissionQuery" });
 
+  const {
+    field: { value: ratelimits, onChange: setRatelimits },
+  } = useController({ control, name: "ratelimits" });
+
   const locationErrors = errors.locations as
     | Record<number, Partial<Record<string, { message?: string }>>>
     | undefined;
   const nameError = locationErrors?.[0]?.name;
+
+  const ratelimitErrors = errors.ratelimits as
+    | Record<number, Partial<Record<string, { message?: string }>>>
+    | undefined;
+
+  const addRatelimit = () => {
+    setRatelimits([...ratelimits, { id: crypto.randomUUID(), name: "", override: false }]);
+  };
+
+  const updateRatelimit = (id: string, updates: Partial<KeyauthRatelimitFormValues>) => {
+    setValue(
+      "ratelimits",
+      ratelimits.map((rl) => (rl.id === id ? { ...rl, ...updates } : rl)),
+      { shouldDirty: true, shouldValidate: isSubmitted },
+    );
+  };
+
+  // Rebuild the row on the matching `override` branch rather than merging fields:
+  // the override-off branch structurally has no limit/duration/cost, so toggling
+  // off drops the inline values and a disabled override never leaks onto the wire.
+  const setRatelimitOverride = (id: string, enabled: boolean) => {
+    setValue(
+      "ratelimits",
+      ratelimits.map((rl): KeyauthRatelimitFormValues => {
+        if (rl.id !== id) {
+          return rl;
+        }
+        return enabled
+          ? { id: rl.id, name: rl.name, override: true }
+          : { id: rl.id, name: rl.name, override: false };
+      }),
+      { shouldDirty: true, shouldValidate: isSubmitted },
+    );
+  };
+
+  const removeRatelimit = (id: string) => {
+    setRatelimits(ratelimits.filter((rl) => rl.id !== id));
+  };
+
+  // Number inputs map empty → undefined so a blank field references the named
+  // limit on the key rather than coercing to 0.
+  const toOptionalInt = (raw: string): number | undefined => {
+    if (raw === "") {
+      return undefined;
+    }
+    const n = Number.parseInt(raw, 10);
+    return Number.isNaN(n) ? undefined : n;
+  };
 
   const { data: availableKeyspaces = {} } =
     trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
@@ -243,6 +302,121 @@ export function KeyAuthFields() {
           </span>
         }
       />
+
+      <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
+        <div className="flex items-center justify-between">
+          <FormLabel
+            label="Key Rate Limits"
+            htmlFor="keyauth-ratelimits"
+            tooltipContent="Rate limits configured on the verified key to enforce for matching requests, mirroring verifyKey's ratelimits. Reference a limit by name; optionally override its limit, duration, and cost."
+          />
+          {ratelimits.length < SENTINEL_LIMITS.maxRatelimitsPerKeyauth && (
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              className="font-medium"
+              onClick={addRatelimit}
+            >
+              <Plus iconSize="sm-regular" />
+              Add
+            </Button>
+          )}
+        </div>
+        {ratelimits.map((rl, idx) => {
+          const rowErr = ratelimitErrors?.[idx];
+          const rowMessage =
+            rowErr?.name?.message ??
+            rowErr?.limit?.message ??
+            rowErr?.duration?.message ??
+            rowErr?.cost?.message;
+          return (
+            <div key={rl.id} className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <FormInput
+                  placeholder="name (e.g. expensive)"
+                  requirement="required"
+                  value={rl.name}
+                  onChange={(e) => updateRatelimit(rl.id, { name: e.target.value })}
+                  className="flex-1"
+                  variant={rowErr?.name ? "error" : undefined}
+                  aria-invalid={Boolean(rowErr?.name)}
+                />
+                <div className="flex items-center gap-1.5 shrink-0 text-[12px] text-gray-9">
+                  <Switch
+                    size="sm"
+                    checked={rl.override}
+                    onCheckedChange={(checked) => setRatelimitOverride(rl.id, checked)}
+                    aria-label="Override limit"
+                  />
+                  Override
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Remove rate limit"
+                  className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
+                  onClick={() => removeRatelimit(rl.id)}
+                >
+                  <Trash iconSize="sm-regular" />
+                </Button>
+              </div>
+              {rl.override && (
+                <div className="flex items-center gap-2 pl-1">
+                  <FormInput
+                    type="number"
+                    placeholder="limit"
+                    value={rl.limit ?? ""}
+                    onChange={(e) =>
+                      updateRatelimit(rl.id, { limit: toOptionalInt(e.target.value) })
+                    }
+                    className="flex-1"
+                    variant={rowErr?.limit ? "error" : undefined}
+                    aria-invalid={Boolean(rowErr?.limit)}
+                  />
+                  <FormInput
+                    type="number"
+                    placeholder="duration (ms)"
+                    value={rl.duration ?? ""}
+                    onChange={(e) =>
+                      updateRatelimit(rl.id, { duration: toOptionalInt(e.target.value) })
+                    }
+                    className="flex-1"
+                    variant={rowErr?.duration ? "error" : undefined}
+                    aria-invalid={Boolean(rowErr?.duration)}
+                  />
+                  <FormInput
+                    type="number"
+                    placeholder="cost"
+                    value={rl.cost ?? ""}
+                    onChange={(e) =>
+                      updateRatelimit(rl.id, { cost: toOptionalInt(e.target.value) })
+                    }
+                    className="w-20 shrink-0"
+                    variant={rowErr?.cost ? "error" : undefined}
+                    aria-invalid={Boolean(rowErr?.cost)}
+                  />
+                </div>
+              )}
+              {rowMessage && (
+                <FormDescription
+                  error={rowMessage}
+                  descriptionId={`ratelimit-${rl.id}-desc`}
+                  errorId={`ratelimit-${rl.id}-error`}
+                />
+              )}
+            </div>
+          );
+        })}
+        {ratelimits.length > 0 && (
+          <FormDescription
+            descriptionId="keyauth-ratelimits-desc"
+            errorId="keyauth-ratelimits-error"
+            description="Each entry enforces a rate limit defined on the key, referenced by name. Enable Override only to replace its limit, duration, and cost for this route."
+          />
+        )}
+      </fieldset>
     </div>
   );
 }
@@ -255,6 +429,7 @@ export function KeyauthPolicySummary() {
   const { control } = useFormContext<KeyauthFormValues>();
   const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
   const locations = useWatch({ control, name: "locations" });
+  const ratelimits = useWatch({ control, name: "ratelimits" });
 
   const { data: availableKeyspaces = {} } =
     trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
@@ -264,7 +439,7 @@ export function KeyauthPolicySummary() {
 
   return (
     <div className="max-w-75 truncate">
-      {summarizeKeyauth(keySpaceIds, locations, keyspaceNames)}
+      {summarizeKeyauth(keySpaceIds, locations, ratelimits, keyspaceNames)}
     </div>
   );
 }
@@ -272,6 +447,7 @@ export function KeyauthPolicySummary() {
 function summarizeKeyauth(
   keySpaceIds: string[],
   locations: KeyauthFormValues["locations"],
+  ratelimits: KeyauthFormValues["ratelimits"],
   keyspaceNames?: Record<string, string>,
 ): ReactNode {
   return (
@@ -297,6 +473,13 @@ function summarizeKeyauth(
         <>
           <Sep />
           <Strong>{locations.length}</Strong> key locations
+        </>
+      )}
+      {ratelimits.length > 0 && (
+        <>
+          <Sep />
+          <Strong>{ratelimits.length}</Strong>{" "}
+          {ratelimits.length === 1 ? "rate limit" : "rate limits"}
         </>
       )}
     </span>

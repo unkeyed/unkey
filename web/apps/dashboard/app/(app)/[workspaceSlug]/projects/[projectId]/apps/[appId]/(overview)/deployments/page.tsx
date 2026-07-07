@@ -1,4 +1,6 @@
 "use client";
+import { collection } from "@/lib/collections";
+import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { Plus } from "@unkey/icons";
 import {
   Button,
@@ -14,6 +16,11 @@ import { DeploymentsListControls } from "./components/controls";
 import { DeploymentsCardList } from "./components/deployments-card-list";
 
 export default function Deployments() {
+  useCollectionPolling(() => collection.deployments.utils.refetch(), {
+    intervalMs: 20_000,
+    enabled: true,
+  });
+
   return (
     <PageContainer>
       <PageHeader>

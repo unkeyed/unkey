@@ -32,10 +32,10 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/validation"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
@@ -73,7 +73,7 @@ var knownBuildErrors = []knownBuildError{
 	// The message is deliberately tech-neutral: Railpack is an implementation
 	// detail we don't surface to customers. "check the root directory" also
 	// makes the dashboard's failed-deployment banner show its settings link.
-	{substr: "railpack prepare failed", message: "Unkey could not determine how to build this app. Please check the root directory in settings, or review the build logs for details."},
+	{substr: "railpack prepare failed", message: "Unkey could not build this app automatically. For a monorepo, set the root directory to your app and a custom build command in settings, or review the build logs for details."},
 	// Settings-fixable: dockerfile path / docker context
 	{substr: "the dockerfile cannot be empty", message: "The Dockerfile appears to be empty. Please verify the file path in settings."},
 	{substr: "failed to read dockerfile", message: "Dockerfile could not be read. Please check that the file path is correct in settings."},
@@ -141,12 +141,17 @@ type buildResult struct {
 // gitBuildParams holds the inputs for building a container image from a Git
 // repository, including the exact commit and the build context location.
 type gitBuildParams struct {
-	InstallationID                int64
-	Repository                    string
-	ForkRepository                string
-	CommitSHA                     string
-	ContextPath                   string
-	DockerfilePath                string
+	InstallationID int64
+	Repository     string
+	ForkRepository string
+	CommitSHA      string
+	ContextPath    string
+	DockerfilePath string
+	// BuildCommand overrides Railpack's auto-detected build command
+	// (RAILPACK_BUILD_CMD) so monorepos can scope the build to a single app.
+	// Empty means auto-detect. Only consumed by the Railpack build path;
+	// Dockerfile builds ignore it.
+	BuildCommand                  string
 	ProjectID                     string
 	AppID                         string
 	DeploymentID                  string
@@ -676,7 +681,7 @@ func (w *Workflow) buildGitSolverOptions(
 // getOrCreateDepotProject retrieves the Depot project ID for an Unkey project,
 // creating one if it doesn't exist.
 func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID string) (string, error) {
-	project, err := db.Query.FindProjectById(ctx, w.db.RO(), unkeyProjectID)
+	project, err := w.db.FindProjectById(ctx, unkeyProjectID)
 	if err != nil {
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
@@ -717,7 +722,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 	depotProjectID := createResp.Msg.GetProject().GetProjectId()
 
 	now := time.Now().UnixMilli()
-	err = db.Query.UpdateProjectDepotID(ctx, w.db.RW(), db.UpdateProjectDepotIDParams{
+	err = w.db.UpdateProjectDepotID(ctx, db.UpdateProjectDepotIDParams{
 		DepotProjectID: sql.NullString{
 			String: depotProjectID,
 			Valid:  true,

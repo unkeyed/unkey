@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -87,6 +88,12 @@ export function ProductionDeploymentCard() {
     { refetchInterval: 30_000 },
   );
 
+  const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
+  useCollectionPolling(() => collection.deployments.utils.refetch(), {
+    intervalMs: 10_000,
+    enabled: productionStatus === "live" || productionStatus === "crashing",
+  });
+
   const isResolvingCurrentDeployment =
     currentDeploymentId != null && currentDeploymentQuery.isLoading;
 
@@ -108,7 +115,7 @@ export function ProductionDeploymentCard() {
     );
   }
 
-  const status = deriveProductionStatus(deployment);
+  const status = productionStatus ?? deriveProductionStatus(deployment);
   const isRolledBack = isCurrent ? (app?.isRolledBack ?? false) : false;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 

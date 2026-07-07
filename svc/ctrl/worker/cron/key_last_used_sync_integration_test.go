@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -50,7 +49,7 @@ func TestRunKeyLastUsedSync_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		for i, keyID := range keyIDs {
-			key, kErr := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyID)
+			key, kErr := h.DB.FindKeyByID(h.Ctx, keyID)
 			require.NoError(t, kErr)
 			expectedMinute := ((now - int64((len(keyIDs)-i)*1000)) / 60_000) * 60_000
 			require.GreaterOrEqual(t, int64(key.LastUsedAt), expectedMinute,
@@ -95,7 +94,7 @@ func TestRunKeyLastUsedSync_Integration(t *testing.T) {
 		_, err = callRunKeyLastUsedSync(h)
 		require.NoError(t, err)
 
-		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), resp.KeyID)
+		key, err := h.DB.FindKeyByID(h.Ctx, resp.KeyID)
 		require.NoError(t, err)
 		require.Equal(t, evenNewer, int64(key.LastUsedAt), "sync should not overwrite a newer MySQL timestamp")
 	})

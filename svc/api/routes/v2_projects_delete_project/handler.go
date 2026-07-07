@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return ctrlclient.HandleError(err, "delete project")
 	}
 
-	return s.JSON(http.StatusOK, Response{
+	return s.JSON(http.StatusAccepted, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},

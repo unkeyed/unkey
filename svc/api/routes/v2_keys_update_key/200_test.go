@@ -124,6 +124,50 @@ func TestUpdateKeySuccess(t *testing.T) {
 	})
 }
 
+func TestUpdateKeyWithURNPermission(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+	ctx := t.Context()
+
+	route := &handler.Handler{
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		UsageLimiter: h.UsageLimiter,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	key := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        ptr.P("before"),
+	})
+
+	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+	rootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId: key.KeyID,
+		Name:  nullable.NewNullableWithValue("after"),
+	})
+	require.Equal(t, 200, res.Status, "Expected 200, got: %d", res.Status)
+	require.NotNil(t, res.Body)
+
+	updatedKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), key.KeyID)
+	require.NoError(t, err)
+	require.Equal(t, "after", updatedKey.Name.String)
+}
+
 func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	t.Parallel()
 

@@ -1,7 +1,10 @@
 "use client";
 
 import { revalidate } from "@/app/actions";
-import { NavbarActionButton } from "@/components/navigation/action-button";
+import {
+  NavbarActionButton,
+  type NavbarActionButtonProps,
+} from "@/components/navigation/action-button";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,13 +32,14 @@ const formSchema = z.object({
 type Props = {
   defaultOpen?: boolean;
   workspaceSlug: string;
+  size?: NavbarActionButtonProps["size"];
 };
 
 export const CreateApiButton = ({
   defaultOpen,
   workspaceSlug,
   ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
+}: Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "size"> & Props) => {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const router = useRouter();
   const { api } = trpc.useUtils();

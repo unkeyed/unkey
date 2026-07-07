@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // fullDeploymentRow returns a deploymentRow with every field that

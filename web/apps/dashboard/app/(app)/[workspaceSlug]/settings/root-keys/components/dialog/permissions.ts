@@ -11,7 +11,8 @@ export type PermissionScope =
   | { kind: "workspace" }
   | { kind: "api"; id: string; name: string }
   | { kind: "project"; id: string; name: string }
-  | { kind: "app"; id: string; name: string };
+  | { kind: "app"; id: string; name: string; environments?: { id: string; name: string }[] }
+  | { kind: "environment"; id: string; name: string };
 
 export const WORKSPACE_SCOPE: PermissionScope = { kind: "workspace" };
 
@@ -26,8 +27,31 @@ export function getScopedPermissions(scope: PermissionScope): {
     case "project":
       return projectPermissions(scope.id);
     case "app":
-      return appPermissions(scope.id);
+      return appWithEnvironmentPermissions(scope.id, scope.environments ?? []);
+    case "environment":
+      return environmentPermissions(scope.id);
   }
+}
+
+export function appWithEnvironmentPermissions(
+  appId: string,
+  environments: { id: string; name: string }[],
+): { [category: string]: UnkeyPermissions } {
+  const base = appPermissions(appId);
+  if (environments.length === 0) {
+    return base;
+  }
+
+  // Environments share the same action name (read_environment), so key each
+  // entry by the environment name to keep them distinct within the category.
+  const environmentCategory: UnkeyPermissions = {};
+  for (const environment of environments) {
+    for (const entry of Object.values(environmentPermissions(environment.id).Environments)) {
+      environmentCategory[environment.name] = entry;
+    }
+  }
+
+  return { ...base, Environments: environmentCategory };
 }
 
 export const workspacePermissions = {
@@ -216,6 +240,24 @@ export const workspacePermissions = {
       description: "Read and list any app in this workspace",
       permission: "app.*.read_app",
     },
+    update_app: {
+      description: "Update apps in any project in this workspace",
+      permission: "app.*.update_app",
+    },
+    delete_app: {
+      description: "Delete apps in any project in this workspace",
+      permission: "app.*.delete_app",
+    },
+  },
+  Environments: {
+    read_environment: {
+      description: "Read any environment in this workspace",
+      permission: "environment.*.read_environment",
+    },
+    update_environment: {
+      description: "Update any environment's settings in this workspace",
+      permission: "environment.*.update_environment",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -311,6 +353,31 @@ export function appPermissions(appId: string): {
       read_app: {
         description: "Read this app.",
         permission: `app.${appId}.read_app`,
+      },
+      update_app: {
+        description: "Update apps in this project.",
+        permission: `app.${appId}.update_app`,
+      },
+      delete_app: {
+        description: "Delete apps in this project.",
+        permission: `app.${appId}.delete_app`,
+      },
+    },
+  };
+}
+
+export function environmentPermissions(environmentId: string): {
+  [category: string]: UnkeyPermissions;
+} {
+  return {
+    Environments: {
+      read_environment: {
+        description: "Read this environment.",
+        permission: `environment.${environmentId}.read_environment`,
+      },
+      update_environment: {
+        description: "Update this environment's settings.",
+        permission: `environment.${environmentId}.update_environment`,
       },
     },
   };
