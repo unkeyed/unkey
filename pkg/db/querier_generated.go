@@ -52,10 +52,13 @@ type Querier interface {
 	//
 	//  DELETE FROM apps WHERE id = ?
 	DeleteAppById(ctx context.Context, db DBTX, id string) error
-	//DeleteAppEnvVarsByEnvironmentId
+	// Deletes an environment's variables whose key is in the provided set.
 	//
-	//  DELETE FROM app_environment_variables WHERE environment_id = ?
-	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND `key` IN (/*SLICE:env_keys*/?)
+	DeleteAppEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteAppEnvVarsByKeysParams) error
 	//DeleteAppRegionalSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
@@ -126,6 +129,19 @@ type Querier interface {
 	//
 	//  DELETE FROM deployments WHERE environment_id = ?
 	DeleteDeploymentsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteEnvVarsByEnvironmentId
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	DeleteEnvVarsByEnvironmentId(ctx context.Context, db DBTX, arg DeleteEnvVarsByEnvironmentIdParams) error
+	//DeleteEnvVarsByKeys
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND `key` IN (/*SLICE:env_keys*/?)
+	DeleteEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteEnvVarsByKeysParams) error
 	//DeleteEnvironmentById
 	//
 	//  DELETE FROM environments WHERE id = ?
@@ -1463,8 +1479,8 @@ type Querier interface {
 	InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) error
 	//InsertAppEnvironmentVariable
 	//
-	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
-	//  VALUES (?, ?, ?, ?, ?, ?, ?)
+	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
 	//InsertCertificate
 	//

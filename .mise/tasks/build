@@ -4,8 +4,6 @@
 #MISE outputs=["./bin/unkey"]
 set -euo pipefail
 
-export GOCACHE="${GOCACHE:-$PWD/.cache/go-build}"
-
 go build ./...
 mkdir -p bin
 go build -o bin/unkey .
