@@ -1,7 +1,7 @@
 "use client";
 
 import { Unkey } from "@unkey/api";
-import { UnkeyError } from "@unkey/api/models/errors";
+import * as errors from "@unkey/api/models/errors";
 
 let client: Unkey | null = null;
 const fallbackErrorMessage = "An unexpected error occurred. Please try again later.";
@@ -20,8 +20,21 @@ export function getUnkeyClient(): Unkey {
 }
 
 export function getErrorMessage(error: unknown, fallback = fallbackErrorMessage): string {
-  if (error instanceof UnkeyError) {
-    return error.message;
+  if (
+    error instanceof errors.BadRequestErrorResponse ||
+    error instanceof errors.UnauthorizedErrorResponse ||
+    error instanceof errors.ForbiddenErrorResponse ||
+    error instanceof errors.NotFoundErrorResponse ||
+    error instanceof errors.ConflictErrorResponse ||
+    error instanceof errors.GoneErrorResponse ||
+    error instanceof errors.PreconditionFailedErrorResponse ||
+    error instanceof errors.UnprocessableEntityErrorResponse ||
+    error instanceof errors.TooManyRequestsErrorResponse ||
+    error instanceof errors.InternalServerErrorResponse ||
+    error instanceof errors.ServiceUnavailableErrorResponse
+  ) {
+    return error.error.detail || fallback;
   }
+
   return fallback;
 }
