@@ -89,7 +89,7 @@ type Grant struct {
 //
 // Key capabilities are keyspace-scoped: each is expanded once per keyspace in
 // the grant. Analytics is workspace-wide and expands to a single wildcard tuple.
-func Expand(g Grant) []string {
+func (g Grant) Expand() []string {
 	var granted []string
 
 	for _, c := range g.Capabilities {

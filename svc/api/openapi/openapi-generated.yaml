@@ -2299,7 +2299,6 @@ components:
             required:
                 - slug
                 - externalId
-                - keyspaceIds
                 - permissions
             properties:
                 slug:
@@ -2321,17 +2320,6 @@ components:
                         The end user's identifier in the customer's system.
                         Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
                     example: user_123
-                keyspaceIds:
-                    type: array
-                    items:
-                        type: string
-                        minLength: 1
-                    minItems: 1
-                    description: |
-                        The keyspaces the end user's key capabilities apply to. Key permissions
-                        (`keys:*`) are scoped to these keyspaces; the end user can never see or act
-                        on keys outside them. Must be keyspaces in the caller's workspace.
-                    example: ["ks_1a2b3c", "ks_4d5e6f"]
                 permissions:
                     type: array
                     items:
@@ -2345,9 +2333,10 @@ components:
                     description: |
                         The capabilities granted to the end user in the Portal, from a fixed
                         vocabulary. All capabilities are scoped to this end user: key capabilities
-                        (`keys:*`) apply only to keys the end user owns within `keyspaceIds`, and
-                        `analytics:read` returns only the end user's own verification events. An
-                        end user can never see another identity's keys or analytics.
+                        (`keys:*`) apply only to keys the end user owns within the keyspace
+                        configured on the portal configuration, and `analytics:read` returns only
+                        the end user's own verification events. An end user can never see another
+                        identity's keys or analytics.
 
                         Tab visibility is derived from the capabilities:
                         - Keys tab: any `keys:*` capability
@@ -2439,6 +2428,49 @@ components:
                         counts so the series is contiguous across the requested window.
                     items:
                         $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
+            additionalProperties: false
+        V2PortalListKeysRequestBody:
+            type: object
+            required:
+                - apiId
+            properties:
+                apiId:
+                    type: string
+                    minLength: 1
+                    description: |
+                        The API namespace whose keys to list. Results are always restricted to the
+                        keys owned by the authenticated portal session's end user; the session
+                        identity is authoritative and cannot be overridden from the request.
+                    example: api_1234abcd
+                limit:
+                    type: integer
+                    description: |
+                        Maximum number of keys to return per request.
+                        Balance between response size and number of pagination calls needed.
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: |
+                        Pagination cursor from a previous response to fetch the next page.
+                        Use when `hasMore: true` in the previous response.
+                    example: key_1234abcd
+            additionalProperties: false
+        V2PortalListKeysResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PortalListKeysResponseData"
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2ProjectsCreateProjectRequestBody:
             type: object
@@ -4676,6 +4708,12 @@ components:
                     format: int64
                     description: Verifications rejected because remaining usage was exhausted.
             additionalProperties: false
+        V2PortalListKeysResponseData:
+            type: array
+            maxItems: 100
+            items:
+                "$ref": "#/components/schemas/KeyResponseData"
+            description: Array of the portal end user's API keys.
         V2ProjectsCreateProjectResponseData:
             type: object
             required:
@@ -9427,21 +9465,21 @@ paths:
 
                 This is the portal-scoped variant of `apis.listKeys`. It authenticates only
                 with a portal session cookie and always restricts results to the keys owned
-                by the session's external identity; any `externalId` in the request body is
-                ignored.
+                by the session's external identity. The identity comes from the session, so
+                the request body has no `externalId` field.
             operationId: portal.listKeys
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/V2ApisListKeysRequestBody'
+                            $ref: '#/components/schemas/V2PortalListKeysRequestBody'
                 required: true
             responses:
                 "200":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/V2ApisListKeysResponseBody'
+                                $ref: '#/components/schemas/V2PortalListKeysResponseBody'
                     description: |
                         Successfully retrieved paginated keys. Use the pagination cursor for additional results when `hasMore: true`.
                 "400":

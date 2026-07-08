@@ -44,11 +44,11 @@ func TestParseRejectsUnknownCapability(t *testing.T) {
 }
 
 func TestExpandSatisfiesHandlerQueries(t *testing.T) {
-	granted := portalrbac.Expand(portalrbac.Grant{
+	granted := portalrbac.Grant{
 		WorkspaceID:  ws,
 		KeyspaceIDs:  []string{ks1},
 		Capabilities: []portalrbac.Capability{portalrbac.CapKeysRead, portalrbac.CapKeysReroll, portalrbac.CapAnalyticsRead},
-	})
+	}.Expand()
 
 	require.NoError(t, rbac.Check(listKeysQuery(ks1), granted), "keys:read should satisfy listKeys")
 	require.NoError(t, rbac.Check(rerollQuery(ks1), granted), "keys:reroll should satisfy reroll")
@@ -56,11 +56,11 @@ func TestExpandSatisfiesHandlerQueries(t *testing.T) {
 }
 
 func TestExpandIsScopedToGrantedKeyspaces(t *testing.T) {
-	granted := portalrbac.Expand(portalrbac.Grant{
+	granted := portalrbac.Grant{
 		WorkspaceID:  ws,
 		KeyspaceIDs:  []string{ks1},
 		Capabilities: []portalrbac.Capability{portalrbac.CapKeysReroll},
-	})
+	}.Expand()
 
 	require.NoError(t, rbac.Check(rerollQuery(ks1), granted), "reroll allowed on granted keyspace")
 	require.Error(t, rbac.Check(rerollQuery(ks2), granted), "reroll must be denied on a keyspace not in the grant")
@@ -68,11 +68,11 @@ func TestExpandIsScopedToGrantedKeyspaces(t *testing.T) {
 
 func TestExpandDoesNotOvergrant(t *testing.T) {
 	// A read-only grant must not satisfy a reroll (create_key) query.
-	granted := portalrbac.Expand(portalrbac.Grant{
+	granted := portalrbac.Grant{
 		WorkspaceID:  ws,
 		KeyspaceIDs:  []string{ks1},
 		Capabilities: []portalrbac.Capability{portalrbac.CapKeysRead},
-	})
+	}.Expand()
 
 	require.NoError(t, rbac.Check(listKeysQuery(ks1), granted))
 	require.Error(t, rbac.Check(rerollQuery(ks1), granted), "read-only grant must not allow reroll")

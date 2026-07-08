@@ -3,6 +3,7 @@ package clickhouse
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -22,17 +23,18 @@ type VerificationTimeseriesRequest struct {
 // VerificationTimeseriesDataPoint is one time bucket of verification counts
 // broken out by outcome. Time is the bucket start in unix milliseconds. The
 // outcome fields mirror the dashboard's verification timeseries shape so portal
-// charts can reuse the same components.
+// charts can reuse the same components. The ch tags map onto the query's column
+// aliases for [Select].
 type VerificationTimeseriesDataPoint struct {
-	Time                    int64
-	Total                   int64
-	Valid                   int64
-	RateLimited             int64
-	InsufficientPermissions int64
-	Forbidden               int64
-	Disabled                int64
-	Expired                 int64
-	UsageExceeded           int64
+	Time                    int64 `ch:"x"`
+	Total                   int64 `ch:"total"`
+	Valid                   int64 `ch:"valid"`
+	RateLimited             int64 `ch:"rate_limited"`
+	InsufficientPermissions int64 `ch:"insufficient_permissions"`
+	Forbidden               int64 `ch:"forbidden"`
+	Disabled                int64 `ch:"disabled"`
+	Expired                 int64 `ch:"expired"`
+	UsageExceeded           int64 `ch:"usage_exceeded"`
 }
 
 // verificationInterval describes the aggregated table and bucket width used for
@@ -69,63 +71,47 @@ func selectVerificationInterval(windowMs int64) verificationInterval {
 func (c *Client) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
 	iv := selectVerificationInterval(req.EndTime - req.StartTime)
 
-	keyFilter := ""
-	args := []any{req.WorkspaceID, req.ExternalID, req.StartTime, req.EndTime}
-	if req.KeyID != "" {
-		keyFilter = "AND key_id = ?"
-		args = append(args, req.KeyID)
-	}
-	// WITH FILL bounds reuse the window; appended after the optional key filter
-	// so positional args stay aligned with the placeholders in the query.
-	args = append(args, req.StartTime, req.EndTime)
-
+	// iv.unit, iv.table and iv.stepMs come from selectVerificationInterval — a
+	// fixed switch over the window size, never caller input — so they are safe to
+	// interpolate. Every caller-supplied value (workspace, identity, key, window
+	// bounds) goes through a typed named parameter instead. SUM results are cast
+	// to Int64 so they scan into the int64 struct fields. An empty key_id means
+	// "all keys": the OR short-circuits the filter rather than binding it.
 	query := fmt.Sprintf(`
 	SELECT
 		toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL 1 %[1]s) AS DateTime64(3))) AS x,
-		SUM(count) AS total,
-		SUM(IF(outcome = 'VALID', count, 0)) AS valid,
-		SUM(IF(outcome = 'RATE_LIMITED', count, 0)) AS rate_limited,
-		SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0)) AS insufficient_permissions,
-		SUM(IF(outcome = 'FORBIDDEN', count, 0)) AS forbidden,
-		SUM(IF(outcome = 'DISABLED', count, 0)) AS disabled,
-		SUM(IF(outcome = 'EXPIRED', count, 0)) AS expired,
-		SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0)) AS usage_exceeded
+		toInt64(SUM(count)) AS total,
+		toInt64(SUM(IF(outcome = 'VALID', count, 0))) AS valid,
+		toInt64(SUM(IF(outcome = 'RATE_LIMITED', count, 0))) AS rate_limited,
+		toInt64(SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0))) AS insufficient_permissions,
+		toInt64(SUM(IF(outcome = 'FORBIDDEN', count, 0))) AS forbidden,
+		toInt64(SUM(IF(outcome = 'DISABLED', count, 0))) AS disabled,
+		toInt64(SUM(IF(outcome = 'EXPIRED', count, 0))) AS expired,
+		toInt64(SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))) AS usage_exceeded
 	FROM %[2]s
-	WHERE workspace_id = ?
-		AND external_id = ?
-		AND time >= fromUnixTimestamp64Milli(?)
-		AND time < fromUnixTimestamp64Milli(?)
-		%[3]s
+	WHERE workspace_id = {workspace_id:String}
+		AND external_id = {external_id:String}
+		AND time >= fromUnixTimestamp64Milli({start:Int64})
+		AND time < fromUnixTimestamp64Milli({end:Int64})
+		AND ({key_id:String} = '' OR key_id = {key_id:String})
 	GROUP BY x
 	ORDER BY x ASC
 	WITH FILL
-		FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli(?), INTERVAL 1 %[1]s) AS DateTime64(3)))
-		TO toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli(?), INTERVAL 1 %[1]s) AS DateTime64(3))) + %[4]d
-		STEP %[4]d`,
-		iv.unit, iv.table, keyFilter, iv.stepMs,
+		FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli({start:Int64}), INTERVAL 1 %[1]s) AS DateTime64(3)))
+		TO toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli({end:Int64}), INTERVAL 1 %[1]s) AS DateTime64(3))) + %[3]d
+		STEP %[3]d`,
+		iv.unit, iv.table, iv.stepMs,
 	)
 
-	rows, err := c.conn.Query(ctx, query, args...)
+	results, err := Select[VerificationTimeseriesDataPoint](ctx, c.conn, query, map[string]string{
+		"workspace_id": req.WorkspaceID,
+		"external_id":  req.ExternalID,
+		"key_id":       req.KeyID,
+		"start":        strconv.FormatInt(req.StartTime, 10),
+		"end":          strconv.FormatInt(req.EndTime, 10),
+	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verification timeseries"))
-	}
-	defer func() { _ = rows.Close() }()
-
-	var results []VerificationTimeseriesDataPoint
-	for rows.Next() {
-		var r VerificationTimeseriesDataPoint
-		if err := rows.Scan(
-			&r.Time, &r.Total, &r.Valid, &r.RateLimited, &r.InsufficientPermissions,
-			&r.Forbidden, &r.Disabled, &r.Expired, &r.UsageExceeded,
-		); err != nil {
-			return nil, fault.Wrap(err, fault.Internal("failed to scan verification timeseries row"))
-		}
-
-		results = append(results, r)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fault.Wrap(err, fault.Internal("error iterating verification timeseries rows"))
 	}
 
 	return results, nil

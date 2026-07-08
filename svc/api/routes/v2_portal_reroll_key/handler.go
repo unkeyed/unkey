@@ -17,9 +17,23 @@ import (
 // It reuses the rerollKey core rather than wrapping it with a scope flag: the
 // core does the (large) reroll, and this handler owns the identity guard by
 // loading the key up front and refusing anything it does not own.
+//
+// The core is held in an unexported field, not embedded: embedding would
+// promote the core's Method/Path/Handle onto this type, so a typo or a missing
+// override here would silently fall through to the unscoped keys.rerollKey
+// handler and expose an unauthenticated reroll. With an explicit field the
+// compiler forces us to define every zen.Route method.
 type Handler struct {
-	*rerollkey.Handler
+	reroll *rerollkey.Handler
 }
+
+// New builds a portal.rerollKey handler over the shared keys.rerollKey core.
+func New(reroll *rerollkey.Handler) *Handler {
+	return &Handler{reroll: reroll}
+}
+
+// Method returns the HTTP method this route responds to.
+func (h *Handler) Method() string { return "POST" }
 
 // Path returns the URL path pattern this route matches.
 func (h *Handler) Path() string { return "/v2/portal.rerollKey" }
@@ -41,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	key, err := h.FindLiveKey(ctx, req.KeyId)
+	key, err := h.reroll.FindLiveKey(ctx, req.KeyId)
 	if err != nil {
 		return err
 	}
@@ -59,5 +73,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	return h.Handler.RerollKey(ctx, s, req, key)
+	return h.reroll.RerollKey(ctx, s, req, key)
 }

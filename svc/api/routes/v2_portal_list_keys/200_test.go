@@ -12,25 +12,24 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	listkeys "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
 )
 
 type (
-	Request  = listkeys.Request
-	Response = listkeys.Response
+	Request  = handler.Request
+	Response = openapi.V2PortalListKeysResponseBody
 )
 
 // newHandler builds the portal.listKeys handler backed by a configured
 // apis.listKeys handler.
 func newHandler(h *testutil.Harness) *handler.Handler {
-	return &handler.Handler{
-		Handler: &listkeys.Handler{
-			DB:       h.DB,
-			Vault:    h.Vault,
-			ApiCache: h.Caches.LiveApiByID,
-		},
-	}
+	return handler.New(&listkeys.Handler{
+		DB:       h.DB,
+		Vault:    h.Vault,
+		ApiCache: h.Caches.LiveApiByID,
+	})
 }
 
 // portalSessionSetup holds all objects created for a portal session test scenario.
@@ -163,36 +162,6 @@ func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
 	}
 	require.True(t, returnedIDs[setup.key1ID], "key1 should be in results")
 	require.True(t, returnedIDs[setup.key2ID], "key2 should be in results")
-}
-
-func TestPortalSessionOverridesSuppliedExternalID(t *testing.T) {
-	h := testutil.NewHarness(t)
-
-	route := newHandler(h)
-	h.Register(route, h.PortalMiddleware()...)
-
-	setup := setupPortalSessionTest(t, h)
-
-	// Portal session for user A
-	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{setup.keySpaceID}, []string{"keys:read"})
-
-	// Attempt to supply user B's externalId — should be overridden
-	req := Request{
-		ApiId:      setup.apiID,
-		ExternalId: &setup.identity2ExternalID,
-	}
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
-
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body.Data)
-	// Should still only see user A's keys, not user B's
-	require.Len(t, res.Body.Data, 2)
-
-	for _, key := range res.Body.Data {
-		require.NotNil(t, key.Identity)
-		require.Equal(t, setup.identity1ExternalID, key.Identity.ExternalId)
-	}
 }
 
 func TestPortalSessionNonExistentIdentityReturnsEmpty(t *testing.T) {

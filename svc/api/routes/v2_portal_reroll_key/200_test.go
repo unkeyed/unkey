@@ -21,14 +21,12 @@ type (
 // newHandler builds the portal.rerollKey handler backed by a configured
 // keys.rerollKey handler.
 func newHandler(h *testutil.Harness) *handler.Handler {
-	return &handler.Handler{
-		Handler: &rerollkey.Handler{
-			DB:        h.DB,
-			Keys:      h.Keys,
-			Auditlogs: h.Auditlogs,
-			Vault:     h.Vault,
-		},
-	}
+	return handler.New(&rerollkey.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	})
 }
 
 // TestPortalSessionRerollOwnKey verifies a portal session can reroll a key that

@@ -2,7 +2,6 @@ type: object
 required:
   - slug
   - externalId
-  - keyspaceIds
   - permissions
 properties:
   slug:
@@ -24,17 +23,6 @@ properties:
       The end user's identifier in the customer's system.
       Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
     example: user_123
-  keyspaceIds:
-    type: array
-    items:
-      type: string
-      minLength: 1
-    minItems: 1
-    description: |
-      The keyspaces the end user's key capabilities apply to. Key permissions
-      (`keys:*`) are scoped to these keyspaces; the end user can never see or act
-      on keys outside them. Must be keyspaces in the caller's workspace.
-    example: ["ks_1a2b3c", "ks_4d5e6f"]
   permissions:
     type: array
     items:
@@ -48,9 +36,10 @@ properties:
     description: |
       The capabilities granted to the end user in the Portal, from a fixed
       vocabulary. All capabilities are scoped to this end user: key capabilities
-      (`keys:*`) apply only to keys the end user owns within `keyspaceIds`, and
-      `analytics:read` returns only the end user's own verification events. An
-      end user can never see another identity's keys or analytics.
+      (`keys:*`) apply only to keys the end user owns within the keyspace
+      configured on the portal configuration, and `analytics:read` returns only
+      the end user's own verification events. An end user can never see another
+      identity's keys or analytics.
 
       Tab visibility is derived from the capabilities:
       - Keys tab: any `keys:*` capability

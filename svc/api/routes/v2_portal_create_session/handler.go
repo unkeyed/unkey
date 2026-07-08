@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -16,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // storedGrant is the JSON shape persisted in the portal session's permissions
@@ -42,37 +44,100 @@ type Handler struct {
 func (h *Handler) Method() string { return "POST" }
 func (h *Handler) Path() string   { return "/v2/portal.createSession" }
 
-// validateKeyspacesOwned confirms every keyspace id belongs to the workspace, so
-// a portal session can never be scoped to keyspaces the caller does not own.
-func (h *Handler) validateKeyspacesOwned(ctx context.Context, workspaceID string, keyspaceIDs []string) error {
-	rows, err := db.Query.FindKeyAuthsByKeyAuthIds(ctx, h.DB.RO(), db.FindKeyAuthsByKeyAuthIdsParams{
-		WorkspaceID: workspaceID,
-		KeyAuthIds:  keyspaceIDs,
-	})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error looking up keyspaces"),
-			fault.Public("Failed to validate keyspaces."),
+// resolveKeyspaceIDs derives the keyspaces a portal session is scoped to from
+// the portal configuration. A config maps to exactly one of a keyspace or an
+// app:
+//
+//   - keyspace-mapped (key_auth_id): the configured keyspace scopes key
+//     capabilities directly.
+//   - app-mapped (app_id): the app's current deployment carries a sentinel
+//     config whose keyauth policies list the keyspaces it verifies keys against
+//     at the gateway; those keySpaceIds become the session's keyspaces.
+//
+// The config is bound to the caller's workspace, so the resolved keyspaces can
+// never belong to another workspace.
+func (h *Handler) resolveKeyspaceIDs(ctx context.Context, workspaceID string, portalConfig db.PortalConfiguration) ([]string, error) {
+	hasKeyspace := portalConfig.KeyAuthID.Valid
+	hasApp := portalConfig.AppID.Valid
+
+	// A well-formed config maps to exactly one of a keyspace or an app. Neither
+	// or both is a misconfiguration the session can't be scoped from.
+	if hasKeyspace == hasApp {
+		return nil, fault.New("portal config not mapped to exactly one target",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("portal config must reference exactly one of key_auth_id or app_id"),
+			fault.Public("Portal configuration is invalid."),
 		)
 	}
 
-	owned := make(map[string]struct{}, len(rows))
-	for _, r := range rows {
-		owned[r.KeyAuthID] = struct{}{}
+	if hasKeyspace {
+		return []string{portalConfig.KeyAuthID.String}, nil
 	}
 
-	for _, id := range keyspaceIDs {
-		if _, ok := owned[id]; !ok {
-			return fault.New("keyspace not found",
-				fault.Code(codes.Data.KeySpace.NotFound.URN()),
-				fault.Internal(fmt.Sprintf("keyspace %q not found in workspace", id)),
-				fault.Public(fmt.Sprintf("Keyspace %q was not found.", id)),
+	raw, err := db.Query.FindAppSentinelConfigByID(ctx, h.DB.RO(), db.FindAppSentinelConfigByIDParams{
+		AppID:       portalConfig.AppID.String,
+		WorkspaceID: workspaceID,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, fault.New("portal app has no current deployment",
+				fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Internal("app has no current deployment to resolve keyspaces from"),
+				fault.Public("Portal is not available: the app has no active deployment."),
 			)
 		}
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error looking up app sentinel config"),
+			fault.Public("Failed to look up portal configuration."),
+		)
 	}
 
-	return nil
+	keyspaceIDs, err := keyspacesFromSentinelConfig(raw)
+	if err != nil {
+		return nil, err
+	}
+	if len(keyspaceIDs) == 0 {
+		return nil, fault.New("portal app has no keyauth policies",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal("app sentinel config declares no keyauth keyspaces"),
+			fault.Public("Portal is not available: the app has no key verification configured."),
+		)
+	}
+
+	return keyspaceIDs, nil
+}
+
+// keyspacesFromSentinelConfig parses a deployment's sentinel_config and returns
+// the deduplicated keyspaces declared across its keyauth policies. Empty or
+// legacy empty-object configs yield no keyspaces (mirrors the frontline
+// gateway's lenient parsing).
+func keyspacesFromSentinelConfig(raw []byte) ([]string, error) {
+	if len(raw) == 0 || string(raw) == "{}" {
+		return nil, nil
+	}
+
+	cfg := &frontlinev1.Config{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(raw, cfg); err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("failed to unmarshal app sentinel config"),
+			fault.Public("Portal configuration is invalid."),
+		)
+	}
+
+	seen := make(map[string]struct{})
+	var keyspaceIDs []string
+	for _, p := range cfg.GetPolicies() {
+		for _, ks := range p.GetKeyauth().GetKeySpaceIds() {
+			if _, ok := seen[ks]; ok {
+				continue
+			}
+			seen[ks] = struct{}{}
+			keyspaceIDs = append(keyspaceIDs, ks)
+		}
+	}
+	return keyspaceIDs, nil
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
@@ -123,11 +188,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// The capability vocabulary is enforced by the OpenAPI enum at the request
-	// boundary; here we confirm the caller owns every keyspace it is scoping the
-	// session to, so a session can never be minted against another workspace's
-	// keyspaces.
-	if err := h.validateKeyspacesOwned(ctx, workspaceID, req.KeyspaceIds); err != nil {
+	// The keyspaces a session is scoped to come from the portal configuration,
+	// not the public request: the config is already bound to this workspace, so
+	// key capabilities can never reach another workspace's keyspaces.
+	keyspaceIDs, err := h.resolveKeyspaceIDs(ctx, workspaceID, portalConfig)
+	if err != nil {
 		return err
 	}
 
@@ -158,7 +223,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	permissionsJSON, err := json.Marshal(storedGrant{
-		KeyspaceIDs: req.KeyspaceIds,
+		KeyspaceIDs: keyspaceIDs,
 		Permissions: verbs,
 	})
 	if err != nil {

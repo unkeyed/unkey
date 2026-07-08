@@ -59,11 +59,11 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 
 	// The resolver expands the simplified capability model into RBAC strings via
 	// portalrbac; the principal must carry the expanded permissions, not the verbs.
-	expected := portalrbac.Expand(portalrbac.Grant{
+	expected := portalrbac.Grant{
 		WorkspaceID:  "ws_123",
 		KeyspaceIDs:  []string{"ks_1"},
 		Capabilities: []portalrbac.Capability{portalrbac.CapKeysReroll},
-	})
+	}.Expand()
 	require.Equal(t, expected, source.Permissions)
 	require.Equal(t, expected, principal.Permissions)
 }

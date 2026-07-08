@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//pkg/zen",
         "//svc/api/internal/portalscope",
+        "//svc/api/openapi",
         "//svc/api/routes/v2_apis_list_keys",
     ],
 )
@@ -22,6 +23,7 @@ go_test(
         "//pkg/uid",
         "//svc/api/internal/testutil",
         "//svc/api/internal/testutil/seed",
+        "//svc/api/openapi",
         "//svc/api/routes/v2_apis_list_keys",
         "@com_github_stretchr_testify//require",
     ],

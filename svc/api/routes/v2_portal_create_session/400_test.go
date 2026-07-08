@@ -49,13 +49,11 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	validKeyspaces := []string{"ks_example"}
 	validPerms := []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"}
 
 	t.Run("missing externalId", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
-			KeyspaceIds: validKeyspaces,
 			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -67,7 +65,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "",
-			KeyspaceIds: validKeyspaces,
 			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -78,7 +75,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	t.Run("missing slug", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId:  "user_123",
-			KeyspaceIds: validKeyspaces,
 			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -90,30 +86,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "",
 			ExternalId:  "user_123",
-			KeyspaceIds: validKeyspaces,
-			Permissions: validPerms,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("missing keyspaceIds", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_123",
-			Permissions: validPerms,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("empty keyspaceIds array", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_123",
-			KeyspaceIds: []string{},
 			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -123,9 +95,8 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("missing permissions", func(t *testing.T) {
 		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_123",
-			KeyspaceIds: validKeyspaces,
+			Slug:       "test-portal",
+			ExternalId: "user_123",
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -136,7 +107,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			KeyspaceIds: validKeyspaces,
 			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -150,7 +120,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			KeyspaceIds: validKeyspaces,
 			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:destroy"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -162,7 +131,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			KeyspaceIds: validKeyspaces,
 			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -174,7 +142,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			KeyspaceIds: validKeyspaces,
 			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read", "api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

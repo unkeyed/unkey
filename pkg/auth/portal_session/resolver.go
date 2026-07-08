@@ -54,11 +54,11 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	if err != nil {
 		return nil, err
 	}
-	permissions := portalrbac.Expand(portalrbac.Grant{
+	permissions := portalrbac.Grant{
 		WorkspaceID:  session.WorkspaceID,
 		KeyspaceIDs:  session.KeyspaceIDs,
 		Capabilities: capabilities,
-	})
+	}.Expand()
 
 	return &principal.Principal{
 		Version: principal.Version,

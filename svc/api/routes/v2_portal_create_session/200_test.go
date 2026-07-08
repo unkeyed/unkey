@@ -32,8 +32,8 @@ func TestCreateSessionSuccess(t *testing.T) {
 	portalConfigID := uid.New(uid.PortalConfigPrefix)
 	now := time.Now().UnixMilli()
 
-	// A keyspace (backed by an API, as keyspaces always are) in the workspace
-	// that the session can be scoped to.
+	// A keyspace-mapped portal config: the session is scoped to this keyspace,
+	// derived from the config rather than the request.
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            keySpaceID,
@@ -41,14 +41,6 @@ func TestCreateSessionSuccess(t *testing.T) {
 		CreatedAtM:    now,
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
-	}))
-	require.NoError(t, db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          uid.New("api"),
-		Name:        "Portal Test API",
-		WorkspaceID: workspaceID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
-		CreatedAtM:  now,
 	}))
 
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
@@ -72,7 +64,6 @@ func TestCreateSessionSuccess(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			KeyspaceIds: []string{keySpaceID},
 			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 		}
 
@@ -95,7 +86,6 @@ func TestCreateSessionSuccess(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_789",
-			KeyspaceIds: []string{keySpaceID},
 			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 			Preview:     &preview,
 		}
@@ -119,7 +109,6 @@ func TestCreateSessionSuccess(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_multi",
-			KeyspaceIds: []string{keySpaceID},
 			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 		}
 
@@ -131,18 +120,5 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 		// Each call must produce a unique session ID.
 		require.NotEqual(t, res1.Body.Data.SessionId, res2.Body.Data.SessionId)
-	})
-
-	t.Run("keyspace not in workspace is rejected", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_bad_ks",
-			KeyspaceIds: []string{uid.New(uid.KeySpacePrefix)},
-			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 404, res.Status,
-			"a keyspace the caller does not own must be rejected")
 	})
 }

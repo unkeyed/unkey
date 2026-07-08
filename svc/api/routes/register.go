@@ -641,26 +641,22 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// v2/portal.listKeys
 	srv.RegisterRoute(
 		portalMiddlewares,
-		&v2PortalListKeys.Handler{
-			Handler: &v2ApisListKeys.Handler{
-				DB:       svc.Database,
-				Vault:    svc.Vault,
-				ApiCache: svc.Caches.LiveApiByID,
-			},
-		},
+		v2PortalListKeys.New(&v2ApisListKeys.Handler{
+			DB:       svc.Database,
+			Vault:    svc.Vault,
+			ApiCache: svc.Caches.LiveApiByID,
+		}),
 	)
 
 	// v2/portal.rerollKey
 	srv.RegisterRoute(
 		portalMiddlewares,
-		&v2PortalRerollKey.Handler{
-			Handler: &v2KeysRerollKey.Handler{
-				DB:        svc.Database,
-				Keys:      svc.Keys,
-				Auditlogs: svc.Auditlogs,
-				Vault:     svc.Vault,
-			},
-		},
+		v2PortalRerollKey.New(&v2KeysRerollKey.Handler{
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
+			Vault:     svc.Vault,
+		}),
 	)
 
 	// v2/portal.getVerifications

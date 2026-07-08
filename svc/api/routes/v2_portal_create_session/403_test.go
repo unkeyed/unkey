@@ -52,7 +52,6 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	req := handler.Request{
 		Slug:        "disabled-portal",
 		ExternalId:  "user_123",
-		KeyspaceIds: []string{"ks_example"},
 		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}
 

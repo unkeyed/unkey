@@ -28,6 +28,20 @@ type (
 	Response = openapi.V2ApisListKeysResponseBody
 )
 
+// ListKeysParams is the decoded input to the shared list-keys core. It is
+// deliberately decoupled from any single endpoint's public request schema so
+// the public (apis.listKeys) and portal (portal.listKeys) routes can share the
+// core without sharing a contract: each route binds its own request body and
+// maps it into this struct.
+type ListKeysParams struct {
+	ApiID               string
+	Limit               *int
+	Cursor              *string
+	ExternalID          *string
+	Decrypt             *bool
+	RevalidateKeysCache *bool
+}
+
 // Handler implements zen.Route interface for the v2 APIs list keys endpoint
 type Handler struct {
 	DB       db.Database
@@ -51,14 +65,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	return h.ListKeys(ctx, s, req)
+	return h.ListKeys(ctx, s, ListKeysParams{
+		ApiID:               req.ApiId,
+		Limit:               req.Limit,
+		Cursor:              req.Cursor,
+		ExternalID:          req.ExternalId,
+		Decrypt:             req.Decrypt,
+		RevalidateKeysCache: req.RevalidateKeysCache,
+	})
 }
 
-// ListKeys lists keys for an already-bound request. req.ExternalId is
+// ListKeys lists keys for already-decoded params. req.ExternalID is
 // authoritative: the public route passes the client's filter through; the portal
-// route overwrites it with the session's external identity before calling. This
-// core has no notion of portal vs. public.
-func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req Request) error {
+// route sets it to the session's external identity before calling. This core has
+// no notion of portal vs. public.
+func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req ListKeysParams) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
@@ -66,9 +87,9 @@ func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req Request) err
 
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
 		WorkspaceID: principal.WorkspaceID,
-		Key:         req.ApiId,
+		Key:         req.ApiID,
 	}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
-		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
+		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -130,7 +151,7 @@ func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req Request) err
 				}),
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Api,
-					ResourceID:   req.ApiId,
+					ResourceID:   req.ApiID,
 					Action:       rbac.ReadKey,
 				}),
 			),
@@ -142,7 +163,7 @@ func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req Request) err
 				}),
 				rbac.T(rbac.Tuple{
 					ResourceType: rbac.Api,
-					ResourceID:   req.ApiId,
+					ResourceID:   req.ApiID,
 					Action:       rbac.ReadAPI,
 				}),
 			),
@@ -201,10 +222,10 @@ func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req Request) err
 
 	// Resolve identity ID if external_id filter is provided
 	var identityID sql.NullString
-	if req.ExternalId != nil && *req.ExternalId != "" {
+	if req.ExternalID != nil && *req.ExternalID != "" {
 		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
 			WorkspaceID: principal.WorkspaceID,
-			ExternalID:  *req.ExternalId,
+			ExternalID:  *req.ExternalID,
 			Deleted:     false,
 		})
 		if identityErr != nil {
@@ -292,7 +313,7 @@ func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req Request) err
 	})
 }
 
-func (h *Handler) decryptKeys(ctx context.Context, req Request, keys []db.ListLiveKeysByKeySpaceIDRow, workspaceID string) map[string]string {
+func (h *Handler) decryptKeys(ctx context.Context, req ListKeysParams, keys []db.ListLiveKeysByKeySpaceIDRow, workspaceID string) map[string]string {
 	if req.Decrypt == nil || !*req.Decrypt {
 		return nil
 	}

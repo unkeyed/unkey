@@ -2573,16 +2573,12 @@ type V2PortalCreateSessionRequestBody struct {
 	// Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
 	ExternalId string `json:"externalId"`
 
-	// KeyspaceIds The keyspaces the end user's key capabilities apply to. Key permissions
-	// (`keys:*`) are scoped to these keyspaces; the end user can never see or act
-	// on keys outside them. Must be keyspaces in the caller's workspace.
-	KeyspaceIds []string `json:"keyspaceIds"`
-
 	// Permissions The capabilities granted to the end user in the Portal, from a fixed
 	// vocabulary. All capabilities are scoped to this end user: key capabilities
-	// (`keys:*`) apply only to keys the end user owns within `keyspaceIds`, and
-	// `analytics:read` returns only the end user's own verification events. An
-	// end user can never see another identity's keys or analytics.
+	// (`keys:*`) apply only to keys the end user owns within the keyspace
+	// configured on the portal configuration, and `analytics:read` returns only
+	// the end user's own verification events. An end user can never see another
+	// identity's keys or analytics.
 	//
 	// Tab visibility is derived from the capabilities:
 	// - Keys tab: any `keys:*` capability
@@ -2700,6 +2696,37 @@ type V2PortalGetVerificationsResponseBody struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2PortalListKeysRequestBody defines model for V2PortalListKeysRequestBody.
+type V2PortalListKeysRequestBody struct {
+	// ApiId The API namespace whose keys to list. Results are always restricted to the
+	// keys owned by the authenticated portal session's end user; the session
+	// identity is authoritative and cannot be overridden from the request.
+	ApiId string `json:"apiId"`
+
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit Maximum number of keys to return per request.
+	// Balance between response size and number of pagination calls needed.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// V2PortalListKeysResponseBody defines model for V2PortalListKeysResponseBody.
+type V2PortalListKeysResponseBody struct {
+	// Data Array of the portal end user's API keys.
+	Data V2PortalListKeysResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
+// V2PortalListKeysResponseData Array of the portal end user's API keys.
+type V2PortalListKeysResponseData = []KeyResponseData
 
 // V2ProjectsCreateProjectRequestBody defines model for V2ProjectsCreateProjectRequestBody.
 type V2ProjectsCreateProjectRequestBody struct {
@@ -3318,7 +3345,7 @@ type PortalExchangeSessionJSONRequestBody = V2PortalExchangeSessionRequestBody
 type PortalGetVerificationsJSONRequestBody = V2PortalGetVerificationsRequestBody
 
 // PortalListKeysJSONRequestBody defines body for PortalListKeys for application/json ContentType.
-type PortalListKeysJSONRequestBody = V2ApisListKeysRequestBody
+type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
 
 // PortalRerollKeyJSONRequestBody defines body for PortalRerollKey for application/json ContentType.
 type PortalRerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
