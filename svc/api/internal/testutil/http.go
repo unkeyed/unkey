@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -84,6 +85,11 @@ type Harness struct {
 type HarnessConfig struct {
 	Redis      bool
 	ClickHouse bool
+
+	// MySQLDiskStorage starts a disk-backed MySQL container instead of the
+	// shared tmpfs one, whose 256MB would overflow under large seeded
+	// datasets. Use for tests that seed millions of rows.
+	MySQLDiskStorage bool
 }
 
 // NewHarness creates a fully initialized test harness wired against fresh
@@ -92,12 +98,14 @@ type HarnessConfig struct {
 func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	clk := clock.NewTestClock()
 	cfg := HarnessConfig{
-		Redis:      false,
-		ClickHouse: false,
+		Redis:            false,
+		ClickHouse:       false,
+		MySQLDiskStorage: false,
 	}
 	for _, c := range configs {
 		cfg.Redis = cfg.Redis || c.Redis
 		cfg.ClickHouse = cfg.ClickHouse || c.ClickHouse
+		cfg.MySQLDiskStorage = cfg.MySQLDiskStorage || c.MySQLDiskStorage
 	}
 
 	var wg sync.WaitGroup
@@ -106,7 +114,11 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	var chCfg containers.ClickHouseConfig
 
 	wg.Go(func() {
-		mysqlCfg = containers.MySQL(t)
+		var mysqlOpts []containers.MySQLOpt
+		if cfg.MySQLDiskStorage {
+			mysqlOpts = append(mysqlOpts, containers.WithDiskStorage())
+		}
+		mysqlCfg = containers.MySQL(t, mysqlOpts...)
 	})
 	if cfg.Redis {
 		wg.Go(func() {
@@ -125,6 +137,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 

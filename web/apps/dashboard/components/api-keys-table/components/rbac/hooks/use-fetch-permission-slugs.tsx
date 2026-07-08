@@ -1,4 +1,5 @@
 "use client";
+
 import { trpc } from "@/lib/trpc/client";
 
 export const useFetchPermissionSlugs = (

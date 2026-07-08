@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -53,6 +54,7 @@ func newTestHarness(t *testing.T) *testHarness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = database.Close() })

@@ -19,5 +19,6 @@ go_library(
     deps = [
         "//pkg/db/types",
         "//pkg/mysql",
+        "//pkg/mysql/sqlcomment",
     ],
 )

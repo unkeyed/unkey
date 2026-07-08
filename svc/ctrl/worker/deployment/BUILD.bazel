@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "deployment",
@@ -14,5 +14,18 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//svc/ctrl/internal/db",
         "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "deployment_test",
+    srcs = ["deployment_state_integration_test.go"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/uid",
+        "//svc/ctrl/integration/harness",
+        "//svc/ctrl/integration/seed",
+        "//svc/ctrl/internal/db",
+        "@com_github_stretchr_testify//require",
     ],
 )
