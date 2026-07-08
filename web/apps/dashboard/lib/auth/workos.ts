@@ -16,6 +16,7 @@ import { getAuthCookieOptions } from "./cookie-security";
 import type { Cookie } from "./cookies";
 import { getCookie } from "./cookies";
 import { getAuth } from "./get-auth";
+import { isSafeRedirectPath } from "./redirect-utils";
 import {
   AUTH_CHALLENGE_COOKIE,
   type AuthChallengeCookieData,
@@ -1346,7 +1347,14 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     // the OAuth provider. There is no client touchpoint on the callback, so it
     // rides through the OAuth `state` round-trip and is handed to
     // `authenticateWithCode` in completeOAuthSignIn to link the attempt to Radar.
-    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete, signalsId }));
+    // Only same-origin paths may enter `state`: an absolute or scheme-relative
+    // redirectUrlComplete would become an open redirect after the callback.
+    const safeRedirectUrlComplete = isSafeRedirectPath(redirectUrlComplete)
+      ? redirectUrlComplete
+      : "/apis";
+    const state = encodeURIComponent(
+      JSON.stringify({ redirectUrlComplete: safeRedirectUrlComplete, signalsId }),
+    );
     const baseUrl = getBaseUrl();
     const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
@@ -1392,7 +1400,14 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("No sealed session returned");
       }
 
-      const redirectUrlComplete = parsedState.redirectUrlComplete ?? "/apis";
+      // `state` is attacker-controllable (anyone can build an authorization URL
+      // with our public client id), so the redirect target parsed from it must
+      // be re-validated here — an absolute or scheme-relative URL would make
+      // the callback an open redirect.
+      const redirectUrlComplete =
+        parsedState.redirectUrlComplete && isSafeRedirectPath(parsedState.redirectUrlComplete)
+          ? parsedState.redirectUrlComplete
+          : "/apis";
 
       return {
         success: true,

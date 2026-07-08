@@ -78,7 +78,11 @@ export async function GET(request: NextRequest) {
 
   // Get base URL from request because Next.js wants it
   const baseUrl = new URL(request.url).origin;
-  const response = NextResponse.redirect(new URL(authResult.redirectTo, baseUrl));
+  // redirectTo originates from the attacker-controllable OAuth `state` param.
+  // `new URL("https://evil.com", baseUrl)` discards the base, so anything but
+  // a same-origin path here is an open redirect — mirror the failure branch.
+  const redirectTo = isSafeRedirectPath(authResult.redirectTo) ? authResult.redirectTo : "/apis";
+  const response = NextResponse.redirect(new URL(redirectTo, baseUrl));
 
   return await setCookiesOnResponse(response, authResult.cookies);
 }
