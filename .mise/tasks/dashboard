@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Run local development setup for dashboard"
-#MISE depends=["build"]
+#MISE depends=["build", "install-web"]
 set -euo pipefail
 
 docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait --build
