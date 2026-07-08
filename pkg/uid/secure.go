@@ -48,7 +48,6 @@ func secure(n int, reader io.Reader) string {
 
 		for _, b := range bytes {
 			if int(b) >= secureAlphabetMax {
-				// Skip values that would over-represent the start of the alphabet.
 				continue
 			}
 

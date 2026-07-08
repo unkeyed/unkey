@@ -22,4 +22,5 @@ go_test(
         "secure_test.go",
     ],
     embed = [":uid"],
+    deps = ["@com_github_stretchr_testify//require"],
 )
