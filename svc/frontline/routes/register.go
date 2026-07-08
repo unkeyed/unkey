@@ -25,6 +25,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withLogging,
 		withClickHouseLogging,
 		withObservability,
+		zen.WithSQLComment(),
 		withTimeout,
 	}
 

@@ -20,7 +20,6 @@ import (
 //
 //	go build -ldflags "-X 'github.com/unkeyed/unkey/svc/kitchensink/buildinfo.Version=<value>'"
 //
-// In Bazel the same wiring lives in x_defs on the kitchensink go_binary.
 // "unset" is the sentinel returned when no override was passed, so the
 // probe still serves a response during local `go run` sessions.
 var Version = "unset"

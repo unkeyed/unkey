@@ -105,7 +105,8 @@ func TestHealthReady_WithChecks_OneFails(t *testing.T) {
 	require.NoError(t, unmarshalErr)
 	require.Equal(t, "fail", resp.Status)
 	require.Equal(t, "ok", resp.Checks["database"])
-	require.Equal(t, "connection refused", resp.Checks["redis"])
+	require.Equal(t, "fail", resp.Checks["redis"])
+	require.NotContains(t, rec.Body.String(), "connection refused")
 }
 
 func TestHealthReady_CheckTimeout(t *testing.T) {
@@ -133,7 +134,8 @@ func TestHealthReady_CheckTimeout(t *testing.T) {
 	unmarshalErr := json.Unmarshal(rec.Body.Bytes(), &resp)
 	require.NoError(t, unmarshalErr)
 	require.Equal(t, "fail", resp.Status)
-	require.Contains(t, resp.Checks["slow"], "context deadline exceeded")
+	require.Equal(t, "fail", resp.Checks["slow"])
+	require.NotContains(t, rec.Body.String(), "context deadline exceeded")
 }
 
 func TestAddReadinessCheck_PanicsOnEmptyName(t *testing.T) {

@@ -35,7 +35,7 @@ Each keyspace exposes configuration through its settings page.
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Name                 | Human-readable label shown in the dashboard                                                                                              |
 | Default prefix       | Prefix prepended to every key created in this keyspace (for example, `sk_live`)                                                          |
-| Default bytes        | Number of random bytes used to generate new keys (default: 16)                                                                           |
+| Default bytes        | Number of random bytes used to generate new keys (default: 16, range: 16 to 255)                                                         |
 | Store encrypted keys | When enabled, Unkey stores an encrypted copy of each key so it can be recovered later. See [Recovering keys](/security/recovering-keys). |
 | IP whitelist         | Restrict key verification to specific IP addresses. See [IP whitelist](/platform/apis/features/whitelist).                               |
 
@@ -58,7 +58,7 @@ The keyspace stores:
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
 | `id`                   | Unique identifier (`ks_xxx`), used in gateway policies and analytics queries                           |
 | `default_prefix`       | Prefix for new keys (for example, `sk_live`). The prefix appears before the random portion of the key. |
-| `default_bytes`        | Number of random bytes per key (default: 16, producing a 24-character base58 string)                   |
+| `default_bytes`        | Number of random bytes per key (default: 16, range: 16 to 255)                                        |
 | `store_encrypted_keys` | Whether to store a recoverable encrypted copy of each key                                              |
 | `size_approx`          | Approximate number of live keys in this keyspace                                                       |
 
@@ -91,7 +91,7 @@ Deleting a keyspace permanently removes it and all of its keys. This action cann
 | ----------------------- | -------------- |
 | Keyspaces per workspace | Varies by plan |
 | Key prefix max length   | 8 characters   |
-| Default bytes range     | 16 to 32       |
+| Default bytes range     | 16 to 255      |
 
 ## Related pages
 
