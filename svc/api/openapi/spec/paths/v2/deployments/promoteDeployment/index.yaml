@@ -7,11 +7,12 @@ post:
     All sticky domains are reassigned from the current live deployment to the
     promoted one, and the previous deployment is scheduled for standby.
 
-    The deployment must be ready, belong to the production environment, and
-    its app must already have a live deployment. Promoting the deployment that
-    is already live fails, unless the app is in a rolled-back state, in which
-    case promoting the current deployment confirms the rollback and re-enables
-    automatic promotion of future deployments.
+    The deployment must be ready, not already shutting down, belong to the
+    production environment, and its app must already have a live deployment.
+    Promoting the deployment that is already live fails, unless the app is in
+    a rolled-back state, in which case promoting the current deployment
+    confirms the rollback and re-enables automatic promotion of future
+    deployments.
 
     Promotion runs as a durable workflow: this endpoint returns once the
     promotion is accepted. Poll `getDeployment` or `listDeployments` to observe
@@ -76,9 +77,10 @@ post:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "412":
       description: |
-        Precondition failed - The deployment is not ready, is already live,
-        does not belong to the production environment, or its app has no live
-        deployment to promote from.
+        Precondition failed - The deployment is not ready, is shutting down, is
+        already live (and the app is not in a rolled-back state), does not
+        belong to the production environment, or its app has no live deployment
+        to promote from.
       content:
         application/json:
           schema:

@@ -60,6 +60,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// A demoted deployment keeps status ready while it drains toward standby
+	// (only krane's final instance report flips it to stopped), so status alone
+	// would let traffic swap onto a deployment that is shutting down.
+	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
+		return fault.New(
+			"deployment shutting down",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("promotion target desired_state is not running"),
+			fault.Public("The deployment is shutting down and cannot serve traffic."),
+		)
+	}
+
 	if err := deployment.RequireProduction(ctx, h.DB, dep.EnvironmentID,
 		"Only production deployments can be promoted."); err != nil {
 		return err
