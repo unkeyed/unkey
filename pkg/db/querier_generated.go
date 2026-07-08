@@ -2407,7 +2407,11 @@ type Querier interface {
 	//  WHERE installation_id = ?
 	//    AND repository_id = ?
 	ListGithubRepoConnections(ctx context.Context, db DBTX, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
-	//ListIdentities
+	// ListIdentities returns one page of a workspace's identities with their
+	// ratelimits aggregated into a JSON array (empty array when none exist).
+	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
+	// pages deterministic, and the empty-string cursor starts from the first row.
+	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT
 	//      i.id,
@@ -2436,6 +2440,7 @@ type Querier interface {
 	//  WHERE i.workspace_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
+	//  AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
 	//  ORDER BY i.id ASC
 	//  LIMIT ?
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)

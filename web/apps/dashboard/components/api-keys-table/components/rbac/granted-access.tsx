@@ -51,10 +51,6 @@ export const GrantedAccess = ({
     ));
   }, [stableSlugs]);
 
-  if (stableSlugs.length === 0 && !isLoading) {
-    return null;
-  }
-
   return (
     <motion.div
       layout

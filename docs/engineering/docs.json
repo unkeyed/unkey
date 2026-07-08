@@ -209,7 +209,7 @@
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index"]
+            "pages": ["infra/index", "infra/planetscale/query-insights-tags"]
           },
           {
             "group": "Runbooks",
