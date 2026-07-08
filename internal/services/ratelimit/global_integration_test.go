@@ -2,13 +2,20 @@ package ratelimit
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
+	"slices"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
+	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
+	unkeymysql "github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // listAllRows returns every row in ratelimit_global_counters
@@ -132,6 +139,355 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 	resp, err = regionB.Ratelimit(ctx, denyReq)
 	require.NoError(t, err)
 	require.False(t, resp.Success, "B must deny when combined effective exceeds limit; without sharing this would have passed")
+}
+
+// TestGlobalPush_EmitsRowsInUniqueKeyOrder guarantees that a flush batch
+// follows the ratelimit_global_counters unique key order before reaching MySQL.
+// Concurrent upserts that visit the same rows in different orders can deadlock.
+func TestGlobalPush_EmitsRowsInUniqueKeyOrder(t *testing.T) {
+	t.Parallel()
+
+	keys := []counterKey{
+		{workspaceID: "ws-c", namespace: "ns-b", identifier: "id-b", durationMs: 60_000, sequence: 3},
+		{workspaceID: "ws-a", namespace: "ns-c", identifier: "id-a", durationMs: 60_000, sequence: 2},
+		{workspaceID: "ws-b", namespace: "ns-a", identifier: "id-d", durationMs: 30_000, sequence: 5},
+		{workspaceID: "ws-a", namespace: "ns-a", identifier: "id-c", durationMs: 120_000, sequence: 1},
+		{workspaceID: "ws-d", namespace: "ns-b", identifier: "id-a", durationMs: 30_000, sequence: 4},
+		{workspaceID: "ws-b", namespace: "ns-c", identifier: "id-c", durationMs: 60_000, sequence: 2},
+		{workspaceID: "ws-c", namespace: "ns-a", identifier: "id-a", durationMs: 120_000, sequence: 3},
+		{workspaceID: "ws-a", namespace: "ns-b", identifier: "id-d", durationMs: 30_000, sequence: 5},
+	}
+
+	for attempt := range 20 {
+		recorder := &recordingGlobalCounterDB{}
+		svc := &service{ //nolint:exhaustruct // test only needs global push dependencies
+			clock:                clock.NewTestClock(),
+			region:               "region-a",
+			db:                   rldb.New(recorder, recorder),
+			globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_push_order_test"),
+		}
+
+		for _, key := range keys {
+			entry := &counterEntry{} //nolint:exhaustruct // only push eligibility fields matter here
+			entry.val.Store(10)
+			entry.globalPushThreshold.Store(1)
+			svc.counters.Store(key, entry)
+		}
+
+		svc.runGlobalPushOnce()
+
+		require.Len(t, recorder.rows, len(keys))
+		require.True(t,
+			globalCounterRowsInUniqueKeyOrder(recorder.rows),
+			"attempt %d emitted global counter rows out of unique-key order: %v",
+			attempt,
+			globalCounterRowKeys(recorder.rows),
+		)
+	}
+}
+
+// TestGlobalPush_ConcurrentFlushesDoNotDeadlock reproduces the production lock
+// graph with real MySQL transactions. The DB wrapper splits each collected bulk
+// batch into per-row upserts inside one transaction, which turns inconsistent
+// row order into the same 1213 deadlock MySQL can produce under overlapping
+// ON DUPLICATE KEY UPDATE flushes.
+func TestGlobalPush_ConcurrentFlushesDoNotDeadlock(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+
+	for attempt := range 30 {
+		workspaceID := uid.New(uid.WorkspacePrefix)
+		keys := []counterKey{
+			{workspaceID: workspaceID, namespace: "ns-a", identifier: "id-a", durationMs: 60_000, sequence: 1},
+			{workspaceID: workspaceID, namespace: "ns-a", identifier: "id-b", durationMs: 60_000, sequence: 1},
+			{workspaceID: workspaceID, namespace: "ns-b", identifier: "id-a", durationMs: 30_000, sequence: 2},
+			{workspaceID: workspaceID, namespace: "ns-b", identifier: "id-b", durationMs: 30_000, sequence: 2},
+		}
+		seedRows := make([]rldb.UpsertRatelimitGlobalCountersParams, 0, len(keys))
+		for _, key := range keys {
+			seedRows = append(seedRows, globalCounterRowForKey(key, "region-a", 1))
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		require.NoError(t, env.rldb.BulkUpsertGlobalCounters(ctx, seedRows))
+
+		db := &transactionalSplitBulkDB{
+			rw:      env.db.RW(),
+			start:   make(chan struct{}),
+			delay:   50 * time.Millisecond,
+			timeout: 2 * time.Second,
+		}
+
+		svcA := newGlobalPushOnlyService(db, "region-a")
+		for _, key := range keys {
+			storePushableCounter(svcA, key)
+		}
+
+		svcB := newGlobalPushOnlyService(db, "region-a")
+		for i := len(keys) - 1; i >= 0; i-- {
+			storePushableCounter(svcB, keys[i])
+		}
+
+		var wg sync.WaitGroup
+		wg.Go(svcA.runGlobalPushOnce)
+		wg.Go(svcB.runGlobalPushOnce)
+		wg.Wait()
+		cancel()
+
+		require.Empty(t, db.deadlockErrors(),
+			"attempt %d reproduced a MySQL deadlock during concurrent global counter flushes; row orders: %v",
+			attempt,
+			db.rowOrders(),
+		)
+	}
+}
+
+func newGlobalPushOnlyService(db rldb.DBTX, region string) *service {
+	return &service{ //nolint:exhaustruct // test only needs global push dependencies
+		clock:                clock.NewTestClock(),
+		region:               region,
+		db:                   rldb.New(db, db),
+		globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_push_deadlock_test"),
+	}
+}
+
+func storePushableCounter(svc *service, key counterKey) {
+	entry := &counterEntry{} //nolint:exhaustruct // only push eligibility fields matter here
+	entry.val.Store(10)
+	entry.globalPushThreshold.Store(1)
+	svc.counters.Store(key, entry)
+}
+
+func globalCounterRowForKey(key counterKey, region string, count uint64) rldb.UpsertRatelimitGlobalCountersParams {
+	return rldb.UpsertRatelimitGlobalCountersParams{
+		WorkspaceID: key.workspaceID,
+		Namespace:   key.namespace,
+		Identifier:  key.identifier,
+		DurationMs:  uint64(key.durationMs),
+		Sequence:    key.sequence,
+		Region:      region,
+		Count:       count,
+		ExpiresAt:   uint64((key.sequence + 2) * key.durationMs),
+		UpdatedAt:   uint64(time.Now().UnixMilli()),
+	}
+}
+
+type transactionalSplitBulkDB struct {
+	rw      *unkeymysql.Replica
+	start   chan struct{}
+	delay   time.Duration
+	timeout time.Duration
+
+	mu      sync.Mutex
+	started int
+	errors  []error
+	orders  [][]string
+}
+
+func (db *transactionalSplitBulkDB) ExecContext(ctx context.Context, _ string, args ...interface{}) (sql.Result, error) {
+	rows, err := globalCounterRowsFromArgs(args)
+	if err != nil {
+		return nil, err
+	}
+	db.recordOrder(rows)
+	if err := db.waitForPeer(ctx); err != nil {
+		return nil, err
+	}
+
+	txCtx, cancel := context.WithTimeout(ctx, db.timeout)
+	defer cancel()
+
+	tx, err := db.rw.Begin(txCtx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for i, row := range rows {
+		err = (&rldb.BulkQueries{}).UpsertRatelimitGlobalCounters(txCtx, tx, []rldb.UpsertRatelimitGlobalCountersParams{row})
+		if err != nil {
+			db.recordError(err)
+			return nil, err
+		}
+		if i < len(rows)-1 {
+			// Hold each row lock briefly so the peer transaction has time to
+			// reach its next upsert and expose inverted lock ordering.
+			time.Sleep(db.delay)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		db.recordError(err)
+		return nil, err
+	}
+	return nil, nil
+}
+
+func (db *transactionalSplitBulkDB) PrepareContext(context.Context, string) (*sql.Stmt, error) {
+	return nil, fmt.Errorf("unexpected PrepareContext")
+}
+
+func (db *transactionalSplitBulkDB) QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error) {
+	return nil, fmt.Errorf("unexpected QueryContext")
+}
+
+func (db *transactionalSplitBulkDB) QueryRowContext(context.Context, string, ...interface{}) *sql.Row {
+	return &sql.Row{}
+}
+
+func (db *transactionalSplitBulkDB) waitForPeer(ctx context.Context) error {
+	db.mu.Lock()
+	db.started++
+	if db.started == 2 {
+		close(db.start)
+	}
+	db.mu.Unlock()
+
+	select {
+	case <-db.start:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (db *transactionalSplitBulkDB) recordError(err error) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	db.errors = append(db.errors, err)
+}
+
+func (db *transactionalSplitBulkDB) recordOrder(rows []rldb.UpsertRatelimitGlobalCountersParams) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	db.orders = append(db.orders, globalCounterRowKeys(rows))
+}
+
+func (db *transactionalSplitBulkDB) rowOrders() [][]string {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	orders := make([][]string, len(db.orders))
+	copy(orders, db.orders)
+	return orders
+}
+
+func (db *transactionalSplitBulkDB) deadlockErrors() []error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	deadlocks := make([]error, 0, len(db.errors))
+	for _, err := range db.errors {
+		if unkeymysql.IsDeadlockError(err) {
+			deadlocks = append(deadlocks, err)
+		}
+	}
+	return deadlocks
+}
+
+type recordingGlobalCounterDB struct {
+	rows []rldb.UpsertRatelimitGlobalCountersParams
+}
+
+func (db *recordingGlobalCounterDB) ExecContext(_ context.Context, _ string, args ...interface{}) (sql.Result, error) {
+	const paramsPerRow = 9
+	if len(args)%paramsPerRow != 0 {
+		return nil, fmt.Errorf("expected args to be divisible by %d, got %d", paramsPerRow, len(args))
+	}
+
+	for i := 0; i < len(args); i += paramsPerRow {
+		row, err := globalCounterRowFromArgs(args[i : i+paramsPerRow])
+		if err != nil {
+			return nil, err
+		}
+		db.rows = append(db.rows, row)
+	}
+
+	return nil, nil
+}
+
+func (db *recordingGlobalCounterDB) PrepareContext(context.Context, string) (*sql.Stmt, error) {
+	return nil, fmt.Errorf("unexpected PrepareContext")
+}
+
+func (db *recordingGlobalCounterDB) QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error) {
+	return nil, fmt.Errorf("unexpected QueryContext")
+}
+
+func (db *recordingGlobalCounterDB) QueryRowContext(context.Context, string, ...interface{}) *sql.Row {
+	return &sql.Row{}
+}
+
+func globalCounterRowsFromArgs(args []interface{}) ([]rldb.UpsertRatelimitGlobalCountersParams, error) {
+	const paramsPerRow = 9
+	if len(args)%paramsPerRow != 0 {
+		return nil, fmt.Errorf("expected args to be divisible by %d, got %d", paramsPerRow, len(args))
+	}
+
+	rows := make([]rldb.UpsertRatelimitGlobalCountersParams, 0, len(args)/paramsPerRow)
+	for i := 0; i < len(args); i += paramsPerRow {
+		row, err := globalCounterRowFromArgs(args[i : i+paramsPerRow])
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	return rows, nil
+}
+
+func globalCounterRowFromArgs(args []interface{}) (rldb.UpsertRatelimitGlobalCountersParams, error) {
+	row := rldb.UpsertRatelimitGlobalCountersParams{}
+	var ok bool
+
+	if row.WorkspaceID, ok = args[0].(string); !ok {
+		return row, fmt.Errorf("workspace_id arg has type %T", args[0])
+	}
+	if row.Namespace, ok = args[1].(string); !ok {
+		return row, fmt.Errorf("namespace arg has type %T", args[1])
+	}
+	if row.Identifier, ok = args[2].(string); !ok {
+		return row, fmt.Errorf("identifier arg has type %T", args[2])
+	}
+	if row.DurationMs, ok = args[3].(uint64); !ok {
+		return row, fmt.Errorf("duration_ms arg has type %T", args[3])
+	}
+	if row.Sequence, ok = args[4].(int64); !ok {
+		return row, fmt.Errorf("sequence arg has type %T", args[4])
+	}
+	if row.Region, ok = args[5].(string); !ok {
+		return row, fmt.Errorf("region arg has type %T", args[5])
+	}
+	if row.Count, ok = args[6].(uint64); !ok {
+		return row, fmt.Errorf("count arg has type %T", args[6])
+	}
+	if row.ExpiresAt, ok = args[7].(uint64); !ok {
+		return row, fmt.Errorf("expires_at arg has type %T", args[7])
+	}
+	if row.UpdatedAt, ok = args[8].(uint64); !ok {
+		return row, fmt.Errorf("updated_at arg has type %T", args[8])
+	}
+
+	return row, nil
+}
+
+func globalCounterRowsInUniqueKeyOrder(rows []rldb.UpsertRatelimitGlobalCountersParams) bool {
+	return slices.IsSortedFunc(rows, compareGlobalPushRows) || len(rows) < 2
+}
+
+func globalCounterRowKeys(rows []rldb.UpsertRatelimitGlobalCountersParams) []string {
+	keys := make([]string, 0, len(rows))
+	for _, row := range rows {
+		keys = append(keys, fmt.Sprintf(
+			"%s/%s/%s/%d/%d/%s",
+			row.WorkspaceID,
+			row.Namespace,
+			row.Identifier,
+			row.DurationMs,
+			row.Sequence,
+			row.Region,
+		))
+	}
+	return keys
 }
 
 func TestGlobal_RealWorldTwoRegionsWithTwoNodesEach(t *testing.T) {
