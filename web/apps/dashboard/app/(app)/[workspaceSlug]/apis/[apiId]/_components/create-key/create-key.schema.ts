@@ -257,6 +257,15 @@ export const expirationSchema = z.object({
   }),
 });
 
+const rbacItemSchema = z.string().trim().min(1).max(100);
+
+const uniqueStrings = (items: string[]) => [...new Set(items)];
+
+export const rbacSchema = z.object({
+  roleNames: z.array(rbacItemSchema).prefault([]).transform(uniqueStrings),
+  directPermissionSlugs: z.array(rbacItemSchema).prefault([]).transform(uniqueStrings),
+});
+
 // Combined form schema for UI
 export const formSchema = z
   .object({
@@ -265,6 +274,7 @@ export const formSchema = z
     ...creditsSchema.shape,
     ...ratelimitSchema.shape,
     ...expirationSchema.shape,
+    ...rbacSchema.shape,
   })
   .superRefine((data, ctx) => {
     // For monthly refills, ensure refillDay is provided

@@ -153,4 +153,16 @@ describe("formValuesToCreateKeyRequest", () => {
       ],
     });
   });
+
+  it("maps selected roles and permissions to SDK field names", () => {
+    const values = formValues({
+      roleNames: ["admin", "support"],
+      directPermissionSlugs: ["documents.read", "settings.view"],
+    });
+
+    expect(formValuesToCreateKeyRequest(values, "api_123")).toMatchObject({
+      roles: ["admin", "support"],
+      permissions: ["documents.read", "settings.view"],
+    });
+  });
 });

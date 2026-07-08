@@ -24,6 +24,18 @@ export const queryKeysRoles = workspaceProcedure
         },
         limit: limit + 1, // Fetch one extra to determine if there are more results
         orderBy: (roles, { desc }) => desc(roles.id),
+        with: {
+          permissions: {
+            with: {
+              permission: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
         columns: {
           id: true,
           name: true,

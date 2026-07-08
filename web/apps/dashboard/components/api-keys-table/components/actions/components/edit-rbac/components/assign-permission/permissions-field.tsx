@@ -174,6 +174,10 @@ export const PermissionField = ({
   };
 
   const handleAddPermission = (permissionSlug: string) => {
+    if (permissionSlug === "__load_more__") {
+      return;
+    }
+
     if (allEffectivePermissionSlugs.has(permissionSlug)) {
       return;
     }

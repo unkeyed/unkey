@@ -16,6 +16,7 @@ go_library(
         "//pkg/clickhouse/schema",
         "//pkg/db",
         "//pkg/logger",
+        "//pkg/mysql/sqlcomment",
         "//pkg/prompt",
         "//pkg/uid",
         "@org_golang_x_term//:term",

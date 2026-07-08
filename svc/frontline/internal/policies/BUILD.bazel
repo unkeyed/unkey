@@ -57,6 +57,7 @@ go_test(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/hash",
+        "//pkg/mysql/sqlcomment",
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/testutil/containers",

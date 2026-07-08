@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -125,6 +126,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	require.NoError(t, err)
 

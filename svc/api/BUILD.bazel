@@ -35,6 +35,7 @@ go_library(
         "//pkg/counter",
         "//pkg/db",
         "//pkg/logger",
+        "//pkg/mysql/sqlcomment",
         "//pkg/otel",
         "//pkg/prometheus",
         "//pkg/prometheus/lazy",
