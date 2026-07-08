@@ -1,6 +1,7 @@
 "use server";
 
 import { getCookie, setCookies, setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { isSafeRedirectPath } from "@/lib/auth/redirect-utils";
 import { auth } from "@/lib/auth/server";
 import {
   AUTH_CHALLENGE_COOKIE,
@@ -338,7 +339,10 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-  redirect(redirectTo as Route);
+  // redirectTo is parsed out of the attacker-influenceable OAuth `state`
+  // param, so only same-origin paths may be handed to redirect().
+  const safeRedirectTo = redirectTo && isSafeRedirectPath(redirectTo) ? redirectTo : "/apis";
+  redirect(safeRedirectTo as Route);
 }
 
 // Organization Selection
