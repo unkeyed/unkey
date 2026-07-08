@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -86,33 +87,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		roles = roles[:limit]
 	}
 
-	roleResponses := make([]openapi.Role, 0, len(roles))
-	for _, role := range roles {
-		roleResponse := openapi.Role{
-			Id:          role.ID,
-			Name:        role.Name,
-			Description: role.Description.String,
-			Permissions: nil,
-		}
-
+	roleResponses := array.Map(roles, func(role db.ListRolesRow) openapi.Role {
 		perms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
 		if err != nil {
 			logger.Error("Failed to unmarshal permissions", "error", err)
 		}
 
-		for _, perm := range perms {
-			permission := openapi.Permission{
-				Id:          perm.ID,
-				Name:        perm.Name,
-				Slug:        perm.Slug,
-				Description: perm.Description.String,
-			}
-
-			roleResponse.Permissions = append(roleResponse.Permissions, permission)
+		return openapi.Role{
+			Id:          role.ID,
+			Name:        role.Name,
+			Description: role.Description.String,
+			Permissions: array.Map(perms, func(perm db.Permission) openapi.Permission {
+				return openapi.Permission{
+					Id:          perm.ID,
+					Name:        perm.Name,
+					Slug:        perm.Slug,
+					Description: perm.Description.String,
+				}
+			}),
 		}
-
-		roleResponses = append(roleResponses, roleResponse)
-	}
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

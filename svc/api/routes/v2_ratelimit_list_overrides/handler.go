@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -109,20 +110,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: make([]openapi.RatelimitOverride, len(overrides)),
+		Data: array.Map(overrides, func(override db.RatelimitOverride) openapi.RatelimitOverride {
+			return openapi.RatelimitOverride{
+				OverrideId: override.ID,
+				Duration:   int64(override.Duration),
+				Identifier: override.Identifier,
+				Limit:      int64(override.Limit),
+			}
+		}),
 		Pagination: &openapi.Pagination{
 			Cursor:  cursor,
 			HasMore: hasMore,
 		},
-	}
-
-	for i, override := range overrides {
-		responseBody.Data[i] = openapi.RatelimitOverride{
-			OverrideId: override.ID,
-			Duration:   int64(override.Duration),
-			Identifier: override.Identifier,
-			Limit:      int64(override.Limit),
-		}
 	}
 
 	return s.JSON(http.StatusOK, responseBody)

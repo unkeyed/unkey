@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -85,17 +86,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permissions = permissions[:limit]
 	}
 
-	responsePermissions := make([]openapi.Permission, 0, len(permissions))
-	for _, perm := range permissions {
-		permission := openapi.Permission{
+	responsePermissions := array.Map(permissions, func(perm db.Permission) openapi.Permission {
+		return openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
 			Slug:        perm.Slug,
 			Description: perm.Description.String,
 		}
-
-		responsePermissions = append(responsePermissions, permission)
-	}
+	})
 
 	// 7. Return success response
 	return s.JSON(http.StatusOK, Response{
