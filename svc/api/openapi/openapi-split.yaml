@@ -153,6 +153,8 @@ paths:
     $ref: "./spec/paths/v2/deployments/stopDeployment/index.yaml"
   /v2/deployments.startDeployment:
     $ref: "./spec/paths/v2/deployments/startDeployment/index.yaml"
+  /v2/deployments.promoteDeployment:
+    $ref: "./spec/paths/v2/deployments/promoteDeployment/index.yaml"
   /v2/deploy.createDeployment:
     $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
   /v2/deploy.getDeployment:

@@ -1,0 +1,97 @@
+post:
+  tags:
+    - deployments
+  summary: Promote deployment
+  description: |
+    Promote a deployment to become the live deployment for its environment.
+    All sticky domains are reassigned from the current live deployment to the
+    promoted one, and the previous deployment is scheduled for standby.
+
+    The deployment must be ready, belong to the production environment, and
+    its app must already have a live deployment. Promoting the deployment that
+    is already live fails, unless the app is in a rolled-back state, in which
+    case promoting the current deployment confirms the rollback and re-enables
+    automatic promotion of future deployments.
+
+    Promotion runs as a durable workflow: this endpoint returns once the
+    promotion is accepted. Poll `getDeployment` or `listDeployments` to observe
+    the result.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.promote_deployment` (to promote deployments in any environment)
+    - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
+  operationId: deployments.promoteDeployment
+  x-speakeasy-name-override: promoteDeployment
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsPromoteDeploymentRequestBody.yaml"
+        examples:
+          promote:
+            summary: Promote a deployment to live
+            description: Point all live traffic at this deployment
+            value:
+              deploymentId: d_1234abcd
+  responses:
+    "202":
+      description: |
+        Promotion accepted. Poll `getDeployment` to observe the result.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsPromoteDeploymentResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Promotion accepted
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        Not Found - The deployment does not exist in your workspace, or your
+        root key lacks the `promote_deployment` permission for it. Both cases
+        return the same response, so deployment existence is never revealed.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "412":
+      description: |
+        Precondition failed - The deployment is not ready, is already live,
+        does not belong to the production environment, or its app has no live
+        deployment to promote from.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

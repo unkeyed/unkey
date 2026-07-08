@@ -1400,6 +1400,22 @@ type V2DeploymentsListDeploymentsResponseBody struct {
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
+// V2DeploymentsPromoteDeploymentRequestBody Promote a ready deployment to become the live deployment for its environment.
+type V2DeploymentsPromoteDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsPromoteDeploymentResponseBody defines model for V2DeploymentsPromoteDeploymentResponseBody.
+type V2DeploymentsPromoteDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DeploymentsStartDeploymentRequestBody Start a stopped preview deployment so it serves traffic again.
 type V2DeploymentsStartDeploymentRequestBody struct {
 	// DeploymentId Identifies a resource by either its unique ID or its slug.
@@ -3538,6 +3554,9 @@ type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequest
 
 // DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
 type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody
+
+// DeploymentsPromoteDeploymentJSONRequestBody defines body for DeploymentsPromoteDeployment for application/json ContentType.
+type DeploymentsPromoteDeploymentJSONRequestBody = V2DeploymentsPromoteDeploymentRequestBody
 
 // DeploymentsStartDeploymentJSONRequestBody defines body for DeploymentsStartDeployment for application/json ContentType.
 type DeploymentsStartDeploymentJSONRequestBody = V2DeploymentsStartDeploymentRequestBody

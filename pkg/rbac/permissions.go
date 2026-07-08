@@ -187,6 +187,9 @@ const (
 	// StartDeployment permits starting a stopped preview deployment
 	StartDeployment ActionType = "start_deployment"
 
+	// PromoteDeployment permits promoting a deployment to live
+	PromoteDeployment ActionType = "promote_deployment"
+
 	// GenerateUploadURL permits generating S3 upload URLs for build contexts
 	GenerateUploadURL ActionType = "generate_upload_url"
 
