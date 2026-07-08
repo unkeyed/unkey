@@ -8,7 +8,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 const transitionKey = "transition"
@@ -66,9 +66,11 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 // the database. It validates the request nonce against the stored transition:
 // if no transition exists (already applied and cleared) or the nonce mismatches
 // (a newer schedule has superseded this one), the call returns successfully
-// without making any changes. On match, it maps the protobuf state enum to the
-// database representation, updates the deployment's desired state and all
-// topology entries, and clears the stored transition.
+// without making any changes. If the deployment or app row no longer exists,
+// typically because an environment delete removed it while a delayed transition
+// was still pending, the call also no-ops. On match, it maps the protobuf state
+// enum to the database representation, updates the deployment's desired state
+// and all topology entries, and clears the stored transition.
 func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (*hydrav1.ChangeDesiredStateResponse, error) {
 	deploymentID := restate.Key(ctx)
 
@@ -101,40 +103,50 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		return nil, restate.TerminalErrorf("unhandled state: %s", req.GetState())
 	}
 
-	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			deployment, err := db.Query.FindDeploymentById(txCtx, tx, deploymentID)
+	applied, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+		return db.TxWithResult(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) (bool, error) {
+			deployment, err := db.NewQueries(tx).FindDeploymentById(txCtx, deploymentID)
 			if err != nil {
-				return err
+				if db.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
 			}
-			app, err := db.Query.FindAppById(txCtx, tx, deployment.AppID)
+			app, err := db.NewQueries(tx).FindAppById(txCtx, deployment.AppID)
 			if err != nil {
-				return err
+				if db.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
 			}
 
 			if app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String == deploymentID {
-				return restate.TerminalErrorf("not allowed to modify the current deployment")
+				return false, restate.TerminalErrorf("not allowed to modify the current deployment")
 			}
 
-			err = db.Query.UpdateDeploymentDesiredState(txCtx, tx, db.UpdateDeploymentDesiredStateParams{
+			err = db.NewQueries(tx).UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
 				ID:           deploymentID,
 				DesiredState: desiredState,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 			if err != nil {
-				return err
+				return false, err
 			}
 
-			return nil
+			return true, nil
 		})
 	}, restate.WithName("updating desired state"))
 	if err != nil {
 		return nil, err
 	}
+	if !applied {
+		restate.Clear(ctx, transitionKey)
+		return &hydrav1.ChangeDesiredStateResponse{}, nil
+	}
 
 	// Update all topology entries and insert deployment_changes so WatchDeployments picks up the change.
 	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
-		return db.Query.FindDeploymentRegions(runCtx, v.db.RO(), deploymentID)
+		return v.db.FindDeploymentRegions(runCtx, deploymentID)
 	}, restate.WithName("find deployment regions"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find deployment regions: %w", err)
@@ -143,7 +155,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	for _, region := range regions {
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				err := db.Query.UpdateDeploymentTopologyDesiredStatus(txCtx, tx, db.UpdateDeploymentTopologyDesiredStatusParams{
+				err := db.NewQueries(tx).UpdateDeploymentTopologyDesiredStatus(txCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
 					DesiredStatus: topologyDesiredStatus,
 					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 					DeploymentID:  deploymentID,
@@ -152,7 +164,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 				if err != nil {
 					return err
 				}
-				return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+				return db.NewQueries(tx).InsertDeploymentChange(txCtx, db.InsertDeploymentChangeParams{
 					ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
 					ResourceID:   deploymentID,
 					RegionID:     region.ID,

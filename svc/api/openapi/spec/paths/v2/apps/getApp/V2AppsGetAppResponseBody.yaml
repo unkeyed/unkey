@@ -19,7 +19,6 @@ examples:
         id: app_1234abcd
         name: Payments API
         slug: payments-api
-        projectId: proj_1234abcd
         defaultBranch: main
         currentDeploymentId: dep_1234abcd
         isRolledBack: false
@@ -36,7 +35,6 @@ examples:
         id: app_5678efgh
         name: Billing API
         slug: billing-api
-        projectId: proj_5678efgh
         defaultBranch: main
         isRolledBack: false
         deleteProtection: false

@@ -3,7 +3,6 @@ required:
   - id
   - name
   - slug
-  - projectId
   - defaultBranch
   - isRolledBack
   - deleteProtection
@@ -25,11 +24,6 @@ properties:
       URL-safe handle for this app, unique within its project.
       Chosen at creation time.
     example: payments-api
-  projectId:
-    type: string
-    description: |
-      The unique identifier of the project this app belongs to.
-    example: proj_1234abcd
   defaultBranch:
     type: string
     description: |

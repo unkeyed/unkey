@@ -11,9 +11,9 @@ go_library(
         "//pkg/assert",
         "//pkg/clickhouse",
         "//pkg/clock",
-        "//pkg/db",
         "//pkg/healthcheck",
         "//svc/ctrl/internal/billingmeter",
+        "//svc/ctrl/internal/db",
         "//svc/ctrl/worker/cron/auditlogcleanup",
         "//svc/ctrl/worker/cron/auditlogexport",
         "//svc/ctrl/worker/cron/deploybilling",
@@ -28,6 +28,7 @@ go_library(
 
 go_test(
     name = "cron_test",
+    size = "large",
     srcs = [
         "audit_log_outbox_cleanup_integration_test.go",
         "key_last_used_sync_integration_test.go",
@@ -37,10 +38,10 @@ go_test(
     ],
     deps = [
         "//gen/proto/hydra/v1:hydra",
-        "//pkg/db",
         "//pkg/uid",
         "//svc/ctrl/integration/harness",
         "//svc/ctrl/integration/seed",
+        "//svc/ctrl/internal/db",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

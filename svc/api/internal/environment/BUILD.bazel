@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "environment",
+    srcs = ["mapper.go"],
+    importpath = "github.com/unkeyed/unkey/svc/api/internal/environment",
+    visibility = ["//svc/api:__subpackages__"],
+    deps = [
+        "//pkg/db",
+        "//pkg/ptr",
+        "//svc/api/openapi",
+    ],
+)

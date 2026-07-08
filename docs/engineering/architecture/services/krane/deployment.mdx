@@ -1,0 +1,35 @@
+---
+title: "Deployment"
+description: "Deployment model and failover expectations for the krane service"
+---
+
+Krane runs as a single control agent for one Kubernetes cluster and one
+control-plane region key. The region key is the `platform` and `region` pair
+that Krane sends to the control plane.
+
+## Deployment model
+
+Run one active Krane instance for each cluster and `(platform, region)` pair.
+That instance owns reconciliation for the cluster. It watches desired state from
+the control plane, applies Kubernetes resources, reports workload status, and
+sends heartbeats.
+
+Krane doesn't serve user traffic. Frontline serves traffic to user workloads, and
+the control plane remains the source of desired deployment state.
+
+## Replacement and downtime
+
+Short Krane downtime is acceptable. During downtime, existing workloads keep
+running, but new desired-state changes and status reports wait until Krane
+reconnects.
+
+Brief overlap during replacement is acceptable, ideally on the order of seconds.
+Reconciliation is idempotent, and Krane applies Kubernetes resources from
+control-plane desired state. After a restart, Krane reconnects to the change
+stream and runs a full desired-state sync, so missed changes converge back to the
+control-plane state.
+
+## Production example
+
+For an example of this model, see the <a href="https://github.com/unkeyed/infra/tree/main/eks-cluster/helm-chart/krane" target="_blank">Krane chart in Infra</a>
+and the <a href="https://github.com/unkeyed/infra/blob/main/eks-cluster/helm-chart/krane/unkey.toml" target="_blank">Krane runtime config</a>.

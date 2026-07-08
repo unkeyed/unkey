@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-acme/lego/v4/providers/dns/route53"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 type Route53Config struct {

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func (w *Workflow) DeploymentStep(
@@ -38,7 +38,7 @@ func (w *Workflow) DeploymentStep(
 		}
 
 		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			if err := db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
+			if err := db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
 				WorkspaceID:   deployment.WorkspaceID,
 				ProjectID:     deployment.ProjectID,
 				AppID:         deployment.AppID,
@@ -50,7 +50,7 @@ func (w *Workflow) DeploymentStep(
 				return err
 			}
 
-			if err := db.Query.UpdateDeploymentStatus(txCtx, tx, db.UpdateDeploymentStatusParams{
+			if err := db.NewQueries(tx).UpdateDeploymentStatus(txCtx, db.UpdateDeploymentStatusParams{
 				ID:        deployment.ID,
 				Status:    deploymentStatus,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: now},
@@ -67,7 +67,7 @@ func (w *Workflow) DeploymentStep(
 	stepErr := fn(ctx)
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.EndDeploymentStep(runCtx, w.db.RW(), db.EndDeploymentStepParams{
+		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
 			DeploymentID: deployment.ID,
 			Step:         step,
 			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},

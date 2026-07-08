@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 import * as Sentry from "@sentry/nextjs";
 import { TRPCError, initTRPC } from "@trpc/server";
+import { runWithSqlCommentTags } from "@unkey/db";
 import { Ratelimit } from "@unkey/ratelimit";
 import superjson from "superjson";
 import { z } from "zod";
@@ -25,6 +26,10 @@ const sentryMiddleware = t.middleware(
     attachRpcInput: true,
   }),
 );
+
+const sqlCommentMiddleware = t.middleware(({ next, path }) => {
+  return runWithSqlCommentTags({ route: path, source: "trpc" }, () => next());
+});
 
 /**
  * Enhanced error middleware with structured logging
@@ -561,7 +566,10 @@ export const withLlmAccess = () =>
  * Base procedure with enhanced error middleware and Sentry tracking
  * All procedures should be built on top of this to ensure comprehensive logging and tracking
  */
-const baseProcedure = t.procedure.use(enhancedErrorMiddleware).use(sentryMiddleware);
+const baseProcedure = t.procedure
+  .use(sqlCommentMiddleware)
+  .use(enhancedErrorMiddleware)
+  .use(sentryMiddleware);
 
 /**
  * Public procedure - accessible without authentication

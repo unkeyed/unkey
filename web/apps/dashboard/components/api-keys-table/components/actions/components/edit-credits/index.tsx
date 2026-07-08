@@ -9,7 +9,8 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import type { V2KeysUpdateKeyRequestBody } from "@unkey/api/models/components";
+import { Button, DialogContainer } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import { useEditCredits } from "../hooks/use-edit-credits";
@@ -59,38 +60,34 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
 
   const onSubmit = async (data: CreditsFormValues) => {
     try {
-      if (data.limit) {
-        if (data.limit.enabled === true) {
-          if (data.limit.data) {
-            await key.mutateAsync({
-              keyId: keyDetails.id,
-              limit: {
-                enabled: true,
-                data: data.limit.data,
-              },
-            });
-          } else {
-            // Shouldn't happen
-            toast.error("Failed to Update Key Limits", {
-              description: "An unexpected error occurred. Please try again later.",
-              action: {
-                label: "Contact Support",
-                onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-              },
-            });
-          }
-        } else {
-          await key.mutateAsync({
-            keyId: keyDetails.id,
-            limit: {
-              enabled: false,
-            },
-          });
-        }
+      if (!data.limit) {
+        return;
       }
+
+      const credits: V2KeysUpdateKeyRequestBody["credits"] = data.limit.enabled
+        ? {
+            remaining: data.limit.data.remaining,
+            refill:
+              data.limit.data.refill.interval !== "none" && data.limit.data.refill.amount
+                ? {
+                    interval: data.limit.data.refill.interval,
+                    amount: data.limit.data.refill.amount,
+                    ...(data.limit.data.refill.interval === "monthly" &&
+                    data.limit.data.refill.refillDay
+                      ? { refillDay: data.limit.data.refill.refillDay }
+                      : {}),
+                  }
+                : null,
+          }
+        : null;
+
+      await key.mutateAsync({
+        keyId: keyDetails.id,
+        credits,
+      });
     } catch {
-      // `useEditKeyRemainingUses` already shows a toast, but we still need to
-      // prevent unhandled‐rejection noise in the console.
+      // `useEditCredits` already shows a toast, but we still need to
+      // prevent unhandled-rejection noise in the console.
     }
   };
 

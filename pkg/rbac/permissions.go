@@ -34,6 +34,9 @@ const (
 
 	// App represents app resources within a project
 	App ResourceType = "app"
+
+	// Environment represents environment resources within an app
+	Environment ResourceType = "environment"
 )
 
 // Predefined API actions. These constants define operations that can be
@@ -202,6 +205,27 @@ const (
 
 	// ReadApp permits reading apps within a project
 	ReadApp ActionType = "read_app"
+
+	// UpdateApp permits modifying existing apps within a project
+	UpdateApp ActionType = "update_app"
+
+	// DeleteApp permits deleting apps within a project
+	DeleteApp ActionType = "delete_app"
+)
+
+// Predefined environment actions. These constants define operations that can
+// be performed on environment resources within an app.
+const (
+	// ReadEnvironment permits reading a specific environment
+	ReadEnvironment ActionType = "read_environment"
+	// UpdateEnvironment permits updating a specific environment's settings
+	UpdateEnvironment ActionType = "update_environment"
+	// SetEnvironmentVariables permits replacing a specific environment's variables
+	SetEnvironmentVariables ActionType = "set_environment_variables"
+	// RemoveEnvironmentVariables permits removing variables from a specific environment
+	RemoveEnvironmentVariables ActionType = "remove_environment_variables"
+	// ReadEnvironmentVariables permits reading a specific environment's variables
+	ReadEnvironmentVariables ActionType = "read_environment_variables"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

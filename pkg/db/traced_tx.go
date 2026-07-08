@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/mysql/metrics"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -16,11 +17,12 @@ const (
 )
 
 // WrapTxWithContext wraps a standard sql.Tx with our DBTx interface for tracing, using the provided context
-func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context) DBTx {
+func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context, tags sqlcomment.Static) DBTx {
 	return &TracedTx{
 		tx:   tx,
 		mode: mode,
 		ctx:  ctx,
+		tags: tags,
 	}
 }
 
@@ -28,7 +30,8 @@ func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context) DBTx {
 type TracedTx struct {
 	tx   *sql.Tx
 	mode string
-	ctx  context.Context // Store the context for commit/rollback tracing
+	ctx  context.Context
+	tags sqlcomment.Static
 }
 
 // Ensure TracedTx implements the DBTx interface
@@ -42,6 +45,8 @@ func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...any) (
 		attribute.String("mode", t.mode),
 		attribute.String("query", query),
 	)
+
+	query = t.annotate(ctx, query)
 
 	start := time.Now()
 	result, err := t.tx.ExecContext(ctx, query, args...)
@@ -66,6 +71,8 @@ func (t *TracedTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 		attribute.String("mode", t.mode),
 		attribute.String("query", query),
 	)
+
+	query = t.annotate(ctx, query)
 
 	start := time.Now()
 	//nolint:sqlclosecheck // Rows returned to caller, who must close them
@@ -92,6 +99,8 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...any) 
 		attribute.String("query", query),
 	)
 
+	query = t.annotate(ctx, query)
+
 	start := time.Now()
 	//nolint:sqlclosecheck // Rows returned to caller, who must close them
 	rows, err := t.tx.QueryContext(ctx, query, args...)
@@ -116,6 +125,8 @@ func (t *TracedTx) QueryRowContext(ctx context.Context, query string, args ...an
 		attribute.String("mode", t.mode),
 		attribute.String("query", query),
 	)
+
+	query = t.annotate(ctx, query)
 
 	start := time.Now()
 	row := t.tx.QueryRowContext(ctx, query, args...)
@@ -169,4 +180,8 @@ func (t *TracedTx) Rollback() error {
 	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "rollback", status).Inc()
 
 	return err
+}
+
+func (t *TracedTx) annotate(ctx context.Context, query string) string {
+	return sqlcomment.Annotate(query, t.tags, t.mode, sqlcomment.DynamicFromContext(ctx))
 }

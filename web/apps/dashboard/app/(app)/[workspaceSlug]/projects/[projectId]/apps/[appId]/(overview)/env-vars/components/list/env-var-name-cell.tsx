@@ -60,11 +60,16 @@ export const EnvVarNameCell = ({
         <div className="flex items-center gap-1.5">
           <InfoTooltip
             content={
-              copied
-                ? "Copied!"
-                : type === "recoverable"
-                  ? "Click to copy KEY=VALUE"
-                  : "Click to copy key"
+              copied ? (
+                "Copied!"
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono break-all">{variableKey}</span>
+                  <span className="text-gray-11">
+                    {type === "recoverable" ? "Click to copy KEY=VALUE" : "Click to copy key"}
+                  </span>
+                </div>
+              )
             }
             position={{ side: "top" }}
             asChild

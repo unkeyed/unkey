@@ -16,9 +16,12 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/rbac",
+        "//pkg/rbac/permissions",
         "//pkg/retry",
         "//pkg/uid",
+        "//pkg/urn",
         "//pkg/zen",
+        "//svc/api/internal/auditactor",
         "//svc/api/openapi",
     ],
 )

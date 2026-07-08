@@ -1,0 +1,107 @@
+---
+title: "PlanetScale query tags"
+description: "SQLCommenter metadata for attributing MySQL load in PlanetScale Query Insights"
+---
+
+Unkey annotates every MySQL statement with [SQLCommenter](https://google.github.io/sqlcommenter/)-compatible metadata before it reaches PlanetScale. Tags show up in Query Insights so we can attribute query time to services, deploys, sqlc operations, and (for dashboard) tRPC routes.
+
+## Why
+
+PlanetScale Query Insights groups queries by fingerprint. Without tags, hot paths like `FindKeyForVerification` appear as anonymous load. Tags let us answer:
+
+- Which service issued this query?
+- Which deploy introduced the regression?
+- Which sqlc operation or tRPC route drove the spike?
+
+Keep tag cardinality low. Insights indexes tag keys; high-cardinality values (user ids, key ids) must never appear in comments.
+
+Tag values are URL-encoded per the [SQLCommenter spec](https://google.github.io/sqlcommenter/spec/#value-serialization) before they are quoted, so routes like `POST /v2/keys.verifyKey` serialize safely.
+
+## Tag schema
+
+| Key | Source | Example |
+| --- | --- | --- |
+| `application` | constant | `unkey` |
+| `service` | process name | `api`, `frontline`, `dashboard` |
+| `region` | `UNKEY_REGION` (set in helm per cluster) | `us-east-1` |
+| `release_sha` | link-time git SHA (7 chars) | `a1b2c3d` |
+| `operation` | sqlc `-- name:` header (Go only) | `FindKeyForVerification` |
+| `mode` | connection role (Go only) | `rw`, `ro` |
+| `route` | request context | `deploy.envVars.create` (tRPC path) |
+| `source` | request context | `http`, `restate`, `trpc`, `webhook` |
+
+We intentionally omit an `environment` tag. Infra labels clusters `production001`, `canary`, or legacy `staging`, but those labels are not injected into platform pod env vars today. Use `release_sha` to identify the deployed commit (Bazel/goreleaser set `buildinfo.Revision` on Go binaries; Vercel sets `UNKEY_GIT_COMMIT_SHA` / `GIT_COMMIT` for dashboard).
+
+Example comment appended to SQL:
+
+```sql
+SELECT ... FROM keys WHERE ... /*application='unkey',service='api',region='us-east-1',release_sha='a1b2c3d',operation='FindKeyForVerification',mode='ro'*/
+```
+
+## Go services
+
+Annotation happens in [`pkg/mysql.Replica`](../../../../pkg/mysql/replica.go) (and the mirrored [`pkg/db`](../../../../pkg/db/database.go) package). sqlc call sites stay unchanged.
+
+1. Pass static tags when opening the database:
+
+```go
+tags := sqlcomment.ForService("api", cfg.Region)
+database, err := db.New(db.Config{
+    PrimaryDSN:  cfg.DatabasePrimary,
+    ReadOnlyDSN: cfg.DatabaseReadOnly,
+    Tags:        tags,
+})
+```
+
+2. Optional dynamic tags via context (HTTP zen services set these automatically with [`zen.WithSQLComment`](../../../../pkg/zen/middleware_sqlcomment.go)):
+
+```go
+ctx = sqlcomment.WithDynamic(ctx, sqlcomment.Dynamic{Route: "POST /v2/keys.verifyKey", Source: "http"})
+rows, err := database.RO().QueryContext(ctx, query, args...)
+```
+
+`zen.WithSQLComment()` reads `http.Request.Pattern` (for example `POST /v2/keys.verifyKey`) and is registered in `api` and `frontline` middleware stacks.
+
+`ctrl-worker` wraps the Restate ingress with `sqlcomment.WrapRestateInvokeHandler`, tagging routes like `hydra.v1.DeployService/Deploy` with `source=restate`.
+
+`sqlcomment.Static{}` disables annotation (tests and dev seeds).
+
+Package reference: [`pkg/mysql/sqlcomment`](../../../../pkg/mysql/sqlcomment/doc.go).
+
+## TypeScript apps
+
+Dashboard and portal use Drizzle on top of [`createCommentedPool`](../../../../web/internal/db/src/commented-pool.ts) from `@unkey/db`. The pool proxy annotates `query` and `execute` on the pool and on connections from `getConnection`, which is what Drizzle uses inside transactions.
+
+Useful tags on the TypeScript side:
+
+- **Static** (per pool): `service`, `region`, `release_sha`
+- **Dynamic** (per request): `route` (tRPC procedure path) and `source` (`trpc`, `webhook`, etc.)
+
+Dashboard tRPC sets `route` and `source` through `runWithSqlCommentTags` in the base procedure middleware. Non-tRPC entrypoints (Stripe webhooks, server actions) should wrap their handler with `runWithSqlCommentTags` and set `source` accordingly.
+
+TypeScript pools do not emit `mode`: mysql2 uses a single pool without the read/write split that Go services have, so a `mode` tag would be misleading.
+
+Static tags read `UNKEY_REGION` / `REGION` and `UNKEY_GIT_COMMIT_SHA` / `GIT_COMMIT` for `release_sha`.
+
+## Verification
+
+After deploy to staging:
+
+1. Open PlanetScale Query Insights for the `unkey` database.
+2. Find a high-traffic fingerprint (for example `FindKeyForVerification`).
+3. Confirm `service`, `operation`, and `release_sha` appear on sampled queries.
+4. For dashboard traffic, confirm `route` tags on tRPC-backed queries.
+
+Local unit tests:
+
+```bash
+mise exec -- bazel test //pkg/mysql/sqlcomment:sqlcomment_test
+mise exec -- pnpm --dir=web exec vitest run internal/db/src/sqlcomment.test.ts internal/db/src/commented-pool.test.ts
+```
+
+## Agent notes
+
+- Do not add high-cardinality values to SQL comments.
+- New Go services: wire `sqlcomment.ForService` in `run.go` when constructing `db.Config`.
+- New TS apps using `@unkey/db`: use `createCommentedPool` instead of `mysql.createPool`.
+- HTTP handlers that bypass tRPC can set `sqlcomment.WithDynamic` (Go) or `runWithSqlCommentTags` (TS) per request.

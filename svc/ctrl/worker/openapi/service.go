@@ -5,7 +5,7 @@ import (
 	"time"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Service implements the OpenapiService. It scrapes OpenAPI specs from running

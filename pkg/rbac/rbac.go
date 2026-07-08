@@ -109,7 +109,7 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 			if result.Valid {
 				return result, nil
 			}
-			missingPerms = append(missingPerms, formatPermissionQuery(child))
+			missingPerms = append(missingPerms, FormatPermissionQuery(child))
 		}
 
 		return EvaluationResult{
@@ -125,14 +125,16 @@ func (r *RBAC) evaluateQueryV1(query PermissionQuery, permissions []string) (Eva
 	)
 }
 
-func formatPermissionQuery(query PermissionQuery) string {
+// FormatPermissionQuery returns the human-readable permission expression used
+// in authorization errors and diagnostics.
+func FormatPermissionQuery(query PermissionQuery) string {
 	if query.Value != "" {
 		return query.Value
 	}
 
 	parts := make([]string, 0, len(query.Children))
 	for _, child := range query.Children {
-		parts = append(parts, formatPermissionQuery(child))
+		parts = append(parts, FormatPermissionQuery(child))
 	}
 
 	switch query.Operation {
