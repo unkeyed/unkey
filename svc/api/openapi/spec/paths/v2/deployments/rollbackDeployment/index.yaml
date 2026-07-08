@@ -1,0 +1,100 @@
+post:
+  tags:
+    - deployments
+  summary: Rollback deployment
+  description: |
+    Roll live traffic back to a previous deployment. `deploymentId` is the
+    deployment to roll back TO; the app's current live deployment is used as
+    the rollback source automatically.
+
+    The target deployment must be ready, belong to the production environment,
+    live in the same app and environment as the current live deployment, and
+    must not itself be the live deployment.
+
+    After a rollback the app is marked as rolled back, which prevents new
+    deployments from automatically taking over live traffic. Promote the
+    rolled-back deployment (or a newer one) to clear this state.
+
+    Rollback runs as a durable workflow: this endpoint returns once the
+    rollback is accepted. Poll `getDeployment` or `listDeployments` to observe
+    the result.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.rollback_deployment` (to roll back deployments in any environment)
+    - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
+  operationId: deployments.rollbackDeployment
+  x-speakeasy-name-override: rollbackDeployment
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsRollbackDeploymentRequestBody.yaml"
+        examples:
+          rollback:
+            summary: Roll back to a previous deployment
+            description: Point live traffic back at an earlier deployment
+            value:
+              deploymentId: d_prev5678
+  responses:
+    "202":
+      description: |
+        Rollback accepted. Poll `getDeployment` to observe the result.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsRollbackDeploymentResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Rollback accepted
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        Not Found - The deployment does not exist in your workspace, or your
+        root key lacks the `rollback_deployment` permission for it. Both cases
+        return the same response, so deployment existence is never revealed.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "412":
+      description: |
+        Precondition failed - The deployment is not ready, is already live,
+        does not belong to the production environment, belongs to a different
+        app or environment than the current live deployment, or the app has no
+        live deployment to roll back from.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
