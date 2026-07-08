@@ -67,7 +67,9 @@ import (
 	v2AppsListApps "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
 	v2AppsUpdateApp "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
 	v2EnvironmentsGetEnvironment "github.com/unkeyed/unkey/svc/api/routes/v2_environments_get_environment"
+	v2EnvironmentsListEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environment_variables"
 	v2EnvironmentsListEnvironments "github.com/unkeyed/unkey/svc/api/routes/v2_environments_list_environments"
+	v2EnvironmentsRemoveEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_remove_environment_variables"
 	v2EnvironmentsSetEnvironmentVariables "github.com/unkeyed/unkey/svc/api/routes/v2_environments_set_environment_variables"
 	v2EnvironmentsUpdateSettings "github.com/unkeyed/unkey/svc/api/routes/v2_environments_update_settings"
 	v2ProjectsCreateProject "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
@@ -108,6 +110,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	publicMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withObservability,
+		zen.WithSQLComment(),
 		withMetrics,
 		withLogging,
 		withErrorHandling,
@@ -118,6 +121,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	protectedMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withObservability,
+		zen.WithSQLComment(),
 		withMetrics,
 		withLogging,
 		withErrorHandling,
@@ -729,6 +733,24 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:        svc.Database,
 			Vault:     svc.Vault,
 			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/environments.removeEnvironmentVariables
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2EnvironmentsRemoveEnvironmentVariables.Handler{
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
+		},
+	)
+
+	// v2/environments.listEnvironmentVariables
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2EnvironmentsListEnvironmentVariables.Handler{
+			DB:    svc.Database,
+			Vault: svc.Vault,
 		},
 	)
 
