@@ -58,6 +58,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	// A draining deployment keeps status ready until krane removes its last
+	// instance, so desired_state is the only signal that a stop is already in
+	// flight. Ctrl enforces the same rule; checking it here avoids a doomed
+	// round-trip and returns a precise message.
+	if dep.DesiredState != db.DeploymentsDesiredStateRunning {
+		return fault.New(
+			"deployment already stopping",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("stop target desired_state is not running"),
+			fault.Public("The deployment is already stopping."),
+		)
+	}
+
 	if err := deployment.RequireNonProduction(ctx, h.DB, dep.EnvironmentID,
 		"Production deployments cannot be stopped."); err != nil {
 		return err

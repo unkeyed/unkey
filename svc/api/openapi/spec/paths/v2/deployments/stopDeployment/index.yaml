@@ -8,6 +8,8 @@ post:
 
     The deployment must be ready and running, and must belong to a
     non-production environment; production deployments cannot be stopped.
+    A deployment that is already draining from a previous stop is rejected
+    with a precondition error.
 
     Stopping is asynchronous: this endpoint only enqueues the stop and returns
     immediately. Poll `getDeployment` until the status reaches `stopped`.
@@ -72,8 +74,8 @@ post:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "412":
       description: |
-        Precondition failed - The deployment is not running, or it belongs to a
-        production environment.
+        Precondition failed - The deployment is not running, a stop is already
+        in progress, or it belongs to a production environment.
       content:
         application/json:
           schema:
