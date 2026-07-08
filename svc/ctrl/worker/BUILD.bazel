@@ -24,6 +24,7 @@ go_library(
         "//pkg/config",
         "//pkg/healthcheck",
         "//pkg/logger",
+        "//pkg/mysql/sqlcomment",
         "//pkg/otel",
         "//pkg/prometheus",
         "//pkg/prometheus/lazy",

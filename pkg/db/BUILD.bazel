@@ -406,6 +406,7 @@ go_library(
         "//pkg/logger",
         "//pkg/mysql",
         "//pkg/mysql/metrics",
+        "//pkg/mysql/sqlcomment",
         "//pkg/otel/tracing",
         "//pkg/retry",
         "@com_github_go_sql_driver_mysql//:mysql",

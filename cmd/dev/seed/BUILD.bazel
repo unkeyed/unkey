@@ -21,6 +21,7 @@ go_library(
         "//pkg/db",
         "//pkg/db/types",
         "//pkg/logger",
+        "//pkg/mysql/sqlcomment",
         "//pkg/uid",
     ],
 )

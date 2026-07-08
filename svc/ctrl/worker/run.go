@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
@@ -146,7 +147,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize database
-	database, err := db.New(cfg.Database)
+	database, err := db.New(cfg.Database, sqlcomment.ForService("ctrl-worker", cfg.Region))
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
@@ -561,7 +562,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux)
-	mux.Handle("/", restateHandler)
+	mux.Handle("/", sqlcomment.WrapRestateInvokeHandler(restateHandler))
 
 	h2cHandler := h2c.NewHandler(mux, &http2.Server{
 		MaxHandlers:                  0,
