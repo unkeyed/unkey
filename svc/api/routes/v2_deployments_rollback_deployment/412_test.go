@@ -44,6 +44,40 @@ func TestRollbackDeploymentTargetNotReady(t *testing.T) {
 	require.Empty(t, mock.RollbackCalls, "ctrl must not be called for a non-ready target")
 }
 
+// A demoted deployment keeps status ready while draining toward standby
+// (desired_state=stopped); rolling back to it would swap traffic onto a
+// deployment that is shutting down, so it is rejected before ctrl is called.
+func TestRollbackDeploymentTargetShuttingDown(t *testing.T) {
+	h := testutil.NewHarness(t)
+	mock := &testutil.MockDeploymentClient{}
+	route := newRoute(h, mock)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.rollback_deployment"},
+	})
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        db.DeploymentsStatusReady,
+	})
+
+	err := db.Query.UpdateDeploymentDesiredState(t.Context(), h.DB.RW(), db.UpdateDeploymentDesiredStateParams{
+		ID:           dep.ID,
+		DesiredState: db.DeploymentsDesiredStateStopped,
+	})
+	require.NoError(t, err)
+
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, "shutting down")
+	require.Empty(t, mock.RollbackCalls, "ctrl must not be called for a target that is shutting down")
+}
+
 // Rollback swaps the app's production live pointer, so it is rejected for
 // non-production environments before ctrl is called.
 func TestRollbackDeploymentNonProduction(t *testing.T) {
