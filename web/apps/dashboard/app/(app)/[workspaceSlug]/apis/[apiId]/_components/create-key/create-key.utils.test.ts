@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type FormValues, formSchema } from "./create-key.schema";
+import { type FormValues, formSchema, keyBytesSchema } from "./create-key.schema";
 import { formValuesToCreateKeyRequest, getDefaultValues } from "./create-key.utils";
 
 function formValues(overrides: Partial<FormValues> = {}): FormValues {
@@ -10,6 +10,17 @@ function formValues(overrides: Partial<FormValues> = {}): FormValues {
 }
 
 describe("formValuesToCreateKeyRequest", () => {
+  it("rejects key byte lengths below 16", () => {
+    const result = keyBytesSchema.safeParse(15);
+
+    if (result.success) {
+      throw new Error("expected key byte length validation to fail");
+    }
+    expect(result.error.issues[0]?.message).toBe(
+      "Key length is too short (minimum 16 bytes required)",
+    );
+  });
+
   it("maps minimal form values to the SDK request", () => {
     expect(formValuesToCreateKeyRequest(formValues(), "api_123")).toEqual({
       apiId: "api_123",
