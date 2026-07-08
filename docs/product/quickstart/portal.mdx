@@ -167,6 +167,18 @@ Examples:
 
 The API requires at least one permission. An empty permissions array is rejected with HTTP 400.
 
+## Keys are scoped to the session's external ID
+
+When a portal user creates a key, Unkey automatically attaches the session's `externalId` to that key as its owner identity. The portal session can't be used to mint keys for any other user, even if the client tries to send a different `externalId` on the request — the value from the session always wins.
+
+This makes the portal safe to expose directly to end users:
+
+- A user signed in to your application as `user_123` gets a portal session with `externalId: "user_123"`.
+- Any key they create through the portal is owned by identity `user_123` in Unkey.
+- They cannot enumerate or create keys for `user_456`, even by editing requests in the browser.
+
+If you create keys server-side for your users, keep doing that through your own backend with a root key. The session-scoping behavior only applies to calls made with a portal session token.
+
 ## Session lifecycle
 
 | Token | Lifetime | Usage |
