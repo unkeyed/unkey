@@ -14,6 +14,7 @@ go_library(
         "//pkg/clickhouse/schema",
         "//pkg/clock",
         "//pkg/healthcheck",
+        "//pkg/mysql/sqlcomment",
         "//pkg/restate/admin",
         "//pkg/testutil/containers",
         "//svc/ctrl/integration/seed",

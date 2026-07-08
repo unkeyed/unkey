@@ -258,6 +258,18 @@ export const workspacePermissions = {
       description: "Update any environment's settings in this workspace",
       permission: "environment.*.update_environment",
     },
+    set_environment_variables: {
+      description: "Set environment variables for any environment in this workspace",
+      permission: "environment.*.set_environment_variables",
+    },
+    remove_environment_variables: {
+      description: "Remove environment variables from any environment in this workspace",
+      permission: "environment.*.remove_environment_variables",
+    },
+    read_environment_variables: {
+      description: "Read environment variables for any environment in this workspace",
+      permission: "environment.*.read_environment_variables",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -378,6 +390,18 @@ export function environmentPermissions(environmentId: string): {
       update_environment: {
         description: "Update this environment's settings.",
         permission: `environment.${environmentId}.update_environment`,
+      },
+      set_environment_variables: {
+        description: "Set environment variables for this environment.",
+        permission: `environment.${environmentId}.set_environment_variables`,
+      },
+      remove_environment_variables: {
+        description: "Remove environment variables from this environment.",
+        permission: `environment.${environmentId}.remove_environment_variables`,
+      },
+      read_environment_variables: {
+        description: "Read environment variables for this environment.",
+        permission: `environment.${environmentId}.read_environment_variables`,
       },
     },
   };

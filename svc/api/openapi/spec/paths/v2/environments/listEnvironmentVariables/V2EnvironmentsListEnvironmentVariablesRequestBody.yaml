@@ -1,0 +1,34 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  limit:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 100
+    description: Maximum number of variables to return per request.
+  cursor:
+    type: string
+    minLength: 1
+    maxLength: 1024
+    description: |
+      Pagination cursor from a previous response to fetch the next page.
+      Use when `hasMore: true` in the previous response.
+additionalProperties: false
+examples:
+  list:
+    summary: List variables for an environment
+    description: List the first page of variables in the given environment
+    value:
+      project: payments
+      app: payments-api
+      environment: production

@@ -158,6 +158,7 @@
                 "group": "Krane",
                 "pages": [
                   "architecture/services/krane/overview",
+                  "architecture/services/krane/deployment",
                   "architecture/services/krane/secrets",
                   "architecture/services/krane/configuration"
                 ]
@@ -209,7 +210,7 @@
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index"]
+            "pages": ["infra/index", "infra/planetscale/query-insights-tags"]
           },
           {
             "group": "Runbooks",

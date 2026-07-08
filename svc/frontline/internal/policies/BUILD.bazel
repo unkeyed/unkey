@@ -34,6 +34,7 @@ go_library(
 
 go_test(
     name = "policies_test",
+    size = "large",
     srcs = [
         "engine_test.go",
         "integration_test.go",
@@ -56,6 +57,7 @@ go_test(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/hash",
+        "//pkg/mysql/sqlcomment",
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/testutil/containers",

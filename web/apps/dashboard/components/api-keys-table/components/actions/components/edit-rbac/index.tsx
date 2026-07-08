@@ -10,12 +10,12 @@ import { PenWriting3 } from "@unkey/icons";
 import { Button, DialogContainer } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
+import { GrantedAccess } from "../../../rbac/granted-access";
+import { useFetchPermissionSlugs } from "../../../rbac/hooks/use-fetch-permission-slugs";
 import { useUpdateKeyRbac } from "../hooks/use-edit-rbac";
 import { KeyInfo } from "../key-info";
 import { PermissionField } from "./components/assign-permission/permissions-field";
 import { RoleField } from "./components/assign-role/role-field";
-import { GrantedAccess } from "./components/granted-access";
-import { useFetchPermissionSlugs } from "./components/hooks/use-fetch-permission-slugs";
 import { type FormValues, updateKeyRbacSchema } from "./update-key-rbac.schema";
 
 const FORM_STORAGE_KEY = "unkey_key_rbac_form_state";

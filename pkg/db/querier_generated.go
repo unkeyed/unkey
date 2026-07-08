@@ -52,10 +52,13 @@ type Querier interface {
 	//
 	//  DELETE FROM apps WHERE id = ?
 	DeleteAppById(ctx context.Context, db DBTX, id string) error
-	//DeleteAppEnvVarsByEnvironmentId
+	// Deletes an environment's variables whose key is in the provided set.
 	//
-	//  DELETE FROM app_environment_variables WHERE environment_id = ?
-	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND `key` IN (/*SLICE:env_keys*/?)
+	DeleteAppEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteAppEnvVarsByKeysParams) error
 	//DeleteAppRegionalSettingsByEnvironmentId
 	//
 	//  DELETE FROM app_regional_settings WHERE environment_id = ?
@@ -126,6 +129,19 @@ type Querier interface {
 	//
 	//  DELETE FROM deployments WHERE environment_id = ?
 	DeleteDeploymentsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteEnvVarsByEnvironmentId
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	DeleteEnvVarsByEnvironmentId(ctx context.Context, db DBTX, arg DeleteEnvVarsByEnvironmentIdParams) error
+	//DeleteEnvVarsByKeys
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND `key` IN (/*SLICE:env_keys*/?)
+	DeleteEnvVarsByKeys(ctx context.Context, db DBTX, arg DeleteEnvVarsByKeysParams) error
 	//DeleteEnvironmentById
 	//
 	//  DELETE FROM environments WHERE id = ?
@@ -1463,8 +1479,8 @@ type Querier interface {
 	InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) error
 	//InsertAppEnvironmentVariable
 	//
-	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
-	//  VALUES (?, ?, ?, ?, ?, ?, ?)
+	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
 	//InsertCertificate
 	//
@@ -2213,6 +2229,16 @@ type Querier interface {
 	//  FROM app_build_settings
 	//  WHERE app_id = ?
 	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
+	//ListAppEnvVarsByAppAndEnv
+	//
+	//  SELECT id, `key`, value, `type`, description, created_at
+	//  FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND id >= ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg ListAppEnvVarsByAppAndEnvParams) ([]ListAppEnvVarsByAppAndEnvRow, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
@@ -2381,7 +2407,11 @@ type Querier interface {
 	//  WHERE installation_id = ?
 	//    AND repository_id = ?
 	ListGithubRepoConnections(ctx context.Context, db DBTX, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
-	//ListIdentities
+	// ListIdentities returns one page of a workspace's identities with their
+	// ratelimits aggregated into a JSON array (empty array when none exist).
+	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
+	// pages deterministic, and the empty-string cursor starts from the first row.
+	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT
 	//      i.id,
@@ -2410,6 +2440,7 @@ type Querier interface {
 	//  WHERE i.workspace_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
+	//  AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
 	//  ORDER BY i.id ASC
 	//  LIMIT ?
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
