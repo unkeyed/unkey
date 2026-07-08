@@ -1,0 +1,9 @@
+type: object
+required:
+  - deploymentId
+properties:
+  deploymentId:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: The stopped deployment to start.
+additionalProperties: false
+description: Start a stopped preview deployment so it serves traffic again.
