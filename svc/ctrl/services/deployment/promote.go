@@ -26,9 +26,9 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("target_deployment_id is required"))
 	}
 
-	// Mirror the workflow's cheap validations so callers get precise connect
-	// codes instead of CodeInternal. The workflow re-validates, so a race here
-	// only degrades the error code, never correctness.
+	// Validate here so callers get precise connect codes instead of
+	// CodeInternal. The workflow re-checks everything except the environment
+	// and desired_state gates, which exist only at this layer.
 	deployment, err := s.db.FindDeploymentById(ctx, deploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -39,6 +39,26 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 
 	if deployment.Status != db.DeploymentsStatusReady {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is not ready"))
+	}
+
+	// A demoted deployment keeps status ready while it drains toward standby,
+	// so status alone would let traffic swap onto a deployment that is
+	// shutting down.
+	if deployment.DesiredState != db.DeploymentsDesiredStateRunning {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is shutting down"))
+	}
+
+	environment, err := s.db.FindEnvironmentById(ctx, deployment.EnvironmentID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
+	}
+	// apps.current_deployment_id tracks the production live deployment;
+	// promoting outside production would corrupt that pointer.
+	if environment.Slug != "production" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("only production deployments can be promoted"))
 	}
 
 	app, err := s.db.FindAppById(ctx, deployment.AppID)

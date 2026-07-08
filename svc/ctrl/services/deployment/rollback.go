@@ -32,9 +32,10 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("source and target deployments must be different"))
 	}
 
-	// Mirror the workflow's cheap validations so callers get precise connect
-	// codes instead of CodeInternal. The workflow re-validates, so a race here
-	// only degrades the error code, never correctness.
+	// Validate here so callers get precise connect codes instead of
+	// CodeInternal. The workflow re-checks everything except the target
+	// status, environment, and desired_state gates, which exist only at
+	// this layer.
 	sourceDeployment, err := s.db.FindDeploymentById(ctx, sourceID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -58,6 +59,29 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	// The target starts serving live traffic the moment routes swap, so it
+	// must have completed successfully and must not be draining toward
+	// standby (a demoted deployment keeps status ready while it drains).
+	if targetDeployment.Status != db.DeploymentsStatusReady {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("target deployment is not ready"))
+	}
+	if targetDeployment.DesiredState != db.DeploymentsDesiredStateRunning {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("target deployment is shutting down"))
+	}
+
+	environment, err := s.db.FindEnvironmentById(ctx, targetDeployment.EnvironmentID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
+	}
+	// apps.current_deployment_id tracks the production live deployment;
+	// rolling back outside production would corrupt that pointer.
+	if environment.Slug != "production" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("only production deployments can be rolled back"))
 	}
 
 	app, err := s.db.FindAppById(ctx, sourceDeployment.AppID)
