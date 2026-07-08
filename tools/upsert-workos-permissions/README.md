@@ -17,20 +17,20 @@ you can review it manually.
 Preview the permissions without calling WorkOS:
 
 ```bash
-mise exec -- bazel run //tools/upsert-workos-permissions -- -dry-run
+mise exec -- go run ./tools/upsert-workos-permissions -- -dry-run
 ```
 
 Sync permissions into WorkOS:
 
 ```bash
 WORKOS_API_KEY=sk_... \
-  mise exec -- bazel run //tools/upsert-workos-permissions
+  mise exec -- go run ./tools/upsert-workos-permissions
 ```
 
 You can also pass the key as a flag:
 
 ```bash
-mise exec -- bazel run //tools/upsert-workos-permissions -- \
+mise exec -- go run ./tools/upsert-workos-permissions -- \
   -api-key sk_...
 ```
 

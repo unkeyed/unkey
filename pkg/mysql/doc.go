@@ -3,7 +3,7 @@
 // The package intentionally stays small: it owns connection setup, read/write
 // replica selection, tracing/metrics wrappers, transaction helpers, and
 // MySQL-specific error classification. Query logic stays in caller packages.
-// This keeps Bazel cache keys stable for dependents and avoids pulling
+// This keeps the dependency graph stable for callers and avoids pulling
 // service-specific SQL concerns into a base dependency.
 //
 // New requires [Config.PrimaryDSN] and enforces `parseTime=true` in DSNs so

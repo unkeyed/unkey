@@ -1,4 +1,4 @@
-name: Bazel
+name: Go
 on:
   workflow_call:
 permissions:
