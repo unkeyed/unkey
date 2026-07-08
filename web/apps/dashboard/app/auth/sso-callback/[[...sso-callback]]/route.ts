@@ -1,5 +1,5 @@
-import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { setCookiesOnResponse } from "@/lib/auth/cookies";
+import { isSafeRedirectPath, sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
 import { auth } from "@/lib/auth/server";
 import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import { type NextRequest, NextResponse } from "next/server";
@@ -81,8 +81,9 @@ export async function GET(request: NextRequest) {
   // redirectTo originates from the attacker-controllable OAuth `state` param.
   // `new URL("https://evil.com", baseUrl)` discards the base, so anything but
   // a same-origin path here is an open redirect — mirror the failure branch.
-  const redirectTo = isSafeRedirectPath(authResult.redirectTo) ? authResult.redirectTo : "/apis";
-  const response = NextResponse.redirect(new URL(redirectTo, baseUrl));
+  const response = NextResponse.redirect(
+    new URL(sanitizeRedirectPath(authResult.redirectTo), baseUrl),
+  );
 
   return await setCookiesOnResponse(response, authResult.cookies);
 }

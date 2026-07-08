@@ -33,3 +33,14 @@ export function isSafeRedirectPath(url: string): boolean {
 
   return true;
 }
+
+/**
+ * Sanitizes an untrusted redirect target: returns it only when it is a
+ * string that passes isSafeRedirectPath, otherwise the fallback. Takes
+ * `unknown` because callers hand it values from JSON.parse of the OAuth
+ * `state` param and from client-supplied server-action inputs, where
+ * TypeScript types don't hold at runtime.
+ */
+export function sanitizeRedirectPath(url: unknown, fallback = "/apis"): string {
+  return typeof url === "string" && isSafeRedirectPath(url) ? url : fallback;
+}

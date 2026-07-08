@@ -518,6 +518,22 @@ describe("WorkOSAuthProvider", () => {
       },
     );
 
+    it("falls back to /apis when the callback state redirect is not a string", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      // JSON.parse of the state can yield any type; a non-string value must
+      // not turn a successful authentication into a failure.
+      const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete: 123 }));
+      const result = await provider.completeOAuthSignIn(
+        new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.redirectTo).toBe("/apis");
+      }
+    });
+
     it("preserves a safe deep link from the callback state", async () => {
       workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
 
