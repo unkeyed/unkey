@@ -2,8 +2,11 @@ package uid
 
 import (
 	"crypto/rand"
+	"io"
 	"strings"
 )
+
+const secureAlphabetMax = 256 - (256 % len(defaultAlphabet))
 
 // Secure generates a cryptographically secure random identifier.
 //
@@ -18,7 +21,13 @@ func Secure(length ...int) string {
 		n = length[0]
 	}
 
-	if n == 0 {
+	return secure(n, rand.Reader)
+}
+
+// secure accepts a reader so tests can inject edge-case bytes without replacing
+// the global crypto/rand.Reader used by Secure.
+func secure(n int, reader io.Reader) string {
+	if n <= 0 {
 		return ""
 	}
 
@@ -26,12 +35,21 @@ func Secure(length ...int) string {
 	id.Grow(n)
 
 	bytes := make([]byte, n)
-	if _, err := rand.Read(bytes); err != nil {
-		panic("crypto/rand failed: " + err.Error())
-	}
+	for id.Len() < n {
+		if _, err := io.ReadFull(reader, bytes); err != nil {
+			panic("crypto/rand failed: " + err.Error())
+		}
 
-	for i := 0; i < n; i++ {
-		id.WriteByte(defaultAlphabet[int(bytes[i])%len(defaultAlphabet)])
+		for _, b := range bytes {
+			if int(b) >= secureAlphabetMax {
+				continue
+			}
+
+			id.WriteByte(defaultAlphabet[int(b)%len(defaultAlphabet)])
+			if id.Len() == n {
+				break
+			}
+		}
 	}
 
 	return id.String()

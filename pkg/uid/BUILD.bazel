@@ -19,6 +19,7 @@ go_test(
     srcs = [
         "benchmark_test.go",
         "new_test.go",
+        "secure_test.go",
     ],
     embed = [":uid"],
 )
