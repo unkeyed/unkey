@@ -78,9 +78,11 @@ export async function GET(request: NextRequest) {
 
   // Get base URL from request because Next.js wants it
   const baseUrl = new URL(request.url).origin;
-  // redirectTo originates from the attacker-controllable OAuth `state` param.
-  // `new URL("https://evil.com", baseUrl)` discards the base, so anything but
-  // a same-origin path here is an open redirect — mirror the failure branch.
+  // The auth provider is the authoritative sanitizer of redirectTo (it
+  // originates from the attacker-controllable OAuth `state` param); this
+  // re-check is defense in depth at the redirect sink, because
+  // `new URL("https://evil.com", baseUrl)` discards the base and would make
+  // any absolute value an open redirect.
   const response = NextResponse.redirect(
     new URL(sanitizeRedirectPath(authResult.redirectTo), baseUrl),
   );

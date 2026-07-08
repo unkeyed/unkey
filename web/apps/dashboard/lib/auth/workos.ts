@@ -1375,10 +1375,16 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       // `state` carries both the post-auth redirect target and the browser-signal
       // token collected before the OAuth redirect (see signInViaOAuth). It is an
       // attacker-influenceable callback query param, so parse it inside the try so
-      // a malformed value is routed through mapAuthError instead of throwing.
-      const parsedState: { redirectUrlComplete?: string; signalsId?: string } = state
-        ? JSON.parse(decodeURIComponent(state))
-        : {};
+      // a malformed value is routed through mapAuthError instead of throwing, and
+      // treat anything but an object (e.g. the JSON literal `null`) as absent
+      // rather than letting a property access throw.
+      const rawState: unknown = state ? JSON.parse(decodeURIComponent(state)) : {};
+      const parsedState: Record<string, unknown> =
+        rawState !== null && typeof rawState === "object"
+          ? (rawState as Record<string, unknown>)
+          : {};
+      const signalsId =
+        typeof parsedState.signalsId === "string" ? parsedState.signalsId : undefined;
 
       const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
         clientId: this.clientId,
@@ -1386,7 +1392,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         ipAddress:
           callbackRequest.headers.get("x-forwarded-for")?.split(",")[0].trim() || undefined,
         userAgent: callbackRequest.headers.get("user-agent") || undefined,
-        signalsId: parsedState.signalsId,
+        signalsId,
         session: {
           sealSession: true,
           cookiePassword: this.cookiePassword,

@@ -534,6 +534,38 @@ describe("WorkOSAuthProvider", () => {
       }
     });
 
+    it("tolerates a root-level non-object state value", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      // JSON.parse("null") yields null; property access on it must not turn a
+      // successful authentication into a failure.
+      const result = await provider.completeOAuthSignIn(
+        new Request("http://localhost:3000/auth/sso-callback?code=auth_code_1&state=null"),
+      );
+
+      expect(workos.userManagement.authenticateWithCode).toHaveBeenCalledWith(
+        expect.objectContaining({ code: "auth_code_1", signalsId: undefined }),
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.redirectTo).toBe("/apis");
+      }
+    });
+
+    it("drops a non-string signalsId from the callback state", async () => {
+      workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
+
+      const state = encodeURIComponent(JSON.stringify({ signalsId: 123 }));
+      const result = await provider.completeOAuthSignIn(
+        new Request(`http://localhost:3000/auth/sso-callback?code=auth_code_1&state=${state}`),
+      );
+
+      expect(workos.userManagement.authenticateWithCode).toHaveBeenCalledWith(
+        expect.objectContaining({ code: "auth_code_1", signalsId: undefined }),
+      );
+      expect(result.success).toBe(true);
+    });
+
     it("preserves a safe deep link from the callback state", async () => {
       workos.userManagement.authenticateWithCode.mockResolvedValue({ sealedSession: "sealed_123" });
 

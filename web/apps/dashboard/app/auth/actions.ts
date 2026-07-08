@@ -339,8 +339,9 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
-  // redirectTo is parsed out of the attacker-influenceable OAuth `state`
-  // param, so only same-origin paths may be handed to redirect().
+  // The auth provider is the authoritative sanitizer of redirectTo (it
+  // originates from the attacker-influenceable OAuth `state` param); this
+  // re-check is defense in depth at the redirect sink.
   redirect(sanitizeRedirectPath(redirectTo) as Route);
 }
 
