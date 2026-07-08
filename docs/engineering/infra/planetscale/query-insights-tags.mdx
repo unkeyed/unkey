@@ -40,7 +40,7 @@ SELECT ... FROM keys WHERE ... /*application='unkey',service='api',region='us-ea
 
 ## Go services
 
-Annotation happens in [`pkg/mysql.Replica`](../../../../pkg/mysql/replica.go) (and the mirrored [`pkg/db`](../../../../pkg/db/database.go) package). sqlc call sites stay unchanged.
+Annotation happens in [`pkg/mysql.Replica`](https://github.com/unkeyed/unkey/blob/main/pkg/mysql/replica.go) (and the mirrored [`pkg/db`](https://github.com/unkeyed/unkey/blob/main/pkg/db/database.go) package). sqlc call sites stay unchanged.
 
 1. Pass static tags when opening the database:
 
@@ -53,7 +53,7 @@ database, err := db.New(db.Config{
 })
 ```
 
-2. Optional dynamic tags via context (HTTP zen services set these automatically with [`zen.WithSQLComment`](../../../../pkg/zen/middleware_sqlcomment.go)):
+2. Optional dynamic tags via context (HTTP zen services set these automatically with [`zen.WithSQLComment`](https://github.com/unkeyed/unkey/blob/main/pkg/zen/middleware_sqlcomment.go)):
 
 ```go
 ctx = sqlcomment.WithDynamic(ctx, sqlcomment.Dynamic{Route: "POST /v2/keys.verifyKey", Source: "http"})
@@ -66,11 +66,11 @@ rows, err := database.RO().QueryContext(ctx, query, args...)
 
 `sqlcomment.Static{}` disables annotation (tests and dev seeds).
 
-Package reference: [`pkg/mysql/sqlcomment`](../../../../pkg/mysql/sqlcomment/doc.go).
+Package reference: [`pkg/mysql/sqlcomment`](https://github.com/unkeyed/unkey/blob/main/pkg/mysql/sqlcomment/doc.go).
 
 ## TypeScript apps
 
-Dashboard and portal use Drizzle on top of [`createCommentedPool`](../../../../web/internal/db/src/commented-pool.ts) from `@unkey/db`. The pool proxy annotates `query` and `execute` on the pool and on connections from `getConnection`, which is what Drizzle uses inside transactions.
+Dashboard and portal use Drizzle on top of [`createCommentedPool`](https://github.com/unkeyed/unkey/blob/main/web/internal/db/src/commented-pool.ts) from `@unkey/db`. The pool proxy annotates `query` and `execute` on the pool and on connections from `getConnection`, which is what Drizzle uses inside transactions.
 
 Useful tags on the TypeScript side:
 
