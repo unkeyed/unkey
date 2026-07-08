@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Promote reassigns all domains to the target deployment via a Restate workflow.
@@ -20,11 +21,45 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, err
 	}
 
+	deploymentID := req.Msg.GetTargetDeploymentId()
+	if deploymentID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("target_deployment_id is required"))
+	}
+
+	// Mirror the workflow's cheap validations so callers get precise connect
+	// codes instead of CodeInternal. The workflow re-validates, so a race here
+	// only degrades the error code, never correctness.
+	deployment, err := s.db.FindDeploymentById(ctx, deploymentID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
+	}
+
+	if deployment.Status != db.DeploymentsStatusReady {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is not ready"))
+	}
+
+	app, err := s.db.FindAppById(ctx, deployment.AppID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load app: %w", err))
+	}
+	if !app.CurrentDeploymentID.Valid {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("app has no live deployment"))
+	}
+	if app.CurrentDeploymentID.String == deployment.ID && !app.IsRolledBack {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is already live"))
+	}
+
 	logger.Info("initiating promotion via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
-	_, err := s.deploymentClient(req.Msg.GetTargetDeploymentId()).
+	_, err = s.deploymentClient(req.Msg.GetTargetDeploymentId()).
 		Promote().
 		Request(ctx, &hydrav1.PromoteRequest{
 			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),
