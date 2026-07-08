@@ -9,7 +9,6 @@ cfg = config.parse()
 TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
 
 # Check which optional credential files exist
-has_depot_credentials = os.path.exists('./.env.depot')
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
 has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
 
@@ -159,15 +158,6 @@ local_resource(
   resource_deps=['hubble'],
   labels=['observability'],
   links=['http://localhost:12000'],
-)
-
-local_resource(
-    'depot-credentials',
-    'if [ -f ./.env.depot ]; then kubectl -n unkey create secret generic depot-credentials --from-env-file=./.env.depot -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping depot-credentials (no .env.depot file)"; fi',
-    resource_deps=['namespace'],
-    deps=['./.env.depot'],
-    labels=['setup'],
-    allow_parallel=True,
 )
 
 local_resource(
@@ -332,13 +322,10 @@ custom_build(
     deps=SERVICE_DEPS,
 )
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials']
-if has_depot_credentials:
-    ctrl_api_deps.append('depot-credentials')
 k8s_resource(
   'ctrl-api',
   port_forwards='7091:7091',
-  resource_deps=ctrl_api_deps,
+  resource_deps=['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -351,13 +338,12 @@ custom_build(
     deps=SERVICE_DEPS,
 )
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials']
-if has_depot_credentials:
-    ctrl_worker_deps.append('depot-credentials')
+# 'registry' is a build-time dependency: the worker pushes built images to
+# the ctlptl registry Service that resource creates.
 k8s_resource(
   'ctrl-worker',
   port_forwards=['7092:7092'],
-  resource_deps=ctrl_worker_deps,
+  resource_deps=['mysql', 'clickhouse', 'restate', 'registry', 'webhooks-config', 'github-credentials', 'stripe-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -402,7 +388,7 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass'],
+  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'registry', 'topolvm-storageclass'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO

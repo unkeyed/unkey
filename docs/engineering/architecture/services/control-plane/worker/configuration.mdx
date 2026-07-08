@@ -70,15 +70,21 @@ ACME settings live under `acme`. Enable Route53 DNS-01 challenges with `acme.rou
 
 ## Build and registry configuration
 
-Builds are enabled when `registry.password` is set. In that case, `registry.url`, `registry.username`, `depot.api_url`, and `depot.project_region` must be set.
+`build.backend` selects how builds run. The default `depot` backend runs builds on Depot.dev and is what production uses; builds are enabled when `registry.password` is set, in which case `registry.repository`, `registry.username`, `build.depot.api_url`, and `build.depot.project_region` must also be set.
+
+The `kubernetes` backend runs each build as a one-off BuildKit Job in the cluster the worker runs in. It needs no Depot account, but the build pods run privileged without further isolation, so it is intended for local development only. It requires `registry.repository` and in-cluster credentials with permission to manage Jobs and read Pods in the configured namespace.
 
 | Field | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `depot.api_url` | string | - | Depot API endpoint.
-| `depot.project_region` | string | `us-east-1` | Depot storage region.
-| `registry.url` | string | - | Registry endpoint URL.
+| `build.backend` | string | `depot` | `depot` or `kubernetes`.
+| `build.depot.api_url` | string | - | Depot API endpoint.
+| `build.depot.project_region` | string | `us-east-1` | Depot storage region.
+| `build.kubernetes.namespace` | string | `unkey` | Namespace for build Jobs.
+| `build.kubernetes.image` | string | `moby/buildkit:v0.26.3` | BuildKit daemon image.
+| `registry.repository` | string | - | Registry repository path, e.g. `registry.depot.dev/abc123`.
 | `registry.username` | string | - | Registry username.
 | `registry.password` | string | - | Registry password or token.
+| `registry.insecure` | boolean | `false` | Allow plain-HTTP pushes. Local registries only.
 
 ## ClickHouse configuration
 
@@ -145,7 +151,10 @@ admin_url = "${UNKEY_RESTATE_ADMIN_URL}"
 http_port = 9080
 register_as = "${UNKEY_RESTATE_REGISTER_AS}"
 
-[depot]
+[build]
+backend = "depot"
+
+[build.depot]
 api_url = "https://api.depot.dev"
 project_region = "us-east-1"
 

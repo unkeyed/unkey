@@ -377,8 +377,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 // buildImage resolves the container image for a deployment and persists the image
 // reference to the database. For a DockerImage source, the image name is used
 // directly. For a Git source, the branch HEAD is resolved to a commit SHA (if
-// needed), a Docker image is built via Depot using [Workflow.buildDockerImageFromGit],
-// and the build ID and git metadata are saved.
+// needed), a Docker image is built on the configured build backend using
+// [Workflow.buildDockerImageFromGit], and the build ID and git metadata are saved.
 //
 // The deployment pointer is mutated in place: GitCommitSha and GitBranch are
 // updated when a branch is resolved, so the caller sees the resolved values for
@@ -457,7 +457,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
 				ID:        deployment.ID,
-				BuildID:   sql.NullString{Valid: true, String: build.DepotBuildID},
+				BuildID:   sql.NullString{Valid: true, String: build.BuildID},
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 		}, restate.WithName("update deployment build id"), restate.WithMaxRetryAttempts(runMaxAttempts))
