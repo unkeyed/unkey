@@ -1,23 +1,22 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
+import { serializeFilters } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
 import { usePageClamp } from "@/hooks/use-page-clamp";
 import { usePageTransition } from "@/hooks/use-page-transition";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import { trpc } from "@/lib/trpc/client";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { type AuditLogsQueryPayload, DEFAULT_BUCKET_NAME } from "../schema/audit-logs.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
-const PREFETCH_PAGES_AHEAD = 2;
 
 export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const normalizedPage = Math.max(1, page);
 
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
-  );
+  const filtersKey = useMemo(() => serializeFilters(filters), [filters]);
 
   const queryPage = usePageTransition({
     transitionKey: filtersKey,
@@ -102,28 +101,15 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     setPage,
   });
 
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      utils.audit.logs.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [queryPage, totalPages, queryParams, utils.audit.logs]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch: (params) =>
+      utils.audit.logs.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+  });
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   return {
     auditLogs: data?.auditLogs ?? [],

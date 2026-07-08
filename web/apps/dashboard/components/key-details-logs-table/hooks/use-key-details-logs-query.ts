@@ -1,8 +1,11 @@
 import { keyDetailsFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { serializeFilters } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
 import { usePageClamp } from "@/hooks/use-page-clamp";
 import { usePageTransition } from "@/hooks/use-page-transition";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
@@ -13,7 +16,6 @@ import type { KeyDetailsLogsPayload } from "../schema/query-logs.schema";
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
-const PREFETCH_PAGES_AHEAD = 2;
 
 type UseKeyDetailsLogsQueryParams = {
   limit?: number;
@@ -43,7 +45,7 @@ export function useKeyDetailsLogsQuery({
   // transition also clears the realtime buffer since buffered live rows
   // belong to the previous result set.
   const filtersKey = useMemo(
-    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
+    () => `${serializeFilters(filters)}|ts:${timestamp}`,
     [filters, timestamp],
   );
 
@@ -167,19 +169,13 @@ export function useKeyDetailsLogsQuery({
     setPage,
   });
 
-  // Prefetch the next few pages
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      queryClient.key.logs.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [queryPage, totalPages, queryParams, queryClient.key.logs.query]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch: (params) =>
+      queryClient.key.logs.query.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+  });
 
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
@@ -243,15 +239,7 @@ export function useKeyDetailsLogsQuery({
     }
   }, [startPolling, queryPage, pollForNewLogs, pollIntervalMs]);
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   const isInitialLoading = isLoading && !logData;
   const isNavigating = isFetching && !isInitialLoading;

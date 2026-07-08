@@ -2,21 +2,22 @@ import { keysOverviewFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
+import { serializeFilters, serializeSorts } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
 import { usePageClamp } from "@/hooks/use-page-clamp";
 import { usePageTransition } from "@/hooks/use-page-transition";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import type { KeysQueryOverviewLogsPayload, SortFields } from "../schema/keys-overview.schema";
 
 type UseLogsQueryParams = {
   limit?: number;
   apiId: string;
 };
-
-const PREFETCH_PAGES_AHEAD = 2;
 
 export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryParams) {
   const { filters } = useFilters();
@@ -34,8 +35,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
   // Filters, query time, and sort all invalidate the current OFFSET, so any
   // of them changing resets pagination.
   const filtersKey = useMemo(
-    () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    () => `${serializeFilters(filters)}|t:${timestamp}|s:${serializeSorts(sorts)}`,
     [filters, timestamp, sorts],
   );
 
@@ -162,19 +162,13 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     setPage,
   });
 
-  // Prefetch the next few pages
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      utils.api.keys.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [queryPage, totalPages, queryParams, utils.api.keys.query]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch: (params) =>
+      utils.api.keys.query.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+  });
 
   const historicalLogs = useMemo(() => {
     if (!data) {
@@ -190,15 +184,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     return Array.from(map.values());
   }, [data]);
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   const isInitialLoading = isLoading && !data;
   const isNavigating = isFetching && !isInitialLoading;

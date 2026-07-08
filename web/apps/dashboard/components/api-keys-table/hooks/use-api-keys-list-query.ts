@@ -4,17 +4,19 @@ import {
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import { serializeFilters } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
 import { usePageClamp } from "@/hooks/use-page-clamp";
 import { usePageTransition } from "@/hooks/use-page-transition";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { ApiKeysQueryPayload, ApiKeysSortField } from "../schema/api-keys.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
-const PREFETCH_PAGES_AHEAD = 2;
 
 // Maps TanStack column IDs to server sort field names (and reverse)
 const COLUMN_ID_TO_SORT_FIELD: Record<string, ApiKeysSortField> = {
@@ -75,10 +77,7 @@ export function useApiKeysListQuery({
     [sorting, setSortParams, setPage],
   );
 
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
-  );
+  const filtersKey = useMemo(() => serializeFilters(filters), [filters]);
 
   const queryPage = usePageTransition({
     transitionKey: filtersKey,
@@ -137,29 +136,15 @@ export function useApiKeysListQuery({
     setPage,
   });
 
-  // Prefetch adjacent pages for instant navigation
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      utils.api.keys.list.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [queryPage, totalPages, queryParams, utils.api.keys.list]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch: (params) =>
+      utils.api.keys.list.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+  });
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   return {
     keys: data?.keys ?? [],

@@ -5,19 +5,20 @@ import type {
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
+import { serializeFilters, serializeSorts } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
 import { usePageClamp } from "@/hooks/use-page-clamp";
 import { usePageTransition } from "@/hooks/use-page-transition";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 type UseRatelimitsOverviewListQueryParams = {
   limit?: number;
   namespaceId: string;
 };
-
-const PREFETCH_PAGES_AHEAD = 2;
 
 export const RATELIMITS_OVERVIEW_PAGE_SIZE = 50;
 
@@ -35,8 +36,7 @@ export function useRatelimitsOverviewListPaginated({
   // Filters, query time, and sort all invalidate the current OFFSET, so any
   // of them changing resets pagination.
   const filtersKey = useMemo(
-    () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    () => `${serializeFilters(filters)}|t:${timestamp}|s:${serializeSorts(sorts)}`,
     [filters, timestamp, sorts],
   );
 
@@ -124,30 +124,17 @@ export function useRatelimitsOverviewListPaginated({
     setPage,
   });
 
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      utils.ratelimit.overview.logs.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [queryPage, totalPages, queryParams, utils.ratelimit.overview.logs.query]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch: (params) =>
+      utils.ratelimit.overview.logs.query.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+  });
 
   const historicalLogs = data?.ratelimitOverviewLogs ?? [];
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   const isInitialLoading = isLoading && !data;
   const isNavigating = isFetching && !isInitialLoading;
