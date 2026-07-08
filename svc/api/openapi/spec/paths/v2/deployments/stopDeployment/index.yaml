@@ -1,0 +1,92 @@
+post:
+  tags:
+    - deployments
+  summary: Stop deployment
+  description: |
+    Stop a running preview deployment. Stopped deployments keep their
+    configuration and can be resumed later with `startDeployment`.
+
+    The deployment must be ready and running, and must belong to a
+    non-production environment; production deployments cannot be stopped.
+
+    Stopping is asynchronous: this endpoint only enqueues the stop and returns
+    immediately. Poll `getDeployment` until the status reaches `stopped`.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.stop_deployment` (to stop deployments in any environment)
+    - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
+  operationId: deployments.stopDeployment
+  x-speakeasy-name-override: stopDeployment
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsStopDeploymentRequestBody.yaml"
+        examples:
+          stop:
+            summary: Stop a running preview deployment
+            description: Spin down a preview deployment that is currently serving
+            value:
+              deploymentId: d_1234abcd
+  responses:
+    "202":
+      description: |
+        Stop accepted and enqueued. The deployment transitions to `stopped`
+        asynchronously; poll `getDeployment` to observe the transition.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsStopDeploymentResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Stop enqueued
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        Not Found - The deployment does not exist in your workspace, or your
+        root key lacks the `stop_deployment` permission for it. Both cases
+        return the same response, so deployment existence is never revealed.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "412":
+      description: |
+        Precondition failed - The deployment is not running, or it belongs to a
+        production environment.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

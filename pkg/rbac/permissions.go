@@ -181,6 +181,9 @@ const (
 	// ReadDeployment permits viewing deployment details
 	ReadDeployment ActionType = "read_deployment"
 
+	// StopDeployment permits stopping a running preview deployment
+	StopDeployment ActionType = "stop_deployment"
+
 	// GenerateUploadURL permits generating S3 upload URLs for build contexts
 	GenerateUploadURL ActionType = "generate_upload_url"
 
