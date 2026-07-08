@@ -46,6 +46,10 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
 	}
 
+	if err := s.cancelDomainVerifications(ctx, envID); err != nil {
+		return nil, fmt.Errorf("cancel domain verifications: %w", err)
+	}
+
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return s.db.DeleteCiliumNetworkPoliciesByEnvironmentId(runCtx, envID)
 	}, restate.WithName("delete network policies")); err != nil {
@@ -213,6 +217,51 @@ func (s *Service) cancelProgressingDeployments(ctx restate.ObjectContext, envID 
 			"environment_id", envID,
 			"error", err,
 		)
+	}
+
+	return nil
+}
+
+// cancelDomainVerifications aborts in-flight custom domain verification
+// workflows before the cascade deletes custom_domains rows. Without this,
+// VerifyDomain retries would keep hitting sql.ErrNoRows until the 24-hour
+// retry window expires.
+func (s *Service) cancelDomainVerifications(ctx restate.ObjectContext, envID string) error {
+	domains, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.CustomDomain, error) {
+		return s.db.ListCustomDomainsByEnvironmentID(runCtx, envID)
+	}, restate.WithName("list custom domains"))
+	if err != nil {
+		return fmt.Errorf("list custom domains: %w", err)
+	}
+
+	if len(domains) == 0 {
+		return nil
+	}
+
+	logger.Info("cancelling in-flight domain verifications for environment deletion",
+		"environment_id", envID,
+		"count", len(domains),
+	)
+
+	for _, d := range domains {
+		if !d.InvocationID.Valid || d.InvocationID.String == "" {
+			continue
+		}
+
+		invocationID := d.InvocationID.String
+		domainID := d.ID
+
+		if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return s.admin.CancelInvocation(runCtx, invocationID)
+		}, restate.WithName("cancel domain verification "+domainID)); err != nil {
+			logger.Warn("failed to cancel domain verification workflow",
+				"environment_id", envID,
+				"domain_id", domainID,
+				"domain", d.Domain,
+				"invocation_id", invocationID,
+				"error", err,
+			)
+		}
 	}
 
 	return nil

@@ -9,6 +9,7 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/mysql",
         "//pkg/ptr",
         "//pkg/rbac",
         "//pkg/zen",
@@ -18,13 +19,14 @@ go_library(
 
 go_test(
     name = "v2_identities_list_identities_test",
-    size = "medium",
+    size = "large",
     srcs = [
         "200_test.go",
         "400_test.go",
         "401_test.go",
         "403_test.go",
         "cross_workspace_test.go",
+        "scale_test.go",
     ],
     deps = [
         ":v2_identities_list_identities",

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "mysql",
@@ -11,6 +11,7 @@ go_library(
         "interface.go",
         "replica.go",
         "retry.go",
+        "search.go",
         "traced_tx.go",
         "tx.go",
     ],
@@ -28,4 +29,12 @@ go_library(
         "@com_github_go_sql_driver_mysql//:mysql",
         "@io_opentelemetry_go_otel//attribute",
     ],
+)
+
+go_test(
+    name = "mysql_test",
+    size = "small",
+    srcs = ["search_test.go"],
+    embed = [":mysql"],
+    deps = ["@com_github_stretchr_testify//require"],
 )
