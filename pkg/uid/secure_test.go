@@ -6,9 +6,11 @@ import (
 )
 
 // TestSecureRejectsBiasedBytes verifies rejection sampling ignores bytes that
-// would create modulo bias instead of mapping them into the alphabet. It calls
-// the private reader-backed helper so the test can inject those bytes directly
-// without replacing the global crypto/rand.Reader used by Secure.
+// would create modulo bias instead of mapping them into the alphabet. With a
+// 62-character alphabet, byte values 248..255 would wrap around to the first 8
+// characters and make them more likely. It calls the private reader-backed
+// helper so the test can inject those bytes directly without replacing the
+// global crypto/rand.Reader used by Secure.
 func TestSecureRejectsBiasedBytes(t *testing.T) {
 	reader := bytes.NewReader([]byte{
 		0, 7, 8, 61, 62, 247, 248, 249, 255,
@@ -24,6 +26,8 @@ func TestSecureRejectsBiasedBytes(t *testing.T) {
 
 // TestSecureUniformDistributionAcrossLargeSample generates many Secure tokens
 // and verifies no alphabet character is meaningfully over- or under-represented.
+// This is a practical guard against accidentally reintroducing byte % alphabet
+// mapping, where the first few characters would appear more often over time.
 func TestSecureUniformDistributionAcrossLargeSample(t *testing.T) {
 	const (
 		tokens      = 10_000

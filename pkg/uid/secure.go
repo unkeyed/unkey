@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+// secureAlphabetMax is the largest byte value range that can be split evenly
+// across defaultAlphabet. A byte has 256 possible values, but the alphabet has
+// 62 characters. Since 256 is not divisible by 62, directly using b % 62 would
+// make the first 8 characters more likely than the rest. Rejection sampling
+// avoids that bias by only accepting byte values 0..247, because 248 is exactly
+// 4 full copies of a 62-character alphabet.
 const secureAlphabetMax = 256 - (256 % len(defaultAlphabet))
 
 // Secure generates a cryptographically secure random identifier.
@@ -42,6 +48,7 @@ func secure(n int, reader io.Reader) string {
 
 		for _, b := range bytes {
 			if int(b) >= secureAlphabetMax {
+				// Skip values that would over-represent the start of the alphabet.
 				continue
 			}
 
