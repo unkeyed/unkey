@@ -16,7 +16,8 @@
 // for single-attempt transactions, and [TxRetry] / [TxWithResultRetry] when the
 // operation is safe to retry on transient failures.
 //
-// Retry helpers only retry errors classified as transient by [IsTransientError].
+// Retry helpers only retry errors classified as transient by [IsTransientError],
+// including Vitess/PlanetScale transaction timeouts (MySQL 1105).
 // [IsNotFound] and [IsDuplicateKeyError] are treated as terminal and are not
 // retried.
 package mysql

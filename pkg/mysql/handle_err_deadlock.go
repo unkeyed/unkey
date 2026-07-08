@@ -14,6 +14,9 @@ const (
 	errDeadlock           = 1213
 	errLockWaitTimeout    = 1205
 	errTooManyConnections = 1040
+	// errVitessUnknown is Vitess/PlanetScale's wrapper for tablet-side failures,
+	// including transaction timeouts (message contains "exceeded timeout").
+	errVitessUnknown = 1105
 )
 
 // MySQL client error codes (CR_* errors)
@@ -71,12 +74,36 @@ func IsConnectionError(err error) bool {
 	return false
 }
 
+// IsTransactionTimeoutError returns true when Vitess/PlanetScale aborts a
+// transaction because it exceeded the configured timeout (typically 20s).
+// The error surfaces as MySQL 1105 with a message like:
+// "rpc error: code = Aborted desc = transaction ... (exceeded timeout: 20s)".
+func IsTransactionTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == errVitessUnknown {
+		return isVitessTransactionTimeoutMessage(mysqlErr.Message)
+	}
+
+	return isVitessTransactionTimeoutMessage(err.Error())
+}
+
+func isVitessTransactionTimeoutMessage(msg string) bool {
+	msg = strings.ToLower(msg)
+	return strings.Contains(msg, "exceeded timeout") &&
+		(strings.Contains(msg, "transaction") || strings.Contains(msg, "aborted"))
+}
+
 // IsTransientError returns true if the error is a transient MySQL error that should be retried.
 func IsTransientError(err error) bool {
 	return IsDeadlockError(err) ||
 		IsLockWaitTimeoutError(err) ||
 		IsConnectionError(err) ||
-		IsTooManyConnectionsError(err)
+		IsTooManyConnectionsError(err) ||
+		IsTransactionTimeoutError(err)
 }
 
 // isMySQLError checks if the error is a MySQL error with the given error number.

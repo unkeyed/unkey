@@ -66,6 +66,7 @@ func backoffStrategy(n int) time.Duration {
 //   - Lock wait timeouts (MySQL error 1205)
 //   - Connection errors (MySQL errors 2006, 2013, network errors)
 //   - Too many connections (MySQL error 1040)
+//   - Vitess transaction timeouts (MySQL error 1105 with "exceeded timeout")
 //
 // Returns false for permanent errors that won't succeed on retry:
 //   - Not found errors

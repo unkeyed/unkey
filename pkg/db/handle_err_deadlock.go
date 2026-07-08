@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
+	mysqlpkg "github.com/unkeyed/unkey/pkg/mysql"
 )
 
 // MySQL server error codes
@@ -99,13 +100,17 @@ func IsConnectionError(err error) bool {
 	return false
 }
 
+// IsTransactionTimeoutError returns true when Vitess/PlanetScale aborts a
+// transaction because it exceeded the configured timeout.
+func IsTransactionTimeoutError(err error) bool {
+	return mysqlpkg.IsTransactionTimeoutError(err)
+}
+
 // IsTransientError returns true if the error is a transient MySQL error that should be retried.
-// This includes deadlocks, lock wait timeouts, connection errors, and too many connections.
+// This includes deadlocks, lock wait timeouts, connection errors, too many connections,
+// and Vitess transaction timeouts.
 func IsTransientError(err error) bool {
-	return IsDeadlockError(err) ||
-		IsLockWaitTimeoutError(err) ||
-		IsConnectionError(err) ||
-		IsTooManyConnectionsError(err)
+	return mysqlpkg.IsTransientError(err)
 }
 
 // isMySQLError checks if the error is a MySQL error with the given error number.

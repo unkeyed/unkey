@@ -77,6 +77,27 @@ func TestWithRetryContext_SkipsRetryOnDuplicateKey(t *testing.T) {
 	require.Equal(t, 1, callCount, "should not retry on duplicate key error")
 }
 
+func TestWithRetryContext_RetriesVitessTransactionTimeout(t *testing.T) {
+	ctx := context.Background()
+	callCount := 0
+	vitessTimeoutErr := &mysql.MySQLError{
+		Number:  1105,
+		Message: "vttablet: rpc error: code = Aborted desc = transaction 1: ended (exceeded timeout: 20s)",
+	}
+
+	result, err := WithRetryContext(ctx, func() (string, error) {
+		callCount++
+		if callCount < 3 {
+			return "", vitessTimeoutErr
+		}
+		return "success", nil
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "success", result)
+	require.Equal(t, 3, callCount, "should retry twice then succeed")
+}
+
 func TestWithRetryContext_ExhaustsRetries(t *testing.T) {
 	ctx := context.Background()
 	callCount := 0
