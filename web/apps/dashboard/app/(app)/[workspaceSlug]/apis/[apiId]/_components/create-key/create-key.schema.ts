@@ -26,8 +26,8 @@ export const keyBytesSchema = z.coerce
   .int({
     error: "Key length must be a whole number (integer)",
   })
-  .min(8, {
-    error: "Key length is too short (minimum 8 bytes required)",
+  .min(16, {
+    error: "Key length is too short (minimum 16 bytes required)",
   })
   .max(255, {
     error: "Key length is too long (maximum 255 bytes allowed)",
