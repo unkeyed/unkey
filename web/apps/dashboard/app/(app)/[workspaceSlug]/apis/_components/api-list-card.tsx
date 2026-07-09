@@ -68,7 +68,7 @@ export function ApiListCard({ api }: Props) {
           {chart.type === "data" ? (
             <div className="ml-auto flex items-center gap-3">
               <span className="flex items-center gap-1.5">
-                <span className="bg-accent-8 rounded h-[10px] w-1 shrink-0" />
+                <span className="bg-accent-4 rounded h-[10px] w-1 shrink-0" />
                 <span>
                   <span className="tabular-nums">{formatNumber(passed)}</span> valid
                 </span>
@@ -169,11 +169,13 @@ function ApiSparkline({ data }: { data: VerificationTimeseriesPoint[] }) {
     if (!active) {
       return;
     }
+    // Read the chart bounds once when the tooltip opens rather than on every move,
+    // so the document-wide listener doesn't force a layout on each pointer event.
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
     const onPointerMove = (e: PointerEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) {
-        return;
-      }
       const inside =
         e.clientX >= rect.left &&
         e.clientX <= rect.right &&
@@ -183,8 +185,9 @@ function ApiSparkline({ data }: { data: VerificationTimeseriesPoint[] }) {
         setActive(false);
       }
     };
-    document.addEventListener("pointermove", onPointerMove, true);
-    return () => document.removeEventListener("pointermove", onPointerMove, true);
+    const options = { capture: true, passive: true };
+    document.addEventListener("pointermove", onPointerMove, options);
+    return () => document.removeEventListener("pointermove", onPointerMove, options);
   }, [active]);
 
   return (

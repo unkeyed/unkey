@@ -29,7 +29,7 @@ type Props = {
   workspaceSlug: string;
 };
 
-export const CreateApiButton = ({ defaultOpen, workspaceSlug }: Props) => {
+export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const router = useRouter();
   const { api } = trpc.useUtils();
@@ -102,4 +102,4 @@ export const CreateApiButton = ({ defaultOpen, workspaceSlug }: Props) => {
       </DynamicDialogContainer>
     </>
   );
-};
+}
