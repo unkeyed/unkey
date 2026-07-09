@@ -13,6 +13,7 @@ import { CreateApiButton } from "./create-api-button";
 import { ApiCardSkeleton } from "./skeleton";
 
 const DEFAULT_LIMIT = 10;
+const SKELETON_COUNT = 3;
 
 export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
   const router = useRouter();
@@ -66,7 +67,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
-          {Array.from({ length: DEFAULT_LIMIT }).map((_, i) => (
+          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
             <ApiCardSkeleton key={i} />
           ))}
