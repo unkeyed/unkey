@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/internal/services/portal"
+	"github.com/unkeyed/unkey/pkg/auth/portalrbac"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -35,7 +36,8 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 			WorkspaceID:    "ws_123",
 			ExternalID:     "customer_123",
 			PortalConfigID: "pc_123",
-			Permissions:    []string{"api.*.read_key"},
+			KeyspaceIDs:    []string{"ks_1"},
+			Permissions:    []string{"keys:reroll"},
 		},
 	})
 
@@ -54,7 +56,16 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "portal_session_123", source.SessionID)
 	require.Equal(t, "pc_123", source.PortalConfigID)
-	require.Equal(t, []string{"api.*.read_key"}, source.Permissions)
+
+	// The resolver expands the simplified capability model into RBAC strings via
+	// portalrbac; the principal must carry the expanded permissions, not the verbs.
+	expected := portalrbac.Grant{
+		WorkspaceID:  "ws_123",
+		KeyspaceIDs:  []string{"ks_1"},
+		Capabilities: []portalrbac.Capability{portalrbac.CapKeysReroll},
+	}.Expand()
+	require.Equal(t, expected, source.Permissions)
+	require.Equal(t, expected, principal.Permissions)
 }
 
 func TestResolver_IgnoresMissingCookie(t *testing.T) {

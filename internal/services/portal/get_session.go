@@ -54,11 +54,14 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 		)
 	}
 
-	permissions, err := db.UnmarshalNullableJSONTo[[]string](row.Permissions)
+	// The permissions column stores the simplified capability model as a JSON
+	// object {keyspaceIds, permissions:[verbs]}, written by portal.createSession.
+	// The resolver expands the verbs into RBAC via portalrbac.
+	grant, err := db.UnmarshalNullableJSONTo[storedGrant](row.Permissions)
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("failed to unmarshal portal session permissions"),
+			fault.Internal("failed to unmarshal portal session grant"),
 			fault.Public("An internal error occurred."),
 		)
 	}
@@ -67,7 +70,16 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 		WorkspaceID:    row.WorkspaceID,
 		ExternalID:     row.ExternalID,
 		PortalConfigID: row.PortalConfigID,
-		Permissions:    permissions,
 		Preview:        row.Preview,
+		KeyspaceIDs:    grant.KeyspaceIDs,
+		Permissions:    grant.Permissions,
 	}, nil
+}
+
+// storedGrant is the JSON object shape stored on the portal session's
+// permissions column. It must stay in sync with the shape written by
+// portal.createSession.
+type storedGrant struct {
+	KeyspaceIDs []string `json:"keyspaceIds"`
+	Permissions []string `json:"permissions"`
 }

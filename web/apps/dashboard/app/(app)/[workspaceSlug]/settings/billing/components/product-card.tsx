@@ -36,7 +36,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   footer,
 }) => {
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-grayA-4 bg-white dark:bg-black">
+    <div className="w-full overflow-hidden rounded-lg border border-grayA-4 bg-white dark:bg-black">
       <div className="flex items-center justify-between gap-4 px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <div

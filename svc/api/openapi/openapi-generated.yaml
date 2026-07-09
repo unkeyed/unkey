@@ -10,6 +10,15 @@ components:
                 Browser clients should call the dashboard `/proxy/...` route without an Authorization header. The dashboard server mints and attaches this token upstream.
             scheme: bearer
             type: http
+        portalSession:
+            description: |-
+                Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
+                and sent automatically by the browser on `portal.*` requests. Portal sessions
+                are scoped to a single end user (external identity) and can only access the
+                `portal.*` routes.
+            in: cookie
+            name: portal_session
+            type: apiKey
         rootKey:
             bearerFormat: root key
             description: |-
@@ -2364,18 +2373,25 @@ components:
                     type: array
                     items:
                         type: string
-                        pattern: "^[^.]+\\.[^.]+\\.[^.]+$"
+                        enum:
+                            - "keys:read"
+                            - "keys:create"
+                            - "keys:reroll"
+                            - "analytics:read"
                     minItems: 1
                     description: |
-                        List of RBAC tuple permissions defining what the end user can do in the Portal.
-                        Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
-                        Use `*` as resourceId to grant access to all resources of that type.
+                        The capabilities granted to the end user in the Portal, from a fixed
+                        vocabulary. All capabilities are scoped to this end user: key capabilities
+                        (`keys:*`) apply only to keys the end user owns within the keyspace
+                        configured on the portal configuration, and `analytics:read` returns only
+                        the end user's own verification events. An end user can never see another
+                        identity's keys or analytics.
 
-                        Tab visibility is derived from the action segment:
-                        - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
-                        - Analytics tab: `read_analytics`
-                        - Docs tab: visible when any permission is present
-                    example: ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]
+                        Tab visibility is derived from the capabilities:
+                        - Keys tab: any `keys:*` capability
+                        - Analytics tab: `analytics:read`
+                        - Docs tab: visible when any capability is present
+                    example: ["keys:read", "keys:reroll", "analytics:read"]
                 preview:
                     type: boolean
                     default: false
@@ -2416,6 +2432,84 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2PortalExchangeSessionResponseData"
+            additionalProperties: false
+        V2PortalGetVerificationsRequestBody:
+            type: object
+            required:
+                - startTime
+                - endTime
+            properties:
+                startTime:
+                    type: integer
+                    format: int64
+                    description: |
+                        Start of the query window as a unix timestamp in milliseconds (inclusive).
+                    example: 1704067200000
+                endTime:
+                    type: integer
+                    format: int64
+                    description: |
+                        End of the query window as a unix timestamp in milliseconds (exclusive).
+                        Bucket granularity (minute, hour, or day) is chosen automatically from the
+                        window size.
+                    example: 1704672000000
+                keyId:
+                    type: string
+                    description: |
+                        Optional. Restrict results to a single key. The key must belong to the
+                        authenticated end user; results are always scoped to the session identity
+                        regardless of this value.
+                    example: key_1234abcd
+            additionalProperties: false
+        V2PortalGetVerificationsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    type: array
+                    description: |
+                        Zero-filled verification timeseries for the authenticated end user, ordered
+                        by time ascending. Buckets with no verifications are present with zero
+                        counts so the series is contiguous across the requested window.
+                    items:
+                        $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
+            additionalProperties: false
+        V2PortalListKeysRequestBody:
+            type: object
+            properties:
+                limit:
+                    type: integer
+                    description: |
+                        Maximum number of keys to return per request.
+                        Balance between response size and number of pagination calls needed.
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: |
+                        Pagination cursor from a previous response to fetch the next page.
+                        Use when `hasMore: true` in the previous response.
+                    example: key_1234abcd
+            additionalProperties: false
+        V2PortalListKeysResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PortalListKeysResponseData"
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2ProjectsCreateProjectRequestBody:
             type: object
@@ -4635,6 +4729,63 @@ components:
                         Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
                     example: 1711386400000
             additionalProperties: false
+        V2PortalGetVerificationsDataPoint:
+            type: object
+            required:
+                - time
+                - total
+                - valid
+                - rateLimited
+                - insufficientPermissions
+                - forbidden
+                - disabled
+                - expired
+                - usageExceeded
+            properties:
+                time:
+                    type: integer
+                    format: int64
+                    description: Bucket start as a unix timestamp in milliseconds.
+                    example: 1704067200000
+                total:
+                    type: integer
+                    format: int64
+                    description: Total verifications in this bucket, across all outcomes.
+                valid:
+                    type: integer
+                    format: int64
+                    description: Verifications with a VALID outcome.
+                rateLimited:
+                    type: integer
+                    format: int64
+                    description: Verifications rejected because a rate limit was exceeded.
+                insufficientPermissions:
+                    type: integer
+                    format: int64
+                    description: Verifications rejected for insufficient permissions.
+                forbidden:
+                    type: integer
+                    format: int64
+                    description: Verifications rejected as forbidden.
+                disabled:
+                    type: integer
+                    format: int64
+                    description: Verifications rejected because the key was disabled.
+                expired:
+                    type: integer
+                    format: int64
+                    description: Verifications rejected because the key was expired.
+                usageExceeded:
+                    type: integer
+                    format: int64
+                    description: Verifications rejected because remaining usage was exhausted.
+            additionalProperties: false
+        V2PortalListKeysResponseData:
+            type: array
+            maxItems: 100
+            items:
+                "$ref": "#/components/schemas/KeyResponseData"
+            description: Array of the portal end user's API keys.
         V2ProjectsCreateProjectResponseData:
             type: object
             required:
@@ -9398,6 +9549,216 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: exchangeSession
+    /v2/portal.getVerifications:
+        post:
+            description: |
+                Return a verification analytics timeseries for the authenticated portal
+                session's end user.
+
+                Authenticates only with a portal session cookie and always restricts results
+                to verification events attributed to the session's external identity. Unlike
+                `analytics.getVerifications`, this endpoint takes a fixed time window (no
+                query language) and returns a zero-filled, outcome-broken-out timeseries.
+                Bucket granularity is chosen automatically from the window size.
+            operationId: portal.getVerifications
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalGetVerificationsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalGetVerificationsResponseBody'
+                    description: |
+                        Successfully retrieved verification analytics.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - portalSession: []
+            summary: Get portal verifications
+            tags:
+                - portal
+            x-speakeasy-name-override: getVerifications
+    /v2/portal.listKeys:
+        post:
+            description: |
+                Retrieve a paginated list of API keys owned by the authenticated portal
+                session's end user.
+
+                This is the portal-scoped variant of `apis.listKeys`. It authenticates only
+                with a portal session cookie and always restricts results to the keys owned
+                by the session's external identity, within the keyspaces configured on the
+                portal configuration. Both the identity and the keyspaces come from the
+                session, so the request body has no `externalId` or `apiId` field.
+            operationId: portal.listKeys
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalListKeysRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalListKeysResponseBody'
+                    description: |
+                        Successfully retrieved paginated keys. Use the pagination cursor for additional results when `hasMore: true`.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - portalSession: []
+            summary: List portal keys
+            tags:
+                - portal
+            x-speakeasy-name-override: listKeys
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+    /v2/portal.rerollKey:
+        post:
+            description: |
+                Reroll an API key owned by the authenticated portal session's end user,
+                issuing a new key while preserving its configuration.
+
+                This is the portal-scoped variant of `keys.rerollKey`. It authenticates only
+                with a portal session cookie and may only reroll keys owned by the session's
+                external identity; any other key returns 404.
+            operationId: portal.rerollKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2KeysRerollKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2KeysRerollKeyResponseBody'
+                    description: |
+                        Key rerolled successfully. The new plaintext key is returned exactly once.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - portalSession: []
+            summary: Reroll portal key
+            tags:
+                - portal
+            x-speakeasy-name-override: rerollKey
     /v2/projects.createProject:
         post:
             description: |

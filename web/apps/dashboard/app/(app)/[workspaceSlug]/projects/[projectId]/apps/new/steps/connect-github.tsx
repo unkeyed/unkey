@@ -38,7 +38,7 @@ export const ConnectGithubStep = ({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="border border-grayA-5 rounded-[14px] flex justify-start items-center gap-4 py-[18px] px-4 min-w-[600px]">
+      <div className="border border-grayA-5 rounded-lg flex justify-start items-center gap-4 py-[18px] px-4 min-w-[600px]">
         <div className="size-8 rounded-[10px] bg-gray-12 grid place-items-center">
           <Layers3 className="size-[18px] text-gray-1" iconSize="md-medium" />
         </div>
