@@ -61,6 +61,7 @@ type Harness struct {
 
 	middleware       []zen.Middleware
 	publicMiddleware []zen.Middleware
+	portalMiddleware []zen.Middleware
 
 	// DB provides direct database access for verifying side effects or setting up
 	// test data that the seeder methods don't cover.
@@ -68,6 +69,7 @@ type Harness struct {
 	Caches                     caches.Caches
 	Keys                       keys.KeyService
 	Auth                       auth.Authenticator
+	PortalAuth                 auth.Authenticator
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
@@ -280,7 +282,10 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		DB:           database,
 		SessionCache: caches.PortalSession,
 	})
-	authService := auth.New(portalsession.NewResolver(portalService), rootkey.NewResolver(keyService))
+	// Mirror production: portal sessions authenticate only on a dedicated portal
+	// auth service, so protected routes reject portal-session cookies.
+	authService := auth.New(rootkey.NewResolver(keyService))
+	portalAuthService := auth.New(portalsession.NewResolver(portalService))
 
 	h := Harness{
 		t:                          t,
@@ -288,6 +293,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		validator:                  validator,
 		Keys:                       keyService,
 		Auth:                       authService,
+		PortalAuth:                 portalAuthService,
 		UsageLimiter:               ulSvc,
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,
@@ -301,6 +307,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Auditlogs:                  audit,
 		Caches:                     caches,
 		middleware:                 nil,
+		portalMiddleware:           nil,
 		publicMiddleware: []zen.Middleware{
 			zen.WithObservability(),
 			zen.WithLogging(),
@@ -315,6 +322,18 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
 			Auth:       authService,
+			Database:   database,
+			QuotaCache: caches.WorkspaceQuota,
+			Ratelimit:  ratelimitService,
+		}),
+	}
+	h.portalMiddleware = []zen.Middleware{
+		zen.WithObservability(),
+		zen.WithLogging(),
+		middleware.WithErrorHandling(),
+		zen.WithValidation(validator),
+		middleware.WithAuthentication(middleware.AuthenticationConfig{
+			Auth:       portalAuthService,
 			Database:   database,
 			QuotaCache: caches.WorkspaceQuota,
 			Ratelimit:  ratelimitService,
@@ -343,6 +362,50 @@ func (h *Harness) Register(route zen.Route, middlewares ...zen.Middleware) {
 // inside the handler or intentionally do not require an authenticated principal.
 func (h *Harness) PublicMiddleware() []zen.Middleware {
 	return h.publicMiddleware
+}
+
+// PortalMiddleware returns the middleware stack for portal routes. It matches
+// the protected stack but authenticates only portal-session cookies, mirroring
+// production's portalMiddlewares. Pass it to [Harness.Register] when registering
+// a portal route.
+func (h *Harness) PortalMiddleware() []zen.Middleware {
+	return h.portalMiddleware
+}
+
+// CreatePortalSession inserts a portal session row for the given workspace,
+// external identity, and permissions, and returns request headers (including the
+// portal_session cookie) suitable for [CallRoute]. Use it to exercise portal
+// routes as an authenticated end user.
+func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceIDs, permissions []string) http.Header {
+	h.t.Helper()
+
+	sessionID := uid.New(uid.PortalSessionPrefix)
+
+	permsJSON, err := json.Marshal(struct {
+		KeyspaceIDs []string `json:"keyspaceIds"`
+		Permissions []string `json:"permissions"`
+	}{
+		KeyspaceIDs: keyspaceIDs,
+		Permissions: permissions,
+	})
+	require.NoError(h.t, err)
+
+	err = db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
+		ID:             sessionID,
+		WorkspaceID:    workspaceID,
+		PortalConfigID: uid.New(uid.PortalConfigPrefix),
+		ExternalID:     externalID,
+		Permissions:    permsJSON,
+		Preview:        false,
+		ExpiresAt:      time.Now().Add(24 * time.Hour).UnixMilli(),
+		CreatedAt:      time.Now().UnixMilli(),
+	})
+	require.NoError(h.t, err)
+
+	return http.Header{
+		"Content-Type": {"application/json"},
+		"Cookie":       {"portal_session=" + sessionID},
+	}
 }
 
 // CreateRootKey creates a root key that authorizes operations on the given workspace.
