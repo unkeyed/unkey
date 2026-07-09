@@ -43,14 +43,6 @@ dist/
 
 .talos
 
-bazel-bin
-bazel-out
-bazel-testlogs
-bazel-unkey
-# Catch-all for any bazel-* worktree symlinks (e.g. bazel-audit-logs-ch-poc
-# when working in a git worktree under a non-default name).
-bazel-*
-
 .claude/worktrees/
 
 # Personal Claude Code config

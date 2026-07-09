@@ -36,7 +36,7 @@ type S3Config struct {
 // with default credentials (minioadmin/minioadmin) and a single server instance
 // suitable for testing.
 //
-// The container is reused by stable Docker name across Bazel test processes.
+// The container is reused by stable Docker name across Go test processes.
 // This function blocks until MinIO's health endpoint responds (up to 30s).
 // Fails the test if Docker is unavailable or the container fails to start.
 //

@@ -71,45 +71,6 @@ checksum = "sha256:d2660b50a9ed59eada480750561c96abc2ed4c9a38c6a24d93e30e0977631
 url = "https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-windows-amd64.exe"
 url_api = "https://api.github.com/repos/FiloSottile/mkcert/releases/assets/63709958"
 
-[[tools."github:bazelbuild/bazelisk"]]
-version = "1.29.0"
-backend = "github:bazelbuild/bazelisk"
-
-[tools."github:bazelbuild/bazelisk"."platforms.linux-arm64"]
-checksum = "sha256:e20e8b0f4f240091b7a55bf17b9398bd4f40ee70ae0208dff95dd4c445fb4010"
-url = "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-arm64"
-url_api = "https://api.github.com/repos/bazelbuild/bazelisk/releases/assets/406879161"
-
-[tools."github:bazelbuild/bazelisk"."platforms.linux-arm64-musl"]
-checksum = "sha256:e20e8b0f4f240091b7a55bf17b9398bd4f40ee70ae0208dff95dd4c445fb4010"
-url = "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-arm64"
-url_api = "https://api.github.com/repos/bazelbuild/bazelisk/releases/assets/406879161"
-
-[tools."github:bazelbuild/bazelisk"."platforms.linux-x64"]
-checksum = "sha256:5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992"
-url = "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64"
-url_api = "https://api.github.com/repos/bazelbuild/bazelisk/releases/assets/406879103"
-
-[tools."github:bazelbuild/bazelisk"."platforms.linux-x64-musl"]
-checksum = "sha256:5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992"
-url = "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64"
-url_api = "https://api.github.com/repos/bazelbuild/bazelisk/releases/assets/406879103"
-
-[tools."github:bazelbuild/bazelisk"."platforms.macos-arm64"]
-checksum = "sha256:cee851f726789227d5561004e9904a52be45c3efb56f8b38b6993d6adbaa0409"
-url = "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-darwin-arm64"
-url_api = "https://api.github.com/repos/bazelbuild/bazelisk/releases/assets/406879037"
-
-[tools."github:bazelbuild/bazelisk"."platforms.macos-x64"]
-checksum = "sha256:16c3d7aa15323a9fb69f56c7ec5733ed18bedb786680d0ba13bb12a3c8083007"
-url = "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-darwin-amd64"
-url_api = "https://api.github.com/repos/bazelbuild/bazelisk/releases/assets/406878970"
-
-[tools."github:bazelbuild/bazelisk"."platforms.windows-x64"]
-checksum = "sha256:092a8738d5b41aae7a85c42cc961b1034e3389aba43ffc20c0fabda7b43e095b"
-url = "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-windows-amd64.exe"
-url_api = "https://api.github.com/repos/bazelbuild/bazelisk/releases/assets/406879211"
-
 [[tools."github:bufbuild/buf"]]
 version = "1.64.0"
 backend = "github:bufbuild/buf"
@@ -149,44 +110,78 @@ checksum = "sha256:097b0ba51f424fc6811ea30ba3a0a70a75c457126ca09fa45cc5da4cfefcb
 url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Windows-x86_64.zip"
 url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895506"
 
+[[tools."github:chronark/rask"]]
+version = "0.5.0"
+backend = "github:chronark/rask"
+
+[tools."github:chronark/rask"."platforms.linux-arm64"]
+checksum = "sha256:0de4922f59e4d02b1b6e293febf0c6525453b587609dc333eab14257b964eb3c"
+url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973768"
+
+[tools."github:chronark/rask"."platforms.linux-arm64-musl"]
+checksum = "sha256:0de4922f59e4d02b1b6e293febf0c6525453b587609dc333eab14257b964eb3c"
+url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973768"
+
+[tools."github:chronark/rask"."platforms.linux-x64"]
+checksum = "sha256:27bbeda829f94cce12c329bfa4787fac0d2db7cb4c6a116d10d72b27fbc7db57"
+url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973767"
+
+[tools."github:chronark/rask"."platforms.linux-x64-musl"]
+checksum = "sha256:27bbeda829f94cce12c329bfa4787fac0d2db7cb4c6a116d10d72b27fbc7db57"
+url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973767"
+
+[tools."github:chronark/rask"."platforms.macos-arm64"]
+checksum = "sha256:82f0ee979293d4f2a1fa36108b5cad5fc5e68dc9f0c6e4972f3ce06f560d3a50"
+url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973769"
+
+[tools."github:chronark/rask"."platforms.macos-x64"]
+checksum = "sha256:265ef927f7f69d0115c1cdfc097a88be0553f8db1d0fec4129873494c86d559d"
+url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973766"
+
 [[tools."github:depot/cli"]]
-version = "2.101.63"
+version = "2.101.67"
 backend = "github:depot/cli"
 
 [tools."github:depot/cli"."platforms.linux-arm64"]
-checksum = "sha256:a502cedd7355dc8933745a9b2e7cb4e6fa38ebe495ef2a2267b58aa560616aee"
-url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363700"
+checksum = "sha256:bbebd71152a5f534ea39c22b6e7b37760bc24f591817104bb677aa2165cc394d"
+url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436345"
 
 [tools."github:depot/cli"."platforms.linux-arm64-musl"]
-checksum = "sha256:a502cedd7355dc8933745a9b2e7cb4e6fa38ebe495ef2a2267b58aa560616aee"
-url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363700"
+checksum = "sha256:bbebd71152a5f534ea39c22b6e7b37760bc24f591817104bb677aa2165cc394d"
+url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436345"
 
 [tools."github:depot/cli"."platforms.linux-x64"]
-checksum = "sha256:79061de301bd71b41825ba541c1226b2bacd75b6382a8b69ab7f7f5b9b3976e2"
-url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363701"
+checksum = "sha256:d6c05939e5d5d02c934ff36d2ce8d39c0c78c9b58788aa1d9d9cc98a16690271"
+url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436342"
 
 [tools."github:depot/cli"."platforms.linux-x64-musl"]
-checksum = "sha256:79061de301bd71b41825ba541c1226b2bacd75b6382a8b69ab7f7f5b9b3976e2"
-url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363701"
+checksum = "sha256:d6c05939e5d5d02c934ff36d2ce8d39c0c78c9b58788aa1d9d9cc98a16690271"
+url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436342"
 
 [tools."github:depot/cli"."platforms.macos-arm64"]
-checksum = "sha256:7adc3625c1d10f10a673ee0502f33735e4e78d6ee75bf20d2542b9de97691b5c"
-url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363697"
+checksum = "sha256:abdac9a0ebbdb44454e5c48db3b29c3077c0f1007a5084f68c8fcb374cfc33e6"
+url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436336"
 
 [tools."github:depot/cli"."platforms.macos-x64"]
-checksum = "sha256:7166f178217380b7dd9d7c797ae2f828e2fe34632eb2f67f9a55e3a3746323e7"
-url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363703"
+checksum = "sha256:5b45f0cf927b8ca4075adfcc8e82171f38dba4dd0b5f5f3770033dc74c7c8ec5"
+url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436343"
 
 [tools."github:depot/cli"."platforms.windows-x64"]
-checksum = "sha256:a0a800ba3ba8ceab50b2a020b95888bbd59bed09bae310e0bff459b76c6f646e"
-url = "https://github.com/depot/cli/releases/download/v2.101.63/depot_2.101.63_windows_amd64.zip"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/424363705"
+checksum = "sha256:1d80aa416fd00430f92da7796da9aca6349fe976851f1765e706c17515d18c6d"
+url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_windows_amd64.zip"
+url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436337"
 
 [[tools."github:dprint/dprint"]]
 version = "0.51.1"
@@ -226,6 +221,52 @@ url_api = "https://api.github.com/repos/dprint/dprint/releases/assets/333853233"
 checksum = "sha256:e3f6604c7fec54cc737e2be215e467d194d912141de7b9569436503c6edd2195"
 url = "https://github.com/dprint/dprint/releases/download/0.51.1/dprint-x86_64-pc-windows-msvc.zip"
 url_api = "https://api.github.com/repos/dprint/dprint/releases/assets/333853235"
+
+[[tools."github:golangci/golangci-lint"]]
+version = "2.12.2"
+backend = "github:golangci/golangci-lint"
+
+[tools."github:golangci/golangci-lint"."platforms.linux-arm64"]
+checksum = "sha256:44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413470996"
+provenance = "github-attestations"
+
+[tools."github:golangci/golangci-lint"."platforms.linux-arm64-musl"]
+checksum = "sha256:44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413470996"
+provenance = "github-attestations"
+
+[tools."github:golangci/golangci-lint"."platforms.linux-x64"]
+checksum = "sha256:8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413471054"
+provenance = "github-attestations"
+
+[tools."github:golangci/golangci-lint"."platforms.linux-x64-musl"]
+checksum = "sha256:8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413471054"
+provenance = "github-attestations"
+
+[tools."github:golangci/golangci-lint"."platforms.macos-arm64"]
+checksum = "sha256:a9c54498731b3128f79e090be6110f3e5fffccc617b08142ed244d4126c73f29"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413470950"
+provenance = "github-attestations"
+
+[tools."github:golangci/golangci-lint"."platforms.macos-x64"]
+checksum = "sha256:f6f06d94b6241521c53d15450c5209b028270bf966f842afb11c030c79f5bc16"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-darwin-amd64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413470980"
+provenance = "github-attestations"
+
+[tools."github:golangci/golangci-lint"."platforms.windows-x64"]
+checksum = "sha256:bd42e3ebc8cb4ececb86941983baaf1dc221bbb04d838e94ce63b49cc91e02bb"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-windows-amd64.zip"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413471017"
+provenance = "github-attestations"
 
 [[tools."github:jqlang/jq"]]
 version = "jq-1.8.1"
