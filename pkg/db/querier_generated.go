@@ -2666,6 +2666,8 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE workspace_id = ?
 	//    AND id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
