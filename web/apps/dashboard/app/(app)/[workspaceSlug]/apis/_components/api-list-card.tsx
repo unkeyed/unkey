@@ -92,7 +92,9 @@ function ChartWell({ chart }: { chart: ChartState }) {
     <div className="relative h-12 w-full">
       <div className="absolute inset-x-0 bottom-0 border-t border-dashed border-gray-5 pointer-events-none" />
       {chart.type === "loading" ? (
-        <div className="absolute inset-0 bg-grayA-2 rounded-sm animate-pulse" />
+        <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
+          Loading...
+        </div>
       ) : chart.type === "error" ? (
         <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
           Activity unavailable
