@@ -21,7 +21,7 @@ type RestateConfig struct {
 
 // Restate starts a Restate container and returns ingress/admin URLs.
 //
-// The container is reused by stable Docker name across Bazel test processes.
+// The container is reused by stable Docker name across Go test processes.
 // This function blocks until the admin health endpoint responds (up to 30s).
 // Fails the test if Docker is unavailable or the container fails to start.
 func Restate(t *testing.T, opts ...Opt) RestateConfig {

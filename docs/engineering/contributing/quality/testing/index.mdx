@@ -58,7 +58,8 @@ func TestRateLimiter_EmitsRejectionMetric(t *testing.T) {
 
 All Go tests use `github.com/stretchr/testify/require` for assertions.
 
-We build and test with Bazel rather than `go test` directly. Bazel provides hermetic builds, intelligent caching, and precise dependency tracking.
+Run normal Go test suites with Rask through mise. Rask keeps package-level test
+runs fast while preserving the standard Go test behavior.
 
 ## Test organization
 
@@ -68,16 +69,9 @@ For integration tests that require substantial setup or external dependencies, c
 
 Organize tests around guarantees, not implementation details. File names, test names, table cases, and helper names must help a reader answer which behavior is protected and why it matters.
 
-Bazel requires each test target to declare a size that determines its timeout and resource allocation. Unit tests must be `small`. Integration tests that spin up containers must be `large`.
-
-```python
-go_test(
-    name = "cache_test",
-    size = "small",
-    srcs = ["cache_test.go"],
-    deps = [":cache", "@com_github_stretchr_testify//require"],
-)
-```
+Use package structure, test names, and helper names to communicate test scope.
+Keep unit tests close to the package under test. Put expensive cross-service
+tests in an `integration/` subdirectory when that makes the boundary clearer.
 
 ## Writing test helpers
 
@@ -110,7 +104,7 @@ func TestWithDatabase(t *testing.T) {
 During development, run tests for the package you are working on:
 
 ```bash
-mise exec -- bazel test //pkg/cache:cache_test --test_output=errors
+mise exec -- rask ./pkg/cache
 ```
 
 Before pushing, run the full test suite:

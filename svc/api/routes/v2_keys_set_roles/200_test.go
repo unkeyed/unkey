@@ -441,7 +441,7 @@ func TestSetRolesConcurrent(t *testing.T) {
 func TestValidationConcurrencyStress(t *testing.T) {
 	t.Parallel()
 
-	// Suppress logs — 10k requests produce too much output for Bazel.
+	// Suppress logs because 10k requests produce too much output for CI.
 	logger.SetSampler(logger.TailSampler{SampleRate: 0})
 
 	h := testutil.NewHarness(t)

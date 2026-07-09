@@ -31,7 +31,7 @@ type ClickHouseConfig struct {
 
 // ClickHouse starts a ClickHouse container and returns connection info.
 //
-// The container is reused by stable Docker name across Bazel test processes.
+// The container is reused by stable Docker name across Go test processes.
 func ClickHouse(t testing.TB, opts ...Opt) ClickHouseConfig {
 	t.Helper()
 
@@ -181,7 +181,7 @@ func splitSQLStatements(sql string) []string {
 
 // clickhouseSchemaDir returns the path to the ClickHouse schema directory.
 func clickhouseSchemaDir() string {
-	// Try Bazel runfiles first
+	// Try test runfiles first.
 	if runfiles := os.Getenv("TEST_SRCDIR"); runfiles != "" {
 		workspace := os.Getenv("TEST_WORKSPACE")
 		if workspace != "" {

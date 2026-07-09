@@ -15,7 +15,7 @@ typed, verified, and routed through `mise`.
 - Tooling and task runner: `mise.toml`, `mise.lock`, and `.mise/tasks/*`.
 - Engineering docs: `docs/engineering/contributing/`.
 - Product docs: `docs/product/`.
-- Go build graph: `BUILD.bazel`, `MODULE.bazel`, and Gazelle.
+- Go tooling: `go.mod`, `go.sum`, `rask.toml`, and `.golangci.yaml`.
 - Web workspace: `web/package.json`, `web/pnpm-workspace.yaml`, and
   `web/pnpm-lock.yaml`.
 
@@ -51,24 +51,24 @@ direct commands without a task.
 ### Common tasks
 
 ```bash
-mise run build          # Bazel build, copies ./bin/unkey
-mise run test           # run Bazel test suite
+mise run build          # Go build, writes ./bin/unkey
+mise run lint           # golangci-lint checks
+mise run test           # run Go test suite through Rask
 mise run fmt            # dprint, go fmt, buf format, pnpm fmt
-mise run bazel          # bazel mod tidy and Gazelle
-mise run generate       # SQL, protobuf, Go generators, Gazelle, fmt
+mise run generate       # SQL, protobuf, Go generators, fmt
 mise run generate-bpf   # heimdall eBPF bindings
 mise run dev            # local Kubernetes/Tilt dev environment
 mise run dashboard      # dashboard-focused local setup
 mise run down           # stop Tilt and delete minikube cluster
 mise run tunnel         # port-forward 80/443 for *.unkey.local
-mise run unkey -- ...   # run the Unkey CLI through Bazel
+mise run unkey -- ...   # run the Unkey CLI
 ```
 
 ### Direct tool examples
 
 ```bash
-mise exec -- bazel test //pkg/cache:cache_test --test_output=errors
-mise exec -- bazel test //pkg/cache:cache_test --test_filter=TestCacheName
+mise exec -- rask ./pkg/cache
+mise exec -- go test -run TestCacheName ./pkg/cache
 mise exec -- pnpm --dir=web test
 mise exec -- pnpm --dir=web/apps/api vitest run -c vitest.integration.ts
 mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
@@ -88,13 +88,12 @@ mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
 
 ## Go conventions
 
-- Build and test Go through Bazel, not raw `go test`, except fuzzing through
-  `mise exec -- go test -fuzz ...`.
+- Build Go through `mise run build` and test Go through Rask with
+  `mise run test` or `mise exec -- rask ./path`.
 - Use `github.com/stretchr/testify/require` in tests.
 - Use `t.Helper()` in test helpers.
 - Use `t.Cleanup()` for resources.
 - Prefer `fault` for contextual errors and `assert` for invariants.
-- After adding or moving Go files, run `mise run bazel`.
 - After changing generated inputs, run `mise run generate`.
 
 ## TypeScript conventions
@@ -120,8 +119,8 @@ mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
 
 Choose the smallest check that proves the change.
 
-- Go source change: targeted `mise exec -- bazel test //path:target`.
-- Go file added or imports changed: `mise run bazel`.
+- Go source change: targeted `mise exec -- rask ./path`.
+- Go file added or imports changed: `mise run build`.
 - Shared Go behavior or broad service change: `mise run test` when practical.
 - TypeScript change: targeted `mise exec -- pnpm --dir=web ...` command.
 - Formatting-sensitive change: `mise run fmt` or the narrower formatter task.
@@ -141,7 +140,7 @@ Unkey runs on PlanetScale Vitess. Every production MySQL query should carry SQLC
 ## High-signal references
 
 - Local development: `docs/engineering/contributing/local/development.mdx`.
-- Bazel workflow: `docs/engineering/contributing/tooling/bazel.mdx`.
+- Build workflow: `docs/engineering/contributing/tooling/builds.mdx`.
 - Code quality: `docs/engineering/contributing/quality/code-quality.mdx`.
 - Testing: `docs/engineering/contributing/quality/testing/index.mdx`.
 - Documentation: `docs/engineering/contributing/quality/documentation.mdx`.

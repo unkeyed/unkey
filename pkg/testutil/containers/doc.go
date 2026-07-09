@@ -3,19 +3,18 @@
 // This package uses the Docker SDK directly to spin up containers dynamically,
 // avoiding the overhead of external tools like docker-compose or testcontainers.
 // Service containers are reused by stable Docker names scoped to the current
-// worktree, so separate Bazel test processes can share the same backing
+// worktree, so separate Go test processes can share the same backing
 // services without colliding with other worktrees.
 //
 // # Requirements
 //
-// Tests using this package MUST be run via Bazel:
+// Tests using this package can be run through Rask:
 //
-//	UNKEY_TEST_CONTAINER_SCOPE=$PWD mise exec -- bazel test //pkg/testutil/containers:containers_test --test_env=UNKEY_TEST_CONTAINER_SCOPE
+//	mise exec -- rask ./pkg/testutil/containers
 //
 // Prefer `mise run test` for full-suite runs. It sets the worktree scope that
-// lets Bazel test processes share containers and removes scoped containers when
-// the suite exits. Running via `go test` directly is not supported and will fail
-// with an error.
+// lets Go test processes share containers and removes scoped containers when
+// the suite exits.
 //
 // # Key Types
 //
