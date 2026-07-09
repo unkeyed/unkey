@@ -93,7 +93,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Production deployments are never stopped, so this action does not apply.
-	// The joined slug lets us gate here without a second environment lookup.
 	if dep.EnvironmentSlug == "production" {
 		return fault.New(
 			"production deployment",
