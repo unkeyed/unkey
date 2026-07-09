@@ -70,7 +70,7 @@ export const CreateApiButton = ({ defaultOpen, workspaceSlug }: Props) => {
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
-        title="Create New Keyspace"
+        title="New keyspace"
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button

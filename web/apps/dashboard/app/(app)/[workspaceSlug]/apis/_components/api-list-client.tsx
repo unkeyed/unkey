@@ -114,11 +114,11 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
               <Empty.Actions className="mt-4">
                 <CreateApiButton defaultOpen={isNewApi} workspaceSlug={workspaceSlug} />
                 <a
-                  href="https://www.unkey.com/docs/introduction"
+                  href="https://www.unkey.com/docs/platform/apis/overview"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Button size="md">
+                  <Button variant="outline" size="md">
                     <BookBookmark />
                     Documentation
                   </Button>
