@@ -44,9 +44,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	dep, err := deployment.FindAuthorized(ctx, h.DB, principal, req.DeploymentId, rbac.StartDeployment)
+	dep, err := deployment.FindDeployment(ctx, h.DB, principal.WorkspaceID, req.DeploymentId)
 	if err != nil {
 		return err
+	}
+
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Environment,
+			ResourceID:   "*",
+			Action:       rbac.StartDeployment,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Environment,
+			ResourceID:   dep.EnvironmentID,
+			Action:       rbac.StartDeployment,
+		}),
+	))
+	if err != nil {
+		return fault.New(
+			"deployment not found",
+			fault.Code(codes.Data.Deployment.NotFound.URN()),
+			fault.Internal("authorization failed; returning not found to avoid leaking deployment existence"),
+			fault.Public("The requested deployment does not exist."),
+		)
 	}
 
 	if dep.Status != db.DeploymentsStatusStopped {
@@ -58,9 +79,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if err := deployment.RequireNonProduction(ctx, h.DB, dep.EnvironmentID,
-		"Production deployments cannot be started."); err != nil {
-		return err
+	// Production deployments are never stopped, so this action does not apply.
+	if dep.EnvironmentSlug == "production" {
+		return fault.New(
+			"production deployment",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("start is not allowed on production environments"),
+			fault.Public("Production deployments cannot be started."),
+		)
 	}
 
 	_, err = h.CtrlClient.WakeDeployment(ctx, &ctrlv1.WakeDeploymentRequest{
