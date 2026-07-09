@@ -15,6 +15,9 @@ import {
 
 const CURSOR_WIDTH = 14;
 const EMPTY_TICK_COUNT = 12;
+// Below this share of the busiest bucket a bar is only ~2-5px on the 48px well and
+// reads as noise, so we hide it.
+const MIN_VISIBLE_BAR_RATIO = 0.15;
 
 type ChartState =
   | { type: "loading" }
@@ -90,7 +93,6 @@ export function ApiListCard({ api }: Props) {
 function ChartWell({ chart }: { chart: ChartState }) {
   return (
     <div className="relative h-12 w-full">
-      <div className="absolute inset-x-0 bottom-0 border-t border-dashed border-gray-5 pointer-events-none" />
       {chart.type === "loading" ? (
         <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-9 pointer-events-none">
           Loading...
@@ -107,18 +109,16 @@ function ChartWell({ chart }: { chart: ChartState }) {
           </div>
         </>
       ) : (
-        <>
-          <BaselineTicks buckets={chart.points.length} />
-          <ApiSparkline data={chart.points} />
-        </>
+        <ApiSparkline data={chart.points} />
       )}
+      {/* Painted last so the dashed baseline reads in front of the bar bases. */}
+      <div className="absolute inset-x-0 bottom-0 border-t border-dashed border-gray-5 pointer-events-none" />
     </div>
   );
 }
 
-// Grid cells mirror the chart's evenly-spaced bar bands: ticks stay visible under
-// quiet buckets, and empty cards get the same bucket-width hover highlight as the
-// chart's cursor without any mousemove tracking.
+// Empty-state placeholder only. Not drawn under real bars, where this CSS grid
+// can't stay aligned with Recharts' own band scale.
 function BaselineTicks({ buckets }: { buckets: number }) {
   return (
     <div
@@ -156,6 +156,13 @@ function NarrowCursor(props: { x?: number; y?: number; width?: number; height?: 
 
 function ApiSparkline({ data }: { data: VerificationTimeseriesPoint[] }) {
   const realMax = Math.max(1, ...data.map((d) => d.success + d.error));
+  const minVisible = realMax * MIN_VISIBLE_BAR_RATIO;
+  // Keep success/error on the datum so the tooltip still reports real counts for
+  // buckets whose bar is hidden.
+  const chartData = data.map((d) => {
+    const visible = d.success + d.error >= minVisible;
+    return { ...d, barSuccess: visible ? d.success : 0, barError: visible ? d.error : 0 };
+  });
   // On a fast drag/swipe out of the chart, Recharts (v3) never delivers a leave
   // event — pointer capture during the drag swallows the boundary crossing — so its
   // tooltip stays stuck open. Drive visibility off our own state and, while open,
@@ -199,7 +206,7 @@ function ApiSparkline({ data }: { data: VerificationTimeseriesPoint[] }) {
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
-          data={data}
+          data={chartData}
           margin={{ top: 4, right: 0, left: 0, bottom: 0 }}
           barCategoryGap="22%"
           onMouseMove={(state) => setActive(Boolean(state?.isTooltipActive))}
@@ -249,7 +256,7 @@ function ApiSparkline({ data }: { data: VerificationTimeseriesPoint[] }) {
             }}
           />
           <Bar
-            dataKey="success"
+            dataKey="barSuccess"
             stackId="a"
             fill="hsl(var(--accent-4))"
             activeBar={{ fill: "hsl(var(--accent-7))" }}
@@ -257,7 +264,7 @@ function ApiSparkline({ data }: { data: VerificationTimeseriesPoint[] }) {
             isAnimationActive={false}
           />
           <Bar
-            dataKey="error"
+            dataKey="barError"
             stackId="a"
             fill="hsl(var(--orange-9))"
             activeBar={{ fill: "hsl(var(--orange-10))" }}
