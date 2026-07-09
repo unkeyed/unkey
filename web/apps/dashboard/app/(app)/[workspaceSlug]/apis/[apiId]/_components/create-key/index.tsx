@@ -146,9 +146,9 @@ export const CreateKeyDialog = ({
 
   return (
     <>
-      <NavbarActionButton title="Create new key" onClick={() => setIsSettingsOpen(true)}>
+      <NavbarActionButton title="New key" onClick={() => setIsSettingsOpen(true)}>
         <Plus />
-        Create new key
+        New key
       </NavbarActionButton>
       <CopyableIDButton value={copyIdValue ?? apiId} />
 
@@ -161,7 +161,7 @@ export const CreateKeyDialog = ({
             dialogClassName="w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[940px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]"
           >
             <NavigableDialogHeader
-              title="New Key"
+              title="New key"
               subTitle="Create a custom API key with your own settings"
             />
             <NavigableDialogBody>
@@ -193,7 +193,7 @@ export const CreateKeyDialog = ({
                     disabled={!formState.isValid}
                     loading={key.isLoading}
                   >
-                    Create new key
+                    Create key
                   </Button>
                   <div className="text-xs text-gray-9">
                     This key will be created immediately and ready-to-use right away
