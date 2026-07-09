@@ -99,10 +99,10 @@ var knownBuildErrors = []knownBuildError{
 	{substr: "linting failed", message: "Dockerfile linting failed. Please check the Dockerfile for issues."},
 }
 
-// repoFullNameRegex matches a GitHub "owner/repo" full name. Mirrors the
-// dashboard's REPO_FULL_NAME guard (resolve-deploy-ref.ts) so untrusted inputs
-// can't smuggle a URL fragment or path traversal into the git context URL.
-var repoFullNameRegex = regexp.MustCompile(`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`)
+// pathNameSegmentRegex matches one GitHub owner/repo or build-context path
+// segment. Additional validation rejects "." and ".." so names cannot become
+// path traversal once interpolated into the git context URL.
+var pathNameSegmentRegex = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 // commitSHARegex matches a hex git object name (7-40 chars). Anything outside
 // this set (':', '#', '/', '..') could alter what BuildKit checks out once
@@ -116,10 +116,10 @@ var commitSHARegex = regexp.MustCompile(`^[0-9a-fA-F]{7,40}$`)
 // buildGitContextURL unchecked. Validating here covers the dashboard, webhook,
 // rebuild-from-DB, and API paths at once.
 func validateGitBuildParams(params gitBuildParams) error {
-	if !repoFullNameRegex.MatchString(params.Repository) {
+	if !isValidRepoFullName(params.Repository) {
 		return fmt.Errorf("invalid repository %q: must be in owner/repo form", params.Repository)
 	}
-	if params.ForkRepository != "" && !repoFullNameRegex.MatchString(params.ForkRepository) {
+	if params.ForkRepository != "" && !isValidRepoFullName(params.ForkRepository) {
 		return fmt.Errorf("invalid fork repository %q: must be in owner/repo form", params.ForkRepository)
 	}
 	// SHA is unused when a PR ref drives the build (refs/pull/<n>/head), so only
@@ -127,7 +127,40 @@ func validateGitBuildParams(params gitBuildParams) error {
 	if params.CommitSHA != "" && !commitSHARegex.MatchString(params.CommitSHA) {
 		return fmt.Errorf("invalid commit SHA %q: must be a hex git object name", params.CommitSHA)
 	}
+	if !isValidGitContextPath(params.ContextPath) {
+		return fmt.Errorf("invalid context path %q: must be a relative path using letters, digits, '.', '_', or '-'", params.ContextPath)
+	}
 	return nil
+}
+
+func isValidRepoFullName(fullName string) bool {
+	owner, repo, ok := strings.Cut(fullName, "/")
+	if !ok || strings.Contains(repo, "/") {
+		return false
+	}
+	return isValidPathNameSegment(owner) && isValidPathNameSegment(repo)
+}
+
+func isValidGitContextPath(path string) bool {
+	if path != strings.TrimSpace(path) {
+		return false
+	}
+	if path == "" || path == "." {
+		return true
+	}
+	if strings.HasPrefix(path, "/") || strings.Contains(path, `\`) {
+		return false
+	}
+	for _, segment := range strings.Split(path, "/") {
+		if !isValidPathNameSegment(segment) {
+			return false
+		}
+	}
+	return true
+}
+
+func isValidPathNameSegment(segment string) bool {
+	return segment != "." && segment != ".." && pathNameSegmentRegex.MatchString(segment)
 }
 
 // buildResult contains the output of a Docker image build, including the image

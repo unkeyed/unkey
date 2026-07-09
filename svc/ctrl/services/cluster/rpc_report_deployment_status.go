@@ -43,6 +43,10 @@ var deploymentActiveStatuses = map[db.DeploymentsStatus]bool{
 // Returns CodeUnauthenticated if bearer token is invalid. Database errors during the
 // transaction are returned as-is (not wrapped in Connect error codes).
 func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (response *connect.Response[ctrlv1.ReportDeploymentStatusResponse], retErr error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	start := time.Now()
 	defer func() {
 		elapsed := time.Since(start)
@@ -58,10 +62,6 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 	}()
 
 	logger.Info("reporting deployment status", "req", req.Msg)
-
-	if err := auth.Authenticate(req, s.bearer); err != nil {
-		return nil, err
-	}
 
 	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
