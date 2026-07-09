@@ -7,7 +7,6 @@ import { Button, Empty } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { ApiListCard } from "./api-list-card";
-import { ApiListControlCloud } from "./control-cloud";
 import { ApiListControls } from "./controls";
 import { CreateApiButton } from "./create-api-button";
 import { ApiCardSkeleton } from "./skeleton";
@@ -63,7 +62,6 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
   return (
     <div className="flex flex-col gap-4">
       <ApiListControls apiList={allApis} onApiListChange={setApiList} onSearch={setIsSearching} />
-      <ApiListControlCloud />
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
