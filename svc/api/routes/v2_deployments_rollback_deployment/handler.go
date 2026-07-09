@@ -107,7 +107,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// The caller only names the deployment to roll back TO. The rollback source
 	// must be the app's current live deployment, so it is derived here rather
 	// than trusted from input. The ctrl workflow re-validates, so a concurrent
-	// promotion at worst fails the rollback with a precondition error.
+	// promotion that moves the current deployment out from under us fails the
+	// rollback rather than swapping traffic onto a stale source.
 	app, err := db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
 	if err != nil {
 		return fault.Wrap(
