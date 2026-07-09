@@ -1,4 +1,4 @@
-# Go / Bazel
+# Go
 /cmd
 /svc
 /pkg
@@ -6,8 +6,6 @@
 /gen
 /proto
 /bin
-bazel-*
-/MODULE.bazel.lock
 
 # Git
 .git

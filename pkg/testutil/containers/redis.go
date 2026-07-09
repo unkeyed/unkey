@@ -13,7 +13,7 @@ const (
 
 // Redis starts a Redis container and returns the connection URL.
 //
-// The container is reused by stable Docker name across Bazel test processes.
+// The container is reused by stable Docker name across Go test processes.
 func Redis(t testing.TB, opts ...Opt) string {
 	t.Helper()
 

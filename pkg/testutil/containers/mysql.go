@@ -47,7 +47,7 @@ func WithDiskStorage() MySQLOpt {
 
 // MySQL starts a MySQL container and returns connection info.
 //
-// The container is reused by stable Docker name across Bazel test processes.
+// The container is reused by stable Docker name across Go test processes.
 func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 	t.Helper()
 
@@ -124,7 +124,7 @@ func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 
 // applyMySQLSchema initializes the shared database schema once.
 //
-// Bazel can run many test processes at the same time. The advisory lock keeps
+// CI can run many test processes at the same time. The advisory lock keeps
 // non-idempotent CREATE TABLE statements from racing when those processes attach
 // to the same MySQL container.
 func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
@@ -211,7 +211,7 @@ func markMySQLSchema(t testing.TB, ctx context.Context, hostDB mysqlSchemaDB) {
 	require.NoError(t, err, "failed to update MySQL schema marker")
 }
 
-// schemaPath returns the MySQL schema directory in Bazel runfiles or from the
+// schemaPath returns the MySQL schema directory from test runfiles or from the
 // source tree.
 func schemaPath() string {
 	if runfiles := os.Getenv("TEST_SRCDIR"); runfiles != "" {
