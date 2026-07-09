@@ -2,7 +2,7 @@ import { Cube } from "@unkey/icons";
 
 export const ResourceCardSkeleton = () => {
   return (
-    <div className="p-5 flex flex-col border border-grayA-4 rounded-2xl w-full h-full gap-5">
+    <div className="p-5 flex flex-col border border-grayA-4 rounded-lg w-full h-full gap-5">
       {/* Top Section */}
       <div className="flex gap-4 items-center min-h-11">
         <div className="size-10 bg-gray-3 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">

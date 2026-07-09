@@ -134,7 +134,7 @@ export function EnvVarsList({
 
   return (
     <>
-      <div ref={listRefCallback} className="border border-grayA-4 rounded-[14px] overflow-hidden">
+      <div ref={listRefCallback} className="border border-grayA-4 rounded-lg overflow-hidden">
         <div
           style={{
             height: virtualizer.getTotalSize(),

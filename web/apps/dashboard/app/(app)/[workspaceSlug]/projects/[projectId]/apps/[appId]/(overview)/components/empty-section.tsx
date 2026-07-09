@@ -21,7 +21,7 @@ export const EmptySection = ({
 }: EmptySectionProps) => (
   <Empty
     className={cn(
-      "min-h-[150px] rounded-[14px] border border-dashed border-gray-4 bg-gray-1/50",
+      "min-h-[150px] rounded-lg border border-dashed border-gray-4 bg-gray-1/50",
       className,
     )}
   >

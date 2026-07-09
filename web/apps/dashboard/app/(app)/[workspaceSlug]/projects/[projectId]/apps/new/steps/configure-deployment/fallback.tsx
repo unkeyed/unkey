@@ -22,7 +22,7 @@ export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: 
     <div className="w-225">
       <div className="flex flex-col gap-6">
         {/* SettingCardGroup skeleton */}
-        <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
+        <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
           {cards.map(({ titleW, descW, badgeW }, i) => (
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave

@@ -76,7 +76,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
 
   return (
     <div className="w-full justify-center items-center flex flex-col">
-      <div className="flex flex-col items-center border border-grayA-5 rounded-[14px] justify-center gap-4 py-[18px] px-4 min-w-[600px]">
+      <div className="flex flex-col items-center border border-grayA-5 rounded-lg justify-center gap-4 py-[18px] px-4 min-w-[600px]">
         <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col gap-4 w-full">
           <FormInput
             requirement="required"

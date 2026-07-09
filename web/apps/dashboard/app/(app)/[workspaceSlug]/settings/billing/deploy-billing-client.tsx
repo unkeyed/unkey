@@ -117,9 +117,9 @@ export const DeployBillingClient: React.FC = () => {
       <Shell>
         <div className="animate-pulse">
           <div className="flex w-full flex-col items-center gap-4 pt-4 pb-16">
-            <div className="h-[72px] w-full rounded-xl bg-grayA-3" />
-            <div className="h-[180px] w-full rounded-xl bg-grayA-3" />
-            <div className="h-[120px] w-full rounded-xl bg-grayA-3" />
+            <div className="h-[72px] w-full rounded-lg bg-grayA-3" />
+            <div className="h-[180px] w-full rounded-lg bg-grayA-3" />
+            <div className="h-[120px] w-full rounded-lg bg-grayA-3" />
           </div>
         </div>
       </Shell>

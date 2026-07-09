@@ -7,7 +7,7 @@ import { useProductionCard } from "./production-card-context";
 export function ProductionCardRollbackBanner() {
   const { openUndo } = useProductionCard();
   return (
-    <div className="relative z-0 -mb-3 flex items-center justify-between gap-3 rounded-t-[14px] border border-b-0 border-warning-6 bg-warning-3 px-4 pt-2.5 pb-5">
+    <div className="relative z-0 -mb-3 flex items-center justify-between gap-3 rounded-t-lg border border-b-0 border-warning-6 bg-warning-3 px-4 pt-2.5 pb-5">
       <div className="flex items-center gap-1.5 text-[13px] min-w-0">
         <ArrowDottedRotateAnticlockwise
           iconSize="sm-regular"
