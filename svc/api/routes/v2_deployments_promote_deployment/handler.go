@@ -44,9 +44,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	dep, err := deployment.FindAuthorized(ctx, h.DB, principal, req.DeploymentId, rbac.PromoteDeployment)
+	dep, err := deployment.FindDeployment(ctx, h.DB, principal.WorkspaceID, req.DeploymentId)
 	if err != nil {
 		return err
+	}
+
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Environment,
+			ResourceID:   "*",
+			Action:       rbac.PromoteDeployment,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Environment,
+			ResourceID:   dep.EnvironmentID,
+			Action:       rbac.PromoteDeployment,
+		}),
+	))
+	if err != nil {
+		return fault.New(
+			"deployment not found",
+			fault.Code(codes.Data.Deployment.NotFound.URN()),
+			fault.Internal("authorization failed; returning not found to avoid leaking deployment existence"),
+			fault.Public("The requested deployment does not exist."),
+		)
 	}
 
 	// The deployment starts serving live traffic the moment routes swap, so it
@@ -72,9 +93,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if err := deployment.RequireProduction(ctx, h.DB, dep.EnvironmentID,
-		"Only production deployments can be promoted."); err != nil {
-		return err
+	// Promote swaps apps.current_deployment_id, which tracks the production live
+	// deployment, so it only applies to production.
+	if dep.EnvironmentSlug != "production" {
+		return fault.New(
+			"not a production deployment",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("promote is only allowed on production environments"),
+			fault.Public("Only production deployments can be promoted."),
+		)
 	}
 
 	app, err := db.Query.FindAppById(ctx, h.DB.RO(), dep.AppID)
