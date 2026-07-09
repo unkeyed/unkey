@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"net/http/pprof"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -15,6 +16,16 @@ import (
 // served on an internal-only (loopback) listener. This mirrors the pattern
 // used by the prometheus package.
 func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
+	if err := assert.NotNilAndNotZero(cfg, "pprof config is required"); err != nil {
+		return nil, err
+	}
+	if err := assert.All(
+		assert.NotEmpty(cfg.Username, "pprof username is required"),
+		assert.NotEmpty(cfg.Password, "pprof password is required"),
+	); err != nil {
+		return nil, err
+	}
+
 	srv, err := zen.New(zen.Config{
 		TLS:                nil,
 		Flags:              nil,
@@ -61,27 +72,32 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request and delegates to pprof handlers
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// Only require authentication if username and password are configured
-	if h.Username != "" && h.Password != "" {
-		username, password, ok := s.Request().BasicAuth()
-		if !ok {
-			s.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="pprof"`)
-			return fault.New("basic auth required",
-				fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
-				fault.Public("Basic authentication is required."))
-		}
+	if h.Username == "" || h.Password == "" {
+		s.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="pprof"`)
+		return fault.New("pprof username and password are required",
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Internal("pprof handler is missing credentials"),
+			fault.Public("Basic authentication is required."))
+	}
 
-		// Check username and password with constant-time comparison
-		usernameMatch := subtle.ConstantTimeCompare([]byte(username), []byte(h.Username)) == 1
-		passwordMatch := subtle.ConstantTimeCompare([]byte(password), []byte(h.Password)) == 1
+	username, password, ok := s.Request().BasicAuth()
+	if !ok {
+		s.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="pprof"`)
+		return fault.New("basic auth required",
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Public("Basic authentication is required."))
+	}
 
-		if !usernameMatch || !passwordMatch {
-			s.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="pprof"`)
-			return fault.New("invalid credentials",
-				fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
-				fault.Internal("pprof credentials do not match"),
-				fault.Public("Invalid username or password."))
-		}
+	// Check username and password with constant-time comparison
+	usernameMatch := subtle.ConstantTimeCompare([]byte(username), []byte(h.Username)) == 1
+	passwordMatch := subtle.ConstantTimeCompare([]byte(password), []byte(h.Password)) == 1
+
+	if !usernameMatch || !passwordMatch {
+		s.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="pprof"`)
+		return fault.New("invalid credentials",
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Internal("pprof credentials do not match"),
+			fault.Public("Invalid username or password."))
 	}
 
 	// Get the pprof path from the wildcard match
