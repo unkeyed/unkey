@@ -3,12 +3,6 @@ import { cn } from "../lib/utils";
 
 type EmptyHeroProps = React.HTMLAttributes<HTMLDivElement>;
 
-/**
- * A full-width bordered empty state for page bodies: an {@link EmptyHero.Icons}
- * row, title, description, and actions, centered inside a card-like shell.
- * Type scale and spacing are owned by the sub-components so consumers stay
- * visually consistent.
- */
 function EmptyHero({ className, children, ...props }: EmptyHeroProps) {
   return (
     <div
@@ -28,12 +22,6 @@ const OPACITY_BY_DISTANCE_FROM_CENTER = ["opacity-90", "opacity-75", "opacity-50
 
 type EmptyHeroIconsProps = Omit<React.HTMLAttributes<HTMLDivElement>, "style">;
 
-/**
- * A decorative row of icons that fades out at both edges. Pass 3-5 icons; the
- * center one sits in a larger box and should use a thinner stroke (e.g.
- * `iconSize="md-thin"` vs `md-medium` for the flanks) — the boxes control the
- * rendered icon size.
- */
 EmptyHero.Icons = function EmptyHeroIcons({ className, children, ...props }: EmptyHeroIconsProps) {
   const icons = React.Children.toArray(children);
   const centerIndex = Math.floor(icons.length / 2);
