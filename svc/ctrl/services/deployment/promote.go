@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -29,7 +30,7 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 	// Validate here so callers get precise connect codes instead of
 	// CodeInternal. The workflow re-checks everything except the environment
 	// and desired_state gates, which exist only at this layer.
-	deployment, err := s.db.FindDeploymentById(ctx, deploymentID)
+	deployment, err := s.db.FindDeploymentWithEnvironmentAndApp(ctx, deploymentID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found"))
@@ -37,42 +38,17 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load deployment: %w", err))
 	}
 
-	if deployment.Status != db.DeploymentsStatusReady {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is not ready"))
-	}
-
-	// A demoted deployment keeps status ready while it drains toward standby,
-	// so status alone would let traffic swap onto a deployment that is
-	// shutting down.
-	if deployment.DesiredState != db.DeploymentsDesiredStateRunning {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is shutting down"))
-	}
-
-	environment, err := s.db.FindEnvironmentById(ctx, deployment.EnvironmentID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
-	}
-	// apps.current_deployment_id tracks the production live deployment;
-	// promoting outside production would corrupt that pointer.
-	if environment.Slug != "production" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("only production deployments can be promoted"))
-	}
-
-	app, err := s.db.FindAppById(ctx, deployment.AppID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load app: %w", err))
-	}
-	if !app.CurrentDeploymentID.Valid {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("app has no live deployment"))
-	}
-	if app.CurrentDeploymentID.String == deployment.ID && !app.IsRolledBack {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("deployment is already live"))
+	// A demoted deployment keeps status ready while it drains toward standby, so
+	// status alone would let traffic swap onto one shutting down. Promoting the
+	// current live deployment is a no-op unless it is confirming a rollback.
+	if err := assert.All(
+		assert.Equal(deployment.Status, db.DeploymentsStatusReady, "deployment is not ready"),
+		assert.Equal(deployment.DesiredState, db.DeploymentsDesiredStateRunning, "deployment is shutting down"),
+		assert.Equal(deployment.EnvironmentSlug, "production", "only production deployments can be promoted"),
+		assert.True(deployment.CurrentDeploymentID.Valid, "app has no live deployment"),
+		assert.False(deployment.CurrentDeploymentID.String == deployment.ID && !deployment.IsRolledBack, "deployment is already live"),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
 	logger.Info("initiating promotion via Restate",

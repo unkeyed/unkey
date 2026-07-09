@@ -44,7 +44,7 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load source deployment: %w", err))
 	}
 
-	targetDeployment, err := s.db.FindDeploymentById(ctx, targetID)
+	targetDeployment, err := s.db.FindDeploymentWithEnvironmentAndApp(ctx, targetID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("target deployment not found"))
@@ -52,47 +52,20 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load target deployment: %w", err))
 	}
 
+	// A demoted deployment keeps status ready while it drains toward standby, so
+	// status alone would let traffic swap onto one shutting down. Same-app is
+	// asserted before the live-pointer check so a mismatched app fails first.
 	err = assert.All(
 		assert.Equal(targetDeployment.ProjectID, sourceDeployment.ProjectID, "deployments must be in the same project"),
 		assert.Equal(targetDeployment.AppID, sourceDeployment.AppID, "deployments must be in the same app"),
 		assert.Equal(targetDeployment.EnvironmentID, sourceDeployment.EnvironmentID, "deployments must be in the same environment"),
+		assert.Equal(targetDeployment.Status, db.DeploymentsStatusReady, "target deployment is not ready"),
+		assert.Equal(targetDeployment.DesiredState, db.DeploymentsDesiredStateRunning, "target deployment is shutting down"),
+		assert.Equal(targetDeployment.EnvironmentSlug, "production", "only production deployments can be rolled back"),
+		assert.True(targetDeployment.CurrentDeploymentID.Valid && targetDeployment.CurrentDeploymentID.String == sourceDeployment.ID, "source deployment is not the current live deployment"),
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
-	// The target starts serving live traffic the moment routes swap, so it
-	// must have completed successfully and must not be draining toward
-	// standby (a demoted deployment keeps status ready while it drains).
-	if targetDeployment.Status != db.DeploymentsStatusReady {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("target deployment is not ready"))
-	}
-	if targetDeployment.DesiredState != db.DeploymentsDesiredStateRunning {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("target deployment is shutting down"))
-	}
-
-	environment, err := s.db.FindEnvironmentById(ctx, targetDeployment.EnvironmentID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("environment not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load environment: %w", err))
-	}
-	// apps.current_deployment_id tracks the production live deployment;
-	// rolling back outside production would corrupt that pointer.
-	if environment.Slug != "production" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("only production deployments can be rolled back"))
-	}
-
-	app, err := s.db.FindAppById(ctx, sourceDeployment.AppID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found"))
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load app: %w", err))
-	}
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != sourceDeployment.ID {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("source deployment is not the current live deployment"))
 	}
 
 	logger.Info("initiating rollback via Restate",
