@@ -238,6 +238,9 @@ const (
 	RemoveEnvironmentVariables ActionType = "remove_environment_variables"
 	// ReadEnvironmentVariables permits reading a specific environment's variables
 	ReadEnvironmentVariables ActionType = "read_environment_variables"
+	// SetPolicies permits creating, updating, reordering, and removing a
+	// specific environment's gateway policies
+	SetPolicies ActionType = "set_policies"
 )
 
 // Tuple represents a specific permission as a combination of resource type,

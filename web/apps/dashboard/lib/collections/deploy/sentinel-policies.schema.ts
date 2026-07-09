@@ -15,15 +15,24 @@ import { z } from "zod";
 
 // ── Limits ──────────────────────────────────────────────────────────────
 
+// Every limit must stay >= its counterpart in the API spec
+// (svc/api/openapi/spec: setPolicies policies maxItems, Policy.match
+// maxItems, KeyauthPolicy keyspaces/ratelimits maxItems, permissionQuery
+// maxLength). savePolicies re-validates whole configs, so a lower value
+// here breaks reading back or editing API-written blobs.
 export const SENTINEL_LIMITS = {
-  maxPolicies: 10,
+  maxPolicies: 50,
   maxKeyspacesPerPolicy: 5,
   maxMatchExprsPerPolicy: 10,
-  // Documented in svc/sentinel/proto/policies/v1/keyauth.proto:60
-  // ("Limits: maximum 1000 characters, maximum 100 permission terms").
   permissionQueryMaxLength: 1000,
   maxRatelimitsPerKeyauth: 10,
 } as const;
+
+// protojson emits int64 fields as JSON strings (proto3 JSON mapping), while
+// the dashboard writes plain numbers. Accept both, normalize to number.
+const wireInt64 = z
+  .union([z.number(), z.string().regex(/^\d+$/).transform(Number)])
+  .pipe(z.number().int().min(1));
 
 // ── String match (protojson oneof: exact | prefix | regex) ──────────────
 
@@ -113,9 +122,9 @@ const policyBase = {
 export const keyauthRatelimitSchema = z
   .object({
     name: z.string().min(1),
-    limit: z.number().int().min(1).optional(),
-    duration: z.number().int().min(1).optional(),
-    cost: z.number().int().min(1).optional(),
+    limit: wireInt64.optional(),
+    duration: wireInt64.optional(),
+    cost: wireInt64.optional(),
   })
   .strict()
   .refine((r) => (r.limit === undefined) === (r.duration === undefined), {
@@ -164,8 +173,8 @@ export const ratelimitPolicySchema = z
     type: z.literal("ratelimit"),
     ratelimit: z
       .object({
-        limit: z.number().int().min(1),
-        windowMs: z.number().int().min(1),
+        limit: wireInt64,
+        windowMs: wireInt64,
         identifier: rateLimitIdentifierSchema,
       })
       .strict(),
