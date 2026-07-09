@@ -297,7 +297,7 @@ func (h *Handler) ListKeys(ctx context.Context, s *zen.Session, req ListKeysPara
 	responseData := make([]openapi.KeyResponseData, len(keyResults))
 	for i, key := range keyResults {
 		keyData := db.ToKeyData(key)
-		response := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
+		response := BuildKeyResponseData(keyData, plaintextMap[key.ID])
 		responseData[i] = response
 	}
 
@@ -340,8 +340,10 @@ func (h *Handler) decryptKeys(ctx context.Context, req ListKeysParams, keys []db
 	return bulkRes.GetItems()
 }
 
-// buildKeyResponseData transforms internal key data into API response format.
-func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
+// BuildKeyResponseData transforms internal key data into API response format. It
+// is exported so the portal listKeys route can reuse the exact response shape
+// without depending on the rest of this handler.
+func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
 	response := openapi.KeyResponseData{
 		Meta:        nil,
 		Ratelimits:  nil,

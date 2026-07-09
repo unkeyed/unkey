@@ -13,28 +13,21 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	listkeys "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_list_keys"
 )
 
 type (
-	Request  = handler.Request
+	Request  = openapi.V2PortalListKeysRequestBody
 	Response = openapi.V2PortalListKeysResponseBody
 )
 
-// newHandler builds the portal.listKeys handler backed by a configured
-// apis.listKeys handler.
+// newHandler builds the portal.listKeys handler.
 func newHandler(h *testutil.Harness) *handler.Handler {
-	return handler.New(&listkeys.Handler{
-		DB:       h.DB,
-		Vault:    h.Vault,
-		ApiCache: h.Caches.LiveApiByID,
-	})
+	return handler.New(h.DB)
 }
 
 // portalSessionSetup holds all objects created for a portal session test scenario.
 type portalSessionSetup struct {
-	apiID      string
 	keySpaceID string
 	workspace  db.Workspace
 
@@ -49,7 +42,7 @@ type portalSessionSetup struct {
 	key4ID string // no identity
 }
 
-// setupPortalSessionTest creates a workspace, API, two identities, and keys
+// setupPortalSessionTest creates a workspace, keyspace, two identities, and keys
 // distributed across them for portal session testing.
 func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetup {
 	t.Helper()
@@ -64,17 +57,6 @@ func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetu
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},
-	})
-	require.NoError(t, err)
-
-	apiID := uid.New("api")
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "Portal Test API",
-		WorkspaceID: workspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
-		CreatedAtM:  time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)
 
@@ -118,7 +100,6 @@ func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetu
 	})
 
 	return portalSessionSetup{
-		apiID:               apiID,
 		keySpaceID:          keySpaceID,
 		workspace:           workspace,
 		identity1ID:         identity1.ID,
@@ -143,11 +124,7 @@ func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
 	// Portal session for user A with read permissions
 	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{setup.keySpaceID}, []string{"keys:read"})
 
-	req := Request{
-		ApiId: setup.apiID,
-	}
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
+	res := testutil.CallRoute[Request, Response](h, route, headers, Request{})
 
 	require.Equal(t, 200, res.Status)
 	require.NotNil(t, res.Body.Data)
@@ -164,6 +141,53 @@ func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
 	require.True(t, returnedIDs[setup.key2ID], "key2 should be in results")
 }
 
+func TestPortalSessionUnionsConfiguredKeyspaces(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
+
+	setup := setupPortalSessionTest(t, h)
+	ctx := context.Background()
+
+	// A second keyspace with another key for user A. A session scoped to both
+	// keyspaces must return user A's keys from each of them.
+	keySpaceID2 := uid.New(uid.KeySpacePrefix)
+	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            keySpaceID2,
+		WorkspaceID:   setup.workspace.ID,
+		CreatedAtM:    time.Now().UnixMilli(),
+		DefaultPrefix: sql.NullString{Valid: false},
+		DefaultBytes:  sql.NullInt32{Valid: false},
+	}))
+	key5 := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: setup.workspace.ID,
+		KeySpaceID:  keySpaceID2,
+		Name:        ptr.P("Key 5 - User A, keyspace 2"),
+		IdentityID:  ptr.P(setup.identity1ID),
+	})
+
+	headers := h.CreatePortalSession(
+		setup.workspace.ID,
+		setup.identity1ExternalID,
+		[]string{setup.keySpaceID, keySpaceID2},
+		[]string{"keys:read"},
+	)
+
+	res := testutil.CallRoute[Request, Response](h, route, headers, Request{})
+
+	require.Equal(t, 200, res.Status)
+	require.Len(t, res.Body.Data, 3, "user A's keys from both keyspaces")
+
+	returnedIDs := map[string]bool{}
+	for _, key := range res.Body.Data {
+		returnedIDs[key.KeyId] = true
+	}
+	require.True(t, returnedIDs[setup.key1ID])
+	require.True(t, returnedIDs[setup.key2ID])
+	require.True(t, returnedIDs[key5.KeyID], "key from the second keyspace should be included")
+}
+
 func TestPortalSessionNonExistentIdentityReturnsEmpty(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -175,11 +199,7 @@ func TestPortalSessionNonExistentIdentityReturnsEmpty(t *testing.T) {
 	// Portal session for a user that has no identity record
 	headers := h.CreatePortalSession(setup.workspace.ID, "non_existent_user", []string{setup.keySpaceID}, []string{"keys:read"})
 
-	req := Request{
-		ApiId: setup.apiID,
-	}
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
+	res := testutil.CallRoute[Request, Response](h, route, headers, Request{})
 
 	require.Equal(t, 200, res.Status)
 	require.NotNil(t, res.Body.Data)

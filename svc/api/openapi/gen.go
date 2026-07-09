@@ -2756,11 +2756,6 @@ type V2PortalGetVerificationsResponseBody struct {
 
 // V2PortalListKeysRequestBody defines model for V2PortalListKeysRequestBody.
 type V2PortalListKeysRequestBody struct {
-	// ApiId The API namespace whose keys to list. Results are always restricted to the
-	// keys owned by the authenticated portal session's end user; the session
-	// identity is authoritative and cannot be overridden from the request.
-	ApiId string `json:"apiId"`
-
 	// Cursor Pagination cursor from a previous response to fetch the next page.
 	// Use when `hasMore: true` in the previous response.
 	Cursor *string `json:"cursor,omitempty"`

@@ -72,6 +72,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			SessionID:      cookie.Value,
 			PortalConfigID: session.PortalConfigID,
 			ExternalID:     session.ExternalID,
+			KeyspaceIDs:    session.KeyspaceIDs,
 			Permissions:    permissions,
 		},
 		WorkspaceID: session.WorkspaceID,

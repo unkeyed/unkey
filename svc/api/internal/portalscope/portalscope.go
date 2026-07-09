@@ -43,3 +43,28 @@ func ExternalID(s *zen.Session) (string, error) {
 
 	return src.ExternalID, nil
 }
+
+// KeyspaceIDs returns the keyspaces the portal session is scoped to, resolved
+// from the portal configuration at session creation. Key listings must be bound
+// to these; the request never supplies a keyspace or api id.
+//
+// A non-portal principal is a broken invariant (portal routes only run behind
+// the portal-only authenticator). An empty slice is legitimate: a session with
+// no key capabilities (for example analytics only) is scoped to no keyspaces.
+func KeyspaceIDs(s *zen.Session) ([]string, error) {
+	principal, err := s.GetPrincipal()
+	if err != nil {
+		return nil, err
+	}
+
+	src, ok := principal.Source.(authprincipal.PortalSessionSource)
+	if !ok {
+		return nil, fault.New("non-portal principal on portal route",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal("principal source is not a portal session"),
+			fault.Public("This endpoint is only accessible with a portal session."),
+		)
+	}
+
+	return src.KeyspaceIDs, nil
+}

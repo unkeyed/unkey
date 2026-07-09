@@ -1,15 +1,5 @@
 type: object
-required:
-  - apiId
 properties:
-  apiId:
-    type: string
-    minLength: 1
-    description: |
-      The API namespace whose keys to list. Results are always restricted to the
-      keys owned by the authenticated portal session's end user; the session
-      identity is authoritative and cannot be overridden from the request.
-    example: api_1234abcd
   limit:
     type: integer
     description: |
@@ -28,6 +18,7 @@ additionalProperties: false
 examples:
   basic:
     summary: List the end user's keys
-    description: List the portal end user's keys in an API namespace
-    value:
-      apiId: api_1234abcd
+    description: |
+      List the portal end user's keys. The keyspaces and identity are fixed by
+      the session, so no filter fields are required.
+    value: {}

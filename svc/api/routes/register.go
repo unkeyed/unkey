@@ -644,11 +644,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	// v2/portal.listKeys
 	srv.RegisterRoute(
 		portalMiddlewares,
-		v2PortalListKeys.New(&v2ApisListKeys.Handler{
-			DB:       svc.Database,
-			Vault:    svc.Vault,
-			ApiCache: svc.Caches.LiveApiByID,
-		}),
+		v2PortalListKeys.New(svc.Database),
 	)
 
 	// v2/portal.rerollKey
