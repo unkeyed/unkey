@@ -6,12 +6,13 @@ export const sortFields = z.enum(["time", "valid", "invalid"]);
 export type SortFields = z.infer<typeof sortFields>;
 
 export const keysQueryOverviewLogsPayload = z.object({
-  limit: z.int(),
+  limit: z.int().min(1).max(100),
   startTime: z.int(),
   endTime: z.int(),
   apiId: z.string(),
   since: z.string(),
-  page: z.int().optional().default(1),
+  // min(1) keeps the derived offset (page - 1) * limit non-negative in the query builder.
+  page: z.int().min(1).optional().default(1),
   // Flag to indicate if user explicitly filtered by time frame
   // If true, use new logic to find keys with ANY usage in the time frame
   // If false or undefined, use the MV directly for speed

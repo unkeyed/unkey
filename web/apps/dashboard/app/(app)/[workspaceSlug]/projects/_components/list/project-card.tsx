@@ -63,7 +63,7 @@ export function ProjectCard({ name, projectId, appCount, apps, actions }: Projec
   });
 
   return (
-    <div className="relative p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-2xl w-full h-full gap-6 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <div className="relative p-5 flex flex-col justify-between border border-grayA-4 hover:border-grayA-7 rounded-lg w-full h-full gap-6 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       <Link
         href={projectPath}
         className="absolute inset-0 z-0"

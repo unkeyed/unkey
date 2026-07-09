@@ -12,7 +12,7 @@ export function DomainRow({ domain, className }: DomainRowProps) {
   return (
     <div
       className={cn(
-        "border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center",
+        "border border-gray-4 border-t-0 first:border-t first:rounded-t-lg last:rounded-b-lg last:border-b w-full px-4 py-3 flex justify-between items-center",
         className,
       )}
     >
@@ -38,7 +38,7 @@ export function DomainRow({ domain, className }: DomainRowProps) {
 
 export const DomainRowSkeleton = () => {
   return (
-    <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-[14px] last:rounded-b-[14px] last:border-b w-full px-4 py-3 flex justify-between items-center">
+    <div className="border border-gray-4 border-t-0 first:border-t first:rounded-t-lg last:rounded-b-lg last:border-b w-full px-4 py-3 flex justify-between items-center">
       <div className="flex items-center">
         <Link4 className="text-grayA-6" iconSize="sm-medium" />
         <div className="h-3 w-32 bg-grayA-3 rounded-sm animate-pulse ml-3 mr-2" />
