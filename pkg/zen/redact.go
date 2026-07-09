@@ -8,15 +8,10 @@ type redactionRule struct {
 }
 
 var redactionRules = []redactionRule{
-	// Redact "key" field values - matches JSON-style key fields with various whitespace combinations
+	// Redact credential-bearing JSON fields with various whitespace combinations.
 	{
-		regexp:      regexp.MustCompile(`"key"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
-		replacement: []byte(`"key": "[REDACTED]"`),
-	},
-	// Redact "plaintext" field values - matches JSON-style plaintext fields with various whitespace combinations
-	{
-		regexp:      regexp.MustCompile(`"plaintext"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
-		replacement: []byte(`"plaintext": "[REDACTED]"`),
+		regexp:      regexp.MustCompile(`"(key|plaintext|token|session|sessionId)"\s*:\s*"[^"\\]*(?:\\.[^"\\]*)*"`),
+		replacement: []byte(`"$1": "[REDACTED]"`),
 	},
 }
 

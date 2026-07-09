@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -32,7 +33,7 @@ func New(t *testing.T) *Harness {
 	mysqlCfg := containers.MySQL(t)
 	mysqlHostDSN := mysqlCfg.DSN
 
-	database, err := db.New(mysqlHostDSN)
+	database, err := db.New(mysqlHostDSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 
 	h := &Harness{

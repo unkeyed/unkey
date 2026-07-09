@@ -39,4 +39,8 @@
 // [VirtualObject.ClearScheduledStateChanges] removes the stored transition
 // entirely, which causes any in-flight delayed call to no-op because there is
 // no transition record left to match against.
+//
+// If the deployment row is deleted before a delayed [VirtualObject.ChangeDesiredState]
+// call fires, for example when an environment delete cascades deployment rows,
+// ChangeDesiredState also no-ops and clears any leftover transition state.
 package deployment

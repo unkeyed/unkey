@@ -1,6 +1,9 @@
 package principal
 
 import (
+	"log/slog"
+
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 )
 
@@ -58,7 +61,19 @@ type Principal struct {
 
 // Authorize evaluates this principal's permissions against the query.
 func (p *Principal) Authorize(query rbac.PermissionQuery) error {
-	return rbac.Check(query, p.Permissions)
+	err := rbac.Check(query, p.Permissions)
+	if err != nil {
+		logger.Warn("principal authorization denied",
+			slog.String("workspace_id", p.WorkspaceID),
+			slog.String("principal_type", string(p.Type)),
+			slog.String("subject_type", string(p.Subject.Type)),
+			slog.String("subject_id", p.Subject.ID),
+			slog.String("required_permissions", rbac.FormatPermissionQuery(query)),
+			slog.Any("granted_permissions", p.Permissions),
+			slog.Any("error", err),
+		)
+	}
+	return err
 }
 
 // Subject identifies the authenticated entity and how it appears in audit logs.
