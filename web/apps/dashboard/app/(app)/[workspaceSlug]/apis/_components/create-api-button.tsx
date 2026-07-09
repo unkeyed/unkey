@@ -64,13 +64,13 @@ export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
     <>
       <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
         <Plus iconSize="sm-regular" />
-        New keyspace
+        Create keyspace
       </Button>
 
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
-        title="New keyspace"
+        title="Create keyspace"
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button

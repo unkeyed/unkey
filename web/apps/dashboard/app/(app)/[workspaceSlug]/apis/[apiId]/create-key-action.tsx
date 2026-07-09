@@ -15,7 +15,7 @@ export function CreateKeyAction({ apiId }: { apiId: string }) {
     return (
       <NavbarActionButton disabled>
         <Plus />
-        New key
+        Create key
       </NavbarActionButton>
     );
   }
