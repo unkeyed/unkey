@@ -290,6 +290,47 @@ describe("usePaginatedPage", () => {
   });
 });
 
+describe("usePaginatedPage + usePaginatedNavigation", () => {
+  // Upstream (#6560) additionally gated the overview clamps on `!isFetching`,
+  // because those hooks fed the *stale* page into the clamp on the render that
+  // observed a filter change: with keepPreviousData, `totalPages` still described
+  // the previous result set, so the clamp could snap the page to the old last
+  // page before the reset committed. usePaginatedPage closes that window by
+  // surfacing page 1 on that same render, so the clamp never sees a page drawn
+  // from one result set alongside totalPages drawn from another. This test pins
+  // that guarantee; if usePaginatedPage ever loses the synchronous reset, the
+  // clamp regresses and this fails.
+  it("does not clamp against stale totalPages when the reset key changes", () => {
+    urlStore.page = 3;
+    const { result, rerender } = renderHook(
+      ({ resetKey, totalPages }) => {
+        const { page, setPage } = usePaginatedPage(resetKey);
+        usePaginatedNavigation({
+          data: { total: 50 },
+          page,
+          totalPages,
+          setPage,
+          queryParams: { page },
+          prefetch: vi.fn(),
+        });
+        return page;
+      },
+      { initialProps: { resetKey: "filters:a", totalPages: 5 } },
+    );
+    expect(result.current).toBe(3);
+
+    // Filters changed; the response is in flight, so `data` and `totalPages`
+    // still describe the previous result set (which had only 2 pages).
+    act(() => {
+      rerender({ resetKey: "filters:b", totalPages: 2 });
+    });
+
+    // Page 1, not the stale last page (2) that an ungated clamp would pick.
+    expect(result.current).toBe(1);
+    expect(urlStore.page).toBe(1);
+  });
+});
+
 describe("usePaginatedNavigation", () => {
   it("does not clamp before data loads even if page is out of range", () => {
     const setPage = vi.fn();

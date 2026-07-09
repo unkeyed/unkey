@@ -94,6 +94,11 @@ export function usePaginatedNavigation<TData, TParams extends { page: number }>(
   // Clamp page to valid range after data loads. The data guard keeps a
   // deep-linked page (e.g. ?page=3) from snapping to 1 on first render, when
   // totalCount is still 0 and totalPages collapses to 1 (ENG-2930).
+  //
+  // The overview hooks additionally gated this on `!isFetching` (#6560): they
+  // fed the pre-reset page in here, so the clamp could pair a stale totalPages
+  // with a page belonging to the previous result set. usePaginatedPage's
+  // synchronous reset closes that window, so no isFetching gate is needed.
   useEffect(() => {
     if (data == null) {
       return;
