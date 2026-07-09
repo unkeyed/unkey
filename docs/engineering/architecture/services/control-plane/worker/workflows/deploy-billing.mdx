@@ -107,9 +107,9 @@ For setup, see the infra guide: <a href="https://github.com/unkeyed/infra/blob/m
 The aggregation, period parsing, and meter event building are pure functions with table tests:
 
 ```bash
-mise exec -- bazel test //pkg/billingperiod:billingperiod_test
-mise exec -- bazel test //svc/ctrl/internal/billingmeter:billingmeter_test
-mise exec -- bazel test //svc/ctrl/worker/cron/deploybilling:deploybilling_test
+mise exec -- rask ./pkg/billingperiod
+mise exec -- rask ./svc/ctrl/internal/billingmeter
+mise exec -- rask ./svc/ctrl/worker/cron/deploybilling
 ```
 
 These cover unit conversion, the `YYYY-MM` parser, and the decimal formatting of meter values without touching Stripe.

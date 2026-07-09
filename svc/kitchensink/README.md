@@ -53,22 +53,13 @@ svc/kitchensink/
     "GET /<name>": <name>.Handler,
     ```
 
-4. Create `svc/kitchensink/<name>/BUILD.bazel` (copy any sibling).
-5. Add the new package to the `deps` list in `svc/kitchensink/BUILD.bazel`.
-
 Look at `hello/handler.go` for the minimum viable shape. Use
 `http.ServeMux` pattern syntax in the registration key (Go 1.22+) —
 `GET /foo`, `POST /bar/{id}`, etc.
 
 ## Running
 
-Via bazel:
-
-```
-bazel run //svc/kitchensink
-```
-
-Directly with go:
+Directly with Go:
 
 ```
 go run ./svc/kitchensink
