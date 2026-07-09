@@ -1,12 +1,14 @@
 "use client";
 
+import { Skeleton } from "@unkey/ui";
+
 export const SettingsClientSkeleton = () => {
   return (
     <>
-      <div className="w-full h-[180px] bg-grayA-3 rounded-lg animate-pulse" />
-      <div className="w-full h-[130px] bg-grayA-3 rounded-lg animate-pulse" />
-      <div className="w-full h-[90px] bg-grayA-3 rounded-lg animate-pulse" />
-      <div className="w-full h-[120px] bg-grayA-3 rounded-lg animate-pulse" />
+      <Skeleton className="w-full h-[180px] rounded-lg" />
+      <Skeleton className="w-full h-[130px] rounded-lg" />
+      <Skeleton className="w-full h-[90px] rounded-lg" />
+      <Skeleton className="w-full h-[120px] rounded-lg" />
     </>
   );
 };
