@@ -12,7 +12,6 @@ install-brew-tools: ## Install Homebrew tools if they don't exist
 	@command -v tilt >/dev/null 2>&1 || { echo "Installing tilt..."; brew install tilt; }
 	@command -v ctlptl >/dev/null 2>&1 || { echo "Installing ctlptl..."; brew install ctlptl; }
 	@command -v minikube >/dev/null 2>&1 || { echo "Installing minikube..."; brew install minikube; }
-	@command -v bazel >/dev/null 2>&1 || { echo "Installing bazel..."; brew install bazelisk; }
 	@command -v dprint >/dev/null 2>&1 || { echo "Installing dprint..."; brew install dprint; }
 	@command -v ngrok >/dev/null 2>&1 || { echo "Installing ngrok..."; brew install ngrok; }
 
@@ -74,14 +73,7 @@ fmt: fmt-yaml ## Format code
 
 .PHONY: build
 build:  ## Build all artifacts (binaries land in ./bin)
-	bazel build //...
-	@mkdir -p bin
-	@cp -f "$$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey && chmod +w bin/unkey
-
-.PHONY: bazel
-bazel: ## Sync BUILD.bazel
-	bazel mod tidy
-	bazel run //:gazelle
+	mise run build
 
 .PHONY: generate
 generate: generate-sql ## Generate code from protobuf and other sources (NOT eBPF, see generate-bpf)
@@ -89,7 +81,6 @@ generate: generate-sql ## Generate code from protobuf and other sources (NOT eBP
 	rm ./pkg/db/*_generated.go || true
 	go generate ./...
 	go run ./tools/exportoneof ./gen/proto
-	bazel run //:gazelle
 	go fmt ./...
 	cd web && pnpm fmt
 
@@ -100,9 +91,8 @@ generate-bpf: ## Compile the heimdall eBPF program and regenerate Go bindings (u
 		go generate -tags bpf_generate ./svc/heimdall/internal/network/...
 
 .PHONY: test
-test: oci-load clean-docker-test ## Run tests with bazel
-	bazel test //...
-	make clean-docker-test
+test: ## Run tests
+	mise run test
 
 .PHONY: clean-docker-test
 clean-docker-test: ## Clean up dangling test containers
@@ -126,20 +116,10 @@ down: ## Stop tilt (keeps cluster)
 	@tilt down -f ./dev/Tiltfile
 	@minikube delete
 
-.PHONY: oci-load
-oci-load: build ## Build and load OCI images into Docker
-	bazel run //build/api:load
-	bazel run //build/control-api:load
-	bazel run //build/control-worker:load
-	bazel run //build/frontline:load
-	bazel run //build/heimdall:load
-	bazel run //build/krane:load
-	bazel run //build/vault:load
-
 .PHONY: dashboard
-dashboard: build oci-load ## Run local development setup for dashboard
+dashboard: build ## Run local development setup for dashboard
 	@test -f web/apps/dashboard/.env || cp web/apps/dashboard/dev/.env.template web/apps/dashboard/.env
-	@docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait
+	@docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait --build
 	@bin/unkey dev seed local
 	@cd web/apps/dashboard && pnpm dev
 
@@ -172,7 +152,7 @@ fuzz: ## Run fuzz tests
 	done
 .PHONY: unkey
 unkey: ## Run unkey CLI (usage: make unkey dev seed local)
-	@set -a; [ -f .env ] && . ./.env; set +a; bazel run --ui_event_filters=-info --noshow_progress //:unkey -- $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
+	@set -a; [ -f .env ] && . ./.env; set +a; go run . $(filter-out unkey,$(MAKECMDGOALS)) $(ARGS)
 
 # Catch-all to swallow extra args passed to unkey target (only when unkey is called)
 ifneq ($(filter unkey,$(MAKECMDGOALS)),)

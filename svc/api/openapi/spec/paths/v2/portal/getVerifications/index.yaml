@@ -1,0 +1,67 @@
+post:
+  tags:
+    - portal
+  summary: Get portal verifications
+  description: |
+    Return a verification analytics timeseries for the authenticated portal
+    session's end user.
+
+    Authenticates only with a portal session cookie and always restricts results
+    to verification events attributed to the session's external identity. Unlike
+    `analytics.getVerifications`, this endpoint takes a fixed time window (no
+    query language) and returns a zero-filled, outcome-broken-out timeseries.
+    Bucket granularity is chosen automatically from the window size.
+  operationId: portal.getVerifications
+  x-speakeasy-name-override: getVerifications
+  security:
+    - portalSession: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalGetVerificationsRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalGetVerificationsResponseBody.yaml"
+      description: |
+        Successfully retrieved verification analytics.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"

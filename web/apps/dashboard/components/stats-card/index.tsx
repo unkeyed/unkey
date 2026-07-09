@@ -28,7 +28,7 @@ export const StatsCard = ({
     <Link
       href={linkPath as Route}
       prefetch
-      className="flex flex-col border border-gray-4 rounded-xl bg-grayA-1 overflow-hidden cursor-pointer"
+      className="flex flex-col border border-gray-4 rounded-lg bg-grayA-1 overflow-hidden cursor-pointer"
     >
       <div className="h-35">{chart}</div>
       <div className="p-4 md:p-6 border-t border-gray-4 flex flex-col gap-2">

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -78,9 +79,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rows = rows[:limit]
 	}
 
-	data := make([]openapi.Project, len(rows))
-	for i, row := range rows {
-		data[i] = openapi.Project{
+	data := array.Map(rows, func(row db.ListProjectsByWorkspaceIdRow) openapi.Project {
+		return openapi.Project{
 			Id:               row.ID,
 			Name:             row.Name,
 			Slug:             row.Slug,
@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UpdatedAt:        row.UpdatedAt.Int64,
 			DeleteProtection: row.DeleteProtection.Bool,
 		}
-	}
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

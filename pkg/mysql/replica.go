@@ -7,6 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/metrics"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -17,6 +18,7 @@ type Replica struct {
 	mode      string
 	db        *sql.DB // Underlying database connection
 	debugLogs bool
+	tags      sqlcomment.Static
 }
 
 // Ensure Replica implements the DBTX interface
@@ -31,6 +33,8 @@ func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (s
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
+
+	query = r.annotate(ctx, query)
 
 	if r.debugLogs {
 		logger.Debug("ExecContext", "query", query)
@@ -62,6 +66,8 @@ func (r *Replica) PrepareContext(ctx context.Context, query string) (*sql.Stmt, 
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
+
+	query = r.annotate(ctx, query)
 
 	if r.debugLogs {
 		logger.Debug("PrepareContext", "query", query)
@@ -95,6 +101,8 @@ func (r *Replica) QueryContext(ctx context.Context, query string, args ...any) (
 		attribute.String("query", query),
 	)
 
+	query = r.annotate(ctx, query)
+
 	if r.debugLogs {
 		logger.Debug("QueryContext", "query", query)
 	}
@@ -126,6 +134,8 @@ func (r *Replica) QueryRowContext(ctx context.Context, query string, args ...any
 		attribute.String("mode", r.mode),
 		attribute.String("query", query),
 	)
+
+	query = r.annotate(ctx, query)
 
 	if r.debugLogs {
 		logger.Debug("QueryRowContext", "query", query)
@@ -172,7 +182,11 @@ func (r *Replica) Begin(ctx context.Context) (DBTx, error) {
 	}
 
 	// Wrap the transaction with tracing
-	return WrapTxWithContext(tx, r.mode+"_tx", ctx), nil
+	return WrapTxWithContext(tx, r.mode+"_tx", ctx, r.tags), nil
+}
+
+func (r *Replica) annotate(ctx context.Context, query string) string {
+	return sqlcomment.Annotate(query, r.tags, r.mode, sqlcomment.DynamicFromContext(ctx))
 }
 
 func (r *Replica) Close() error {

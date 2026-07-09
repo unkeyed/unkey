@@ -2,14 +2,17 @@ package handler
 
 import (
 	"context"
+	"net/http"
+	"strings"
+
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"net/http"
 )
 
 type (
@@ -47,12 +50,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor)
+	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	// Query one extra record to check if there are more results
 	identities, err := db.Query.ListIdentities(ctx, h.DB.RO(), db.ListIdentitiesParams{
 		WorkspaceID: principal.WorkspaceID,
 		Deleted:     false,
 		IDCursor:    cursor,
+		Search:      search,
 		Limit:       int32(limit + 1), // nolint:gosec
 	})
 	if err != nil {

@@ -60,6 +60,15 @@ func (s *Service) VerifyDomain(
 	// Fetch domain - NOT journaled so we get fresh state on each retry
 	dom, err := s.db.FindCustomDomainById(ctx, domainID)
 	if err != nil {
+		if db.IsNotFound(err) {
+			// The domain row was deleted (DeleteCustomDomain, environment cascade,
+			// etc.) while verification was still running. Stop retrying instead of
+			// surfacing a retryable internal error for up to 24 hours.
+			logger.Info("domain record deleted, stopping verification workflow",
+				"domain_id", domainID,
+			)
+			return nil, restate.TerminalError(fmt.Errorf("domain record not found: %s", domainID), 404)
+		}
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
 

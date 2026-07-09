@@ -4,7 +4,7 @@ import { Dots } from "@unkey/icons";
 
 export function DeploymentsSkeleton() {
   return (
-    <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
+    <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
       {Array.from({ length: 8 }).map((_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
         <div key={i} className="flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0">

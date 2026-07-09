@@ -161,7 +161,7 @@ export const SelectRepo = ({
         {isLoadingRepos ? (
           <SelectRepoSkeleton />
         ) : reposError ? (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg border-grayA-5">
             <p className="text-[15px] text-accent-12 font-semibold">Failed to load repositories</p>
             <p className="text-[13px] text-accent-11 text-center whitespace-pre-line w-[350px]">
               {reposError.message}
@@ -204,7 +204,7 @@ export const SelectRepo = ({
         (filteredRepos.length > 0 ? (
           <div
             ref={parentRef}
-            className="mt-3 border rounded-[14px] border-grayA-5 min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
+            className="mt-3 border rounded-lg border-grayA-5 min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
           >
             <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -238,13 +238,13 @@ export const SelectRepo = ({
             </div>
           </div>
         ) : (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg border-grayA-5">
             <p className="text-[15px] text-accent-12 font-semibold">No repositories found</p>
           </div>
         ))}
 
       {onSkip && (
-        <div className="mt-3 border border-grayA-5 rounded-[14px] flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
+        <div className="mt-3 border border-grayA-5 rounded-lg flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
           <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
             <Clock className="size-[18px] text-gray-12" iconSize="md-medium" />
           </div>
