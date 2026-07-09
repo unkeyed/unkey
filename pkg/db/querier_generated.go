@@ -2259,6 +2259,8 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE project_id = ?
 	//    AND id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
