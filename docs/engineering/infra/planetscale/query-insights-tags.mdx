@@ -30,7 +30,7 @@ Tag values are URL-encoded per the [SQLCommenter spec](https://google.github.io/
 | `route` | request context | `deploy.envVars.create` (tRPC path) |
 | `source` | request context | `http`, `restate`, `trpc`, `webhook` |
 
-We intentionally omit an `environment` tag. Infra labels clusters `production001`, `canary`, or legacy `staging`, but those labels are not injected into platform pod env vars today. Use `release_sha` to identify the deployed commit (Bazel/goreleaser set `buildinfo.Revision` on Go binaries; Vercel sets `UNKEY_GIT_COMMIT_SHA` / `GIT_COMMIT` for dashboard).
+We intentionally omit an `environment` tag. Infra labels clusters `production001`, `canary`, or legacy `staging`, but those labels are not injected into platform pod env vars today. Use `release_sha` to identify the deployed commit (goreleaser sets `buildinfo.Revision` on Go binaries; Vercel sets `UNKEY_GIT_COMMIT_SHA` / `GIT_COMMIT` for dashboard).
 
 Example comment appended to SQL:
 
@@ -95,7 +95,7 @@ After deploy to staging:
 Local unit tests:
 
 ```bash
-mise exec -- bazel test //pkg/mysql/sqlcomment:sqlcomment_test
+mise exec -- rask ./pkg/mysql/sqlcomment
 mise exec -- pnpm --dir=web exec vitest run internal/db/src/sqlcomment.test.ts internal/db/src/commented-pool.test.ts
 ```
 
