@@ -22,15 +22,12 @@ func TestCreateKeyRollsBackAuditLogOnDatabaseFailure(t *testing.T) {
 
 Use `pkg/testutil/containers` for shared test containers. Helpers lazily create
 containers with stable Docker names scoped to the current worktree and reuse
-them across Bazel test processes, so tests only start the services they actually
+them across Go test processes, so tests only start the services they actually
 need. `mise run test` removes the shared containers for that worktree after the
-Bazel suite exits. Run tests that use these helpers through Bazel so schema
-runfiles are available.
+test suite exits.
 
-For full-suite runs, use `mise run test`. Direct `bazel test //...` does not run
-the cleanup trap from the mise task, and it must be passed
-`--test_env=UNKEY_TEST_CONTAINER_SCOPE` if you want multiple Bazel test targets
-to share the same worktree-scoped containers.
+For full-suite runs, use `mise run test`. Direct `rask` does not run the
+cleanup trap from the mise task.
 
 ```go
 redisURL := containers.Redis(t)
@@ -50,14 +47,16 @@ workspace := h.CreateWorkspace()
 
 Keep harness setup explicit when it affects the guarantee. Do not hide permissions, feature flags, tenants, or seeded records behind generic helpers unless the helper name or docstring explains the resulting system state.
 
-## Bazel sizing
+## Suite cost
 
-Integration tests that start containers must use `size = "large"`. Shared-container tests can use `size = "medium"`.
+Integration tests that start containers must use the shared container helpers
+unless they need isolation. Keep expensive setup explicit so readers can see
+why the test belongs in the integration suite.
 
 ## Debugging failures
 
 Use verbose output for failing tests:
 
 ```bash
-mise exec -- bazel test //pkg/vault/integration:integration_test --test_output=all
+mise exec -- rask -v ./pkg/vault/integration
 ```

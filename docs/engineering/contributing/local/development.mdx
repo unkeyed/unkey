@@ -172,7 +172,7 @@ mise run unkey -- dev seed local
 
 ## Test locally
 
-Run Go tests with Bazel:
+Run Go tests with Rask:
 
 ```bash
 mise run test
@@ -181,7 +181,7 @@ mise run test
 Run a single Go test:
 
 ```bash
-mise exec -- bazel test //pkg/cache:cache_test --test_filter=TestCacheName
+mise exec -- go test -run TestCacheName ./pkg/cache
 ```
 
 Run TypeScript tests with pnpm:

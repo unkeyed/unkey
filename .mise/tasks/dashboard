@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #MISE description="Run local development setup for dashboard"
-#MISE depends=["build","oci-load"]
+#MISE depends=["build", "install-web"]
 set -euo pipefail
 
-docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait
+docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait --build
 bin/unkey dev seed local
 pnpm --dir=web/apps/dashboard dev

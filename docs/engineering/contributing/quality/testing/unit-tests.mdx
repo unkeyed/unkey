@@ -62,7 +62,8 @@ Helpers are production test APIs. Keep them small, typed, and named after the do
 
 ## Test data
 
-Inline small fixtures. Use `testdata/` for larger files and include them in Bazel targets.
+Inline small fixtures. Use `testdata/` for larger files that belong with the
+package under test.
 
 Name fixtures by the behavior they exercise. A fixture named `expired_root_key.json` is better than `case_3.json` because it carries the test guarantee into the filesystem.
 
