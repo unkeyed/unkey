@@ -15,16 +15,25 @@ const (
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
 // fields like spent_credits and latency compared to v1.
+//
+//unkey:table default.key_verifications_raw_v2
 type KeyVerification struct {
-	RequestID    string   `ch:"request_id" json:"request_id"`
-	Time         int64    `ch:"time" json:"time"`
-	WorkspaceID  string   `ch:"workspace_id" json:"workspace_id"`
-	KeySpaceID   string   `ch:"key_space_id" json:"key_space_id"`
-	IdentityID   string   `ch:"identity_id" json:"identity_id"`
-	ExternalID   string   `ch:"external_id" json:"external_id"`
-	KeyID        string   `ch:"key_id" json:"key_id"`
-	Region       string   `ch:"region" json:"region"`
-	Source       string   `ch:"source" json:"source"`
+	RequestID   string `ch:"request_id" json:"request_id"`
+	Time        int64  `ch:"time" json:"time"`
+	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
+	KeySpaceID  string `ch:"key_space_id" json:"key_space_id"`
+	IdentityID  string `ch:"identity_id" json:"identity_id"`
+	ExternalID  string `ch:"external_id" json:"external_id"`
+	KeyID       string `ch:"key_id" json:"key_id"`
+	Region      string `ch:"region" json:"region"`
+	// Source is temporarily excluded from ClickHouse inserts (ch:"-"): the
+	// 20260612000000 migration ran before every writer binary knew the
+	// column, and binaries predating it dropped every verification batch
+	// ("missing destination name"). Excluding the column makes inserts work
+	// against both migrated and unmigrated tables; omitted values fall back
+	// to the column DEFAULT 'api'. To re-enable, restore ch:"source" once
+	// the column exists in every environment this binary writes to.
+	Source       string   `ch:"-" json:"source"`
 	Outcome      string   `ch:"outcome" json:"outcome"`
 	Tags         []string `ch:"tags" json:"tags"`
 	SpentCredits int64    `ch:"spent_credits" json:"spent_credits"`
@@ -34,6 +43,8 @@ type KeyVerification struct {
 // Ratelimit represents the v2 ratelimit raw table structure.
 // This matches the ratelimits_raw_v2 table schema with additional
 // latency field compared to v1.
+//
+//unkey:table default.ratelimits_raw_v2
 type Ratelimit struct {
 	RequestID   string  `ch:"request_id" json:"request_id"`
 	Time        int64   `ch:"time" json:"time"`
@@ -55,6 +66,8 @@ type Ratelimit struct {
 // ApiRequest represents the v2 API request raw table structure.
 // This matches the api_requests_raw_v2 table schema with query parameters
 // and region field compared to v1.
+//
+//unkey:table default.api_requests_raw_v2
 type ApiRequest struct {
 	RequestID       string              `ch:"request_id" json:"request_id"`
 	Time            int64               `ch:"time" json:"time"`
@@ -117,6 +130,8 @@ type ApiRequestAggregated struct {
 // BuildStepV1 represents the v1 build step raw table structure.
 // This tracks individual build steps within a deployment process
 // including timing, caching, and error information.
+//
+//unkey:table default.build_steps_v1
 type BuildStepV1 struct {
 	StartedAt    int64  `ch:"started_at" json:"started_at"`
 	CompletedAt  int64  `ch:"completed_at" json:"completed_at"`
@@ -133,6 +148,8 @@ type BuildStepV1 struct {
 // BuildStepLogV1 represents the v1 build step log raw table structure.
 // This stores log messages generated during build step execution
 // for debugging and monitoring purposes.
+//
+//unkey:table default.build_step_logs_v1
 type BuildStepLogV1 struct {
 	Time         int64  `ch:"time" json:"time"`
 	WorkspaceID  string `ch:"workspace_id" json:"workspace_id"`
@@ -150,6 +167,8 @@ type BuildStepLogV1 struct {
 // Retry safety: retries of the same write carry identical values in every
 // column, so ReplacingMergeTree's last-inserted-wins is correct regardless
 // of which copy survives.
+//
+//unkey:table default.instance_checkpoints_v1
 type InstanceCheckpoint struct {
 	NodeID        string `ch:"node_id" json:"node_id"`
 	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
@@ -251,6 +270,8 @@ func (a InstanceCheckpointAttributes) Marshal() string {
 // waiting (CrashLoopBackOff, ImagePullBackOff, …) transitions. Mirrors
 // corev1.ContainerState; the proto wire format uses a oneof, the CH table
 // is the flat materialized view ctrl writes from that oneof.
+//
+//unkey:table default.instance_events_raw_v1
 type InstanceEventV1 struct {
 	Time          int64  `ch:"time" json:"time"`
 	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
@@ -290,6 +311,8 @@ type InstanceEventV1 struct {
 // FrontlineRequest represents the v1 frontline request raw table structure.
 // This tracks requests routed through frontline proxy to deployment instances
 // with deployment routing, performance breakdown, and error categorization.
+//
+//unkey:table default.frontline_requests_raw_v1
 type FrontlineRequest struct {
 	RequestID        string              `ch:"request_id" json:"request_id"`
 	Time             int64               `ch:"time" json:"time"`
@@ -332,6 +355,8 @@ type FrontlineRequest struct {
 // tables. Meta fields are json.RawMessage so the writer can pass already-
 // encoded JSON bytes through without re-marshaling, and so the JSON column
 // type in CH stores them natively (not as escaped strings).
+//
+//unkey:table default.audit_logs_raw_v1
 type AuditLogV1 struct {
 	EventID     string `ch:"event_id" json:"event_id"`
 	Time        int64  `ch:"time" json:"time"`

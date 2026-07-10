@@ -18,6 +18,12 @@ import (
 // API usage, while analytics rollups keep them: gateway traffic is still the
 // customer's traffic.
 func TestBillableExcludesGatewaySource(t *testing.T) {
+	// Source is temporarily excluded from inserts (ch:"-" on
+	// schema.KeyVerification.Source) until the 20260612000000 migration has
+	// run everywhere, so gateway rows cannot be tagged. Unskip when the tag
+	// is restored to ch:"source".
+	t.Skip("source column writes are disabled, see schema.KeyVerification.Source")
+
 	chCfg := containers.ClickHouse(t)
 
 	client, err := clickhouse.New(clickhouse.Config{URL: chCfg.DSN})

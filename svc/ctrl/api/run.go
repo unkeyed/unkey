@@ -160,7 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if chErr != nil {
 			return fmt.Errorf("failed to create clickhouse client: %w", chErr)
 		}
-		instanceEvents = clickhouse.NewBuffer[schema.InstanceEventV1](chClient, "default.instance_events_raw_v1", clickhouse.BufferConfig{
+		instanceEvents = clickhouse.NewBuffer[schema.InstanceEventV1](chClient, clickhouse.BufferConfig{
 			Name:          "instance_events",
 			BatchSize:     1_000,
 			BufferSize:    2_000,
