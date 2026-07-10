@@ -28,7 +28,7 @@ dockers_v2:
     images:
       - "ghcr.io/unkeyed/{{ .ProjectName }}"
     tags:
-      - "{{ .Version }}"
+      - "v{{ .Version }}"
     labels:
       "org.opencontainers.image.source": "https://github.com/unkeyed/unkey"
     platforms:
