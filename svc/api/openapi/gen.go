@@ -1044,6 +1044,9 @@ type V2AppsListAppsRequestBody struct {
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Project ResourceIdentifier `json:"project"`
+
+	// Search Free-form text to filter apps. Returns apps whose ID, name, or slug contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2AppsListAppsResponseBody defines model for V2AppsListAppsResponseBody.
@@ -2577,6 +2580,9 @@ type V2PermissionsListPermissionsRequestBody struct {
 
 	// Limit Maximum number of permissions to return in a single response.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter permissions. Returns permissions whose ID, name, slug, or description contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2PermissionsListPermissionsResponseBody defines model for V2PermissionsListPermissionsResponseBody.
@@ -2849,6 +2855,9 @@ type V2ProjectsListProjectsRequestBody struct {
 	// Limit Maximum number of projects to return per request.
 	// Balance between response size and number of pagination calls needed.
 	Limit *int `json:"limit,omitempty"`
+
+	// Search Free-form text to filter projects. Returns projects whose ID, name, or slug contains the search string. Matching is case-insensitive.
+	Search *string `json:"search,omitempty"`
 }
 
 // V2ProjectsListProjectsResponseBody defines model for V2ProjectsListProjectsResponseBody.
