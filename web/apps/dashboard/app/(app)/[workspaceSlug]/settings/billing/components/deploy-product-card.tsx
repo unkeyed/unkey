@@ -89,7 +89,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   });
 
   if (subscriptionLoading || plansLoading) {
-    return <div className="h-[150px] w-full animate-pulse rounded-xl bg-grayA-3" />;
+    return <div className="h-[150px] w-full animate-pulse rounded-lg bg-grayA-3" />;
   }
 
   // Deploy billing not configured server-side: hide the card entirely.

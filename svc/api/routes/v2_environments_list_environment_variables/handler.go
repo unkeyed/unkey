@@ -6,6 +6,7 @@ import (
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -155,8 +156,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	data := make([]openapi.EnvironmentVariable, len(rows))
-	for i, r := range rows {
+	data := array.Map(rows, func(r db.ListAppEnvVarsByAppAndEnvRow) openapi.EnvironmentVariable {
 		item := openapi.EnvironmentVariable{
 			Key:         r.Key,
 			Kind:        openapi.Writeonly,
@@ -168,8 +168,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			item.Kind = openapi.Recoverable
 			item.Value = plaintext[r.ID]
 		}
-		data[i] = item
-	}
+		return item
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta:       openapi.Meta{RequestId: s.RequestID()},

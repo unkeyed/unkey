@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/portal"
+	"github.com/unkeyed/unkey/pkg/auth/portalrbac"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -45,6 +46,20 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		return nil, err
 	}
 
+	// Translate the session's simplified capability model (keyspace ids + verbs)
+	// into the RBAC permission strings the shared handlers check. This is the one
+	// place the portal capability vocabulary is mapped onto RBAC — see the
+	// portalrbac package.
+	capabilities, err := portalrbac.ParseAll(session.Permissions)
+	if err != nil {
+		return nil, err
+	}
+	permissions := portalrbac.Grant{
+		WorkspaceID:  session.WorkspaceID,
+		KeyspaceIDs:  session.KeyspaceIDs,
+		Capabilities: capabilities,
+	}.Expand()
+
 	return &principal.Principal{
 		Version: principal.Version,
 		Subject: principal.Subject{
@@ -57,9 +72,10 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			SessionID:      cookie.Value,
 			PortalConfigID: session.PortalConfigID,
 			ExternalID:     session.ExternalID,
-			Permissions:    session.Permissions,
+			KeyspaceIDs:    session.KeyspaceIDs,
+			Permissions:    permissions,
 		},
 		WorkspaceID: session.WorkspaceID,
-		Permissions: session.Permissions,
+		Permissions: permissions,
 	}, nil
 }

@@ -3,7 +3,6 @@ package handler_test
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -19,24 +18,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
 )
-
-// portalMiddleware returns a middleware stack that authenticates requests
-// (including portal session cookies) but skips OpenAPI spec validation.
-// The OpenAPI spec only declares rootKey security, so cookie-authenticated
-// portal requests would be rejected by the validator.
-func portalMiddleware(h *testutil.Harness) []zen.Middleware {
-	return []zen.Middleware{
-		zen.WithObservability(),
-		zen.WithLogging(),
-		middleware.WithErrorHandling(),
-		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:       h.Auth,
-			Database:   h.DB,
-			QuotaCache: h.Caches.WorkspaceQuota,
-			Ratelimit:  h.Ratelimit,
-		}),
-	}
-}
 
 // portalSessionSetup holds all objects created for a portal session test scenario.
 type portalSessionSetup struct {
@@ -56,7 +37,7 @@ type portalSessionSetup struct {
 }
 
 // setupPortalSessionTest creates a workspace, API, two identities, and keys
-// distributed across them for portal session testing.
+// distributed across them for portal scoping tests.
 func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetup {
 	t.Helper()
 	ctx := context.Background()
@@ -138,42 +119,10 @@ func setupPortalSessionTest(t *testing.T, h *testutil.Harness) portalSessionSetu
 	}
 }
 
-// createPortalSession inserts a portal session row and returns a cookie header
-// suitable for use in CallRoute.
-func createPortalSession(
-	t *testing.T,
-	h *testutil.Harness,
-	workspaceID string,
-	externalID string,
-	permissions []string,
-) http.Header {
-	t.Helper()
-	ctx := context.Background()
-
-	sessionID := uid.New(uid.PortalSessionPrefix)
-
-	permsJSON, err := json.Marshal(permissions)
-	require.NoError(t, err)
-
-	err = db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
-		ID:             sessionID,
-		WorkspaceID:    workspaceID,
-		PortalConfigID: uid.New(uid.PortalConfigPrefix),
-		ExternalID:     externalID,
-		Permissions:    permsJSON,
-		Preview:        false,
-		ExpiresAt:      time.Now().Add(24 * time.Hour).UnixMilli(),
-		CreatedAt:      time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
-
-	return http.Header{
-		"Content-Type": {"application/json"},
-		"Cookie":       {fmt.Sprintf("portal_session=%s", sessionID)},
-	}
-}
-
-func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
+// TestProtectedRouteRejectsPortalSession verifies that a portal-session cookie
+// cannot authenticate on the protected apis.listKeys route. Portal sessions
+// authenticate only on the dedicated portal routes.
+func TestProtectedRouteRejectsPortalSession(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -181,15 +130,26 @@ func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
 		Vault:    h.Vault,
 		ApiCache: h.Caches.LiveApiByID,
 	}
-	h.Register(route, portalMiddleware(h)...)
+
+	// Auth-only stack (no OpenAPI validation) so we assert the auth layer itself
+	// rejects the portal session rather than the validator rejecting a missing
+	// bearer header.
+	authOnly := []zen.Middleware{
+		zen.WithObservability(),
+		zen.WithLogging(),
+		middleware.WithErrorHandling(),
+		middleware.WithAuthentication(middleware.AuthenticationConfig{
+			Auth:       h.Auth,
+			Database:   h.DB,
+			QuotaCache: h.Caches.WorkspaceQuota,
+			Ratelimit:  h.Ratelimit,
+		}),
+	}
+	h.Register(route, authOnly...)
 
 	setup := setupPortalSessionTest(t, h)
 
-	// Portal session for user A with read permissions
-	headers := createPortalSession(t, h, setup.workspace.ID, setup.identity1ExternalID, []string{
-		fmt.Sprintf("api.%s.read_key", setup.apiID),
-		fmt.Sprintf("api.%s.read_api", setup.apiID),
-	})
+	headers := h.CreatePortalSession(setup.workspace.ID, setup.identity1ExternalID, []string{setup.keySpaceID}, []string{"keys:read"})
 
 	req := handler.Request{
 		ApiId: setup.apiID,
@@ -197,86 +157,11 @@ func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body.Data)
-	// Only keys belonging to identity1 (user A) should be returned
-	require.Len(t, res.Body.Data, 2)
-
-	returnedIDs := map[string]bool{}
-	for _, key := range res.Body.Data {
-		returnedIDs[key.KeyId] = true
-		require.NotNil(t, key.Identity)
-		require.Equal(t, setup.identity1ExternalID, key.Identity.ExternalId)
-	}
-	require.True(t, returnedIDs[setup.key1ID], "key1 should be in results")
-	require.True(t, returnedIDs[setup.key2ID], "key2 should be in results")
-}
-
-func TestPortalSessionOverridesSuppliedExternalID(t *testing.T) {
-	h := testutil.NewHarness(t)
-
-	route := &handler.Handler{
-		DB:       h.DB,
-		Vault:    h.Vault,
-		ApiCache: h.Caches.LiveApiByID,
-	}
-	h.Register(route, portalMiddleware(h)...)
-
-	setup := setupPortalSessionTest(t, h)
-
-	// Portal session for user A
-	headers := createPortalSession(t, h, setup.workspace.ID, setup.identity1ExternalID, []string{
-		fmt.Sprintf("api.%s.read_key", setup.apiID),
-		fmt.Sprintf("api.%s.read_api", setup.apiID),
-	})
-
-	// Attempt to supply user B's externalId — should be overridden
-	req := handler.Request{
-		ApiId:      setup.apiID,
-		ExternalId: &setup.identity2ExternalID,
-	}
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body.Data)
-	// Should still only see user A's keys, not user B's
-	require.Len(t, res.Body.Data, 2)
-
-	for _, key := range res.Body.Data {
-		require.NotNil(t, key.Identity)
-		require.Equal(t, setup.identity1ExternalID, key.Identity.ExternalId)
-	}
-}
-
-func TestPortalSessionNonExistentIdentityReturnsEmpty(t *testing.T) {
-	h := testutil.NewHarness(t)
-
-	route := &handler.Handler{
-		DB:       h.DB,
-		Vault:    h.Vault,
-		ApiCache: h.Caches.LiveApiByID,
-	}
-	h.Register(route, portalMiddleware(h)...)
-
-	setup := setupPortalSessionTest(t, h)
-
-	// Portal session for a user that has no identity record
-	headers := createPortalSession(t, h, setup.workspace.ID, "non_existent_user", []string{
-		fmt.Sprintf("api.%s.read_key", setup.apiID),
-		fmt.Sprintf("api.%s.read_api", setup.apiID),
-	})
-
-	req := handler.Request{
-		ApiId: setup.apiID,
-	}
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body.Data)
-	require.Len(t, res.Body.Data, 0)
-	require.False(t, res.Body.Pagination.HasMore)
+	// The protected auth stack only reads bearer credentials. A portal_session
+	// cookie carries no Authorization header, so auth is treated as missing (400)
+	// rather than invalid (401): the protected service is unaware of portal
+	// sessions entirely, which is the point of the dedicated portal auth split.
+	require.Equal(t, 400, res.Status)
 }
 
 func TestRootKeyUnaffectedByPortalScoping(t *testing.T) {

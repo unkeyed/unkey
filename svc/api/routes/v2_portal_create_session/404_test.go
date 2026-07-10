@@ -37,7 +37,7 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	req := handler.Request{
 		Slug:        "nonexistent-portal",
 		ExternalId:  "user_123",
-		Permissions: []string{"api.*.read_key"},
+		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -84,7 +84,7 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	req := handler.Request{
 		Slug:        "cross-workspace-portal",
 		ExternalId:  "user_123",
-		Permissions: []string{"api.*.read_key"},
+		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

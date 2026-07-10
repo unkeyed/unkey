@@ -15,7 +15,6 @@ import (
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -50,33 +49,53 @@ func (h *Handler) Path() string {
 	return "/v2/keys.rerollKey"
 }
 
-// Handle processes the HTTP request
+// Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	principal, err := s.GetPrincipal()
-	if err != nil {
-		return err
-	}
-
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
 	}
 
-	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
+	key, err := h.FindLiveKey(ctx, req.KeyId)
+	if err != nil {
+		return err
+	}
+
+	return h.RerollKey(ctx, s, req, key)
+}
+
+// FindLiveKey loads a live key by id, mapping not-found and database failures to
+// the appropriate faults. The portal route reuses this to load a key for its
+// ownership guard before delegating to RerollKey.
+func (h *Handler) FindLiveKey(ctx context.Context, keyID string) (db.FindLiveKeyByIDRow, error) {
+	var zero db.FindLiveKeyByIDRow
+
+	key, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), keyID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("key not found",
+			return zero, fault.New("key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
 				fault.Public("The specified key was not found."),
 			)
 		}
 
-		return fault.Wrap(err,
+		return zero, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve key."),
 		)
+	}
+
+	return key, nil
+}
+
+// RerollKey rerolls a pre-loaded key. The workspace-ownership check is enforced
+// here; any identity scoping is the caller's responsibility (the portal route
+// applies it before calling). This core is identity-agnostic.
+func (h *Handler) RerollKey(ctx context.Context, s *zen.Session, req Request, key db.FindLiveKeyByIDRow) error {
+	principal, err := s.GetPrincipal()
+	if err != nil {
+		return err
 	}
 
 	// Validate key belongs to authorized workspace
@@ -88,39 +107,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Portal sessions are scoped to a single external identity and may only
-	// reroll keys belonging to that identity. Mismatches return 404 so we never
-	// leak the existence of keys owned by another externalId.
-	//
-	// Identity scoping is intentionally separate from the RBAC permission system.
-	// Permissions gate what operations a principal can perform; identity scoping
-	// gates which keys are reachable. Portal sessions carry a fixed externalId.
-	switch src := principal.Source.(type) {
-	case authprincipal.PortalSessionSource:
-		// Fail closed: a portal session without an externalId can't be scoped.
-		if src.ExternalID == "" {
-			return fault.New("portal session missing identity",
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("portal session externalId is empty"),
-				fault.Public("An internal error occurred."),
-			)
-		}
-
-		if !key.IdentityExternalID.Valid || key.IdentityExternalID.String != src.ExternalID {
-			return fault.New("key not found",
-				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Internal("key identity externalId does not match portal session"),
-				fault.Public("The specified key was not found."),
-			)
-		}
-	}
-
 	// Portal-authenticated rerolls are attributed to a portalEndUser actor so
-	// customers can see end-user activity in their audit logs.
+	// customers can see end-user activity in their audit logs; auditactor derives
+	// this from the principal, so this core stays identity-agnostic.
 	actor := auditactor.FromPrincipal(principal)
 
 	keyData := db.ToKeyData(key)
 
+	// Rerolling is authorized as a create_key operation because it mints a fresh
+	// key. Today this is fine for the portal too: portal sessions carry only the
+	// permissions the workspace owner enumerated at portal.createSession, and the
+	// only key-creating route we expose to them is reroll (there is no
+	// portal.createKey route). So an owner granting create_key for reroll cannot
+	// actually create arbitrary keys.
+	//
+	// TODO: when we add a portal.createKey route, that equivalence breaks — an
+	// owner will want to let a portal user reroll an existing key WITHOUT also
+	// letting them create new ones. At that point introduce a dedicated
+	// reroll_key action and authorize reroll against it instead of create_key.
 	checks := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
