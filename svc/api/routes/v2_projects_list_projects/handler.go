@@ -3,10 +3,13 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strings"
 
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -56,10 +59,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor, "")
+	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	rows, err := db.Query.ListProjectsByWorkspaceId(ctx, h.DB.RO(), db.ListProjectsByWorkspaceIdParams{
 		WorkspaceID: principal.WorkspaceID,
 		IDCursor:    cursor,
+		Search:      search,
 		Limit:       int32(limit + 1), // nolint:gosec
 	})
 	if err != nil {
@@ -78,9 +83,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rows = rows[:limit]
 	}
 
-	data := make([]openapi.Project, len(rows))
-	for i, row := range rows {
-		data[i] = openapi.Project{
+	data := array.Map(rows, func(row db.ListProjectsByWorkspaceIdRow) openapi.Project {
+		return openapi.Project{
 			Id:               row.ID,
 			Name:             row.Name,
 			Slug:             row.Slug,
@@ -88,7 +92,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UpdatedAt:        row.UpdatedAt.Int64,
 			DeleteProtection: row.DeleteProtection.Bool,
 		}
-	}
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

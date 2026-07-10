@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const listAppsByProject = `-- name: ListAppsByProject :many
@@ -14,14 +15,17 @@ SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slu
 FROM apps
 WHERE project_id = ?
   AND id >= ?
+  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+  AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 ORDER BY id ASC
 LIMIT ?
 `
 
 type ListAppsByProjectParams struct {
-	ProjectID string `db:"project_id"`
-	IDCursor  string `db:"id_cursor"`
-	Limit     int32  `db:"limit"`
+	ProjectID string         `db:"project_id"`
+	IDCursor  string         `db:"id_cursor"`
+	Search    sql.NullString `db:"search"`
+	Limit     int32          `db:"limit"`
 }
 
 // ListAppsByProject
@@ -30,10 +34,20 @@ type ListAppsByProjectParams struct {
 //	FROM apps
 //	WHERE project_id = ?
 //	  AND id >= ?
+//	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+//	  AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error) {
-	rows, err := db.QueryContext(ctx, listAppsByProject, arg.ProjectID, arg.IDCursor, arg.Limit)
+	rows, err := db.QueryContext(ctx, listAppsByProject,
+		arg.ProjectID,
+		arg.IDCursor,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -32,7 +32,7 @@ const SettingCardGroupContext = React.createContext(false);
 function SettingCardGroup({ children }: { children: React.ReactNode }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
+      <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
         {children}
       </div>
     </SettingCardGroupContext.Provider>
@@ -93,14 +93,14 @@ function SettingCard({
       return "";
     }
     if (border === "top") {
-      return "rounded-t-[14px]";
+      return "rounded-t-lg";
     }
     if (border === "bottom") {
-      return !expandable || !isExpanded ? "rounded-b-[14px]" : "";
+      return !expandable || !isExpanded ? "rounded-b-lg" : "";
     }
     if (border === "both") {
-      const bottom = !expandable || !isExpanded ? "rounded-b-[14px]" : "";
-      return cn("rounded-t-[14px]", bottom);
+      const bottom = !expandable || !isExpanded ? "rounded-b-lg" : "";
+      return cn("rounded-t-lg", bottom);
     }
     return "";
   };
@@ -115,7 +115,7 @@ function SettingCard({
 
   const expandedBottomRadius =
     !inGroup && expandable && isExpanded && (border === "bottom" || border === "both")
-      ? "rounded-b-[14px]"
+      ? "rounded-b-lg"
       : "";
 
   const handleToggle = () => {

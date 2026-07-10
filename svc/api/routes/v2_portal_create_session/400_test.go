@@ -49,10 +49,12 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	validPerms := []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"}
+
 	t.Run("missing externalId", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
-			Permissions: []string{"api.*.read_key"},
+			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -63,7 +65,28 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "",
-			Permissions: []string{"api.*.read_key"},
+			Permissions: validPerms,
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("missing slug", func(t *testing.T) {
+		req := handler.Request{
+			ExternalId:  "user_123",
+			Permissions: validPerms,
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("empty slug", func(t *testing.T) {
+		req := handler.Request{
+			Slug:        "",
+			ExternalId:  "user_123",
+			Permissions: validPerms,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -84,96 +107,31 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{},
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("missing slug", func(t *testing.T) {
-		req := handler.Request{
-			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key"},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
+	// --- Capability vocabulary validation (enforced by the OpenAPI enum) ---
 
-	t.Run("empty slug", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "",
-			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key"},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	// --- Permission format validation tests ---
-
-	t.Run("old format rejected", func(t *testing.T) {
+	t.Run("unknown capability rejected", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"keys:read"},
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:destroy"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("two segments rejected", func(t *testing.T) {
+	t.Run("legacy rbac tuple rejected", func(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"api.read_key"},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("four segments rejected", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key.extra"},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("empty middle segment rejected", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_123",
-			Permissions: []string{"api..read_key"},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("empty first segment rejected", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_123",
-			Permissions: []string{".*.read_key"},
-		}
-		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
-		require.Equal(t, 400, res.Status)
-		require.NotNil(t, res.Body)
-	})
-
-	t.Run("empty last segment rejected", func(t *testing.T) {
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_123",
-			Permissions: []string{"api.*."},
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -184,7 +142,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key", "keys:read"},
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read", "api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)

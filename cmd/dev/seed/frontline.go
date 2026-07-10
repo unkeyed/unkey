@@ -56,7 +56,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 
 	log.Printf("Buffer config: batch-size=%d, buffer-size=%d, consumers=%d", batchSize, bufferSize, consumers)
 
-	frontlineRequests := clickhouse.NewBuffer[schema.FrontlineRequest](ch, "default.frontline_requests_raw_v1", clickhouse.BufferConfig{
+	frontlineRequests := clickhouse.NewBuffer[schema.FrontlineRequest](ch, clickhouse.BufferConfig{
 		Name:          "seed-frontline-requests",
 		BatchSize:     batchSize,
 		BufferSize:    bufferSize,

@@ -35,6 +35,11 @@ type Services struct {
 	// Auth normalizes supported credential sources into principals for protected routes.
 	Auth auth.Authenticator
 
+	// PortalAuth resolves only portal-session cookies into principals. It backs
+	// the portal routes so a portal session can never authenticate on a
+	// protected route.
+	PortalAuth auth.Authenticator
+
 	// ClickHouse provides query access to ClickHouse for analytics.
 	ClickHouse clickhouse.ClickHouse
 

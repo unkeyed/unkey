@@ -61,7 +61,7 @@ export function DeploymentSkipped() {
         />
       </SettingCardGroup>
 
-      <div className="border border-grayA-4 bg-grayA-2 rounded-[14px] p-4 flex items-center justify-between">
+      <div className="border border-grayA-4 bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-gray-12">Deployment skipped</span>

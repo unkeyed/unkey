@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";
 import { ProductCard } from "./product-card";
+import { SpendBudget } from "./spend-budget";
 import { UsageMeter } from "./usage-meter";
 
 type DeployProductCardProps = {
@@ -89,7 +90,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   });
 
   if (subscriptionLoading || plansLoading) {
-    return <div className="h-[150px] w-full animate-pulse rounded-xl bg-grayA-3" />;
+    return <div className="h-[150px] w-full animate-pulse rounded-lg bg-grayA-3" />;
   }
 
   // Deploy billing not configured server-side: hide the card entirely.
@@ -223,6 +224,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ))}
               </div>
             ) : null}
+            <SpendBudget isAdmin={isAdmin} usageCents={usageAmount} />
           </div>
         ) : null}
       </ProductCard>

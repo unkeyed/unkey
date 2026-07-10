@@ -47,3 +47,21 @@ func Parse(key string) (Period, error) {
 func (p Period) Start() time.Time {
 	return time.Date(p.Year, p.Month, 1, 0, 0, 0, 0, time.UTC)
 }
+
+// End is midnight UTC on the first day of the following month: the exclusive
+// upper bound of the period. Deploy billing close assumes every subscription
+// is anchored at midnight UTC on the 1st; the dashboard sets that anchor at
+// checkout, and Deploy billing has no pre-existing subscriptions without it.
+func (p Period) End() time.Time {
+	return p.Start().AddDate(0, 1, 0)
+}
+
+// CloseAllowed reports whether month-end close may run. Wall clock past p.End()
+// is enough. Otherwise stripePeriodEnd from invoice.created proves Stripe
+// rolled the period (test clocks can be ahead of wall clock).
+func (p Period) CloseAllowed(now time.Time, stripePeriodEndUnix int64) bool {
+	if !now.Before(p.End()) {
+		return true
+	}
+	return stripePeriodEndUnix >= p.End().Unix()
+}

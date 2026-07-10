@@ -47,6 +47,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 				message:   "migration does not exist",
 				session:   sess,
 				region:    s.region,
+				source:    s.source,
 				startTime: time.Now(),
 			}, nil
 		}
@@ -107,6 +108,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			message:   "key does not exist",
 			session:   sess,
 			region:    s.region,
+			source:    s.source,
 			startTime: time.Now(),
 		}, nil
 	default:

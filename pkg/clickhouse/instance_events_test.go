@@ -8,6 +8,7 @@ import (
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 )
@@ -121,7 +122,7 @@ func TestInstanceEventsInsertRoundTrip(t *testing.T) {
 		},
 	}
 
-	batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.instance_events_raw_v1")
+	batch, err := conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.InstanceEventV1]())
 	require.NoError(t, err, "PrepareBatch must succeed against a JSON-column table")
 	for i := range rows {
 		require.NoError(t, batch.AppendStruct(&rows[i]),
