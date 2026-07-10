@@ -2,7 +2,7 @@ import { Empty } from "@unkey/ui";
 
 export function SentinelPoliciesEmpty() {
   return (
-    <div className="border border-grayA-4 rounded-[14px] overflow-hidden">
+    <div className="border border-grayA-4 rounded-lg overflow-hidden">
       <div className="flex items-center justify-center py-16 px-4">
         <Empty className="w-[400px] flex items-start">
           <Empty.Icon className="w-auto" />

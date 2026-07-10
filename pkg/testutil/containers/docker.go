@@ -179,8 +179,8 @@ func pullImage(t testing.TB, cli *client.Client, imageName string) {
 //
 // Returns the container metadata including mapped ports. The container is
 // automatically removed when the test completes via t.Cleanup if Dedicated is
-// set. Reusable containers intentionally remain after the test so later Bazel
-// test processes can attach to the same Docker service.
+// set. Reusable containers intentionally remain after the test so later test
+// processes can attach to the same Docker service.
 //
 // If WaitStrategy is provided, this function blocks until the container is
 // ready or the WaitTimeout is exceeded. If WaitTimeout is zero, defaults to
@@ -375,7 +375,7 @@ func createOrAttachReusableContainer(
 
 // findReusableContainer returns a stable test container by name.
 //
-// Reusable names are shared across Bazel test processes, so the labels guard
+// Reusable names are shared across Go test processes, so the labels guard
 // against accidentally attaching to a developer-owned container with the same
 // name.
 func findReusableContainer(
@@ -570,9 +570,8 @@ func sortedMapKeys(values map[string]string) []string {
 
 // testContainerScope returns the logical owner for reusable containers.
 //
-// mise sets this to the worktree root. Direct Bazel invocations fall back to
-// Bazel's runfiles root, whose output-base component is derived from the
-// workspace path.
+// mise sets this to the worktree root. Direct test invocations fall back to
+// runfiles paths when the surrounding test runner provides them.
 func testContainerScope() string {
 	if scope := os.Getenv(containerScopeEnv); scope != "" {
 		return scope

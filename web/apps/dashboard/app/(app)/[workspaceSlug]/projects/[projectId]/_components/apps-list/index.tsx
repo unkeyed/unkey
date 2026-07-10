@@ -40,7 +40,7 @@ export const AppsList = () => {
           ))}
         </div>
       ) : apps.data.length === 0 ? (
-        <div className="flex-1 flex justify-center items-center px-4 py-16 border border-grayA-4 rounded-[14px] overflow-hidden">
+        <div className="flex-1 flex justify-center items-center px-4 py-16 border border-grayA-4 rounded-lg overflow-hidden">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Apps Found</Empty.Title>
