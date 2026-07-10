@@ -2,13 +2,16 @@ package handler_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	rerollkey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
 )
@@ -102,9 +105,14 @@ func TestPortalSessionRequiresRerollCapability(t *testing.T) {
 		[]string{api.KeyAuthID.String},
 		[]string{"keys:create"},
 	)
-	res := testutil.CallRoute[Request, Response](h, route, headers, Request{KeyId: key.KeyID})
+	owned := testutil.CallRoute[Request, openapi.ForbiddenErrorResponse](h, route, headers, Request{KeyId: key.KeyID})
+	missingKeyID := uid.New(uid.KeyPrefix)
+	missing := testutil.CallRoute[Request, openapi.ForbiddenErrorResponse](h, route, headers, Request{KeyId: missingKeyID})
 
-	require.Equal(t, 403, res.Status, "keys:create must not authorize portal.rerollKey")
+	require.Equal(t, http.StatusForbidden, owned.Status, "keys:create must not authorize portal.rerollKey")
+	require.Equal(t, owned.Body.Error, missing.Body.Error, "authorization must run before key lookup")
+	require.NotContains(t, owned.RawBody, key.KeyID)
+	require.NotContains(t, missing.RawBody, missingKeyID)
 }
 
 func TestPortalSessionCannotRerollKeyOutsideSessionKeyspaces(t *testing.T) {
@@ -162,16 +170,18 @@ func TestPortalSessionCannotRerollOtherIdentityKey(t *testing.T) {
 		IdentityID:  ptr.P(otherIdentity.ID),
 	})
 
-	// Session belongs to user A but holds create_key permission on the API.
+	// Session belongs to user A and can reroll its own keys.
 	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{api.KeyAuthID.String}, []string{"keys:reroll"})
 
 	req := Request{
 		KeyId: otherKey.KeyID,
 	}
 
-	res := testutil.CallRoute[Request, Response](h, route, headers, req)
+	res := testutil.CallRoute[Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 
 	require.Equal(t, 404, res.Status, "rerolling another identity's key should return 404")
+	require.Equal(t, "The specified key was not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, otherKey.KeyID)
 }
 
 // TestPortalSessionCannotRerollKeyWithoutIdentity verifies a portal session

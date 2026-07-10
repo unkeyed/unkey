@@ -45,7 +45,8 @@ func TestExchangeSessionUnauthorized(t *testing.T) {
 		req := handler.Request{SessionId: "nonexistent_session"}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
-		require.NotNil(t, res.Body)
+		require.Equal(t, "Session is invalid, expired, or has already been used.", res.Body.Error.Detail)
+		require.NotContains(t, res.RawBody, req.SessionId)
 	})
 
 	t.Run("expired session token", func(t *testing.T) {
@@ -67,7 +68,8 @@ func TestExchangeSessionUnauthorized(t *testing.T) {
 		req := handler.Request{SessionId: tokenID}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
-		require.NotNil(t, res.Body)
+		require.Equal(t, "Session is invalid, expired, or has already been used.", res.Body.Error.Detail)
+		require.NotContains(t, res.RawBody, tokenID)
 	})
 
 	t.Run("already exchanged session token", func(t *testing.T) {
@@ -97,7 +99,8 @@ func TestExchangeSessionUnauthorized(t *testing.T) {
 		req := handler.Request{SessionId: tokenID}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
-		require.NotNil(t, res.Body)
+		require.Equal(t, "Session is invalid, expired, or has already been used.", res.Body.Error.Detail)
+		require.NotContains(t, res.RawBody, tokenID)
 	})
 
 	t.Run("empty sessionId", func(t *testing.T) {

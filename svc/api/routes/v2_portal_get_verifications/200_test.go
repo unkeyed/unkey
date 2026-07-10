@@ -250,11 +250,14 @@ func TestPortalSessionAnalyticsRequiresAnalyticsRead(t *testing.T) {
 	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{"ks_none"}, []string{"keys:read"})
 
 	now := time.Now().UnixMilli()
-	res := testutil.CallRoute[Request, Response](h, route, headers, Request{
+	res := testutil.CallRoute[Request, openapi.ForbiddenErrorResponse](h, route, headers, Request{
 		StartTime: now - int64(time.Hour/time.Millisecond),
 		EndTime:   now + int64(time.Minute/time.Millisecond),
 	})
 
 	require.Equal(t, 403, res.Status,
 		"portal session without analytics:read must be forbidden from reading analytics")
+	require.NotContains(t, res.RawBody, workspace.ID)
+	require.NotContains(t, res.RawBody, "portal_user_A")
+	require.NotContains(t, res.RawBody, "ks_none")
 }

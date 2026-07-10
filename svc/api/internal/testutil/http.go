@@ -282,6 +282,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	portalService := portal.New(portal.Config{
 		DB:           database,
 		SessionCache: caches.PortalSession,
+		Clock:        clk,
 	})
 	// Mirror production: portal sessions authenticate only on a dedicated portal
 	// auth service, so protected routes reject portal-session cookies.
@@ -391,6 +392,7 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 	})
 	require.NoError(h.t, err)
 
+	now := h.Clock.Now()
 	err = db.Query.InsertPortalSession(context.Background(), h.DB.RW(), db.InsertPortalSessionParams{
 		ID:             sessionID,
 		WorkspaceID:    workspaceID,
@@ -398,8 +400,8 @@ func (h *Harness) CreatePortalSession(workspaceID, externalID string, keyspaceID
 		ExternalID:     externalID,
 		Permissions:    permsJSON,
 		Preview:        false,
-		ExpiresAt:      time.Now().Add(24 * time.Hour).UnixMilli(),
-		CreatedAt:      time.Now().UnixMilli(),
+		ExpiresAt:      now.Add(24 * time.Hour).UnixMilli(),
+		CreatedAt:      now.UnixMilli(),
 	})
 	require.NoError(h.t, err)
 

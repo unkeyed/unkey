@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
@@ -18,8 +19,7 @@ type SessionInfo struct {
 	// KeyspaceIDs scopes the session's key capabilities to a set of keyspaces.
 	KeyspaceIDs []string
 
-	// Permissions is the persisted capability vocabulary. The portal session
-	// resolver validates it before constructing a principal.
+	// Permissions is the persisted capability vocabulary.
 	Permissions []string
 }
 
@@ -34,11 +34,13 @@ type Service interface {
 type Config struct {
 	DB           db.Database
 	SessionCache cache.Cache[string, db.PortalSession]
+	Clock        clock.Clock
 }
 
 type service struct {
 	db           db.Database
 	sessionCache cache.Cache[string, db.PortalSession]
+	clock        clock.Clock
 }
 
 // New creates a new portal service instance.
@@ -46,5 +48,6 @@ func New(config Config) Service {
 	return &service{
 		db:           config.DB,
 		sessionCache: config.SessionCache,
+		clock:        config.Clock,
 	}
 }

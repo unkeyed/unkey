@@ -118,10 +118,10 @@ func (h *Handler) RerollKey(
 	if err != nil {
 		return err
 	}
-	if err := assert.Equal(key.WorkspaceID, principal.WorkspaceID, "reroll key workspace must match principal"); err != nil {
-		return err
-	}
-	if err := assert.Equal(key.ID, req.KeyId, "preloaded reroll key must match request"); err != nil {
+	if err := assert.All(
+		assert.Equal(key.WorkspaceID, principal.WorkspaceID, "reroll key workspace must match principal"),
+		assert.Equal(key.ID, req.KeyId, "preloaded reroll key must match request"),
+	); err != nil {
 		return err
 	}
 

@@ -47,6 +47,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+	if err := principal.Authorize(rbac.S(portalrbac.CapKeysReroll)); err != nil {
+		return err
+	}
 
 	externalID, err := portalscope.ExternalID(s)
 	if err != nil {
@@ -80,9 +83,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("The specified key was not found."),
 		)
 	}
-	if err := principal.Authorize(rbac.S(portalrbac.CapKeysReroll)); err != nil {
-		return err
-	}
-
 	return h.reroll.RerollKey(ctx, s, req, key)
 }
