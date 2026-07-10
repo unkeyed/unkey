@@ -2783,7 +2783,7 @@ type V2PortalListKeysResponseBody struct {
 	Meta Meta `json:"meta"`
 
 	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination *Pagination `json:"pagination,omitempty"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2PortalListKeysResponseData Array of the portal end user's API keys.
