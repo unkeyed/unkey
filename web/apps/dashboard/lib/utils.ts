@@ -177,6 +177,15 @@ export function getBaseUrl() {
     return "";
   }
 
+  // Vercel never exposes a custom domain assigned to a preview branch through
+  // env vars, so deployments like the canary (app.unkey-canary.com on the
+  // `canary` branch) need an explicit, branch-scoped override. Without it,
+  // auth and billing redirects fall through to VERCEL_BRANCH_URL and strand
+  // users on the *.vercel.app host.
+  if (process.env.DASHBOARD_BASE_URL) {
+    return process.env.DASHBOARD_BASE_URL;
+  }
+
   // VERCEL_URL is always the auto-generated *.vercel.app deployment URL —
   // never the custom domain, even in production. The production custom
   // domain lives in VERCEL_PROJECT_PRODUCTION_URL.
