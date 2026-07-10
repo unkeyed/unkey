@@ -10,6 +10,7 @@ import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Location2, XMark } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import type * as React from "react";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -93,7 +94,7 @@ const RegionTags = ({
         if (isUnschedulable) {
           return (
             <Tooltip key={r}>
-              <TooltipTrigger asChild>{tag}</TooltipTrigger>
+              <TooltipTrigger render={tag as React.ReactElement} />
               <TooltipContent>This region is currently unavailable for scheduling</TooltipContent>
             </Tooltip>
           );

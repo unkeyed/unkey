@@ -77,7 +77,7 @@ export function RuntimeLogsFilters() {
           variant="ghost"
           size="md"
           className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
+            "group-data-popup-open:bg-gray-4 px-2 rounded-lg",
             filterCount > 0 ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs"

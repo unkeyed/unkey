@@ -30,24 +30,26 @@ export function PreviewSwitcher({ value, onSelect }: Props) {
   return (
     <div className="fixed right-4 bottom-4 z-50">
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="shadow-md">
-            <FlaskConical />
-            Preview: {STATES[value].label}
-            <ChevronDown />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="outline" size="sm" className="shadow-md">
+              <FlaskConical />
+              Preview: {STATES[value].label}
+              <ChevronDown />
+            </Button>
+          }
+        />
         <DropdownMenuContent align="end" side="top" className="min-w-48">
-          <DropdownMenuLabel>Preview state</DropdownMenuLabel>
-          <DropdownMenuSeparator />
           <DropdownMenuGroup>
+            <DropdownMenuLabel>Preview state</DropdownMenuLabel>
+            <DropdownMenuSeparator />
             {STATE_ORDER.map((state) => {
               const { label, description } = STATES[state];
               return (
                 <DropdownMenuItem
                   key={state}
-                  onSelect={(e) => {
-                    e.preventDefault();
+                  closeOnClick={false}
+                  onClick={() => {
                     onSelect(state);
                   }}
                   className="justify-between gap-4"
