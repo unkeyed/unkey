@@ -1,6 +1,7 @@
 load('ext://namespace', 'namespace_create')
 load('ext://secret', 'secret_create_generic')
 load('ext://helm_remote', 'helm_remote')
+load('ext://restart_process', 'docker_build_with_restart')
 
 config.define_string('topolvm_backing_size')
 cfg = config.parse()
@@ -312,36 +313,101 @@ k8s_resource('restate-deploy-billing-push', resource_deps=['restate', 'ctrl-work
 k8s_resource('restate-idle-preview-deployments', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
-# Service images use Tilt's native Docker builder and the shared dev Dockerfile.
+# Service binaries are compiled on the host so rebuilds hit the local Go
+# build cache (incremental, shared across all services). The image is only
+# built once; after that, live_update syncs the fresh binary straight into
+# the running container and the restart_process wrapper re-execs it — no
+# image build, no registry push, no pod rollout. Building inside Docker
+# (dev/Dockerfile) recompiles the whole module from scratch on every change,
+# seven times in parallel — that Dockerfile stays around for the dashboard
+# docker-compose setup, but Tilt deliberately avoids it.
+#
+# Each service watches only the repo-local packages it actually imports, so
+# editing one service's code re-fires just that compile, not all seven. Edits
+# to a widely-shared package still fan out to every service that imports it,
+# which is correct. GOARCH follows the host because the minikube node runs the
+# same architecture as the machine hosting it.
+
+# Broad fallback: watch all Go sources if the per-service import graph can't be
+# computed (e.g. the service doesn't currently compile).
+GO_SERVICE_DEPS = ['../build', '../svc', '../internal', '../pkg', '../gen', '../go.mod', '../go.sum']
+
+# Scoped deps are absolute repo paths outside dev/, so the test-file ignore is
+# anchored at the repo root (an ignore glob relative to dev/ wouldn't match
+# them). Editing a _test.go then never recompiles or restarts a service.
+REPO_ROOT = os.path.abspath('..')
+GO_TEST_IGNORE = [REPO_ROOT + '/**/*_test.go']
+
+def go_local_deps(name):
+    # Repo-local package dirs this service imports, resolved once at tilt up via
+    # `go list -deps`. We select packages in the main module (.Module.Main) so
+    # the filter is independent of where the repo is checked out; matching on
+    # the filesystem path would only work when the clone happens to live under
+    # a matching directory. Adding a brand-new import needs a Tiltfile reload
+    # before the new edge is watched. `|| true` keeps a broken build from
+    # crashing the Tiltfile; we then fall back to the broad list so a service
+    # never silently stops rebuilding.
+    out = str(local(
+        'cd .. && go list -deps -f "{{if .Module}}{{if .Module.Main}}{{.Dir}}{{end}}{{end}}" ./build/%s 2>/dev/null || true' % name,
+        quiet=True, echo_off=True,
+    )).strip()
+    dirs = [d for d in out.split('\n') if d]
+    if not dirs:
+        return GO_SERVICE_DEPS
+    return dirs + ['../go.mod', '../go.sum']
+
+def go_service_image(ref, name):
+    # The context dir must exist when the Tiltfile is evaluated, before the
+    # compile resource has produced a binary (fresh clone case).
+    local('mkdir -p bin/' + name, quiet=True, echo_off=True)
+    compile_name = name + '-compile'
+    local_resource(
+        compile_name,
+        'cd .. && ' +
+        'CGO_ENABLED=0 GOOS=linux GOARCH=$(go env GOARCH) ' +
+        'go build -o dev/bin/%s/unkey ./build/%s' % (name, name),
+        deps=go_local_deps(name),
+        ignore=GO_TEST_IGNORE,
+        labels=['build'],
+        allow_parallel=True,
+    )
+    docker_build_with_restart(
+        ref=ref,
+        context='bin/' + name,
+        dockerfile='Dockerfile.binary',
+        entrypoint=['/unkey'],
+        live_update=[sync('bin/%s/unkey' % name, '/unkey')],
+    )
+    return compile_name
 
 # ─── Vault ─────────────────────────────────────────────────────────────────
-docker_build('unkey/vault:dev', '..', dockerfile='Dockerfile', build_args={'PACKAGE': './build/vault'})
+go_service_image('unkey/vault:dev', 'vault')
 k8s_yaml('k8s/manifests/vault.yaml')
 k8s_resource(
   'vault',
   port_forwards='8060:8060',
-  resource_deps=['s3'],
+  resource_deps=['s3', 'vault-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ─── API ───────────────────────────────────────────────────────────────────
-docker_build('unkey/api:dev', '..', dockerfile='Dockerfile', build_args={'PACKAGE': './build/api'})
+go_service_image('unkey/api:dev', 'api')
 k8s_yaml('k8s/manifests/api.yaml')
 k8s_resource(
   'api',
   port_forwards='7070:7070',
-  resource_deps=['mysql', 'clickhouse', 'redis'],
+  resource_deps=['mysql', 'clickhouse', 'redis', 'api-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ─── Ctrl API ──────────────────────────────────────────────────────────────
-docker_build('unkey/control-api:dev', '..', dockerfile='Dockerfile', build_args={'PACKAGE': './build/control-api'})
+go_service_image('unkey/control-api:dev', 'control-api')
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials', 'control-api-compile']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
 k8s_resource(
@@ -354,9 +420,9 @@ k8s_resource(
 )
 
 # ─── Ctrl Worker (Restate workflow handlers) ───────────────────────────────
-docker_build('unkey/control-worker:dev', '..', dockerfile='Dockerfile', build_args={'PACKAGE': './build/control-worker'})
+go_service_image('unkey/control-worker:dev', 'control-worker')
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(
@@ -381,12 +447,12 @@ if has_github_credentials:
     )
 
 # ─── Frontline (TLS termination proxy for *.unkey.local) ───────────────────
-docker_build('unkey/frontline:dev', '..', dockerfile='Dockerfile', build_args={'PACKAGE': './build/frontline'})
+go_service_image('unkey/frontline:dev', 'frontline')
 k8s_yaml('k8s/manifests/frontline.yaml')
 k8s_resource(
   'frontline',
   port_forwards=['9443:7443', '9080:7070'],
-  resource_deps=['mysql', 'ctrl-api', 'vault', 'frontline-certs'],
+  resource_deps=['mysql', 'ctrl-api', 'vault', 'frontline-certs', 'frontline-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO,
@@ -394,23 +460,23 @@ k8s_resource(
 )
 
 # ─── Krane ─────────────────────────────────────────────────────────────────
-docker_build('unkey/krane:dev', '..', dockerfile='Dockerfile', build_args={'PACKAGE': './build/krane'})
+go_service_image('unkey/krane:dev', 'krane')
 k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass'],
+  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass', 'krane-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ─── Heimdall (resource metering agent) ────────────────────────────────────
-docker_build('unkey/heimdall:dev', '..', dockerfile='Dockerfile', build_args={'PACKAGE': './build/heimdall'})
+go_service_image('unkey/heimdall:dev', 'heimdall')
 k8s_yaml('k8s/manifests/heimdall.yaml')
 k8s_resource(
   'heimdall',
-  resource_deps=['clickhouse', 'rbac'],
+  resource_deps=['clickhouse', 'rbac', 'heimdall-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO

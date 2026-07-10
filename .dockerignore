@@ -1,5 +1,6 @@
 .git
 .gitignore
+.jj
 
 .cache
 .turbo
@@ -17,6 +18,9 @@
 
 bin
 dist
+dev/bin
+# stray local `go build -o unkey` artifacts
+unkey
 
 bazel-*
 bazel-bin
