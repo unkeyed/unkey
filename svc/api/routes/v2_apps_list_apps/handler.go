@@ -3,10 +3,14 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strings"
 
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
@@ -81,10 +85,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
+	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	rows, err := db.Query.ListAppsByProject(ctx, h.DB.RO(), db.ListAppsByProjectParams{
 		ProjectID: project.ID,
 		IDCursor:  p.Cursor,
+		Search:    search,
 		Limit:     p.FetchLimit(),
 	})
 	if err != nil {
@@ -98,9 +104,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	rows, pg := pagination.Paginate(rows, p, func(r db.App) string { return r.ID })
 
-	data := make([]openapi.App, len(rows))
-	for i, row := range rows {
-		data[i] = openapi.App{
+	data := array.Map(rows, func(row db.App) openapi.App {
+		return openapi.App{
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
@@ -111,7 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAt:           row.CreatedAt,
 			UpdatedAt:           row.UpdatedAt.Int64,
 		}
-	}
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

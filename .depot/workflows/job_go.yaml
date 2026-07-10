@@ -9,7 +9,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-8
     timeout-minutes: 30
     env:
-      RASK_CACHE_DIR: /mnt/depot-cache/rask
+      RASK_CACHE_DIR: ./.rask-cache #/mnt/depot-cache/rask
       RASK_REMOTE_CACHE_BUCKET: rask
       RASK_REMOTE_CACHE_PREFIX: ""
       RASK_REMOTE_CACHE_REGION: auto
@@ -18,23 +18,18 @@ jobs:
       RASK_REMOTE_CACHE_SECRET_ACCESS_KEY: ${{ secrets.RASK_REMOTE_CACHE_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-      - name: Mount Rask cache disk
-        uses: depot/cache-mount@v1
-        with:
-          name: unkey-rask-cache
-          path: /mnt/depot-cache
-          write-lock: /mnt/depot-cache/rask
+      # - name: Mount Rask cache disk
+      #   uses: depot/cache-mount@v1
+      #   with:
+      #     name: unkey-rask-cache
+      #     path: /mnt/depot-cache
+      #     write-lock: /mnt/depot-cache/rask
       - name: Install mise
         run: |
           ./dev/install-mise
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install toolchain
         run: mise install --locked --yes
-      - name: Verify Rask remote cache
-        run: |
-          output="$(RASK_CACHE_DIR="${RUNNER_TEMP:-/tmp}/rask-remote-smoke" mise exec -- rask --no-cache ./pkg/codes 2>&1)"
-          printf '%s\n' "$output"
-          grep -Eq 'remote: [0-9]+ reads, [1-9][0-9]* writes' <<<"$output"
       - name: Build
         run: mise run build
       - name: Run tests

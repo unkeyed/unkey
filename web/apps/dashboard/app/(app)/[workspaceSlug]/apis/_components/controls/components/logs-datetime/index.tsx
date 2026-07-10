@@ -75,7 +75,7 @@ export const LogsDateTime = () => {
           variant="ghost"
           size="md"
           className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
+            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg border border-gray-4",
             displayTitle === "Loading..." ? "opacity-50" : "",
             displayTitle !== "Last 12 hours" ? "bg-gray-4" : "",
           )}

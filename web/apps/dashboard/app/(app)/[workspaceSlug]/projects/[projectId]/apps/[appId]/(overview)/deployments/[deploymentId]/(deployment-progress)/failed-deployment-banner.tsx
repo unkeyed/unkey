@@ -49,7 +49,7 @@ export function FailedDeploymentBanner({
 
   return (
     <div className="flex flex-col gap-3 animate-fade-slide-in">
-      <div className="border border-errorA-4 bg-errorA-2 rounded-[14px] p-4 flex items-center justify-between">
+      <div className="border border-errorA-4 bg-errorA-2 rounded-lg p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-error-11">Deployment failed</span>

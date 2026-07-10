@@ -2,4 +2,5 @@
 #MISE description="Run Go lint checks"
 set -euo pipefail
 
+export GOLANGCI_LINT_CACHE="${PWD}/.cache/golangci-lint"
 golangci-lint run ./...

@@ -41,7 +41,7 @@ func Disabled() Static {
 }
 
 // ForService builds the standard static tag set for a Unkey service process.
-// ReleaseSHA comes from [buildinfo.Revision], which Bazel and goreleaser inject
+// ReleaseSHA comes from [buildinfo.Revision], which goreleaser injects
 // at link time. We do not tag a deployment environment name: infra does not set
 // one on platform pods (cluster labels like production001/canary stay outside
 // the process).

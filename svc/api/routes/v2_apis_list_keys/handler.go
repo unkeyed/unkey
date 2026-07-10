@@ -9,6 +9,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/pkg/array"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -47,17 +48,18 @@ func (h *Handler) Path() string {
 	return "/v2/apis.listKeys"
 }
 
-// Handle processes the HTTP request
+// Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
+
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
-	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
 		WorkspaceID: principal.WorkspaceID,
 		Key:         req.ApiId,
@@ -286,13 +288,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	plaintextMap := h.decryptKeys(ctx, req, keyResults, principal.WorkspaceID)
 
-	// Transform to response format
-	responseData := make([]openapi.KeyResponseData, len(keyResults))
-	for i, key := range keyResults {
-		keyData := db.ToKeyData(key)
-		response := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
-		responseData[i] = response
-	}
+	responseData := array.Map(keyResults, func(key db.ListLiveKeysByKeySpaceIDRow) openapi.KeyResponseData {
+		return BuildKeyResponseData(db.ToKeyData(key), plaintextMap[key.ID])
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -330,8 +328,10 @@ func (h *Handler) decryptKeys(ctx context.Context, req Request, keys []db.ListLi
 	return bulkRes.GetItems()
 }
 
-// buildKeyResponseData transforms internal key data into API response format.
-func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
+// BuildKeyResponseData transforms internal key data into API response format. It
+// is exported so the portal listKeys route can reuse the exact response shape
+// without depending on the rest of this handler.
+func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
 	response := openapi.KeyResponseData{
 		Meta:        nil,
 		Ratelimits:  nil,

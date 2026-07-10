@@ -2,17 +2,16 @@
 
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { ApiListCard } from "./api-list-card";
-import { ApiListControlCloud } from "./control-cloud";
 import { ApiListControls } from "./controls";
-import { CreateApiButton } from "./create-api-button";
+import { EmptyKeyspaces } from "./empty-keyspaces";
 import { ApiCardSkeleton } from "./skeleton";
 
 const DEFAULT_LIMIT = 10;
+const SKELETON_COUNT = 3;
 
 export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
   const router = useRouter();
@@ -59,32 +58,37 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
     }
   };
 
+  const hasNoKeyspaces = !isLoading && allApis.length === 0;
+
   return (
-    <div className="flex flex-col">
-      <ApiListControls apiList={allApis} onApiListChange={setApiList} onSearch={setIsSearching} />
-      <ApiListControlCloud />
+    <div className="flex flex-col gap-4">
+      {!hasNoKeyspaces && (
+        <ApiListControls apiList={allApis} onApiListChange={setApiList} onSearch={setIsSearching} />
+      )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
-          {Array.from({ length: DEFAULT_LIMIT }).map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
+          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
             <ApiCardSkeleton key={i} />
           ))}
         </div>
+      ) : hasNoKeyspaces ? (
+        <EmptyKeyspaces workspaceSlug={workspaceSlug} isNewApi={isNewApi} />
       ) : apiList.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5 w-full p-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
             {apiList.map((api) => (
               <ApiListCard api={api} key={api.id} />
             ))}
           </div>
 
-          <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
-            <div className="text-center text-sm text-accent-11">
-              Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
-            </div>
+          {!isSearching && hasNextPage && (
+            <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
+              <div className="text-center text-sm text-accent-11">
+                Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
+              </div>
 
-            {!isSearching && hasNextPage && (
               <Button onClick={loadMore} disabled={isFetchingNextPage} size="md">
                 {isFetchingNextPage ? (
                   <div className="flex flex-row items-center gap-2">
@@ -97,8 +101,8 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
                   </div>
                 )}
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </>
       ) : (
         <EmptyComponentSpacer>
@@ -106,25 +110,8 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
             <Empty.Icon />
             <Empty.Title>No keyspaces found</Empty.Title>
             <Empty.Description>
-              {isSearching
-                ? "No keyspaces match your search criteria. Try a different search term."
-                : "You haven't created any keyspaces yet. Create one to get started."}
+              No keyspaces match your search criteria. Try a different search term.
             </Empty.Description>
-            {!isSearching && (
-              <Empty.Actions className="mt-4">
-                <CreateApiButton defaultOpen={isNewApi} workspaceSlug={workspaceSlug} size="md" />
-                <a
-                  href="https://www.unkey.com/docs/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <BookBookmark />
-                    Documentation
-                  </Button>
-                </a>
-              </Empty.Actions>
-            )}
           </Empty>
         </EmptyComponentSpacer>
       )}

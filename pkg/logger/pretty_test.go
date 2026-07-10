@@ -45,6 +45,15 @@ func TestPrettyHandler(t *testing.T) {
 		require.Contains(t, out, `slug=`+ansiReset+`"local api"`)
 	})
 
+	t.Run("quotes values with terminal control sequences", func(t *testing.T) {
+		h := newPrettyHandler(&bytes.Buffer{}, slog.LevelInfo)
+		r := slog.NewRecord(ts, slog.LevelInfo, "msg", 0)
+		r.AddAttrs(slog.String("agent", "curl\x1b[2J"))
+
+		out := prettyLine(t, h, r)
+		require.Contains(t, out, `agent=`+ansiReset+`"curl\x1b[2J"`)
+	})
+
 	t.Run("WithAttrs prepends attrs to every record", func(t *testing.T) {
 		h := newPrettyHandler(&bytes.Buffer{}, slog.LevelInfo).
 			WithAttrs([]slog.Attr{slog.String("service", "seed")})

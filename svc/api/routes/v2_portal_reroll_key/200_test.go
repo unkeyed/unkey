@@ -2,74 +2,31 @@ package handler_test
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/middleware"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
+	rerollkey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_reroll_key"
 )
 
-// portalMiddleware returns a middleware stack that authenticates requests
-// (including portal session cookies) but skips OpenAPI spec validation.
-// The OpenAPI spec only declares rootKey security, so cookie-authenticated
-// portal requests would be rejected by the validator.
-func portalMiddleware(h *testutil.Harness) []zen.Middleware {
-	return []zen.Middleware{
-		zen.WithObservability(),
-		zen.WithLogging(),
-		middleware.WithErrorHandling(),
-		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:       h.Auth,
-			Database:   h.DB,
-			QuotaCache: h.Caches.WorkspaceQuota,
-			Ratelimit:  h.Ratelimit,
-		}),
-	}
-}
+type (
+	Request  = rerollkey.Request
+	Response = rerollkey.Response
+)
 
-// createPortalSession inserts a portal session row and returns a cookie header
-// suitable for use in CallRoute.
-func createPortalSession(
-	t *testing.T,
-	h *testutil.Harness,
-	workspaceID string,
-	externalID string,
-	permissions []string,
-) http.Header {
-	t.Helper()
-	ctx := context.Background()
-
-	sessionID := uid.New(uid.PortalSessionPrefix)
-
-	permsJSON, err := json.Marshal(permissions)
-	require.NoError(t, err)
-
-	err = db.Query.InsertPortalSession(ctx, h.DB.RW(), db.InsertPortalSessionParams{
-		ID:             sessionID,
-		WorkspaceID:    workspaceID,
-		PortalConfigID: uid.New(uid.PortalConfigPrefix),
-		ExternalID:     externalID,
-		Permissions:    permsJSON,
-		Preview:        false,
-		ExpiresAt:      time.Now().Add(24 * time.Hour).UnixMilli(),
-		CreatedAt:      time.Now().UnixMilli(),
+// newHandler builds the portal.rerollKey handler backed by a configured
+// keys.rerollKey handler.
+func newHandler(h *testutil.Harness) *handler.Handler {
+	return handler.New(&rerollkey.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
 	})
-	require.NoError(t, err)
-
-	return http.Header{
-		"Content-Type": {"application/json"},
-		"Cookie":       {fmt.Sprintf("portal_session=%s", sessionID)},
-	}
 }
 
 // TestPortalSessionRerollOwnKey verifies a portal session can reroll a key that
@@ -78,13 +35,8 @@ func TestPortalSessionRerollOwnKey(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
-	}
-	h.Register(route, portalMiddleware(h)...)
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -103,15 +55,13 @@ func TestPortalSessionRerollOwnKey(t *testing.T) {
 		IdentityID:  ptr.P(identity.ID),
 	})
 
-	headers := createPortalSession(t, h, workspace.ID, externalID, []string{
-		fmt.Sprintf("api.%s.create_key", api.ID),
-	})
+	headers := h.CreatePortalSession(workspace.ID, externalID, []string{api.KeyAuthID.String}, []string{"keys:reroll"})
 
-	req := handler.Request{
+	req := Request{
 		KeyId: key.KeyID,
 	}
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 
 	require.Equal(t, 200, res.Status)
 	require.NotNil(t, res.Body)
@@ -132,13 +82,8 @@ func TestPortalSessionRerollOwnKey(t *testing.T) {
 func TestPortalSessionCannotRerollOtherIdentityKey(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
-	}
-	h.Register(route, portalMiddleware(h)...)
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -157,15 +102,13 @@ func TestPortalSessionCannotRerollOtherIdentityKey(t *testing.T) {
 	})
 
 	// Session belongs to user A but holds create_key permission on the API.
-	headers := createPortalSession(t, h, workspace.ID, "portal_user_A", []string{
-		fmt.Sprintf("api.%s.create_key", api.ID),
-	})
+	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{api.KeyAuthID.String}, []string{"keys:reroll"})
 
-	req := handler.Request{
+	req := Request{
 		KeyId: otherKey.KeyID,
 	}
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 
 	require.Equal(t, 404, res.Status, "rerolling another identity's key should return 404")
 }
@@ -175,13 +118,8 @@ func TestPortalSessionCannotRerollOtherIdentityKey(t *testing.T) {
 func TestPortalSessionCannotRerollKeyWithoutIdentity(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
-	}
-	h.Register(route, portalMiddleware(h)...)
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
 
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -193,15 +131,13 @@ func TestPortalSessionCannotRerollKeyWithoutIdentity(t *testing.T) {
 		KeySpaceID:  api.KeyAuthID.String,
 	})
 
-	headers := createPortalSession(t, h, workspace.ID, "portal_user_A", []string{
-		fmt.Sprintf("api.%s.create_key", api.ID),
-	})
+	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{api.KeyAuthID.String}, []string{"keys:reroll"})
 
-	req := handler.Request{
+	req := Request{
 		KeyId: keyWithoutIdentity.KeyID,
 	}
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 
 	require.Equal(t, 404, res.Status, "rerolling an unowned key should return 404")
 }
