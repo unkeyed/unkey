@@ -1,8 +1,0 @@
-load("@rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "ctrl",
-    srcs = ["doc.go"],
-    importpath = "github.com/unkeyed/unkey/svc/ctrl",
-    visibility = ["//visibility:public"],
-)

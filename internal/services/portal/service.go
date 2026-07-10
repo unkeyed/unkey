@@ -13,8 +13,15 @@ type SessionInfo struct {
 	WorkspaceID    string
 	ExternalID     string
 	PortalConfigID string
-	Permissions    []string
 	Preview        bool
+
+	// KeyspaceIDs scopes the session's key capabilities to a set of keyspaces.
+	KeyspaceIDs []string
+
+	// Permissions is the session's simplified capability verbs (e.g. "keys:reroll",
+	// "analytics:read"). The portal_session resolver expands these into RBAC
+	// permission strings via portalrbac.
+	Permissions []string
 }
 
 // Service defines the interface for portal session operations.

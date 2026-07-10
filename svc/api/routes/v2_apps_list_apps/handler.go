@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -108,9 +109,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rows = rows[:limit]
 	}
 
-	data := make([]openapi.App, len(rows))
-	for i, row := range rows {
-		data[i] = openapi.App{
+	data := array.Map(rows, func(row db.App) openapi.App {
+		return openapi.App{
 			Id:                  row.ID,
 			Name:                row.Name,
 			Slug:                row.Slug,
@@ -121,7 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAt:           row.CreatedAt,
 			UpdatedAt:           row.UpdatedAt.Int64,
 		}
-	}
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

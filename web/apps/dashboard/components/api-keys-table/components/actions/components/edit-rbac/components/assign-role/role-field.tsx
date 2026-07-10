@@ -106,6 +106,10 @@ export const RoleField = ({
   };
 
   const handleAddRole = (roleName: string) => {
+    if (roleName === "__load_more__") {
+      return;
+    }
+
     if (!value.includes(roleName)) {
       onChange([...value, roleName]);
     }

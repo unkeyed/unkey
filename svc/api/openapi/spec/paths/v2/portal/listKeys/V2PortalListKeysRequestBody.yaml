@@ -1,0 +1,24 @@
+type: object
+properties:
+  limit:
+    type: integer
+    description: |
+      Maximum number of keys to return per request.
+      Balance between response size and number of pagination calls needed.
+    default: 100
+    minimum: 1
+    maximum: 100
+  cursor:
+    type: string
+    description: |
+      Pagination cursor from a previous response to fetch the next page.
+      Use when `hasMore: true` in the previous response.
+    example: key_1234abcd
+additionalProperties: false
+examples:
+  basic:
+    summary: List the end user's keys
+    description: |
+      List the portal end user's keys. The keyspaces and identity are fixed by
+      the session, so no filter fields are required.
+    value: {}

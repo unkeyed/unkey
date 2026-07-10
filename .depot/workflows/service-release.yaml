@@ -27,6 +27,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install mise
+        run: |
+          ./dev/install-mise
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain
+        run: mise install --locked --yes
+
       - name: Verify tag is on main
         run: |
           version="${GITHUB_REF_NAME#*/}"
@@ -55,12 +63,7 @@ jobs:
 
           echo "service=$service" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "image=ghcr.io/unkeyed/$service:$version" >> "$GITHUB_OUTPUT"
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
-
-      - uses: ./.depot/actions/setup-bazel
-        with:
-          cache_auth: ${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
 
       - name: Login to GHCR
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
@@ -69,28 +72,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build image
-        env:
-          RELEASE_VERSION: ${{ steps.tag.outputs.version }}
-        run: bazel build --config=release //build/${{ steps.tag.outputs.service }}:image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-      - name: Push image
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
+        with:
+          distribution: goreleaser-pro
+          version: "v2.15.4"
+          args: release --clean --config .goreleaser.service.yaml
         env:
-          RELEASE_VERSION: ${{ steps.tag.outputs.version }}
-        run: |
-          bazel run --config=release \
-            //build/${{ steps.tag.outputs.service }}:push \
-            -- --tag "${{ steps.tag.outputs.version }}"
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          args=()
-          if [[ "${{ steps.tag.outputs.prerelease }}" == "true" ]]; then
-            args+=(--prerelease)
-          fi
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "${{ steps.tag.outputs.service }} ${{ steps.tag.outputs.version }}" \
-            --generate-notes \
-            "${args[@]}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          SERVICE: ${{ steps.tag.outputs.service }}

@@ -20,15 +20,13 @@ go = "1.25.1"
 "github:tilt-dev/ctlptl" = "0.9.3"
 "github:FiloSottile/mkcert" = "1.4.4"
 "github:planetscale/cli" = "0.284.0"
-"github:depot/cli" = "2.101.63"
+"github:depot/cli" = "2.101.67"
+"github:chronark/rask" = "0.5.0"
+"github:golangci/golangci-lint" = "2.12.2"
 "github:pnpm/pnpm" = "11.5.0"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
 "aqua:stripe/stripe-cli" = "1.42.13"
-
-[tools."github:bazelbuild/bazelisk"]
-version = "1.29.0"
-bin = "bazel"
 
 [tools."github:kubernetes/minikube"]
 version = "1.38.1"

@@ -9,7 +9,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -46,17 +46,18 @@ func (h *Handler) Path() string {
 	return "/v2/apis.listKeys"
 }
 
-// Handle processes the HTTP request
+// Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
+
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
-	req, err := zen.BindBody[Request](s)
-	if err != nil {
-		return err
-	}
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
 		WorkspaceID: principal.WorkspaceID,
 		Key:         req.ApiId,
@@ -189,27 +190,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Portal sessions are scoped to a single external identity. Override any
-	// user-supplied externalId filter so that the session can only list its own keys.
-	// Fail closed: if the externalId is empty, reject the request rather than
-	// returning unscoped keys.
-	//
-	// Identity scoping is intentionally separate from the RBAC permission system.
-	// Permissions gate what operations a principal can perform; identity scoping
-	// gates what data is visible. Portal sessions carry a fixed externalId that
-	// restricts visibility regardless of what the request body says.
-	switch src := principal.Source.(type) {
-	case authprincipal.PortalSessionSource:
-		if src.ExternalID == "" {
-			return fault.New("portal session missing identity",
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("portal session externalId is empty"),
-				fault.Public("An internal error occurred."),
-			)
-		}
-		req.ExternalId = &src.ExternalID
-	}
-
 	limit := ptr.SafeDeref(req.Limit, 100)
 	cursor := ptr.SafeDeref(req.Cursor, "")
 
@@ -286,13 +266,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	plaintextMap := h.decryptKeys(ctx, req, keyResults, principal.WorkspaceID)
 
-	// Transform to response format
-	responseData := make([]openapi.KeyResponseData, len(keyResults))
-	for i, key := range keyResults {
-		keyData := db.ToKeyData(key)
-		response := h.buildKeyResponseData(keyData, plaintextMap[key.ID])
-		responseData[i] = response
-	}
+	responseData := array.Map(keyResults, func(key db.ListLiveKeysByKeySpaceIDRow) openapi.KeyResponseData {
+		return BuildKeyResponseData(db.ToKeyData(key), plaintextMap[key.ID])
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
@@ -333,8 +309,10 @@ func (h *Handler) decryptKeys(ctx context.Context, req Request, keys []db.ListLi
 	return bulkRes.GetItems()
 }
 
-// buildKeyResponseData transforms internal key data into API response format.
-func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
+// BuildKeyResponseData transforms internal key data into API response format. It
+// is exported so the portal listKeys route can reuse the exact response shape
+// without depending on the rest of this handler.
+func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
 	response := openapi.KeyResponseData{
 		Meta:        nil,
 		Ratelimits:  nil,

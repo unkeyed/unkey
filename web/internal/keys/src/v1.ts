@@ -12,7 +12,7 @@ const SEPARATOR = "_";
  */
 export class KeyV1 {
   public readonly version = 1;
-  public readonly prefix?: string;
+  public readonly prefix: string | undefined;
   public readonly random: Uint8Array;
 
   constructor(s: string);
@@ -34,8 +34,8 @@ export class KeyV1 {
       return;
     }
 
-    if (arg.byteLength < 8 || arg.byteLength > 255) {
-      throw new Error("v1 keys must be between 8 and 255 bytes long");
+    if (arg.byteLength < 16 || arg.byteLength > 255) {
+      throw new Error("v1 keys must be between 16 and 255 bytes long");
     }
     this.prefix = arg.prefix;
     this.random = crypto.getRandomValues(new Uint8Array(arg.byteLength));

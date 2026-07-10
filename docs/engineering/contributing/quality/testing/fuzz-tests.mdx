@@ -68,7 +68,7 @@ Document security properties in the fuzz test docstring. A future reader must kn
 During normal test runs, fuzz tests execute only with their seed corpus:
 
 ```bash
-mise exec -- bazel test //pkg/encryption:encryption_test
+mise exec -- rask ./pkg/encryption
 ```
 
 To fuzz locally:
@@ -83,6 +83,7 @@ When fuzzing finds a failure, Go saves the input to `testdata/fuzz/<TestName>/` 
 
 Write a deterministic unit test for the failing input, then fix the bug. Keep the fuzz corpus in `testdata` to prevent regressions.
 
-## Bazel configuration
+## Corpus files
 
-Fuzz tests live in regular `go_test` targets. Add `//pkg/fuzz` to the target dependencies, and include the fuzz corpus with `data = glob(["testdata/**"])` when the test has saved failure inputs.
+Fuzz tests live in regular Go test files. Commit saved failure inputs under
+`testdata/fuzz/<TestName>/` so normal test runs replay them.

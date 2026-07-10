@@ -30,6 +30,7 @@ import (
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	authworkos "github.com/unkeyed/unkey/pkg/auth/workos"
+
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -39,6 +40,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
@@ -129,6 +131,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Tags:        sqlcomment.ForService("api", cfg.Region),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -345,7 +348,10 @@ func Run(ctx context.Context, cfg Config) error {
 		return workspace.ID, nil
 	})
 
+	// Portal sessions authenticate on a dedicated auth service used only by the
+	// portal routes, so protected routes never accept a portal-session cookie.
 	authResolvers := []auth.Resolver{}
+	portalResolvers := []auth.Resolver{}
 	for i, authConfig := range cfg.Auth {
 		switch authConfig := authConfig.(type) {
 		case JWTAuthConfig:
@@ -373,7 +379,7 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:
-			authResolvers = append(authResolvers, portalsession.NewResolver(portalSvc))
+			portalResolvers = append(portalResolvers, portalsession.NewResolver(portalSvc))
 		case RootKeyAuthConfig:
 			authResolvers = append(authResolvers, rootkey.NewResolver(keySvc))
 		default:
@@ -381,6 +387,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 	authSvc := auth.New(authResolvers...)
+	portalAuthSvc := auth.New(portalResolvers...)
 
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)
@@ -448,6 +455,7 @@ func Run(ctx context.Context, cfg Config) error {
 		KeyVerifications:     keyVerifications,
 		Keys:                 keySvc,
 		Auth:                 authSvc,
+		PortalAuth:           portalAuthSvc,
 		Validator:            validator,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,

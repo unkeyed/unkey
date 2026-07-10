@@ -5,7 +5,7 @@ export const LIMIT = 50;
 
 export const rolesQueryPayload = z.object({
   cursor: z.string().optional(),
-  limit: z.number().prefault(LIMIT),
+  limit: z.number().int().min(1).max(100).prefault(LIMIT),
 });
 
 export const KeySchema = z.object({
