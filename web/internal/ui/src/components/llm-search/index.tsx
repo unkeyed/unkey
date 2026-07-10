@@ -23,6 +23,7 @@ type Props = {
   searchMode?: SearchMode;
   debounceTime?: number;
   fullWidth?: boolean;
+  className?: string;
 };
 
 const LLMSearch = ({
@@ -38,6 +39,7 @@ const LLMSearch = ({
   searchMode = "manual",
   debounceTime = 500,
   fullWidth = false,
+  className,
 }: Props) => {
   const [searchText, setSearchText] = useState("");
   const [isClearingState, setIsClearingState] = useState(false);
@@ -137,6 +139,7 @@ const LLMSearch = ({
           "transition-all duration-200",
           searchText.length > 0 ? "bg-gray-4" : "",
           isProcessing ? "bg-gray-4" : "",
+          className,
         )}
       >
         <div className={cn("flex items-center gap-2 w-full flex-1", !fullWidth && "md:w-80")}>

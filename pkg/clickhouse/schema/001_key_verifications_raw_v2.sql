@@ -17,6 +17,10 @@ CREATE TABLE key_verifications_raw_v2
   -- this will be the region code such as `us-east-1`
   region LowCardinality(String),
 
+  -- Where the verification originated: 'api' (public API) or 'gateway'
+  -- (Unkey Deploy's key-auth policy). Billing rollups exclude 'gateway'.
+  source LowCardinality(String) DEFAULT 'api',
+
   -- Examples:
   -- - "VALID"
   -- - "RATE_LIMITED"

@@ -1,9 +1,6 @@
 "use client";
+import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { use } from "react";
-
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
-import { ApisNavbar } from "../api-id-navbar";
 import { SettingsClient } from "./components/settings-client";
 
 type Props = {
@@ -15,18 +12,17 @@ type Props = {
 export default function SettingsPage(props: Props) {
   const params = use(props.params);
   const { apiId } = params;
-  const workspace = useWorkspaceNavigation();
 
   return (
-    <div>
-      <ApisNavbar
-        apiId={apiId}
-        activePage={{
-          href: routes.apis.settings({ workspaceSlug: workspace.slug, apiId }),
-          text: "Settings",
-        }}
-      />
-      <SettingsClient apiId={apiId} />
-    </div>
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Settings</PageHeaderTitle>
+        </PageHeaderContent>
+      </PageHeader>
+      <PageBody>
+        <SettingsClient apiId={apiId} />
+      </PageBody>
+    </PageContainer>
   );
 }

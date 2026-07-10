@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { SettingCardGroup, SettingsDangerZone, SettingsShell } from "@unkey/ui";
+import { SettingCardGroup, SettingsDangerZone } from "@unkey/ui";
 import { CopyApiId } from "./copy-api-id";
 import { CopyKeySpaceId } from "./copy-key-space-id";
 import { DefaultBytes } from "./default-bytes";
@@ -49,13 +49,7 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
   };
 
   return (
-    <SettingsShell>
-      <div className="flex flex-col gap-2 items-center">
-        <span className="font-semibold text-gray-12 leading-8 text-lg">Keyspace Settings</span>
-        <span className="leading-4 text-gray-11 text-[13px]">
-          Configure your keyspace name, default key settings, and access controls.
-        </span>
-      </div>
+    <>
       <div className="w-full">
         <SettingCardGroup>
           <UpdateApiName api={api} />
@@ -73,6 +67,6 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
         <DeleteProtection api={api} />
         <DeleteApi api={api} keys={keyAuthForComponents.sizeApprox} />
       </SettingsDangerZone>
-    </SettingsShell>
+    </>
   );
 };
