@@ -1,5 +1,5 @@
 import { setCookiesOnResponse } from "@/lib/auth/cookies";
-import { isSafeRedirectPath, sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
+import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
 import { auth } from "@/lib/auth/server";
 import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import { type NextRequest, NextResponse } from "next/server";
@@ -29,18 +29,15 @@ export async function GET(request: NextRequest) {
       if (state) {
         try {
           const parsed: unknown = JSON.parse(decodeURIComponent(state));
-          const redirectUrlComplete =
-            typeof parsed === "object" &&
-            parsed !== null &&
-            "redirectUrlComplete" in parsed &&
-            typeof (parsed as { redirectUrlComplete: unknown }).redirectUrlComplete === "string"
-              ? (parsed as { redirectUrlComplete: string }).redirectUrlComplete
-              : null;
-          if (
-            redirectUrlComplete &&
-            redirectUrlComplete !== "/apis" &&
-            isSafeRedirectPath(redirectUrlComplete)
-          ) {
+          // An empty fallback means "no deep link": anything non-string or
+          // unsafe is dropped, and the default destination needs no param.
+          const redirectUrlComplete = sanitizeRedirectPath(
+            parsed !== null && typeof parsed === "object"
+              ? (parsed as Record<string, unknown>).redirectUrlComplete
+              : null,
+            "",
+          );
+          if (redirectUrlComplete && redirectUrlComplete !== "/apis") {
             url.searchParams.set("redirect", redirectUrlComplete);
           }
         } catch {
