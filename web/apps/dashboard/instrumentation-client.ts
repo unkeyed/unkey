@@ -9,6 +9,8 @@ import {
   createClientErrorFilter,
   createTracesSampler,
   replayPrivacyOptions,
+  scrubSpanPii,
+  scrubTransactionPii,
   scrubUrl,
 } from "./lib/sentry";
 
@@ -20,6 +22,15 @@ if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
 
     // Filter expected tRPC errors and scrub PII from reported events
     beforeSend: createClientErrorFilter(),
+
+    // Transactions bypass `beforeSend`, so scrub secrets/PII from the URLs
+    // they carry (request url, Referer header, span http.url/url.full) before
+    // sending
+    beforeSendTransaction: scrubTransactionPii,
+
+    // Standalone web-vital (INP) spans bypass `beforeSendTransaction` too;
+    // their page URL rides in the `transaction` attribute — scrub it here
+    beforeSendSpan: scrubSpanPii,
 
     // Drop non-actionable noise (browser extensions, ResizeObserver, ad-blocker
     // network blips) so genuine errors are not buried.
