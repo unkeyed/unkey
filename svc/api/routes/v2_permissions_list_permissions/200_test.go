@@ -190,4 +190,87 @@ func TestSuccess(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("search", func(t *testing.T) {
+		// Fresh workspace so search results are not polluted by other subtests
+		searchWorkspace := h.CreateWorkspace()
+		searchKey := h.CreateRootKey(searchWorkspace.ID, "rbac.*.read_permission")
+		searchHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", searchKey)},
+		}
+
+		searchPermissions := []struct {
+			Name        string
+			Slug        string
+			Description string
+		}{
+			{"documents.read", "documents-read", "Read stored documents"},
+			{"billing.manage", "billing-manage", "Change plans and invoices"},
+			{"reports_100%", "reports-full", "Export everything"},
+		}
+		permissionIDs := make(map[string]string)
+		for _, perm := range searchPermissions {
+			permissionID := uid.New(uid.PermissionPrefix)
+			permissionIDs[perm.Name] = permissionID
+			err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+				PermissionID: permissionID,
+				WorkspaceID:  searchWorkspace.ID,
+				Name:         perm.Name,
+				Slug:         perm.Slug,
+				Description:  dbtype.NullString{Valid: true, String: perm.Description},
+				CreatedAtM:   time.Now().UnixMilli(),
+			})
+			require.NoError(t, err)
+		}
+
+		list := func(t *testing.T, search string) []string {
+			t.Helper()
+			req := handler.Request{Search: &search}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, searchHeaders, req)
+			require.Equal(t, 200, res.Status, "expected 200, got: %d", res.Status)
+			names := make([]string, 0, len(res.Body.Data))
+			for _, perm := range res.Body.Data {
+				names = append(names, perm.Name)
+			}
+			return names
+		}
+
+		t.Run("matches name substring", func(t *testing.T) {
+			require.Equal(t, []string{"documents.read"}, list(t, "documents."))
+		})
+
+		t.Run("matches permission id", func(t *testing.T) {
+			require.Equal(t, []string{"billing.manage"}, list(t, permissionIDs["billing.manage"]))
+		})
+
+		t.Run("matches slug substring", func(t *testing.T) {
+			require.Equal(t, []string{"reports_100%"}, list(t, "reports-full"))
+		})
+
+		t.Run("matches description substring", func(t *testing.T) {
+			require.Equal(t, []string{"billing.manage"}, list(t, "invoices"))
+		})
+
+		t.Run("is case insensitive", func(t *testing.T) {
+			require.Equal(t, []string{"billing.manage"}, list(t, "BILLING"))
+		})
+
+		t.Run("wildcards match literally", func(t *testing.T) {
+			// Unescaped, "%" would match every permission and "d_cuments" would match "documents"
+			require.Equal(t, []string{"reports_100%"}, list(t, "100%"))
+			require.Empty(t, list(t, "d_cuments"))
+		})
+
+		t.Run("no matches returns empty list", func(t *testing.T) {
+			require.Empty(t, list(t, "does-not-exist"))
+		})
+
+		t.Run("whitespace-only search returns all", func(t *testing.T) {
+			require.ElementsMatch(t,
+				[]string{"documents.read", "billing.manage", "reports_100%"},
+				list(t, "   "),
+			)
+		})
+	})
 }

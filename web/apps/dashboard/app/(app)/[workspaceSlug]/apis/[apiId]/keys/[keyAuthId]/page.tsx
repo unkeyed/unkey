@@ -1,8 +1,13 @@
 "use client";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
+import {
+  PageContainer,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderTitle,
+} from "@unkey/ui";
 import { use } from "react";
-import { ApisNavbar } from "../../api-id-navbar";
+import { CreateKeyAction } from "../../create-key-action";
 import { KeysClient } from "./_components/keys-client";
 
 export default function APIKeysPage(props: {
@@ -13,24 +18,19 @@ export default function APIKeysPage(props: {
 }) {
   const params = use(props.params);
   const apiId = params.apiId;
-  const workspace = useWorkspaceNavigation();
-
   const keyspaceId = params.keyAuthId;
 
   return (
-    <div>
-      <ApisNavbar
-        apiId={apiId}
-        activePage={{
-          href: routes.apis.keys.list({
-            workspaceSlug: workspace.slug,
-            apiId,
-            keyAuthId: keyspaceId,
-          }),
-          text: "Keys",
-        }}
-      />
+    <PageContainer width="full">
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Keys</PageHeaderTitle>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <CreateKeyAction apiId={apiId} />
+        </PageHeaderActions>
+      </PageHeader>
       <KeysClient apiId={apiId} keyspaceId={keyspaceId} />
-    </div>
+    </PageContainer>
   );
 }

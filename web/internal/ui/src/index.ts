@@ -19,6 +19,7 @@ export * from "./components/dialog/navigable-dialog";
 export * from "./components/drawer";
 export * from "./components/drover";
 export * from "./components/empty";
+export * from "./components/empty-hero";
 export * from "./components/form";
 export * from "./components/full-screen-layout";
 export * from "./components/id";

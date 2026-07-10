@@ -191,3 +191,83 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 		}
 	})
 }
+
+func TestListProjectsSearch(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	// Fresh workspace so search results are not polluted by other tests
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.read_project")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	seeded := []struct {
+		Name string
+		Slug string
+	}{
+		{"Billing Service", "billing-service"},
+		{"Web Frontend", "web-frontend"},
+		{"Reports 100%", "reports-full"},
+	}
+	projectIDs := make(map[string]string)
+	for _, p := range seeded {
+		project := h.CreateProject(seed.CreateProjectRequest{
+			ID:          uid.New(uid.ProjectPrefix),
+			WorkspaceID: workspace.ID,
+			Name:        p.Name,
+			Slug:        p.Slug,
+		})
+		projectIDs[p.Name] = project.ID
+	}
+
+	list := func(t *testing.T, search string) []string {
+		t.Helper()
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Search: ptr.P(search),
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+		names := make([]string, 0, len(res.Body.Data))
+		for _, p := range res.Body.Data {
+			names = append(names, p.Name)
+		}
+		return names
+	}
+
+	t.Run("matches name substring", func(t *testing.T) {
+		require.Equal(t, []string{"Billing Service"}, list(t, "billing"))
+	})
+
+	t.Run("matches slug substring", func(t *testing.T) {
+		require.Equal(t, []string{"Web Frontend"}, list(t, "web-frontend"))
+	})
+
+	t.Run("matches project id", func(t *testing.T) {
+		require.Equal(t, []string{"Reports 100%"}, list(t, projectIDs["Reports 100%"]))
+	})
+
+	t.Run("is case insensitive", func(t *testing.T) {
+		require.Equal(t, []string{"Billing Service"}, list(t, "BILLING"))
+	})
+
+	t.Run("wildcards match literally", func(t *testing.T) {
+		// Unescaped, "%" would match every project and "s_rvice" would match "Service"
+		require.Equal(t, []string{"Reports 100%"}, list(t, "100%"))
+		require.Empty(t, list(t, "s_rvice"))
+	})
+
+	t.Run("no matches returns empty list", func(t *testing.T) {
+		require.Empty(t, list(t, "does-not-exist"))
+	})
+
+	t.Run("whitespace-only search returns all", func(t *testing.T) {
+		require.ElementsMatch(t,
+			[]string{"Billing Service", "Web Frontend", "Reports 100%"},
+			list(t, "   "),
+		)
+	})
+}

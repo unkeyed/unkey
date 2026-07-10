@@ -470,6 +470,11 @@ components:
                         Pagination cursor from a previous response to fetch the next page.
                         Use when `hasMore: true` in the previous response.
                     example: app_1234abcd
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter apps. Returns apps whose ID, name, or slug contains the search string. Matching is case-insensitive.
+                    example: checkout
             additionalProperties: false
         V2AppsListAppsResponseBody:
             type: object
@@ -2288,6 +2293,11 @@ components:
                     default: 100
                     description: Maximum number of permissions to return in a single response.
                     example: 50
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter permissions. Returns permissions whose ID, name, slug, or description contains the search string. Matching is case-insensitive.
+                    example: documents
             additionalProperties: false
         V2PermissionsListPermissionsResponseBody:
             type: object
@@ -2327,6 +2337,11 @@ components:
                         Each response containing more results will include a cursor value that can be used here.
                         Leave empty or omit this field to start from the beginning of the role list.
                     example: "eyJrZXkiOiJyb2xlXzEyMzQifQ=="
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter roles. Returns roles whose ID, name, or description contains the search string. Matching is case-insensitive.
+                    example: admin
             additionalProperties: false
         V2PermissionsListRolesResponseBody:
             type: object
@@ -2594,6 +2609,11 @@ components:
                         Pagination cursor from a previous response to fetch the next page.
                         Use when `hasMore: true` in the previous response.
                     example: proj_1234abcd
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter projects. Returns projects whose ID, name, or slug contains the search string. Matching is case-insensitive.
+                    example: billing-service
             additionalProperties: false
         V2ProjectsListProjectsResponseBody:
             type: object

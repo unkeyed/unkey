@@ -2296,6 +2296,8 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE project_id = ?
 	//    AND id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
@@ -2722,6 +2724,11 @@ type Querier interface {
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
 	//    AND p.id >= ?
+	//    -- search and description_search carry the same pre-escaped LIKE pattern built
+	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
+	//    -- because sqlc types each param after the compared column, and description's
+	//    -- dbtype.NullString override conflicts with the plain string columns.
+	//    AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
 	//  ORDER BY p.id
 	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
@@ -2790,6 +2797,8 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE workspace_id = ?
 	//    AND id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
@@ -2856,7 +2865,7 @@ type Querier interface {
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
 	ListRepoConnectionDeployContexts(ctx context.Context, db DBTX, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
-	//ListRoles
+	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -2876,6 +2885,7 @@ type Querier interface {
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
 	//  AND r.id >= ?
+	//  AND (? IS NULL OR r.id LIKE ? OR r.name LIKE ? OR r.description LIKE ?)
 	//  ORDER BY r.id
 	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
