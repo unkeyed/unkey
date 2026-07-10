@@ -176,6 +176,15 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	// Returns the challenge row for a domain, if one exists. domain_id is unique on
+	// acme_challenges, so there is at most one. Used as the idempotency check for
+	// infra certificate provisioning: once a challenge exists the renewal cron owns
+	// issuance, so provisioning is a no-op.
+	//
+	//  SELECT ac.pk, ac.domain_id, ac.workspace_id, ac.token, ac.challenge_type, ac.authorization, ac.status, ac.expires_at, ac.created_at, ac.updated_at FROM acme_challenges ac
+	//  JOIN custom_domains cd ON ac.domain_id = cd.id
+	//  WHERE cd.domain = ?
+	FindAcmeChallengeByDomain(ctx context.Context, domain string) (AcmeChallenge, error)
 	//FindAcmeChallengeByToken
 	//
 	//  SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
@@ -2042,7 +2051,8 @@ type Querier interface {
 	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
 	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
 	UpsertQuota(ctx context.Context, arg UpsertQuotaParams) error
-	// Inserts a region or does nothing if it already exists.
+	// Inserts a region or does nothing if it already exists (keyed by the
+	// (name, platform) unique index).
 	//
 	//  INSERT INTO regions (
 	//  	id,

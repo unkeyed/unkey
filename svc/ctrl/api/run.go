@@ -180,6 +180,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:          clk,
 		TopologyCache:  topologyCache,
 		InstanceEvents: instanceEvents,
+		RegionalDomain: cfg.RegionalDomain,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create cluster service: %w", err)
@@ -359,15 +360,14 @@ func Run(ctx context.Context, cfg Config) error {
 		return nil
 	})
 
-	// Bootstrap certificates (wildcard domain records)
+	// Ensure the default wildcard certificate (*.{DefaultDomain}) exists and
+	// trigger issuance. This is the one infra cert not tied to a region event;
+	// per-region wildcards are provisioned on demand when a region first
+	// registers via cluster.Heartbeat. Best-effort: EnsureInfraCertificate
+	// never fails and is a no-op once the cert exists.
 	if cfg.DefaultDomain != "" {
-		certBootstrap := &certificateBootstrap{
-			database:       database,
-			defaultDomain:  cfg.DefaultDomain,
-			regionalDomain: cfg.RegionalDomain,
-		}
 		r.Go(func(ctx context.Context) error {
-			certBootstrap.run(ctx)
+			c.EnsureInfraCertificate(ctx, "*."+cfg.DefaultDomain)
 			return nil
 		})
 	}
