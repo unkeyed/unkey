@@ -10,7 +10,6 @@ import (
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -145,13 +144,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
-	}
-	if principal.Type != authprincipal.TypeAPIKey || principal.Subject.Type != authprincipal.SubjectTypeRootKey {
-		return fault.New("portal session creation requires root key authentication",
-			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
-			fault.Internal("non-root principal attempted to create a portal session"),
-			fault.Public("This operation requires a root key."),
-		)
 	}
 
 	req, err := zen.BindBody[Request](s)
