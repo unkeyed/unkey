@@ -141,6 +141,30 @@ func TestPortalSessionScopesToOwnExternalID(t *testing.T) {
 	require.True(t, returnedIDs[setup.key2ID], "key2 should be in results")
 }
 
+// TestPortalSessionListKeysRequiresKeysRead guarantees that another key
+// capability cannot expose identity or key data through the listing endpoint.
+func TestPortalSessionListKeysRequiresKeysRead(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
+
+	setup := setupPortalSessionTest(t, h)
+	headers := h.CreatePortalSession(
+		setup.workspace.ID,
+		setup.identity1ExternalID,
+		[]string{setup.keySpaceID},
+		[]string{"keys:reroll"},
+	)
+
+	res := testutil.CallRoute[Request, openapi.ForbiddenErrorResponse](h, route, headers, Request{})
+
+	require.Equal(t, 403, res.Status, "keys:reroll must not authorize portal.listKeys")
+	require.NotContains(t, res.RawBody, setup.workspace.ID)
+	require.NotContains(t, res.RawBody, setup.identity1ExternalID)
+	require.NotContains(t, res.RawBody, setup.key1ID)
+}
+
 func TestPortalSessionUnionsConfiguredKeyspaces(t *testing.T) {
 	h := testutil.NewHarness(t)
 
