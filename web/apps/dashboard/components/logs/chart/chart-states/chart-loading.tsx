@@ -84,13 +84,13 @@ export const ChartLoading = ({
               <YAxis domain={[0, 1]} hide />
               <Bar
                 dataKey="success"
-                fill="hsl(var(--accent-3))"
+                fill="var(--color-accent-3)"
                 stackId="a"
                 isAnimationActive={false}
               />
               <Bar
                 dataKey="error"
-                fill="hsl(var(--accent-3))"
+                fill="var(--color-accent-3)"
                 stackId="a"
                 isAnimationActive={false}
               />
@@ -125,7 +125,7 @@ export const ChartLoading = ({
             data={mockData}
           >
             <YAxis domain={[0, 1.2]} hide />
-            <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />
+            <Bar dataKey="success" fill="var(--color-accent-3)" isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -144,7 +144,7 @@ export const ChartLoading = ({
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
           <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <YAxis domain={[0, 1]} hide />
-            <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />
+            <Bar dataKey="success" fill="var(--color-accent-3)" isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>

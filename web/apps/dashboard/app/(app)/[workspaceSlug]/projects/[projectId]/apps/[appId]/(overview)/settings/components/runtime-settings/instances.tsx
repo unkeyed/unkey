@@ -44,7 +44,7 @@ const buildSliderRangeStyle = (replicasMin: number, replicasMax: number) => {
   const left = span > 0 ? (replicasMin - REPLICAS_MIN) / span : 0;
   const right = span > 0 ? (replicasMax - REPLICAS_MIN) / span : 0;
   return {
-    background: `linear-gradient(to right, hsla(var(--${COLOR_VAR}-4)), hsla(var(--${COLOR_VAR}-12)))`,
+    background: `linear-gradient(to right, var(--color-${COLOR_VAR}-4), var(--color-${COLOR_VAR}-12))`,
     backgroundSize: `${right > left ? 100 / (right - left) : 10000}% 100%`,
     backgroundPosition: `${left > 0 ? (100 * left) / (1 - left) : 0}% 0`,
     backgroundRepeat: "no-repeat",

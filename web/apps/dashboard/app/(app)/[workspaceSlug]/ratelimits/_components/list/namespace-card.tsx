@@ -48,11 +48,11 @@ export const NamespaceCard = ({ namespace, timeseries, isLoading, isError }: Pro
               config={{
                 success: {
                   label: "Passed",
-                  color: "hsl(var(--accent-4))",
+                  color: "var(--color-accent-4)",
                 },
                 error: {
                   label: "Blocked",
-                  color: "hsl(var(--orange-9))",
+                  color: "var(--color-orange-9)",
                 },
               }}
             />

@@ -147,7 +147,7 @@ function NarrowCursor(props: { x?: number; y?: number; width?: number; height?: 
       y={y}
       width={CURSOR_WIDTH}
       height={height}
-      fill="hsl(var(--accent-3))"
+      fill="var(--color-accent-3)"
       opacity={0.6}
       rx={2}
     />
@@ -258,16 +258,16 @@ function ApiSparkline({ data }: { data: VerificationTimeseriesPoint[] }) {
           <Bar
             dataKey="barSuccess"
             stackId="a"
-            fill="hsl(var(--accent-4))"
-            activeBar={{ fill: "hsl(var(--accent-7))" }}
+            fill="var(--color-accent-4)"
+            activeBar={{ fill: "var(--color-accent-7)" }}
             maxBarSize={8}
             isAnimationActive={false}
           />
           <Bar
             dataKey="barError"
             stackId="a"
-            fill="hsl(var(--orange-9))"
-            activeBar={{ fill: "hsl(var(--orange-10))" }}
+            fill="var(--color-orange-9)"
+            activeBar={{ fill: "var(--color-orange-10)" }}
             maxBarSize={8}
             isAnimationActive={false}
           />
