@@ -1,8 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import type { PortalCapability } from "~/lib/capabilities";
 import { deriveVisibleTabs } from "~/lib/permissions";
 
 type PortalHeaderProps = {
-  permissions: string[];
+  permissions: ReadonlyArray<PortalCapability>;
   logoUrl?: string;
 };
 

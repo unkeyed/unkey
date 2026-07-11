@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { type PortalCapability, portalSessionGrantSchema } from "./capabilities";
 import { env } from "./env";
 import type { PortalConfig } from "./portal-config";
 
@@ -11,7 +12,7 @@ export type SessionData = {
   id: string;
   portalConfigId: string;
   externalId: string;
-  permissions: string[];
+  permissions: PortalCapability[];
   preview: boolean;
   expiresAt: number;
 };
@@ -122,6 +123,14 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
     if (!session) {
       return null;
     }
+    const grant = portalSessionGrantSchema.safeParse(session.permissions);
+    if (!grant.success) {
+      console.error("Invalid portal session grant", {
+        portalConfigId: session.portalConfigId,
+        issues: grant.error.issues,
+      });
+      return null;
+    }
 
     let config: PortalConfig | null = null;
     try {
@@ -133,7 +142,13 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
       });
     }
 
-    return { session, config };
+    return {
+      session: {
+        ...session,
+        permissions: grant.data.permissions,
+      },
+      config,
+    };
   },
 );
 

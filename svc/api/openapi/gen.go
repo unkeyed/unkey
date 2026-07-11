@@ -2642,9 +2642,9 @@ type V2PortalCreateSessionRequestBody struct {
 	// Permissions The capabilities granted to the end user in the Portal, from a fixed
 	// vocabulary. All capabilities are scoped to this end user: key capabilities
 	// (`keys:*`) apply only to keys the end user owns within the keyspace
-	// configured on the portal configuration, and `analytics:read` returns only
-	// the end user's own verification events. An end user can never see another
-	// identity's keys or analytics.
+	// configured on the portal configuration. `analytics:read` grants access to
+	// the end user's own verification analytics within those keyspaces. An end
+	// user can never see another identity's keys or analytics.
 	//
 	// Tab visibility is derived from the capabilities:
 	// - Keys tab: any `keys:*` capability

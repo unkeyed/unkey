@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { portalConfigurations } from "./portal_configurations";
+import type { PortalSessionGrant } from "./portal_sessions";
 import { workspaces } from "./workspaces";
 
 export const portalSessionTokens = mysqlTable(
@@ -11,7 +12,7 @@ export const portalSessionTokens = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     portalConfigId: varchar("portal_config_id", { length: 64 }).notNull(),
     externalId: varchar("external_id", { length: 256 }).notNull(),
-    permissions: json("permissions").$type<string[]>().notNull(),
+    permissions: json("permissions").$type<PortalSessionGrant>().notNull(),
     preview: boolean("preview").notNull().default(false),
     exchangedAt: bigint("exchanged_at", { mode: "number" }),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),

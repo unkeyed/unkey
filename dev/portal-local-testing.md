@@ -92,7 +92,7 @@ The portal is port-forwarded to `http://localhost:3100`.
 curl -s -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["keys:read", "keys:create", "keys:reroll", "analytics:read"]}'
 ```
 
 Open `http://localhost:3100/?session=pst_xxx` in the browser.
@@ -124,7 +124,7 @@ Runs on `http://localhost:3100`. Port 3100 avoids conflict with the dashboard.
 curl -s -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["keys:read", "keys:create", "keys:reroll", "analytics:read"]}'
 ```
 
 Take the `sessionId` from the response and open:
@@ -180,7 +180,7 @@ like `<app-slug>-<env>.unkey.com`.
 curl -s -X POST https://api.unkey.dev/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"slug": "<YOUR_SLUG>", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"slug": "<YOUR_SLUG>", "externalId": "user_123", "permissions": ["keys:read", "keys:create", "keys:reroll", "analytics:read"]}'
 ```
 
 The response URL will point to the portal's deployment URL (or custom
