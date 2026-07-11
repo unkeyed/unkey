@@ -5,4 +5,4 @@ set -euo pipefail
 
 docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait --build
 bin/unkey dev seed local
-pnpm --dir=web/apps/dashboard dev
+pnpm --dir=web turbo run dev --filter=@unkey/dashboard

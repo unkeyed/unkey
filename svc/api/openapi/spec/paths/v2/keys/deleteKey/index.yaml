@@ -19,9 +19,6 @@ post:
     - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#delete_key` (to delete a specific key)
   operationId: keys.deleteKey
   x-speakeasy-name-override: deleteKey
-  security:
-    - rootKey: []
-    - dashboard: []
   requestBody:
     content:
       application/json:
