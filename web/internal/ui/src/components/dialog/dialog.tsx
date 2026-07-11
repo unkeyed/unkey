@@ -63,7 +63,7 @@ const DialogContent = React.forwardRef<
 
     // Common class names for both button types
     const buttonClassNames =
-      "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:rounded-lg disabled:pointer-events-none data-[state=open]:bg-accent text-muted-foreground z-51 [&_svg]:size-[14px] hover:rounded-lg";
+      "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-white dark:ring-offset-black transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:rounded-lg disabled:pointer-events-none data-[state=open]:bg-accent-3 text-gray-11 z-51 [&_svg]:size-[14px] hover:rounded-lg";
 
     return (
       <DialogPortal>
@@ -71,7 +71,7 @@ const DialogContent = React.forwardRef<
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
-            "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+            "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white dark:bg-black p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
             className,
           )}
           onKeyDown={(e) => {
@@ -188,7 +188,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-content-subtle", className)}
+    className={cn("text-sm text-gray-11", className)}
     {...props}
   />
 ));

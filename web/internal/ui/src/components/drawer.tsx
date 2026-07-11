@@ -34,7 +34,7 @@ const DrawerContent = React.forwardRef<DrawerContentElement, DrawerContentProps>
 
   return (
     <DrawerPortal>
-      <DrawerOverlay className="fixed inset-0 bg-background/60" />
+      <DrawerOverlay className="fixed inset-0 bg-white/60 dark:bg-black/60" />
       <Vaul.Content
         {...contentProps}
         ref={ref}

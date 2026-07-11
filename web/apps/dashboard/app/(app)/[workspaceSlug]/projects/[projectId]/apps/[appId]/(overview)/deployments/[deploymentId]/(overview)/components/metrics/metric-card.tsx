@@ -26,9 +26,9 @@ type MetricConfig = {
 const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   latency: {
     label: "Latency",
-    color: "var(--color-bronze-8)",
-    iconBg: "bg-bronze-3",
-    iconText: "text-bronze-11",
+    color: "var(--color-orange-8)",
+    iconBg: "bg-orange-3",
+    iconText: "text-orange-11",
     unit: "ms",
     chartVariant: "area",
     percentiles: ["p50", "p75", "p90", "p95", "p99"],

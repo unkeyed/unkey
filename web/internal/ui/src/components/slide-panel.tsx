@@ -83,9 +83,9 @@ const SlidePanelRoot = ({
         <div
           className={cn(
             "fixed inset-0 z-50 transition-opacity duration-300",
-            backdrop === "blur" && "bg-background/5",
-            backdrop === "dim" && "bg-background/20",
-            backdrop === true && "bg-background/5",
+            backdrop === "blur" && "bg-white/5 dark:bg-black/5",
+            backdrop === "dim" && "bg-white/20 dark:bg-black/20",
+            backdrop === true && "bg-white/5 dark:bg-black/5",
             isOpen
               ? cn("opacity-100", backdrop === "blur" && "backdrop-blur-[2px]")
               : "opacity-0 pointer-events-none",

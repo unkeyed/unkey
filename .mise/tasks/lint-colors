@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Fail on banned color tokens (deleted scales, Tailwind-numeric palette, hsl(var()) idiom)"
+set -euo pipefail
+
+node web/scripts/check-banned-colors.mjs

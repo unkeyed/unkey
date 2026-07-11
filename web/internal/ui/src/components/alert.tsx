@@ -4,13 +4,13 @@ import * as React from "react";
 import { cn } from "../lib/utils";
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
+  "relative w-full rounded-lg border p-4 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-gray-12 [&>svg~*]:pl-7",
   {
     variants: {
       variant: {
-        default: "bg-background text-content",
-        alert: " border-alert bg-alert/5 text-content-alert",
-        warn: " border-warn bg-warn/5 text-content-warn",
+        default: "bg-white dark:bg-black text-gray-12",
+        alert: " border-error-9 bg-error-9/5 text-error-11",
+        warn: " border-warning-9 bg-warning-9/5 text-warning-11",
       },
     },
     defaultVariants: {

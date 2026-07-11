@@ -25,8 +25,8 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
               {/* Error state indicator - top section */}
               <div className="h-12 border-b border-grayA-4 flex items-center px-4 gap-3">
                 {/* Icon container */}
-                <div className="size-6 rounded-md bg-redA-3 border border-grayA-4 flex items-center justify-center shrink-0">
-                  <TriangleWarning className="text-red-11" iconSize="md-medium" />
+                <div className="size-6 rounded-md bg-errorA-3 border border-grayA-4 flex items-center justify-center shrink-0">
+                  <TriangleWarning className="text-error-11" iconSize="md-medium" />
                 </div>
                 {/* Title */}
                 <span className="text-sm font-medium text-gray-12">
@@ -35,12 +35,12 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
                 {/* Status dot */}
                 <div className="ml-auto relative size-[10px]">
                   <div
-                    className="absolute inset-0 rounded-full bg-redA-3 opacity-60"
+                    className="absolute inset-0 rounded-full bg-errorA-3 opacity-60"
                     style={{
                       animation: "breathe-ring 2s ease-in-out infinite",
                     }}
                   />
-                  <div className="absolute inset-0 rounded-full bg-red-8" />
+                  <div className="absolute inset-0 rounded-full bg-error-8" />
                 </div>
               </div>
 

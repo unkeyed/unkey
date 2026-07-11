@@ -58,7 +58,7 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
                   <AvatarFallback name={invitation.email} />
                 </Avatar>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-sm text-content truncate secret">{invitation.email}</span>
+                  <span className="text-sm text-gray-12 truncate secret">{invitation.email}</span>
                   <div className="flex items-center">
                     <StatusBadge status={invitation.state} />
                   </div>

@@ -37,7 +37,7 @@ const TableFooter = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <tfoot ref={ref} className={cn("bg-background font-medium text-content", className)} {...props} />
+  <tfoot ref={ref} className={cn("bg-white dark:bg-black font-medium text-gray-12", className)} {...props} />
 ));
 TableFooter.displayName = "TableFooter";
 
@@ -46,7 +46,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
     <tr
       ref={ref}
       className={cn(
-        "border-b transition-colors hover:bg-background-subtle/50 data-[state=selected]:bg-background-subtle",
+        "border-b transition-colors hover:bg-gray-3/50 data-[state=selected]:bg-gray-3",
         className,
       )}
       {...props}
@@ -56,12 +56,12 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
 TableRow.displayName = "TableRow";
 
 const tableHeadVariant = cva(
-  "h-8 px-4 text-left align-middle font-medium text-xs text-content [&:has([role=checkbox])]:pr-0",
+  "h-8 px-4 text-left align-middle font-medium text-xs text-gray-12 [&:has([role=checkbox])]:pr-0",
   {
     variants: {
       variant: {
         allSidesBorder:
-          "border-t border-b border-border first:border-l first:rounded-l-lg  last:border-r last:rounded-r-lg bg-background-subtle",
+          "border-t border-b border-border first:border-l first:rounded-l-lg  last:border-r last:rounded-r-lg bg-gray-3",
         bottomBorder: "border-b border-border",
       },
     },
@@ -99,7 +99,7 @@ const TableCaption = React.forwardRef<
   HTMLTableCaptionElement,
   React.HTMLAttributes<HTMLTableCaptionElement>
 >(({ className, ...props }, ref) => (
-  <caption ref={ref} className={cn("mt-4 text-sm text-content-subtle", className)} {...props} />
+  <caption ref={ref} className={cn("mt-4 text-sm text-gray-11", className)} {...props} />
 ));
 TableCaption.displayName = "TableCaption";
 

@@ -19,7 +19,7 @@ function NewNavigationIllustration() {
         aria-hidden
         className="absolute -right-12 -top-8 max-w-none origin-top-right scale-60 opacity-30 grayscale dark:invert"
       />
-      <div className="absolute inset-0 bg-gradient-to-tr from-background via-background/80 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-white dark:from-black via-white/80 dark:via-black/80 to-transparent" />
     </>
   );
 }
@@ -53,13 +53,13 @@ export function NewNavigationBanner() {
             New
           </Badge>
           <div className="flex flex-col gap-1 pr-6">
-            <p className="text-sm font-medium text-content">Meet the new Unkey</p>
-            <p className="text-xs text-content-subtle">
+            <p className="text-sm font-medium text-gray-12">Meet the new Unkey</p>
+            <p className="text-xs text-gray-11">
               A cleaner dashboard, built around Projects. Your APIs now live in{" "}
               <Link
                 href={routes.apis.list({ workspaceSlug: workspace.slug })}
                 onClick={dismiss}
-                className="text-content underline underline-offset-2 hover:text-content/80"
+                className="text-gray-12 underline underline-offset-2 hover:text-gray-12/80"
               >
                 Keyspaces (APIs)
               </Link>

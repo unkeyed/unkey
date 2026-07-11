@@ -97,7 +97,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
       <div className="grid gap-10">
         {validationError && (
           <div
-            className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg"
+            className="p-3 text-sm text-error-9 bg-error-12/20 border border-error-11 rounded-lg"
             role="alert"
             aria-live="polite"
           >
