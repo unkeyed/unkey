@@ -29,6 +29,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	extA := "ext_" + uid.New("")
 	extB := "ext_" + uid.New("")
 	keySpaceID := uid.New(uid.KeySpacePrefix)
+	otherKeySpaceID := uid.New(uid.KeySpacePrefix)
 	targetKey := uid.New(uid.KeyPrefix)
 	otherKey := uid.New(uid.KeyPrefix)
 
@@ -38,7 +39,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	dayA := base.Add(12 * time.Hour)
 	dayB := base.Add(2*24*time.Hour + 12*time.Hour)
 
-	mk := func(extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
+	mk := func(extID, keySpaceID, keyID, outcome string, ts time.Time) schema.KeyVerification {
 		return schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        ts.UnixMilli(),
@@ -55,19 +56,21 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 
 	rows := []schema.KeyVerification{
 		// extA, day A: 3 VALID (one on targetKey), 2 RATE_LIMITED
-		mk(extA, targetKey, "VALID", dayA),
-		mk(extA, otherKey, "VALID", dayA),
-		mk(extA, otherKey, "VALID", dayA),
-		mk(extA, otherKey, "RATE_LIMITED", dayA),
-		mk(extA, otherKey, "RATE_LIMITED", dayA),
+		mk(extA, keySpaceID, targetKey, "VALID", dayA),
+		mk(extA, keySpaceID, otherKey, "VALID", dayA),
+		mk(extA, keySpaceID, otherKey, "VALID", dayA),
+		mk(extA, keySpaceID, otherKey, "RATE_LIMITED", dayA),
+		mk(extA, keySpaceID, otherKey, "RATE_LIMITED", dayA),
 		// extA, day B: 1 VALID
-		mk(extA, otherKey, "VALID", dayB),
+		mk(extA, keySpaceID, otherKey, "VALID", dayB),
+		// extA in another keyspace: excluded unless explicitly requested.
+		mk(extA, otherKeySpaceID, otherKey, "VALID", dayA),
 		// extB, day A: 5 VALID (must NOT appear in extA results)
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
+		mk(extB, keySpaceID, otherKey, "VALID", dayA),
+		mk(extB, keySpaceID, otherKey, "VALID", dayA),
+		mk(extB, keySpaceID, otherKey, "VALID", dayA),
+		mk(extB, keySpaceID, otherKey, "VALID", dayA),
+		mk(extB, keySpaceID, otherKey, "VALID", dayA),
 	}
 
 	batch, err := client.Conn().PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
@@ -77,7 +80,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	}
 	require.NoError(t, batch.Send())
 
-	// Wait for the per_day materialized view to catch up (extA has 6 events).
+	// Wait for the per_day materialized view to catch up (extA has 7 events).
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		var got int64
 		err := client.Conn().QueryRow(ctx,
@@ -85,7 +88,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 			workspaceID, extA,
 		).Scan(&got)
 		assert.NoError(c, err)
-		assert.Equal(c, int64(6), got)
+		assert.Equal(c, int64(7), got)
 	}, time.Minute, time.Second)
 
 	startMs := base.UnixMilli()
@@ -105,6 +108,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 			WorkspaceID: workspaceID,
 			ExternalID:  extA,
+			KeyspaceIDs: []string{keySpaceID},
 			StartTime:   startMs,
 			EndTime:     endMs,
 		})
@@ -129,6 +133,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 			WorkspaceID: workspaceID,
 			ExternalID:  extA,
+			KeyspaceIDs: []string{keySpaceID},
 			StartTime:   startMs,
 			EndTime:     endMs,
 		})
@@ -146,6 +151,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 			WorkspaceID: workspaceID,
 			ExternalID:  extA,
+			KeyspaceIDs: []string{keySpaceID},
 			KeyID:       targetKey,
 			StartTime:   startMs,
 			EndTime:     endMs,
@@ -156,5 +162,39 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		require.Equal(t, int64(1), m[dayABucket].Total)
 		require.Equal(t, int64(1), m[dayABucket].Valid)
 		require.Equal(t, int64(0), m[dayBBucket].Total)
+	})
+
+	t.Run("multiple keyspaces are unioned", func(t *testing.T) {
+		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
+			WorkspaceID: workspaceID,
+			ExternalID:  extA,
+			KeyspaceIDs: []string{keySpaceID, otherKeySpaceID},
+			StartTime:   startMs,
+			EndTime:     endMs,
+		})
+		require.NoError(t, err)
+
+		var total int64
+		for _, point := range points {
+			total += point.Total
+		}
+		require.Equal(t, int64(7), total)
+	})
+
+	t.Run("empty keyspace scope returns no events", func(t *testing.T) {
+		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
+			WorkspaceID: workspaceID,
+			ExternalID:  extA,
+			KeyspaceIDs: []string{},
+			StartTime:   startMs,
+			EndTime:     endMs,
+		})
+		require.NoError(t, err)
+
+		var total int64
+		for _, point := range points {
+			total += point.Total
+		}
+		require.Zero(t, total)
 	})
 }

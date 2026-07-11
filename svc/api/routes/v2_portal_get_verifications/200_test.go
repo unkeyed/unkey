@@ -44,15 +44,18 @@ func sumTotals(points []openapi.V2PortalGetVerificationsDataPoint) int64 {
 }
 
 // TestPortalSessionAnalyticsScopedToOwnKeys verifies a portal session only sees
-// verification events attributed to its own externalId, even when another
-// identity in the same workspace has its own events, and that events for a
-// soft-deleted key still count (scoping is by external_id at write time, not by
-// current key ownership).
+// verification events attributed to its own externalId and configured
+// keyspaces, even when the same identity has keys elsewhere. Events for a
+// soft-deleted key still count because both scope fields are written to the
+// event before deletion.
 func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	otherApi := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
 	h.SetupAnalytics(workspace.ID)
@@ -83,6 +86,11 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		ID:  keyADeleted.KeyID,
 	}))
+	keyAOtherKeyspace := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  otherApi.KeyAuthID.String,
+		IdentityID:  ptr.P(identityA.ID),
+	})
 
 	// Identity B owns a different key whose events must never be visible to A.
 	identityB := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -97,13 +105,13 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 
 	now := time.Now().UnixMilli()
 
-	buffer := func(keyID, externalID, identityID string, n int) {
+	buffer := func(keyID, keyspaceID, externalID, identityID string, n int) {
 		for i := range n {
 			h.KeyVerifications.Buffer(schema.KeyVerification{
 				RequestID:   uid.New(uid.RequestPrefix),
 				Time:        now - int64(i*1000),
 				WorkspaceID: workspace.ID,
-				KeySpaceID:  api.KeyAuthID.String,
+				KeySpaceID:  keyspaceID,
 				KeyID:       keyID,
 				Region:      "us-west-1",
 				Outcome:     "VALID",
@@ -114,9 +122,24 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		}
 	}
 
-	buffer(keyA.KeyID, externalA, identityA.ID, 3)            // A live key
-	buffer(keyADeleted.KeyID, externalA, identityA.ID, 2)     // A deleted key
-	buffer(keyB.KeyID, identityB.ExternalID, identityB.ID, 5) // B key (must not leak)
+	buffer(keyA.KeyID, api.KeyAuthID.String, externalA, identityA.ID, 3)                   // A live key
+	buffer(keyADeleted.KeyID, api.KeyAuthID.String, externalA, identityA.ID, 2)            // A deleted key
+	buffer(keyAOtherKeyspace.KeyID, otherApi.KeyAuthID.String, externalA, identityA.ID, 7) // A key outside the session keyspaces
+	buffer(keyB.KeyID, api.KeyAuthID.String, identityB.ExternalID, identityB.ID, 5)        // B key (must not leak)
+
+	// Prove all same-identity events reached the aggregate before testing that the
+	// route excludes the seven events outside the session keyspace.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		var total int64
+		err := h.ClickHouse.Conn().QueryRow(
+			context.Background(),
+			"SELECT SUM(count) FROM default.key_verifications_per_minute_v3 WHERE workspace_id = ? AND external_id = ?",
+			workspace.ID,
+			externalA,
+		).Scan(&total)
+		assert.NoError(c, err)
+		assert.Equal(c, int64(12), total)
+	}, 30*time.Second, time.Second)
 
 	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})
 
@@ -126,15 +149,14 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		EndTime:   now + int64(time.Minute/time.Millisecond),
 	}
 
-	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		res := testutil.CallRoute[Request, Response](h, route, headers, req)
-		require.Equal(c, 200, res.Status)
-		require.NotNil(c, res.Body)
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
+	require.Equal(t, 200, res.Status)
+	require.NotNil(t, res.Body)
 
-		// A's 3 live-key events + 2 deleted-key events = 5, never B's 5.
-		require.Equal(c, int64(5), sumTotals(res.Body.Data),
-			"portal session should see its own keys' events (including deleted keys) but never another identity's")
-	}, 30*time.Second, time.Second)
+	// Only A's events in the session keyspace are visible: 3 live-key events plus
+	// 2 deleted-key events. Neither B's events nor A's other keyspace leak.
+	require.Equal(t, int64(5), sumTotals(res.Body.Data),
+		"portal session analytics must remain within its external identity and configured keyspaces")
 }
 
 // TestPortalSessionAnalyticsKeyIdFilter verifies the optional keyId narrows the
