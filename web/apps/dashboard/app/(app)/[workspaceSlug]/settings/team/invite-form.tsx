@@ -139,7 +139,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
     <Card>
       <CardContent className="p-6">
         <div className="mb-6">
-          <h3 className="text-base font-medium text-content">
+          <h3 className="text-base font-medium text-gray-12">
             Invite new members by email address
           </h3>
         </div>
@@ -151,7 +151,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                 <div className="flex-1 h-22">
                   <label
                     htmlFor={`invites.${index}.email`}
-                    className="text-sm text-content-subtle mb-1.5 block"
+                    className="text-sm text-gray-11 mb-1.5 block"
                   >
                     Email
                   </label>
@@ -166,7 +166,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                 <div className="flex flex-col w-48 h-22">
                   <label
                     htmlFor={`invites.${index}.role`}
-                    className="text-sm text-content-subtle mb-1.5 block"
+                    className="text-sm text-gray-11 mb-1.5 block"
                   >
                     Role
                   </label>

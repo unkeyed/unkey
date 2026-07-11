@@ -71,8 +71,8 @@ export function TeamPageClient({ team }: { team: boolean }) {
   return (
     <div className="flex flex-col gap-8 w-full">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-content">Members</h1>
-        <p className="text-sm text-content-subtle">Manage team members and invitations</p>
+        <h1 className="text-2xl font-semibold text-gray-12">Members</h1>
+        <p className="text-sm text-gray-11">Manage team members and invitations</p>
       </div>
 
       {isAdmin && <InviteForm organization={organization} />}
@@ -81,20 +81,20 @@ export function TeamPageClient({ team }: { team: boolean }) {
         <TabsList className="inline-flex h-auto items-center justify-start bg-transparent p-0 border-b border-border w-full">
           <TabsTrigger
             value="members"
-            className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:bg-transparent data-[state=active]:border-content data-[state=active]:shadow-none"
+            className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:bg-transparent data-[state=active]:border-gray-12 data-[state=active]:shadow-none"
           >
             Team Members
           </TabsTrigger>
           {isAdmin ? (
             <TabsTrigger
               value="invitations"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:bg-transparent data-[state=active]:border-content data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:bg-transparent data-[state=active]:border-gray-12 data-[state=active]:shadow-none"
             >
               Pending Invitations
             </TabsTrigger>
           ) : (
             <InfoTooltip content="Admin access required to manage invitations">
-              <div className="rounded-none border-b-2 border-transparent px-4 py-2 text-content-subtle opacity-50 cursor-not-allowed">
+              <div className="rounded-none border-b-2 border-transparent px-4 py-2 text-gray-11 opacity-50 cursor-not-allowed">
                 Pending Invitations
               </div>
             </InfoTooltip>

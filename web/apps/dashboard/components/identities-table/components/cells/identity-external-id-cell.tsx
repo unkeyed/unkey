@@ -27,8 +27,8 @@ export const IdentityExternalIdCell = ({
   return (
     <div className="flex flex-col items-start px-[18px] py-[6px]">
       <div className="flex gap-4 items-center">
-        <div className="size-5 rounded-sm flex items-center justify-center bg-brandA-3">
-          <Fingerprint iconSize="md-medium" className="text-brandA-11" />
+        <div className="size-5 rounded-sm flex items-center justify-center bg-featureA-3">
+          <Fingerprint iconSize="md-medium" className="text-featureA-11" />
         </div>
         <div className="flex flex-col gap-1 text-xs">
           <span

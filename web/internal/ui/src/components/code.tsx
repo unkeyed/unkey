@@ -12,7 +12,7 @@ const codeVariants = cva(
           "border-grayA-5 focus:outline-hidden focus:ring-0 bg-white dark:bg-black text-[11px] py-2",
         ghost: "border-none bg-transparent text-[11px] py-2",
         legacy:
-          "text-primary bg-background-subtle rounded-md hover:border-primary focus:outline-hidden focus:ring-0 border-grayA-4",
+          "text-gray-12 bg-gray-3 rounded-md hover:border-gray-12 focus:outline-hidden focus:ring-0 border-grayA-4",
       },
     },
     defaultVariants: {

@@ -9,6 +9,7 @@
     "dev": "turbo run dev",
     "build": "pnpm turbo run build",
     "fmt": "pnpm biome format . --write && pnpm biome check . --write",
+    "lint:colors": "node scripts/check-banned-colors.mjs",
     "test": "turbo run test --concurrency=1",
     "bootstrap": "turbo run bootstrap",
     "up": "docker compose -f ./dev/docker-compose.yaml up",

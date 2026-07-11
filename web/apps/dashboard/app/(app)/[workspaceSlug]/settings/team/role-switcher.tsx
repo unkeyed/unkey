@@ -78,7 +78,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
       );
     }
 
-    return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
+    return <span className="text-gray-12">{role === "admin" ? "Admin" : "Member"}</span>;
   },
 );
 

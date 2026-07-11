@@ -83,7 +83,7 @@ const KeyIdCell = ({
       className={cn(
         "size-5 rounded-sm flex items-center justify-center cursor-pointer relative",
         identity ? "bg-successA-3" : "bg-grayA-3",
-        isKeySelected && "bg-brand-5",
+        isKeySelected && "bg-feature-5",
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -172,7 +172,7 @@ const KeyIdCell = ({
               onNavigate(keyData.id);
             }}
           >
-            <div className="font-mono font-medium truncate text-brand-12">
+            <div className="font-mono font-medium truncate text-feature-12">
               {shortenId(keyData.id)}
             </div>
           </Link>

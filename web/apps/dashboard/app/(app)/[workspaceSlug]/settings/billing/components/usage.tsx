@@ -49,7 +49,7 @@ export const Usage: React.FC<{
         contentWidth="w-full lg:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
-          <p className="text-sm text-red-11">Failed to load usage: {error.message}</p>
+          <p className="text-sm text-error-11">Failed to load usage: {error.message}</p>
           <button
             type="button"
             onClick={() => refetch()}

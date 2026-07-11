@@ -11,5 +11,5 @@ export function useLastUsed() {
 }
 
 export const LastUsed = () => {
-  return <span className="absolute right-4 text-xs text-content-subtle">Last used</span>;
+  return <span className="absolute right-4 text-xs text-gray-11">Last used</span>;
 };
