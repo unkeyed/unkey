@@ -27,31 +27,31 @@
   --color-border: var(--border);
   --color-header-bg: var(--header-bg);
 
-  --color-gray-1: hsl(var(--gray-1));
-  --color-gray-2: hsl(var(--gray-2));
-  --color-gray-3: hsl(var(--gray-3));
-  --color-gray-4: hsl(var(--gray-4));
-  --color-gray-5: hsl(var(--gray-5));
-  --color-gray-6: hsl(var(--gray-6));
-  --color-gray-7: hsl(var(--gray-7));
-  --color-gray-8: hsl(var(--gray-8));
-  --color-gray-9: hsl(var(--gray-9));
-  --color-gray-10: hsl(var(--gray-10));
-  --color-gray-11: hsl(var(--gray-11));
-  --color-gray-12: hsl(var(--gray-12));
+  --color-gray-1: var(--gray-1);
+  --color-gray-2: var(--gray-2);
+  --color-gray-3: var(--gray-3);
+  --color-gray-4: var(--gray-4);
+  --color-gray-5: var(--gray-5);
+  --color-gray-6: var(--gray-6);
+  --color-gray-7: var(--gray-7);
+  --color-gray-8: var(--gray-8);
+  --color-gray-9: var(--gray-9);
+  --color-gray-10: var(--gray-10);
+  --color-gray-11: var(--gray-11);
+  --color-gray-12: var(--gray-12);
 
-  --color-grayA-1: hsla(var(--grayA-1));
-  --color-grayA-2: hsla(var(--grayA-2));
-  --color-grayA-3: hsla(var(--grayA-3));
-  --color-grayA-4: hsla(var(--grayA-4));
-  --color-grayA-5: hsla(var(--grayA-5));
-  --color-grayA-6: hsla(var(--grayA-6));
-  --color-grayA-7: hsla(var(--grayA-7));
-  --color-grayA-8: hsla(var(--grayA-8));
-  --color-grayA-9: hsla(var(--grayA-9));
-  --color-grayA-10: hsla(var(--grayA-10));
-  --color-grayA-11: hsla(var(--grayA-11));
-  --color-grayA-12: hsla(var(--grayA-12));
+  --color-grayA-1: var(--grayA-1);
+  --color-grayA-2: var(--grayA-2);
+  --color-grayA-3: var(--grayA-3);
+  --color-grayA-4: var(--grayA-4);
+  --color-grayA-5: var(--grayA-5);
+  --color-grayA-6: var(--grayA-6);
+  --color-grayA-7: var(--grayA-7);
+  --color-grayA-8: var(--grayA-8);
+  --color-grayA-9: var(--grayA-9);
+  --color-grayA-10: var(--grayA-10);
+  --color-grayA-11: var(--grayA-11);
+  --color-grayA-12: var(--grayA-12);
 }
 
 @layer base {

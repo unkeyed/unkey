@@ -9,10 +9,10 @@ import { useMemo, useState } from "react";
 import { formatStamp } from "./g-pulse";
 import { useProductionCard } from "./production-card-context";
 
-const BLUE = "hsl(var(--activity))";
-const BLUE_FILL = "hsl(var(--info-3))";
-const ERROR = "hsl(var(--error-9))";
-const ERROR_FILL = "hsl(var(--error-3))";
+const BLUE = "var(--activity)";
+const BLUE_FILL = "var(--color-info-3)";
+const ERROR = "var(--color-error-9)";
+const ERROR_FILL = "var(--color-error-3)";
 
 const CHART_CONFIG: ChartConfig = {
   total: { label: "Requests/s", color: BLUE },
