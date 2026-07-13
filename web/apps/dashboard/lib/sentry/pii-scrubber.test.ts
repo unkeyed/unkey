@@ -89,9 +89,12 @@ describe("scrubUrl", () => {
     expect(scrubUrl("https://app.unkey.com/share#ss_abc123")).toBe("https://app.unkey.com/share");
   });
 
-  it("never throws on malformed input", () => {
+  it("never throws on malformed input and still redacts tokens in it", () => {
     expect(() => scrubUrl("http://[::1::bad")).not.toThrow();
     expect(scrubUrl("")).toBe("");
+    // The parse-failure fallback must stay fail-closed: token-like runs are
+    // blanket-redacted even when the URL has no parseable structure.
+    expect(scrubUrl(`http://[::1::bad/${ROOT_KEY}`)).not.toContain(ROOT_KEY);
   });
 });
 

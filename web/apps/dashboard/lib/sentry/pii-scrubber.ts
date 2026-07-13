@@ -145,9 +145,11 @@ function scrubSearchParams(params: URLSearchParams): void {
 
 /**
  * Scrubs secrets from a single URL (absolute or relative). Sensitive query
- * params are fully redacted, other params and the path have token-like segments
- * redacted. Returns the original string unchanged if it cannot be parsed so we
- * never throw inside a Sentry hook.
+ * params are fully redacted, other param values have broad token-like runs
+ * redacted, path segments have digit-bearing token-like runs redacted, and
+ * basic-auth userinfo and fragments are dropped. Never throws inside a Sentry
+ * hook: if the URL cannot be parsed, the raw string gets a blanket broad-net
+ * redaction instead.
  */
 export function scrubUrl(url: string): string {
   if (typeof url !== "string" || url.length === 0) {
