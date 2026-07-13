@@ -92,7 +92,7 @@ const TOKEN_LIKE = /(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]{20,}/g;
  * names, so there is no grouping to protect and this fails closed on pure-alpha
  * secrets (passphrases, digit-free ids) that the digit-required net spares.
  */
-const BROAD_TOKEN_LIKE = /[A-Za-z0-9_-]{20,}/g;
+const TOKEN_LIKE_BROAD = /[A-Za-z0-9_-]{20,}/g;
 
 /**
  * Whether a parameter/field name is known to carry secrets or PII. Matched
@@ -109,7 +109,7 @@ export function isSensitiveKey(name: string): boolean {
  * the tRPC input scrubber in error-filter.ts.
  */
 export function redactTokenLike(value: string): string {
-  return value.replace(BROAD_TOKEN_LIKE, REDACTED);
+  return value.replace(TOKEN_LIKE_BROAD, REDACTED);
 }
 
 /**
@@ -207,9 +207,10 @@ function scrubQueryString(
   }
 
   if (Array.isArray(queryString)) {
-    return queryString.map(([name, value]) => [name, scrubParamValue(name, value)]) as Array<
-      [string, string]
-    >;
+    return queryString.map(([name, value]): [string, string] => [
+      name,
+      scrubParamValue(name, value),
+    ]);
   }
 
   if (queryString && typeof queryString === "object") {

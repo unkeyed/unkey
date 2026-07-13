@@ -92,7 +92,7 @@ describe("scrubEventPii", () => {
           data: { from: `/login?code=${ROOT_KEY}`, to: "/dashboard" },
         },
       ],
-    } as unknown as ErrorEvent;
+    };
 
     scrubEventPii(event);
 
@@ -105,7 +105,7 @@ describe("scrubEventPii", () => {
   });
 
   it("is a no-op on events without request or breadcrumbs", () => {
-    const event = { type: undefined } as unknown as ErrorEvent;
+    const event: ErrorEvent = { type: undefined };
     expect(() => scrubEventPii(event)).not.toThrow();
   });
 });

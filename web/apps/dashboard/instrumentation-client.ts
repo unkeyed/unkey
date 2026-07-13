@@ -25,11 +25,11 @@ if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
 
     // Transactions bypass `beforeSend`, so scrub secrets/PII from the URLs
     // they carry (request url, Referer header, span http.url/url.full) before
-    // sending
+    // sending.
     beforeSendTransaction: scrubTransactionPii,
 
     // Standalone web-vital (INP) spans bypass `beforeSendTransaction` too;
-    // their page URL rides in the `transaction` attribute — scrub it here
+    // their page URL rides in the `transaction` attribute, so scrub it here.
     beforeSendSpan: scrubSpanPii,
 
     // Drop non-actionable noise (browser extensions, ResizeObserver, ad-blocker

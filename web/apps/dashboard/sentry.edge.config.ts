@@ -23,10 +23,10 @@ if (process.env.NODE_ENV !== "development" && !envVars.SENTRY_DISABLED) {
 
     // Transactions bypass `beforeSend`, so scrub secrets/PII from the URLs
     // they carry (request url, Referer header, span http.url/url.full) before
-    // sending
+    // sending.
     beforeSendTransaction: scrubTransactionPii,
 
-    // Standalone spans bypass `beforeSendTransaction` too; scrub them here
+    // Standalone spans bypass `beforeSendTransaction` too; scrub them here.
     beforeSendSpan: scrubSpanPii,
 
     // Use dynamic sampling to reduce non-error traces while ensuring all errors are captured
