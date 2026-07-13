@@ -71,7 +71,9 @@ export const AddEnvVarExpandable = ({
         secret: false,
       },
     },
-    "session",
+    // Values may be secrets (the "Sensitive" toggle), so the draft must never
+    // be written to session/local storage in plaintext.
+    "memory",
   );
 
   const createBulk = trpc.deploy.envVar.createBulk.useMutation();
@@ -116,6 +118,15 @@ export const AddEnvVarExpandable = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   usePreventLeave(isOpen);
+
+  useEffect(
+    function purgeLegacyPersistedDraft() {
+      // Earlier versions persisted this draft (possibly containing secrets) to
+      // sessionStorage, which survives page reloads. Remove any leftovers.
+      sessionStorage.removeItem(`env-vars-add-${appId}`);
+    },
+    [appId],
+  );
 
   useEffect(
     function persistFormState() {
