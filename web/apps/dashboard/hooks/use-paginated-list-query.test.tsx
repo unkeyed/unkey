@@ -31,6 +31,7 @@ vi.mock("nuqs", async (importOriginal) => {
 });
 
 import {
+  paginationFilterKey,
   usePaginatedListQuery,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -455,5 +456,63 @@ describe("usePaginatedNavigation", () => {
     });
     expect(setPage).toHaveBeenCalledTimes(1);
     expect(setPage).toHaveBeenCalledWith(2);
+  });
+});
+
+// paginationFilterKey feeds the reset key the page hooks compare across
+// renders. The load-bearing guarantee is content-stability: equal filter
+// content must yield equal keys, and any meaningful difference must yield a
+// different key. A regression here would silently break (or spuriously
+// trigger) page resets across every table.
+describe("paginationFilterKey", () => {
+  it("produces the same key for equal content in a fresh array", () => {
+    const a = paginationFilterKey([{ field: "status", operator: "is", value: "blocked" }]);
+    const b = paginationFilterKey([{ field: "status", operator: "is", value: "blocked" }]);
+    expect(a).toBe(b);
+  });
+
+  it("produces a different key when any component changes", () => {
+    const base = paginationFilterKey([{ field: "status", operator: "is", value: "blocked" }]);
+    expect(paginationFilterKey([{ field: "status", operator: "is", value: "passed" }])).not.toBe(
+      base,
+    );
+    expect(paginationFilterKey([{ field: "status", operator: "not", value: "blocked" }])).not.toBe(
+      base,
+    );
+    expect(paginationFilterKey([{ field: "outcome", operator: "is", value: "blocked" }])).not.toBe(
+      base,
+    );
+  });
+
+  // The reason this uses JSON tuples instead of `field:op:value` joined by `|`:
+  // a value containing the delimiter must not let two distinct states collapse
+  // to the same key, which would suppress a real page reset.
+  it("does not collide when a value contains delimiter characters", () => {
+    const oneFilter = paginationFilterKey([{ field: "name", operator: "is", value: "a|b" }]);
+    const twoFilters = paginationFilterKey([
+      { field: "name", operator: "is", value: "a" },
+      { field: "b", operator: "is", value: "" },
+    ]);
+    expect(oneFilter).not.toBe(twoFilters);
+
+    const colonValue = paginationFilterKey([{ field: "name", operator: "is", value: "a:b" }]);
+    const colonSplit = paginationFilterKey([{ field: "name", operator: "is:a", value: "b" }]);
+    expect(colonValue).not.toBe(colonSplit);
+  });
+
+  // Filter values are not always strings (timestamps, counts); encoding must be
+  // deterministic so the key stays stable for equal values.
+  it("encodes non-string values deterministically", () => {
+    const a = paginationFilterKey([{ field: "startTime", operator: "is", value: 1700000000 }]);
+    const b = paginationFilterKey([{ field: "startTime", operator: "is", value: 1700000000 }]);
+    expect(a).toBe(b);
+    // A number and its string form are distinct states and must differ.
+    expect(
+      paginationFilterKey([{ field: "startTime", operator: "is", value: "1700000000" }]),
+    ).not.toBe(a);
+  });
+
+  it("returns a stable key for no filters", () => {
+    expect(paginationFilterKey([])).toBe(paginationFilterKey([]));
   });
 });
