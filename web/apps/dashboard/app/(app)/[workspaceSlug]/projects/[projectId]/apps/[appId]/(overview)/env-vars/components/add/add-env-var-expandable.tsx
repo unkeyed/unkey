@@ -312,7 +312,14 @@ export const AddEnvVarExpandable = ({
                     <label htmlFor="environment-select" className="text-gray-11 text-[13px]">
                       Environment
                     </label>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      items={[
+                        { value: "__all__", label: "All Environments" },
+                        ...environments.map((env) => ({ value: env.id, label: env.slug })),
+                      ]}
+                    >
                       <SelectTrigger
                         id="environment-select"
                         className="capitalize"

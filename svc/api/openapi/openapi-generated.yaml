@@ -347,6 +347,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -354,8 +355,6 @@ components:
                     "$ref": "#/components/schemas/V2ApisListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2AppsCreateAppRequestBody:
             type: object
@@ -481,6 +480,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -492,8 +492,6 @@ components:
                     description: Array of apps in the project, ordered by app id.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2AppsUpdateAppRequestBody:
             type: object
@@ -670,6 +668,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -679,8 +678,6 @@ components:
                         "$ref": "#/components/schemas/EnvironmentVariable"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2EnvironmentsListEnvironmentsRequestBody:
             type: object
@@ -2304,6 +2301,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2311,8 +2309,6 @@ components:
                     "$ref": "#/components/schemas/V2PermissionsListPermissionsResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2PermissionsListRolesRequestBody:
             type: object
@@ -2348,6 +2344,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2355,8 +2352,6 @@ components:
                     "$ref": "#/components/schemas/V2PermissionsListRolesResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2PortalCreateSessionRequestBody:
             type: object
@@ -2516,6 +2511,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2523,8 +2519,6 @@ components:
                     "$ref": "#/components/schemas/V2PortalListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2ProjectsCreateProjectRequestBody:
             type: object
@@ -2620,6 +2614,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2631,8 +2626,6 @@ components:
                     description: Array of projects in the workspace, ordered by project id.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2ProjectsUpdateProjectRequestBody:
             type: object
@@ -2876,6 +2869,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2883,8 +2877,6 @@ components:
                     "$ref": "#/components/schemas/V2RatelimitListOverridesResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
         V2RatelimitMultiLimitRequestBody:
             type: array
             description: Array of rate limit checks to perform

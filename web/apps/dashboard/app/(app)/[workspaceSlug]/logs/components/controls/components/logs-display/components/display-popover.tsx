@@ -1,6 +1,7 @@
 import { isDisplayProperty, useLogsContext } from "@/app/(app)/[workspaceSlug]/logs/context/logs";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { KeyboardButton, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import type * as React from "react";
 import {
   type KeyboardEvent,
   type PropsWithChildren,
@@ -153,7 +154,7 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverTrigger render={children as React.ReactElement} />
       <PopoverContent
         className="bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu p-2 border-gray-6 rounded-lg w-96"
         align="start"

@@ -6,14 +6,15 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/internal/portalscope"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	listkeys "github.com/unkeyed/unkey/svc/api/routes/v2_apis_list_keys"
@@ -70,8 +71,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 100)
-	cursor := ptr.SafeDeref(req.Cursor, "")
+	p := pagination.Parse(req.Limit, req.Cursor, 100)
 
 	// A session with no keyspaces (e.g. analytics only) can never see any keys.
 	if len(keyspaceIDs) == 0 {
@@ -114,9 +114,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// pagination; a single keyspace is the common case.
 	keyResults, err := db.Query.ListLiveKeysByKeySpaceIDs(ctx, h.DB.RO(), db.ListLiveKeysByKeySpaceIDsParams{
 		KeySpaceIds: keyspaceIDs,
-		IDCursor:    cursor,
+		IDCursor:    p.Cursor,
 		IdentityID:  sql.NullString{String: identity.ID, Valid: true},
-		Limit:       int32(limit + 1), // nolint:gosec
+		Limit:       p.FetchLimit(),
 	})
 	if err != nil {
 		return fault.Wrap(err,
@@ -130,23 +130,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// key id, so this is defensive and free for the common single-keyspace case).
 	sort.Slice(keyResults, func(i, j int) bool { return keyResults[i].ID < keyResults[j].ID })
 
-	hasMore := len(keyResults) > limit
-	var nextCursor *string
-	if hasMore {
-		nextCursor = ptr.P(keyResults[limit].ID)
-		keyResults = keyResults[:limit]
-	}
+	keyResults, pg := pagination.Paginate(keyResults, p, func(r db.ListLiveKeysByKeySpaceIDsRow) string { return r.ID })
 
-	responseData := make([]openapi.KeyResponseData, len(keyResults))
-	for i, key := range keyResults {
-		// Portal sessions never decrypt, so no plaintext is ever included.
-		responseData[i] = listkeys.BuildKeyResponseData(db.ToKeyData(key), "")
-	}
+	// Portal sessions never decrypt, so no plaintext is ever included.
+	responseData := array.Map(keyResults, func(key db.ListLiveKeysByKeySpaceIDsRow) openapi.KeyResponseData {
+		return listkeys.BuildKeyResponseData(db.ToKeyData(key), "")
+	})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta:       openapi.Meta{RequestId: s.RequestID()},
 		Data:       responseData,
-		Pagination: &openapi.Pagination{Cursor: nextCursor, HasMore: hasMore},
+		Pagination: pg,
 	})
 }
 
@@ -155,6 +149,6 @@ func (h *Handler) emptyResponse(s *zen.Session) error {
 	return s.JSON(http.StatusOK, Response{
 		Meta:       openapi.Meta{RequestId: s.RequestID()},
 		Data:       []openapi.KeyResponseData{},
-		Pagination: &openapi.Pagination{Cursor: nil, HasMore: false},
+		Pagination: openapi.Pagination{Cursor: nil, HasMore: false},
 	})
 }
