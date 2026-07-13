@@ -8,10 +8,13 @@ WORKDIR /src
 ENV CGO_ENABLED=0
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
+    go mod download
 COPY . .
 
-RUN go build -o /out/unkey ${PACKAGE}
+RUN --mount=type=cache,id=unkey-go-build,target=/root/.cache/go-build \
+    --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
+    go build -o /out/unkey ${PACKAGE}
 
 FROM gcr.io/distroless/static-debian12@sha256:9c346e4be81b5ca7ff31a0d89eaeade58b0f95cfd3baed1f36083ddb47ca3160
 
