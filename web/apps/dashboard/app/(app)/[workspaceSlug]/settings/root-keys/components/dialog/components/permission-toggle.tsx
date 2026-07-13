@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
-import type { CheckedState } from "@radix-ui/react-checkbox";
 import { ChevronRight } from "@unkey/icons";
+import type { CheckedState } from "@unkey/ui";
 import { Checkbox, InfoTooltip } from "@unkey/ui";
 import type React from "react";
 import { forwardRef, useId } from "react";

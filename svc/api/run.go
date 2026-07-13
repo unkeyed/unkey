@@ -174,7 +174,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 		ch = chClient
 
-		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, "default.api_requests_raw_v2", clickhouse.BufferConfig{
+		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, clickhouse.BufferConfig{
 			Name:          "api_requests",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -183,7 +183,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
 			Name:          "key_verifications",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -192,7 +192,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, clickhouse.BufferConfig{
 			Name:          "ratelimits",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
@@ -313,6 +313,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RBAC:         rbac.New(),
 		Region:       cfg.Region,
 		UsageLimiter: ulSvc,
+		Source:       schema.SourceAPI,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -348,7 +349,10 @@ func Run(ctx context.Context, cfg Config) error {
 		return workspace.ID, nil
 	})
 
+	// Portal sessions authenticate on a dedicated auth service used only by the
+	// portal routes, so protected routes never accept a portal-session cookie.
 	authResolvers := []auth.Resolver{}
+	portalResolvers := []auth.Resolver{}
 	for i, authConfig := range cfg.Auth {
 		switch authConfig := authConfig.(type) {
 		case JWTAuthConfig:
@@ -376,7 +380,7 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:
-			authResolvers = append(authResolvers, portalsession.NewResolver(portalSvc))
+			portalResolvers = append(portalResolvers, portalsession.NewResolver(portalSvc))
 		case RootKeyAuthConfig:
 			authResolvers = append(authResolvers, rootkey.NewResolver(keySvc))
 		default:
@@ -384,6 +388,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 	authSvc := auth.New(authResolvers...)
+	portalAuthSvc := auth.New(portalResolvers...)
 
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)
@@ -451,6 +456,7 @@ func Run(ctx context.Context, cfg Config) error {
 		KeyVerifications:     keyVerifications,
 		Keys:                 keySvc,
 		Auth:                 authSvc,
+		PortalAuth:           portalAuthSvc,
 		Validator:            validator,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,

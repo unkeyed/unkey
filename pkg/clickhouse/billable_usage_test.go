@@ -259,7 +259,7 @@ func insertVerifications(t *testing.T, ctx context.Context, conn ch.Conn, verifi
 		return
 	}
 
-	batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.key_verifications_raw_v2")
+	batch, err := conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
 	require.NoError(t, err)
 
 	for _, v := range verifications {
@@ -276,7 +276,7 @@ func insertRatelimits(t *testing.T, ctx context.Context, conn ch.Conn, ratelimit
 		return
 	}
 
-	batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.ratelimits_raw_v2")
+	batch, err := conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.Ratelimit]())
 	require.NoError(t, err)
 
 	for _, r := range ratelimits {

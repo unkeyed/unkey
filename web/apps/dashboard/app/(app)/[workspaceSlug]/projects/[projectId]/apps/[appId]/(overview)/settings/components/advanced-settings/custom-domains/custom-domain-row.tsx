@@ -120,17 +120,19 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
 
           {domain.verificationStatus === "failed" && (
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={handleRetry}
-                  disabled={isRetrying}
-                  className="size-7 text-gray-9 hover:text-gray-11"
-                >
-                  <Refresh3 className={cn("size-[14px]!", isRetrying && "animate-spin")} />
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={handleRetry}
+                    disabled={isRetrying}
+                    className="size-7 text-gray-9 hover:text-gray-11"
+                  >
+                    <Refresh3 className={cn("size-[14px]!", isRetrying && "animate-spin")} />
+                  </Button>
+                }
+              />
               <TooltipContent>Retry verification</TooltipContent>
             </Tooltip>
           )}

@@ -11,10 +11,14 @@ import (
 
 // Config holds the configuration for creating a new keys service instance.
 type Config struct {
-	DB           mysql.MySQL          // Database with read/write replicas
-	RateLimiter  ratelimit.Service    // Rate limiting service
-	RBAC         *rbac.RBAC           // Role-based access control
-	Region       string               // Geographic region identifier
+	DB          mysql.MySQL       // Database with read/write replicas
+	RateLimiter ratelimit.Service // Rate limiting service
+	RBAC        *rbac.RBAC        // Role-based access control
+	Region      string            // Geographic region identifier
+	// Source tags every verification this service emits with where it
+	// originated (schema.SourceAPI for the public API, schema.SourceGateway
+	// for the Deploy gateway), so billing can exclude gateway traffic.
+	Source       string
 	UsageLimiter usagelimiter.Service // Redis Counter for usage limiting
 
 	KeyCache cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
@@ -26,6 +30,7 @@ type service struct {
 	usageLimiter usagelimiter.Service
 	rbac         *rbac.RBAC
 	region       string
+	source       string
 
 	// hash -> cached key data (includes pre-parsed IP whitelist)
 	keyCache cache.Cache[string, db.CachedKeyData]
@@ -39,6 +44,7 @@ func New(config Config) (*service, error) {
 		rateLimiter:  config.RateLimiter,
 		usageLimiter: config.UsageLimiter,
 		region:       config.Region,
+		source:       config.Source,
 		keyCache:     config.KeyCache,
 	}, nil
 }

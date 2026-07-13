@@ -1,6 +1,6 @@
 "use client";
 
-import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
+import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -15,19 +15,21 @@ const ScrollArea = React.forwardRef<
     {...props}
   >
     <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
-      {children}
+      {/* Content owns Base UI's resize observation — without it, dynamically
+          growing/shrinking children leave the scrollbar/thumb stale. */}
+      <ScrollAreaPrimitive.Content>{children}</ScrollAreaPrimitive.Content>
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>
 ));
-ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName;
+ScrollArea.displayName = "ScrollArea";
 
 const ScrollBar = React.forwardRef<
-  React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
+  React.ElementRef<typeof ScrollAreaPrimitive.Scrollbar>,
+  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Scrollbar>
 >(({ className, orientation = "vertical", ...props }, ref) => (
-  <ScrollAreaPrimitive.ScrollAreaScrollbar
+  <ScrollAreaPrimitive.Scrollbar
     ref={ref}
     orientation={orientation}
     className={cn(
@@ -38,9 +40,9 @@ const ScrollBar = React.forwardRef<
     )}
     {...props}
   >
-    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
-  </ScrollAreaPrimitive.ScrollAreaScrollbar>
+    <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+  </ScrollAreaPrimitive.Scrollbar>
 ));
-ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName;
+ScrollBar.displayName = "ScrollBar";
 
 export { ScrollArea, ScrollBar };

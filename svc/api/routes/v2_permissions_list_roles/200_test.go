@@ -239,4 +239,80 @@ func TestSuccess(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("search", func(t *testing.T) {
+		// Fresh workspace so search results are not polluted by other subtests
+		searchWorkspace := h.CreateWorkspace()
+		searchKey := h.CreateRootKey(searchWorkspace.ID, "rbac.*.read_role")
+		searchHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", searchKey)},
+		}
+
+		searchRoles := []struct {
+			Name        string
+			Description string
+		}{
+			{"admin.finance", "Numbers team"},
+			{"viewer.reports", "Read only reporting"},
+			{"support_100%", "Handles escalations"},
+		}
+		roleIDs := make(map[string]string)
+		for _, role := range searchRoles {
+			roleID := uid.New(uid.TestPrefix)
+			roleIDs[role.Name] = roleID
+			err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+				RoleID:      roleID,
+				WorkspaceID: searchWorkspace.ID,
+				Name:        role.Name,
+				Description: sql.NullString{Valid: true, String: role.Description},
+			})
+			require.NoError(t, err)
+		}
+
+		list := func(t *testing.T, search string) []string {
+			t.Helper()
+			req := handler.Request{Search: &search}
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, searchHeaders, req)
+			require.Equal(t, 200, res.Status, "expected 200, got: %d", res.Status)
+			names := make([]string, 0, len(res.Body.Data))
+			for _, role := range res.Body.Data {
+				names = append(names, role.Name)
+			}
+			return names
+		}
+
+		t.Run("matches name substring", func(t *testing.T) {
+			require.Equal(t, []string{"admin.finance"}, list(t, "finance"))
+		})
+
+		t.Run("matches role id", func(t *testing.T) {
+			require.Equal(t, []string{"viewer.reports"}, list(t, roleIDs["viewer.reports"]))
+		})
+
+		t.Run("matches description substring", func(t *testing.T) {
+			require.Equal(t, []string{"viewer.reports"}, list(t, "reporting"))
+		})
+
+		t.Run("is case insensitive", func(t *testing.T) {
+			require.Equal(t, []string{"admin.finance"}, list(t, "FINANCE"))
+		})
+
+		t.Run("wildcards match literally", func(t *testing.T) {
+			// Unescaped, "%" would match every role and "s_pport" would match "support"
+			require.Equal(t, []string{"support_100%"}, list(t, "100%"))
+			require.Empty(t, list(t, "s_pport"))
+		})
+
+		t.Run("no matches returns empty list", func(t *testing.T) {
+			require.Empty(t, list(t, "does-not-exist"))
+		})
+
+		t.Run("whitespace-only search returns all", func(t *testing.T) {
+			require.ElementsMatch(t,
+				[]string{"admin.finance", "viewer.reports", "support_100%"},
+				list(t, "   "),
+			)
+		})
+	})
 }

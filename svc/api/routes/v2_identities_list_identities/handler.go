@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -48,17 +49,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 100)
-	cursor := ptr.SafeDeref(req.Cursor)
+	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	// Query one extra record to check if there are more results
 	identities, err := db.Query.ListIdentities(ctx, h.DB.RO(), db.ListIdentitiesParams{
 		WorkspaceID: principal.WorkspaceID,
 		Deleted:     false,
-		IDCursor:    cursor,
+		IDCursor:    p.Cursor,
 		Search:      search,
-		Limit:       int32(limit + 1), // nolint:gosec
+		Limit:       p.FetchLimit(),
 	})
 	if err != nil {
 		return fault.Wrap(err,
@@ -66,14 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if we have more results than the requested limit
-	hasMore := len(identities) > limit
-	var newCursor *string
-	if hasMore {
-		newCursor = ptr.P(identities[len(identities)-1].ID)
-		// Trim the results to the requested limit
-		identities = identities[:limit]
-	}
+	identities, pg := pagination.Paginate(identities, p, func(r db.ListIdentitiesRow) string { return r.ID })
 
 	// Check permissions for all identities before processing
 	for _, id := range identities {
@@ -142,11 +134,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: data,
-		Pagination: openapi.Pagination{
-			HasMore: hasMore,
-			Cursor:  newCursor,
-		},
+		Data:       data,
+		Pagination: pg,
 	}
 
 	return s.JSON(http.StatusOK, response)

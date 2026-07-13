@@ -32,6 +32,7 @@ func TestListProjectsBadRequest(t *testing.T) {
 	}{
 		{name: "limit below minimum", req: handler.Request{Limit: ptr.P(0)}},
 		{name: "limit above maximum", req: handler.Request{Limit: ptr.P(101)}},
+		{name: "search above max length", req: handler.Request{Search: ptr.P(strings.Repeat("a", 257))}},
 	}
 
 	for _, tc := range testCases {

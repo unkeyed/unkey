@@ -1,7 +1,9 @@
 package ratelimit
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -85,13 +87,12 @@ func (s *service) startGlobalPush() {
 func (s *service) runGlobalPushOnce() {
 	nowMs := s.clock.Now().UnixMilli()
 
-	// rows and pushedEntries are parallel slices: rows[i] is the generated
-	// upsert params for pushedEntries[i]. They are separate because the bulk
-	// upsert wants database params while the post-success commit wants the
-	// *counterEntry handle. Indexing both by the same position avoids a
-	// redundant allocation.
-	var rows []db.UpsertRatelimitGlobalCountersParams
-	var pushedEntries []*counterEntry
+	type pendingGlobalPush struct {
+		row   db.UpsertRatelimitGlobalCountersParams
+		entry *counterEntry
+	}
+
+	var pending []pendingGlobalPush
 
 	s.counters.Range(func(k, v any) bool {
 		key := k.(counterKey)
@@ -112,24 +113,32 @@ func (s *service) runGlobalPushOnce() {
 			return true
 		}
 
-		rows = append(rows, db.UpsertRatelimitGlobalCountersParams{
-			WorkspaceID: key.workspaceID,
-			Namespace:   key.namespace,
-			Identifier:  key.identifier,
-			DurationMs:  uint64(key.durationMs),
-			Sequence:    key.sequence,
-			Region:      s.region,
-			Count:       uint64(val),
-			ExpiresAt:   uint64((key.sequence + 2) * key.durationMs),
-			UpdatedAt:   uint64(nowMs),
+		pending = append(pending, pendingGlobalPush{
+			entry: entry,
+			row: db.UpsertRatelimitGlobalCountersParams{
+				WorkspaceID: key.workspaceID,
+				Namespace:   key.namespace,
+				Identifier:  key.identifier,
+				DurationMs:  uint64(key.durationMs),
+				Sequence:    key.sequence,
+				Region:      s.region,
+				Count:       uint64(val),
+				ExpiresAt:   uint64((key.sequence + 2) * key.durationMs),
+				UpdatedAt:   uint64(nowMs),
+			},
 		})
-		pushedEntries = append(pushedEntries, entry)
 		return true
 	})
 
-	if len(rows) == 0 {
+	if len(pending) == 0 {
 		return
 	}
+
+	// Match the MySQL unique key order before chunking so concurrent flushers
+	// acquire ON DUPLICATE KEY UPDATE row locks in the same order.
+	slices.SortFunc(pending, func(a, b pendingGlobalPush) int {
+		return compareGlobalPushRows(a.row, b.row)
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), globalPushTimeout)
 	defer cancel()
@@ -140,13 +149,16 @@ func (s *service) runGlobalPushOnce() {
 	// is retained when a later chunk fails. On error we stop the tick —
 	// the circuit breaker likely tripped, and the next tick will re-emit
 	// whatever did not commit because lastPushed never advanced for it.
-	for start := 0; start < len(rows); start += globalPushChunkSize {
+	for start := 0; start < len(pending); start += globalPushChunkSize {
 		end := start + globalPushChunkSize
-		if end > len(rows) {
-			end = len(rows)
+		if end > len(pending) {
+			end = len(pending)
 		}
-		chunkRows := rows[start:end]
-		chunkEntries := pushedEntries[start:end]
+		chunk := pending[start:end]
+		chunkRows := make([]db.UpsertRatelimitGlobalCountersParams, len(chunk))
+		for i, item := range chunk {
+			chunkRows[i] = item.row
+		}
 
 		_, err := s.globalCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
 			return nil, s.db.BulkUpsertGlobalCounters(ctx, chunkRows)
@@ -160,10 +172,29 @@ func (s *service) runGlobalPushOnce() {
 			return
 		}
 		metrics.RatelimitGlobalPushTotal.Add(float64(len(chunkRows)))
-		for i, entry := range chunkEntries {
-			atomicMax(&entry.lastPushed, int64(chunkRows[i].Count))
+		for _, item := range chunk {
+			atomicMax(&item.entry.lastPushed, int64(item.row.Count))
 		}
 	}
+}
+
+func compareGlobalPushRows(a, b db.UpsertRatelimitGlobalCountersParams) int {
+	if c := cmp.Compare(a.WorkspaceID, b.WorkspaceID); c != 0 {
+		return c
+	}
+	if c := cmp.Compare(a.Namespace, b.Namespace); c != 0 {
+		return c
+	}
+	if c := cmp.Compare(a.Identifier, b.Identifier); c != 0 {
+		return c
+	}
+	if c := cmp.Compare(a.DurationMs, b.DurationMs); c != 0 {
+		return c
+	}
+	if c := cmp.Compare(a.Sequence, b.Sequence); c != 0 {
+		return c
+	}
+	return cmp.Compare(a.Region, b.Region)
 }
 
 // startGlobalPull schedules runGlobalPullOnce on the package sync cadence. Each

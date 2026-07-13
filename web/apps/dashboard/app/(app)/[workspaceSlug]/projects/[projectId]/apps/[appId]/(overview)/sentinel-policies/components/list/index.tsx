@@ -78,7 +78,7 @@ export function SentinelPoliciesList({
   }, []);
 
   return (
-    <div className="border border-grayA-4 rounded-[14px] overflow-hidden">
+    <div className="border border-grayA-4 rounded-lg overflow-hidden">
       {merged.map((policy, i) => (
         <SentinelPolicyRow
           key={policy.id}

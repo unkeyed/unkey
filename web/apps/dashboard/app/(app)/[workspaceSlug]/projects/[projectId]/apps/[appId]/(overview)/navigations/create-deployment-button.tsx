@@ -360,13 +360,19 @@ export const CreateDeploymentButton = ({
           {isCliApp && imageRows.length > 0 && (
             <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4 overflow-hidden">
               {imageRows.map((deployment) => (
-                <button
+                // TimestampInfo renders its own popover trigger button, so it
+                // must be a sibling of the row button rather than nested in it.
+                <div
                   key={deployment.id}
-                  type="button"
-                  onClick={() => setValue("name", deployment.image ?? "", { shouldValidate: true })}
-                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors cursor-pointer text-[13px] text-grayA-11"
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-[13px] text-grayA-11"
                 >
-                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue("name", deployment.image ?? "", { shouldValidate: true })
+                    }
+                    className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
+                  >
                     <InfoTooltip
                       content={deployment.image}
                       asChild
@@ -374,13 +380,13 @@ export const CreateDeploymentButton = ({
                     >
                       <span className="truncate">{deployment.image}</span>
                     </InfoTooltip>
-                  </span>
+                  </button>
                   <TimestampInfo
                     value={deployment.createdAt}
                     displayType="relative"
                     className="text-gray-11 shrink-0 ml-3"
                   />
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -404,16 +410,20 @@ export const CreateDeploymentButton = ({
                   </div>
                 ))}
               {branches.map((branch) => (
-                <button
+                // TimestampInfo renders its own popover trigger button, so it
+                // must be a sibling of the row button rather than nested in it.
+                <div
                   key={branch.name}
-                  type="button"
-                  onClick={() => setValue("name", branch.name, { shouldValidate: true })}
-                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors cursor-pointer text-[13px] text-grayA-11"
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-[13px] text-grayA-11"
                 >
-                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
+                  <button
+                    type="button"
+                    onClick={() => setValue("name", branch.name, { shouldValidate: true })}
+                    className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
+                  >
                     <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
                     <span className="truncate">{branch.name}</span>
-                  </span>
+                  </button>
                   {branch.lastPushDate && (
                     <TimestampInfo
                       value={branch.lastPushDate}
@@ -421,7 +431,7 @@ export const CreateDeploymentButton = ({
                       className="text-gray-11 shrink-0 ml-3"
                     />
                   )}
-                </button>
+                </div>
               ))}
             </div>
           )}

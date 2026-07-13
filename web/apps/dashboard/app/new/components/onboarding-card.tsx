@@ -2,9 +2,7 @@ import { cn } from "@/lib/utils";
 import type React from "react";
 
 export function OnboardingCard({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn("border border-gray-5 rounded-2xl w-full p-8", className)} {...props} />
-  );
+  return <div className={cn("border border-gray-5 rounded-lg w-full p-8", className)} {...props} />;
 }
 
 export function OnboardingCardHeader({
