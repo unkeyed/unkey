@@ -30,6 +30,20 @@ describe("scrubUrl", () => {
     expect(out).toContain("REDACTED");
   });
 
+  it("redacts digit-free 20+ char values under unknown param names", () => {
+    // Query values are not route names, so the broad net applies: passphrase-style
+    // letters-only secrets must not reach Sentry just because they lack a digit.
+    const out = scrubUrl("/verify?ref=abcdefghijklmnopqrstuvwx");
+    expect(out).not.toContain("abcdefghijklmnopqrstuvwx");
+  });
+
+  it("drops basic-auth userinfo entirely", () => {
+    const out = scrubUrl("https://dbuser:secretpass@clickhouse.example.com/query?x=1");
+    expect(out).not.toContain("secretpass");
+    expect(out).not.toContain("dbuser");
+    expect(out).toContain("clickhouse.example.com/query");
+  });
+
   it("redacts token-like segments embedded in the path", () => {
     const out = scrubUrl(`/keys/${ROOT_KEY}/details`);
     expect(out).not.toContain(ROOT_KEY);
@@ -61,6 +75,13 @@ describe("scrubUrl", () => {
     expect(scrubUrl("/_next/static/chunks/4407-8b62c8f2a3d1e5f6.js")).toBe(
       "/_next/static/chunks/4407-8b62c8f2a3d1e5f6.js",
     );
+  });
+
+  it("still redacts token-like segments under /_next/data (only static assets are exempt)", () => {
+    // `/_next/data/` payload URLs embed dynamic route params, which can be
+    // bearer-style ids — the exemption must not cover them.
+    const out = scrubUrl(`/_next/data/build-id/${ROOT_KEY}.json`);
+    expect(out).not.toContain(ROOT_KEY);
   });
 
   it("drops the fragment entirely (it can carry the /share bearer id)", () => {
@@ -227,6 +248,44 @@ describe("scrubTransactionPii", () => {
     expect(event.spans?.[0]?.description).toContain("[200]");
   });
 
+  it("scrubs URLs glued to prefixes or separated by non-space whitespace", () => {
+    const event: TransactionEvent = {
+      type: "transaction",
+      transaction: `GET\t/auth/callback?code=${ROOT_KEY}`,
+      spans: [
+        makeSpan({ description: `fetch(/api/keys?key=${ROOT_KEY})` }),
+        makeSpan({ description: `redirect url=/login?token=${JWT}` }),
+      ],
+    };
+
+    scrubTransactionPii(event);
+
+    expect(event.transaction).not.toContain(ROOT_KEY);
+    expect(event.transaction).toContain("GET\t/auth/callback");
+    const serialized = JSON.stringify(event.spans);
+    expect(serialized).not.toContain(ROOT_KEY);
+    expect(serialized).not.toContain(JWT);
+    expect(event.spans?.[0]?.description).toContain("fetch(/api/keys");
+    expect(event.spans?.[1]?.description).toContain("redirect url=/login");
+  });
+
+  it("leaves SQLCommenter blocks in db span descriptions untouched", () => {
+    // The dashboard attaches `/*service='...',route='...'*/` comments to SQL via
+    // createCommentedPool; the comment token starts with a slash but is not a
+    // URL, and rewriting it would corrupt Query Insights tags and merge
+    // distinct queries in Sentry Performance.
+    const description =
+      "SELECT * FROM `keys` WHERE id = ? /*service='dashboard',route='trpc/queryRatelimitLatency2Timeseries'*/";
+    const event: TransactionEvent = {
+      type: "transaction",
+      spans: [makeSpan({ op: "db", description })],
+    };
+
+    scrubTransactionPii(event);
+
+    expect(event.spans?.[0]?.description).toBe(description);
+  });
+
   it("scrubs the root span attributes on the trace context", () => {
     const event: TransactionEvent = {
       type: "transaction",
@@ -291,10 +350,21 @@ describe("scrubSpanPii", () => {
 
     const returned = scrubSpanPii(span);
 
-    expect(returned).toBe(span);
-    expect(JSON.stringify(span.data)).not.toContain(ROOT_KEY);
+    expect(JSON.stringify(returned.data)).not.toContain(ROOT_KEY);
     // Non-URL text like the interaction target selector is untouched.
-    expect(span.description).toBe("body > div#root > button.submit");
-    expect(span.data["sentry.exclusive_time"]).toBe(120);
+    expect(returned.description).toBe("body > div#root > button.submit");
+    expect(returned.data["sentry.exclusive_time"]).toBe(120);
+  });
+
+  it("scrubs read-only spans by copying instead of forwarding them unscrubbed", () => {
+    // `beforeSendSpan` has no drop path, so a span that cannot be mutated in
+    // place must still come back scrubbed — via a copy, not as-is.
+    const span = makeSpan({ data: { transaction: `/share/${ROOT_KEY}` } });
+    Object.freeze(span.data);
+    Object.freeze(span);
+
+    const returned = scrubSpanPii(span);
+
+    expect(JSON.stringify(returned)).not.toContain(ROOT_KEY);
   });
 });
