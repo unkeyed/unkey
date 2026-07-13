@@ -96,8 +96,9 @@ type Harness struct {
 type Option func(*harnessOpts)
 
 type harnessOpts struct {
-	timeout            time.Duration
-	clock              clock.Clock
+	timeout time.Duration
+	clock   clock.Clock
+
 	billingUsageReader deploybilling.UsageReader
 	billingPusher      billingmeter.Pusher
 	billingCloser      invoicecloser.Closer
