@@ -1,0 +1,63 @@
+---
+title: "July 10, 2026"
+description: "Share a new key as a secure one-time link, free-form search across identities, roles, permissions, projects and apps, and analytics you can slice by verification source."
+noindex: true
+---
+
+## New features
+
+### Share a new key as a secure one-time link
+
+After creating a key manually in the dashboard, you can now hand the secret to a teammate without pasting it into 1Password, envshare, or a chat window. The key-created dialog has a new **Secure link** tab that generates an opaque URL like `app.unkey.com/share#…`.
+
+The link:
+
+- Reveals the secret exactly once — the first open returns the key, every open after that returns an empty state.
+- Expires automatically after 72 hours if no one opens it.
+- Rides the id in the URL fragment, so it never reaches server access logs, `Referer` headers, or error telemetry.
+
+Values are vault-encrypted with the same keyring as the rest of your workspace's key material, and the row is deleted from the database the moment it is revealed. See [Root keys](/platform/root-keys/overview) and [Keys](/platform/apis/overview) for how keys are stored more generally.
+
+### Free-form search across list pages
+
+Identity, role, permission, project, and app lists now support a single search field that matches across the most useful fields at once — no more choosing between "search by name" and "search by external ID". Type a fragment and Unkey checks names, IDs, external IDs, and descriptions in a single query.
+
+The same search is exposed on the HTTP API for scripting and dashboards. For example, listing identities that mention `acme`:
+
+```bash
+curl "https://api.unkey.com/v2/identities.listIdentities?search=acme" \
+  -H "Authorization: Bearer unkey_..."
+```
+
+Search works alongside the existing pagination and filter parameters, so you can page through matches the same way you page through unfiltered lists. See [Identities](/platform/identities/overview), [Projects](/platform/projects/overview), and [Apps](/platform/apps/overview).
+
+### Analytics you can slice by verification source
+
+Key verifications in analytics now carry a `source` dimension that says whether the request came through the public [HTTP API](/api-reference/overview) or through the Unkey [gateway](/platform/gateway/overview) in front of one of your apps.
+
+Two things you get from this:
+
+- **Billing is cleaner.** Verifications performed by the gateway on your behalf no longer roll up as public-API usage — only `api` traffic counts against your API verification budget. `gateway` traffic is still your traffic, so it still shows up in analytics.
+- **Analytics is sliceable.** You can compare gateway vs. API traffic per key, per identity, or per API, which is useful when you migrate a service from calling `unkey.keys.verifyKey` directly to letting the gateway do it for you.
+
+No action is required — existing verifications are labeled `api` by default and gateway traffic starts tagging itself as it rolls out.
+
+## Updates
+
+### Portal configuration landing page
+
+The **Portal** section in the dashboard now opens on a landing page that explains what the portal is, links to the docs, and points you at the settings that need to be filled in first. This replaces the empty configuration screen that some workspaces landed on before any portal setup existed. See [Identities](/platform/identities/overview).
+
+### Permissions are set after a key is created
+
+The create-key dialog no longer includes a permissions step. You now create the key first, then attach permissions and roles from the key detail page. This keeps the create flow short and matches how permissions are wired everywhere else — key creation is a one-off event, permission management is ongoing.
+
+## Bug fixes
+
+- Verifications performed through the gateway are no longer double-counted as API verifications in the monthly billable rollup.
+- The dashboard no longer surfaces a stale baseline when you edit a role, so saving after a rapid-fire edit stores what you see instead of an older snapshot.
+- Sensitive environment variable values are now persisted correctly after edits and no longer round-trip a placeholder into the stored value.
+- Workspace name changes and Stripe mutations now require an admin role, closing a gap where members could update either.
+- Ratelimit list pages no longer race stale data, pagination clamps, filters, and sort into each other while a background refetch is in flight.
+- Bearer-token IDs no longer reach Sentry when an unexpected error is raised during key-secret share creation.
+- The workspace ID copy button is centered in the sidebar again.
