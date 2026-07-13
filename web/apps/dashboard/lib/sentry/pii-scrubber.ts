@@ -34,16 +34,14 @@ export type TransactionEvent = Parameters<NonNullable<NodeOptions["beforeSendTra
 const REDACTED = "[REDACTED]";
 
 /**
- * Query/path parameter names whose values are always secrets or PII. Matched
- * case-insensitively. Keep this list aligned with the secrets we actually put
- * into URLs across the dashboard and auth flows. `input` carries tRPC GET
- * batch payloads — JSON-encoded user data such as emails — whose short values
- * the token heuristic cannot catch, so it is redacted wholesale.
+ * Names whose values are always secrets or PII, whether they appear as URL
+ * query params or as tRPC input field names. Matched case-insensitively. Keep
+ * this list aligned with the secrets we actually put into URLs across the
+ * dashboard and auth flows.
  */
-const SENSITIVE_PARAM_KEYS = new Set(
+const SENSITIVE_NAME_KEYS = new Set(
   [
     "key",
-    "input",
     "apikey",
     "api_key",
     "rootkey",
@@ -68,15 +66,33 @@ const SENSITIVE_PARAM_KEYS = new Set(
 );
 
 /**
+ * Names treated as sensitive only when they appear as URL query params.
+ * `input` carries tRPC GET batch payloads — JSON-encoded user data such as
+ * emails — whose short values the token heuristic cannot catch, so it is
+ * redacted wholesale in URLs. As a tRPC input *field* name it is benign, so
+ * it stays out of the shared list above.
+ */
+const URL_ONLY_SENSITIVE_PARAM_KEYS = new Set(["input"]);
+
+/**
  * Matches token-like substrings: 20+ chars of base64url/hex alphabet
  * containing at least one digit. This is a deliberately broad net to catch
  * opaque secrets (Unkey root keys, JWTs, session ids) that appear without a
  * recognizable parameter name — all of which mix digits into their alphabet.
  * The digit requirement spares long human-written identifiers like tRPC
  * procedure names (`getDeploymentRuntimeLogs`), which would otherwise collapse
- * to [REDACTED] and merge distinct routes in Sentry Performance.
+ * to [REDACTED] and merge distinct routes in Sentry Performance. Only URL
+ * scrubbing uses this net; free-standing values go through `redactTokenLike`.
  */
 const TOKEN_LIKE = /(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]{20,}/g;
+
+/**
+ * Broad token-like matcher for free-standing values: the same alphabet as
+ * `TOKEN_LIKE` but without the digit requirement. Field values carry no route
+ * names, so there is no grouping to protect and this fails closed on pure-alpha
+ * secrets (passphrases, digit-free ids) that the digit-required net spares.
+ */
+const BROAD_TOKEN_LIKE = /[A-Za-z0-9_-]{20,}/g;
 
 /**
  * Whether a parameter/field name is known to carry secrets or PII. Matched
@@ -84,15 +100,25 @@ const TOKEN_LIKE = /(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]{20,}/g;
  * both scrub surfaces treat the same names as sensitive.
  */
 export function isSensitiveKey(name: string): boolean {
-  return SENSITIVE_PARAM_KEYS.has(name.toLowerCase());
+  return SENSITIVE_NAME_KEYS.has(name.toLowerCase());
 }
 
 /**
  * Redacts token-like substrings from a value regardless of its field name, as
- * a fail-closed fallback for opaque secrets under unrecognized names.
+ * a fail-closed fallback for opaque secrets under unrecognized names. Used by
+ * the tRPC input scrubber in error-filter.ts.
  */
 export function redactTokenLike(value: string): string {
-  return value.replace(TOKEN_LIKE, REDACTED);
+  return value.replace(BROAD_TOKEN_LIKE, REDACTED);
+}
+
+/**
+ * Whether a URL query parameter name is sensitive: the shared name list plus
+ * the URL-only entries.
+ */
+function isSensitiveParamKey(name: string): boolean {
+  const lower = name.toLowerCase();
+  return SENSITIVE_NAME_KEYS.has(lower) || URL_ONLY_SENSITIVE_PARAM_KEYS.has(lower);
 }
 
 /**
@@ -101,10 +127,10 @@ export function redactTokenLike(value: string): string {
  * store back into the query string.
  */
 function scrubParamValue(name: string, value: string): string {
-  if (isSensitiveKey(name)) {
+  if (isSensitiveParamKey(name)) {
     return REDACTED;
   }
-  return redactTokenLike(value);
+  return value.replace(TOKEN_LIKE, REDACTED);
 }
 
 /**
