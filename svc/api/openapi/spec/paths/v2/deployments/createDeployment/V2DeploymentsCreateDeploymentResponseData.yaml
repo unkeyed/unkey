@@ -1,0 +1,8 @@
+type: object
+required:
+  - deploymentId
+properties:
+  deploymentId:
+    type: string
+    description: Unique deployment identifier. Poll deployments.getDeployment with this id to watch status.
+    example: "d_abc123xyz"

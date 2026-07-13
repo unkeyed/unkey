@@ -11,10 +11,12 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
@@ -111,10 +113,57 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
+	if auditErr := s.recordCreateAudit(ctx, ctxLoad, deploymentID, req.Msg.GetActor()); auditErr != nil {
+		logger.Error(
+			"failed to write deployment.create audit log",
+			"deployment_id", deploymentID,
+			"error", auditErr,
+		)
+	}
+
 	return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
 		DeploymentId: deploymentID,
 		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
 	}), nil
+}
+
+// recordCreateAudit writes a deployment.create audit log attributed to the
+// actor supplied on the request. Every surface routes through this RPC, so this
+// is the single place deployments get audited. A nil actor (callers not yet
+// passing one) falls back to the system actor via actor.AuditType.
+func (s *Service) recordCreateAudit(
+	ctx context.Context,
+	dctx deploymentContext,
+	deploymentID string,
+	a *ctrlv1.ActorInfo,
+) error {
+	return s.auditlogs.Insert(ctx, nil, []auditlog.AuditLog{
+		{
+			Event:         auditlog.DeploymentCreateEvent,
+			WorkspaceID:   dctx.workspaceID,
+			Display:       fmt.Sprintf("Created deployment %s", deploymentID),
+			ActorID:       a.GetId(),
+			ActorType:     actor.AuditType(a.GetType()),
+			ActorName:     a.GetName(),
+			ActorMeta:     actor.Meta(a.GetMeta()),
+			RemoteIP:      a.GetRemoteIp(),
+			UserAgent:     a.GetUserAgent(),
+			CorrelationID: "",
+			Resources: []auditlog.AuditLogResource{
+				{
+					Type:        auditlog.DeploymentResourceType,
+					ID:          deploymentID,
+					Name:        "",
+					DisplayName: deploymentID,
+					Meta: map[string]any{
+						"projectId":   dctx.project.ID,
+						"appId":       dctx.app.ID,
+						"environment": dctx.env.Environment.Slug,
+					},
+				},
+			},
+		},
+	})
 }
 
 // deploymentContext bundles the resolved project/app/env context needed to
@@ -332,8 +381,14 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			s.github, repoConn.InstallationID, repoConn.RepositoryFullName,
 			s.allowUnauthenticatedDeployments,
 		); err != nil {
+			// This error may carry the raw GitHub response body, which can reach
+			// API callers. Log the detail, return a generic reason.
+			logger.Error("failed to resolve git commit metadata",
+				"app_id", c.app.ID,
+				"repository", repoConn.RepositoryFullName,
+				"error", err.Error())
 			return "", connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("failed to resolve git commit metadata: %w", err))
+				fmt.Errorf("failed to resolve git commit metadata for the requested branch or commit"))
 		}
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
@@ -421,7 +476,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		return "", connect.NewError(connect.CodeInternal, err)
 	}
 
-	logger.Info("starting deployment workflow",
+	logger.Info(
+		"starting deployment workflow",
 		"deployment_id", deploymentID,
 		"workspace_id", c.workspaceID,
 		"project_id", c.project.ID,
@@ -456,14 +512,16 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		InvocationID: sql.NullString{Valid: true, String: invocationID},
 		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 	}); updateErr != nil {
-		logger.Error("failed to persist invocation id",
+		logger.Error(
+			"failed to persist invocation id",
 			"deployment_id", deploymentID,
 			"invocation_id", invocationID,
 			"error", updateErr,
 		)
 	}
 
-	logger.Info("deployment workflow started",
+	logger.Info(
+		"deployment workflow started",
 		"deployment_id", deploymentID,
 		"invocation_id", invocationID,
 	)
@@ -475,7 +533,8 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		GitBranch:     commit.Branch,
 		CreatedAt:     now,
 	}); cancelErr != nil {
-		logger.Error("failed to cancel superseded siblings",
+		logger.Error(
+			"failed to cancel superseded siblings",
 			"deployment_id", deploymentID,
 			"error", cancelErr,
 		)
