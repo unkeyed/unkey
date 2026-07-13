@@ -153,10 +153,15 @@ export function normalizePageSize(pageSize: number, defaultPageSize: number, max
 // e.g. with a time window appended) as the page reset key so page state resets
 // only when filter content actually changes — not when the filter hook returns
 // a new array reference for the same values.
+//
+// Encoded as JSON tuples rather than delimiter-joined text so the result is
+// unambiguous: a filter value containing a separator character cannot make two
+// distinct states collapse to the same key (which would suppress a real page
+// reset). The string is only ever compared for equality, never parsed.
 export function paginationFilterKey(
   filters: ReadonlyArray<{ field: string; operator: string; value: unknown }>,
 ) {
-  return filters.map((f) => `${f.field}:${f.operator}:${String(f.value)}`).join("|");
+  return JSON.stringify(filters.map((f) => [f.field, f.operator, f.value]));
 }
 
 // ---------------------------------------------------------------------------
