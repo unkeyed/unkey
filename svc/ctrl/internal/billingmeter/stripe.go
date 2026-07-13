@@ -21,6 +21,7 @@ const (
 	eventMemory = "memory_gib_seconds"
 	eventEgress = "egress_public_gib"
 	eventDisk   = "disk_gib_seconds"
+	eventKeys   = "active_keys"
 )
 
 // payloadKeyCustomer and payloadKeyValue are the meter's
@@ -80,19 +81,24 @@ func NewStripe(secretKey string) Pusher {
 // rejects a duplicate identifier with a hard 400, turning a harmless re-run
 // into a failure.)
 func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
+	// Values are pre-rendered so each meter formats in its natural
+	// representation: the continuous meters as bounded decimals, the
+	// active-keys count as an exact integer.
 	meters := []struct {
-		name  string
-		value float64
+		name     string
+		value    string
+		positive bool
 	}{
-		{eventCPU, req.Values.CPUSeconds},
-		{eventMemory, req.Values.MemoryGiBSeconds},
-		{eventEgress, req.Values.EgressGiB},
-		{eventDisk, req.Values.DiskGiBSeconds},
+		{eventCPU, formatMeterValue(req.Values.CPUSeconds), req.Values.CPUSeconds > 0},
+		{eventMemory, formatMeterValue(req.Values.MemoryGiBSeconds), req.Values.MemoryGiBSeconds > 0},
+		{eventEgress, formatMeterValue(req.Values.EgressGiB), req.Values.EgressGiB > 0},
+		{eventDisk, formatMeterValue(req.Values.DiskGiBSeconds), req.Values.DiskGiBSeconds > 0},
+		{eventKeys, strconv.FormatInt(req.Values.ActiveKeys, 10), req.Values.ActiveKeys > 0},
 	}
 
 	pushed := 0
 	for _, m := range meters {
-		if m.value <= 0 {
+		if !m.positive {
 			continue
 		}
 		_, err := p.client.V1BillingMeterEvents.Create(ctx, &stripe.BillingMeterEventCreateParams{
@@ -100,7 +106,7 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 			Timestamp: stripe.Int64(req.Timestamp),
 			Payload: map[string]string{
 				payloadKeyCustomer: req.StripeCustomerID,
-				payloadKeyValue:    formatMeterValue(m.value),
+				payloadKeyValue:    m.value,
 			},
 		})
 		if err != nil {

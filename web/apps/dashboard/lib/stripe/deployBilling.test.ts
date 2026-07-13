@@ -28,6 +28,7 @@ const ID: Record<string, string> = {
   lk_memory: "price_memory",
   lk_egress: "price_egress",
   lk_disk: "price_disk",
+  lk_active_keys: "price_active_keys",
 };
 
 function envWith(overrides: Partial<StripeEnv> = {}): StripeEnv {
@@ -43,6 +44,7 @@ function envWith(overrides: Partial<StripeEnv> = {}): StripeEnv {
     STRIPE_LOOKUP_DEPLOY_METER_MEMORY: "lk_memory",
     STRIPE_LOOKUP_DEPLOY_METER_EGRESS: "lk_egress",
     STRIPE_LOOKUP_DEPLOY_METER_DISK: "lk_disk",
+    STRIPE_LOOKUP_DEPLOY_METER_ACTIVE_KEYS: "lk_active_keys",
     ...overrides,
   };
 }
@@ -61,7 +63,7 @@ function stubStripe() {
 
 const CONFIG: DeployBillingConfig = {
   planFeePriceIds: { starter: "price_starter", pro: "price_pro", business: "price_business" },
-  meteredPriceIds: ["price_cpu", "price_memory", "price_egress", "price_disk"],
+  meteredPriceIds: ["price_cpu", "price_memory", "price_egress", "price_disk", "price_active_keys"],
   allDeployPriceIds: new Set([
     "price_starter",
     "price_pro",
@@ -70,6 +72,7 @@ const CONFIG: DeployBillingConfig = {
     "price_memory",
     "price_egress",
     "price_disk",
+    "price_active_keys",
   ]),
 };
 
@@ -92,8 +95,14 @@ describe("deployBillingConfig", () => {
       pro: "price_pro",
       business: "price_business",
     });
-    expect(c?.meteredPriceIds).toEqual(["price_cpu", "price_memory", "price_egress", "price_disk"]);
-    expect(c?.allDeployPriceIds.size).toBe(7);
+    expect(c?.meteredPriceIds).toEqual([
+      "price_cpu",
+      "price_memory",
+      "price_egress",
+      "price_disk",
+      "price_active_keys",
+    ]);
+    expect(c?.allDeployPriceIds.size).toBe(8);
   });
 
   it("returns null when Stripe is not configured", async () => {
@@ -129,6 +138,7 @@ describe("deploySubscriptionItems", () => {
       { price: "price_memory" },
       { price: "price_egress" },
       { price: "price_disk" },
+      { price: "price_active_keys" },
     ]);
   });
 });
