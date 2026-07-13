@@ -17,10 +17,8 @@ func TestInsertQuery(t *testing.T) {
 		"INSERT INTO default.build_step_logs_v1 (`time`, `workspace_id`, `project_id`, `deployment_id`, `step_id`, `message`)",
 		InsertQuery[schema.BuildStepLogV1]())
 
-	// Source is tagged ch:"-" until the 20260612000000 migration has run
-	// everywhere; see the comment on schema.KeyVerification.Source.
 	query := InsertQuery[schema.KeyVerification]()
-	require.NotContains(t, query, "source")
+	require.Contains(t, query, "`source`")
 	require.Contains(t, query, "`request_id`")
 }
 
