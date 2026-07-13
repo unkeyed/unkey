@@ -79,7 +79,7 @@ export const UpstreamProtocol = () => {
           control={control}
           name="upstreamProtocol"
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
+            <Select value={field.value} onValueChange={field.onChange} items={PROTOCOLS}>
               <SelectTrigger>
                 <SelectValue placeholder="Select protocol" />
               </SelectTrigger>

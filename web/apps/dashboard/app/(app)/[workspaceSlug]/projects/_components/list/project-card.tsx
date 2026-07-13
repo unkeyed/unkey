@@ -127,19 +127,23 @@ function AppIconStack({
         </InfoTooltip>
       ))}
       {overflow > 0 ? (
-        <HoverCard openDelay={0} closeDelay={100}>
-          <HoverCardTrigger asChild>
-            <Link
-              href={routes.projects.detail({
-                workspaceSlug: workspace.slug,
-                projectId,
-              })}
-              aria-label={`View all ${appCount} apps`}
-              className={`${BLOB_BASE} text-[10px] font-medium text-gray-11`}
-            >
-              +{overflow}
-            </Link>
-          </HoverCardTrigger>
+        <HoverCard>
+          <HoverCardTrigger
+            delay={0}
+            closeDelay={100}
+            render={
+              <Link
+                href={routes.projects.detail({
+                  workspaceSlug: workspace.slug,
+                  projectId,
+                })}
+                aria-label={`View all ${appCount} apps`}
+                className={`${BLOB_BASE} text-[10px] font-medium text-gray-11`}
+              >
+                +{overflow}
+              </Link>
+            }
+          />
           <HoverCardContent align="start" className="w-56 p-1">
             <div className="flex flex-col max-h-64 overflow-y-auto">
               {apps.map((app) => (

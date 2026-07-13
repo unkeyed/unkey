@@ -138,7 +138,14 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
             render={({ field }) => (
               <div className="flex flex-col gap-1.5">
                 <div className="text-gray-11 text-[13px] flex items-center">Role</div>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  items={[
+                    { value: "basic_member", label: "Member" },
+                    { value: "admin", label: "Admin" },
+                  ]}
+                >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>

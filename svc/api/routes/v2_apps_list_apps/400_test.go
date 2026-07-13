@@ -37,6 +37,7 @@ func TestListAppsValidationErrors(t *testing.T) {
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 257)}},
 		{name: "limit below minimum", req: handler.Request{Project: validProject, Limit: ptr.P(0)}},
 		{name: "limit above maximum", req: handler.Request{Project: validProject, Limit: ptr.P(101)}},
+		{name: "search above max length", req: handler.Request{Project: validProject, Search: ptr.P(strings.Repeat("a", 257))}},
 	}
 
 	for _, tc := range testCases {

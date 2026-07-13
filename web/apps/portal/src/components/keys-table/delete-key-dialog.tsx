@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import {
   AlertDialog,
@@ -22,6 +22,10 @@ type DeleteKeyDialogProps = {
 export function DeleteKeyDialog({ open, onOpenChange, onConfirm }: DeleteKeyDialogProps) {
   const [confirmed, setConfirmed] = useState(false);
   const checkboxId = useId();
+  // Base UI focuses the first tabbable element (the checkbox) by default; Radix
+  // focused Cancel. Restore the safe Cancel-focus default via the Popup's
+  // initialFocus.
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -31,7 +35,7 @@ export function DeleteKeyDialog({ open, onOpenChange, onConfirm }: DeleteKeyDial
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent initialFocus={() => cancelRef.current}>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete this key?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -58,7 +62,7 @@ export function DeleteKeyDialog({ open, onOpenChange, onConfirm }: DeleteKeyDial
         </label>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel ref={cancelRef}>Cancel</AlertDialogCancel>
           <AlertDialogAction variant="destructive" disabled={!confirmed} onClick={onConfirm}>
             Delete key
           </AlertDialogAction>

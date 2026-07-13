@@ -1,7 +1,6 @@
 "use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
-import { Navbar } from "@/components/navigation/navbar";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
@@ -147,13 +146,11 @@ export const CreateKeyDialog = ({
 
   return (
     <>
-      <Navbar.Actions>
-        <NavbarActionButton title="Create new key" onClick={() => setIsSettingsOpen(true)}>
-          <Plus />
-          Create new key
-        </NavbarActionButton>
-        <CopyableIDButton value={copyIdValue ?? apiId} />
-      </Navbar.Actions>
+      <NavbarActionButton title="Create key" onClick={() => setIsSettingsOpen(true)}>
+        <Plus />
+        Create key
+      </NavbarActionButton>
+      <CopyableIDButton value={copyIdValue ?? apiId} />
 
       <FormProvider {...methods}>
         <form id="new-key-form" onSubmit={handleSubmit(onSubmit)}>
@@ -164,7 +161,7 @@ export const CreateKeyDialog = ({
             dialogClassName="w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[940px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]"
           >
             <NavigableDialogHeader
-              title="New Key"
+              title="Create key"
               subTitle="Create a custom API key with your own settings"
             />
             <NavigableDialogBody>
@@ -196,7 +193,7 @@ export const CreateKeyDialog = ({
                     disabled={!formState.isValid}
                     loading={key.isLoading}
                   >
-                    Create new key
+                    Create key
                   </Button>
                   <div className="text-xs text-gray-9">
                     This key will be created immediately and ready-to-use right away

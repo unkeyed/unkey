@@ -37,29 +37,31 @@ export function createRoleOptions({
     label: (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex w-full text-accent-8 text-xs gap-4 py-0.5 items-center group flex-row">
-              <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-                <Tag iconSize="sm-regular" className="text-grayA-11" />
-              </div>
-              <div className="flex gap-1 flex-col truncate">
-                <div className="flex gap-2 items-center">
-                  <span className="font-medium text-accent-12 text-left">{role.name}</span>
-                  {(previouslySelectedRoleNames.includes(role.name) ||
-                    role.keys.find((item) => item.id === keyId)) && (
-                    <StatusBadge
-                      variant="locked"
-                      text="Already assigned"
-                      icon={<Lock iconSize="sm-thin" />}
-                    />
-                  )}
+          <TooltipTrigger
+            render={
+              <div className="flex w-full text-accent-8 text-xs gap-4 py-0.5 items-center group flex-row">
+                <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
+                  <Tag iconSize="sm-regular" className="text-grayA-11" />
                 </div>
-                <span className="text-accent-9 text-xs truncate">
-                  {role.description || `${role.permissions.length} permissions`}
-                </span>
+                <div className="flex gap-1 flex-col truncate">
+                  <div className="flex gap-2 items-center">
+                    <span className="font-medium text-accent-12 text-left">{role.name}</span>
+                    {(previouslySelectedRoleNames.includes(role.name) ||
+                      role.keys.find((item) => item.id === keyId)) && (
+                      <StatusBadge
+                        variant="locked"
+                        text="Already assigned"
+                        icon={<Lock iconSize="sm-thin" />}
+                      />
+                    )}
+                  </div>
+                  <span className="text-accent-9 text-xs truncate">
+                    {role.description || `${role.permissions.length} permissions`}
+                  </span>
+                </div>
               </div>
-            </div>
-          </TooltipTrigger>
+            }
+          />
           <TooltipContent
             side="right"
             align="start"

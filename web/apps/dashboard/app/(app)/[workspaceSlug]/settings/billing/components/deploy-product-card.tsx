@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";
 import { ProductCard } from "./product-card";
+import { SpendBudget } from "./spend-budget";
 import { UsageMeter } from "./usage-meter";
 
 type DeployProductCardProps = {
@@ -126,6 +127,11 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
           value: `${formatQuantity(usage.diskGiBHours)} GiB-hrs`,
           hint: "Disk reserved over time, in GiB-hours. 1 GiB reserved for 1 hour is 1 GiB-hour. Charged on size reserved, not reads, writes, or space used.",
         },
+        {
+          label: "Active keys",
+          value: formatQuantity(usage.activeKeys),
+          hint: "Distinct keys verified through the Deploy gateway this period.",
+        },
       ]
     : null;
 
@@ -208,7 +214,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
               fillClassName="bg-orange-9"
             />
             {meterStats ? (
-              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-5">
                 {meterStats.map((stat) => (
                   <div key={stat.label} className="bg-white px-3 py-2 dark:bg-black">
                     <InfoTooltip content={stat.hint} asChild>
@@ -223,6 +229,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ))}
               </div>
             ) : null}
+            <SpendBudget isAdmin={isAdmin} usageCents={usageAmount} />
           </div>
         ) : null}
       </ProductCard>

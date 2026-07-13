@@ -57,11 +57,11 @@ export const HelpButton: React.FC = () => {
             <Chats className="size-4 mr-3 text-gray-9" />
             <span className="text-accent-12 text-sm font-medium">Support</span>
           </DropdownMenuItem>
-          <DropdownMenuSeparator className="my-1" />
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator className="my-1" />
+        <DropdownMenuGroup className="w-full">
           <DropdownMenuLabel>Platform status</DropdownMenuLabel>
-          <DropdownMenuItem asChild className="cursor-pointer w-full">
-            <StatusWidget />
-          </DropdownMenuItem>
+          <DropdownMenuItem render={<StatusWidget />} className="cursor-pointer w-full" />
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -76,33 +76,33 @@ export function RotateKeyDialog({
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : tryClose())}>
-        {keyToRotate ? (
-          <DialogContent>
-            {rotated === null ? (
-              <ConfigureCard
-                grace={grace}
-                onGraceChange={setGrace}
-                onCancel={tryClose}
-                onRotate={handleRotate}
-              />
-            ) : (
-              <SecretRevealCard
-                title="Key rotated"
-                description="A new secret has been generated. Copy it before closing."
-                secretLabel="New secret"
-                plaintext={rotated.plaintext}
-                onCopied={() => setHasCopied(true)}
-                onDone={tryClose}
-              />
-            )}
-          </DialogContent>
-        ) : null}
-      </Dialog>
-
-      <DiscardSecretConfirm {...discardConfirm} />
-    </>
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : tryClose())}>
+      {keyToRotate ? (
+        <DialogContent>
+          {rotated === null ? (
+            <ConfigureCard
+              grace={grace}
+              onGraceChange={setGrace}
+              onCancel={tryClose}
+              onRotate={handleRotate}
+            />
+          ) : (
+            <SecretRevealCard
+              title="Key rotated"
+              description="A new secret has been generated. Copy it before closing."
+              secretLabel="New secret"
+              plaintext={rotated.plaintext}
+              onCopied={() => setHasCopied(true)}
+              onDone={tryClose}
+            />
+          )}
+          {/* Rendered inside the parent dialog's popup so Base UI treats it
+              as a nested dialog: Escape closes only the confirmation and the
+              two open states don't race. */}
+          <DiscardSecretConfirm {...discardConfirm} />
+        </DialogContent>
+      ) : null}
+    </Dialog>
   );
 }
 
@@ -126,7 +126,11 @@ function ConfigureCard({ grace, onGraceChange, onCancel, onRotate }: ConfigureCa
       <DialogBody className="px-5 pt-2 pb-5">
         <Field>
           <FieldLabel htmlFor="rotate-key-grace">Grace period</FieldLabel>
-          <Select value={grace} onValueChange={onGraceChange}>
+          <Select
+            items={GRACE_PERIODS.map((p) => ({ value: p.value, label: p.label }))}
+            value={grace}
+            onValueChange={(value) => value !== null && onGraceChange(value)}
+          >
             <SelectTrigger id="rotate-key-grace">
               <SelectValue placeholder="Select a grace period" />
             </SelectTrigger>

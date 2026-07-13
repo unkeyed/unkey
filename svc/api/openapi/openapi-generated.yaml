@@ -347,6 +347,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -354,8 +355,6 @@ components:
                     "$ref": "#/components/schemas/V2ApisListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2AppsCreateAppRequestBody:
             type: object
@@ -470,12 +469,18 @@ components:
                         Pagination cursor from a previous response to fetch the next page.
                         Use when `hasMore: true` in the previous response.
                     example: app_1234abcd
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter apps. Returns apps whose ID, name, or slug contains the search string. Matching is case-insensitive.
+                    example: checkout
             additionalProperties: false
         V2AppsListAppsResponseBody:
             type: object
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -487,8 +492,6 @@ components:
                     description: Array of apps in the project, ordered by app id.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2AppsUpdateAppRequestBody:
             type: object
@@ -722,6 +725,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -731,8 +735,6 @@ components:
                         "$ref": "#/components/schemas/EnvironmentVariable"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2EnvironmentsListEnvironmentsRequestBody:
             type: object
@@ -2346,12 +2348,18 @@ components:
                     default: 100
                     description: Maximum number of permissions to return in a single response.
                     example: 50
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter permissions. Returns permissions whose ID, name, slug, or description contains the search string. Matching is case-insensitive.
+                    example: documents
             additionalProperties: false
         V2PermissionsListPermissionsResponseBody:
             type: object
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2359,8 +2367,6 @@ components:
                     "$ref": "#/components/schemas/V2PermissionsListPermissionsResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2PermissionsListRolesRequestBody:
             type: object
@@ -2385,12 +2391,18 @@ components:
                         Each response containing more results will include a cursor value that can be used here.
                         Leave empty or omit this field to start from the beginning of the role list.
                     example: "eyJrZXkiOiJyb2xlXzEyMzQifQ=="
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter roles. Returns roles whose ID, name, or description contains the search string. Matching is case-insensitive.
+                    example: admin
             additionalProperties: false
         V2PermissionsListRolesResponseBody:
             type: object
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2398,8 +2410,6 @@ components:
                     "$ref": "#/components/schemas/V2PermissionsListRolesResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2PortalCreateSessionRequestBody:
             type: object
@@ -2559,6 +2569,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2566,8 +2577,6 @@ components:
                     "$ref": "#/components/schemas/V2PortalListKeysResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2ProjectsCreateProjectRequestBody:
             type: object
@@ -2652,12 +2661,18 @@ components:
                         Pagination cursor from a previous response to fetch the next page.
                         Use when `hasMore: true` in the previous response.
                     example: proj_1234abcd
+                search:
+                    type: string
+                    maxLength: 256
+                    description: Free-form text to filter projects. Returns projects whose ID, name, or slug contains the search string. Matching is case-insensitive.
+                    example: billing-service
             additionalProperties: false
         V2ProjectsListProjectsResponseBody:
             type: object
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2669,8 +2684,6 @@ components:
                     description: Array of projects in the workspace, ordered by project id.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
         V2ProjectsUpdateProjectRequestBody:
             type: object
@@ -2914,6 +2927,7 @@ components:
             required:
                 - meta
                 - data
+                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
@@ -2921,8 +2935,6 @@ components:
                     "$ref": "#/components/schemas/V2RatelimitListOverridesResponseData"
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
         V2RatelimitMultiLimitRequestBody:
             type: array
             description: Array of rate limit checks to perform

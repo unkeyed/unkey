@@ -168,6 +168,9 @@ export const ExpirationSetup = ({
             customHeader={<ExpirationHeader />}
             singleDateMode
             minDate={minValidDate} // Set minimum date to 2 minutes from now
+            // FormInput renders an <input>, not a native <button>, so Base UI
+            // must add button semantics to the rendered element instead.
+            triggerNativeButton={false}
           >
             <FormInput
               label="Expiry Date"

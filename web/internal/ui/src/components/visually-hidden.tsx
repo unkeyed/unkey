@@ -1,12 +1,16 @@
 "use client";
 
-import * as VisuallyHiddenPrimitive from "@radix-ui/react-visually-hidden";
 import * as React from "react";
 
-const VisuallyHidden = React.forwardRef<
-  React.ElementRef<typeof VisuallyHiddenPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof VisuallyHiddenPrimitive.Root>
->((props, ref) => <VisuallyHiddenPrimitive.Root ref={ref} {...props} />);
-VisuallyHidden.displayName = VisuallyHiddenPrimitive.Root.displayName;
+import { cn } from "../lib/utils";
+
+// Base UI has no VisuallyHidden primitive; the idiomatic replacement is the
+// `sr-only` utility on a plain span.
+const VisuallyHidden = React.forwardRef<HTMLSpanElement, React.ComponentPropsWithoutRef<"span">>(
+  ({ className, ...props }, ref) => (
+    <span ref={ref} className={cn("sr-only", className)} {...props} />
+  ),
+);
+VisuallyHidden.displayName = "VisuallyHidden";
 
 export { VisuallyHidden };

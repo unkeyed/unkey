@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Check, ChevronExpandY } from "@unkey/icons";
-import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { Button, Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cva } from "class-variance-authority";
 import * as React from "react";
 
@@ -156,52 +156,50 @@ export function Combobox({
             {leftIcon}
           </div>
         )}
-        <PopoverTrigger asChild className="w-full">
-          <Button
-            variant="outline"
-            // biome-ignore lint/a11y/useSemanticElements: <explanation>
-            role="combobox"
-            aria-expanded={open}
-            disabled={disabled}
-            id={id}
-            aria-describedby={ariaDescribedby}
-            aria-invalid={ariaInvalid}
-            aria-required={ariaRequired}
-            className={cn(
-              comboboxTriggerVariants({ variant }),
-              "px-3 py-0",
-              leftIcon && "pl-9",
-              !hideChevron && "pr-9", // Space for the chevron icon when visible
-              "justify-between font-normal w-full [&_svg]:size-3",
-              className,
-            )}
-            {...otherProps}
-          >
-            {selectedOption ? (
-              <div className="py-0 w-full text-left truncate">
-                {selectedOption.selectedLabel || selectedOption.label}
-              </div>
-            ) : value && creatable ? (
-              <div className="py-0 w-full text-left truncate">{value}</div>
-            ) : (
-              <div className="text-left w-full">{placeholder}</div>
-            )}
-            {!hideChevron && <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />}
-          </Button>
-        </PopoverTrigger>
+        <PopoverTrigger
+          className="w-full"
+          render={
+            <Button
+              variant="outline"
+              // biome-ignore lint/a11y/useSemanticElements: <explanation>
+              role="combobox"
+              aria-expanded={open}
+              disabled={disabled}
+              id={id}
+              aria-describedby={ariaDescribedby}
+              aria-invalid={ariaInvalid}
+              aria-required={ariaRequired}
+              className={cn(
+                comboboxTriggerVariants({ variant }),
+                "px-3 py-0",
+                leftIcon && "pl-9",
+                !hideChevron && "pr-9", // Space for the chevron icon when visible
+                "justify-between font-normal w-full [&_svg]:size-3",
+                className,
+              )}
+              {...otherProps}
+            >
+              {selectedOption ? (
+                <div className="py-0 w-full text-left truncate">
+                  {selectedOption.selectedLabel || selectedOption.label}
+                </div>
+              ) : value && creatable ? (
+                <div className="py-0 w-full text-left truncate">{value}</div>
+              ) : (
+                <div className="text-left w-full">{placeholder}</div>
+              )}
+              {!hideChevron && (
+                <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />
+              )}
+            </Button>
+          }
+        />
       </div>
       <PopoverContent
         className={cn(
-          "p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible",
+          "p-0 w-full min-w-(--anchor-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible",
           popoverClassName,
         )}
-        onOpenAutoFocus={(e) => {
-          // Let the CommandInput receive focus so users can type immediately
-          e.preventDefault();
-          if (e.currentTarget instanceof HTMLElement) {
-            e.currentTarget.querySelector<HTMLInputElement>("[cmdk-input]")?.focus();
-          }
-        }}
       >
         <Command
           onKeyDown={(e) => {
@@ -297,6 +295,10 @@ export function Combobox({
             </CommandGroup>
           </CommandList>
         </Command>
+        {/* Base UI only enables the modal focus trap when a Close element is
+            rendered inside the popup, so keep this even though it is visually
+            hidden. */}
+        <PopoverClose className="sr-only">Close</PopoverClose>
       </PopoverContent>
     </Popover>
   );

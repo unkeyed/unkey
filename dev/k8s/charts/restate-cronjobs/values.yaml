@@ -52,3 +52,15 @@ jobs:
     schedule: "* * * * *"
     urlPath: "hydra.v1.CronService/idle-preview-deployments/RunScaleDownIdlePreviewDeployments/send"
     idempotencyKey: "idle-preview-deployments-$(date -u +%Y-%m-%dT%H:%M)"
+
+  # Month-end Deploy billing close, backup for the invoice.created webhook that
+  # normally runs it at the period roll. Keyed by the CLOSED period (yesterday's
+  # month, hence the epoch math). The idempotency key carries the run timestamp
+  # so this is a fresh retry, not a replay of the webhook's invocation. Runs at
+  # 00:30 UTC to beat Stripe's ~1h draft auto-finalize.
+  #
+  # NOTE: local/test schedule; the production cron lives in the infra repo too.
+  deploy-billing-close:
+    schedule: "30 0 1 * *"
+    urlPath: "hydra.v1.CronService/$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)/RunDeployBillingClose/send"
+    idempotencyKey: "deploy-billing-close-$(date -u -d @$(( $(date -u +%s) - 86400 )) +%Y-%m)-backup-$(date -u +%Y-%m-%dT%H%M)"

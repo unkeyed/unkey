@@ -67,32 +67,34 @@ export function UsageSparkline({ buckets, errors, maxBars = 30, ariaLabel }: Pro
 
   return (
     <Popover open={isHovered}>
-      <PopoverTrigger asChild>
-        <button
-          ref={triggerRef}
-          type="button"
-          aria-label={ariaLabel ?? defaultAriaLabel}
-          className={cn(baseClass, isEmpty ? "flex items-center justify-center" : "grid items-end")}
-          style={
-            isEmpty ? undefined : { gridTemplateColumns: `repeat(${maxBars}, 3px)`, gap: "2px" }
-          }
-        >
-          {isEmpty ? (
-            <span className="text-[11px] text-gray-10">No usage</span>
-          ) : (
-            bars.map((bar) => (
-              <div key={bar.key} className="flex flex-col">
-                <div className="w-[3px] bg-error-9" style={{ height: `${bar.top}px` }} />
-                <div className="w-[3px] bg-gray-7" style={{ height: `${bar.bottom}px` }} />
-              </div>
-            ))
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onCloseAutoFocus={(e) => e.preventDefault()}
-      >
+      <PopoverTrigger
+        render={
+          <button
+            ref={triggerRef}
+            type="button"
+            aria-label={ariaLabel ?? defaultAriaLabel}
+            className={cn(
+              baseClass,
+              isEmpty ? "flex items-center justify-center" : "grid items-end",
+            )}
+            style={
+              isEmpty ? undefined : { gridTemplateColumns: `repeat(${maxBars}, 3px)`, gap: "2px" }
+            }
+          >
+            {isEmpty ? (
+              <span className="text-[11px] text-gray-10">No usage</span>
+            ) : (
+              bars.map((bar) => (
+                <div key={bar.key} className="flex flex-col">
+                  <div className="w-[3px] bg-error-9" style={{ height: `${bar.top}px` }} />
+                  <div className="w-[3px] bg-gray-7" style={{ height: `${bar.bottom}px` }} />
+                </div>
+              ))
+            )}
+          </button>
+        }
+      />
+      <PopoverContent initialFocus={false} finalFocus={false}>
         <UsagePopover buckets={buckets} errors={errors} />
       </PopoverContent>
     </Popover>

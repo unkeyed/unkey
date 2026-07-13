@@ -145,7 +145,18 @@ export const Feedback: React.FC = () => {
             render={({ field }) => (
               <div className="flex flex-col gap-1.5">
                 <div className="text-gray-11 text-[13px] flex items-center">Area</div>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  items={[
+                    { value: "bug", label: "Bug" },
+                    { value: "feature", label: "Feature Request" },
+                    { value: "security", label: "Security" },
+                    { value: "payment", label: "Payments" },
+                    { value: "question", label: "General Question" },
+                    { value: "feedback", label: "Feedback" },
+                  ]}
+                >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="What area is this" />
                   </SelectTrigger>
@@ -175,7 +186,16 @@ export const Feedback: React.FC = () => {
             render={({ field }) => (
               <div className="flex flex-col gap-1.5">
                 <div className="text-gray-11 text-[13px] flex items-center">Severity</div>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  items={[
+                    { value: "p0", label: "Urgent" },
+                    { value: "p1", label: "High" },
+                    { value: "p2", label: "Normal" },
+                    { value: "p3", label: "Low" },
+                  ]}
+                >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select a severity" />
                   </SelectTrigger>

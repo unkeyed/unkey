@@ -71,6 +71,21 @@ service CronService {
   // idle ones to stop. Key is the fixed slug "idle-preview-deployments" so the
   // scan is singleton-keyed without sharing a queue with other cron handlers.
   rpc RunScaleDownIdlePreviewDeployments(RunScaleDownIdlePreviewDeploymentsRequest) returns (RunScaleDownIdlePreviewDeploymentsResponse) {}
+
+  // RunDeployBillingClose performs the month-end fleet sweep for Deploy billing.
+  // Key = the CLOSED billing period "YYYY-MM". Pushes each billable
+  // workspace's final full-period usage, timestamped just inside the closed
+  // period so the "last"-formula meters bill the final total, then finalizes
+  // every Deploy workspace's draft renewal invoice for that period. The
+  // 00:30 UTC backup cron invokes this; the invoice.created webhook fans out
+  // to CloseDeployBillingWorkspace per invoice instead.
+  rpc RunDeployBillingClose(RunDeployBillingCloseRequest) returns (RunDeployBillingCloseResponse) {}
+
+  // CloseDeployBillingWorkspace closes one workspace's Deploy renewal invoice.
+  // Key = workspace id. Dispatched by the invoice.created webhook after it
+  // claims the draft; pushes final usage for this workspace only and
+  // finalizes the invoice id from the request.
+  rpc CloseDeployBillingWorkspace(CloseDeployBillingWorkspaceRequest) returns (CloseDeployBillingWorkspaceResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -116,3 +131,32 @@ message RunDeployBillingPushResponse {}
 
 message RunScaleDownIdlePreviewDeploymentsRequest {}
 message RunScaleDownIdlePreviewDeploymentsResponse {}
+
+message RunDeployBillingCloseRequest {
+  // Renewal invoice period_end from invoice.created (unix seconds). Proves
+  // Stripe rolled the period so the close may run before wall clock catches up
+  // (test clocks). Omitted for the backup cron, which runs after midnight UTC.
+  int64 period_end = 1;
+}
+message RunDeployBillingCloseResponse {
+  // Number of workspaces whose final full-period usage was pushed.
+  int32 workspaces_pushed = 1;
+  // Number of draft invoices this run finalized.
+  int32 invoices_finalized = 2;
+  // Number of invoices that needed no action (already finalized or paid).
+  int32 invoices_skipped = 3;
+}
+
+message CloseDeployBillingWorkspaceRequest {
+  // Closed billing period "YYYY-MM", derived from the invoice's period_start.
+  string period = 1;
+  // Renewal invoice period_end (unix seconds). Proves Stripe rolled the
+  // period so the close may run before wall clock catches up (test clocks).
+  int64 period_end = 2;
+  // Draft invoice to finalize after the final usage push.
+  string invoice_id = 3;
+}
+
+// CloseDeployBillingWorkspaceResponse is intentionally empty: the outcome is
+// logged by the handler, not consumed by a caller.
+message CloseDeployBillingWorkspaceResponse {}

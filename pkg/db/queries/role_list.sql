@@ -17,5 +17,7 @@ SELECT r.*, COALESCE(
 FROM roles r
 WHERE r.workspace_id = sqlc.arg(workspace_id)
 AND r.id >= sqlc.arg(id_cursor)
+-- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+AND (sqlc.narg(search) IS NULL OR r.id LIKE sqlc.narg(search) OR r.name LIKE sqlc.narg(search) OR r.description LIKE sqlc.narg(search))
 ORDER BY r.id
 LIMIT ?;

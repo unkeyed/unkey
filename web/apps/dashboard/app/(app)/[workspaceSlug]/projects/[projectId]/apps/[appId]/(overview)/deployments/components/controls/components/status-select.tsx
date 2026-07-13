@@ -20,13 +20,15 @@ export function StatusSelect() {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <FilterTriggerButton
-          label="Status"
-          count={selectedStatuses.length}
-          isActive={selectedStatuses.length > 0}
-        />
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <FilterTriggerButton
+            label="Status"
+            count={selectedStatuses.length}
+            isActive={selectedStatuses.length > 0}
+          />
+        }
+      />
       <PopoverContent align="start" className="w-48 p-1">
         {STATUS_OPTIONS.map((option) => (
           <button
