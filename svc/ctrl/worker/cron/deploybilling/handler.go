@@ -137,14 +137,26 @@ func (h *Handler) pushUsage(
 		return 0, 0, 0, nil, fmt.Errorf("get period usage: %w", err)
 	}
 
-	if len(rows) == 0 {
+	keyRows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.ActiveKeysUsage, error) {
+		return h.usage.GetActiveKeysUsage(rc, clickhouse.GetActiveKeysUsageRequest{
+			WorkspaceID: "", // all workspaces; we filter to billable ones below
+			Year:        p.Year,
+			Month:       p.Month,
+		})
+	}, restate.WithName("get active keys"))
+	if err != nil {
+		return 0, 0, 0, nil, fmt.Errorf("get active keys: %w", err)
+	}
+
+	valuesByWorkspace := aggregateUsage(rows)
+	mergeActiveKeys(valuesByWorkspace, keyRows)
+	if len(valuesByWorkspace) == 0 {
 		logger.Info("no deploy usage this period", "billing_period", period)
 		return 0, 0, 0, nil, nil
 	}
 
-	valuesByWorkspace := aggregateUsage(rows)
-
-	// Stable order for Restate replay.
+	// Sort so the downstream journaled steps (db fetch, per-workspace push)
+	// replay in a stable order.
 	workspaceIDs := make([]string, 0, len(valuesByWorkspace))
 	for id := range valuesByWorkspace {
 		workspaceIDs = append(workspaceIDs, id)
