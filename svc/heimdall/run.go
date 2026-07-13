@@ -78,7 +78,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// concurrent inserts safe; dedup is by content hash, no ordering
 	// assumption. Matches the codebase idiom (svc/api uses 2 for its CH
 	// buffers).
-	checkpointBuffer := clickhouse.NewBuffer[schema.InstanceCheckpoint](ch, "default.instance_checkpoints_v1", clickhouse.BufferConfig{
+	checkpointBuffer := clickhouse.NewBuffer[schema.InstanceCheckpoint](ch, clickhouse.BufferConfig{
 		Name:          "instance_checkpoints",
 		Drop:          false,
 		BatchSize:     10_000,

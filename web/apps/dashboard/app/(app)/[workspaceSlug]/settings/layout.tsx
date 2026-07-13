@@ -26,8 +26,12 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         <SecondaryNavTitle>Settings</SecondaryNavTitle>
         <SecondaryNavGroup>
           {ITEMS.map((item) => (
-            <SecondaryNavItem key={item.segment} asChild active={active === item.segment}>
-              <Link href={item.getHref({ workspaceSlug: workspace.slug })}>{item.label}</Link>
+            <SecondaryNavItem
+              key={item.segment}
+              active={active === item.segment}
+              render={<Link href={item.getHref({ workspaceSlug: workspace.slug })} />}
+            >
+              {item.label}
             </SecondaryNavItem>
           ))}
         </SecondaryNavGroup>

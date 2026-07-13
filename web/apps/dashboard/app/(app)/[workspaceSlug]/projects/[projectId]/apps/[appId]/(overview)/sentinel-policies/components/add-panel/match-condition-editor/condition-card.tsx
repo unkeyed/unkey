@@ -33,6 +33,7 @@ export function MatchConditionCard({
         <div className="flex-1">
           <Select
             value={condition?.type}
+            items={MATCH_TYPE_OPTIONS}
             onValueChange={(v) => {
               const newType = v as MatchConditionFormValues["type"];
               setValue(`matchConditions.${index}`, getDefaultCondition(newType, condition?.id));

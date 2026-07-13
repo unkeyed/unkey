@@ -7,7 +7,9 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -28,6 +30,7 @@ func TestBuildPodDisruptionBudget(t *testing.T) {
 			UID:  types.UID("rs-uid-123"),
 		},
 	}
+	alwaysAllow := policyv1.AlwaysAllow
 
 	pdb := buildPodDisruptionBudget(req, rs)
 
@@ -37,6 +40,7 @@ func TestBuildPodDisruptionBudget(t *testing.T) {
 	require.NotNil(t, pdb.Spec.MaxUnavailable)
 	require.Equal(t, intstr.Int, pdb.Spec.MaxUnavailable.Type)
 	require.Equal(t, int32(1), pdb.Spec.MaxUnavailable.IntVal)
+	require.Equal(t, &alwaysAllow, pdb.Spec.UnhealthyPodEvictionPolicy)
 	require.Nil(t, pdb.Spec.MinAvailable, "minAvailable would deadlock single-replica drains")
 
 	// Selects exactly the deployment's pods by deployment ID.

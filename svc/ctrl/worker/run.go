@@ -189,7 +189,7 @@ func Run(ctx context.Context, cfg Config) error {
 			ch = chClient
 			billingUsageReader = chClient
 
-			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, "default.build_steps_v1", clickhouse.BufferConfig{
+			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, clickhouse.BufferConfig{
 				Name:          "build_steps",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -198,7 +198,7 @@ func Run(ctx context.Context, cfg Config) error {
 				Drop:          true,
 				OnFlushError:  nil,
 			})
-			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, "default.build_step_logs_v1", clickhouse.BufferConfig{
+			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, clickhouse.BufferConfig{
 				Name:          "build_step_logs",
 				BatchSize:     1_000,
 				BufferSize:    2_000,

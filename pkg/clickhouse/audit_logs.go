@@ -16,5 +16,5 @@ func (c *Client) InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) 
 	if len(rows) == 0 {
 		return nil
 	}
-	return flush(c, ctx, "default.audit_logs_raw_v1", rows)
+	return flush(c, ctx, rows)
 }

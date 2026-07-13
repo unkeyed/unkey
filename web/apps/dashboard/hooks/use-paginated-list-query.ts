@@ -2,11 +2,14 @@ import {
   type SortUrlValue,
   parseAsSortArray,
 } from "@/components/logs/validation/utils/nuqs-parsers";
+import { serializeFilters } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
+import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-
-const PREFETCH_PAGES_AHEAD = 2;
+import { useCallback, useEffect, useMemo } from "react";
 
 // Shared tRPC options — cached-forever paginated lists use the same defaults.
 export const PAGINATED_LIST_QUERY_OPTIONS = {
@@ -165,33 +168,13 @@ export function usePaginatedListQuery<
 
   // Stable string key from filter content — prevents spurious page resets when
   // the filter hook returns a new array reference for the same values.
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${String(f.value)}`).join("|"),
-    [filters],
-  );
+  const filtersKey = useMemo(() => serializeFilters(filters), [filters]);
 
-  // Reset to page 1 only when filter content actually changes, not on mount.
-  // The useEffect below syncs URL state for subsequent renders, but the render
-  // that observes the filter change still sees the old normalizedPage — without
-  // queryPage below, that render would fire one stale request for the previous
-  // page against the new filters before setPage(1) commits. The null guard
-  // keeps first-mount URL-persisted pages intact; we only override on a real
-  // filter transition.
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  const queryPage =
-    prevFiltersKeyRef.current !== null && filtersKey !== prevFiltersKeyRef.current
-      ? 1
-      : normalizedPage;
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
 
   const filterParams = useMemo<TFilterParams>(() => {
     const params = Object.fromEntries(
@@ -233,50 +216,25 @@ export function usePaginatedListQuery<
 
   const { data, isLoading, isFetching } = useListQuery(queryParams);
 
-  // Stable identity for the prefetch effect so a fresh caller arrow each
-  // render doesn't re-fire it. Store-latest-callback pattern; idempotent
-  // under Strict Mode.
-  const prefetchRef = useRef(prefetch);
-  prefetchRef.current = prefetch;
-  const prefetchPage = useCallback(
-    (params: TFilterParams & PageSortQueryParams<TSortField>) => prefetchRef.current(params),
-    [],
-  );
-
   const isInitialLoading = isLoading && !data;
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
 
-  // Clamp page to valid range after data/totalPages updates.
-  useEffect(() => {
-    if (data == null) {
-      return;
-    }
-    if (queryPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, queryPage, totalPages, setPage]);
+  usePageClamp({
+    page: queryPage,
+    totalPages,
+    data,
+    setPage,
+  });
 
-  // Prefetch the next few pages so navigation feels instant.
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = queryPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      prefetchPage({ ...queryParams, page: nextPage });
-    }
-  }, [queryPage, totalPages, prefetchPage, queryParams]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch,
+  });
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   return {
     data,

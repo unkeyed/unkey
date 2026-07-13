@@ -22,15 +22,18 @@ export const EmptyState = ({ content }: EmptyStateProps) => {
               Ready to get started? Check our documentation for a step-by-step guide.
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
-              <Button asChild>
-                <a
-                  href="https://www.unkey.com/docs/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <BookBookmark />
-                  Documentation
-                </a>
+              <Button
+                render={
+                  // biome-ignore lint/a11y/useAnchorContent: link content is supplied by the Button's children via Base UI's render prop
+                  <a
+                    href="https://www.unkey.com/docs/introduction"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                }
+              >
+                <BookBookmark />
+                Documentation
               </Button>
             </Empty.Actions>
           </Empty>

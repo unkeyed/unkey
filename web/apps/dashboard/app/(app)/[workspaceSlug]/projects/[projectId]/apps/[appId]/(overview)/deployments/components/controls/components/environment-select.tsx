@@ -31,7 +31,21 @@ export function EnvironmentSelect() {
   };
 
   return (
-    <Select value={currentValue} onValueChange={handleChange}>
+    <Select
+      value={currentValue}
+      items={[
+        { value: "all", label: "All Environments" },
+        ...environments.map((env) => ({
+          value: env.slug,
+          label: env.slug.charAt(0).toUpperCase() + env.slug.slice(1),
+        })),
+      ]}
+      onValueChange={(newValue) => {
+        if (newValue !== null) {
+          handleChange(newValue);
+        }
+      }}
+    >
       <SelectTrigger
         className="h-9 w-full bg-gray-1"
         leftIcon={<Layers3 iconSize="md-medium" className="text-gray-9" />}

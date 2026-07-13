@@ -70,7 +70,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		mk(extB, otherKey, "VALID", dayA),
 	}
 
-	batch, err := client.Conn().PrepareBatch(ctx, "INSERT INTO default.key_verifications_raw_v2")
+	batch, err := client.Conn().PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
 	require.NoError(t, err)
 	for i := range rows {
 		require.NoError(t, batch.AppendStruct(&rows[i]))
