@@ -16,6 +16,11 @@
  *   - spans         → standalone web-vital (INP) span envelopes, which bypass
  *                     `beforeSendTransaction` entirely
  *
+ * Beyond URLs, error and transaction events carry the raw tRPC procedure input
+ * under `contexts.trpc.input` (`attachRpcInput: true`), scrubbed by
+ * `scrubTrpcInput`, and server db spans record interpolated SQL statements
+ * under `db.query.text`, masked by `maskSqlLiterals`.
+ *
  * This module redacts those values before the payload leaves the browser/server.
  * Error events run through `beforeSend`, transactions through
  * `beforeSendTransaction`, standalone spans through `beforeSendSpan`; the hooks
@@ -24,6 +29,7 @@
  */
 
 import type { ErrorEvent, EventHint, NodeOptions } from "@sentry/nextjs";
+import type { Router } from "../trpc/routers";
 
 /**
  * `@sentry/nextjs` does not re-export `TransactionEvent`, so derive it from
@@ -75,42 +81,46 @@ const SENSITIVE_NAME_KEYS = new Set(
 const URL_ONLY_SENSITIVE_PARAM_KEYS = new Set(["input"]);
 
 /**
- * Matches token-like path segments: 20+ chars of base64url alphabet containing
- * at least one digit. Opaque secrets (Unkey root keys, JWTs, session ids) mix
- * digits into their alphabet; the digit requirement spares long human-written
- * route identifiers like tRPC procedure names (`getDeploymentRuntimeLogs`),
- * which would otherwise collapse to [REDACTED] and merge distinct routes in
- * Sentry Performance. Only URL paths use this net — route grouping lives in
- * paths — accepting a known residual miss: a digit-free 20+ char secret
- * embedded directly in a path segment.
+ * Matches token-like runs: 20+ chars of base64url alphabet. `redactTokenLike`
+ * redacts every match; `redactTokenLikeInPath` additionally requires a digit
+ * before redacting.
  */
-const TOKEN_LIKE = /(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]{20,}/g;
-
-/**
- * Broad token-like matcher: the same alphabet as `TOKEN_LIKE` without the
- * digit requirement. Applied everywhere route grouping is not a concern —
- * query param values, tRPC input field values, unparseable URLs — so
- * digit-free secrets (passphrases, letters-only ids) still fail closed.
- */
-const TOKEN_LIKE_BROAD = /[A-Za-z0-9_-]{20,}/g;
+const TOKEN_LIKE = /[A-Za-z0-9_-]{20,}/g;
 
 /**
  * Whether a parameter/field name is known to carry secrets or PII. Matched
- * case-insensitively. Shared with the tRPC input scrubber in error-filter.ts so
- * both scrub surfaces treat the same names as sensitive.
+ * case-insensitively. Shared by the URL param scrubber and the tRPC input
+ * scrubber so both surfaces treat the same names as sensitive.
  */
-export function isSensitiveKey(name: string): boolean {
+function isSensitiveKey(name: string): boolean {
   return SENSITIVE_NAME_KEYS.has(name.toLowerCase());
 }
 
 /**
  * Redacts token-like substrings from a value regardless of its field name, as
- * a fail-closed fallback for opaque secrets under unrecognized names. Shared
- * by the tRPC input scrubber in error-filter.ts and the query-param fallback
- * below.
+ * a fail-closed fallback for opaque secrets under unrecognized names. Applied
+ * everywhere route grouping is not a concern — query param values, tRPC input
+ * field values, unparseable URLs — so digit-free secrets (passphrases,
+ * letters-only ids) fail closed.
  */
-export function redactTokenLike(value: string): string {
-  return value.replace(TOKEN_LIKE_BROAD, REDACTED);
+function redactTokenLike(value: string): string {
+  return value.replace(TOKEN_LIKE, REDACTED);
+}
+
+/**
+ * Redacts token-like path segments only when the run contains a digit. Opaque
+ * secrets (Unkey root keys, JWTs, session ids) mix digits into their alphabet;
+ * the digit requirement spares long human-written route identifiers like tRPC
+ * procedure names (`getDeploymentRuntimeLogs`), which would otherwise collapse
+ * to [REDACTED] and merge distinct routes in Sentry Performance. Only URL
+ * paths get this treatment — route grouping lives in paths — accepting a
+ * known residual miss: a digit-free 20+ char secret embedded directly in a
+ * path segment. The digit check runs per matched run rather than as a regex
+ * lookahead; a lookahead re-scans from every position, turning long
+ * digit-free paths into an ~O(n²) stall on the browser main thread.
+ */
+function redactTokenLikeInPath(path: string): string {
+  return path.replace(TOKEN_LIKE, (run) => (/\d/.test(run) ? REDACTED : run));
 }
 
 /**
@@ -119,7 +129,13 @@ export function redactTokenLike(value: string): string {
  */
 function isSensitiveParamKey(name: string): boolean {
   const lower = name.toLowerCase();
-  return SENSITIVE_NAME_KEYS.has(lower) || URL_ONLY_SENSITIVE_PARAM_KEYS.has(lower);
+  // ClickHouse sends query bindings as `param_<name>` search params; bindings
+  // are data values by definition (external ids are often emails), never
+  // route info, so redact them regardless of the bound name.
+  if (lower.startsWith("param_")) {
+    return true;
+  }
+  return isSensitiveKey(name) || URL_ONLY_SENSITIVE_PARAM_KEYS.has(lower);
 }
 
 /**
@@ -135,11 +151,19 @@ function scrubParamValue(name: string, value: string): string {
 }
 
 /**
- * Redacts every parameter value in place using `scrubParamValue`.
+ * Redacts every parameter value in place using `scrubParamValue`. Works on a
+ * snapshot of the entries: calling `set()` while iterating collapses repeated
+ * keys (`?status=a&status=b` would silently lose values), so entries are
+ * removed and re-appended scrubbed, preserving duplicates and order.
+ * Repeated deletes of the same name are no-ops.
  */
 function scrubSearchParams(params: URLSearchParams): void {
-  for (const [name, value] of params.entries()) {
-    params.set(name, scrubParamValue(name, value));
+  const entries = [...params.entries()];
+  for (const [name] of entries) {
+    params.delete(name);
+  }
+  for (const [name, value] of entries) {
+    params.append(name, scrubParamValue(name, value));
   }
 }
 
@@ -154,6 +178,15 @@ function scrubSearchParams(params: URLSearchParams): void {
 export function scrubUrl(url: string): string {
   if (typeof url !== "string" || url.length === 0) {
     return url;
+  }
+
+  // Opaque-path schemes (mailto:, tel:, blob:, data:) never reach the
+  // path/query machinery — the WHATWG pathname setter is a no-op on opaque
+  // paths — and their payload is inherently identifying (an email, a phone
+  // number, a blob id). Redact the payload wholesale, keeping the scheme.
+  const opaqueScheme = url.match(/^(?!https?:)([a-z][a-z0-9+.-]*):(?!\/\/)/i)?.[1];
+  if (opaqueScheme) {
+    return `${opaqueScheme}:${REDACTED}`;
   }
 
   try {
@@ -174,7 +207,7 @@ export function scrubUrl(url: string): string {
     // `/_next/static/` is exempt — `/_next/data/` payload URLs embed dynamic
     // route params, which can be token-like ids.
     if (!parsed.pathname.startsWith("/_next/static/")) {
-      parsed.pathname = parsed.pathname.replace(TOKEN_LIKE, REDACTED);
+      parsed.pathname = redactTokenLikeInPath(parsed.pathname);
     }
 
     // Drop the fragment entirely. It is never useful for debugging and can carry
@@ -190,7 +223,7 @@ export function scrubUrl(url: string): string {
   } catch {
     // Fall back to a blanket broad-net redaction if URL parsing fails; with
     // no parsed structure there is no route grouping to protect.
-    return url.replace(TOKEN_LIKE_BROAD, REDACTED);
+    return redactTokenLike(url);
   }
 }
 
@@ -257,7 +290,8 @@ function scrubBreadcrumbs(event: ErrorEvent | TransactionEvent): void {
 }
 
 /**
- * Scrubs PII/secrets from an error event in place. Safe to call on every event
+ * Scrubs PII/secrets from an error event in place: request URLs and headers,
+ * breadcrumbs, and the attached tRPC input. Safe to call on every event
  * regardless of classification. Never throws.
  *
  * @param event - The Sentry error event to scrub. Mutated in place because
@@ -267,6 +301,7 @@ export function scrubEventPii(event: ErrorEvent, _hint?: EventHint): void {
   try {
     scrubRequest(event.request);
     scrubBreadcrumbs(event);
+    scrubTrpcInput(event);
   } catch {
     // Scrubbing must never prevent an error from being reported. If anything
     // unexpected happens, fall through and let Sentry send the event as-is.
@@ -320,6 +355,103 @@ function scrubRequest(request: ErrorEvent["request"] | TransactionEvent["request
 }
 
 /**
+ * Input field names that may carry plaintext secrets and must never be sent
+ * to Sentry, beyond the shared sensitive-name list (which already covers
+ * `secret`, `code`, `token`, `password`, etc.). The tRPC Sentry middleware
+ * attaches the raw procedure input to `event.contexts.trpc.input` (via
+ * `attachRpcInput: true`), which would otherwise exfiltrate env-var secret
+ * values (`value`, `variables[].value`, `items[].value`).
+ * `sendDefaultPii: false` does not scrub custom contexts, so we redact these
+ * explicitly. Matched case-insensitively.
+ */
+const SENSITIVE_INPUT_KEYS = new Set(["value"]);
+
+/**
+ * Whether a tRPC input field name must be redacted: the shared sensitive-name
+ * list plus input-specific names.
+ */
+function isSensitiveInputKey(key: string): boolean {
+  return SENSITIVE_INPUT_KEYS.has(key.toLowerCase()) || isSensitiveKey(key);
+}
+
+/**
+ * Dotted paths of the `share` router's procedures, derived from the app router
+ * type (type-only import, erased at runtime). Typing the set below against
+ * this union makes a procedure rename a compile error instead of a silently
+ * disabled redaction.
+ */
+type ShareProcedurePath = `share.${Extract<keyof Router["share"]["_def"]["record"], string>}`;
+
+/**
+ * Procedures whose input is itself a bearer credential, so key-based scrubbing
+ * is not enough and the entire input must be redacted. `share.reveal` takes
+ * `{ id }` where the id is the one-time share credential: an unexpected error
+ * (e.g. a vault outage, which rolls back the transaction and leaves the row
+ * un-consumed) would otherwise store a still-valid credential in Sentry.
+ */
+const CREDENTIAL_INPUT_PROCEDURES: ReadonlySet<string> = new Set<ShareProcedurePath>([
+  "share.reveal",
+]);
+
+/**
+ * Recursively replaces the values of sensitive keys with a redaction marker.
+ * Walks nested objects and arrays so secrets nested under `variables`/`items`
+ * are also scrubbed, and redacts token-like substrings from the remaining
+ * string values as a fail-closed fallback for secrets under field names the
+ * key list doesn't anticipate. Returns a new structure and never mutates the
+ * input.
+ */
+function redactSensitiveValues(value: unknown): unknown {
+  if (typeof value === "string") {
+    return redactTokenLike(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(redactSensitiveValues);
+  }
+
+  if (value && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = isSensitiveInputKey(key) ? REDACTED : redactSensitiveValues(nested);
+    }
+    return result;
+  }
+
+  return value;
+}
+
+/**
+ * Scrubs plaintext secrets from the tRPC input attached by the Sentry tRPC
+ * middleware. The middleware writes to the scope, and scope contexts merge
+ * into transaction events just as they do into error events, so this runs in
+ * both `scrubEventPii` and `scrubTransactionPii` — tRPC-named transactions
+ * sample at 100%, so an unscrubbed transaction would store e.g.
+ * `share.reveal`'s one-time bearer id on every successful reveal. Fails
+ * closed for this credential-bearing surface: if scrubbing throws, the input
+ * is dropped wholesale rather than forwarded raw. Mutates the event in place
+ * because Sentry consumes the same object returned from its hooks.
+ */
+function scrubTrpcInput(event: ErrorEvent | TransactionEvent): void {
+  const trpcContext = event.contexts?.trpc;
+  if (!trpcContext || !("input" in trpcContext)) {
+    return;
+  }
+
+  try {
+    const procedurePath = trpcContext.procedure_path;
+    if (typeof procedurePath === "string" && CREDENTIAL_INPUT_PROCEDURES.has(procedurePath)) {
+      trpcContext.input = REDACTED;
+      return;
+    }
+
+    trpcContext.input = redactSensitiveValues(trpcContext.input);
+  } catch {
+    trpcContext.input = REDACTED;
+  }
+}
+
+/**
  * Span/trace attribute keys whose string values are URLs (absolute or
  * relative). Covers both the legacy `http.*` and current OpenTelemetry `url.*`
  * semantic conventions plus Next.js-specific attributes.
@@ -343,6 +475,48 @@ const FRAGMENT_ATTRIBUTE_KEYS = ["http.fragment", "url.fragment"];
  * attach.
  */
 const TEXT_ATTRIBUTE_KEYS = ["transaction"];
+
+/**
+ * Span attribute keys carrying the executed SQL statement. The mysql2
+ * OpenTelemetry auto-instrumentation records statements with bound values
+ * interpolated as literals (its `maskStatement` option defaults to false), so
+ * WHERE/INSERT literals — share ids, emails, key ids — would otherwise reach
+ * Sentry on every db span. `db.query.text` is the current semantic
+ * convention, `db.statement` the legacy one.
+ */
+const SQL_ATTRIBUTE_KEYS = ["db.query.text", "db.statement"];
+
+/**
+ * Masks literal values in a SQL statement while keeping its shape: quoted
+ * strings and standalone numeric literals become `?`, matching what the
+ * instrumentation's `maskStatement` option would produce, so keywords,
+ * identifiers, and query grouping survive. The trailing SQLCommenter block is
+ * preserved wholesale — its quoted tag values carry no user data and Query
+ * Insights attribution depends on them.
+ *
+ * The trailer is peeled off with a linear scan — an end-anchored regex with a
+ * greedy prefix backtracks quadratically on statements full of comment
+ * openers — and bound to the LAST `/*`, so an opener inside a user-supplied
+ * value cannot fake a comment and smuggle the surrounding literals through
+ * unmasked; string literals are then masked first over the body.
+ */
+function maskSqlLiterals(sql: string): string {
+  let body = sql;
+  let trailer = "";
+  if (sql.trimEnd().endsWith("*/")) {
+    const openIndex = sql.lastIndexOf("/*");
+    if (openIndex >= 0) {
+      body = sql.slice(0, openIndex);
+      trailer = sql.slice(openIndex);
+    }
+  }
+  return (
+    body
+      .replace(/'(?:[^'\\]|\\.)*'/g, "?")
+      .replace(/"(?:[^"\\]|\\.)*"/g, "?")
+      .replace(/\b\d+(?:\.\d+)?\b/g, "?") + trailer
+  );
+}
 
 /**
  * Scrubs URL-carrying attributes on a span's `data` or a trace context's
@@ -376,15 +550,24 @@ function scrubSpanAttributes(attributes: Record<string, unknown> | undefined): v
       attributes[key] = scrubUrlsInText(value);
     }
   }
+  for (const key of SQL_ATTRIBUTE_KEYS) {
+    const value = attributes[key];
+    if (typeof value === "string") {
+      attributes[key] = maskSqlLiterals(value);
+    }
+  }
 }
 
 /**
  * Matches a URL glued to a non-URL prefix inside a single token, e.g.
  * `fetch(/api/keys?key=x)` or `url=https://...`. Group 1 is the prefix up to
- * and including the `=` or `(`, group 2 the URL itself. `/(?!\*)` keeps
- * comment openers (`=/*`) from being mistaken for a path.
+ * and including the `=` or `(`, group 2 the URL itself, and group 3 any
+ * trailing `)` wrapper characters — kept out of the URL so `fetch(...)`
+ * retains its balanced paren instead of the `)` being percent-encoded into
+ * the last query value. `/(?!\*)` keeps comment openers (`=/*`) from being
+ * mistaken for a path.
  */
-const EMBEDDED_URL = /^(.*?[=(])((?:https?:\/\/|\/(?!\*)).*)$/i;
+const EMBEDDED_URL = /^(.*?[=(])((?:https?:\/\/|\/(?!\*)).*?)(\)*)$/i;
 
 /**
  * Scrubs URLs embedded in free-form text such as span descriptions
@@ -413,7 +596,7 @@ function scrubUrlsInText(text: string): string {
       }
       const embedded = token.match(EMBEDDED_URL);
       if (embedded) {
-        return embedded[1] + scrubUrl(embedded[2]);
+        return embedded[1] + scrubUrl(embedded[2]) + embedded[3];
       }
       return token;
     })
@@ -421,14 +604,34 @@ function scrubUrlsInText(text: string): string {
 }
 
 /**
+ * Whether a span records an executed SQL statement. Sentry's OpenTelemetry
+ * layer copies `db.statement` verbatim into the span description, so db spans
+ * need SQL masking on the description too, not just on the attribute.
+ */
+function isSqlSpan(span: { op?: string; data?: Record<string, unknown> }): boolean {
+  if (span.op?.startsWith("db")) {
+    return true;
+  }
+  return SQL_ATTRIBUTE_KEYS.some((key) => typeof span.data?.[key] === "string");
+}
+
+/**
  * Scrubs the URL-bearing fields shared by transaction child spans and
  * standalone span envelopes — the free-text description plus the span
  * attributes — in place. Both envelope paths call this single helper so the
- * scrubbed surfaces cannot drift apart.
+ * scrubbed surfaces cannot drift apart. Db span descriptions are the raw SQL
+ * statement (copied from `db.statement`), so they get literal masking rather
+ * than URL scrubbing.
  */
-function scrubSpanFields(span: { description?: string; data?: Record<string, unknown> }): void {
+function scrubSpanFields(span: {
+  op?: string;
+  description?: string;
+  data?: Record<string, unknown>;
+}): void {
   if (typeof span.description === "string") {
-    span.description = scrubUrlsInText(span.description);
+    span.description = isSqlSpan(span)
+      ? maskSqlLiterals(span.description)
+      : scrubUrlsInText(span.description);
   }
   scrubSpanAttributes(span.data);
 }
@@ -455,6 +658,11 @@ export function scrubTransactionPii(
     }
     scrubRequest(event.request);
     scrubBreadcrumbs(event);
+
+    // The tRPC middleware attaches raw procedure input to `contexts.trpc`,
+    // which merges into transaction events too — the same leak the error path
+    // closes via `createErrorFilter`.
+    scrubTrpcInput(event);
 
     // The root span's attributes live on the trace context, not in `spans`.
     scrubSpanAttributes(event.contexts?.trace?.data);
@@ -502,6 +710,7 @@ export function scrubSpanPii(span: SpanJson): SpanJson {
         ...QUERY_ATTRIBUTE_KEYS,
         ...FRAGMENT_ATTRIBUTE_KEYS,
         ...TEXT_ATTRIBUTE_KEYS,
+        ...SQL_ATTRIBUTE_KEYS,
       ]) {
         delete copy.data[key];
       }

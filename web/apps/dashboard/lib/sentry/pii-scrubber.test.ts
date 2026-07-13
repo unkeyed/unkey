@@ -37,6 +37,36 @@ describe("scrubUrl", () => {
     expect(out).not.toContain("abcdefghijklmnopqrstuvwx");
   });
 
+  it("preserves repeated query params while scrubbing", () => {
+    // `URLSearchParams.set` during iteration collapses duplicates, which would
+    // silently corrupt multi-value filters in the captured URL.
+    expect(scrubUrl("/keys?status=active&status=trialing&key=secret123")).toBe(
+      "/keys?status=active&status=trialing&key=%5BREDACTED%5D",
+    );
+  });
+
+  it("redacts opaque-path scheme payloads wholesale", () => {
+    // The WHATWG pathname setter is a no-op on opaque paths, so mailto:/tel:/
+    // blob: payloads would otherwise pass through the path machinery
+    // untouched — and their payload is inherently identifying.
+    expect(scrubUrl("mailto:jane.doe@example.com")).toBe("mailto:[REDACTED]");
+    expect(scrubUrl("tel:+15551234567")).toBe("tel:[REDACTED]");
+    expect(scrubUrl("blob:https://app.unkey.com/1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d")).toBe(
+      "blob:[REDACTED]",
+    );
+  });
+
+  it("redacts ClickHouse param_ query bindings regardless of the bound name", () => {
+    // @clickhouse/client sends bound query params as `param_<name>`; bindings
+    // are data values (external ids are often emails) whose short runs evade
+    // the token net, so the name prefix alone must trigger redaction.
+    const out = scrubUrl(
+      "https://ch.unkey.com/?param_externalId=jane.doe%40acme.com&database=unkey",
+    );
+    expect(out).not.toContain("jane.doe");
+    expect(out).toContain("database=unkey");
+  });
+
   it("drops basic-auth userinfo entirely", () => {
     const out = scrubUrl("https://dbuser:secretpass@clickhouse.example.com/query?x=1");
     expect(out).not.toContain("secretpass");
@@ -265,11 +295,10 @@ describe("scrubTransactionPii", () => {
 
     expect(event.transaction).not.toContain(ROOT_KEY);
     expect(event.transaction).toContain("GET\t/auth/callback");
-    const serialized = JSON.stringify(event.spans);
-    expect(serialized).not.toContain(ROOT_KEY);
-    expect(serialized).not.toContain(JWT);
-    expect(event.spans?.[0]?.description).toContain("fetch(/api/keys");
-    expect(event.spans?.[1]?.description).toContain("redirect url=/login");
+    // Exact output: the `fetch(...)` wrapper keeps its balanced paren instead
+    // of the `)` being percent-encoded into the last query value.
+    expect(event.spans?.[0]?.description).toBe("fetch(/api/keys?key=%5BREDACTED%5D)");
+    expect(event.spans?.[1]?.description).toBe("redirect url=/login?token=%5BREDACTED%5D");
   });
 
   it("leaves SQLCommenter blocks in db span descriptions untouched", () => {
@@ -326,6 +355,45 @@ describe("scrubTransactionPii", () => {
     }
   });
 
+  it("scrubs sensitive fields from tRPC input attached to transaction contexts", () => {
+    // `attachRpcInput: true` writes raw procedure input to the scope, and
+    // scope contexts merge into transaction events too — without this,
+    // 100%-sampled tRPC transactions would carry what `beforeSend` redacts on
+    // error events.
+    const event: TransactionEvent = {
+      type: "transaction",
+      transaction: "trpc/key.create",
+      contexts: {
+        trpc: {
+          procedure_path: "key.create",
+          input: { secret: "unkey_secret_plaintext_value", safe: "kept" },
+        },
+      },
+    };
+
+    scrubTransactionPii(event);
+
+    expect(event.contexts?.trpc?.input).toEqual({ secret: "[REDACTED]", safe: "kept" });
+  });
+
+  it("fully redacts credential-procedure input on transactions", () => {
+    // A *successful* share.reveal samples at 100% as a tRPC transaction; its
+    // input id is the one-time bearer credential and must never reach Sentry.
+    const shareId = "still_valid_one_time_share_id";
+    const event: TransactionEvent = {
+      type: "transaction",
+      transaction: "trpc/share.reveal",
+      contexts: {
+        trpc: { procedure_path: "share.reveal", input: { id: shareId } },
+      },
+    };
+
+    scrubTransactionPii(event);
+
+    expect(event.contexts?.trpc?.input).toBe("[REDACTED]");
+    expect(JSON.stringify(event)).not.toContain(shareId);
+  });
+
   it("drops the transaction instead of sending it half-scrubbed when scrubbing throws", () => {
     const frozenSpan = makeSpan({ description: `GET /x?key=${ROOT_KEY}` });
     Object.freeze(frozenSpan);
@@ -357,6 +425,61 @@ describe("scrubSpanPii", () => {
     // Non-URL text like the interaction target selector is untouched.
     expect(returned.description).toBe("body > div#root > button.submit");
     expect(returned.data["sentry.exclusive_time"]).toBe(120);
+  });
+
+  it("masks SQL literal values in db statement attributes while keeping query shape", () => {
+    // The mysql2 auto-instrumentation interpolates bound values into
+    // `db.query.text`; literals must be masked, but identifiers and the
+    // SQLCommenter tags must survive for query grouping and Query Insights.
+    const span = makeSpan({
+      op: "db",
+      data: {
+        "db.query.text":
+          "SELECT * FROM `keys` WHERE owner_email = 'jo@acme.com' AND id = 42 /*service='dashboard'*/",
+      },
+    });
+
+    const returned = scrubSpanPii(span);
+
+    expect(returned.data["db.query.text"]).toBe(
+      "SELECT * FROM `keys` WHERE owner_email = ? AND id = ? /*service='dashboard'*/",
+    );
+  });
+
+  it("masks SQL literals in db span descriptions too (Sentry copies db.statement there)", () => {
+    // Sentry's OpenTelemetry layer sets a db span's description to the raw
+    // `db.statement` verbatim — masking only the attribute would leave the
+    // displayed field leaking the same literals.
+    const statement = "SELECT * FROM `keys` WHERE owner_email = 'jo@acme.com' AND id = 42";
+    const span = makeSpan({
+      op: "db",
+      description: statement,
+      data: { "db.statement": statement },
+    });
+
+    const returned = scrubSpanPii(span);
+
+    expect(returned.description).toBe("SELECT * FROM `keys` WHERE owner_email = ? AND id = ?");
+    expect(returned.data["db.statement"]).toBe(
+      "SELECT * FROM `keys` WHERE owner_email = ? AND id = ?",
+    );
+  });
+
+  it("masks literals even when a value contains a comment opener", () => {
+    // A `/*` inside a user-supplied string must not fake a comment opener and
+    // smuggle the surrounding literals through unmasked up to the SQLCommenter
+    // trailer.
+    const span = makeSpan({
+      op: "db",
+      description:
+        "SELECT * FROM keys WHERE note = 'contact a/*b jo@acme.com' AND id = 42 /*service='dashboard'*/",
+    });
+
+    const returned = scrubSpanPii(span);
+
+    expect(returned.description).toBe(
+      "SELECT * FROM keys WHERE note = ? AND id = ? /*service='dashboard'*/",
+    );
   });
 
   it("scrubs read-only spans by copying instead of forwarding them unscrubbed", () => {
