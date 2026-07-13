@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Key2 } from "@unkey/icons";
-import { ConfirmPopover, Dialog, DialogContent, DialogTitle, VisuallyHidden } from "@unkey/ui";
+import { ConfirmPopover, Dialog, DialogContent, DialogTitle } from "@unkey/ui";
 import { type FC, useEffect, useRef, useState } from "react";
 import { KeyPayloadTabs } from "./key-payload-tabs";
 
@@ -99,9 +99,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
         showCloseWarning
         onAttemptClose={handleCloseAttempt}
       >
-        <VisuallyHidden asChild>
-          <DialogTitle>{copy.title}</DialogTitle>
-        </VisuallyHidden>
+        <DialogTitle className="sr-only">{copy.title}</DialogTitle>
         <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full min-w-0 px-[120px]">
           <div className="py-4 mt-[30px]">
             <div className="flex gap-4">
@@ -152,7 +150,6 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             align: "end",
             sideOffset: 5,
             alignOffset: 30,
-            onOpenAutoFocus: (e) => e.preventDefault(),
           }}
         />
       </DialogContent>

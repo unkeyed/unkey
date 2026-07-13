@@ -126,8 +126,16 @@ export function DeploymentSelect({
   return (
     <Select
       value={value}
-      onValueChange={onValueChange}
+      onValueChange={(newValue) => {
+        if (newValue !== null) {
+          onValueChange(newValue);
+        }
+      }}
       disabled={disabled || isLoading || deployments.length === 0}
+      items={deployments.map(({ deployment }) => ({
+        value: deployment.id,
+        label: `${shortenId(deployment.id)} • ${format(deployment.createdAt, "MMM d, h:mm a")}`,
+      }))}
     >
       <SelectTrigger id={id} className="rounded-md" title={getTriggerTitle()}>
         <SelectValue placeholder={placeholder} />

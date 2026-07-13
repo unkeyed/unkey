@@ -59,7 +59,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
-	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, clickhouse.BufferConfig{
 		Name:          "seed-key-verifications",
 		BatchSize:     50_000,
 		BufferSize:    50_000,
@@ -76,6 +76,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		RBAC:         nil,
 		Region:       "test",
 		UsageLimiter: nil,
+		Source:       schema.SourceAPI,
 		KeyCache:     nil,
 	})
 	if err != nil {
@@ -489,6 +490,7 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 			ExternalID:   externalID,
 			Latency:      latency,
 			SpentCredits: credit,
+			Source:       schema.SourceAPI,
 		})
 
 		// Log progress periodically

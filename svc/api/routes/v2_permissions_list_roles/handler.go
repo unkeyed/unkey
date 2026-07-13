@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -52,8 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	cursor := ptr.SafeDeref(req.Cursor, "")
-	limit := ptr.SafeDeref(req.Limit, 100)
+	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	err = principal.Authorize(rbac.Or(
@@ -72,10 +72,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.DB.RO(),
 		db.ListRolesParams{
 			WorkspaceID: principal.WorkspaceID,
-			IDCursor:    cursor,
+			IDCursor:    p.Cursor,
 			Search:      search,
-			//nolint:gosec
-			Limit: int32(limit) + 1,
+			Limit:       p.FetchLimit(),
 		},
 	)
 	if err != nil {
@@ -85,12 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	var nextCursor *string
-	hasMore := len(roles) > limit
-	if hasMore {
-		nextCursor = ptr.P(roles[limit].ID)
-		roles = roles[:limit]
-	}
+	roles, pg := pagination.Paginate(roles, p, func(r db.ListRolesRow) string { return r.ID })
 
 	roleResponses := array.Map(roles, func(role db.ListRolesRow) openapi.Role {
 		perms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
@@ -117,10 +111,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: roleResponses,
-		Pagination: &openapi.Pagination{
-			Cursor:  nextCursor,
-			HasMore: hasMore,
-		},
+		Data:       roleResponses,
+		Pagination: pg,
 	})
 }

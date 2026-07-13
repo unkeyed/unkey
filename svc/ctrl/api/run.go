@@ -31,6 +31,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -159,7 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if chErr != nil {
 			return fmt.Errorf("failed to create clickhouse client: %w", chErr)
 		}
-		instanceEvents = clickhouse.NewBuffer[schema.InstanceEventV1](chClient, "default.instance_events_raw_v1", clickhouse.BufferConfig{
+		instanceEvents = clickhouse.NewBuffer[schema.InstanceEventV1](chClient, clickhouse.BufferConfig{
 			Name:          "instance_events",
 			BatchSize:     1_000,
 			BufferSize:    2_000,
@@ -257,6 +258,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:             database,
 		DomainCache:    domainCache,
 		ChallengeCache: challengeCache,
+		Bearer:         cfg.AuthToken,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
 	// Domain Connect signing key (optional)
@@ -295,10 +297,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
-		mux.Handle("POST /webhooks/github", &GitHubWebhook{
-			restate:       restateClient,
-			webhookSecret: cfg.GitHub.WebhookSecret,
-		})
+		mux.Handle("POST /webhooks/github", githubwebhook.New(restateClient, cfg.GitHub.WebhookSecret))
 		logger.Info("GitHub webhook handler registered")
 	} else {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")

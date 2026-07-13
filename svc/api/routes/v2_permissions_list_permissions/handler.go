@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -51,8 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	cursor := ptr.SafeDeref(req.Cursor, "")
-	limit := ptr.SafeDeref(req.Limit, 100)
+	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	err = principal.Authorize(rbac.Or(
@@ -71,11 +71,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.DB.RO(),
 		db.ListPermissionsParams{
 			WorkspaceID:       principal.WorkspaceID,
-			IDCursor:          cursor,
+			IDCursor:          p.Cursor,
 			Search:            search,
 			DescriptionSearch: dbtype.NullString(search),
-			//nolint:gosec
-			Limit: int32(limit) + 1,
+			Limit:             p.FetchLimit(),
 		},
 	)
 	if err != nil {
@@ -85,13 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	hasMore := len(permissions) > limit
-	var nextCursor *string
-
-	if hasMore {
-		nextCursor = ptr.P(permissions[limit].ID)
-		permissions = permissions[:limit]
-	}
+	permissions, pg := pagination.Paginate(permissions, p, func(r db.Permission) string { return r.ID })
 
 	responsePermissions := array.Map(permissions, func(perm db.Permission) openapi.Permission {
 		return openapi.Permission{
@@ -107,10 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: responsePermissions,
-		Pagination: &openapi.Pagination{
-			Cursor:  nextCursor,
-			HasMore: hasMore,
-		},
+		Data:       responsePermissions,
+		Pagination: pg,
 	})
 }

@@ -189,22 +189,28 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
               >
                 Workspace
               </label>
-              <Select value={selectedOrgId} onValueChange={setSelectedOrgId} disabled={isLoading}>
+              <Select
+                items={sortedOrgs.map((org) => ({ value: org.id, label: org.name }))}
+                value={selectedOrgId}
+                onValueChange={(value) => {
+                  if (value !== null) {
+                    setSelectedOrgId(value);
+                  }
+                }}
+                disabled={isLoading}
+              >
                 <SelectTrigger
                   id="workspace-selector"
                   className="dark bg-black text-gray-400 border border-gray-500/30 focus:outline-none! focus:ring-0 focus:border-gray-400"
                 >
-                  <SelectValue
-                    placeholder="Select a workspace..."
-                    className="dark bg-black border border-gray-800 text-gray-400/30 focus:outline-none! focus:border-gray-500/30"
-                  />
+                  <SelectValue placeholder="Select a workspace..." className="text-gray-400" />
                 </SelectTrigger>
                 <SelectContent className="dark overflow-y-auto max-h-100 bg-gray-950 text-gray-400 focus:outline-none! border focus:border-gray-400 border-gray-500/30">
                   {sortedOrgs.map((org) => (
                     <SelectItem
                       key={org.id}
                       value={org.id}
-                      className="dark bg-gray-950 text-gray-400 hover:bg-gray-900 hover:text-white focus:bg-gray-800 focus:outline-none! focus:border-grayA-4"
+                      className="dark bg-gray-950 text-gray-400 data-highlighted:bg-gray-900 data-highlighted:text-white focus:outline-none!"
                     >
                       {org.name}
                     </SelectItem>

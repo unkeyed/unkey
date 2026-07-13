@@ -158,7 +158,7 @@ function Preview() {
   };
 
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delay={300}>
       <div style={rootStyle} className="flex min-h-screen flex-col bg-background">
         <PortalLogoHeader branding={seedBranding} />
         <main className="flex-1">

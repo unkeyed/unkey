@@ -36,20 +36,22 @@ export function createIdentityOptions({
     label: (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center group">
-              <div className="flex items-center justify-center gap-2">
-                <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-                  <User iconSize="sm-regular" className="text-grayA-11" />
+          <TooltipTrigger
+            render={
+              <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center group">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
+                    <User iconSize="sm-regular" className="text-grayA-11" />
+                  </div>
+                  <span className="max-w-[200px] truncate font-medium text-accent-12 text-left">
+                    {identity.externalId.length > 15
+                      ? `${identity.externalId.slice(0, 4)}...${identity.externalId.slice(-4)}`
+                      : identity.externalId}
+                  </span>
                 </div>
-                <span className="max-w-[200px] truncate font-medium text-accent-12 text-left">
-                  {identity.externalId.length > 15
-                    ? `${identity.externalId.slice(0, 4)}...${identity.externalId.slice(-4)}`
-                    : identity.externalId}
-                </span>
               </div>
-            </div>
-          </TooltipTrigger>
+            }
+          />
           <TooltipContent
             side="right"
             align="start"

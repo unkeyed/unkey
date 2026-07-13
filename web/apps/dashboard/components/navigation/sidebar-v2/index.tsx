@@ -51,16 +51,18 @@ function CollapseButton() {
   const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-label={label}
-          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
-        >
-          <Icon iconSize="md-regular" className="shrink-0" />
-        </button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={label}
+            className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
+          >
+            <Icon iconSize="md-regular" className="shrink-0" />
+          </button>
+        }
+      />
       <TooltipContent
         side="right"
         align="center"

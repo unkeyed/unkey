@@ -32,39 +32,41 @@ export function createPermissionOptions({
     label: (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex w-full text-accent-8 text-xs gap-4 py-0.5 items-center group flex-row">
-              <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
-                <Page2 iconSize="sm-regular" className="text-grayA-11" />
-              </div>
-              <div className="flex gap-1 flex-col truncate min-w-0 flex-1">
-                <div className="flex gap-2 items-center min-w-0">
-                  <div className="flex flex-col gap-0.5 truncate min-w-0">
-                    <div className="flex items-center  gap-2">
-                      <span className="font-medium text-accent-12 text-left truncate">
-                        {permission.name}
-                      </span>
-                      {permission.roles.find((item) => item.id === roleId) && (
-                        <StatusBadge
-                          variant="locked"
-                          text="Already assigned"
-                          icon={<Lock iconSize="sm-thin" />}
-                        />
-                      )}
-                    </div>
-                    <span className="text-accent-10 text-xs font-mono truncate">
-                      {permission.slug}
-                    </span>
-                  </div>
+          <TooltipTrigger
+            render={
+              <div className="flex w-full text-accent-8 text-xs gap-4 py-0.5 items-center group flex-row">
+                <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
+                  <Page2 iconSize="sm-regular" className="text-grayA-11" />
                 </div>
-                {permission.description && (
-                  <span className="text-accent-9 text-xs leading-tight">
-                    {permission.description}
-                  </span>
-                )}
+                <div className="flex gap-1 flex-col truncate min-w-0 flex-1">
+                  <div className="flex gap-2 items-center min-w-0">
+                    <div className="flex flex-col gap-0.5 truncate min-w-0">
+                      <div className="flex items-center  gap-2">
+                        <span className="font-medium text-accent-12 text-left truncate">
+                          {permission.name}
+                        </span>
+                        {permission.roles.find((item) => item.id === roleId) && (
+                          <StatusBadge
+                            variant="locked"
+                            text="Already assigned"
+                            icon={<Lock iconSize="sm-thin" />}
+                          />
+                        )}
+                      </div>
+                      <span className="text-accent-10 text-xs font-mono truncate">
+                        {permission.slug}
+                      </span>
+                    </div>
+                  </div>
+                  {permission.description && (
+                    <span className="text-accent-9 text-xs leading-tight">
+                      {permission.description}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          </TooltipTrigger>
+            }
+          />
           <TooltipContent
             side="right"
             align="start"
