@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -15,6 +16,10 @@ func (s *Service) VerifyCertificate(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.VerifyCertificateRequest],
 ) (*connect.Response[ctrlv1.VerifyCertificateResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	res := connect.NewResponse(&ctrlv1.VerifyCertificateResponse{Authorization: ""})
 
 	domainName := req.Msg.GetDomain()

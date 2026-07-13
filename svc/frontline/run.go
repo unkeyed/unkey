@@ -311,7 +311,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to build tls config: %w", err)
 	}
 
-	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
+	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(
+		ptr.P(http.Client{}),
+		cfg.Control.URL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": "Bearer " + cfg.Control.Token,
+		})),
+	))
 
 	svcs := &routes.Services{
 		Region:            cfg.Region,
