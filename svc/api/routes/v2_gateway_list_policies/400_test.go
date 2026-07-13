@@ -54,7 +54,7 @@ func TestListPoliciesBadRequest(t *testing.T) {
 
 	t.Run("limit above maximum", func(t *testing.T) {
 		req := makeRequest(env)
-		req.Limit = ptr.P(101)
+		req.Limit = ptr.P(51)
 		res := callTyped(t, req)
 		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)
 	})

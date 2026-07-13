@@ -2000,7 +2000,9 @@ type V2GatewayListPoliciesRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Environment ResourceIdentifier `json:"environment"`
 
-	// Limit Maximum number of policies to return in a single response.
+	// Limit Maximum number of policies to return in a single response. The bound
+	// matches the 50-policy cap of `gateway.setPolicies`, so the default
+	// returns every policy in one page.
 	Limit *int `json:"limit,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.

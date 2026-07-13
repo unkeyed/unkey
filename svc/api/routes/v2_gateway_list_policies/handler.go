@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Policies live in one ordered blob, so pagination is a slice window:
 	// the cursor resolves to its index and the window over-fetches one item,
 	// matching the id >= cursor look-ahead convention of the db-backed lists.
-	p := pagination.Parse(req.Limit, req.Cursor, 100)
+	p := pagination.Parse(req.Limit, req.Cursor, 50)
 	start := 0
 	if p.Cursor != "" {
 		start = slices.IndexFunc(all, func(policy openapi.PolicyResponse) bool { return policy.Id == p.Cursor })

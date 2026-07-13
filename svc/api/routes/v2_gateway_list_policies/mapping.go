@@ -10,9 +10,10 @@ import (
 
 // mapPoliciesFromProto is the read-side inverse of setPolicies' mapping:
 // stored protos back into response types. Stored data already passed write
-// validation, so any unmappable shape (unknown oneof variant, empty oneof)
-// is corrupt or out-of-band state and surfaces as an internal error rather
-// than being silently dropped from a list that claims to be complete.
+// validation, so any unmappable shape (unknown oneof variant, empty oneof,
+// a value the response schema cannot express) is corrupt or out-of-band
+// state and surfaces as an internal error rather than being silently
+// dropped from a list that claims to be complete.
 func mapPoliciesFromProto(policies []*frontlinev1.Policy) ([]openapi.PolicyResponse, error) {
 	out := make([]openapi.PolicyResponse, 0, len(policies))
 	for _, p := range policies {
@@ -51,7 +52,11 @@ func mapPolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 
 	switch config := p.Config.(type) {
 	case *frontlinev1.Policy_Keyauth:
-		out.Keyauth = mapKeyauthFromProto(config.Keyauth)
+		keyauth, err := mapKeyauthFromProto(p.GetId(), config.Keyauth)
+		if err != nil {
+			return openapi.PolicyResponse{}, err
+		}
+		out.Keyauth = keyauth
 
 	case *frontlinev1.Policy_Ratelimit:
 		identifier := openapi.RatelimitIdentifier{
@@ -96,7 +101,13 @@ func mapPolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 	return out, nil
 }
 
-func mapKeyauthFromProto(k *frontlinev1.KeyAuth) *openapi.KeyauthPolicy {
+func mapKeyauthFromProto(policyID string, k *frontlinev1.KeyAuth) (*openapi.KeyauthPolicy, error) {
+	// The response schema requires at least one keyspace, matching write
+	// validation; a keyspace-less keyauth cannot come from our writers.
+	if len(k.GetKeySpaceIds()) == 0 {
+		return nil, unmappable(policyID, "keyauth without keyspaces")
+	}
+
 	out := &openapi.KeyauthPolicy{
 		Keyspaces:       k.GetKeySpaceIds(),
 		PermissionQuery: k.PermissionQuery,
@@ -122,6 +133,8 @@ func mapKeyauthFromProto(k *frontlinev1.KeyAuth) *openapi.KeyauthPolicy {
 				}
 			case *frontlinev1.KeyLocation_QueryParam:
 				mapped.QueryParam = &openapi.QueryParamKeyLocation{Name: location.QueryParam.GetName()}
+			default:
+				return nil, unmappable(policyID, "key location")
 			}
 			locations = append(locations, mapped)
 		}
@@ -141,7 +154,7 @@ func mapKeyauthFromProto(k *frontlinev1.KeyAuth) *openapi.KeyauthPolicy {
 		out.Ratelimits = &ratelimits
 	}
 
-	return out
+	return out, nil
 }
 
 func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) {
@@ -154,7 +167,11 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 
 	switch expr := m.GetExpr().(type) {
 	case *frontlinev1.MatchExpr_Path:
-		out.Path = &openapi.PathMatch{Path: mapStringMatchFromProto(expr.Path.GetPath())}
+		sm, err := mapStringMatchFromProto(expr.Path.GetPath())
+		if err != nil {
+			return out, err
+		}
+		out.Path = &openapi.PathMatch{Path: sm}
 
 	case *frontlinev1.MatchExpr_Method:
 		methods := make([]openapi.MethodMatchMethods, 0, len(expr.Method.GetMethods()))
@@ -167,9 +184,18 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 		field := openapi.FieldMatch{Name: expr.Header.GetName(), Present: nil, Value: nil}
 		switch match := expr.Header.GetMatch().(type) {
 		case *frontlinev1.HeaderMatch_Present:
+			// The schema only admits `present: true`; the gateway's
+			// absent-match (present=false) has no response representation.
+			if !match.Present {
+				return out, unmappable("", "header absent-match")
+			}
 			field.Present = ptr.P(openapi.FieldMatchPresent(match.Present))
 		case *frontlinev1.HeaderMatch_Value:
-			field.Value = ptr.P(mapStringMatchFromProto(match.Value))
+			sm, err := mapStringMatchFromProto(match.Value)
+			if err != nil {
+				return out, err
+			}
+			field.Value = &sm
 		default:
 			return out, unmappable("", "header match")
 		}
@@ -179,9 +205,16 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 		field := openapi.FieldMatch{Name: expr.QueryParam.GetName(), Present: nil, Value: nil}
 		switch match := expr.QueryParam.GetMatch().(type) {
 		case *frontlinev1.QueryParamMatch_Present:
+			if !match.Present {
+				return out, unmappable("", "queryParam absent-match")
+			}
 			field.Present = ptr.P(openapi.FieldMatchPresent(match.Present))
 		case *frontlinev1.QueryParamMatch_Value:
-			field.Value = ptr.P(mapStringMatchFromProto(match.Value))
+			sm, err := mapStringMatchFromProto(match.Value)
+			if err != nil {
+				return out, err
+			}
+			field.Value = &sm
 		default:
 			return out, unmappable("", "queryParam match")
 		}
@@ -194,7 +227,7 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 	return out, nil
 }
 
-func mapStringMatchFromProto(s *frontlinev1.StringMatch) openapi.StringMatch {
+func mapStringMatchFromProto(s *frontlinev1.StringMatch) (openapi.StringMatch, error) {
 	out := openapi.StringMatch{
 		Exact:      nil,
 		Prefix:     nil,
@@ -213,8 +246,10 @@ func mapStringMatchFromProto(s *frontlinev1.StringMatch) openapi.StringMatch {
 		out.Prefix = &match.Prefix
 	case *frontlinev1.StringMatch_Regex:
 		out.Regex = &match.Regex
+	default:
+		return out, unmappable("", "string match")
 	}
-	return out
+	return out, nil
 }
 
 func unmappable(policyID, what string) error {

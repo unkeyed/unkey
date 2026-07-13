@@ -1184,10 +1184,13 @@ components:
                 limit:
                     type: integer
                     minimum: 1
-                    maximum: 100
-                    default: 100
-                    description: Maximum number of policies to return in a single response.
-                    example: 50
+                    maximum: 50
+                    default: 50
+                    description: |-
+                        Maximum number of policies to return in a single response. The bound
+                        matches the 50-policy cap of `gateway.setPolicies`, so the default
+                        returns every policy in one page.
+                    example: 25
             additionalProperties: false
         V2GatewayListPoliciesResponseBody:
             type: object

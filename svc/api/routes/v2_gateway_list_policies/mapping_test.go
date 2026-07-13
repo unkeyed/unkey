@@ -165,6 +165,29 @@ func TestMapPolicyFromProtoVariants(t *testing.T) {
 		_, err := mapPolicyFromProto(&frontlinev1.Policy{Id: "pol_1", Name: "empty"})
 		require.Error(t, err)
 	})
+
+	t.Run("keyauth without keyspaces is unmappable", func(t *testing.T) {
+		_, err := mapPolicyFromProto(&frontlinev1.Policy{
+			Id:      "pol_1",
+			Name:    "no-keyspaces",
+			Enabled: proto.Bool(true),
+			Config:  &frontlinev1.Policy_Keyauth{Keyauth: &frontlinev1.KeyAuth{}},
+		})
+		require.Error(t, err)
+	})
+
+	t.Run("key location without variant is unmappable", func(t *testing.T) {
+		_, err := mapPolicyFromProto(&frontlinev1.Policy{
+			Id:      "pol_1",
+			Name:    "empty-location",
+			Enabled: proto.Bool(true),
+			Config: &frontlinev1.Policy_Keyauth{Keyauth: &frontlinev1.KeyAuth{
+				KeySpaceIds: []string{"ks_KEBAP"},
+				Locations:   []*frontlinev1.KeyLocation{{}},
+			}},
+		})
+		require.Error(t, err)
+	})
 }
 
 func TestMapMatchExprFromProto(t *testing.T) {
@@ -262,6 +285,36 @@ func TestMapMatchExprFromProto(t *testing.T) {
 	t.Run("header without match is unmappable", func(t *testing.T) {
 		_, err := mapMatchExprFromProto(&frontlinev1.MatchExpr{
 			Expr: &frontlinev1.MatchExpr_Header{Header: &frontlinev1.HeaderMatch{Name: "X-Debug"}},
+		})
+		require.Error(t, err)
+	})
+
+	t.Run("string match without variant is unmappable", func(t *testing.T) {
+		_, err := mapMatchExprFromProto(&frontlinev1.MatchExpr{
+			Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{Path: &frontlinev1.StringMatch{}}},
+		})
+		require.Error(t, err)
+	})
+
+	// The gateway can match on absence (present=false) but the response
+	// schema only admits `present: true`, so such a policy must error
+	// instead of emitting a schema-violating response.
+	t.Run("header absent-match is unmappable", func(t *testing.T) {
+		_, err := mapMatchExprFromProto(&frontlinev1.MatchExpr{
+			Expr: &frontlinev1.MatchExpr_Header{Header: &frontlinev1.HeaderMatch{
+				Name:  "X-Debug",
+				Match: &frontlinev1.HeaderMatch_Present{Present: false},
+			}},
+		})
+		require.Error(t, err)
+	})
+
+	t.Run("queryParam absent-match is unmappable", func(t *testing.T) {
+		_, err := mapMatchExprFromProto(&frontlinev1.MatchExpr{
+			Expr: &frontlinev1.MatchExpr_QueryParam{QueryParam: &frontlinev1.QueryParamMatch{
+				Name:  "debug",
+				Match: &frontlinev1.QueryParamMatch_Present{Present: false},
+			}},
 		})
 		require.Error(t, err)
 	})
