@@ -140,31 +140,35 @@ export function createKeysColumns({
         return (
           <div className="text-center">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open key actions">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" size="icon" aria-label="Open key actions">
+                    <MoreHorizontal />
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={() => onEdit?.(row.original.id)}>
+                  <DropdownMenuItem onClick={() => onEdit?.(row.original.id)}>
                     <Pencil />
                     Edit key
                   </DropdownMenuItem>
                   {expired ? (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>
-                          <DropdownMenuItem disabled>
-                            <RefreshCw />
-                            Rotate key
-                          </DropdownMenuItem>
-                        </span>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <span>
+                            <DropdownMenuItem disabled>
+                              <RefreshCw />
+                              Rotate key
+                            </DropdownMenuItem>
+                          </span>
+                        }
+                      />
                       <TooltipContent side="left">Expired keys can't be rotated.</TooltipContent>
                     </Tooltip>
                   ) : (
-                    <DropdownMenuItem onSelect={() => onRotate?.(row.original.id)}>
+                    <DropdownMenuItem onClick={() => onRotate?.(row.original.id)}>
                       <RefreshCw />
                       Rotate key
                     </DropdownMenuItem>
@@ -174,7 +178,7 @@ export function createKeysColumns({
                 <DropdownMenuGroup>
                   <DropdownMenuItem
                     variant="destructive"
-                    onSelect={() => onDelete?.(row.original.id)}
+                    onClick={() => onDelete?.(row.original.id)}
                   >
                     <Trash2 />
                     Delete

@@ -227,7 +227,7 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
 		}
 
-		frontlineRequests = clickhouse.NewBuffer[schema.FrontlineRequest](chClient, "default.frontline_requests_raw_v1", clickhouse.BufferConfig{
+		frontlineRequests = clickhouse.NewBuffer[schema.FrontlineRequest](chClient, clickhouse.BufferConfig{
 			Name:          "frontline_requests",
 			BatchSize:     cfg.ClickHouse.BatchSize,
 			BufferSize:    cfg.ClickHouse.BufferSize,
@@ -236,7 +236,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
 			Name:          "key_verifications",
 			BatchSize:     cfg.ClickHouse.BatchSize,
 			BufferSize:    cfg.ClickHouse.BufferSize,

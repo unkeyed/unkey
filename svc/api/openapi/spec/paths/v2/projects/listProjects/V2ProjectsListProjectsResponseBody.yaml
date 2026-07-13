@@ -2,6 +2,7 @@ type: object
 required:
   - meta
   - data
+  - pagination
 properties:
   meta:
     "$ref": "../../../../common/Meta.yaml"
@@ -13,8 +14,6 @@ properties:
     description: Array of projects in the workspace, ordered by project id.
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
-    x-go-type-skip-optional-pointer: true
-    x-go-type-skip-optional-pointer-with-omitzero: true
 additionalProperties: false
 examples:
   projectList:

@@ -1,3 +1,4 @@
+import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
 import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { Bookmark } from "@unkey/icons";
@@ -6,7 +7,6 @@ import { useMemo } from "react";
 import { useBatchRatelimitTimeseries } from "../hooks/use-batch-timeseries";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
 import { NamespaceCard } from "./namespace-card";
-import { NamespaceCardSkeleton } from "./skeleton";
 
 const SKELETON_COUNT = 8;
 
@@ -43,7 +43,7 @@ export const NamespaceList = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5">
           {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-            <NamespaceCardSkeleton key={i} />
+            <StatsListCardSkeleton key={i} />
           ))}
         </div>
       </div>

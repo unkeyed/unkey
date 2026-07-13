@@ -6,9 +6,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"net/http"
 )
@@ -86,25 +86,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 50)
+	p := pagination.Parse(req.Limit, req.Cursor, 50)
 
 	overrides, err := db.Query.ListRatelimitOverridesByNamespaceID(ctx, h.DB.RO(), db.ListRatelimitOverridesByNamespaceIDParams{
 		WorkspaceID: principal.WorkspaceID,
 		NamespaceID: namespace.ID,
-		//nolint:gosec
-		Limit:    int32(limit) + 1,
-		CursorID: ptr.SafeDeref(req.Cursor, ""),
+		Limit:       p.FetchLimit(),
+		CursorID:    p.Cursor,
 	})
 	if err != nil {
 		return err
 	}
 
-	hasMore := len(overrides) > limit
-	var cursor *string
-	if hasMore {
-		cursor = ptr.P(overrides[limit].ID)
-		overrides = overrides[:limit]
-	}
+	overrides, pg := pagination.Paginate(overrides, p, func(r db.RatelimitOverride) string { return r.ID })
 
 	responseBody := Response{
 		Meta: openapi.Meta{
@@ -118,10 +112,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Limit:      int64(override.Limit),
 			}
 		}),
-		Pagination: &openapi.Pagination{
-			Cursor:  cursor,
-			HasMore: hasMore,
-		},
+		Pagination: pg,
 	}
 
 	return s.JSON(http.StatusOK, responseBody)

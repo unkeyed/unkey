@@ -24,17 +24,20 @@ export function BillingContainer({ children }: { children: ReactNode }) {
           </PageHeaderDescription>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Button asChild variant="outline">
-            <Link
-              href="https://cal.com/james-r-perkins/sales"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Schedule a call
-            </Link>
+          <Button
+            variant="outline"
+            render={
+              <Link
+                href="https://cal.com/james-r-perkins/sales"
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            }
+          >
+            Schedule a call
           </Button>
-          <Button asChild variant="primary">
-            <Link href="mailto:support@unkey.com">Contact us</Link>
+          <Button variant="primary" render={<Link href="mailto:support@unkey.com" />}>
+            Contact us
           </Button>
         </PageHeaderActions>
       </PageHeader>

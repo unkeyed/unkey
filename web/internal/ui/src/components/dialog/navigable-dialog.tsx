@@ -84,11 +84,7 @@ const NavigableDialogRoot = <TStepName extends string>({
               "drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden rounded-2xl! p-0 gap-0 flex flex-col max-h-[90vh]",
               dialogClassName,
             )}
-            onOpenAutoFocus={(e) => {
-              if (preventAutoFocus) {
-                e.preventDefault();
-              }
-            }}
+            initialFocus={preventAutoFocus ? false : undefined}
           >
             {children}
           </DialogContent>

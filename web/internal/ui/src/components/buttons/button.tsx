@@ -1,9 +1,26 @@
 "use client";
-import { Slot } from "@radix-ui/react-slot";
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
+import { useRender } from "@base-ui/react/use-render";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { AnimatedLoadingSpinner } from "../animated-loading-spinner";
+
+// Render-target composition WITHOUT button semantics. `render` targets are
+// links/anchors (Next.js <Link>, <a>); routing them through the Base UI Button
+// primitive would bolt role="button" + keyboard handlers onto a link, which is
+// wrong semantics. useRender composes the element with the button's visual
+// classes only.
+function ButtonRenderSlot({
+  render,
+  ref,
+  ...props
+}: {
+  render: React.ReactElement;
+  ref?: React.Ref<HTMLElement>;
+} & React.HTMLAttributes<HTMLElement>) {
+  return useRender({ render, ref, props });
+}
 
 // Hack to populate fumadocs' AutoTypeTable
 export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
@@ -38,9 +55,9 @@ export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
   };
 
   /**
-   * Allows you to use your own component as a button
+   * Render your own element/component as the button (replaces the former `asChild`)
    */
-  asChild?: boolean;
+  render?: React.ComponentProps<typeof ButtonPrimitive>["render"];
 
   /**
    * Optional label for screen readers when in loading state
@@ -256,7 +273,10 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
        */
       callback: (e: KeyboardEvent) => void | Promise<void>;
     };
-    asChild?: boolean;
+    /**
+     * Render your own element/component as the button (replaces the former `asChild`)
+     */
+    render?: React.ComponentProps<typeof ButtonPrimitive>["render"];
     /**
      * Optional label for screen readers when in loading state
      */
@@ -300,7 +320,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant,
       color = "default",
       size,
-      asChild = false,
+      render,
       loading,
       disabled,
       loadingLabel = "Loading, please wait",
@@ -351,14 +371,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       document.addEventListener("keydown", down);
       return () => document.removeEventListener("keydown", down);
     }, [props.keyboard, isClickDisabled]);
-    const Comp = asChild ? Slot : "button";
 
-    // When asChild is true, Slot expects exactly one React element child.
-    // Rendering multiple children (e.g. {false} and <div>) causes
-    // React.Children.count > 1 in React 19, which makes Slot throw.
-    if (asChild) {
+    // When `render` is provided (custom element/component, typically a link),
+    // compose it directly with the button's visual classes — no Base UI Button
+    // primitive, so the link keeps link semantics (no role="button", no
+    // synthetic keyboard handlers, no disabled-button behavior). Only the
+    // children render — the loading spinner and keyboard hint are omitted,
+    // matching the previous `asChild` behavior.
+    if (render) {
       return (
-        <Comp
+        <ButtonRenderSlot
+          render={render as React.ReactElement}
           className={cn(
             buttonVariants({
               variant: mappedVariant,
@@ -368,19 +391,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             }),
           )}
           onClick={loading ? undefined : props.onClick}
-          disabled={isVisuallyDisabled}
-          aria-disabled={isClickDisabled}
-          aria-busy={loading}
-          ref={ref}
-          {...props}
-        >
-          {props.children}
-        </Comp>
+          aria-disabled={isClickDisabled || undefined}
+          aria-busy={loading || undefined}
+          ref={ref as React.Ref<HTMLElement>}
+          {...(props as React.HTMLAttributes<HTMLElement>)}
+        />
       );
     }
 
     return (
-      <Comp
+      <ButtonPrimitive
         className={cn(
           buttonVariants({
             variant: mappedVariant,
@@ -428,7 +448,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             </kbd>
           ) : null}{" "}
         </div>
-      </Comp>
+      </ButtonPrimitive>
     );
   },
 );

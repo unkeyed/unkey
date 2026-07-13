@@ -1,13 +1,11 @@
 "use client";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
-import type { PopoverContentProps } from "@radix-ui/react-popover";
+import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { TriangleWarning2 } from "@unkey/icons";
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
-import { Popover, PopoverContent } from "./popover";
+import { Popover, PopoverContent, type PopoverContentProps } from "./popover";
 
-const PopoverAnchor = PopoverPrimitive.Anchor;
 const PopoverClose = PopoverPrimitive.Close;
 
 type ConfirmVariant = "warning" | "danger";
@@ -46,7 +44,7 @@ const DEFAULT_POPOVER_PROPS = {
   align: "center" as const,
   className:
     "bg-white dark:bg-black flex flex-col items-center justify-center border-grayA-4 overflow-hidden rounded-[10px]! p-0 gap-0 min-w-[344px]",
-  onOpenAutoFocus: (e: Event) => e.preventDefault(),
+  initialFocus: false,
 };
 
 export const ConfirmPopover = ({
@@ -76,7 +74,7 @@ export const ConfirmPopover = ({
     className: cn(DEFAULT_POPOVER_PROPS.className, popoverProps.className),
   };
 
-  // Create a safe ref that Radix can use (virtualRef expects non-null current)
+  // Create a safe anchor ref for the positioner (expects a non-null current)
   const safeRef = React.useMemo(
     () => ({
       get current() {
@@ -88,8 +86,7 @@ export const ConfirmPopover = ({
 
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
-      <PopoverAnchor virtualRef={safeRef} />
-      <PopoverContent {...mergedPopoverProps}>
+      <PopoverContent anchor={safeRef} {...mergedPopoverProps}>
         <div className="p-4 w-full">
           <div className="flex gap-3 items-center justify-start">
             <div
@@ -119,11 +116,13 @@ export const ConfirmPopover = ({
           >
             {confirmButtonText}
           </Button>
-          <PopoverClose asChild>
-            <Button variant="ghost" className="text-gray-9 px-4">
-              {cancelButtonText}
-            </Button>
-          </PopoverClose>
+          <PopoverClose
+            render={
+              <Button variant="ghost" className="text-gray-9 px-4">
+                {cancelButtonText}
+              </Button>
+            }
+          />
         </div>
       </PopoverContent>
     </Popover>

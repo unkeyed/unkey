@@ -10,6 +10,11 @@ export const env = () =>
       VERCEL_URL: z.string().optional(), // Always *.vercel.app — not the custom domain
       VERCEL_BRANCH_URL: z.string().optional(), // Only set in preview deployments
       VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(), // Custom production domain (e.g. app.unkey.com)
+      // Overrides getBaseUrl() entirely. Vercel has no env var for a custom
+      // domain assigned to a preview branch, so branch-scoped deployments with
+      // their own domain (e.g. app.unkey-canary.com on `canary`) set this to
+      // keep redirects on the custom host. No trailing slash.
+      DASHBOARD_BASE_URL: z.url().optional(),
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),

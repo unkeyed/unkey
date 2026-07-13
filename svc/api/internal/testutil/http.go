@@ -173,7 +173,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		t.Cleanup(func() { require.NoError(t, chClient.Close()) })
 		ch = chClient
 
-		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
 			Name:          "key_verifications",
 			BatchSize:     10,
 			BufferSize:    100,
@@ -184,7 +184,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		})
 		t.Cleanup(keyVerifications.Close)
 
-		ratelimitsfer = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+		ratelimitsfer = clickhouse.NewBuffer[schema.Ratelimit](chClient, clickhouse.BufferConfig{
 			Name:          "ratelimits",
 			BatchSize:     10,
 			BufferSize:    100,

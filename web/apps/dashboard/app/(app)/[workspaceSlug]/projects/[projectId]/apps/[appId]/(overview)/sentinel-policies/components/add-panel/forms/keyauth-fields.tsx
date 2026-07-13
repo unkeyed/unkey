@@ -220,6 +220,7 @@ export function KeyAuthFields() {
               <div className="w-32 shrink-0">
                 <Select
                   value={location.locationType}
+                  items={LOCATION_TYPE_OPTIONS}
                   onValueChange={(v) => {
                     const locationType = v as KeyLocationType;
                     updateLocation(location.id, {

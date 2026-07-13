@@ -60,26 +60,26 @@ export function CreateKeyDialog({ open, onOpenChange, onCreate }: CreateKeyDialo
     : "No expiration";
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : tryClose())}>
-        <DialogContent>
-          {createdKey === null ? (
-            <FormCard form={form} onCancel={tryClose} onSubmit={handleSubmit} />
-          ) : (
-            <SecretRevealCard
-              title="Save your key"
-              description="Copy your secret key now. It cannot be retrieved later."
-              plaintext={createdKey.plaintext}
-              trailer={expirationCopy}
-              onCopied={() => setHasCopied(true)}
-              onDone={tryClose}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <DiscardSecretConfirm {...discardConfirm} />
-    </>
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : tryClose())}>
+      <DialogContent>
+        {createdKey === null ? (
+          <FormCard form={form} onCancel={tryClose} onSubmit={handleSubmit} />
+        ) : (
+          <SecretRevealCard
+            title="Save your key"
+            description="Copy your secret key now. It cannot be retrieved later."
+            plaintext={createdKey.plaintext}
+            trailer={expirationCopy}
+            onCopied={() => setHasCopied(true)}
+            onDone={tryClose}
+          />
+        )}
+        {/* Rendered inside the parent dialog's popup so Base UI treats it
+            as a nested dialog: Escape closes only the confirmation and the
+            two open states don't race. */}
+        <DiscardSecretConfirm {...discardConfirm} />
+      </DialogContent>
+    </Dialog>
   );
 }
 

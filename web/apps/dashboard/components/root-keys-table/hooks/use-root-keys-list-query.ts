@@ -5,13 +5,16 @@ import {
 import type { RootKeysFilterValue } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/settings/root-keys/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import { serializeFilters } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
+import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import type { RootKeysQueryPayload, RootKeysSortField } from "../schema/query-logs.schema";
-
-const PREFETCH_PAGES_AHEAD = 2;
 
 type RootKeysFilterParams = Pick<RootKeysQueryPayload, "name" | "start" | "permission">;
 
@@ -102,35 +105,25 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   // Stable string key derived from filter content — avoids resetting page when
   // useQueryStates returns a new array reference for the same filter values
   // (which happens on every URL change, including page navigation).
-  const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
-  );
+  const filtersKey = useMemo(() => serializeFilters(filters), [filters]);
 
-  // Reset to page 1 only when filter content actually changes (not on initial mount).
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
 
   const baseParams = useMemo<RootKeysFilterParams>(() => buildQueryParams(filters), [filters]);
 
   const queryParams = useMemo(
     () => ({
       ...baseParams,
-      page: normalizedPage,
+      page: queryPage,
       limit: normalizedPageSize,
       sortBy: sortParams?.[0]?.column ?? "createdAt",
       sortOrder: sortParams?.[0]?.direction ?? "desc",
     }),
-    [baseParams, normalizedPage, normalizedPageSize, sortParams],
+    [baseParams, queryPage, normalizedPageSize, sortParams],
   );
 
   const utils = trpc.useUtils();
@@ -147,39 +140,22 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
 
-  // Clamp page to valid range after data/totalPages updates.
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, normalizedPage, totalPages, setPage]);
+  usePageClamp({
+    page: queryPage,
+    totalPages,
+    data,
+    setPage,
+  });
 
-  // Prefetch the next few pages so navigation feels instant.
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      utils.settings.rootKeys.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [normalizedPage, totalPages, queryParams, utils.settings.rootKeys.query]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch: (params) =>
+      utils.settings.rootKeys.query.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+  });
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   return {
     rootKeys: data?.keys ?? [],
@@ -187,7 +163,7 @@ export function useRootKeysListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     isInitialLoading,
     isPending: isFetching,
     isFetching,
-    page: normalizedPage,
+    page: queryPage,
     pageSize: normalizedPageSize,
     totalPages,
     totalCount,
