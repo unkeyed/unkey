@@ -24,8 +24,8 @@ max_hops = 10
 prometheus_port = 9090
 
 [control]
-url = "${UNKEY_CTRL_URL}"
-token = "${UNKEY_CTRL_TOKEN}"
+url = "${UNKEY_CONTROL_URL}"
+token = "${UNKEY_CONTROL_TOKEN}"
 
 [database]
 primary = "${UNKEY_DATABASE_PRIMARY}"
@@ -192,11 +192,11 @@ The Helm chart provides these variables for the default config template:
   Apex domain for routing.
 </ResponseField>
 
-<ResponseField name="UNKEY_CTRL_URL" type="env" required>
+<ResponseField name="UNKEY_CONTROL_URL" type="env" required>
   Control API address.
 </ResponseField>
 
-<ResponseField name="UNKEY_CTRL_TOKEN" type="env" required>
+<ResponseField name="UNKEY_CONTROL_TOKEN" type="env" required>
   Preshared bearer token for authenticated Control API requests.
 </ResponseField>
 
@@ -238,8 +238,8 @@ prometheus_port = 9090
 request_timeout = "15m"
 
 [control]
-url = "${UNKEY_CTRL_URL}"
-token = "${UNKEY_CTRL_TOKEN}"
+url = "${UNKEY_CONTROL_URL}"
+token = "${UNKEY_CONTROL_TOKEN}"
 
 [database]
 primary = "${UNKEY_DATABASE_PRIMARY}"
