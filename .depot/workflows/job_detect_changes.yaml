@@ -72,8 +72,11 @@ jobs:
               - 'web/internal/schema/**'
               - 'web/internal/ui/**'
               - 'web/internal/validation/**'
+              - 'web/internal/api/**'
               - 'web/packages/error/**'
               - 'web/packages/rbac/**'
+              - 'svc/api/openapi/**'
+              - '.mise/tasks/generate-api-sdk'
 
             # Go services (API v2, Ctrl, Deploy services)
             go:

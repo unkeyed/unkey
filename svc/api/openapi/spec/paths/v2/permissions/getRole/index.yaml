@@ -12,7 +12,7 @@ post:
   operationId: permissions.getRole
   x-speakeasy-name-override: GetRole
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

@@ -51,6 +51,21 @@
     "@unkey/nuxt#build": {
       "dependsOn": ["@unkey/nuxt#dev:prepare"]
     },
+    "@unkey/dashboard#dev": {
+      "dependsOn": ["@unkey/api#build"],
+      "cache": false
+    },
+    "@unkey/dashboard#test": {
+      "dependsOn": ["@unkey/api#build"],
+      "cache": false
+    },
+    "@unkey/dashboard#typecheck": {
+      "dependsOn": ["@unkey/api#build"],
+      "cache": false
+    },
+    "@unkey/api#build": {
+      "outputs": ["esm/**"]
+    },
     "fmt": {
       "cache": false
     },

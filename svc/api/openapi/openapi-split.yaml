@@ -95,7 +95,7 @@ x-speakeasy-retries:
   retryConnectionErrors: true
 
 security:
-  - rootKey: []
+  - bearer: []
 
 tags:
   - name: analytics
@@ -275,13 +275,14 @@ paths:
 
 components:
   securitySchemes:
-    rootKey:
+    bearer:
       type: http
       scheme: bearer
-      bearerFormat: root key
+      bearerFormat: bearer token
+      x-speakeasy-name-override: rootKey
       description: |-
-        Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.
-        To authenticate, include your root key in the Authorization header of each request:
+        Unkey uses bearer tokens for authentication. Public integrations use root keys, while the dashboard proxy uses short-lived JWTs.
+        To authenticate, include the token in the Authorization header of each request:
         ```
         Authorization: Bearer unkey_123
         ```
@@ -292,13 +293,6 @@ components:
         - Rotate keys periodically, especially after team member departures
         - Create keys with minimal necessary permissions following least privilege principle
         - Monitor key usage with audit logs.
-    dashboard:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: |-
-        Short-lived bearer token used by the Unkey dashboard when it calls api.unkey.com.
-        Browser clients should call the dashboard `/proxy/...` route without an Authorization header. The dashboard server mints and attaches this token upstream.
     portalSession:
       type: apiKey
       in: cookie

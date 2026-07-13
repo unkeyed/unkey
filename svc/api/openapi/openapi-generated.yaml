@@ -3,27 +3,11 @@
 
 components:
     securitySchemes:
-        dashboard:
-            bearerFormat: JWT
+        bearer:
+            bearerFormat: bearer token
             description: |-
-                Short-lived bearer token used by the Unkey dashboard when it calls api.unkey.com.
-                Browser clients should call the dashboard `/proxy/...` route without an Authorization header. The dashboard server mints and attaches this token upstream.
-            scheme: bearer
-            type: http
-        portalSession:
-            description: |-
-                Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
-                and sent automatically by the browser on `portal.*` requests. Portal sessions
-                are scoped to a single end user (external identity) and can only access the
-                `portal.*` routes.
-            in: cookie
-            name: portal_session
-            type: apiKey
-        rootKey:
-            bearerFormat: root key
-            description: |-
-                Unkey uses API keys (root keys) for authentication. These keys authorize access to management operations in the API.
-                To authenticate, include your root key in the Authorization header of each request:
+                Unkey uses bearer tokens for authentication. Public integrations use root keys, while the dashboard proxy uses short-lived JWTs.
+                To authenticate, include the token in the Authorization header of each request:
                 ```
                 Authorization: Bearer unkey_123
                 ```
@@ -36,6 +20,16 @@ components:
                 - Monitor key usage with audit logs.
             scheme: bearer
             type: http
+            x-speakeasy-name-override: rootKey
+        portalSession:
+            description: |-
+                Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
+                and sent automatically by the browser on `portal.*` requests. Portal sessions
+                are scoped to a single end user (external identity) and can only access the
+                `portal.*` routes.
+            in: cookie
+            name: portal_session
+            type: apiKey
     schemas:
         V2AnalyticsGetVerificationsRequestBody:
             type: object
@@ -5236,7 +5230,7 @@ paths:
                                 $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
                     description: Connection to the database failed
             security:
-                - rootKey: []
+                - bearer: []
             summary: Query key verification data
             tags:
                 - analytics
@@ -5300,7 +5294,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create API namespace
             tags:
                 - apis
@@ -5378,7 +5372,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Delete API namespace
             tags:
                 - apis
@@ -5446,7 +5440,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get API namespace
             tags:
                 - apis
@@ -5522,9 +5516,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: List API keys
             tags:
                 - apis
@@ -5674,7 +5665,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create app
             tags:
                 - apps
@@ -5795,7 +5786,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Delete app
             tags:
                 - apps
@@ -5916,7 +5907,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get app
             tags:
                 - apps
@@ -6053,7 +6044,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List apps
             tags:
                 - apps
@@ -6202,7 +6193,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Update app
             tags:
                 - apps
@@ -6267,7 +6258,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create deployment
             tags:
                 - deploy
@@ -6333,7 +6324,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get deployment
             tags:
                 - deploy
@@ -6476,7 +6467,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get environment
             tags:
                 - environments
@@ -6559,7 +6550,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List environment variables
             tags:
                 - environments
@@ -6727,7 +6718,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List environments
             tags:
                 - environments
@@ -6814,7 +6805,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Remove environment variables
             tags:
                 - environments
@@ -6942,7 +6933,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Set environment variables
             tags:
                 - environments
@@ -7066,7 +7057,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Update environment settings
             tags:
                 - environments
@@ -7180,7 +7171,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create Identity
             tags:
                 - identities
@@ -7280,7 +7271,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Delete Identity
             tags:
                 - identities
@@ -7389,7 +7380,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get Identity
             tags:
                 - identities
@@ -7502,7 +7493,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List Identities
             tags:
                 - identities
@@ -7607,7 +7598,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Update Identity
             tags:
                 - identities
@@ -7680,9 +7671,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Add key permissions
             tags:
                 - keys
@@ -7755,9 +7743,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Add key roles
             tags:
                 - keys
@@ -7833,9 +7818,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Create API key
             tags:
                 - keys
@@ -7908,9 +7890,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Delete API keys
             tags:
                 - keys
@@ -7989,9 +7968,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Get API key
             tags:
                 - keys
@@ -8056,7 +8032,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Migrate API key(s)
             tags:
                 - keys
@@ -8129,9 +8105,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Remove key permissions
             tags:
                 - keys
@@ -8204,9 +8177,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Remove key roles
             tags:
                 - keys
@@ -8298,9 +8268,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Reroll Key
             tags:
                 - keys
@@ -8373,9 +8340,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Set key permissions
             tags:
                 - keys
@@ -8448,9 +8412,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Set key roles
             tags:
                 - keys
@@ -8527,9 +8488,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Update key credits
             tags:
                 - keys
@@ -8613,9 +8571,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Update key settings
             tags:
                 - keys
@@ -8717,9 +8672,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Verify API key
             tags:
                 - keys
@@ -8790,9 +8742,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
-            security:
-                - rootKey: []
-                - dashboard: []
             summary: Get API key by hash
             tags:
                 - keys
@@ -8933,7 +8882,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create permission
             tags:
                 - permissions
@@ -9010,7 +8959,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create role
             tags:
                 - permissions
@@ -9082,7 +9031,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Delete permission
             tags:
                 - permissions
@@ -9143,7 +9092,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Delete role
             tags:
                 - permissions
@@ -9208,7 +9157,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get permission
             tags:
                 - permissions
@@ -9273,7 +9222,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get role
             tags:
                 - permissions
@@ -9333,7 +9282,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List permissions
             tags:
                 - permissions
@@ -9407,7 +9356,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List roles
             tags:
                 - permissions
@@ -9497,7 +9446,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create portal session
             tags:
                 - portal
@@ -9897,7 +9846,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create project
             tags:
                 - projects
@@ -10016,7 +9965,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Delete project
             tags:
                 - projects
@@ -10132,7 +10081,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get project
             tags:
                 - projects
@@ -10247,7 +10196,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List projects
             tags:
                 - projects
@@ -10390,7 +10339,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Update project
             tags:
                 - projects
@@ -10489,7 +10438,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Delete ratelimit override
             tags:
                 - ratelimit
@@ -10588,7 +10537,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get ratelimit override
             tags:
                 - ratelimit
@@ -10720,7 +10669,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Apply rate limiting
             tags:
                 - ratelimit
@@ -10808,7 +10757,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List ratelimit overrides
             tags:
                 - ratelimit
@@ -10991,7 +10940,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Apply multiple rate limit checks
             tags:
                 - ratelimit
@@ -11094,13 +11043,13 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal Server Error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Set ratelimit override
             tags:
                 - ratelimit
             x-speakeasy-name-override: setOverride
 security:
-    - rootKey: []
+    - bearer: []
 servers:
     - url: https://api.unkey.com
 tags:

@@ -15,7 +15,7 @@ post:
   operationId: environments.getEnvironment
   x-speakeasy-name-override: getEnvironment
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

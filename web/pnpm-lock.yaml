@@ -173,8 +173,8 @@ importers:
         specifier: 10.45.2
         version: 10.45.2
       '@unkey/api':
-        specifier: 2.3.4
-        version: 2.3.4
+        specifier: workspace:*
+        version: link:../../internal/api
       '@unkey/clickhouse':
         specifier: workspace:^
         version: link:../../internal/clickhouse
@@ -516,6 +516,16 @@ importers:
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.14.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@26.0.0)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.19.1)(yaml@2.9.0)
+
+  internal/api:
+    dependencies:
+      zod:
+        specifier: 4.3.5
+        version: 4.3.5
+    devDependencies:
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   internal/billing:
     dependencies:
@@ -1304,9 +1314,11 @@ packages:
 
   '@clickhouse/client-common@1.11.1':
     resolution: {integrity: sha512-bme0le2yhDSAh13d2fxhSW5ZrNoVqZ3LTyac8jK6hNH0qkksXnjYkLS6KQalPU6NMpffxHmpI4+/Gi2MnX0NCA==}
+    deprecated: 'Deprecated: import from @clickhouse/client or @clickhouse/client-web instead.'
 
   '@clickhouse/client-common@1.18.5':
     resolution: {integrity: sha512-g9LwcS1dvkatKDsIjT1PwUHldsiYzwdKAB0nXfd9APLd+t4PrNJa+my+dXcqJdmcWyhWjKLP/2/ztBwgxp+sbQ==}
+    deprecated: 'Deprecated: import from @clickhouse/client or @clickhouse/client-web instead.'
 
   '@clickhouse/client-web@1.11.1':
     resolution: {integrity: sha512-dRmve4Vh8tdnLo8tt77O+2Ye4FWBR9eBrJ3CsaoNS2Q6aQNwv0JbPUKIrU88ep2sg5kilmNfAXqWaJXehpYVRg==}
@@ -8737,6 +8749,11 @@ packages:
 
   typescript@5.7.3:
     resolution: {integrity: sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  typescript@5.8.3:
+    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -17640,6 +17657,8 @@ snapshots:
   typescript@5.5.3: {}
 
   typescript@5.7.3: {}
+
+  typescript@5.8.3: {}
 
   typescript@5.9.3: {}
 
