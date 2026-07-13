@@ -1,4 +1,4 @@
-// Package policyconfig owns the decode rules for stored sentinel config
+// Package policyconfig owns the decode rules for stored policy config
 // blobs so the storage contract lives in one place. The frontline gateway
 // carries its own copy in internal/policies (ParseMiddleware) - keep the two
 // in sync when the format changes.
@@ -9,8 +9,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// Parse decodes a sentinel_config blob. Empty blobs and the legacy "{}" are
-// valid and yield a config with no policies. Unknown fields are discarded:
+// Parse decodes a stored policy config blob. Empty blobs and the legacy "{}"
+// are valid and yield a config with no policies. Unknown fields are discarded:
 // the dashboard stores a client-side `type` discriminator alongside each
 // policy, and newer writers may add fields older readers don't know.
 // Callers wrap the error with their own fault code and public message.
