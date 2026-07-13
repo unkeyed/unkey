@@ -272,7 +272,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:              env.appID,
 			Environment:      env.environmentID,
 			Port:             ptr(9090),
-			CpuMillicores:    ptr(2000),
+			VCpus:            ptr(2.0),
 			MemoryMib:        ptr(1024),
 			StorageMib:       ptr(2048),
 			Command:          ptr([]string{"./server", "--prod"}),
@@ -372,10 +372,10 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 	t.Run("partial update preserves untouched fields", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		call(t, handler.Request{
-			Project:       env.projectID,
-			App:           env.appID,
-			Environment:   env.environmentID,
-			CpuMillicores: ptr(500),
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			VCpus:       ptr(0.5),
 		})
 
 		rt, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{

@@ -1,0 +1,100 @@
+post:
+  tags:
+    - deployments
+  summary: Get deployment
+  description: |
+    Retrieve a single deployment by its id.
+
+    Use this to check a deployment's status after creating it, or to inspect the
+    runtime configuration of an existing deployment.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.read_deployment` (to read deployments in any environment)
+    - `environment.<environment_id>.read_deployment` (to read deployments in a specific environment)
+  operationId: deployments.getDeployment
+  x-speakeasy-name-override: getDeployment
+  security:
+    - rootKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsGetDeploymentRequestBody.yaml"
+        examples:
+          getById:
+            summary: Retrieve by deployment ID
+            description: Fetch a deployment using its unique identifier
+            value:
+              deploymentId: d_1234abcd
+  responses:
+    "200":
+      description: |
+        Successfully retrieved the deployment.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsGetDeploymentResponseBody.yaml"
+          examples:
+            deployment:
+              summary: Deployment details
+              description: Successfully retrieved a deployment
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  id: d_1234abcd
+                  status: ready
+                  runtime:
+                    vCpus: 0.25
+                    memoryMib: 256
+                    storageMib: 0
+                    port: 8080
+                    command: ["node", "server.js"]
+                    shutdownSignal: SIGTERM
+                    upstreamProtocol: http1
+                  createdAt: 1704067200000
+                  updatedAt: 1704153600000
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Not Found - The requested deployment does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+          examples:
+            deploymentNotFound:
+              summary: Deployment not found
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Not Found
+                  detail: The requested deployment does not exist.
+                  status: 404
+                  type: not-found
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

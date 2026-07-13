@@ -100,19 +100,15 @@ export const PermissionSheet = ({
 
   const appScopes = useMemo(
     () =>
-      apps.map((app) => {
-        const appEnvironments = environmentsByApp.get(app.id) ?? [];
-        return {
+      apps.map((app) => ({
+        id: app.id,
+        environments: environmentsByApp.get(app.id) ?? [],
+        scope: {
+          kind: "app" as const,
           id: app.id,
-          environmentIds: appEnvironments.map((environment) => environment.id),
-          scope: {
-            kind: "app" as const,
-            id: app.id,
-            name: app.name,
-            environments: appEnvironments,
-          },
-        };
-      }),
+          name: app.name,
+        },
+      })),
     [apps, environmentsByApp],
   );
 
@@ -197,16 +193,37 @@ export const PermissionSheet = ({
                       {ROOT_KEY_MESSAGES.UI.FROM_APPS}
                     </p>
                   )}
-                  {appScopes.map(({ id, environmentIds, scope }) => (
+                  {appScopes.map(({ id, environments, scope }) => (
                     <PermissionContentList
+                      key={id}
                       selected={selectedPermissions}
                       searchValue={searchValue}
-                      key={id}
                       scope={scope}
                       onPermissionChange={(permissions) =>
-                        handleAppPermissionChange(id, environmentIds, permissions)
+                        handleAppPermissionChange(id, permissions)
                       }
-                    />
+                    >
+                      {environments.length > 0 && (
+                        <div className="flex flex-col">
+                          <p className="text-sm text-gray-10 py-1.5">Environments</p>
+                          {environments.map((environment) => (
+                            <PermissionContentList
+                              selected={selectedPermissions}
+                              searchValue={searchValue}
+                              key={environment.id}
+                              scope={{
+                                kind: "environment" as const,
+                                id: environment.id,
+                                name: environment.name,
+                              }}
+                              onPermissionChange={(permissions) =>
+                                handleEnvironmentPermissionChange(environment.id, permissions)
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </PermissionContentList>
                   ))}
                   {orphanEnvironmentScopes.length > 0 && (
                     <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">

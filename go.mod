@@ -61,6 +61,7 @@ require (
 	github.com/moby/buildkit v0.26.3
 	github.com/nishanths/exhaustive v0.12.0
 	github.com/oapi-codegen/nullable v1.1.0
+	github.com/oapi-codegen/runtime v1.4.2
 	github.com/oasdiff/oasdiff v1.11.8
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pb33f/libopenapi v0.36.0
@@ -127,6 +128,7 @@ require (
 	github.com/TwiN/go-color v1.4.1 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.17 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.17 // indirect

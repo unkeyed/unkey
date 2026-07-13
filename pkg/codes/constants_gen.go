@@ -114,6 +114,11 @@ const (
 	// NotFound indicates the requested environment does not exist.
 	UnkeyDataErrorsEnvironmentNotFound URN = "err:unkey:data:environment_not_found"
 
+	// Deployment
+
+	// NotFound indicates the requested deployment does not exist.
+	UnkeyDataErrorsDeploymentNotFound URN = "err:unkey:data:deployment_not_found"
+
 	// Migration
 
 	// NotFound indicates the requested migration was not found.
