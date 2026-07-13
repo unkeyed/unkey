@@ -1,17 +1,12 @@
 version: 2
 
-project_name: "{{ .Env.SERVICE }}"
-
-monorepo:
-  tag_prefix: "{{ .Env.SERVICE }}/"
-
 before:
   hooks:
     - go mod tidy
 
 builds:
   - id: service
-    main: "./build/{{ .Env.SERVICE }}"
+    main: "./build/{{ .ProjectName }}"
     binary: unkey
     env:
       - CGO_ENABLED=0
@@ -31,7 +26,7 @@ dockers_v2:
       - service
     dockerfile: Dockerfile.release
     images:
-      - "ghcr.io/unkeyed/{{ .Env.SERVICE }}"
+      - "ghcr.io/unkeyed/{{ .ProjectName }}"
     tags:
       - "{{ .Version }}"
     labels:
@@ -48,7 +43,7 @@ checksum:
 
 release:
   prerelease: auto
-  name_template: "{{ .Env.SERVICE }} {{ .Version }}"
+  name_template: "{{ .ProjectName }} {{ .Version }}"
 
 changelog:
   use: github

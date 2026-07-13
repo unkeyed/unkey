@@ -502,8 +502,6 @@
   --opacity-55: 55.00000000000001%;
 
   --animate-marquee: marquee 15s linear infinite;
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-shiny-text: shiny-text 10s infinite;
   --animate-shimmer: shimmer 1.2s ease-in-out infinite;
   --animate-error-blink: error-blink 0.7s ease-in-out;
@@ -514,22 +512,6 @@
     }
     100% {
       transform: translateX(-100%);
-    }
-  }
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-    }
-  }
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
     }
   }
   @keyframes shiny-text {

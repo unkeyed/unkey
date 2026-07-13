@@ -182,7 +182,11 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
       <div className="flex items-center gap-3 px-4 pt-4 w-full">
         <div className="text-gray-10 text-xs whitespace-nowrap">Runtime metrics</div>
         <div className="flex-1 min-w-0 border-t border-grayA-3" />
-        <Select value={window} onValueChange={(v) => setWindow(v as TimeWindow)}>
+        <Select
+          value={window}
+          onValueChange={(v) => setWindow(v as TimeWindow)}
+          items={WINDOW_LABELS}
+        >
           <SelectTrigger
             wrapperClassName="w-fit shrink-0"
             className="h-7 min-h-0! rounded-lg border-grayA-4 bg-transparent shadow-sm text-gray-12 text-xs focus:ring-0"

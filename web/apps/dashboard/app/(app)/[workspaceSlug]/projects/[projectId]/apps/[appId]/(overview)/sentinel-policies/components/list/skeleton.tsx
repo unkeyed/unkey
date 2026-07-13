@@ -7,7 +7,7 @@ import { Button } from "@unkey/ui";
  */
 export function SentinelPoliciesListSkeleton({ rows = 10 }: { rows?: number }) {
   return (
-    <div className="border border-grayA-4 rounded-[14px] overflow-hidden">
+    <div className="border border-grayA-4 rounded-lg overflow-hidden">
       <div>
         {Array.from({ length: rows }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items are static placeholders with no stable id

@@ -1,12 +1,16 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/identities/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import { serializeFilters } from "@/hooks/serialize-transition-key";
+import { usePageChange } from "@/hooks/use-page-change";
+import { usePageClamp } from "@/hooks/use-page-clamp";
+import { usePageTransition } from "@/hooks/use-page-transition";
+import { usePrefetchPages } from "@/hooks/use-prefetch-pages";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import type { IdentitiesFilterOperator, IdentitiesSortField } from "../schema/identities.schema";
 
-const PREFETCH_PAGES_AHEAD = 2;
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
 
@@ -81,35 +85,18 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
     [sorting, setSortParams, setPage],
   );
 
-  // Reset to page 1 only when search actually changes (not on initial mount).
-  const prevSearchRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevSearchRef.current === null) {
-      prevSearchRef.current = search;
-      return;
-    }
-    if (search !== prevSearchRef.current) {
-      prevSearchRef.current = search;
-      setPage(1);
-    }
-  }, [search, setPage]);
-
-  // Reset to page 1 when filters change (not on initial mount).
+  // Filters and search both change the result set, so either changing
+  // invalidates the current page.
   const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
+    () => `${serializeFilters(filters)}|search:${JSON.stringify(search)}`,
+    [filters, search],
   );
-  const prevFiltersKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey;
-      setPage(1);
-    }
-  }, [filtersKey, setPage]);
+
+  const queryPage = usePageTransition({
+    transitionKey: filtersKey,
+    page: normalizedPage,
+    setPage,
+  });
 
   const filterParams = useMemo(() => {
     const externalId = filters
@@ -133,13 +120,13 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const queryParams = useMemo(
     () => ({
       ...filterParams,
-      page: normalizedPage,
+      page: queryPage,
       limit: normalizedPageSize,
       search: search || undefined,
       sortBy: sortParams?.[0]?.column ?? "createdAt",
       sortOrder: sortParams?.[0]?.direction ?? "desc",
     }),
-    [filterParams, normalizedPage, normalizedPageSize, search, sortParams],
+    [filterParams, queryPage, normalizedPageSize, search, sortParams],
   );
 
   const utils = trpc.useUtils();
@@ -156,46 +143,29 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const totalCount = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
-  // Clamp page to valid range after data/totalPages updates.
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-    if (normalizedPage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [data, normalizedPage, totalPages, setPage]);
+  usePageClamp({
+    page: queryPage,
+    totalPages,
+    data,
+    setPage,
+  });
 
-  // Prefetch the next few pages so navigation feels instant.
-  useEffect(() => {
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      utils.identity.query.prefetch(
-        { ...queryParams, page: nextPage },
-        { staleTime: Number.POSITIVE_INFINITY },
-      );
-    }
-  }, [normalizedPage, totalPages, queryParams, utils.identity.query]);
+  usePrefetchPages({
+    page: queryPage,
+    totalPages,
+    queryParams,
+    prefetch: (params) =>
+      utils.identity.query.prefetch(params, { staleTime: Number.POSITIVE_INFINITY }),
+  });
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
+  const onPageChange = usePageChange(totalPages, setPage);
 
   return {
     identities: data?.identities ?? [],
     isLoading,
     isInitialLoading,
     isFetching,
-    page: normalizedPage,
+    page: queryPage,
     pageSize: normalizedPageSize,
     totalPages,
     totalCount,

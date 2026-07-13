@@ -14,6 +14,12 @@ properties:
       Pagination cursor from a previous response to fetch the next page.
       Use when `hasMore: true` in the previous response.
     example: proj_1234abcd
+  search:
+    type: string
+    maxLength: 256
+    description: Free-form text to filter projects. Returns projects whose ID,
+      name, or slug contains the search string. Matching is case-insensitive.
+    example: billing-service
 additionalProperties: false
 examples:
   basic:

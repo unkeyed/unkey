@@ -189,7 +189,7 @@ func Run(ctx context.Context, cfg Config) error {
 			ch = chClient
 			billingUsageReader = chClient
 
-			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, "default.build_steps_v1", clickhouse.BufferConfig{
+			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, clickhouse.BufferConfig{
 				Name:          "build_steps",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -198,7 +198,7 @@ func Run(ctx context.Context, cfg Config) error {
 				Drop:          true,
 				OnFlushError:  nil,
 			})
-			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, "default.build_step_logs_v1", clickhouse.BufferConfig{
+			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, clickhouse.BufferConfig{
 				Name:          "build_step_logs",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -475,13 +475,17 @@ func Run(ctx context.Context, cfg Config) error {
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
+		// Derived from StripeSecretKey; only tests inject these directly.
+		BillingPusher: nil,
+		BillingCloser: nil,
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:        cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
-			KeyRefill:         cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
-			KeyLastUsedSync:   cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
-			AuditLogExport:    cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
-			AuditLogCleanup:   cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
-			DeployBillingPush: cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
+			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
+			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
+			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
+			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
+			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
+			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
+			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 		},
 	})
 	if err != nil {
@@ -535,11 +539,25 @@ func Run(ctx context.Context, cfg Config) error {
 	// an oncall to inspect a recent failure without bloating the journal
 	// store with ~1440 dead invocations/day. No retry override — SDK
 	// default behavior was the pre-consolidation contract.
+	// DeployBillingClose is idempotent and cron-backed; per-workspace
+	// failures are journaled as deferred so one bad customer cannot wedge
+	// the period VO. Kill on exhaustion so the backup cron can retry with
+	// a fresh idempotency key instead of sitting behind a wedged webhook
+	// invocation.
+	cronDeployBillingCloseRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
-		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)))
+		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)).
+		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
+		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry))
 	logger.Info("CronService enabled")
 
 	// KeyLastUsedPartitionService is the per-partition VO fanned out from

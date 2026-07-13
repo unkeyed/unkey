@@ -1,0 +1,16 @@
+type: object
+required:
+  - meta
+  - data
+properties:
+  meta:
+    $ref: "../../../../common/Meta.yaml"
+  data:
+    type: array
+    description: |
+      Zero-filled verification timeseries for the authenticated end user, ordered
+      by time ascending. Buckets with no verifications are present with zero
+      counts so the series is contiguous across the requested window.
+    items:
+      $ref: "./V2PortalGetVerificationsDataPoint.yaml"
+additionalProperties: false

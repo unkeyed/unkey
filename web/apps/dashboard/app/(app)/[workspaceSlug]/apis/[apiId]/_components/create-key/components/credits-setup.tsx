@@ -144,6 +144,11 @@ export const UsageSetup = ({
               }}
               value={field.value || "none"}
               disabled={!limitEnabled}
+              items={[
+                { value: "none", label: "None" },
+                { value: "daily", label: "Daily" },
+                { value: "monthly", label: "Monthly" },
+              ]}
             >
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="Select refill interval" />

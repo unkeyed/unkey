@@ -5,7 +5,7 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const SearchWithRelationsInput = z.object({
   search: z.string().optional().prefault(""),
-  limit: z.number().optional().prefault(50),
+  limit: z.number().int().min(1).max(100).optional().prefault(50),
 });
 
 const IdentityWithRelationsSchema = z.object({

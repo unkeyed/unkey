@@ -22,14 +22,17 @@ SELECT
 FROM projects
 WHERE workspace_id = ?
   AND id >= ?
+  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+  AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 ORDER BY id ASC
 LIMIT ?
 `
 
 type ListProjectsByWorkspaceIdParams struct {
-	WorkspaceID string `db:"workspace_id"`
-	IDCursor    string `db:"id_cursor"`
-	Limit       int32  `db:"limit"`
+	WorkspaceID string         `db:"workspace_id"`
+	IDCursor    string         `db:"id_cursor"`
+	Search      sql.NullString `db:"search"`
+	Limit       int32          `db:"limit"`
 }
 
 type ListProjectsByWorkspaceIdRow struct {
@@ -55,10 +58,20 @@ type ListProjectsByWorkspaceIdRow struct {
 //	FROM projects
 //	WHERE workspace_id = ?
 //	  AND id >= ?
+//	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+//	  AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error) {
-	rows, err := db.QueryContext(ctx, listProjectsByWorkspaceId, arg.WorkspaceID, arg.IDCursor, arg.Limit)
+	rows, err := db.QueryContext(ctx, listProjectsByWorkspaceId,
+		arg.WorkspaceID,
+		arg.IDCursor,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Search,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

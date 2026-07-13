@@ -36,7 +36,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
 
   if (!hasPaymentMethod) {
     return (
-      <div className="flex w-full items-center justify-between gap-4 rounded-xl border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
+      <div className="flex w-full items-center justify-between gap-4 rounded-lg border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
         <div>
           <p className="font-medium text-gray-12 text-sm">No payment method</p>
           <p className="text-[13px] text-gray-10">
@@ -62,7 +62,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
   }
 
   return (
-    <div className="flex w-full items-center justify-between gap-4 rounded-xl border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
+    <div className="flex w-full items-center justify-between gap-4 rounded-lg border border-grayA-4 bg-white px-5 py-4 dark:bg-black">
       {/* Both columns share one type ramp and start at the top, so the two
           labels and the two values each sit on a common baseline. */}
       <div className="flex items-start gap-10">

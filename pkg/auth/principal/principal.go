@@ -135,6 +135,11 @@ type PortalSessionSource struct {
 	// ExternalID is the caller-assigned end-user identifier for the portal session.
 	ExternalID string
 
+	// KeyspaceIDs are the keyspaces the session is scoped to, resolved from the
+	// portal configuration at session creation. Portal key listings are bounded to
+	// these; the request never carries a keyspace or api id.
+	KeyspaceIDs []string
+
 	// Permissions are the raw RBAC permission strings attached to the portal session.
 	Permissions []string
 }

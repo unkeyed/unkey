@@ -74,24 +74,22 @@ export const IdentitiesDateTime = () => {
       initialTitle={displayTitle}
       onSuggestionChange={setTitle}
     >
-      <div className="group">
-        <Button
-          variant="ghost"
-          size="md"
-          className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            displayTitle === "Loading..." ? "opacity-50" : "",
-            hasTimeFilters ? "bg-gray-4" : "",
-          )}
-          aria-label="Filter identities by last used time"
-          aria-haspopup="true"
-          title="Press 'T' to toggle time filter"
-          disabled={displayTitle === "Loading..."}
-        >
-          <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px]">{displayTitle}</span>
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="md"
+        className={cn(
+          "data-popup-open:bg-gray-4 px-2 rounded-lg",
+          displayTitle === "Loading..." ? "opacity-50" : "",
+          hasTimeFilters ? "bg-gray-4" : "",
+        )}
+        aria-label="Filter identities by last used time"
+        aria-haspopup="true"
+        title="Press 'T' to toggle time filter"
+        disabled={displayTitle === "Loading..."}
+      >
+        <Calendar className="text-gray-9 size-4" />
+        <span className="text-gray-12 font-medium text-[13px]">{displayTitle}</span>
+      </Button>
     </DatetimePopover>
   );
 };

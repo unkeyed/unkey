@@ -148,6 +148,45 @@ func TestRedact_BothFields(t *testing.T) {
 	}
 }
 
+func TestRedact_CredentialFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "portal exchange request session id is redacted",
+			in:   `{"sessionId":"pst_123"}`,
+			want: `{"sessionId": "[REDACTED]"}`,
+		},
+		{
+			name: "portal exchange response token is redacted",
+			in:   `{"token":"ps_123","expiresAt":1700000000}`,
+			want: `{"token": "[REDACTED]","expiresAt":1700000000}`,
+		},
+		{
+			name: "session field is redacted",
+			in:   `{"session":"pst_123"}`,
+			want: `{"session": "[REDACTED]"}`,
+		},
+		{
+			name: "nested credential fields are redacted",
+			in:   `{"data":{"sessionId":"pst_123","token":"ps_123"},"meta":{"requestId":"req_123"}}`,
+			want: `{"data":{"sessionId": "[REDACTED]","token": "[REDACTED]"},"meta":{"requestId":"req_123"}}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := redact([]byte(tt.in))
+			require.Equal(t, tt.want, string(got))
+		})
+	}
+}
+
 func TestRedact_NonSensitiveFieldsUnchanged(t *testing.T) {
 	t.Parallel()
 

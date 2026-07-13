@@ -152,7 +152,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
                 setValue("value", sp.toFormValue(v), { shouldValidate: true });
               }
             }}
-            onValueCommit={
+            onValueCommitted={
               variant === "onboarding"
                 ? ([v]) => {
                     if (v !== undefined) {

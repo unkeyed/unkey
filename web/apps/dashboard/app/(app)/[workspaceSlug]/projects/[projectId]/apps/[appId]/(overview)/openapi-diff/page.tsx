@@ -146,7 +146,7 @@ export default function DiffPage() {
           </div>
 
           {/* Content Area */}
-          <div className="bg-gray-1 rounded-b-[14px] border-t border-gray-4">
+          <div className="bg-gray-1 rounded-b-lg border-t border-gray-4">
             {showEmptyState && (
               <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
                 <div className="relative">

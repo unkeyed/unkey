@@ -1,8 +1,9 @@
 "use client";
 
-import { Slot } from "@radix-ui/react-slot";
-import { useControllableState } from "@radix-ui/react-use-controllable-state";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import React from "react";
+import { useControllableState } from "../hooks/use-controllable-state";
 import { useIsMobile } from "../hooks/use-mobile";
 import { createContext } from "../lib/create-context";
 import { cn } from "../lib/utils";
@@ -68,12 +69,32 @@ const TRIGGER_NAME = "Trigger";
 const Trigger = React.forwardRef<PrimitiveButtonElement, TriggerProps>((props, ref) => {
   const { children, asChild = false, ...triggerProps } = props;
   const { isMobile } = useDroverContext(TRIGGER_NAME);
-  const TriggerComponent = isMobile ? Drawer.Trigger : PopoverTrigger;
+
+  // Mobile uses vaul (Radix-style `asChild`); desktop uses Base UI's Popover
+  // trigger, which composes via the `render` prop instead.
+  if (isMobile) {
+    return (
+      <Drawer.Trigger ref={ref} asChild={asChild} {...triggerProps}>
+        {children}
+      </Drawer.Trigger>
+    );
+  }
+
+  if (asChild) {
+    return (
+      <PopoverTrigger
+        ref={ref}
+        nativeButton={false}
+        render={children as React.ReactElement}
+        {...triggerProps}
+      />
+    );
+  }
 
   return (
-    <TriggerComponent ref={ref} asChild={asChild} {...triggerProps}>
+    <PopoverTrigger ref={ref} {...triggerProps}>
       {children}
-    </TriggerComponent>
+    </PopoverTrigger>
   );
 });
 
@@ -127,20 +148,22 @@ const CLOSE_NAME = "Close";
 const Close = React.forwardRef<PrimitiveButtonElement, CloseProps>((props, ref) => {
   const { children, asChild = false, ...closeProps } = props;
   const { onOpenChange } = useDroverContext(CLOSE_NAME);
-  const Comp = asChild ? Slot : "button";
 
-  return (
-    <Comp
-      ref={ref}
-      {...closeProps}
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpenChange(false);
-      }}
-    >
-      {children}
-    </Comp>
-  );
+  return useRender({
+    ref,
+    render: asChild ? (children as React.ReactElement) : undefined,
+    defaultTagName: "button",
+    props: mergeProps<"button">(
+      closeProps as React.ComponentProps<"button">,
+      {
+        onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.stopPropagation();
+          onOpenChange(false);
+        },
+      },
+      asChild ? {} : ({ children } as React.ComponentProps<"button">),
+    ),
+  });
 });
 
 Close.displayName = CLOSE_NAME;

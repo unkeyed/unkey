@@ -6,6 +6,15 @@ import { useEffect, useMemo, useState } from "react";
 import type { VerificationQueryTimeseriesPayload } from "./query-timeseries.schema";
 import { useFilters } from "./use-filters";
 
+export type VerificationTimeseriesPoint = {
+  displayX: string;
+  originalTimestamp: number;
+  valid: number;
+  total: number;
+  success: number;
+  error: number;
+};
+
 export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
   const [enabled, setEnabled] = useState(false);
   const { filters } = useFilters();
@@ -61,14 +70,16 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
     },
   });
 
-  const timeseries = data?.timeseries?.map((ts) => ({
-    displayX: formatTimestampForChart(ts.x, data.granularity ?? "per12Hours"),
-    originalTimestamp: ts.x,
-    valid: ts.y.valid,
-    total: ts.y.total,
-    success: ts.y.valid,
-    error: ts.y.total - ts.y.valid,
-  }));
+  const timeseries = data?.timeseries?.map(
+    (ts): VerificationTimeseriesPoint => ({
+      displayX: formatTimestampForChart(ts.x, data.granularity ?? "per12Hours"),
+      originalTimestamp: ts.x,
+      valid: ts.y.valid,
+      total: ts.y.total,
+      success: ts.y.valid,
+      error: ts.y.total - ts.y.valid,
+    }),
+  );
 
   return {
     timeseries,
