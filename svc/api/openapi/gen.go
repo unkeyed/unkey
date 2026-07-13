@@ -2039,6 +2039,63 @@ type V2GatewaySetPoliciesResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2GatewayUpdatePolicyRequestBody Partial update of a single policy. Omitted fields keep their stored
+// values; at least one updatable field must be provided. Providing one of
+// `keyauth`, `ratelimit`, `firewall` or `openapi` replaces the policy's
+// rule entirely, including switching its type; at most one may be set.
+type V2GatewayUpdatePolicyRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Enabled Enable or disable the policy. Disabled policies are stored but skipped
+	// during evaluation. Omit to keep the current setting.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Firewall Blocks matching requests.
+	Firewall *FirewallPolicy `json:"firewall,omitempty"`
+
+	// Keyauth Verifies Unkey API keys on matching requests.
+	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Match Replaces all match expressions. Set null to remove them so the policy
+	// applies to every request. Omit to keep the current expressions.
+	Match nullable.Nullable[[]MatchExpr] `json:"match,omitempty"`
+
+	// Name New human-readable name. Omit to keep the current name.
+	Name *string `json:"name,omitempty"`
+
+	// Openapi Validates matching requests against the app's uploaded OpenAPI spec. Has no
+	// configuration of its own. If no spec has been uploaded for the deployment,
+	// the policy is a no-op and requests pass through unvalidated.
+	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
+
+	// PolicyId Id of the policy to update, as returned by `gateway.listPolicies`.
+	// Ids are regenerated whenever `gateway.setPolicies` replaces the list,
+	// so list the policies first if you are unsure the id is current.
+	PolicyId string `json:"policyId"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+
+	// Ratelimit Rate limits matching requests.
+	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
+}
+
+// V2GatewayUpdatePolicyResponseBody defines model for V2GatewayUpdatePolicyResponseBody.
+type V2GatewayUpdatePolicyResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2IdentitiesCreateIdentityRequestBody defines model for V2IdentitiesCreateIdentityRequestBody.
 type V2IdentitiesCreateIdentityRequestBody struct {
 	// ExternalId Creates an identity using your system's unique identifier for a user, organization, or entity.
@@ -3938,6 +3995,9 @@ type GatewayListPoliciesJSONRequestBody = V2GatewayListPoliciesRequestBody
 
 // GatewaySetPoliciesJSONRequestBody defines body for GatewaySetPolicies for application/json ContentType.
 type GatewaySetPoliciesJSONRequestBody = V2GatewaySetPoliciesRequestBody
+
+// GatewayUpdatePolicyJSONRequestBody defines body for GatewayUpdatePolicy for application/json ContentType.
+type GatewayUpdatePolicyJSONRequestBody = V2GatewayUpdatePolicyRequestBody
 
 // IdentitiesCreateIdentityJSONRequestBody defines body for IdentitiesCreateIdentity for application/json ContentType.
 type IdentitiesCreateIdentityJSONRequestBody = V2IdentitiesCreateIdentityRequestBody

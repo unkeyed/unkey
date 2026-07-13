@@ -1,0 +1,111 @@
+post:
+  tags:
+    - gateway
+  summary: Update policy
+  description: |
+    Update a single policy in place without resending the environment's full
+    policy list. The policy keeps its id and its position in the evaluation
+    order, and all other policies are untouched.
+
+    Omitted fields keep their stored values; at least one updatable field
+    must be provided. Setting `match` to null removes all match expressions
+    so the policy applies to every request. Providing one of `keyauth`,
+    `ratelimit`, `firewall` or `openapi` replaces the policy's rule
+    entirely, including switching its type; at most one may be set.
+
+    Policy ids are regenerated whenever `gateway.setPolicies` replaces the
+    list, so fetch current ids via `gateway.listPolicies` first.
+
+    **Required Permissions**
+
+    Your root key must have one of the following permissions:
+    - `environment.*.set_policies` (for any environment)
+    - `environment.<environment_id>.set_policies` (for a specific environment)
+  operationId: gateway.updatePolicy
+  x-speakeasy-name-override: updatePolicy
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2GatewayUpdatePolicyRequestBody.yaml"
+        examples:
+          disable:
+            summary: Disable a policy without touching its rule
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              policyId: pol_9d2Fk1LmQ
+              enabled: false
+          rename:
+            summary: Rename a policy
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              policyId: pol_9d2Fk1LmQ
+              name: Require API key (v2)
+          switchRule:
+            summary: Replace the policy's rule with a firewall deny
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              policyId: pol_9d2Fk1LmQ
+              firewall:
+                action: ACTION_DENY
+          clearMatch:
+            summary: Remove all match expressions
+            value:
+              project: payments
+              app: payments-api
+              environment: production
+              policyId: pol_9d2Fk1LmQ
+              match: null
+    required: true
+  responses:
+    "200":
+      description: |
+        Successfully updated the policy.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2GatewayUpdatePolicyResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `environment.*.set_policies`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The environment, policy, or a referenced keyspace does not exist in your workspace
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
