@@ -1,0 +1,32 @@
+type: object
+required:
+  - project
+  - app
+  - environment
+properties:
+  project:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  app:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  environment:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  cursor:
+    type: string
+    maxLength: 1024
+    description: |
+      Pagination cursor from a previous response to fetch the next page of
+      policies. Leave empty or omit this field to start from the beginning.
+
+      Cursors expire whenever the environment's policies are replaced via
+      `gateway.setPolicies`, which regenerates every policy id. Requests
+      with an expired cursor fail with a 400 error - restart from the
+      beginning when that happens.
+    example: pol_2gJbXhAr4
+  limit:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 100
+    description: Maximum number of policies to return in a single response.
+    example: 50
+additionalProperties: false

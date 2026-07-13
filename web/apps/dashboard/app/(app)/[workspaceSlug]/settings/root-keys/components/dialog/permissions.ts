@@ -245,6 +245,10 @@ export const workspacePermissions = {
         "Create, update, reorder, and remove gateway policies for any environment in this workspace",
       permission: "environment.*.set_policies",
     },
+    read_policies: {
+      description: "Read gateway policies for any environment in this workspace",
+      permission: "environment.*.read_policies",
+    },
   },
   Deployments: {
     create_deployment: {
@@ -393,6 +397,10 @@ export function environmentPermissions(environmentId: string): {
       set_policies: {
         description: "Create, update, reorder, and remove gateway policies for this environment.",
         permission: `environment.${environmentId}.set_policies`,
+      },
+      read_policies: {
+        description: "Read gateway policies for this environment.",
+        permission: `environment.${environmentId}.read_policies`,
       },
     },
     Deployments: {

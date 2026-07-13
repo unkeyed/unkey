@@ -839,6 +839,37 @@ type Policy struct {
 	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
 }
 
+// PolicyResponse A stored gateway policy as returned by list endpoints. Exactly one of
+// `keyauth`, `ratelimit`, `firewall` or `openapi` is set.
+type PolicyResponse struct {
+	// Enabled Disabled policies are stored but skipped during evaluation.
+	Enabled bool `json:"enabled"`
+
+	// Firewall Blocks matching requests.
+	Firewall *FirewallPolicy `json:"firewall,omitempty"`
+
+	// Id Server-generated policy id. Regenerated on every `gateway.setPolicies` call, so treat it as stable only until the environment's policies are next replaced.
+	Id string `json:"id"`
+
+	// Keyauth Verifies Unkey API keys on matching requests.
+	Keyauth *KeyauthPolicy `json:"keyauth,omitempty"`
+
+	// Match Optional request matchers. The policy applies only to requests matching
+	// all expressions; omitted when the policy applies to every request.
+	Match *[]MatchExpr `json:"match,omitempty"`
+
+	// Name Human-readable name shown in the dashboard.
+	Name string `json:"name"`
+
+	// Openapi Validates matching requests against the app's uploaded OpenAPI spec. Has no
+	// configuration of its own. If no spec has been uploaded for the deployment,
+	// the policy is a no-op and requests pass through unvalidated.
+	Openapi *OpenapiPolicy `json:"openapi,omitempty"`
+
+	// Ratelimit Rate limits matching requests.
+	Ratelimit *RatelimitPolicy `json:"ratelimit,omitempty"`
+}
+
 // PreconditionFailedErrorResponse Error response when one or more conditions specified in the request headers are not met. This typically occurs when:
 // - Using conditional requests with If-Match or If-None-Match headers
 // - The resource version doesn't match the expected value
@@ -1949,6 +1980,48 @@ type V2EnvironmentsUpdateSettingsResponseBody struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2GatewayListPoliciesRequestBody defines model for V2GatewayListPoliciesRequestBody.
+type V2GatewayListPoliciesRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App ResourceIdentifier `json:"app"`
+
+	// Cursor Pagination cursor from a previous response to fetch the next page of
+	// policies. Leave empty or omit this field to start from the beginning.
+	//
+	// Cursors expire whenever the environment's policies are replaced via
+	// `gateway.setPolicies`, which regenerates every policy id. Requests
+	// with an expired cursor fail with a 400 error - restart from the
+	// beginning when that happens.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment ResourceIdentifier `json:"environment"`
+
+	// Limit Maximum number of policies to return in a single response.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2GatewayListPoliciesResponseBody defines model for V2GatewayListPoliciesResponseBody.
+type V2GatewayListPoliciesResponseBody struct {
+	// Data The environment's gateway policies in evaluation order.
+	Data V2GatewayListPoliciesResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2GatewayListPoliciesResponseData The environment's gateway policies in evaluation order.
+type V2GatewayListPoliciesResponseData = []PolicyResponse
 
 // V2GatewaySetPoliciesRequestBody defines model for V2GatewaySetPoliciesRequestBody.
 type V2GatewaySetPoliciesRequestBody struct {
@@ -3874,6 +3947,9 @@ type EnvironmentsSetEnvironmentVariablesJSONRequestBody = V2EnvironmentsSetEnvir
 
 // EnvironmentsUpdateSettingsJSONRequestBody defines body for EnvironmentsUpdateSettings for application/json ContentType.
 type EnvironmentsUpdateSettingsJSONRequestBody = V2EnvironmentsUpdateSettingsRequestBody
+
+// GatewayListPoliciesJSONRequestBody defines body for GatewayListPolicies for application/json ContentType.
+type GatewayListPoliciesJSONRequestBody = V2GatewayListPoliciesRequestBody
 
 // GatewaySetPoliciesJSONRequestBody defines body for GatewaySetPolicies for application/json ContentType.
 type GatewaySetPoliciesJSONRequestBody = V2GatewaySetPoliciesRequestBody
