@@ -41,7 +41,7 @@ export function ExpirationPicker({ id, value, onChange, invalid }: ExpirationPic
     }
   }, [value, selectedId]);
 
-  const handleChange = (next: string) => {
+  const handleChange = (next: string | null) => {
     const preset = PRESETS.find((p) => p.id === next);
     if (!preset) {
       return;
@@ -51,7 +51,11 @@ export function ExpirationPicker({ id, value, onChange, invalid }: ExpirationPic
   };
 
   return (
-    <Select value={selectedId} onValueChange={handleChange}>
+    <Select
+      items={PRESETS.map((p) => ({ value: p.id, label: p.label }))}
+      value={selectedId}
+      onValueChange={handleChange}
+    >
       <SelectTrigger id={id} aria-invalid={invalid}>
         <SelectValue placeholder={value ? formatDate(value) : "No expiration"} />
       </SelectTrigger>

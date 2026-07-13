@@ -55,6 +55,7 @@ export function ConditionFields({
               <Select
                 value={c.mode}
                 onValueChange={(v) => patch({ ...c, mode: v as StringMatchMode })}
+                items={STRING_MATCH_MODES}
               >
                 <SelectTrigger
                   id={`path-mode-${c.id}`}
@@ -181,6 +182,7 @@ export function ConditionFields({
                     <Select
                       value={c.mode ?? "exact"}
                       onValueChange={(v) => patch({ ...c, mode: v as StringMatchMode })}
+                      items={STRING_MATCH_MODES}
                     >
                       <SelectTrigger
                         id={`hq-mode-${c.id}`}

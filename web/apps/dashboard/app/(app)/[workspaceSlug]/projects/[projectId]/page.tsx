@@ -27,11 +27,15 @@ export default function ProjectPage() {
           <PageHeaderTitle>Apps</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <Button size="md" variant="primary" asChild>
-            <Link href={routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId })}>
-              <Plus iconSize="sm-regular" />
-              Create app
-            </Link>
+          <Button
+            size="md"
+            variant="primary"
+            render={
+              <Link href={routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId })} />
+            }
+          >
+            <Plus iconSize="sm-regular" />
+            Create app
           </Button>
         </PageHeaderActions>
       </PageHeader>

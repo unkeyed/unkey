@@ -49,11 +49,16 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
       <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="end">
         {user?.email && (
           <>
-            <DropdownMenuLabel className="font-normal">
-              <span title={user.email} className="text-accent-11 text-xs truncate max-w-44 secret">
-                {user.email}
-              </span>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="font-normal">
+                <span
+                  title={user.email}
+                  className="text-accent-11 text-xs truncate max-w-44 secret"
+                >
+                  {user.email}
+                </span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
           </>
         )}
@@ -77,15 +82,13 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
 
         <DropdownMenuGroup className="w-full">
           <DropdownMenuItem
-            asChild
+            render={<span className="text-accent-12 text-sm font-medium">Sign out</span>}
             className="cursor-pointer"
             onClick={async () => {
               queryClient.clear();
               await signOut();
             }}
-          >
-            <span className="text-accent-12 text-sm font-medium">Sign out</span>
-          </DropdownMenuItem>
+          />
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

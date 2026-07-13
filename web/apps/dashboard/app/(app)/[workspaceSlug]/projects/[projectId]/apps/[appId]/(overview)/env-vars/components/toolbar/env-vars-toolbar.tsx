@@ -49,7 +49,18 @@ export function EnvVarsToolbar({
         />
       </div>
       <div className="flex-[25%] max-w-[184px]">
-        <Select value={environmentFilter} onValueChange={onEnvironmentFilterChange}>
+        <Select
+          value={environmentFilter}
+          items={[
+            { value: "all", label: "All Environments" },
+            ...environments.map((env) => ({ value: env.id, label: env.slug })),
+          ]}
+          onValueChange={(value) => {
+            if (value !== null) {
+              onEnvironmentFilterChange(value);
+            }
+          }}
+        >
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
             leftIcon={<Layers3 iconSize="md-medium" className="text-gray-9" />}
@@ -70,8 +81,12 @@ export function EnvVarsToolbar({
       <div className="flex-[25%] max-w-[184px]">
         <Select
           value={sortBy}
+          items={[
+            { value: "last-updated", label: "Last Updated" },
+            { value: "name-asc", label: "Name A-Z" },
+          ]}
           onValueChange={(v) => {
-            if (isSortOption(v)) {
+            if (v !== null && isSortOption(v)) {
               onSortChange(v);
             }
           }}

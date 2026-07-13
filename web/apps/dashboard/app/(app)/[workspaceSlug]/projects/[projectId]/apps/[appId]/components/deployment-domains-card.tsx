@@ -109,15 +109,17 @@ export function DeploymentDomainsCard({
             <div className="flex items-center gap-2">
               {additionalDomains.length > 0 && (
                 <Popover open={urlsOpen} onOpenChange={setUrlsOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      className="text-gray-12 font-medium bg-grayA-2 rounded-[8px]"
-                      variant="outline"
-                    >
-                      Show URLs
-                      <ChevronDown className="text-gray-9 size-3!" iconSize="sm-regular" />
-                    </Button>
-                  </PopoverTrigger>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        className="text-gray-12 font-medium bg-grayA-2 rounded-[8px]"
+                        variant="outline"
+                      >
+                        Show URLs
+                        <ChevronDown className="text-gray-9 size-3!" iconSize="sm-regular" />
+                      </Button>
+                    }
+                  />
                   <PopoverContent side="bottom" align="end" className="p-0 max-w-[300px]">
                     {allDomains.map((d) => (
                       <div

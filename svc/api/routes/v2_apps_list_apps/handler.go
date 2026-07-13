@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -83,15 +84,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 100)
-	cursor := ptr.SafeDeref(req.Cursor, "")
+	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	rows, err := db.Query.ListAppsByProject(ctx, h.DB.RO(), db.ListAppsByProjectParams{
 		ProjectID: project.ID,
-		IDCursor:  cursor,
+		IDCursor:  p.Cursor,
 		Search:    search,
-		Limit:     int32(limit + 1), // nolint:gosec
+		Limit:     p.FetchLimit(),
 	})
 	if err != nil {
 		return fault.Wrap(
@@ -102,12 +102,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	hasMore := len(rows) > limit
-	var nextCursor *string
-	if hasMore {
-		nextCursor = ptr.P(rows[limit].ID)
-		rows = rows[:limit]
-	}
+	rows, pg := pagination.Paginate(rows, p, func(r db.App) string { return r.ID })
 
 	data := array.Map(rows, func(row db.App) openapi.App {
 		return openapi.App{
@@ -127,10 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: data,
-		Pagination: &openapi.Pagination{
-			Cursor:  nextCursor,
-			HasMore: hasMore,
-		},
+		Data:       data,
+		Pagination: pg,
 	})
 }

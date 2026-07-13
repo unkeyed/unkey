@@ -133,7 +133,7 @@ const LLMSearch = ({
     <div className="group relative flex-1" data-testid="llm-search">
       <div
         className={cn(
-          "group-data-[state=open]:bg-gray-4 px-2 flex items-center flex-1 gap-2 border rounded-lg py-1 h-8 border-none cursor-text hover:bg-gray-3",
+          "group-data-open:bg-gray-4 px-2 flex items-center flex-1 gap-2 border rounded-lg py-1 h-8 border-none cursor-pointer hover:bg-gray-3",
           !fullWidth && "md:w-80",
           "focus-within:bg-gray-4",
           "transition-all duration-200",
