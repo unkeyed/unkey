@@ -2,7 +2,6 @@ package portal
 
 import (
 	"context"
-	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -29,7 +28,7 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 	row, hit, err := s.sessionCache.SWR(ctx, token, func(ctx context.Context) (db.PortalSession, error) {
 		return db.Query.FindValidPortalSession(ctx, s.db.RO(), db.FindValidPortalSessionParams{
 			ID:  token,
-			Now: time.Now().UnixMilli(),
+			Now: s.clock.Now().UnixMilli(),
 		})
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
@@ -50,6 +49,13 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 		return nil, fault.New("invalid or expired portal session",
 			fault.Code(codes.Portal.Session.SessionNotFound.URN()),
 			fault.Internal("portal session cached null"),
+			fault.Public("The portal session is invalid or has expired."),
+		)
+	}
+	if row.ExpiresAt <= s.clock.Now().UnixMilli() {
+		return nil, fault.New("invalid or expired portal session",
+			fault.Code(codes.Portal.Session.SessionNotFound.URN()),
+			fault.Internal("portal session cached after expiry"),
 			fault.Public("The portal session is invalid or has expired."),
 		)
 	}
