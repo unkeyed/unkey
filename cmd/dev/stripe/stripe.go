@@ -31,6 +31,7 @@ var Cmd = &cli.Command{
 		invoicesCmd,
 		grantsCmd,
 		resetCmd,
+		shadowCmd,
 	},
 }
 
