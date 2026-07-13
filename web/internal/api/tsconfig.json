@@ -11,7 +11,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "rootDir": "src",
-    "outDir": ".",
+    "outDir": "esm",
     "strict": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,

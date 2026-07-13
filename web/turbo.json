@@ -63,6 +63,9 @@
       "dependsOn": ["@unkey/api#build"],
       "cache": false
     },
+    "@unkey/api#build": {
+      "outputs": ["esm/**"]
+    },
     "fmt": {
       "cache": false
     },
