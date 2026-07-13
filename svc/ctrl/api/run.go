@@ -258,6 +258,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:             database,
 		DomainCache:    domainCache,
 		ChallengeCache: challengeCache,
+		Bearer:         cfg.AuthToken,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
 	// Domain Connect signing key (optional)

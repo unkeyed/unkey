@@ -30,6 +30,7 @@
 //		DB:           database,
 //		DomainCache:   caches.Domains,
 //		ChallengeCache: caches.Challenges,
+//		Bearer:       authToken,
 //	})
 //
 // Processing challenges:

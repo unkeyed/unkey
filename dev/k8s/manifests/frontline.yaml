@@ -11,7 +11,10 @@ data:
     http_port = 7070
     https_port = 7443
     apex_domain = "unkey.local"
-    ctrl_addr = "http://ctrl-api.unkey.svc.cluster.local:7091"
+
+    [control]
+    url = "http://ctrl-api.unkey.svc.cluster.local:7091"
+    token = "your-local-dev-key"
 
     [database]
     primary = "unkey:password@tcp(mysql.unkey.svc.cluster.local:3306)/unkey?parseTime=true&interpolateParams=true"
