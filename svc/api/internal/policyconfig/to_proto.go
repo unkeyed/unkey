@@ -26,6 +26,7 @@ func ToProto(policies []openapi.Policy) ([]*frontlinev1.Policy, error) {
 		if err != nil {
 			return nil, err
 		}
+		converted.Id = uid.New(uid.PolicyPrefix)
 		out = append(out, converted)
 	}
 	return out, nil
@@ -47,6 +48,9 @@ func VariantName(p *frontlinev1.Policy) string {
 	}
 }
 
+// PolicyToProto converts and validates a single policy. It leaves Id unset;
+// callers own identity (ToProto generates fresh ids, updatePolicy keeps the
+// stored one).
 func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 	if err := exactlyOne(path, "keyauth, ratelimit, firewall or openapi",
 		p.Keyauth != nil, p.Ratelimit != nil, p.Firewall != nil, p.Openapi != nil); err != nil {
@@ -54,7 +58,6 @@ func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 	}
 
 	out := &frontlinev1.Policy{
-		Id:      uid.New(uid.PolicyPrefix),
 		Name:    p.Name,
 		Enabled: proto.Bool(p.Enabled),
 	}

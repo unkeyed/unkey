@@ -51,21 +51,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	rules := 0
-	for _, set := range []bool{req.Keyauth != nil, req.Ratelimit != nil, req.Firewall != nil, req.Openapi != nil} {
-		if set {
-			rules++
-		}
-	}
-	if rules > 1 {
-		return fault.New(
-			"multiple rule variants",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("more than one rule variant in update"),
-			fault.Public("At most one of keyauth, ratelimit, firewall or openapi may be set."),
-		)
-	}
-	if rules == 0 && req.Name == nil && req.Enabled == nil && !req.Match.IsSpecified() {
+	// Multi-variant requests are rejected by the exactly-one check when the
+	// merged policy is validated below.
+	ruleProvided := req.Keyauth != nil || req.Ratelimit != nil || req.Firewall != nil || req.Openapi != nil
+	if !ruleProvided && req.Name == nil && req.Enabled == nil && !req.Match.IsSpecified() {
 		return fault.New(
 			"empty update",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -199,7 +188,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				patched.Match = &match
 			}
 		}
-		if rules == 1 {
+		if ruleProvided {
 			patched.Keyauth = req.Keyauth
 			patched.Ratelimit = req.Ratelimit
 			patched.Firewall = req.Firewall
@@ -241,7 +230,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		blob, marshalErr := protojson.Marshal(&frontlinev1.Config{Policies: policies})
+		blob, marshalErr := policyconfig.Marshal(policies)
 		if marshalErr != nil {
 			return fault.Wrap(
 				marshalErr,
