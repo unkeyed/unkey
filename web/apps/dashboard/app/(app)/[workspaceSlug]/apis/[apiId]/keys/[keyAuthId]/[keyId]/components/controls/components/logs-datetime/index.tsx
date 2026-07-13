@@ -74,24 +74,22 @@ export const LogsDateTime = () => {
         (option) => !option.value || !option.value.endsWith("m"),
       )}
     >
-      <div className="group">
-        <Button
-          variant="ghost"
-          size="md"
-          className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            displayTitle === "Loading..." ? "opacity-50" : "",
-            displayTitle !== "Last 12 hours" ? "bg-gray-4" : "",
-          )}
-          aria-label="Filter logs by time"
-          aria-haspopup="true"
-          title="Press 'T' to toggle filters"
-          disabled={displayTitle === "Loading..."}
-        >
-          <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px] max-md:hidden">{displayTitle}</span>
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="md"
+        className={cn(
+          "data-popup-open:bg-gray-4 px-2 rounded-lg",
+          displayTitle === "Loading..." ? "opacity-50" : "",
+          displayTitle !== "Last 12 hours" ? "bg-gray-4" : "",
+        )}
+        aria-label="Filter logs by time"
+        aria-haspopup="true"
+        title="Press 'T' to toggle filters"
+        disabled={displayTitle === "Loading..."}
+      >
+        <Calendar className="text-gray-9 size-4" />
+        <span className="text-gray-12 font-medium text-[13px] max-md:hidden">{displayTitle}</span>
+      </Button>
     </DatetimePopover>
   );
 };

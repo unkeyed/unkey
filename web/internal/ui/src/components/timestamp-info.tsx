@@ -1,10 +1,9 @@
 "use client";
 import { format, formatDistanceToNow, fromUnixTime } from "date-fns";
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "./dialog/popover";
 
 const unixMicroToDate = (unix: string | number): Date => {
   return fromUnixTime(Number(unix) / 1000 / 1000);
@@ -84,6 +83,20 @@ const TimestampInfo: React.FC<{
   const isOpen = open !== undefined ? open : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
 
+  // When an external trigger element is provided, the popup is anchored to it
+  // instead of to our own trigger. The positioner expects a non-null current,
+  // so fall back to the body (same pattern as ConfirmPopover).
+  const externalAnchor = React.useMemo(() => {
+    if (!externalTriggerRef) {
+      return undefined;
+    }
+    return {
+      get current() {
+        return externalTriggerRef.current ?? document.body;
+      },
+    };
+  }, [externalTriggerRef]);
+
   useEffect(() => {
     const updateAlignment = () => {
       if (triggerRef.current) {
@@ -138,23 +151,23 @@ const TimestampInfo: React.FC<{
   };
 
   return (
-    <Tooltip open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       {externalTriggerRef ? (
-        // If external trigger is provided, use a span and the external trigger
-        <>
-          <TooltipTrigger asChild>
-            <span className={cn("text-xs", className)}>{getDisplayValue()}</span>
-          </TooltipTrigger>
-        </>
+        // An external element controls the popover (via open/onOpenChange) and
+        // anchors it, so only render the timestamp text here.
+        <span className={cn("text-xs", className)}>{getDisplayValue()}</span>
       ) : (
-        // Otherwise use the internal trigger ref for the button
-        <TooltipTrigger ref={internalTriggerRef} className={cn("text-xs", className)}>
-          <span>{getDisplayValue()}</span>
-        </TooltipTrigger>
+        // A real, focusable trigger: the popup contains interactive copy rows,
+        // so it must be reachable by keyboard. `openOnHover` keeps the old
+        // tooltip-like hover behavior; click/Enter/Space also toggle it.
+        <PopoverTrigger ref={internalTriggerRef} openOnHover className={cn("text-xs", className)}>
+          {getDisplayValue()}
+        </PopoverTrigger>
       )}
-      <TooltipContent
+      <PopoverContent
         align={alignProp ?? align}
         side={sideProp ?? "right"}
+        anchor={externalAnchor}
         className="font-mono p-0 bg-gray-1 shadow-2xl text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-grayA-4"
       >
         <div className="py-3">
@@ -163,8 +176,8 @@ const TimestampInfo: React.FC<{
           <TooltipRow label="Relative" value={relative} />
           <TooltipRow label="Timestamp" value={String(value)} />
         </div>
-      </TooltipContent>
-    </Tooltip>
+      </PopoverContent>
+    </Popover>
   );
 };
 TimestampInfo.displayName = "TimestampInfo";

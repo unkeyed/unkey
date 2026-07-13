@@ -9,7 +9,7 @@ import {
   Plus,
   TriangleWarning2,
 } from "@unkey/icons";
-import { Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import Link from "next/link";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
 import { useProductionCard } from "./production-card-context";
@@ -33,13 +33,19 @@ function DomainHero() {
         </span>
       )}
       {additionalDomains.length > 0 && (
-        <HoverCard openDelay={0} closeDelay={100}>
-          <HoverCardTrigger asChild>
-            <span className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-[11px] leading-[18px] font-mono tabular-nums shrink-0 cursor-default">
-              +{additionalDomains.length}
-            </span>
-          </HoverCardTrigger>
-          <HoverCardContent align="start" className="w-64 p-1">
+        <Popover>
+          {/* A real button trigger so the domain links are reachable by
+              keyboard; openOnHover preserves the old hover-card behavior. */}
+          <PopoverTrigger
+            openOnHover
+            delay={0}
+            closeDelay={100}
+            className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-[11px] leading-[18px] font-mono tabular-nums shrink-0"
+            aria-label={`Show ${additionalDomains.length} more domains`}
+          >
+            +{additionalDomains.length}
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-64 p-1">
             <div className="flex flex-col max-h-64 overflow-y-auto">
               {additionalDomains.map((domain) => (
                 <a
@@ -54,15 +60,18 @@ function DomainHero() {
                 </a>
               ))}
             </div>
-          </HoverCardContent>
-        </HoverCard>
+          </PopoverContent>
+        </Popover>
       )}
       {addCustomDomainHref && (
-        <Button variant="outline" size="sm" asChild className="shrink-0 border-dashed">
-          <Link href={addCustomDomainHref}>
-            <Plus iconSize="sm-regular" />
-            Add custom domain
-          </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          render={<Link href={addCustomDomainHref} />}
+          className="shrink-0 border-dashed"
+        >
+          <Plus iconSize="sm-regular" />
+          Add custom domain
         </Button>
       )}
     </div>
@@ -87,24 +96,23 @@ export function ProductionCardHeader() {
       <DomainHero />
       <div className="flex items-center gap-2 shrink-0">
         {diagnostic && (
-          <Button variant="outline" size="sm" asChild className="border-errorA-4 text-error-11">
-            <Link href={diagnostic.href}>
-              <TriangleWarning2 iconSize="sm-regular" />
-              {diagnostic.label}
-            </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href={diagnostic.href} />}
+            className="border-errorA-4 text-error-11"
+          >
+            <TriangleWarning2 iconSize="sm-regular" />
+            {diagnostic.label}
           </Button>
         )}
-        <Button variant="outline" size="sm" asChild>
-          <Link href={logsHref}>
-            <Layers3 iconSize="sm-regular" />
-            Logs
-          </Link>
+        <Button variant="outline" size="sm" render={<Link href={logsHref} />}>
+          <Layers3 iconSize="sm-regular" />
+          Logs
         </Button>
-        <Button variant="outline" size="sm" asChild>
-          <Link href={requestsHref}>
-            <ArrowOppositeDirectionY iconSize="sm-regular" />
-            Requests
-          </Link>
+        <Button variant="outline" size="sm" render={<Link href={requestsHref} />}>
+          <ArrowOppositeDirectionY iconSize="sm-regular" />
+          Requests
         </Button>
         {!isRolledBack && rollbackTarget && (
           <Button variant="outline" size="sm" onClick={openRollback}>

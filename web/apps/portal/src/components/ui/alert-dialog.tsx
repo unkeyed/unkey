@@ -1,24 +1,20 @@
 "use client";
 
-import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
+import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import type * as React from "react";
-import { type ButtonProps, buttonVariants } from "~/components/ui/button";
+import { Button, type ButtonProps, buttonVariants } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
 export const AlertDialog = AlertDialogPrimitive.Root;
 export const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 export const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
-export function AlertDialogOverlay({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>) {
+export function AlertDialogOverlay({ className, ...props }: AlertDialogPrimitive.Backdrop.Props) {
   return (
-    <AlertDialogPrimitive.Overlay
+    <AlertDialogPrimitive.Backdrop
       className={cn(
         "fixed inset-0 z-50 bg-gray-12/20 backdrop-blur-xs",
-        "data-[state=open]:fade-in-0 data-[state=open]:animate-in data-[state=open]:duration-200",
-        "data-[state=closed]:fade-out-0 data-[state=closed]:animate-out data-[state=closed]:duration-150",
+        "transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0",
         className,
       )}
       {...props}
@@ -26,19 +22,15 @@ export function AlertDialogOverlay({
   );
 }
 
-export function AlertDialogContent({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>) {
+export function AlertDialogContent({ className, ...props }: AlertDialogPrimitive.Popup.Props) {
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
-      <AlertDialogPrimitive.Content
+      <AlertDialogPrimitive.Popup
         className={cn(
           "-translate-x-1/2 -translate-y-1/2 fixed top-1/2 left-1/2 z-50 w-full max-w-md",
           "rounded-2xl border border-primary/20 bg-background p-5 shadow-2xl",
-          "data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:animate-in data-[state=open]:duration-200",
-          "data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:animate-out data-[state=closed]:duration-150",
+          "transition-[opacity,scale] duration-200 data-ending-style:scale-95 data-starting-style:scale-95 data-ending-style:opacity-0 data-starting-style:opacity-0",
           "focus:outline-none",
           className,
         )}
@@ -64,10 +56,7 @@ export function AlertDialogFooter({ className, ...props }: React.HTMLAttributes<
   );
 }
 
-export function AlertDialogTitle({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>) {
+export function AlertDialogTitle({ className, ...props }: AlertDialogPrimitive.Title.Props) {
   return (
     <AlertDialogPrimitive.Title
       className={cn("font-semibold text-gray-12 text-lg tracking-tight", className)}
@@ -79,7 +68,7 @@ export function AlertDialogTitle({
 export function AlertDialogDescription({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>) {
+}: AlertDialogPrimitive.Description.Props) {
   return (
     <AlertDialogPrimitive.Description
       className={cn("text-gray-11 text-sm", className)}
@@ -88,24 +77,15 @@ export function AlertDialogDescription({
   );
 }
 
-type AlertDialogActionProps = React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> &
-  Pick<ButtonProps, "variant" | "size">;
-
-export function AlertDialogAction({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: AlertDialogActionProps) {
-  return (
-    <AlertDialogPrimitive.Action
-      className={cn(buttonVariants({ variant, size }), className)}
-      {...props}
-    />
-  );
+// Base UI AlertDialog has no Action primitive; render a plain Button. Closing
+// is handled by the consumer's onClick via controlled `open` state.
+export function AlertDialogAction({ variant = "default", ...props }: ButtonProps) {
+  return <Button variant={variant} {...props} />;
 }
 
-type AlertDialogCancelProps = React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel> &
+// Radix's Cancel maps to Base UI's Close. Ref forwards through so callers can
+// target it with the Popup's `initialFocus` (preserves Radix's focus-Cancel).
+type AlertDialogCancelProps = AlertDialogPrimitive.Close.Props &
   Pick<ButtonProps, "variant" | "size">;
 
 export function AlertDialogCancel({
@@ -115,7 +95,7 @@ export function AlertDialogCancel({
   ...props
 }: AlertDialogCancelProps) {
   return (
-    <AlertDialogPrimitive.Cancel
+    <AlertDialogPrimitive.Close
       className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     />

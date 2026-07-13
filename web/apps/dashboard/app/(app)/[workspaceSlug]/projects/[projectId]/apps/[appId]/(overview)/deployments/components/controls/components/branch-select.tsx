@@ -36,14 +36,16 @@ export function BranchSelect() {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <FilterTriggerButton
-          icon={<CodeBranch iconSize="md-medium" className="text-gray-9 shrink-0" />}
-          label="Branch"
-          count={selectedBranches.length}
-          isActive={selectedBranches.length > 0}
-        />
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <FilterTriggerButton
+            icon={<CodeBranch iconSize="md-medium" className="text-gray-9 shrink-0" />}
+            label="Branch"
+            count={selectedBranches.length}
+            isActive={selectedBranches.length > 0}
+          />
+        }
+      />
       <PopoverContent align="start" className="w-64 p-1">
         <div className="p-1">
           <FormInput

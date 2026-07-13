@@ -52,21 +52,25 @@ export function UsageBanner() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton asChild tooltip="Usage" className={getButtonStyles(false)}>
-          <Link href={href}>
-            <ProgressCircle
-              value={current}
-              max={max}
-              color={shouldUpgrade ? "#DD4527" : "#0A9B8B"}
-            />
-            <span>Usage {Math.round(percentage).toLocaleString()}%</span>
-            {shouldUpgrade && !collapsed ? (
-              <div className="ml-auto inline-flex h-7 items-center justify-center rounded-md border border-grayA-4 bg-accent-12 px-2 text-sm font-medium text-white drop-shadow-button dark:text-black">
-                Upgrade
-              </div>
-            ) : null}
-          </Link>
-        </SidebarMenuButton>
+        <SidebarMenuButton
+          tooltip="Usage"
+          className={getButtonStyles(false)}
+          render={
+            <Link href={href}>
+              <ProgressCircle
+                value={current}
+                max={max}
+                color={shouldUpgrade ? "#DD4527" : "#0A9B8B"}
+              />
+              <span>Usage {Math.round(percentage).toLocaleString()}%</span>
+              {shouldUpgrade && !collapsed ? (
+                <div className="ml-auto inline-flex h-7 items-center justify-center rounded-md border border-grayA-4 bg-accent-12 px-2 text-sm font-medium text-white drop-shadow-button dark:text-black">
+                  Upgrade
+                </div>
+              ) : null}
+            </Link>
+          }
+        />
       </SidebarMenuItem>
     </SidebarMenu>
   );

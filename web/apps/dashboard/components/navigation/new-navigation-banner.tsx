@@ -66,10 +66,13 @@ export function NewNavigationBanner() {
               , with the same keys and data.
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild className="self-start">
-            <Link href={CHANGELOG_URL} target="_blank" rel="noreferrer">
-              Learn more
-            </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href={CHANGELOG_URL} target="_blank" rel="noreferrer" />}
+            className="self-start"
+          >
+            Learn more
           </Button>
         </div>
       </BannerCard>

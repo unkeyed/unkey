@@ -1,5 +1,5 @@
-import type { CheckedState } from "@radix-ui/react-checkbox";
 import type { UnkeyPermission } from "@unkey/rbac";
+import type { CheckedState } from "@unkey/ui";
 
 // Type definitions
 export type PermissionItem = {

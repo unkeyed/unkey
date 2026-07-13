@@ -14,54 +14,57 @@ import (
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
 )
 
-// Config holds the handler's dependencies.
+// Config holds handler dependencies.
 type Config struct {
-	// UsageReader queries month-to-date usage from ClickHouse. Optional: when
-	// nil (ClickHouse not configured) the handler is a no-op.
+	// Nil without ClickHouse. Handler is a no-op.
 	UsageReader UsageReader
-	// Pusher reports usage to the billing provider. Must not be nil; use
-	// billingmeter.NewNoop() to disable pushing.
+	// Must not be nil. Use billingmeter.NewNoop() to disable.
 	Pusher billingmeter.Pusher
-	// DB is the primary application database, used to resolve each workspace's
-	// Stripe subscription. Must not be nil.
+	// Must not be nil.
 	DB db.Database
-	// Heartbeat is pinged on successful completion. Must not be nil; use
-	// healthcheck.NewNoop() if monitoring is not configured.
+	// Must not be nil. Use healthcheck.NewNoop() when monitoring is off.
 	Heartbeat healthcheck.Heartbeat
+	// Must not be nil. Use invoicecloser.NewNoop() to disable.
+	Closer invoicecloser.Closer
+	// Must not be nil. Use healthcheck.NewNoop() when monitoring is off.
+	CloseHeartbeat healthcheck.Heartbeat
 }
 
-// Handler executes RunDeployBillingPush.
+// Handler runs RunDeployBillingPush and RunDeployBillingClose.
 type Handler struct {
-	usage     UsageReader
-	pusher    billingmeter.Pusher
-	db        db.Database
-	heartbeat healthcheck.Heartbeat
+	usage          UsageReader
+	pusher         billingmeter.Pusher
+	db             db.Database
+	heartbeat      healthcheck.Heartbeat
+	closer         invoicecloser.Closer
+	closeHeartbeat healthcheck.Heartbeat
 }
 
-// New constructs a Handler.
 func New(cfg Config) (*Handler, error) {
 	if err := assert.All(
 		assert.NotNil(cfg.Pusher, "Pusher must not be nil; use billingmeter.NewNoop()"),
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Closer, "Closer must not be nil; use invoicecloser.NewNoop()"),
+		assert.NotNil(cfg.CloseHeartbeat, "CloseHeartbeat must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
 	return &Handler{
-		usage:     cfg.UsageReader,
-		pusher:    cfg.Pusher,
-		db:        cfg.DB,
-		heartbeat: cfg.Heartbeat,
+		usage:          cfg.UsageReader,
+		pusher:         cfg.Pusher,
+		db:             cfg.DB,
+		heartbeat:      cfg.Heartbeat,
+		closer:         cfg.Closer,
+		closeHeartbeat: cfg.CloseHeartbeat,
 	}, nil
 }
 
-// Handle computes month-to-date Deploy usage for the billing period (the VO
-// key, "YYYY-MM") and pushes each billable workspace's running total to the
-// provider, fanning out the pushes in bounded batches. The window runs from the
-// first of the month to now; the pushed quantity is absolute, so re-runs and
-// overlapping ticks converge.
+// Handle pushes month-to-date Deploy usage for the VO key ("YYYY-MM").
+// Absolute totals; re-runs converge.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunDeployBillingPushRequest,
@@ -83,35 +86,65 @@ func (h *Handler) Handle(
 	if err != nil {
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
-	// The ClickHouse usage query is bounded in milliseconds; the Stripe meter
-	// event timestamp is unix seconds. Both come from the one journaled "now"
-	// so the window and the event agree.
+	// One journaled "now" for both the ClickHouse window (ms) and meter timestamp (s).
 	nowMillis := nowTime.UnixMilli()
 	nowUnixSeconds := nowTime.Unix()
 
+	workspacesWithUsage, workspacesPushed, metersPushed, failedWorkspaceIDs, err := h.pushUsage(
+		ctx, period, p, nowMillis, nowUnixSeconds,
+	)
+	if err != nil {
+		return nil, err
+	}
+	workspacesFailed := len(failedWorkspaceIDs)
+
+	logger.Info("deploy billing push complete",
+		"billing_period", period,
+		"workspaces_with_usage", workspacesWithUsage,
+		"workspaces_pushed", workspacesPushed,
+		"workspaces_failed", workspacesFailed,
+		"meters_pushed", metersPushed,
+	)
+
+	// Failed pushes still complete the run. Skip heartbeat so monitoring fires.
+	if workspacesFailed > 0 {
+		return &hydrav1.RunDeployBillingPushResponse{}, nil
+	}
+
+	if err := h.pingHeartbeat(ctx); err != nil {
+		return nil, err
+	}
+	return &hydrav1.RunDeployBillingPushResponse{}, nil
+}
+
+// pushUsage reads [p.Start(), endMillis), pushes absolute totals stamped with
+// eventTimestamp. Hourly push uses now for both; close uses period end and T-1s.
+func (h *Handler) pushUsage(
+	ctx restate.ObjectContext,
+	period string,
+	p billingperiod.Period,
+	endMillis int64,
+	eventTimestamp int64,
+) (workspacesWithUsage, workspacesPushed, metersPushed int, failedWorkspaceIDs []string, err error) {
 	rows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceMeterUsage, error) {
 		return h.usage.GetInstanceMeterUsage(rc, clickhouse.GetInstanceMeterUsageRequest{
 			WorkspaceID: "", // all workspaces; we filter to billable ones below
 			Start:       p.Start().UnixMilli(),
-			End:         nowMillis,
+			End:         endMillis,
 		})
-	}, restate.WithName("get month-to-date usage"))
+	}, restate.WithName("get period usage"))
 	if err != nil {
-		return nil, fmt.Errorf("get month-to-date usage: %w", err)
+		return 0, 0, 0, nil, fmt.Errorf("get period usage: %w", err)
 	}
 
 	if len(rows) == 0 {
 		logger.Info("no deploy usage this period", "billing_period", period)
-		if err := h.pingHeartbeat(ctx); err != nil {
-			return nil, err
-		}
-		return &hydrav1.RunDeployBillingPushResponse{}, nil
+		return 0, 0, 0, nil, nil
 	}
 
 	valuesByWorkspace := aggregateUsage(rows)
 
-	// Sort so the downstream journaled steps (db fetch, per-workspace push)
-	// replay in a stable order.
+	// Stable order for Restate replay.
 	workspaceIDs := make([]string, 0, len(valuesByWorkspace))
 	for id := range valuesByWorkspace {
 		workspaceIDs = append(workspaceIDs, id)
@@ -122,7 +155,7 @@ func (h *Handler) Handle(
 		return h.db.ListWorkspacesForDeployBillingByIDs(rc, workspaceIDs)
 	}, restate.WithName("fetch workspace billing identities"))
 	if err != nil {
-		return nil, fmt.Errorf("fetch workspace billing identities: %w", err)
+		return 0, 0, 0, nil, fmt.Errorf("fetch workspace billing identities: %w", err)
 	}
 
 	workspacesByID := make(map[string]db.ListWorkspacesForDeployBillingByIDsRow, len(workspaces))
@@ -141,9 +174,7 @@ func (h *Handler) Handle(
 		if !ok {
 			continue
 		}
-		// A disabled workspace is still billed: usage already incurred is owed
-		// regardless of the workspace's current state. The only blocker is a
-		// missing Stripe customer, since there is nothing to map the usage onto.
+		// Disabled workspaces still owe incurred usage. Only skip without a Stripe customer.
 		if !w.StripeCustomerID.Valid || w.StripeCustomerID.String == "" {
 			logger.Info("workspace has deploy usage but no stripe customer; skipping",
 				"workspace_id", id,
@@ -157,30 +188,19 @@ func (h *Handler) Handle(
 			req: billingmeter.PushRequest{
 				StripeCustomerID: w.StripeCustomerID.String,
 				Values:           values,
-				Timestamp:        nowUnixSeconds,
+				Timestamp:        eventTimestamp,
 			},
 		})
 	}
 
-	workspacesPushed, metersPushed, err := h.pushAll(ctx, tasks)
+	workspacesPushed, metersPushed, failedWorkspaceIDs, err = h.pushAll(ctx, tasks)
 	if err != nil {
-		return nil, err
+		return 0, 0, 0, nil, err
 	}
 
-	if err := h.pingHeartbeat(ctx); err != nil {
-		return nil, err
-	}
-
-	logger.Info("deploy billing push complete",
-		"billing_period", period,
-		"workspaces_with_usage", len(valuesByWorkspace),
-		"workspaces_pushed", workspacesPushed,
-		"meters_pushed", metersPushed,
-	)
-	return &hydrav1.RunDeployBillingPushResponse{}, nil
+	return len(valuesByWorkspace), workspacesPushed, metersPushed, failedWorkspaceIDs, nil
 }
 
-// pingHeartbeat reports a successful run to the monitoring heartbeat.
 func (h *Handler) pingHeartbeat(ctx restate.ObjectContext) error {
 	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
 		return h.heartbeat.Ping(rc)

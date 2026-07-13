@@ -10,6 +10,7 @@ import (
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -33,6 +34,7 @@ func (s *ClickHouseSeeder) InsertVerifications(ctx context.Context, workspaceID 
 		verifications := make([]schema.KeyVerification, batchCount)
 		for j := range batchCount {
 			verifications[j] = schema.KeyVerification{
+				Source:       schema.SourceAPI,
 				RequestID:    uid.New(uid.RequestPrefix),
 				Time:         timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
 				WorkspaceID:  workspaceID,
@@ -48,7 +50,7 @@ func (s *ClickHouseSeeder) InsertVerifications(ctx context.Context, workspaceID 
 			}
 		}
 
-		batch, err := s.conn.PrepareBatch(ctx, "INSERT INTO default.key_verifications_raw_v2")
+		batch, err := s.conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
 		require.NoError(s.t, err)
 
 		for _, v := range verifications {
@@ -89,7 +91,7 @@ func (s *ClickHouseSeeder) InsertRatelimits(ctx context.Context, workspaceID str
 			}
 		}
 
-		batch, err := s.conn.PrepareBatch(ctx, "INSERT INTO default.ratelimits_raw_v2")
+		batch, err := s.conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.Ratelimit]())
 		require.NoError(s.t, err)
 
 		for _, r := range ratelimits {
@@ -114,6 +116,15 @@ type KeyLastUsedRow struct {
 	Tags        []string `ch:"tags"`
 }
 
+// Table implements schema.Row. The struct is seeding-only, so the Row
+// implementation is hand-written here instead of generated.
+func (KeyLastUsedRow) Table() string { return "default.key_last_used_v1" }
+
+// InsertColumns implements schema.Row; keep in sync with the ch tags above.
+func (KeyLastUsedRow) InsertColumns() string {
+	return "`workspace_id`, `key_space_id`, `key_id`, `identity_id`, `time`, `request_id`, `outcome`, `tags`"
+}
+
 // InsertKeyLastUsed inserts rows directly into key_last_used_v1, bypassing the MV.
 // This is much faster for bulk seeding since it skips the raw table entirely.
 // keyIDs should be pre-generated MySQL key IDs so both sides match.
@@ -123,7 +134,7 @@ func (s *ClickHouseSeeder) InsertKeyLastUsed(ctx context.Context, rows []KeyLast
 		end := min(i+batchSize, len(rows))
 		chunk := rows[i:end]
 
-		batch, err := s.conn.PrepareBatch(ctx, "INSERT INTO default.key_last_used_v1")
+		batch, err := s.conn.PrepareBatch(ctx, clickhouse.InsertQuery[KeyLastUsedRow]())
 		require.NoError(s.t, err)
 
 		for idx := range chunk {
@@ -200,7 +211,7 @@ func (s *ClickHouseSeeder) insertVerificationsForKeyChunk(
 		end := min(i+keysPerBatch, len(keyIDs))
 		chunk := keyIDs[i:end]
 
-		batch, err := s.conn.PrepareBatch(ctx, "INSERT INTO default.key_verifications_raw_v2")
+		batch, err := s.conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
 		if err != nil {
 			return fmt.Errorf("prepare batch at offset %d: %w", i, err)
 		}
@@ -209,6 +220,7 @@ func (s *ClickHouseSeeder) insertVerificationsForKeyChunk(
 			baseTime := now - int64(len(keyIDs)-i-keyIdx)*int64(eventsPerKey)
 			for j := range eventsPerKey {
 				v := schema.KeyVerification{
+					Source:       schema.SourceAPI,
 					RequestID:    fmt.Sprintf("perf-%d-%d", i+keyIdx, j),
 					Time:         baseTime + int64(j),
 					WorkspaceID:  workspaceID,
@@ -273,7 +285,7 @@ func (s *ClickHouseSeeder) InsertFrontlineRequests(ctx context.Context, workspac
 			}
 		}
 
-		batch, err := s.conn.PrepareBatch(ctx, "INSERT INTO default.frontline_requests_raw_v1")
+		batch, err := s.conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.FrontlineRequest]())
 		require.NoError(s.t, err)
 
 		for _, r := range requests {

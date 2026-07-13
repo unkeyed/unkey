@@ -49,7 +49,7 @@ type Config struct {
 //	if err != nil {
 //	    return fmt.Errorf("failed to initialize clickhouse: %w", err)
 //	}
-//	buf := clickhouse.NewBuffer[schema.ApiRequest](client, "default.api_requests_raw_v2", clickhouse.BufferConfig{...})
+//	buf := clickhouse.NewBuffer[schema.ApiRequest](client, clickhouse.BufferConfig{...})
 func New(config Config) (*Client, error) {
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
