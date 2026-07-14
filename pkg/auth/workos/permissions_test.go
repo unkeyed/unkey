@@ -26,6 +26,10 @@ func TestTranslatePermissions(t *testing.T) {
 		"keys:verify",
 		"keys:encrypt",
 		"keys:delete",
+		"identities:create",
+		"identities:read",
+		"identities:update",
+		"identities:delete",
 		"admin:*",
 		"unknown:permission",
 		"malformed",
@@ -40,6 +44,10 @@ func TestTranslatePermissions(t *testing.T) {
 		"unkey:v1:ws_123:keyspaces/*/keys/*#verify_key",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#encrypt_key",
 		"unkey:v1:ws_123:keyspaces/*/keys/*#delete_key",
+		"unkey:v1:ws_123:projects/*/identities/*#create_identity",
+		"unkey:v1:ws_123:projects/*/identities/*#read_identity",
+		"unkey:v1:ws_123:projects/*/identities/*#update_identity",
+		"unkey:v1:ws_123:projects/*/identities/*#delete_identity",
 		"unkey:v1:ws_123:**#*",
 	}, result)
 }
@@ -88,6 +96,26 @@ func TestTranslatePermissionsKnownMappings(t *testing.T) {
 			name: "key delete",
 			in:   "keys:delete",
 			want: "unkey:v1:ws_123:keyspaces/*/keys/*#delete_key",
+		},
+		{
+			name: "identity create",
+			in:   "identities:create",
+			want: "unkey:v1:ws_123:projects/*/identities/*#create_identity",
+		},
+		{
+			name: "identity read",
+			in:   "identities:read",
+			want: "unkey:v1:ws_123:projects/*/identities/*#read_identity",
+		},
+		{
+			name: "identity update",
+			in:   "identities:update",
+			want: "unkey:v1:ws_123:projects/*/identities/*#update_identity",
+		},
+		{
+			name: "identity delete",
+			in:   "identities:delete",
+			want: "unkey:v1:ws_123:projects/*/identities/*#delete_identity",
 		},
 		{
 			name: "admin",

@@ -38,7 +38,7 @@ func ToResponse(p Params) openapi.Environment {
 	if rs := p.Runtime; rs != nil {
 		rt := openapi.EnvironmentRuntime{
 			Port:             int(rs.Port),
-			CpuMillicores:    int(rs.CpuMillicores),
+			VCpus:            float64(rs.CpuMillicores) / 1000,
 			MemoryMib:        int(rs.MemoryMib),
 			StorageMib:       int(rs.StorageMib),
 			Command:          []string(rs.Command),

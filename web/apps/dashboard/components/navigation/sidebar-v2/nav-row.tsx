@@ -37,15 +37,15 @@ export function NavRow({ link }: { link: ResolvedNavLink }) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
-        asChild
         tooltip={tooltip}
         isActive={link.isActive}
         className={getButtonStyles(link.isActive)}
-      >
-        <Link href={link.href as Route} {...linkProps}>
-          {contents}
-        </Link>
-      </SidebarMenuButton>
+        render={
+          <Link href={link.href as Route} {...linkProps}>
+            {contents}
+          </Link>
+        }
+      />
     </SidebarMenuItem>
   );
 }

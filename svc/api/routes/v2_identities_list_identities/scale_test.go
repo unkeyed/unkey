@@ -32,7 +32,7 @@ const (
 // that searches through the full route (auth, RBAC, validation, query,
 // serialization) return correct results within scaleSearchDeadline.
 func TestSearchAtScale(t *testing.T) {
-	h := testutil.NewHarness(t, testutil.HarnessConfig{MySQLDiskStorage: true})
+	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)
 

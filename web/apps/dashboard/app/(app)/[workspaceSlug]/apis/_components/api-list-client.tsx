@@ -1,5 +1,6 @@
 "use client";
 
+import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Button, Empty } from "@unkey/ui";
@@ -8,7 +9,6 @@ import { type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { ApiListCard } from "./api-list-card";
 import { ApiListControls } from "./controls";
 import { EmptyKeyspaces } from "./empty-keyspaces";
-import { ApiCardSkeleton } from "./skeleton";
 
 const DEFAULT_LIMIT = 10;
 const SKELETON_COUNT = 3;
@@ -70,7 +70,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
           {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: It's okay to use index
-            <ApiCardSkeleton key={i} />
+            <StatsListCardSkeleton key={i} subtitle />
           ))}
         </div>
       ) : hasNoKeyspaces ? (

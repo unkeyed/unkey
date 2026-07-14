@@ -1,4 +1,5 @@
 post:
+  deprecated: true
   tags:
     - deploy
   summary: Get deployment

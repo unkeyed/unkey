@@ -61,7 +61,19 @@ function FormSelect({
         htmlFor={selectId}
         tooltipContent={descriptionAsTooltip ? description : undefined}
       />
-      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <Select
+        // Base UI's Select.Value renders the raw value unless Root gets an
+        // items map — without this, triggers show e.g. "basic_member" instead
+        // of "Member".
+        items={options.map((opt) => ({ value: opt.value, label: opt.label }))}
+        value={value}
+        onValueChange={(newValue) => {
+          if (newValue !== null) {
+            onValueChange(newValue);
+          }
+        }}
+        disabled={disabled}
+      >
         <SelectTrigger
           id={selectId}
           variant={selectVariant}

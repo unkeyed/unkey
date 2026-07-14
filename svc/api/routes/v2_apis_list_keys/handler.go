@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/array"
+	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -21,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -74,7 +76,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		return fault.Wrap(err,
+		return fault.Wrap(
+			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve API information."),
@@ -82,7 +85,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if hit == cache.Null {
-		return fault.New("api not found",
+		return fault.New(
+			"api not found",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
 		)
@@ -90,14 +94,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Check if API belongs to the authorized workspace
 	if api.WorkspaceID != principal.WorkspaceID {
-		return fault.New("wrong workspace",
+		return fault.New(
+			"wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
 		)
 	}
 
 	if !api.KeyAuthID.Valid {
-		return fault.New("api missing keyspace",
+		return fault.New(
+			"api missing keyspace",
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
 			fault.Internal("api has no key auth id"),
 			fault.Public("Failed to retrieve API information."),
@@ -156,7 +162,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if ptr.SafeDeref(req.Decrypt, false) {
 		if h.Vault == nil {
-			return fault.New("vault missing",
+			return fault.New(
+				"vault missing",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Public("Vault hasn't been set up."),
 			)
@@ -183,15 +190,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if !api.KeyAuth.StoreEncryptedKeys {
-			return fault.New("api not set up for key encryption",
+			return fault.New(
+				"api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("The requested API does not support key encryption."),
 			)
 		}
 	}
 
-	limit := ptr.SafeDeref(req.Limit, 100)
-	cursor := ptr.SafeDeref(req.Cursor, "")
+	// Portal sessions are scoped to a single external identity. Override any
+	// user-supplied externalId filter so that the session can only list its own keys.
+	// Fail closed: if the externalId is empty, reject the request rather than
+	// returning unscoped keys.
+	//
+	// Identity scoping is intentionally separate from the RBAC permission system.
+	// Permissions gate what operations a principal can perform; identity scoping
+	// gates what data is visible. Portal sessions carry a fixed externalId that
+	// restricts visibility regardless of what the request body says.
+	switch src := principal.Source.(type) {
+	case authprincipal.PortalSessionSource:
+		if src.ExternalID == "" {
+			return fault.New(
+				"portal session missing identity",
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Internal("portal session externalId is empty"),
+				fault.Public("An internal error occurred."),
+			)
+		}
+		req.ExternalId = &src.ExternalID
+	}
+
+	p := pagination.Parse(req.Limit, req.Cursor, 100)
 
 	// Resolve identity ID if external_id filter is provided
 	var identityID sql.NullString
@@ -209,13 +238,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						RequestId: s.RequestID(),
 					},
 					Data: []openapi.KeyResponseData{},
-					Pagination: &openapi.Pagination{
+					Pagination: openapi.Pagination{
 						Cursor:  nil,
 						HasMore: false,
 					},
 				})
 			}
-			return fault.Wrap(identityErr,
+			return fault.Wrap(
+				identityErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
 				fault.Public("Failed to retrieve identity."),
@@ -230,37 +260,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		h.DB.RO(),
 		db.ListLiveKeysByKeySpaceIDParams{
 			KeySpaceID: api.KeyAuthID.String,
-			IDCursor:   cursor,
+			IDCursor:   p.Cursor,
 			IdentityID: identityID,
-			Limit:      int32(limit + 1), // nolint:gosec
+			Limit:      p.FetchLimit(),
 		},
 	)
 	if err != nil {
-		return fault.Wrap(err,
+		return fault.Wrap(
+			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
 			fault.Public("Failed to retrieve keys."),
 		)
 	}
 
-	// Handle pagination
-	hasMore := len(keyResults) > limit
-	var nextCursor *string
-	if hasMore {
-		nextCursor = ptr.P(keyResults[len(keyResults)-1].ID)
-		keyResults = keyResults[:limit]
-	}
+	keyResults, pg := pagination.Paginate(keyResults, p, func(r db.ListLiveKeysByKeySpaceIDRow) string { return r.ID })
 
 	if len(keyResults) == 0 {
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
 			},
-			Data: []openapi.KeyResponseData{},
-			Pagination: &openapi.Pagination{
-				Cursor:  nextCursor,
-				HasMore: hasMore,
-			},
+			Data:       []openapi.KeyResponseData{},
+			Pagination: pg,
 		})
 	}
 
@@ -274,11 +296,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: responseData,
-		Pagination: &openapi.Pagination{
-			Cursor:  nextCursor,
-			HasMore: hasMore,
-		},
+		Data:       responseData,
+		Pagination: pg,
 	})
 }
 
@@ -435,7 +454,8 @@ func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResp
 	// Set meta
 	meta, err := db.UnmarshalNullableJSONTo[map[string]any](keyData.Key.Meta.String)
 	if err != nil {
-		logger.Error("failed to unmarshal key meta",
+		logger.Error(
+			"failed to unmarshal key meta",
 			"keyId", keyData.Key.ID,
 			"error", err,
 		)

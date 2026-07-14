@@ -3,36 +3,16 @@ package containers
 import (
 	"fmt"
 	"testing"
-	"time"
 )
 
-const (
-	redisImage = "redis:8.0"
-	redisPort  = "6379/tcp"
-)
+const redisPort = 6379
 
-// Redis starts a Redis container and returns the connection URL.
+// Redis starts the shared Docker Compose Redis service and returns the connection URL.
 //
-// The container is reused by stable Docker name across Go test processes.
-func Redis(t testing.TB, opts ...Opt) string {
+// The container is reused through the worktree's Docker Compose project.
+func Redis(t testing.TB) string {
 	t.Helper()
 
-	cfg := containerConfig{
-		Image:        redisImage,
-		ExposedPorts: []string{redisPort},
-		WaitStrategy: NewTCPWait(redisPort),
-		WaitTimeout:  30 * time.Second,
-		Env:          map[string]string{},
-		Cmd:          []string{},
-		Tmpfs:        nil,
-		Dedicated:    false,
-	}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-
-	ctr := startContainer(t, cfg)
-
-	port := ctr.Port(redisPort)
-	return fmt.Sprintf("redis://127.0.0.1:%s", port)
+	c := startService(t, "redis")
+	return fmt.Sprintf("redis://127.0.0.1:%d", c.Port(t, redisPort))
 }

@@ -1,13 +1,82 @@
 "use client";
 
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XMark } from "@unkey/icons";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
 
-const Dialog = DialogPrimitive.Root;
+/**
+ * Dismiss coordination between `DialogContent` (which owns the
+ * `showCloseWarning` / `preventOutsideClose` props) and the root
+ * `onOpenChange` handler, which is where Base UI surfaces dismissal reasons
+ * (escape key / outside press / focus out). Radix handled these per-part on
+ * `Content`; Base UI consolidates them onto `Root.onOpenChange`.
+ */
+type DialogDismissConfig = {
+  showCloseWarning: boolean;
+  onAttemptClose?: () => void;
+  preventOutsideClose: boolean;
+};
+
+const DialogDismissContext =
+  React.createContext<React.MutableRefObject<DialogDismissConfig> | null>(null);
+
+type DialogProps = Omit<DialogPrimitive.Root.Props, "children"> & {
+  children?: React.ReactNode;
+};
+
+const Dialog = ({ children, onOpenChange, ...props }: DialogProps) => {
+  const dismissRef = React.useRef<DialogDismissConfig>({
+    showCloseWarning: false,
+    onAttemptClose: undefined,
+    preventOutsideClose: false,
+  });
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean, eventDetails: DialogPrimitive.Root.ChangeEventDetails) => {
+      if (!open) {
+        const { showCloseWarning, onAttemptClose, preventOutsideClose } = dismissRef.current;
+        const { reason } = eventDetails;
+        const isOutside = reason === "outside-press" || reason === "focus-out";
+
+        // Keep the dialog open when the interaction happens inside a nested
+        // portal such as a Combobox listbox or a cmdk root (these render
+        // outside the dialog DOM subtree, so Base UI treats them as outside).
+        if (isOutside) {
+          const target = eventDetails.event?.target as HTMLElement | null;
+          if (target?.closest('[role="listbox"]') || target?.closest("[cmdk-root]")) {
+            eventDetails.cancel();
+            return;
+          }
+        }
+
+        if (preventOutsideClose && isOutside) {
+          eventDetails.cancel();
+          return;
+        }
+
+        if (showCloseWarning && (reason === "escape-key" || isOutside)) {
+          eventDetails.cancel();
+          onAttemptClose?.();
+          return;
+        }
+      }
+      onOpenChange?.(open, eventDetails);
+    },
+    [onOpenChange],
+  );
+
+  return (
+    <DialogDismissContext.Provider value={dismissRef}>
+      <DialogPrimitive.Root onOpenChange={handleOpenChange} {...props}>
+        {children}
+      </DialogPrimitive.Root>
+    </DialogDismissContext.Provider>
+  );
+};
+Dialog.displayName = "Dialog";
 
 const DialogTrigger = DialogPrimitive.Trigger;
 
@@ -16,26 +85,31 @@ const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
 
 const DialogOverlay = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay> & {
+  React.ComponentRef<typeof DialogPrimitive.Backdrop>,
+  DialogPrimitive.Backdrop.Props & {
     showCloseWarning?: boolean;
     onAttemptClose?: () => void;
   }
->(({ className, showCloseWarning = false, onAttemptClose, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={cn(
-      "fixed inset-0 z-50 bg-black/30 backdrop-blur-xs data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className,
-    )}
-    {...props}
-  />
-));
-DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
+>(
+  (
+    { className, showCloseWarning: _showCloseWarning, onAttemptClose: _onAttemptClose, ...props },
+    ref,
+  ) => (
+    <DialogPrimitive.Backdrop
+      ref={ref}
+      className={cn(
+        "fixed inset-0 z-50 bg-black/30 backdrop-blur-xs transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0",
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
+DialogOverlay.displayName = "DialogOverlay";
 
 const DialogContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+  React.ComponentRef<typeof DialogPrimitive.Popup>,
+  DialogPrimitive.Popup.Props & {
     showCloseWarning?: boolean;
     onAttemptClose?: () => void;
     xButtonRef?: React.RefObject<HTMLButtonElement>;
@@ -54,6 +128,13 @@ const DialogContent = React.forwardRef<
     },
     ref,
   ) => {
+    const dismissRef = React.useContext(DialogDismissContext);
+    // Publish this content's dismiss preferences so the root `onOpenChange`
+    // handler can honour them (escape / outside-press / focus-out).
+    if (dismissRef) {
+      dismissRef.current = { showCloseWarning, onAttemptClose, preventOutsideClose };
+    }
+
     const handleCloseAttempt = React.useCallback(() => {
       // This handler is now only called when showCloseWarning is true
       if (showCloseWarning) {
@@ -63,15 +144,15 @@ const DialogContent = React.forwardRef<
 
     // Common class names for both button types
     const buttonClassNames =
-      "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:rounded-lg disabled:pointer-events-none data-[state=open]:bg-accent text-muted-foreground z-51 [&_svg]:size-[14px] hover:rounded-lg";
+      "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:rounded-lg disabled:pointer-events-none data-open:bg-accent text-muted-foreground z-51 [&_svg]:size-[14px] hover:rounded-lg";
 
     return (
       <DialogPortal>
-        <DialogOverlay showCloseWarning={showCloseWarning} onAttemptClose={handleCloseAttempt} />
-        <DialogPrimitive.Content
+        <DialogOverlay />
+        <DialogPrimitive.Popup
           ref={ref}
           className={cn(
-            "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+            "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 sm:rounded-lg",
             className,
           )}
           onKeyDown={(e) => {
@@ -83,42 +164,6 @@ const DialogContent = React.forwardRef<
             // Prevent Tab key from closing the dialog
             if (e.key === "Tab") {
               e.stopPropagation();
-            }
-          }}
-          onEscapeKeyDown={(e) => {
-            if (showCloseWarning) {
-              e.preventDefault();
-              handleCloseAttempt();
-            }
-          }}
-          onPointerDownOutside={(e) => {
-            // Prevent closing when preventOutsideClose is true (e.g., when a sheet is open)
-            if (preventOutsideClose) {
-              e.preventDefault();
-              return;
-            }
-            // Prevent closing only if warning is active and click is outside content
-            if (showCloseWarning) {
-              // Basic check: If the target is the overlay, it's handled there.
-              // More robust checks might be needed depending on content complexity.
-              const contentElement = (e.target as HTMLElement)?.closest('[role="dialog"]');
-              if (!contentElement || contentElement !== e.currentTarget) {
-                e.preventDefault();
-                handleCloseAttempt();
-              }
-            }
-          }}
-          onInteractOutside={(e) => {
-            // Also prevent interact outside events when preventOutsideClose is true
-            if (preventOutsideClose) {
-              e.preventDefault();
-              return;
-            }
-
-            // Allow interactions with nested popovers/portals (e.g., Combobox dropdowns)
-            const target = e.target as HTMLElement;
-            if (target.closest('[role="listbox"]') || target.closest("[cmdk-root]")) {
-              e.preventDefault();
             }
           }}
           {...props}
@@ -138,24 +183,26 @@ const DialogContent = React.forwardRef<
             </button>
           ) : (
             // Use DialogPrimitive.Close for standard behavior
-            <DialogPrimitive.Close asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                type="button"
-                className={buttonClassNames}
-                aria-label="Close dialog"
-              >
-                <XMark iconSize="md-medium" />
-              </Button>
-            </DialogPrimitive.Close>
+            <DialogPrimitive.Close
+              render={
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  type="button"
+                  className={buttonClassNames}
+                  aria-label="Close dialog"
+                >
+                  <XMark iconSize="md-medium" />
+                </Button>
+              }
+            />
           )}
-        </DialogPrimitive.Content>
+        </DialogPrimitive.Popup>
       </DialogPortal>
     );
   },
 );
-DialogContent.displayName = DialogPrimitive.Content.displayName;
+DialogContent.displayName = "DialogContent";
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
@@ -171,8 +218,8 @@ const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 DialogFooter.displayName = "DialogFooter";
 
 const DialogTitle = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+  React.ComponentRef<typeof DialogPrimitive.Title>,
+  DialogPrimitive.Title.Props
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
@@ -180,11 +227,11 @@ const DialogTitle = React.forwardRef<
     {...props}
   />
 ));
-DialogTitle.displayName = DialogPrimitive.Title.displayName;
+DialogTitle.displayName = "DialogTitle";
 
 const DialogDescription = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+  React.ComponentRef<typeof DialogPrimitive.Description>,
+  DialogPrimitive.Description.Props
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
@@ -192,7 +239,7 @@ const DialogDescription = React.forwardRef<
     {...props}
   />
 ));
-DialogDescription.displayName = DialogPrimitive.Description.displayName;
+DialogDescription.displayName = "DialogDescription";
 
 export {
   Dialog,
@@ -206,3 +253,5 @@ export {
   DialogTitle,
   DialogDescription,
 };
+
+export type { DialogProps };

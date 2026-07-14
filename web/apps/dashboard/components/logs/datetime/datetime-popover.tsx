@@ -15,7 +15,13 @@ import {
   type Range,
   type TimeUnit,
 } from "@unkey/ui";
-import { type PropsWithChildren, type ReactNode, useEffect, useState } from "react";
+import {
+  type PropsWithChildren,
+  type ReactElement,
+  type ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import { CUSTOM_OPTION_ID, DEFAULT_OPTIONS } from "./constants";
 import { DateTimeSuggestions } from "./suggestions";
 import type { OptionsType } from "./types";
@@ -33,6 +39,12 @@ interface DatetimePopoverProps extends PropsWithChildren {
   minDate?: Date; // Props to set a minimum selectable date
   maxDate?: Date; // Props to set a maximum selectable date
   align?: "start" | "center" | "end";
+  /**
+   * Set to false when the trigger element passed as `children` does not render a
+   * native <button> (e.g. a form input). Base UI then adds button semantics
+   * (role, tabIndex, keyboard activation) to the rendered element instead.
+   */
+  triggerNativeButton?: boolean;
 }
 
 type TimeRangeType = {
@@ -52,6 +64,7 @@ export const DatetimePopover = ({
   minDate,
   maxDate,
   align = "start",
+  triggerNativeButton = true,
 }: DatetimePopoverProps) => {
   // Default to false (desktop) to prevent hydration mismatches
   const isMobile = useIsMobile({ defaultValue: false });
@@ -265,9 +278,7 @@ export const DatetimePopover = ({
         </Drawer.Root>
       ) : (
         <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <div className="flex flex-row items-center">{children}</div>
-          </PopoverTrigger>
+          <PopoverTrigger nativeButton={triggerNativeButton} render={children as ReactElement} />
           <PopoverContent
             className="flex w-full bg-gray-1 dark:bg-black shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
             align={align}

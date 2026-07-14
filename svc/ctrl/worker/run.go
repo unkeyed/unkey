@@ -189,7 +189,7 @@ func Run(ctx context.Context, cfg Config) error {
 			ch = chClient
 			billingUsageReader = chClient
 
-			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, "default.build_steps_v1", clickhouse.BufferConfig{
+			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, clickhouse.BufferConfig{
 				Name:          "build_steps",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -198,7 +198,7 @@ func Run(ctx context.Context, cfg Config) error {
 				Drop:          true,
 				OnFlushError:  nil,
 			})
-			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, "default.build_step_logs_v1", clickhouse.BufferConfig{
+			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, clickhouse.BufferConfig{
 				Name:          "build_step_logs",
 				BatchSize:     1_000,
 				BufferSize:    2_000,
@@ -551,13 +551,28 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	// DeployBillingPush is the hourly month-to-date push orchestrator, keyed by
+	// billing period (YYYY-MM) so every hourly tick shares one VO. Its own reads
+	// (list workspaces, the ClickHouse scan) can fail non-terminally, and without
+	// a cap that invocation retries forever on the period VO while later ticks
+	// queue behind it. The push is idempotent (absolute month-to-date total,
+	// Stripe aggregates with "last"), so kill on exhaustion and let the next tick
+	// retry from a clean slate.
+	cronDeployBillingPushRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour)).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingCloseRetry).
-		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry))
+		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingCloseRetry).
+		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry))
 	logger.Info("CronService enabled")
 
 	// KeyLastUsedPartitionService is the per-partition VO fanned out from
@@ -571,6 +586,28 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, cronKeyLastUsedRetry))
 	logger.Info("KeyLastUsedPartitionService enabled")
+
+	// DeployBillingPushService is the per-workspace push VO fanned out from the
+	// deploy billing orchestrator. Standalone, not cron-triggered.
+	//
+	// The handler bounds its provider push to a 2-minute retry window and returns
+	// a TerminalError on exhaustion, so today it always completes terminally and
+	// the awaiting orchestrator resolves. This explicit kill policy is the
+	// backstop. If a non-terminal failure ever reached the handler (a second Run
+	// step, a framework error), the SDK default of infinite retries would leave
+	// the child retrying forever while the orchestrator suspends on the period
+	// VO. That is the wedge this fan-out exists to prevent. Cap and kill so the
+	// child fails visibly and the next tick re-sends the absolute total. Mirrors
+	// KeyLastUsedPartitionService.
+	deployBillingPushWorkspaceRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer(), deployBillingPushWorkspaceRetry))
+	logger.Info("DeployBillingPushService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

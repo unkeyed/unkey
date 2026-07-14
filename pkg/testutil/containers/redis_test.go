@@ -66,10 +66,3 @@ func TestRedis_ReusesContainer(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "shared-value", val2)
 }
-
-func TestRedis_DedicatedContainer(t *testing.T) {
-	sharedURL := containers.Redis(t)
-	dedicatedURL := containers.Redis(t, containers.WithDedicatedContainer())
-
-	require.NotEqual(t, sharedURL, dedicatedURL)
-}

@@ -2,7 +2,7 @@
 
 import { KeySecretSection } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { Check, Key2 } from "@unkey/icons";
-import { ConfirmPopover, Dialog, DialogContent, DialogTitle, VisuallyHidden } from "@unkey/ui";
+import { ConfirmPopover, Dialog, DialogContent, DialogTitle } from "@unkey/ui";
 import { ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
 
@@ -35,9 +35,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
         showCloseWarning
         onAttemptClose={handleCloseAttempt}
       >
-        <VisuallyHidden asChild>
-          <DialogTitle>{ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}</DialogTitle>
-        </VisuallyHidden>
+        <DialogTitle className="sr-only">{ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}</DialogTitle>
         <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
           <div className="py-4 mt-[30px]">
             <div className="flex gap-4">
@@ -85,7 +83,6 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             align: "end",
             sideOffset: 5,
             alignOffset: 30,
-            onOpenAutoFocus: (e) => e.preventDefault(),
           }}
         />
       </DialogContent>

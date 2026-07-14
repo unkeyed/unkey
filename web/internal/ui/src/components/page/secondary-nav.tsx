@@ -1,4 +1,5 @@
-import { Slot } from "@radix-ui/react-slot";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
@@ -47,20 +48,21 @@ const secondaryNavItemVariants = cva(
   },
 );
 
-type SecondaryNavItemProps = React.ComponentProps<"a"> &
-  VariantProps<typeof secondaryNavItemVariants> & {
-    asChild?: boolean;
-  };
+type SecondaryNavItemProps = useRender.ComponentProps<"a"> &
+  VariantProps<typeof secondaryNavItemVariants>;
 
-function SecondaryNavItem({ className, active, asChild = false, ...props }: SecondaryNavItemProps) {
-  const Comp = asChild ? Slot : "a";
-  return (
-    <Comp
-      aria-current={active ? "page" : undefined}
-      className={cn(secondaryNavItemVariants({ active }), className)}
-      {...props}
-    />
-  );
+function SecondaryNavItem({ className, active, render, ...props }: SecondaryNavItemProps) {
+  return useRender({
+    defaultTagName: "a",
+    render,
+    props: mergeProps<"a">(
+      {
+        "aria-current": active ? "page" : undefined,
+        className: cn(secondaryNavItemVariants({ active }), className),
+      } as React.ComponentProps<"a">,
+      props,
+    ),
+  });
 }
 
 export {

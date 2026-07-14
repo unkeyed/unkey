@@ -3,7 +3,7 @@
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { match } from "@unkey/match";
 import type { UnkeyPermission } from "@unkey/rbac";
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { ROOT_KEY_MESSAGES } from "../constants";
 import { usePermissions } from "../hooks/use-permissions";
 import type { PermissionScope, UnkeyPermissions } from "../permissions";
@@ -16,6 +16,9 @@ type PermissionContentListProps = {
   onPermissionChange: (permissions: UnkeyPermission[]) => void;
   selected: UnkeyPermission[];
   searchValue?: string;
+  // Nested scopes rendered inside this scope's collapsible body, so they fold
+  // with their parent (e.g. environments under an app).
+  children?: ReactNode;
 };
 
 type ScopeHeader = {
@@ -58,6 +61,7 @@ export const PermissionContentList = ({
   onPermissionChange,
   selected,
   searchValue,
+  children,
 }: PermissionContentListProps) => {
   const {
     state,
@@ -102,7 +106,7 @@ export const PermissionContentList = ({
     });
   }, []);
 
-  if (totalPermissions === 0) {
+  if (totalPermissions === 0 && !children) {
     return null;
   }
 
@@ -173,6 +177,7 @@ export const PermissionContentList = ({
                   </Collapsible>
                 ))
               )}
+              {children}
             </div>
           </div>
         </CollapsibleContent>

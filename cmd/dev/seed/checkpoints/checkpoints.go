@@ -88,7 +88,7 @@ func seed(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
-	buf := clickhouse.NewBuffer[schema.InstanceCheckpoint](ch, "default.instance_checkpoints_v1", clickhouse.BufferConfig{
+	buf := clickhouse.NewBuffer[schema.InstanceCheckpoint](ch, clickhouse.BufferConfig{
 		Name:          "seed-instance-checkpoints",
 		BatchSize:     cmd.RequireInt("batch-size"),
 		BufferSize:    cmd.RequireInt("batch-size") * 2,

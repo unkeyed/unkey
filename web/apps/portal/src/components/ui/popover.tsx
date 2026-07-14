@@ -1,33 +1,41 @@
 "use client";
 
-import * as PopoverPrimitive from "@radix-ui/react-popover";
-import type * as React from "react";
+import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { cn } from "~/lib/utils";
 
 export const Popover = PopoverPrimitive.Root;
 export const PopoverTrigger = PopoverPrimitive.Trigger;
-export const PopoverAnchor = PopoverPrimitive.Anchor;
+
+type PopoverContentProps = PopoverPrimitive.Popup.Props &
+  Pick<PopoverPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">;
 
 export function PopoverContent({
   className,
   align = "start",
+  alignOffset,
+  side,
   sideOffset = 6,
   ...props
-}: React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>) {
+}: PopoverContentProps) {
   return (
     <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content
+      <PopoverPrimitive.Positioner
+        className="isolate z-50"
         align={align}
+        alignOffset={alignOffset}
+        side={side}
         sideOffset={sideOffset}
-        className={cn(
-          "z-50 min-w-56 rounded-md border border-gray-6 bg-background p-3 text-gray-12 shadow-md outline-hidden",
-          "ease-[cubic-bezier(0.4,0,0.2,1)]",
-          "data-[state=open]:animate-in data-[state=open]:duration-200",
-          "data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
-          className,
-        )}
-        {...props}
-      />
+      >
+        <PopoverPrimitive.Popup
+          className={cn(
+            "z-50 min-w-56 rounded-md border border-gray-6 bg-background p-3 text-gray-12 shadow-md outline-hidden",
+            "origin-(--transform-origin) transition-[opacity,scale] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+            "data-starting-style:scale-95 data-ending-style:opacity-0 data-starting-style:opacity-0",
+            className,
+          )}
+          {...props}
+        />
+      </PopoverPrimitive.Positioner>
     </PopoverPrimitive.Portal>
   );
 }

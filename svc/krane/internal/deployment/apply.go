@@ -484,6 +484,7 @@ func (c *Controller) ensurePodDisruptionBudget(ctx context.Context, req *ctrlv1.
 // terminationGracePeriod is the bounded escape hatch for that case.
 func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) *policyv1.PodDisruptionBudget {
 	maxUnavailable := intstr.FromInt32(1)
+	alwaysAllow := policyv1.AlwaysAllow
 
 	//nolint:exhaustruct
 	pdb := &policyv1.PodDisruptionBudget{
@@ -499,7 +500,8 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet
 		},
 		//nolint:exhaustruct
 		Spec: policyv1.PodDisruptionBudgetSpec{
-			MaxUnavailable: &maxUnavailable,
+			MaxUnavailable:             &maxUnavailable,
+			UnhealthyPodEvictionPolicy: &alwaysAllow,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},

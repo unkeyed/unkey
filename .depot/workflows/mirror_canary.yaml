@@ -1,0 +1,29 @@
+name: Mirror Canary
+# Keeps the `canary` branch an exact mirror of `main` so Vercel can serve a
+# stable preview deployment for it (app.unkey-canary.com) that always matches
+# main, instead of hunting for an up-to-date PR preview link.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: mirror-canary
+  cancel-in-progress: true
+jobs:
+  mirror:
+    name: Mirror main to canary
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          # Full history: pushing from a shallow clone can be rejected by the
+          # remote ("shallow update not allowed").
+          fetch-depth: 0
+      - name: Push main to canary
+        # Pushes the remote-tracking ref so a manual dispatch from any branch
+        # still mirrors main, not the dispatched ref. Force push keeps canary
+        # an exact mirror even if it ever diverges.
+        run: git push --force origin origin/main:refs/heads/canary
