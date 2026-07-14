@@ -69,10 +69,12 @@ export function mapListKeysResponse(parsed: z.infer<typeof listKeysResponseSchem
 }
 
 /** Query params for one page of `v2/portal.listKeys`. */
-export type ListKeysQuery = {
-  cursor?: string;
-  limit?: number;
-};
+export const listKeysQuerySchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.number().int().positive().max(100).optional(),
+});
+
+export type ListKeysQuery = z.infer<typeof listKeysQuerySchema>;
 
 /** Request body for `v2/portal.rerollKey`. */
 export const rerollKeyRequestSchema = z.object({

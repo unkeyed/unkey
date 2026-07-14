@@ -8,6 +8,13 @@ export const keysListQueryKey = ["portal", "keys", "list"] as const;
 
 const PAGE_SIZE = 100;
 
+// Ceiling on the eager auto-fetch below. Portal end users are expected to have
+// few keys; this caps the sequential fetch chain (and memory) at PAGE_SIZE *
+// MAX_AUTO_PAGES keys so a pathological account can't spin the client. Beyond
+// it, the accumulated set is simply truncated — acceptable until this page
+// moves to server-side pagination.
+const MAX_AUTO_PAGES = 20;
+
 /**
  * Loads the session end user's keys via `v2/portal.listKeys`, following the
  * response cursor across pages and accumulating them into a single list. The
@@ -28,14 +35,15 @@ export function useKeysListQuery() {
   });
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+  const pageCount = query.data?.pages.length ?? 0;
 
   // Eagerly pull remaining pages so client-side search/filter/sort operate over
-  // the complete set. Portal end users typically have few keys.
+  // the complete set, up to MAX_AUTO_PAGES.
   useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage) {
+    if (hasNextPage && !isFetchingNextPage && pageCount < MAX_AUTO_PAGES) {
       fetchNextPage();
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, pageCount]);
 
   const keys = useMemo<Key[]>(
     () => query.data?.pages.flatMap((page) => page.keys) ?? [],

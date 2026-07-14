@@ -11,12 +11,15 @@ describe("deriveVisibleTabs", () => {
     expect(ids).not.toContain("analytics");
   });
 
-  it("shows Keys tab for any keys:* capability (e.g. reroll)", () => {
+  it("hides Keys tab for a keys capability that can't read (e.g. reroll only)", () => {
+    // The keys page's access guard requires keys:read, so the tab must not show
+    // for a reroll-only session or clicking it would redirect to a dead end.
     const tabs = deriveVisibleTabs(["keys:reroll"]);
     const ids = tabs.map((t) => t.id);
 
-    expect(ids).toContain("keys");
+    expect(ids).not.toContain("keys");
     expect(ids).not.toContain("analytics");
+    expect(ids).toContain("docs");
   });
 
   it("shows Analytics and Docs tabs for analytics capability", () => {

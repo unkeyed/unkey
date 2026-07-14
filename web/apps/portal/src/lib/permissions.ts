@@ -26,12 +26,13 @@ const ANALYTICS_READ = "analytics:read";
  * Capabilities use the portal's colon vocabulary, issued by
  * `portal.createSession` and persisted on the session
  * (e.g. `keys:read`, `keys:reroll`, `analytics:read`). Per the RFC:
- * - Keys tab: any `keys:*` capability
+ * - Keys tab: `keys:read` (matches the keys page's access guard, so the tab is
+ *   never shown to a session the page would redirect away; see {@link canReadKeys})
  * - Analytics tab: `analytics:read`
  * - Docs tab: visible when any capability is present
  */
 export function deriveVisibleTabs(permissions: ReadonlyArray<string>): ReadonlyArray<TabConfig> {
-  const hasKeys = permissions.some((p) => p.startsWith("keys:"));
+  const hasKeys = canReadKeys(permissions);
   const hasAnalytics = permissions.includes(ANALYTICS_READ);
   const hasDocs = permissions.length > 0;
 

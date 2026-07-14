@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
 import {
   type KeysPage,
-  type ListKeysQuery,
   type RerollKeyResult,
+  listKeysQuerySchema,
   listKeysResponseSchema,
   mapListKeysResponse,
   rerollKeyRequestSchema,
@@ -94,7 +94,7 @@ async function portalFetch(path: string, body: Record<string, unknown>): Promise
  * portal's keyspaces happens server-side in the API from the session cookie.
  */
 export const listKeys = createServerFn({ method: "GET" })
-  .inputValidator((query: ListKeysQuery) => query)
+  .inputValidator((query: unknown) => listKeysQuerySchema.parse(query))
   .handler(async ({ data }): Promise<KeysPage> => {
     const body: Record<string, unknown> = {};
     if (data.cursor) {
