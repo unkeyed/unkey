@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
+import { ResourceList } from "@unkey/ui";
 import Link from "next/link";
 import { useAppId, useProjectData } from "../../data-provider";
 import { DeploymentsCardList } from "../../deployments/components/deployments-card-list";
@@ -14,21 +15,23 @@ export function RecentDeployments() {
   const appId = useAppId();
 
   return (
-    <DeploymentsCardList
-      limit={RECENT_LIMIT}
-      title="Deployments"
-      headerAction={
-        <Link
-          href={routes.projects.apps.deployments({
-            workspaceSlug: workspace.slug,
-            projectId,
-            appId,
-          })}
-          className="text-[13px] text-gray-11 hover:text-gray-12 transition-colors"
-        >
-          View all deployments
-        </Link>
-      }
-    />
+    <ResourceList>
+      <DeploymentsCardList
+        limit={RECENT_LIMIT}
+        title="Deployments"
+        headerAction={
+          <Link
+            href={routes.projects.apps.deployments({
+              workspaceSlug: workspace.slug,
+              projectId,
+              appId,
+            })}
+            className="text-[13px] text-gray-11 hover:text-gray-12 transition-colors"
+          >
+            View all deployments
+          </Link>
+        }
+      />
+    </ResourceList>
   );
 }
