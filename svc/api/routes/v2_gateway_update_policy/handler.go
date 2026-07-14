@@ -102,9 +102,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Read-modify-write on the config blob: the environment lock serializes
-	// this against concurrent updatePolicy calls so neither overwrites the
-	// other's change. setPolicies doesn't lock because it never reads first.
+	// Read-modify-write on the config blob: lock the environment so
+	// concurrent updates serialize instead of overwriting each other.
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		if _, lockErr := db.Query.LockEnvironmentForUpdate(ctx, tx, env.ID); lockErr != nil {
 			if db.IsNotFound(lockErr) {
@@ -124,13 +123,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		settings, findErr := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, tx, db.FindAppRuntimeSettingsByAppAndEnvParams{
+		settings, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, tx, db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID:         env.AppID,
 			EnvironmentID: env.ID,
 		})
-		if findErr != nil && !db.IsNotFound(findErr) {
+		if err != nil {
+			if db.IsNotFound(err) {
+				return fault.New(
+					"policy not found",
+					fault.Code(codes.Data.Policy.NotFound.URN()),
+					fault.Internal("no sentinel config for environment"),
+					fault.Public("The requested policy does not exist. Note that policy ids change when the policy list is replaced."),
+				)
+			}
 			return fault.Wrap(
-				findErr,
+				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("unable to read sentinel config"),
 				fault.Public("We're unable to update the policy."),
@@ -146,8 +153,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// A missing settings row and an empty config both mean the id can't
-		// exist, so they collapse into the same not-found below.
 		policies := cfg.GetPolicies()
 		idx := slices.IndexFunc(policies, func(p *frontlinev1.Policy) bool { return p.GetId() == req.PolicyId })
 		if idx < 0 {
@@ -182,8 +187,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			patched.Enabled = *req.Enabled
 		}
 		if req.Match.IsSpecified() {
-			patched.Match = nil
-			if !req.Match.IsNull() {
+			if req.Match.IsNull() {
+				patched.Match = nil
+			} else {
 				match := req.Match.MustGet()
 				patched.Match = &match
 			}
@@ -202,9 +208,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		updated.Id = req.PolicyId
 		policies[idx] = updated
 
-		// A keyauth kept from storage was verified when it was written, so
-		// only a keyauth arriving with this request needs its keyspaces
-		// checked. Verify after validation, matching setPolicies' order.
+		// Stored keyauth was verified at write time; only keyspaces
+		// arriving with this request need checking.
 		if req.Keyauth != nil && len(req.Keyauth.Keyspaces) > 0 {
 			found, keyspaceErr := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, tx, db.FindKeyAuthsByIdsAndWorkspaceParams{
 				WorkspaceID: principal.WorkspaceID,
