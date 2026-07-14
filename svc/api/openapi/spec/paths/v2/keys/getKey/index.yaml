@@ -25,9 +25,6 @@ post:
     - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#decrypt_key`
   operationId: keys.getKey
   x-speakeasy-name-override: getKey
-  security:
-    - rootKey: []
-    - dashboard: []
   requestBody:
     content:
       application/json:

@@ -14,7 +14,7 @@ post:
   operationId: apps.listApps
   x-speakeasy-name-override: listApps
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

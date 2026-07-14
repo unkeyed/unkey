@@ -15,10 +15,7 @@ export const useEditCredits = (onSuccess?: () => void) => {
   const trpcUtils = trpc.useUtils();
   const mutation = useMutation<void, unknown, EditCreditsVariables>({
     mutationFn: async ({ keyId, credits }) => {
-      await getUnkeyClient().keys.updateKey({
-        keyId,
-        credits,
-      });
+      await getUnkeyClient().keys.updateKey({ keyId, credits });
     },
     onSuccess(_, variables) {
       const remainingChange = variables.credits

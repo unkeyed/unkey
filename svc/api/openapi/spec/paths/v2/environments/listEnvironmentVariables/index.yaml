@@ -21,7 +21,7 @@ post:
   operationId: environments.listEnvironmentVariables
   x-speakeasy-name-override: listEnvironmentVariables
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

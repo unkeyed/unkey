@@ -16,7 +16,7 @@ post:
   operationId: apis.createApi
   x-speakeasy-name-override: createApi
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

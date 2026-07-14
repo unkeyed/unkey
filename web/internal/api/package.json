@@ -1,0 +1,58 @@
+{
+  "name": "@unkey/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc"
+  },
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./esm/index.d.ts",
+      "default": "./esm/index.js"
+    },
+    "./package.json": "./package.json",
+    "./types": {
+      "source": "./src/types/index.ts",
+      "types": "./esm/types/index.d.ts",
+      "default": "./esm/types/index.js"
+    },
+    "./models/errors": {
+      "source": "./src/models/errors/index.ts",
+      "types": "./esm/models/errors/index.d.ts",
+      "default": "./esm/models/errors/index.js"
+    },
+    "./models/components": {
+      "source": "./src/models/components/index.ts",
+      "types": "./esm/models/components/index.d.ts",
+      "default": "./esm/models/components/index.js"
+    },
+    "./models/operations": {
+      "source": "./src/models/operations/index.ts",
+      "types": "./esm/models/operations/index.d.ts",
+      "default": "./esm/models/operations/index.js"
+    },
+    "./*.js": {
+      "source": "./src/*.ts",
+      "types": "./esm/*.d.ts",
+      "default": "./esm/*.js"
+    },
+    "./*": {
+      "source": "./src/*.ts",
+      "types": "./esm/*.d.ts",
+      "default": "./esm/*.js"
+    }
+  },
+  "main": "./esm/index.js",
+  "module": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  }
+}

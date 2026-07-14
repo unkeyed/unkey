@@ -17,7 +17,7 @@ post:
   x-speakeasy-name-override: createProject
   x-unkey-idempotency: conditionally-idempotent
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
