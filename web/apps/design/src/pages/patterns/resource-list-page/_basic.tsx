@@ -7,9 +7,11 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   ResourceList,
+  ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
   ResourceListHeader,
+  ResourceListItem,
 } from "@unkey/ui";
 import { useState } from "react";
 
@@ -41,7 +43,10 @@ export function ResourceListPageExample() {
             variant="outline"
             onClick={() =>
               setIdentities((current) => [
-                { externalId: `customer_${1000 + current.length}`, rateLimits: 0 },
+                {
+                  externalId: `customer_${1000 + current.length}`,
+                  rateLimits: 0,
+                },
                 ...current,
               ])
             }
@@ -61,20 +66,22 @@ export function ResourceListPageExample() {
             />
           </ResourceListHeader>
           <ResourceListContent>
-            <ul className="divide-y divide-grayA-4">
+            <ResourceListBody>
               {visibleIdentities.map((identity) => (
-                <li
+                <ResourceListItem
                   key={identity.externalId}
-                  className="relative flex items-center justify-between px-4 py-3"
+                  className="flex items-center justify-between px-4 py-3"
                 >
                   <span className="font-mono text-accent-12 text-sm">{identity.externalId}</span>
                   <span className="text-gray-10 text-xs">{identity.rateLimits} rate limits</span>
-                </li>
+                </ResourceListItem>
               ))}
               {visibleIdentities.length === 0 ? (
-                <li className="px-4 py-8 text-center text-gray-10 text-sm">No identities found</li>
+                <ResourceListItem className="px-4 py-8 text-center text-gray-10 text-sm">
+                  No identities found
+                </ResourceListItem>
               ) : null}
-            </ul>
+            </ResourceListBody>
             {visibleIdentities.length < filteredIdentities.length ? (
               <ResourceListFooter>
                 <Button

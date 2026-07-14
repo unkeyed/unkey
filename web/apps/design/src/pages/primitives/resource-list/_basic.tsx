@@ -2,9 +2,11 @@ import {
   Button,
   Input,
   ResourceList,
+  ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
   ResourceListHeader,
+  ResourceListItem,
 } from "@unkey/ui";
 import { useState } from "react";
 
@@ -45,20 +47,22 @@ export function ResourceListExample() {
         </Button>
       </ResourceListHeader>
       <ResourceListContent>
-        <ul className="divide-y divide-grayA-4">
+        <ResourceListBody>
           {visibleKeys.map((key) => (
-            <li key={key.id} className="relative flex items-center gap-4 px-4 py-3">
+            <ResourceListItem key={key.id} className="flex items-center gap-4 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium text-accent-12 text-sm">{key.name}</div>
                 <div className="font-mono text-gray-9 text-xs">{key.id}</div>
               </div>
               <span className="text-gray-11 text-xs">{key.status}</span>
-            </li>
+            </ResourceListItem>
           ))}
           {visibleKeys.length === 0 ? (
-            <li className="px-4 py-8 text-center text-gray-10 text-sm">No API keys found</li>
+            <ResourceListItem className="px-4 py-8 text-center text-gray-10 text-sm">
+              No API keys found
+            </ResourceListItem>
           ) : null}
-        </ul>
+        </ResourceListBody>
         {visibleKeys.length < filteredKeys.length ? (
           <ResourceListFooter>
             <Button variant="outline" onClick={() => setVisibleCount(filteredKeys.length)}>

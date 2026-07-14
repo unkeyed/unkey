@@ -1,7 +1,7 @@
 "use client";
 
 import { Dots } from "@unkey/icons";
-import { ResourceListContent } from "@unkey/ui";
+import { ResourceListBody, ResourceListContent, ResourceListItem } from "@unkey/ui";
 
 const SKELETON_ROWS = [
   "deployment-1",
@@ -18,11 +18,11 @@ export function DeploymentsSkeleton() {
   return (
     <ResourceListContent aria-busy="true">
       <output className="sr-only">Loading deployments...</output>
-      <ul className="divide-y divide-grayA-4" aria-hidden="true">
+      <ResourceListBody aria-hidden="true">
         {SKELETON_ROWS.map((row) => (
-          <li
+          <ResourceListItem
             key={row}
-            className="relative flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:gap-0"
+            className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:gap-0"
           >
             {/* Identity + Status */}
             <div className="flex items-center justify-between md:contents">
@@ -54,9 +54,9 @@ export function DeploymentsSkeleton() {
               <div className="size-5 bg-grayA-3 rounded-full animate-pulse" />
               <Dots iconSize="sm-regular" className="text-gray-11 opacity-50" />
             </div>
-          </li>
+          </ResourceListItem>
         ))}
-      </ul>
+      </ResourceListBody>
     </ResourceListContent>
   );
 }

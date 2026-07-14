@@ -17,6 +17,14 @@ function ResourceListContent({ className, ...props }: React.ComponentProps<"div"
   );
 }
 
+function ResourceListBody({ className, ...props }: React.ComponentProps<"ul">) {
+  return <ul className={cn("divide-y divide-grayA-4", className)} {...props} />;
+}
+
+function ResourceListItem({ className, ...props }: React.ComponentProps<"li">) {
+  return <li className={cn("relative", className)} {...props} />;
+}
+
 function ResourceListFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -26,4 +34,11 @@ function ResourceListFooter({ className, ...props }: React.ComponentProps<"div">
   );
 }
 
-export { ResourceList, ResourceListContent, ResourceListFooter, ResourceListHeader };
+export {
+  ResourceList,
+  ResourceListBody,
+  ResourceListContent,
+  ResourceListFooter,
+  ResourceListHeader,
+  ResourceListItem,
+};
