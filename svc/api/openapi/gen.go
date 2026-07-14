@@ -1416,6 +1416,22 @@ type V2DeploymentsPromoteDeploymentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2DeploymentsRollbackDeploymentRequestBody Roll live traffic back to a previous deployment.
+type V2DeploymentsRollbackDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsRollbackDeploymentResponseBody defines model for V2DeploymentsRollbackDeploymentResponseBody.
+type V2DeploymentsRollbackDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2DeploymentsStartDeploymentRequestBody Start a stopped preview deployment so it serves traffic again.
 type V2DeploymentsStartDeploymentRequestBody struct {
 	// DeploymentId Identifies a resource by either its unique ID or its slug.
@@ -3557,6 +3573,9 @@ type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsReq
 
 // DeploymentsPromoteDeploymentJSONRequestBody defines body for DeploymentsPromoteDeployment for application/json ContentType.
 type DeploymentsPromoteDeploymentJSONRequestBody = V2DeploymentsPromoteDeploymentRequestBody
+
+// DeploymentsRollbackDeploymentJSONRequestBody defines body for DeploymentsRollbackDeployment for application/json ContentType.
+type DeploymentsRollbackDeploymentJSONRequestBody = V2DeploymentsRollbackDeploymentRequestBody
 
 // DeploymentsStartDeploymentJSONRequestBody defines body for DeploymentsStartDeployment for application/json ContentType.
 type DeploymentsStartDeploymentJSONRequestBody = V2DeploymentsStartDeploymentRequestBody

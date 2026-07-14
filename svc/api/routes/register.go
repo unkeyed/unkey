@@ -28,6 +28,7 @@ import (
 	v2DeploymentsGetDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_deployment"
 	v2DeploymentsListDeployments "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_deployments"
 	v2DeploymentsPromoteDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_promote_deployment"
+	v2DeploymentsRollbackDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
 	v2DeploymentsStartDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_start_deployment"
 	v2DeploymentsStopDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_stop_deployment"
 
@@ -388,6 +389,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsPromoteDeployment.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
+
+	// v2/deployments.rollbackDeployment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2DeploymentsRollbackDeployment.Handler{
 			DB:         svc.Database,
 			CtrlClient: svc.CtrlDeploymentClient,
 		},

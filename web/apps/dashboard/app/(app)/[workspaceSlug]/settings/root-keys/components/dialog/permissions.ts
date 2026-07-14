@@ -262,6 +262,10 @@ export const workspacePermissions = {
       description: "Promote deployments to live for any environment in this workspace",
       permission: "environment.*.promote_deployment",
     },
+    rollback_deployment: {
+      description: "Roll back to previous deployments for any environment in this workspace",
+      permission: "environment.*.rollback_deployment",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -402,6 +406,10 @@ export function environmentPermissions(environmentId: string): {
       promote_deployment: {
         description: "Promote deployments to live for this environment.",
         permission: `environment.${environmentId}.promote_deployment`,
+      },
+      rollback_deployment: {
+        description: "Roll back to previous deployments for this environment.",
+        permission: `environment.${environmentId}.rollback_deployment`,
       },
     },
   };

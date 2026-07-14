@@ -751,6 +751,29 @@ components:
                 data:
                     "$ref": "#/components/schemas/EmptyResponse"
             additionalProperties: false
+        V2DeploymentsRollbackDeploymentRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        The deployment to roll back TO. Its app's current live deployment is used
+                        as the rollback source automatically.
+            additionalProperties: false
+            description: Roll live traffic back to a previous deployment.
+        V2DeploymentsRollbackDeploymentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2DeploymentsStartDeploymentRequestBody:
             type: object
             required:
@@ -7123,6 +7146,105 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: promoteDeployment
+    /v2/deployments.rollbackDeployment:
+        post:
+            description: |
+                Roll live traffic back to a previous deployment. `deploymentId` is the
+                deployment to roll back TO; the app's current live deployment is used as
+                the rollback source automatically.
+
+                The target deployment must be ready, not already shutting down, belong to
+                the production environment, and must not itself be the live deployment.
+
+                After a rollback the app is marked as rolled back, which prevents new
+                deployments from automatically taking over live traffic. Promote the
+                rolled-back deployment (or a newer one) to clear this state.
+
+                Rollback runs as a durable workflow: this endpoint returns once the
+                rollback is accepted. Poll `getDeployment` or `listDeployments` to observe
+                the result.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.rollback_deployment` (to roll back deployments in any environment)
+                - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
+            operationId: deployments.rollbackDeployment
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            rollback:
+                                description: Point live traffic back at an earlier deployment
+                                summary: Roll back to a previous deployment
+                                value:
+                                    deploymentId: d_prev5678
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsRollbackDeploymentRequestBody'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    summary: Rollback accepted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsRollbackDeploymentResponseBody'
+                    description: |
+                        Rollback accepted. Poll `getDeployment` to observe the result.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The deployment does not exist in your workspace, or your
+                        root key lacks the `rollback_deployment` permission for it. Both cases
+                        return the same response, so deployment existence is never revealed.
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: |
+                        Precondition failed - The deployment is not ready, is shutting down, is
+                        already live, does not belong to the production environment, or the app
+                        has no live deployment to roll back from.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Rollback deployment
+            tags:
+                - deployments
+            x-speakeasy-name-override: rollbackDeployment
     /v2/deployments.startDeployment:
         post:
             description: |
