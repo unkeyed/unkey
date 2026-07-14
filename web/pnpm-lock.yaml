@@ -731,6 +731,9 @@ importers:
       '@unkey/tsconfig':
         specifier: workspace:^
         version: link:../tsconfig
+      tsx:
+        specifier: 4.19.1
+        version: 4.19.1
       typescript:
         specifier: 5.5.3
         version: 5.5.3

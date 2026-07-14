@@ -668,6 +668,153 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/Deployment"
+        V2DeploymentsListDeploymentsRequestBody:
+            type: object
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Restrict results to a single project, identified by its ID or slug.
+                        Required when filtering by `app` or `environment`.
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Restrict results to a single app, identified by its ID or slug.
+                        Requires `project` to also be set.
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Restrict results to a single environment, identified by its ID or slug.
+                        Requires `project` and `app` to also be set.
+                status:
+                    type: array
+                    maxItems: 13
+                    items:
+                        "$ref": "#/components/schemas/DeploymentStatus"
+                    description: |
+                        Restrict results to deployments in any of the given lifecycle statuses.
+                        Omit to return deployments in every status.
+                    example: ["ready", "failed"]
+                limit:
+                    type: integer
+                    description: |
+                        Maximum number of deployments to return per request.
+                        Balance between response size and number of pagination calls needed.
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: |
+                        Pagination cursor from a previous response to fetch the next page.
+                        Use when `hasMore: true` in the previous response.
+            additionalProperties: false
+            description: |
+                Filter deployments within a workspace. All filters are optional; with none
+                set, every deployment in the workspace is returned, newest first.
+        V2DeploymentsListDeploymentsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        "$ref": "#/components/schemas/Deployment"
+                    description: Array of deployments, ordered newest first.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
+        V2DeploymentsPromoteDeploymentRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+            description: Promote a ready deployment to become the live deployment for its environment.
+        V2DeploymentsPromoteDeploymentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
+        V2DeploymentsRollbackDeploymentRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        The deployment to roll back TO. Its app's current live deployment is used
+                        as the rollback source automatically.
+            additionalProperties: false
+            description: Roll live traffic back to a previous deployment.
+        V2DeploymentsRollbackDeploymentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
+        V2DeploymentsStartDeploymentRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: The stopped deployment to start.
+            additionalProperties: false
+            description: Start a stopped preview deployment so it serves traffic again.
+        V2DeploymentsStartDeploymentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
+        V2DeploymentsStopDeploymentRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+            additionalProperties: false
+            description: Stop a running preview deployment to free up resources.
+        V2DeploymentsStopDeploymentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/EmptyResponse"
+            additionalProperties: false
         V2EnvironmentsGetEnvironmentRequestBody:
             type: object
             required:
@@ -6739,6 +6886,555 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: getDeployment
+    /v2/deployments.listDeployments:
+        post:
+            description: |
+                Retrieve a paginated list of deployments within a workspace, newest first.
+
+                Filter by project, app, environment, and lifecycle status. All filters are
+                optional; with none set, every deployment in the workspace is returned.
+                Filters nest: `app` requires `project`, and `environment` requires both
+                `project` and `app`. Results are paginated; when `hasMore` is true, pass the
+                returned `cursor` to fetch the next page.
+
+                **Required Permissions**
+
+                Your root key must have the `environment.*.read_deployment` permission.
+                Listing spans environments, so a grant on a single environment is not
+                sufficient.
+            operationId: deployments.listDeployments
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            byEnvironment:
+                                description: Restrict to one environment, providing the full hierarchy
+                                summary: List an environment's deployments
+                                value:
+                                    app: payments-api
+                                    environment: production
+                                    project: payments-service
+                            workspaceWide:
+                                description: List the first page of deployments in the workspace
+                                summary: List all deployments
+                                value: {}
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsListDeploymentsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                deploymentList:
+                                    description: Successfully retrieved a page of deployments
+                                    summary: Deployment list
+                                    value:
+                                        data:
+                                            - createdAt: 1704153600000
+                                              id: dep_1234abcd
+                                              runtime:
+                                                command:
+                                                    - node
+                                                    - server.js
+                                                cpuMillicores: 250
+                                                memoryMib: 256
+                                                port: 8080
+                                                shutdownSignal: SIGTERM
+                                                storageMib: 0
+                                                upstreamProtocol: http1
+                                              status: ready
+                                            - createdAt: 1704067200000
+                                              id: dep_5678efgh
+                                              runtime:
+                                                command: []
+                                                cpuMillicores: 250
+                                                memoryMib: 256
+                                                port: 8080
+                                                shutdownSignal: SIGTERM
+                                                storageMib: 0
+                                                upstreamProtocol: http1
+                                              status: failed
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            hasMore: false
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsListDeploymentsResponseBody'
+                    description: |
+                        Successfully retrieved a paginated list of deployments. Use the pagination cursor for additional results when `hasMore: true`.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                missingParent:
+                                    summary: Missing parent filter
+                                    value:
+                                        error:
+                                            detail: The 'environment' filter requires both 'project' and 'app' to be set.
+                                            status: 400
+                                            title: Bad Request
+                                            type: validation-error
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: Your root key requires the 'environment.*.read_deployment' permission to perform this operation
+                                            status: 403
+                                            title: Forbidden
+                                            type: forbidden
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `environment.*.read_deployment`)
+                "404":
+                    content:
+                        application/json:
+                            examples:
+                                projectNotFound:
+                                    summary: Project not found
+                                    value:
+                                        error:
+                                            detail: The requested project does not exist.
+                                            status: 404
+                                            title: Not Found
+                                            type: not-found
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - A referenced project, app, or environment does not exist in your workspace
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: List deployments
+            tags:
+                - deployments
+            x-speakeasy-name-override: listDeployments
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+    /v2/deployments.promoteDeployment:
+        post:
+            description: |
+                Promote a deployment to become the live deployment for its environment.
+                All sticky domains are reassigned from the current live deployment to the
+                promoted one, and the previous deployment is scheduled for standby.
+
+                The deployment must be ready, not already shutting down, belong to the
+                production environment, and its app must already have a live deployment.
+                Promoting the deployment that is already live fails, unless the app is in
+                a rolled-back state, in which case promoting the current deployment
+                confirms the rollback and re-enables automatic promotion of future
+                deployments.
+
+                Promotion runs as a durable workflow: this endpoint returns once the
+                promotion is accepted. Poll `getDeployment` or `listDeployments` to observe
+                the result.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.promote_deployment` (to promote deployments in any environment)
+                - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
+            operationId: deployments.promoteDeployment
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            promote:
+                                description: Point all live traffic at this deployment
+                                summary: Promote a deployment to live
+                                value:
+                                    deploymentId: d_1234abcd
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsPromoteDeploymentRequestBody'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    summary: Promotion accepted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsPromoteDeploymentResponseBody'
+                    description: |
+                        Promotion accepted. Poll `getDeployment` to observe the result.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The deployment does not exist in your workspace, or your
+                        root key lacks the `promote_deployment` permission for it. Both cases
+                        return the same response, so deployment existence is never revealed.
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: |
+                        Precondition failed - The deployment is not ready, is shutting down, is
+                        already live (and the app is not in a rolled-back state), does not
+                        belong to the production environment, or its app has no live deployment
+                        to promote from.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Promote deployment
+            tags:
+                - deployments
+            x-speakeasy-name-override: promoteDeployment
+    /v2/deployments.rollbackDeployment:
+        post:
+            description: |
+                Roll live traffic back to a previous deployment. `deploymentId` is the
+                deployment to roll back TO; the app's current live deployment is used as
+                the rollback source automatically.
+
+                The target deployment must be ready, not already shutting down, belong to
+                the production environment, and must not itself be the live deployment.
+
+                After a rollback the app is marked as rolled back, which prevents new
+                deployments from automatically taking over live traffic. Promote the
+                rolled-back deployment (or a newer one) to clear this state.
+
+                Rollback runs as a durable workflow: this endpoint returns once the
+                rollback is accepted. Poll `getDeployment` or `listDeployments` to observe
+                the result.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.rollback_deployment` (to roll back deployments in any environment)
+                - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
+            operationId: deployments.rollbackDeployment
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            rollback:
+                                description: Point live traffic back at an earlier deployment
+                                summary: Roll back to a previous deployment
+                                value:
+                                    deploymentId: d_prev5678
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsRollbackDeploymentRequestBody'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    summary: Rollback accepted
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsRollbackDeploymentResponseBody'
+                    description: |
+                        Rollback accepted. Poll `getDeployment` to observe the result.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The deployment does not exist in your workspace, or your
+                        root key lacks the `rollback_deployment` permission for it. Both cases
+                        return the same response, so deployment existence is never revealed.
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: |
+                        Precondition failed - The deployment is not ready, is shutting down, is
+                        already live, does not belong to the production environment, or the app
+                        has no live deployment to roll back from.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Rollback deployment
+            tags:
+                - deployments
+            x-speakeasy-name-override: rollbackDeployment
+    /v2/deployments.startDeployment:
+        post:
+            description: |
+                Start a deployment that was previously stopped with `stopDeployment`, so it
+                serves traffic again. The deployment keeps the configuration it had when it
+                was stopped; nothing is rebuilt or redeployed.
+
+                The deployment must currently be stopped, and must belong to a
+                non-production environment. Production deployments are never stopped, so
+                they cannot be started.
+
+                Starting is asynchronous: this endpoint only enqueues the start and returns
+                immediately. Poll `getDeployment` until the status reaches `ready`.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.start_deployment` (to start deployments in any environment)
+                - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
+            operationId: deployments.startDeployment
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            start:
+                                description: Resume a preview deployment that was previously stopped
+                                summary: Start a stopped preview deployment
+                                value:
+                                    deploymentId: d_1234abcd
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsStartDeploymentRequestBody'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    summary: Start enqueued
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsStartDeploymentResponseBody'
+                    description: |
+                        Start accepted and enqueued. The deployment transitions to `ready`
+                        asynchronously; poll `getDeployment` to observe the transition.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The deployment does not exist in your workspace, or your
+                        root key lacks the `start_deployment` permission for it. Both cases
+                        return the same response, so deployment existence is never revealed.
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: |
+                        Precondition failed - The deployment is not stopped, or it belongs to a
+                        production environment.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Start deployment
+            tags:
+                - deployments
+            x-speakeasy-name-override: startDeployment
+    /v2/deployments.stopDeployment:
+        post:
+            description: |
+                Stop a running preview deployment. Stopped deployments keep their
+                configuration and can be resumed later with `startDeployment`.
+
+                The deployment must be ready and running, and must belong to a
+                non-production environment; production deployments cannot be stopped.
+                A deployment that is already draining from a previous stop is rejected
+                with a precondition error.
+
+                Stopping is asynchronous: this endpoint only enqueues the stop and returns
+                immediately. Poll `getDeployment` until the status reaches `stopped`.
+
+                **Required Permissions**
+
+                Your root key must have one of the following permissions:
+                - `environment.*.stop_deployment` (to stop deployments in any environment)
+                - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
+            operationId: deployments.stopDeployment
+            requestBody:
+                content:
+                    application/json:
+                        examples:
+                            stop:
+                                description: Spin down a preview deployment that is currently serving
+                                summary: Stop a running preview deployment
+                                value:
+                                    deploymentId: d_1234abcd
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsStopDeploymentRequestBody'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            examples:
+                                accepted:
+                                    summary: Stop enqueued
+                                    value:
+                                        data: {}
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsStopDeploymentResponseBody'
+                    description: |
+                        Stop accepted and enqueued. The deployment transitions to `stopped`
+                        asynchronously; poll `getDeployment` to observe the transition.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        Not Found - The deployment does not exist in your workspace, or your
+                        root key lacks the `stop_deployment` permission for it. Both cases
+                        return the same response, so deployment existence is never revealed.
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: |
+                        Precondition failed - The deployment is not running, a stop is already
+                        in progress, or it belongs to a production environment.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Stop deployment
+            tags:
+                - deployments
+            x-speakeasy-name-override: stopDeployment
     /v2/environments.getEnvironment:
         post:
             description: |

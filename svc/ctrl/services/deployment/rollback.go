@@ -7,8 +7,10 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // Rollback switches traffic from the source deployment to a previous target
@@ -21,12 +23,57 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, err
 	}
 
+	sourceID := req.Msg.GetSourceDeploymentId()
+	targetID := req.Msg.GetTargetDeploymentId()
+	if sourceID == "" || targetID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("source_deployment_id and target_deployment_id are required"))
+	}
+	if sourceID == targetID {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("source and target deployments must be different"))
+	}
+
+	// Validate here so callers get precise connect codes instead of
+	// CodeInternal. The workflow re-checks everything except the target
+	// status, environment, and desired_state gates, which exist only at
+	// this layer.
+	sourceDeployment, err := s.db.FindDeploymentById(ctx, sourceID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("source deployment not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load source deployment: %w", err))
+	}
+
+	targetDeployment, err := s.db.FindDeploymentWithEnvironmentAndApp(ctx, targetID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("target deployment not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load target deployment: %w", err))
+	}
+
+	// A demoted deployment keeps status ready while it drains toward standby, so
+	// status alone would let traffic swap onto one shutting down. Same-app is
+	// asserted before the live-pointer check so a mismatched app fails first.
+	err = assert.All(
+		assert.Equal(targetDeployment.ProjectID, sourceDeployment.ProjectID, "deployments must be in the same project"),
+		assert.Equal(targetDeployment.AppID, sourceDeployment.AppID, "deployments must be in the same app"),
+		assert.Equal(targetDeployment.EnvironmentID, sourceDeployment.EnvironmentID, "deployments must be in the same environment"),
+		assert.Equal(targetDeployment.Status, db.DeploymentsStatusReady, "target deployment is not ready"),
+		assert.Equal(targetDeployment.DesiredState, db.DeploymentsDesiredStateRunning, "target deployment is shutting down"),
+		assert.Equal(targetDeployment.EnvironmentSlug, "production", "only production deployments can be rolled back"),
+		assert.True(targetDeployment.CurrentDeploymentID.Valid && targetDeployment.CurrentDeploymentID.String == sourceDeployment.ID, "source deployment is not the current live deployment"),
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
 	logger.Info("initiating rollback via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
-	_, err := s.deploymentClient(req.Msg.GetSourceDeploymentId()).
+	_, err = s.deploymentClient(req.Msg.GetSourceDeploymentId()).
 		Rollback().
 		Request(ctx, &hydrav1.RollbackRequest{
 			SourceDeploymentId: req.Msg.GetSourceDeploymentId(),

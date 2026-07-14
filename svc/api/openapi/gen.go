@@ -1360,6 +1360,110 @@ type V2DeploymentsGetDeploymentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
+// V2DeploymentsListDeploymentsRequestBody Filter deployments within a workspace. All filters are optional; with none
+// set, every deployment in the workspace is returned, newest first.
+type V2DeploymentsListDeploymentsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	App *ResourceIdentifier `json:"app,omitempty"`
+
+	// Cursor Pagination cursor from a previous response to fetch the next page.
+	// Use when `hasMore: true` in the previous response.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Environment *ResourceIdentifier `json:"environment,omitempty"`
+
+	// Limit Maximum number of deployments to return per request.
+	// Balance between response size and number of pagination calls needed.
+	Limit *int `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	Project *ResourceIdentifier `json:"project,omitempty"`
+
+	// Status Restrict results to deployments in any of the given lifecycle statuses.
+	// Omit to return deployments in every status.
+	Status *[]DeploymentStatus `json:"status,omitempty"`
+}
+
+// V2DeploymentsListDeploymentsResponseBody defines model for V2DeploymentsListDeploymentsResponseBody.
+type V2DeploymentsListDeploymentsResponseBody struct {
+	// Data Array of deployments, ordered newest first.
+	Data []Deployment `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination *Pagination `json:"pagination,omitempty"`
+}
+
+// V2DeploymentsPromoteDeploymentRequestBody Promote a ready deployment to become the live deployment for its environment.
+type V2DeploymentsPromoteDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsPromoteDeploymentResponseBody defines model for V2DeploymentsPromoteDeploymentResponseBody.
+type V2DeploymentsPromoteDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsRollbackDeploymentRequestBody Roll live traffic back to a previous deployment.
+type V2DeploymentsRollbackDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsRollbackDeploymentResponseBody defines model for V2DeploymentsRollbackDeploymentResponseBody.
+type V2DeploymentsRollbackDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsStartDeploymentRequestBody Start a stopped preview deployment so it serves traffic again.
+type V2DeploymentsStartDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsStartDeploymentResponseBody defines model for V2DeploymentsStartDeploymentResponseBody.
+type V2DeploymentsStartDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2DeploymentsStopDeploymentRequestBody Stop a running preview deployment to free up resources.
+type V2DeploymentsStopDeploymentRequestBody struct {
+	// DeploymentId Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	DeploymentId ResourceIdentifier `json:"deploymentId"`
+}
+
+// V2DeploymentsStopDeploymentResponseBody defines model for V2DeploymentsStopDeploymentResponseBody.
+type V2DeploymentsStopDeploymentResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // V2EnvironmentsGetEnvironmentRequestBody defines model for V2EnvironmentsGetEnvironmentRequestBody.
 type V2EnvironmentsGetEnvironmentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -3463,6 +3567,21 @@ type DeploymentsCreateDeploymentJSONRequestBody = V2DeploymentsCreateDeploymentR
 
 // DeploymentsGetDeploymentJSONRequestBody defines body for DeploymentsGetDeployment for application/json ContentType.
 type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequestBody
+
+// DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
+type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody
+
+// DeploymentsPromoteDeploymentJSONRequestBody defines body for DeploymentsPromoteDeployment for application/json ContentType.
+type DeploymentsPromoteDeploymentJSONRequestBody = V2DeploymentsPromoteDeploymentRequestBody
+
+// DeploymentsRollbackDeploymentJSONRequestBody defines body for DeploymentsRollbackDeployment for application/json ContentType.
+type DeploymentsRollbackDeploymentJSONRequestBody = V2DeploymentsRollbackDeploymentRequestBody
+
+// DeploymentsStartDeploymentJSONRequestBody defines body for DeploymentsStartDeployment for application/json ContentType.
+type DeploymentsStartDeploymentJSONRequestBody = V2DeploymentsStartDeploymentRequestBody
+
+// DeploymentsStopDeploymentJSONRequestBody defines body for DeploymentsStopDeployment for application/json ContentType.
+type DeploymentsStopDeploymentJSONRequestBody = V2DeploymentsStopDeploymentRequestBody
 
 // EnvironmentsGetEnvironmentJSONRequestBody defines body for EnvironmentsGetEnvironment for application/json ContentType.
 type EnvironmentsGetEnvironmentJSONRequestBody = V2EnvironmentsGetEnvironmentRequestBody

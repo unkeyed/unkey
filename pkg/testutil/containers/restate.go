@@ -1,17 +1,16 @@
 package containers
 
 import (
+	"fmt"
 	"testing"
-	"time"
 )
 
 const (
-	restateImage     = "restatedev/restate:1.6.0"
-	restatePort      = "8080/tcp"
-	restateAdminPort = "9070/tcp"
+	restatePort      = 8080
+	restateAdminPort = 9070
 )
 
-// RestateConfig holds connection information for a Restate container.
+// RestateConfig holds connection information for the Restate test container.
 type RestateConfig struct {
 	// IngressURL is the Restate ingress endpoint URL.
 	IngressURL string
@@ -19,32 +18,16 @@ type RestateConfig struct {
 	AdminURL string
 }
 
-// Restate starts a Restate container and returns ingress/admin URLs.
+// Restate starts the shared Docker Compose Restate service and returns ingress/admin URLs.
 //
-// The container is reused by stable Docker name across Go test processes.
-// This function blocks until the admin health endpoint responds (up to 30s).
-// Fails the test if Docker is unavailable or the container fails to start.
-func Restate(t *testing.T, opts ...Opt) RestateConfig {
+// The container is reused through the worktree's Docker Compose project.
+func Restate(t testing.TB) RestateConfig {
 	t.Helper()
 
-	cfg := containerConfig{
-		Image:        restateImage,
-		ExposedPorts: []string{restatePort, restateAdminPort},
-		WaitStrategy: NewHTTPWait(restateAdminPort, "/health"),
-		WaitTimeout:  30 * time.Second,
-		Env:          map[string]string{},
-		Cmd:          []string{},
-		Tmpfs:        nil,
-		Dedicated:    false,
-	}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-
-	ctr := startContainer(t, cfg)
+	c := startService(t, "restate")
 
 	return RestateConfig{
-		IngressURL: ctr.HostURL("http", restatePort),
-		AdminURL:   ctr.HostURL("http", restateAdminPort),
+		IngressURL: fmt.Sprintf("http://%s", c.Addr(t, restatePort)),
+		AdminURL:   fmt.Sprintf("http://localhost:%d", c.Port(t, restateAdminPort)),
 	}
 }
