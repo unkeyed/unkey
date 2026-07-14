@@ -202,9 +202,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		updated.Id = req.PolicyId
 		policies[idx] = updated
 
-		// A keyauth kept from storage was verified when it was written; only
-		// a keyauth arriving with this request needs its keyspaces checked.
-		// After validation, matching setPolicies' validate-then-verify order.
+		// A keyauth kept from storage was verified when it was written, so
+		// only a keyauth arriving with this request needs its keyspaces
+		// checked. Verify after validation, matching setPolicies' order.
 		if req.Keyauth != nil && len(req.Keyauth.Keyspaces) > 0 {
 			found, keyspaceErr := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, tx, db.FindKeyAuthsByIdsAndWorkspaceParams{
 				WorkspaceID: principal.WorkspaceID,

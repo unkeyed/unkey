@@ -38,8 +38,6 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Cursor:      nil,
-			Limit:       nil,
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		return res.Body.Data
