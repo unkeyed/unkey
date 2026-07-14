@@ -173,7 +173,9 @@ export function Combobox({
               aria-required={ariaRequired}
               className={cn(
                 comboboxTriggerVariants({ variant }),
-                isMultiSelect ? "min-h-9 h-auto items-start py-1.5 whitespace-normal" : "h-9 items-center py-0",
+                isMultiSelect
+                  ? "min-h-9 h-auto items-start py-1.5 whitespace-normal"
+                  : "h-9 items-center py-0",
                 "px-3",
                 leftIcon && "pl-9",
                 !hideChevron && "pr-9", // Space for the chevron icon when visible
