@@ -1,0 +1,42 @@
+---
+layout: ../../../layouts/layout.astro
+title: Resource list | Unkey Design
+---
+import { Preview } from "../../../components/preview.tsx";
+import { ResourceListExample } from "./_basic.tsx";
+import basicSource from "./_basic.tsx?highlight";
+
+# Resource list
+
+Resource list components provide the shared layout for filterable lists. The feature still owns data fetching, item markup, empty states, and loading states.
+
+<Preview client:load code={basicSource}>
+  <ResourceListExample client:load />
+</Preview>
+
+## Anatomy
+
+- `ResourceList` sets the vertical spacing between controls and content.
+- `ResourceListHeader` lays out search and filter controls.
+- `ResourceListContent` draws the bordered list frame.
+- `ResourceListFooter` holds a right-aligned Load more button without a result count.
+
+Keep the resource title and primary action in `PageHeader`.
+
+## Usage
+
+```tsx
+<ResourceList>
+  <ResourceListHeader>{controls}</ResourceListHeader>
+  <ResourceListContent>
+    <ul className="divide-y divide-grayA-4">
+      {items.map((item) => (
+        <li key={item.id}>{item.name}</li>
+      ))}
+    </ul>
+    <ResourceListFooter>
+      <Button variant="outline">Load more</Button>
+    </ResourceListFooter>
+  </ResourceListContent>
+</ResourceList>
+```
