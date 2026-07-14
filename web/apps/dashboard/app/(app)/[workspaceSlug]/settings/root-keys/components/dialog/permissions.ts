@@ -254,6 +254,10 @@ export const workspacePermissions = {
       description: "Stop running preview deployments for any environment in this workspace",
       permission: "environment.*.stop_deployment",
     },
+    start_deployment: {
+      description: "Start stopped preview deployments for any environment in this workspace",
+      permission: "environment.*.start_deployment",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -386,6 +390,10 @@ export function environmentPermissions(environmentId: string): {
       stop_deployment: {
         description: "Stop running preview deployments for this environment.",
         permission: `environment.${environmentId}.stop_deployment`,
+      },
+      start_deployment: {
+        description: "Start stopped preview deployments for this environment.",
+        permission: `environment.${environmentId}.start_deployment`,
       },
     },
   };
