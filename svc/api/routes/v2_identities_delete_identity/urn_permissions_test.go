@@ -12,8 +12,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
 )
 
-// TestDeleteIdentity_AuthorizesCanonicalURNPermission guarantees an exact
-// identity URN can delete a request addressed by external ID.
+// TestDeleteIdentity_AuthorizesCanonicalURNPermission guarantees a project-scoped
+// URN can delete an identity without a legacy tuple grant.
 func TestDeleteIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
@@ -21,8 +21,8 @@ func TestDeleteIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	externalID := uid.New(uid.TestPrefix)
-	identity := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:identities/%s#delete_identity", workspaceID, identity.ID))
+	h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*#delete_identity", workspaceID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

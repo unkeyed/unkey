@@ -51,17 +51,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	collectionAuthErr := principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   "*",
-			Action:       rbac.ReadIdentity,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Identity("*"),
-			permissions.ReadIdentity{},
-		),
-	))
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
@@ -79,31 +68,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	identities, pg := pagination.Paginate(identities, p, func(r db.ListIdentitiesRow) string { return r.ID })
-	if collectionAuthErr != nil {
-		if len(identities) == 0 {
-			return collectionAuthErr
-		}
-		for _, identity := range identities {
-			err = principal.Authorize(rbac.Or(
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Identity,
-					ResourceID:   identity.ID,
-					Action:       rbac.ReadIdentity,
-				}),
-				rbac.T(rbac.Tuple{
-					ResourceType: rbac.Identity,
-					ResourceID:   "*",
-					Action:       rbac.ReadIdentity,
-				}),
-				rbac.U(
-					urn.New().Workspace(principal.WorkspaceID).Identity(identity.ID),
-					permissions.ReadIdentity{},
-				),
-			))
-			if err != nil {
-				// Return the wildcard failure so the response never exposes a resolved internal ID.
-				return collectionAuthErr
-			}
+
+	// Check permissions for all identities before processing
+	for _, id := range identities {
+		// Check permissions
+		permissionCheck := rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   id.ID,
+				Action:       rbac.ReadIdentity,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   "*",
+				Action:       rbac.ReadIdentity,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project("*"),
+				permissions.ReadIdentity{},
+			),
+		)
+
+		err = principal.Authorize(permissionCheck)
+		if err != nil {
+			return err
 		}
 	}
 

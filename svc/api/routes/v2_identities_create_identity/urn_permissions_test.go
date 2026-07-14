@@ -11,15 +11,15 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_create_identity"
 )
 
-// TestCreateIdentity_AuthorizesCanonicalURNPermission guarantees collection-wide
-// identity URNs can create identities without a legacy tuple grant.
+// TestCreateIdentity_AuthorizesCanonicalURNPermission guarantees project-scoped
+// URNs can create identities without a legacy tuple grant.
 func TestCreateIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:identities/*#create_identity", workspaceID))
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*#create_identity", workspaceID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

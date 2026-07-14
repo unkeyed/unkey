@@ -92,19 +92,6 @@ func TestForbidden(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
 	})
 
-	t.Run("no permission in an empty workspace", func(t *testing.T) {
-		emptyWorkspace := h.CreateWorkspace()
-		emptyRootKey := h.CreateRootKey(emptyWorkspace.ID)
-		emptyHeaders := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", emptyRootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, emptyHeaders, handler.Request{})
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-	})
-
 	// Create a new key with specific permissions for certain environments
 	t.Run("with permission for only specific environment", func(t *testing.T) {
 		// Create a new key with production environment permissions

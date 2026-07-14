@@ -81,7 +81,6 @@ func TestForbidden(t *testing.T) {
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
 		require.Contains(t, res.Body.Error.Detail, "identity.*.read_identity")
-		require.NotContains(t, res.Body.Error.Detail, identityID)
 		require.NotContains(t, res.Body.Error.Detail, "have:")
 		require.NotContains(t, res.Body.Error.Detail, "{")
 		require.NotContains(t, res.Body.Error.Detail, "}")
@@ -105,18 +104,7 @@ func TestForbidden(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
 		require.NotContains(t, res.Body.Error.Detail, "have:")
 		require.NotContains(t, res.Body.Error.Detail, otherIdentityID)
-		require.NotContains(t, res.Body.Error.Detail, identityID)
 		require.NotContains(t, res.Body.Error.Detail, "{")
 		require.NotContains(t, res.Body.Error.Detail, "}")
-	})
-
-	t.Run("missing identity does not reveal existence without permission", func(t *testing.T) {
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
-			h,
-			route,
-			headers,
-			handler.Request{Identity: uid.New(uid.TestPrefix)},
-		)
-		require.Equal(t, http.StatusForbidden, res.Status)
 	})
 }

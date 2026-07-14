@@ -12,8 +12,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
 )
 
-// TestGetIdentity_AuthorizesCanonicalURNPermission guarantees an exact identity
-// URN can read a request addressed by external ID without a legacy tuple grant.
+// TestGetIdentity_AuthorizesCanonicalURNPermission guarantees a project-scoped
+// URN can read an identity without a legacy tuple grant.
 func TestGetIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
@@ -21,8 +21,8 @@ func TestGetIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	externalID := uid.New(uid.TestPrefix)
-	identity := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:identities/%s#read_identity", workspaceID, identity.ID))
+	h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*#read_identity", workspaceID))
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},

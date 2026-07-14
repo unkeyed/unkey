@@ -57,17 +57,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	collectionAuthErr := principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   "*",
-			Action:       rbac.DeleteIdentity,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Identity("*"),
-			permissions.DeleteIdentity{},
+	err = principal.Authorize(
+		rbac.Or(
+			rbac.T(
+				rbac.Tuple{
+					ResourceType: rbac.Identity,
+					ResourceID:   "*",
+					Action:       rbac.DeleteIdentity,
+				},
+			),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Project("*"),
+				permissions.DeleteIdentity{},
+			),
 		),
-	))
+	)
+	if err != nil {
+		return err
+	}
 
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: principal.WorkspaceID,
@@ -76,9 +83,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			if collectionAuthErr != nil {
-				return collectionAuthErr
-			}
 			return fault.New("identity not found",
 				fault.Code(codes.Data.Identity.NotFound.URN()),
 				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
@@ -89,24 +93,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database failed to find the identity"), fault.Public("Error finding the identity."),
 		)
-	}
-
-	if collectionAuthErr != nil {
-		err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Identity,
-				ResourceID:   "*",
-				Action:       rbac.DeleteIdentity,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Identity(identity.ID),
-				permissions.DeleteIdentity{},
-			),
-		))
-		if err != nil {
-			// Return the wildcard failure so the response never exposes the resolved internal ID.
-			return collectionAuthErr
-		}
 	}
 
 	// Parse ratelimits JSON

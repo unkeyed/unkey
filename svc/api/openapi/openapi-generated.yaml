@@ -7479,7 +7479,7 @@ paths:
                 Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
 
                 **Important**
-                Requires `identity.*.create_identity` or `unkey:v1:<workspaceId>:identities/*#create_identity` permission
+                Requires `identity.*.create_identity` or `unkey:v1:<workspaceId>:projects/*#create_identity` permission
             operationId: identities.createIdentity
             requestBody:
                 content:
@@ -7593,7 +7593,7 @@ paths:
                 Use this for data cleanup, compliance requirements, or when removing entities from your system.
 
                 > **Important**
-                > Requires `identity.*.delete_identity` or `unkey:v1:<workspaceId>:identities/<identityId>#delete_identity` permission
+                > Requires `identity.*.delete_identity` or `unkey:v1:<workspaceId>:projects/*#delete_identity` permission
                 > Associated API keys remain functional but lose shared resources
                 > External ID becomes available for reuse immediately
             operationId: identities.deleteIdentity
@@ -7693,7 +7693,7 @@ paths:
                 Use this to check if an identity exists, view configurations, or build management dashboards.
 
                 > **Important**
-                > Requires `identity.*.read_identity` or `unkey:v1:<workspaceId>:identities/<identityId>#read_identity` permission
+                > Requires `identity.*.read_identity` or `unkey:v1:<workspaceId>:projects/*#read_identity` permission
             operationId: identities.getIdentity
             requestBody:
                 content:
@@ -7802,7 +7802,7 @@ paths:
                 Perfect for building management dashboards, auditing configurations, or browsing your identities.
 
                 > **Important**
-                > Requires `identity.*.read_identity` or `unkey:v1:<workspaceId>:identities/*#read_identity` permission
+                > Requires `identity.*.read_identity` or `unkey:v1:<workspaceId>:projects/*#read_identity` permission
             operationId: identities.listIdentities
             requestBody:
                 content:
@@ -7923,7 +7923,7 @@ paths:
                 Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
 
                 > **Important**
-                > Requires `identity.*.update_identity` or `unkey:v1:<workspaceId>:identities/<identityId>#update_identity` permission
+                > Requires `identity.*.update_identity` or `unkey:v1:<workspaceId>:projects/*#update_identity` permission
                 > Rate limit changes propagate within 30 seconds
             operationId: identities.updateIdentity
             requestBody:
