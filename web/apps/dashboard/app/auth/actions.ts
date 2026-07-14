@@ -1,6 +1,6 @@
 "use server";
 
-import { getCookie, setCookies, setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { getCookie, setCookies, setLastUsedOrgCookie } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import {
   AUTH_CHALLENGE_COOKIE,
@@ -404,32 +404,6 @@ export async function completeOrgSelection(
 
   // Don't clear pending session on error - let user try again or close modal
   return result;
-}
-
-// Server-accessible switch org function vs client-side trpc
-// Used in route handlers, like join
-export async function switchOrg(orgId: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { newToken, expiresAt } = await auth.switchOrg(orgId);
-    if (!newToken || !expiresAt) {
-      throw new Error("Invalid session data returned from auth provider");
-    }
-    await setSessionCookie({ token: newToken, expiresAt });
-
-    // Store the last used organization ID in a cookie for auto-selection on next login
-    try {
-      await setLastUsedOrgCookie({ orgId });
-    } catch (_error) {
-      // Ignore cookie setting errors
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to switch organization",
-    };
-  }
 }
 
 /**

@@ -1,8 +1,7 @@
-import { getCurrentUser } from "@/lib/auth";
-import { setSessionCookie } from "@/lib/auth/cookies";
+import { normalizeEmail, processPostAuthInvitation } from "@/lib/auth";
+import { getAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
-import { updateSession } from "@/lib/auth/sessions";
-import type { AuthenticatedUser, Invitation, User } from "@/lib/auth/types";
+import type { Invitation, User } from "@/lib/auth/types";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -18,23 +17,47 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(DASHBOARD_URL);
   }
 
-  // Check authentication status more reliably by validating the session
-  let user: AuthenticatedUser | null = null;
-  let isAuthenticated = false;
+  // Request-less on purpose. The request-bound path refreshes the session into
+  // a Headers object this handler never returns, spending the single-use
+  // refresh token while auth.switchOrg (which reads the cookie store without a
+  // request) would still see the stale session. getAuth never throws; it
+  // reports an unusable session as a null userId.
+  const { userId } = await getAuth();
 
-  try {
-    // First validate the session to ensure we have a valid auth state
-    const { session } = await updateSession(request);
+  if (userId) {
+    // Both invitation entry points run the same accept-then-switch
+    // implementation, which fetches and validates the invitation itself.
+    const result = await processPostAuthInvitation(invitationToken, userId);
 
-    if (session?.userId) {
-      user = await getCurrentUser();
-      isAuthenticated = true;
+    if (!result.success) {
+      return NextResponse.redirect(DASHBOARD_URL);
     }
-  } catch (_error) {
-    // User is not authenticated, which is fine - we'll handle this below
+
+    const JOIN_SUCCESS_URL = new URL("/join/success", request.url);
+    JOIN_SUCCESS_URL.searchParams.set("from_invite", "true");
+    // The user joined the org but we could not make it active for this
+    // session, so the success page tells them to pick it from the switcher
+    // rather than promising a workspace they will not land in.
+    if (!result.switched) {
+      JOIN_SUCCESS_URL.searchParams.set("switch_required", "true");
+    }
+
+    try {
+      const org = await auth.getOrg(result.organizationId);
+      if (org?.name) {
+        JOIN_SUCCESS_URL.searchParams.set("org_name", org.name);
+      }
+    } catch (error) {
+      // The org name is cosmetic. Never fail a completed join over it.
+      console.warn("Could not fetch organization name for success page:", error);
+    }
+
+    return NextResponse.redirect(JOIN_SUCCESS_URL);
   }
 
-  // exchange token for invitation
+  // Unauthenticated: the invitation only decides which auth page to send them
+  // to, and is accepted later by the post-auth handler once they have a
+  // session. It is never consumed here.
   let invitation: Invitation | null = null;
   try {
     invitation = await auth.getInvitation(invitationToken);
@@ -45,84 +68,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(DASHBOARD_URL);
   }
 
-  if (!invitation) {
+  if (!invitation || invitation.state !== "pending") {
     return NextResponse.redirect(DASHBOARD_URL);
   }
 
-  const { email: invitationEmail, state, organizationId, id: invitationId } = invitation;
-
-  if (state !== "pending") {
-    // Add invitation_token to the dashboard URL so our post-auth handler can still try to process it
-    DASHBOARD_URL.searchParams.set("invitation_token", invitationToken);
-    return NextResponse.redirect(DASHBOARD_URL);
-  }
-
-  // if they are authenticated
-  if (user && isAuthenticated) {
-    if (user.email !== invitationEmail) {
-      return NextResponse.redirect(DASHBOARD_URL);
-    }
-
-    if (!organizationId) {
-      return NextResponse.redirect(DASHBOARD_URL);
-    }
-
-    try {
-      // Accept invitation first
-      await auth.acceptInvitation(invitationId);
-
-      // Switch organization and get the new session token
-      const { newToken, expiresAt } = await auth.switchOrg(organizationId);
-
-      if (!newToken || !expiresAt) {
-        throw new Error("Invalid session data returned from auth provider");
-      }
-
-      // Set the session cookie securely on the server side
-      await setSessionCookie({ token: newToken, expiresAt });
-
-      // Redirect to success page with organization context
-      const JOIN_SUCCESS_URL = new URL("/join/success", request.url);
-      JOIN_SUCCESS_URL.searchParams.set("from_invite", "true");
-
-      // Try to get organization name for better UX
-      try {
-        const org = await auth.getOrg(organizationId);
-        if (org?.name) {
-          JOIN_SUCCESS_URL.searchParams.set("org_name", org.name);
-        }
-      } catch (error) {
-        // Don't fail the redirect if we can't get org name
-        console.warn("Could not fetch organization name for success page:", error);
-      }
-
-      return NextResponse.redirect(JOIN_SUCCESS_URL);
-    } catch (error) {
-      console.error("Failed to accept invitation:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      // Add invitation_token to dashboard URL so post-auth handler can retry
-      DASHBOARD_URL.searchParams.set("invitation_token", invitationToken);
-      return NextResponse.redirect(DASHBOARD_URL);
-    }
-  }
+  // The invited address is what the account must be looked up and created
+  // under, so normalize it here too. A padded or mixed-case invite would
+  // otherwise miss the existing account and push the user into sign-up.
+  const normalizedEmail = normalizeEmail(invitation.email);
 
   let existingUser: User | null = null;
   try {
-    existingUser = await auth.findUser(invitationEmail);
+    existingUser = await auth.findUser(normalizedEmail);
   } catch (error) {
     console.error("Error checking for existing user:", {
       error: error instanceof Error ? error.message : "Unknown error",
     });
-    // Default to sign-up flow if we can't check
+    // Default to the sign-up flow if we cannot check.
   }
 
-  if (existingUser) {
-    SIGN_IN_URL.searchParams.set("invitation_token", invitationToken);
-    SIGN_IN_URL.searchParams.set("email", invitationEmail);
-    return NextResponse.redirect(SIGN_IN_URL);
-  }
-  SIGN_UP_URL.searchParams.set("invitation_token", invitationToken);
-  SIGN_UP_URL.searchParams.set("email", invitationEmail);
-  return NextResponse.redirect(SIGN_UP_URL);
+  const AUTH_URL = existingUser ? SIGN_IN_URL : SIGN_UP_URL;
+  AUTH_URL.searchParams.set("invitation_token", invitationToken);
+  AUTH_URL.searchParams.set("email", normalizedEmail);
+  return NextResponse.redirect(AUTH_URL);
 }
