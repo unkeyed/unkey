@@ -2,14 +2,17 @@ package handler
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"net/http"
 )
 
 type Request = openapi.V2IdentitiesGetIdentityRequestBody
@@ -84,6 +87,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   identity.ID,
 			Action:       rbac.ReadIdentity,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
+			permissions.ReadIdentity{},
+		),
 	))
 	if err != nil {
 		return err
