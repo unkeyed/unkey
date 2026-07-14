@@ -9,6 +9,13 @@ cfg = config.parse()
 # 20 GiB on a fresh cluster costs ~0 bytes. Bump if your test workloads fill more.
 TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
 
+# Tilt's background docker pruner: drop stale tilt-* tags it created earlier.
+docker_prune_settings(
+  num_builds=5,
+  keep_recent=1,
+  max_age_mins=60,
+)
+
 # Check which optional credential files exist
 has_depot_credentials = os.path.exists('./.env.depot')
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
@@ -263,7 +270,15 @@ k8s_yaml('k8s/manifests/redis.yaml')
 k8s_resource('redis', port_forwards='6379:6379', resource_deps=[], labels=['database'])
 
 # MySQL service
-docker_build('unkey/mysql:local', '..', dockerfile='./Dockerfile.mysql')
+# MySQL image — only rebuild when schema/seed inputs change. Context is the
+# repo root, so without `only` any file change (including .jj metadata) would
+# trigger a rebuild and restart the pod.
+docker_build(
+    'unkey/mysql:local',
+    '..',
+    dockerfile='./Dockerfile.mysql',
+    only=['pkg/mysql/schema', 'dev/04-seed-workspace.sql'],
+)
 k8s_yaml('k8s/manifests/mysql.yaml')
 k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['database'])
 
@@ -275,7 +290,17 @@ local_resource(
 )
 
 # ClickHouse service
-docker_build('unkey/clickhouse:local', '..', dockerfile='./Dockerfile.clickhouse')
+# ClickHouse image — same `only` guard as mysql: context is repo root.
+docker_build(
+    'unkey/clickhouse:local',
+    '..',
+    dockerfile='./Dockerfile.clickhouse',
+    only=[
+        'pkg/clickhouse/migrations',
+        'dev/clickhouse-local-admin.sql',
+        'dev/init-clickhouse.sh',
+    ],
+)
 k8s_yaml('k8s/manifests/clickhouse.yaml')
 k8s_resource('clickhouse', port_forwards=['8123:8123','9000:9000'], resource_deps=[], labels=['database'])
 
