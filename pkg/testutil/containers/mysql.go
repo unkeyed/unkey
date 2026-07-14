@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	mysqlImage             = "mysql:9.4.0"
-	mysqlPort              = "3306/tcp"
+	mysqlPort              = 3306
 	mysqlUser              = "unkey"
 	mysqlPassword          = "password"
 	mysqlDatabase          = "unkey"
@@ -28,78 +27,28 @@ type mysqlSchemaDB interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
-// MySQLConfig holds connection information for a MySQL test container.
+// MySQLConfig holds connection information for the MySQL test container.
 type MySQLConfig struct {
 	// DSN is the host DSN for connecting from the test runner.
 	DSN string
 }
 
-// MySQLOpt configures the MySQL test container.
-type MySQLOpt = Opt
-
-// WithDiskStorage disables tmpfs so MySQL writes to real disk.
-// Use this for large-scale performance tests that exceed the default 256MB tmpfs.
-func WithDiskStorage() MySQLOpt {
-	return func(cfg *containerConfig) {
-		cfg.Tmpfs = nil
-	}
-}
-
-// MySQL starts a MySQL container and returns connection info.
+// MySQL starts the shared Docker Compose MySQL service and returns connection info.
 //
-// The container is reused by stable Docker name across Go test processes.
-func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
+// The container is reused through the worktree's Docker Compose project.
+func MySQL(t testing.TB) MySQLConfig {
 	t.Helper()
 
 	containerStart := time.Now()
 
-	cfg := containerConfig{
-		Image:        mysqlImage,
-		ExposedPorts: []string{mysqlPort},
-		WaitStrategy: NewTCPWait(mysqlPort),
-		WaitTimeout:  60 * time.Second,
-		Env: map[string]string{
-			"MYSQL_ROOT_PASSWORD": mysqlPassword,
-			"MYSQL_DATABASE":      mysqlDatabase,
-			"MYSQL_USER":          mysqlUser,
-			"MYSQL_PASSWORD":      mysqlPassword,
-		},
-		Cmd: []string{
-			// Disable binary logging (not needed for tests)
-			"--skip-log-bin",
-			"--disable-log-bin",
-			// Disable durability for faster writes (crash safety not needed in tests)
-			"--innodb-doublewrite=0",
-			"--innodb-flush-log-at-trx-commit=0",
-			"--innodb-flush-method=nosync",
-			"--innodb-buffer-pool-size=512M",
-			"--innodb-log-buffer-size=1M",
-			// Disable performance schema (overhead not needed for tests)
-			"--performance-schema=OFF",
-			// Skip name resolution for faster connections
-			"--skip-name-resolve",
-		},
-		Tmpfs: map[string]string{
-			"/var/lib/mysql": "rw,noexec,nosuid,size=256m",
-		},
-		Dedicated: false,
-	}
-
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-
-	ctr := startContainer(t, cfg)
+	c := startService(t, "mysql")
 	t.Logf("  MySQL container started in %s", time.Since(containerStart))
-
-	port := ctr.Port(mysqlPort)
-	addr := fmt.Sprintf("%s:%s", ctr.Host, port)
 
 	dsnCfg := mysql.NewConfig()
 	dsnCfg.User = mysqlUser
 	dsnCfg.Passwd = mysqlPassword
 	dsnCfg.Net = "tcp"
-	dsnCfg.Addr = addr
+	dsnCfg.Addr = c.Addr(t, mysqlPort)
 	dsnCfg.DBName = mysqlDatabase
 	dsnCfg.ParseTime = true
 	dsnCfg.MultiStatements = true
@@ -125,8 +74,8 @@ func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 // applyMySQLSchema initializes the shared database schema once.
 //
 // CI can run many test processes at the same time. The advisory lock keeps
-// non-idempotent CREATE TABLE statements from racing when those processes attach
-// to the same MySQL container.
+// non-idempotent CREATE TABLE statements from racing when those processes use
+// the same MySQL container.
 func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
 	t.Helper()
 
@@ -214,20 +163,5 @@ func markMySQLSchema(t testing.TB, ctx context.Context, hostDB mysqlSchemaDB) {
 // schemaPath returns the MySQL schema directory from test runfiles or from the
 // source tree.
 func schemaPath() string {
-	if runfiles := os.Getenv("TEST_SRCDIR"); runfiles != "" {
-		workspace := os.Getenv("TEST_WORKSPACE")
-		if workspace != "" {
-			candidate := filepath.Join(runfiles, workspace, "pkg", "mysql", "schema")
-			if _, err := os.Stat(candidate); err == nil {
-				return candidate
-			}
-		}
-		candidate := filepath.Join(runfiles, "_main", "pkg", "mysql", "schema")
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-	}
-
-	repoRoot := sourceRepoRoot()
-	return filepath.Join(repoRoot, "pkg", "mysql", "schema")
+	return dataPath("pkg", "mysql", "schema")
 }

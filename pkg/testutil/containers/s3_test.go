@@ -92,7 +92,7 @@ func TestS3_ReusesContainer(t *testing.T) {
 	require.Equal(t, []byte("shared data"), data2)
 }
 
-// newS3Client creates an S3 client configured for the given MinIO container.
+// newS3Client creates an S3 client configured for the MinIO test container.
 func newS3Client(t *testing.T, s3Cfg containers.S3Config) *awsS3.Client {
 	t.Helper()
 

@@ -96,20 +96,12 @@ type Harness struct {
 type Option func(*harnessOpts)
 
 type harnessOpts struct {
-	diskMySQL          bool
-	timeout            time.Duration
-	clock              clock.Clock
+	timeout time.Duration
+	clock   clock.Clock
+
 	billingUsageReader deploybilling.UsageReader
 	billingPusher      billingmeter.Pusher
 	billingCloser      invoicecloser.Closer
-}
-
-// WithDiskMySQL starts MySQL with disk-backed storage instead of the default
-// 256MB tmpfs. Use this for performance tests with large datasets.
-func WithDiskMySQL() Option {
-	return func(o *harnessOpts) {
-		o.diskMySQL = true
-	}
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -189,11 +181,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		var mysqlOpts []containers.MySQLOpt
-		if o.diskMySQL {
-			mysqlOpts = append(mysqlOpts, containers.WithDiskStorage())
-		}
-		mysqlCfg = containers.MySQL(t, mysqlOpts...)
+		mysqlCfg = containers.MySQL(t)
 		t.Logf("MySQL started in %s", time.Since(s))
 	}()
 

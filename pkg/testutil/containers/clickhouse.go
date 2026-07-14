@@ -15,48 +15,26 @@ import (
 )
 
 const (
-	// Use same image as docker-compose for compatibility
-	clickhouseImage    = "bitnamilegacy/clickhouse:25.6.4"
-	clickhousePort     = "9000/tcp"
-	clickhouseHTTPPort = "8123/tcp"
+	clickhousePort     = 9000
 	clickhouseUser     = "default"
 	clickhousePassword = "password"
 )
 
-// ClickHouseConfig holds connection information for a ClickHouse test container.
+// ClickHouseConfig holds connection information for the ClickHouse test container.
 type ClickHouseConfig struct {
 	// DSN is the connection string for connecting from the test runner.
 	DSN string
 }
 
-// ClickHouse starts a ClickHouse container and returns connection info.
+// ClickHouse starts the shared Docker Compose ClickHouse service and returns connection info.
 //
-// The container is reused by stable Docker name across Go test processes.
-func ClickHouse(t testing.TB, opts ...Opt) ClickHouseConfig {
+// The container is reused through the worktree's Docker Compose project.
+func ClickHouse(t testing.TB) ClickHouseConfig {
 	t.Helper()
 
-	cfg := containerConfig{
-		Image:        clickhouseImage,
-		ExposedPorts: []string{clickhousePort, clickhouseHTTPPort},
-		WaitStrategy: NewTCPWait(clickhousePort),
-		WaitTimeout:  60 * time.Second,
-		Env: map[string]string{
-			"CLICKHOUSE_USER":     clickhouseUser,
-			"CLICKHOUSE_PASSWORD": clickhousePassword,
-		},
-		Cmd:       []string{},
-		Tmpfs:     nil,
-		Dedicated: false,
-	}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-
-	ctr := startContainer(t, cfg)
-
-	port := ctr.Port(clickhousePort)
-	dsn := fmt.Sprintf("clickhouse://%s:%s@%s:%s?secure=false&skip_verify=true&dial_timeout=10s",
-		clickhouseUser, clickhousePassword, ctr.Host, port)
+	c := startService(t, "clickhouse")
+	dsn := fmt.Sprintf("clickhouse://%s:%s@%s:%d?secure=false&skip_verify=true&dial_timeout=10s",
+		clickhouseUser, clickhousePassword, "localhost", c.Port(t, clickhousePort))
 
 	// Connect and apply schema
 	clickhouseOpts, err := ch.ParseDSN(dsn)
@@ -181,21 +159,5 @@ func splitSQLStatements(sql string) []string {
 
 // clickhouseSchemaDir returns the path to the ClickHouse schema directory.
 func clickhouseSchemaDir() string {
-	// Try test runfiles first.
-	if runfiles := os.Getenv("TEST_SRCDIR"); runfiles != "" {
-		workspace := os.Getenv("TEST_WORKSPACE")
-		if workspace != "" {
-			candidate := filepath.Join(runfiles, workspace, "pkg", "clickhouse", "schema")
-			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-				return candidate
-			}
-		}
-		candidate := filepath.Join(runfiles, "_main", "pkg", "clickhouse", "schema")
-		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-			return candidate
-		}
-	}
-
-	repoRoot := sourceRepoRoot()
-	return filepath.Join(repoRoot, "pkg", "clickhouse", "schema")
+	return dataPath("pkg", "clickhouse", "schema")
 }
