@@ -56,6 +56,17 @@ describe("scrubUrl", () => {
     );
   });
 
+  it("leaves non-opaque colon-prefixed strings unredacted (only known opaque schemes redact)", () => {
+    // The opaque-scheme allowlist must not blanket-redact arbitrary `word:`
+    // prefixes into `word:[REDACTED]`; unknown schemes fall through to parsing.
+    expect(scrubUrl("git://github.com/unkeyed/unkey.git")).not.toContain("[REDACTED]");
+    expect(scrubUrl("custom:hello/world")).not.toBe("custom:[REDACTED]");
+  });
+
+  it("preserves the host for protocol-relative URLs", () => {
+    expect(scrubUrl("//cdn.example.com/asset.js?x=1")).toBe("//cdn.example.com/asset.js?x=1");
+  });
+
   it("redacts ClickHouse param_ query bindings regardless of the bound name", () => {
     // @clickhouse/client sends bound query params as `param_<name>`; bindings
     // are data values (external ids are often emails) whose short runs evade

@@ -172,7 +172,7 @@ function scrubSearchParams(params: URLSearchParams): void {
  * params are fully redacted, other param values have broad token-like runs
  * redacted, path segments have digit-bearing token-like runs redacted,
  * basic-auth userinfo and fragments are dropped, and non-http(s) opaque-path
- * schemes (mailto:, tel:, blob:) are redacted wholesale down to the scheme.
+ * schemes (mailto:, tel:, blob:, data:) are redacted wholesale down to the scheme.
  * Never throws inside a Sentry hook: if the URL cannot be parsed, the raw
  * string gets a blanket broad-net redaction instead.
  */
@@ -184,8 +184,11 @@ export function scrubUrl(url: string): string {
   // Opaque-path schemes (mailto:, tel:, blob:, data:) never reach the
   // path/query machinery — the WHATWG pathname setter is a no-op on opaque
   // paths — and their payload is inherently identifying (an email, a phone
-  // number, a blob id). Redact the payload wholesale, keeping the scheme.
-  const opaqueScheme = url.match(/^(?!https?:)([a-z][a-z0-9+.-]*):(?!\/\/)/i)?.[1];
+  // number, a blob id). Redact the payload wholesale, keeping the scheme. The
+  // allowlist is explicit so unrelated colon-prefixed strings that reach here
+  // (a Windows path like `C:\Users\...`, a `word:` breadcrumb) fall through to
+  // normal parsing instead of being mangled into `word:[REDACTED]`.
+  const opaqueScheme = url.match(/^(mailto|tel|blob|data):(?!\/\/)/i)?.[1];
   if (opaqueScheme) {
     return `${opaqueScheme}:${REDACTED}`;
   }
@@ -214,6 +217,13 @@ export function scrubUrl(url: string): string {
     // Drop the fragment entirely. It is never useful for debugging and can carry
     // bearer credentials, e.g. the one-time share id in `/share#<id>` links.
     parsed.hash = "";
+
+    // Protocol-relative URLs (`//host/path`) parse with a real host under the
+    // dummy base but carry no scheme, so reconstruct them as `//host/...` to
+    // keep the host for span grouping instead of dropping it.
+    if (url.startsWith("//")) {
+      return `//${parsed.host}${parsed.pathname}${parsed.search}`;
+    }
 
     const wasRelative = !/^[a-z][a-z0-9+.-]*:\/\//i.test(url);
     if (wasRelative) {
