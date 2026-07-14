@@ -16,7 +16,8 @@ import (
 
 // HandleCloseWorkspace closes one workspace's Deploy renewal invoice. The
 // invoice.created webhook dispatches this per draft; the 00:30 UTC cron runs
-// the fleet sweep (HandleClose) instead.
+// the fleet sweep (HandleClose) instead. Shares the fleet close's ingestion
+// buffer and meter-aggregation wait before finalizing.
 func (h *Handler) HandleCloseWorkspace(
 	ctx restate.ObjectContext,
 	req *hydrav1.CloseDeployBillingWorkspaceRequest,
@@ -53,18 +54,26 @@ func (h *Handler) HandleCloseWorkspace(
 		)
 	}
 
+	if err := waitForUsageIngestion(ctx, p, nowTime); err != nil {
+		return nil, err
+	}
+
 	closeTimestamp := p.End().Add(-time.Second).Unix()
-	pushFailed, err := h.pushSingleWorkspace(ctx, period, p, workspaceID, p.End().UnixMilli(), closeTimestamp)
+	push, err := h.pushSingleWorkspace(ctx, period, p, workspaceID, p.End().UnixMilli(), closeTimestamp)
 	if err != nil {
 		return nil, err
 	}
-	if pushFailed {
+	if push.failed {
 		logger.Error("final usage push failed; leaving invoice in draft for the backup cron",
 			"workspace_id", workspaceID,
 			"billing_period", period,
 			"invoice_id", req.GetInvoiceId(),
 		)
 		return &hydrav1.CloseDeployBillingWorkspaceResponse{}, nil
+	}
+
+	if err := h.waitForMeterAggregation(ctx, push.pushed); err != nil {
+		return nil, err
 	}
 
 	alreadyDone, err := restate.Run(ctx, func(rc restate.RunContext) (bool, error) {
@@ -94,8 +103,12 @@ func (h *Handler) HandleCloseWorkspace(
 	return &hydrav1.CloseDeployBillingWorkspaceResponse{}, nil
 }
 
+type workspacePushOutcome struct {
+	pushed bool
+	failed bool
+}
+
 // pushSingleWorkspace pushes the closed period's final usage for one workspace.
-// Returns pushFailed when the Stripe push exhausted retries.
 func (h *Handler) pushSingleWorkspace(
 	ctx restate.ObjectContext,
 	period string,
@@ -103,7 +116,7 @@ func (h *Handler) pushSingleWorkspace(
 	workspaceID string,
 	endMillis int64,
 	eventTimestamp int64,
-) (pushFailed bool, err error) {
+) (workspacePushOutcome, error) {
 	rows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.InstanceMeterUsage, error) {
 		return h.usage.GetInstanceMeterUsage(rc, clickhouse.GetInstanceMeterUsageRequest{
 			WorkspaceID: workspaceID,
@@ -112,7 +125,7 @@ func (h *Handler) pushSingleWorkspace(
 		})
 	}, restate.WithName("get workspace period usage"))
 	if err != nil {
-		return false, fmt.Errorf("get workspace period usage: %w", err)
+		return workspacePushOutcome{}, fmt.Errorf("get workspace period usage: %w", err)
 	}
 
 	valuesByWorkspace := aggregateUsage(rows)
@@ -122,21 +135,21 @@ func (h *Handler) pushSingleWorkspace(
 			"workspace_id", workspaceID,
 			"billing_period", period,
 		)
-		return false, nil
+		return workspacePushOutcome{pushed: false, failed: false}, nil
 	}
 
 	workspaces, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesForDeployBillingByIDsRow, error) {
 		return h.db.ListWorkspacesForDeployBillingByIDs(rc, []string{workspaceID})
 	}, restate.WithName("fetch workspace billing identity"))
 	if err != nil {
-		return false, fmt.Errorf("fetch workspace billing identity: %w", err)
+		return workspacePushOutcome{}, fmt.Errorf("fetch workspace billing identity: %w", err)
 	}
 	if len(workspaces) == 0 {
 		logger.Info("workspace not billable; skipping final push",
 			"workspace_id", workspaceID,
 			"billing_period", period,
 		)
-		return false, nil
+		return workspacePushOutcome{pushed: false, failed: false}, nil
 	}
 	ws := workspaces[0]
 	if !ws.StripeCustomerID.Valid || ws.StripeCustomerID.String == "" {
@@ -144,24 +157,28 @@ func (h *Handler) pushSingleWorkspace(
 			"workspace_id", workspaceID,
 			"billing_period", period,
 		)
-		return false, nil
+		return workspacePushOutcome{pushed: false, failed: false}, nil
 	}
 
-	_, _, failedWorkspaceIDs, err := h.pushAll(ctx, []pushTask{{
+	// Awaited per-workspace push invocation, same as the fleet close: the
+	// invocation carries its own bounded retry, and an error here means the
+	// push exhausted retries, so the invoice stays open for the backup close.
+	task := pushTask{
 		workspaceID: workspaceID,
 		req: billingmeter.PushRequest{
 			StripeCustomerID: ws.StripeCustomerID.String,
 			Values:           values,
 			Timestamp:        eventTimestamp,
 		},
-	}})
-	if err != nil {
-		return false, err
 	}
-	for _, id := range failedWorkspaceIDs {
-		if id == workspaceID {
-			return true, nil
-		}
+	if _, perr := hydrav1.NewDeployBillingPushServiceClient(ctx, workspaceID).
+		PushWorkspaceUsage().Request(task.pushRequest()); perr != nil {
+		logger.Error("final usage push failed; leaving this workspace's invoice open for the backup close",
+			"billing_period", period,
+			"workspace_id", workspaceID,
+			"error", perr,
+		)
+		return workspacePushOutcome{pushed: false, failed: true}, nil
 	}
-	return false, nil
+	return workspacePushOutcome{pushed: true, failed: false}, nil
 }

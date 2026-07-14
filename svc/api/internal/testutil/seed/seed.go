@@ -677,6 +677,7 @@ type CreateDeploymentRequest struct {
 	ProjectID              string
 	AppID                  string
 	EnvironmentID          string
+	Status                 db.DeploymentsStatus
 	GitBranch              string
 	GitCommitSha           string
 	GitCommitMessage       string
@@ -692,6 +693,11 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	require.NoError(s.t, assert.NotEmpty(req.WorkspaceID, "Deployment WorkspaceID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.ProjectID, "Deployment ProjectID must be set"))
 	require.NoError(s.t, assert.NotEmpty(req.EnvironmentID, "Deployment EnvironmentID must be set"))
+
+	status := req.Status
+	if status == "" {
+		status = db.DeploymentsStatusPending
+	}
 
 	createdAt := time.Now().UnixMilli()
 	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
@@ -710,7 +716,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		GitCommitTimestamp:            sql.NullInt64{Int64: req.GitCommitTimestamp, Valid: req.GitCommitTimestamp != 0},
 		EncryptedEnvironmentVariables: []byte{},
 		Command:                       nil,
-		Status:                        db.DeploymentsStatusPending,
+		Status:                        status,
 		CpuMillicores:                 250,
 		MemoryMib:                     128,
 		StorageMib:                    0,
