@@ -258,8 +258,8 @@ async function $do(
     >;
     "~next"?: { cursor: string };
   } => {
-    const nextCursor = (responseData as { pagination?: { cursor?: unknown } })
-      .pagination?.cursor;
+    const nextCursor =
+      (responseData as { pagination: { cursor?: unknown } }).pagination.cursor;
     if (typeof nextCursor !== "string") {
       return { next: () => null };
     }

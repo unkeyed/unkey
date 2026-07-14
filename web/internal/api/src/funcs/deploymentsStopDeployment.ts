@@ -23,54 +23,53 @@ import * as errors from "../models/errors/index.js";
 import { ResponseValidationError } from "../models/errors/responsevalidationerror.js";
 import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import { UnkeyError } from "../models/errors/unkeyerror.js";
-import * as operations from "../models/operations/index.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
-import {
-  createPageIterator,
-  haltIterator,
-  PageIterator,
-  Paginator,
-} from "../types/operations.js";
 
 /**
- * List ratelimit overrides
+ * Stop deployment
  *
  * @remarks
- * Retrieve a paginated list of all rate limit overrides in a namespace.
+ * Stop a running preview deployment. Stopped deployments keep their
+ * configuration and can be resumed later with `startDeployment`.
  *
- * Use this to audit rate limiting policies, build admin dashboards, or manage override configurations.
+ * The deployment must be ready and running, and must belong to a
+ * non-production environment; production deployments cannot be stopped.
+ * A deployment that is already draining from a previous stop is rejected
+ * with a precondition error.
  *
- * **Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
+ * Stopping is asynchronous: this endpoint only enqueues the stop and returns
+ * immediately. Poll `getDeployment` until the status reaches `stopped`.
  *
- * **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+ * **Required Permissions**
+ *
+ * Your root key must have one of the following permissions:
+ * - `environment.*.stop_deployment` (to stop deployments in any environment)
+ * - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function ratelimitListOverrides(
+export function deploymentsStopDeployment(
   client: UnkeyCore,
-  request: components.V2RatelimitListOverridesRequestBody,
+  request: components.V2DeploymentsStopDeploymentRequestBody,
   options?: RequestOptions,
 ): APIPromise<
-  PageIterator<
-    Result<
-      operations.RatelimitListOverridesResponse,
-      | errors.BadRequestErrorResponse
-      | errors.UnauthorizedErrorResponse
-      | errors.ForbiddenErrorResponse
-      | errors.NotFoundErrorResponse
-      | errors.TooManyRequestsErrorResponse
-      | errors.InternalServerErrorResponse
-      | UnkeyError
-      | ResponseValidationError
-      | ConnectionError
-      | RequestAbortedError
-      | RequestTimeoutError
-      | InvalidRequestError
-      | UnexpectedClientError
-      | SDKValidationError
-    >,
-    { cursor: string }
+  Result<
+    components.V2DeploymentsStopDeploymentResponseBody,
+    | errors.BadRequestErrorResponse
+    | errors.UnauthorizedErrorResponse
+    | errors.NotFoundErrorResponse
+    | errors.PreconditionFailedErrorResponse
+    | errors.TooManyRequestsErrorResponse
+    | errors.InternalServerErrorResponse
+    | UnkeyError
+    | ResponseValidationError
+    | ConnectionError
+    | RequestAbortedError
+    | RequestTimeoutError
+    | InvalidRequestError
+    | UnexpectedClientError
+    | SDKValidationError
   >
 > {
   return new APIPromise($do(
@@ -82,29 +81,26 @@ export function ratelimitListOverrides(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2RatelimitListOverridesRequestBody,
+  request: components.V2DeploymentsStopDeploymentRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
-    PageIterator<
-      Result<
-        operations.RatelimitListOverridesResponse,
-        | errors.BadRequestErrorResponse
-        | errors.UnauthorizedErrorResponse
-        | errors.ForbiddenErrorResponse
-        | errors.NotFoundErrorResponse
-        | errors.TooManyRequestsErrorResponse
-        | errors.InternalServerErrorResponse
-        | UnkeyError
-        | ResponseValidationError
-        | ConnectionError
-        | RequestAbortedError
-        | RequestTimeoutError
-        | InvalidRequestError
-        | UnexpectedClientError
-        | SDKValidationError
-      >,
-      { cursor: string }
+    Result<
+      components.V2DeploymentsStopDeploymentResponseBody,
+      | errors.BadRequestErrorResponse
+      | errors.UnauthorizedErrorResponse
+      | errors.NotFoundErrorResponse
+      | errors.PreconditionFailedErrorResponse
+      | errors.TooManyRequestsErrorResponse
+      | errors.InternalServerErrorResponse
+      | UnkeyError
+      | ResponseValidationError
+      | ConnectionError
+      | RequestAbortedError
+      | RequestTimeoutError
+      | InvalidRequestError
+      | UnexpectedClientError
+      | SDKValidationError
     >,
     APICall,
   ]
@@ -112,18 +108,18 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2RatelimitListOverridesRequestBody$outboundSchema.parse(
+      components.V2DeploymentsStopDeploymentRequestBody$outboundSchema.parse(
         value,
       ),
     "Input validation failed",
   );
   if (!parsed.ok) {
-    return [haltIterator(parsed), { status: "invalid" }];
+    return [parsed, { status: "invalid" }];
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/ratelimit.listOverrides")();
+  const path = pathToFunc("/v2/deployments.stopDeployment")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -137,7 +133,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "ratelimit.listOverrides",
+    operationID: "deployments.stopDeployment",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -170,7 +166,7 @@ async function $do(
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || -1,
   }, options);
   if (!requestRes.ok) {
-    return [haltIterator(requestRes), { status: "invalid" }];
+    return [requestRes, { status: "invalid" }];
   }
   const req = requestRes.value;
 
@@ -182,7 +178,7 @@ async function $do(
     retryCodes: context.retryCodes,
   });
   if (!doResult.ok) {
-    return [haltIterator(doResult), { status: "request-error", request: req }];
+    return [doResult, { status: "request-error", request: req }];
   }
   const response = doResult.value;
 
@@ -190,12 +186,12 @@ async function $do(
     HttpMeta: { Response: response, Request: req },
   };
 
-  const [result, raw] = await M.match<
-    operations.RatelimitListOverridesResponse,
+  const [result] = await M.match<
+    components.V2DeploymentsStopDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
-    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -207,13 +203,14 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, operations.RatelimitListOverridesResponse$inboundSchema, {
-      key: "Result",
-    }),
+    M.json(
+      202,
+      components.V2DeploymentsStopDeploymentResponseBody$inboundSchema,
+    ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
-    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
+    M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),
@@ -222,63 +219,8 @@ async function $do(
     M.fail("5XX"),
   )(response, req, { extraFields: responseFields });
   if (!result.ok) {
-    return [haltIterator(result), {
-      status: "complete",
-      request: req,
-      response,
-    }];
+    return [result, { status: "complete", request: req, response }];
   }
 
-  const nextFunc = (
-    responseData: unknown,
-  ): {
-    next: Paginator<
-      Result<
-        operations.RatelimitListOverridesResponse,
-        | errors.BadRequestErrorResponse
-        | errors.UnauthorizedErrorResponse
-        | errors.ForbiddenErrorResponse
-        | errors.NotFoundErrorResponse
-        | errors.TooManyRequestsErrorResponse
-        | errors.InternalServerErrorResponse
-        | UnkeyError
-        | ResponseValidationError
-        | ConnectionError
-        | RequestAbortedError
-        | RequestTimeoutError
-        | InvalidRequestError
-        | UnexpectedClientError
-        | SDKValidationError
-      >
-    >;
-    "~next"?: { cursor: string };
-  } => {
-    const nextCursor =
-      (responseData as { pagination: { cursor?: unknown } }).pagination.cursor;
-    if (typeof nextCursor !== "string") {
-      return { next: () => null };
-    }
-    if (nextCursor.trim() === "") {
-      return { next: () => null };
-    }
-
-    const nextVal = () =>
-      ratelimitListOverrides(
-        client,
-        {
-          ...request,
-          cursor: nextCursor,
-        },
-        options,
-      );
-
-    return { next: nextVal, "~next": { cursor: nextCursor } };
-  };
-
-  const page = { ...result, ...nextFunc(raw) };
-  return [{ ...page, ...createPageIterator(page, (v) => !v.ok) }, {
-    status: "complete",
-    request: req,
-    response,
-  }];
+  return [result, { status: "complete", request: req, response }];
 }

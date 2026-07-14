@@ -6,48 +6,48 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import { Deployment, Deployment$inboundSchema } from "./deployment.js";
 import { Meta, Meta$inboundSchema } from "./meta.js";
 import { Pagination, Pagination$inboundSchema } from "./pagination.js";
-import { Permission, Permission$inboundSchema } from "./permission.js";
 
-export type V2PermissionsListPermissionsResponseBody = {
+export type V2DeploymentsListDeploymentsResponseBody = {
   /**
    * Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
    */
   meta: Meta;
   /**
-   * Array of permission objects with complete configuration details.
+   * Array of deployments, ordered newest first.
    */
-  data: Array<Permission>;
+  data: Array<Deployment>;
   /**
    * Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
    */
-  pagination: Pagination;
+  pagination?: Pagination | undefined;
 };
 
 /** @internal */
-export const V2PermissionsListPermissionsResponseBody$inboundSchema: z.ZodType<
-  V2PermissionsListPermissionsResponseBody,
+export const V2DeploymentsListDeploymentsResponseBody$inboundSchema: z.ZodType<
+  V2DeploymentsListDeploymentsResponseBody,
   z.ZodTypeDef,
   unknown
 > = z.object({
   meta: Meta$inboundSchema,
-  data: z.array(Permission$inboundSchema),
-  pagination: Pagination$inboundSchema,
+  data: z.array(Deployment$inboundSchema),
+  pagination: Pagination$inboundSchema.optional(),
 });
 
-export function v2PermissionsListPermissionsResponseBodyFromJSON(
+export function v2DeploymentsListDeploymentsResponseBodyFromJSON(
   jsonString: string,
 ): SafeParseResult<
-  V2PermissionsListPermissionsResponseBody,
+  V2DeploymentsListDeploymentsResponseBody,
   SDKValidationError
 > {
   return safeParse(
     jsonString,
     (x) =>
-      V2PermissionsListPermissionsResponseBody$inboundSchema.parse(
+      V2DeploymentsListDeploymentsResponseBody$inboundSchema.parse(
         JSON.parse(x),
       ),
-    `Failed to parse 'V2PermissionsListPermissionsResponseBody' from JSON`,
+    `Failed to parse 'V2DeploymentsListDeploymentsResponseBody' from JSON`,
   );
 }

@@ -6769,7 +6769,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Create deployment
             tags:
                 - deployments
@@ -6872,7 +6872,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Get deployment
             tags:
                 - deployments
@@ -7024,7 +7024,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: List deployments
             tags:
                 - deployments
@@ -7132,7 +7132,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Promote deployment
             tags:
                 - deployments
@@ -7231,7 +7231,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Rollback deployment
             tags:
                 - deployments
@@ -7326,7 +7326,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Start deployment
             tags:
                 - deployments
@@ -7421,7 +7421,7 @@ paths:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
             security:
-                - rootKey: []
+                - bearer: []
             summary: Stop deployment
             tags:
                 - deployments

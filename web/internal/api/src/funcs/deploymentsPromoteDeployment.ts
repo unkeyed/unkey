@@ -23,54 +23,57 @@ import * as errors from "../models/errors/index.js";
 import { ResponseValidationError } from "../models/errors/responsevalidationerror.js";
 import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
 import { UnkeyError } from "../models/errors/unkeyerror.js";
-import * as operations from "../models/operations/index.js";
 import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
-import {
-  createPageIterator,
-  haltIterator,
-  PageIterator,
-  Paginator,
-} from "../types/operations.js";
 
 /**
- * List ratelimit overrides
+ * Promote deployment
  *
  * @remarks
- * Retrieve a paginated list of all rate limit overrides in a namespace.
+ * Promote a deployment to become the live deployment for its environment.
+ * All sticky domains are reassigned from the current live deployment to the
+ * promoted one, and the previous deployment is scheduled for standby.
  *
- * Use this to audit rate limiting policies, build admin dashboards, or manage override configurations.
+ * The deployment must be ready, not already shutting down, belong to the
+ * production environment, and its app must already have a live deployment.
+ * Promoting the deployment that is already live fails, unless the app is in
+ * a rolled-back state, in which case promoting the current deployment
+ * confirms the rollback and re-enables automatic promotion of future
+ * deployments.
  *
- * **Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
+ * Promotion runs as a durable workflow: this endpoint returns once the
+ * promotion is accepted. Poll `getDeployment` or `listDeployments` to observe
+ * the result.
  *
- * **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+ * **Required Permissions**
+ *
+ * Your root key must have one of the following permissions:
+ * - `environment.*.promote_deployment` (to promote deployments in any environment)
+ * - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function ratelimitListOverrides(
+export function deploymentsPromoteDeployment(
   client: UnkeyCore,
-  request: components.V2RatelimitListOverridesRequestBody,
+  request: components.V2DeploymentsPromoteDeploymentRequestBody,
   options?: RequestOptions,
 ): APIPromise<
-  PageIterator<
-    Result<
-      operations.RatelimitListOverridesResponse,
-      | errors.BadRequestErrorResponse
-      | errors.UnauthorizedErrorResponse
-      | errors.ForbiddenErrorResponse
-      | errors.NotFoundErrorResponse
-      | errors.TooManyRequestsErrorResponse
-      | errors.InternalServerErrorResponse
-      | UnkeyError
-      | ResponseValidationError
-      | ConnectionError
-      | RequestAbortedError
-      | RequestTimeoutError
-      | InvalidRequestError
-      | UnexpectedClientError
-      | SDKValidationError
-    >,
-    { cursor: string }
+  Result<
+    components.V2DeploymentsPromoteDeploymentResponseBody,
+    | errors.BadRequestErrorResponse
+    | errors.UnauthorizedErrorResponse
+    | errors.NotFoundErrorResponse
+    | errors.PreconditionFailedErrorResponse
+    | errors.TooManyRequestsErrorResponse
+    | errors.InternalServerErrorResponse
+    | UnkeyError
+    | ResponseValidationError
+    | ConnectionError
+    | RequestAbortedError
+    | RequestTimeoutError
+    | InvalidRequestError
+    | UnexpectedClientError
+    | SDKValidationError
   >
 > {
   return new APIPromise($do(
@@ -82,29 +85,26 @@ export function ratelimitListOverrides(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2RatelimitListOverridesRequestBody,
+  request: components.V2DeploymentsPromoteDeploymentRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
-    PageIterator<
-      Result<
-        operations.RatelimitListOverridesResponse,
-        | errors.BadRequestErrorResponse
-        | errors.UnauthorizedErrorResponse
-        | errors.ForbiddenErrorResponse
-        | errors.NotFoundErrorResponse
-        | errors.TooManyRequestsErrorResponse
-        | errors.InternalServerErrorResponse
-        | UnkeyError
-        | ResponseValidationError
-        | ConnectionError
-        | RequestAbortedError
-        | RequestTimeoutError
-        | InvalidRequestError
-        | UnexpectedClientError
-        | SDKValidationError
-      >,
-      { cursor: string }
+    Result<
+      components.V2DeploymentsPromoteDeploymentResponseBody,
+      | errors.BadRequestErrorResponse
+      | errors.UnauthorizedErrorResponse
+      | errors.NotFoundErrorResponse
+      | errors.PreconditionFailedErrorResponse
+      | errors.TooManyRequestsErrorResponse
+      | errors.InternalServerErrorResponse
+      | UnkeyError
+      | ResponseValidationError
+      | ConnectionError
+      | RequestAbortedError
+      | RequestTimeoutError
+      | InvalidRequestError
+      | UnexpectedClientError
+      | SDKValidationError
     >,
     APICall,
   ]
@@ -112,18 +112,18 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2RatelimitListOverridesRequestBody$outboundSchema.parse(
+      components.V2DeploymentsPromoteDeploymentRequestBody$outboundSchema.parse(
         value,
       ),
     "Input validation failed",
   );
   if (!parsed.ok) {
-    return [haltIterator(parsed), { status: "invalid" }];
+    return [parsed, { status: "invalid" }];
   }
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/ratelimit.listOverrides")();
+  const path = pathToFunc("/v2/deployments.promoteDeployment")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -137,7 +137,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "ratelimit.listOverrides",
+    operationID: "deployments.promoteDeployment",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -170,7 +170,7 @@ async function $do(
     timeoutMs: options?.timeoutMs || client._options.timeoutMs || -1,
   }, options);
   if (!requestRes.ok) {
-    return [haltIterator(requestRes), { status: "invalid" }];
+    return [requestRes, { status: "invalid" }];
   }
   const req = requestRes.value;
 
@@ -182,7 +182,7 @@ async function $do(
     retryCodes: context.retryCodes,
   });
   if (!doResult.ok) {
-    return [haltIterator(doResult), { status: "request-error", request: req }];
+    return [doResult, { status: "request-error", request: req }];
   }
   const response = doResult.value;
 
@@ -190,12 +190,12 @@ async function $do(
     HttpMeta: { Response: response, Request: req },
   };
 
-  const [result, raw] = await M.match<
-    operations.RatelimitListOverridesResponse,
+  const [result] = await M.match<
+    components.V2DeploymentsPromoteDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
-    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
+    | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -207,13 +207,14 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, operations.RatelimitListOverridesResponse$inboundSchema, {
-      key: "Result",
-    }),
+    M.json(
+      202,
+      components.V2DeploymentsPromoteDeploymentResponseBody$inboundSchema,
+    ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
-    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
+    M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),
@@ -222,63 +223,8 @@ async function $do(
     M.fail("5XX"),
   )(response, req, { extraFields: responseFields });
   if (!result.ok) {
-    return [haltIterator(result), {
-      status: "complete",
-      request: req,
-      response,
-    }];
+    return [result, { status: "complete", request: req, response }];
   }
 
-  const nextFunc = (
-    responseData: unknown,
-  ): {
-    next: Paginator<
-      Result<
-        operations.RatelimitListOverridesResponse,
-        | errors.BadRequestErrorResponse
-        | errors.UnauthorizedErrorResponse
-        | errors.ForbiddenErrorResponse
-        | errors.NotFoundErrorResponse
-        | errors.TooManyRequestsErrorResponse
-        | errors.InternalServerErrorResponse
-        | UnkeyError
-        | ResponseValidationError
-        | ConnectionError
-        | RequestAbortedError
-        | RequestTimeoutError
-        | InvalidRequestError
-        | UnexpectedClientError
-        | SDKValidationError
-      >
-    >;
-    "~next"?: { cursor: string };
-  } => {
-    const nextCursor =
-      (responseData as { pagination: { cursor?: unknown } }).pagination.cursor;
-    if (typeof nextCursor !== "string") {
-      return { next: () => null };
-    }
-    if (nextCursor.trim() === "") {
-      return { next: () => null };
-    }
-
-    const nextVal = () =>
-      ratelimitListOverrides(
-        client,
-        {
-          ...request,
-          cursor: nextCursor,
-        },
-        options,
-      );
-
-    return { next: nextVal, "~next": { cursor: nextCursor } };
-  };
-
-  const page = { ...result, ...nextFunc(raw) };
-  return [{ ...page, ...createPageIterator(page, (v) => !v.ok) }, {
-    status: "complete",
-    request: req,
-    response,
-  }];
+  return [result, { status: "complete", request: req, response }];
 }

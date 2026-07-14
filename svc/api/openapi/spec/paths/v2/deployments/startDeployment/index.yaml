@@ -22,7 +22,7 @@ post:
   operationId: deployments.startDeployment
   x-speakeasy-name-override: startDeployment
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     required: true
     content:

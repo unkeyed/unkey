@@ -19,19 +19,7 @@ import {
   EnvironmentUpstreamProtocol$inboundSchema,
 } from "./environmentupstreamprotocol.js";
 
-/**
- * Runtime settings that control how the container runs.
- *
- * @remarks
- * Omitted until the environment has runtime settings.
- */
-export type EnvironmentRuntime = {
-  /**
-   * Port the container listens on.
-   *
-   * @remarks
-   */
-  port: number;
+export type DeploymentRuntime = {
   /**
    * CPU allocation in vCPUs (1 = one vCPU, 0.5 = half a vCPU).
    *
@@ -51,12 +39,17 @@ export type EnvironmentRuntime = {
    */
   storageMib: number;
   /**
-   * Container entrypoint command override.
+   * Port the container listens on.
+   *
+   * @remarks
+   */
+  port: number;
+  /**
+   * Container entrypoint command override. Empty when none is set.
    *
    * @remarks
    */
   command: Array<string>;
-  healthcheck?: EnvironmentHealthcheck | undefined;
   /**
    * Signal sent to the container on shutdown.
    *
@@ -69,37 +62,31 @@ export type EnvironmentRuntime = {
    * @remarks
    */
   upstreamProtocol: EnvironmentUpstreamProtocol;
-  /**
-   * Path to the OpenAPI spec served by the container, if any.
-   *
-   * @remarks
-   */
-  openapiSpecPath?: string | undefined;
+  healthcheck?: EnvironmentHealthcheck | undefined;
 };
 
 /** @internal */
-export const EnvironmentRuntime$inboundSchema: z.ZodType<
-  EnvironmentRuntime,
+export const DeploymentRuntime$inboundSchema: z.ZodType<
+  DeploymentRuntime,
   z.ZodTypeDef,
   unknown
 > = z.object({
-  port: z.number().int(),
   vCpus: z.number(),
   memoryMib: z.number().int(),
   storageMib: z.number().int(),
+  port: z.number().int(),
   command: z.array(z.string()),
-  healthcheck: EnvironmentHealthcheck$inboundSchema.optional(),
   shutdownSignal: EnvironmentShutdownSignal$inboundSchema,
   upstreamProtocol: EnvironmentUpstreamProtocol$inboundSchema,
-  openapiSpecPath: z.string().optional(),
+  healthcheck: EnvironmentHealthcheck$inboundSchema.optional(),
 });
 
-export function environmentRuntimeFromJSON(
+export function deploymentRuntimeFromJSON(
   jsonString: string,
-): SafeParseResult<EnvironmentRuntime, SDKValidationError> {
+): SafeParseResult<DeploymentRuntime, SDKValidationError> {
   return safeParse(
     jsonString,
-    (x) => EnvironmentRuntime$inboundSchema.parse(JSON.parse(x)),
-    `Failed to parse 'EnvironmentRuntime' from JSON`,
+    (x) => DeploymentRuntime$inboundSchema.parse(JSON.parse(x)),
+    `Failed to parse 'DeploymentRuntime' from JSON`,
   );
 }

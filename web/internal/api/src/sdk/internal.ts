@@ -19,6 +19,8 @@ export class Internal extends ClientSDK {
    * Creates a new deployment for a project using either a pre-built Docker image or build context.
    *
    * **Authentication**: Requires a valid root key with appropriate permissions.
+   *
+   * @deprecated method: This will be removed in a future release, please migrate away from it as soon as possible.
    */
   async createDeployment(
     request: components.V2DeployCreateDeploymentRequestBody,
@@ -41,6 +43,8 @@ export class Internal extends ClientSDK {
    * Retrieves deployment information including status, error messages, and steps.
    *
    * **Authentication**: Requires a valid root key with appropriate permissions.
+   *
+   * @deprecated method: This will be removed in a future release, please migrate away from it as soon as possible.
    */
   async getDeployment(
     request: components.V2DeployGetDeploymentRequestBody,

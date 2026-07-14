@@ -22,7 +22,7 @@ export type V2ProjectsListProjectsResponseBody = {
   /**
    * Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
    */
-  pagination?: Pagination | undefined;
+  pagination: Pagination;
 };
 
 /** @internal */
@@ -33,7 +33,7 @@ export const V2ProjectsListProjectsResponseBody$inboundSchema: z.ZodType<
 > = z.object({
   meta: Meta$inboundSchema,
   data: z.array(Project$inboundSchema),
-  pagination: Pagination$inboundSchema.optional(),
+  pagination: Pagination$inboundSchema,
 });
 
 export function v2ProjectsListProjectsResponseBodyFromJSON(

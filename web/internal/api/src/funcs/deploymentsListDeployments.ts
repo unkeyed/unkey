@@ -34,27 +34,33 @@ import {
 } from "../types/operations.js";
 
 /**
- * List ratelimit overrides
+ * List deployments
  *
  * @remarks
- * Retrieve a paginated list of all rate limit overrides in a namespace.
+ * Retrieve a paginated list of deployments within a workspace, newest first.
  *
- * Use this to audit rate limiting policies, build admin dashboards, or manage override configurations.
+ * Filter by project, app, environment, and lifecycle status. All filters are
+ * optional; with none set, every deployment in the workspace is returned.
+ * Filters nest: `app` requires `project`, and `environment` requires both
+ * `project` and `app`. Results are paginated; when `hasMore` is true, pass the
+ * returned `cursor` to fetch the next page.
  *
- * **Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
+ * **Required Permissions**
  *
- * **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+ * Your root key must have the `environment.*.read_deployment` permission.
+ * Listing spans environments, so a grant on a single environment is not
+ * sufficient.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function ratelimitListOverrides(
+export function deploymentsListDeployments(
   client: UnkeyCore,
-  request: components.V2RatelimitListOverridesRequestBody,
+  request: components.V2DeploymentsListDeploymentsRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   PageIterator<
     Result<
-      operations.RatelimitListOverridesResponse,
+      operations.DeploymentsListDeploymentsResponse,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
@@ -82,13 +88,13 @@ export function ratelimitListOverrides(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2RatelimitListOverridesRequestBody,
+  request: components.V2DeploymentsListDeploymentsRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     PageIterator<
       Result<
-        operations.RatelimitListOverridesResponse,
+        operations.DeploymentsListDeploymentsResponse,
         | errors.BadRequestErrorResponse
         | errors.UnauthorizedErrorResponse
         | errors.ForbiddenErrorResponse
@@ -112,7 +118,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2RatelimitListOverridesRequestBody$outboundSchema.parse(
+      components.V2DeploymentsListDeploymentsRequestBody$outboundSchema.parse(
         value,
       ),
     "Input validation failed",
@@ -123,7 +129,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/ratelimit.listOverrides")();
+  const path = pathToFunc("/v2/deployments.listDeployments")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -137,7 +143,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "ratelimit.listOverrides",
+    operationID: "deployments.listDeployments",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -191,7 +197,7 @@ async function $do(
   };
 
   const [result, raw] = await M.match<
-    operations.RatelimitListOverridesResponse,
+    operations.DeploymentsListDeploymentsResponse,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
@@ -207,7 +213,7 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, operations.RatelimitListOverridesResponse$inboundSchema, {
+    M.json(200, operations.DeploymentsListDeploymentsResponse$inboundSchema, {
       key: "Result",
     }),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
@@ -234,7 +240,7 @@ async function $do(
   ): {
     next: Paginator<
       Result<
-        operations.RatelimitListOverridesResponse,
+        operations.DeploymentsListDeploymentsResponse,
         | errors.BadRequestErrorResponse
         | errors.UnauthorizedErrorResponse
         | errors.ForbiddenErrorResponse
@@ -253,8 +259,8 @@ async function $do(
     >;
     "~next"?: { cursor: string };
   } => {
-    const nextCursor =
-      (responseData as { pagination: { cursor?: unknown } }).pagination.cursor;
+    const nextCursor = (responseData as { pagination?: { cursor?: unknown } })
+      .pagination?.cursor;
     if (typeof nextCursor !== "string") {
       return { next: () => null };
     }
@@ -263,7 +269,7 @@ async function $do(
     }
 
     const nextVal = () =>
-      ratelimitListOverrides(
+      deploymentsListDeployments(
         client,
         {
           ...request,

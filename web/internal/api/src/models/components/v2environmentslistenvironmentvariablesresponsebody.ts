@@ -22,7 +22,7 @@ export type V2EnvironmentsListEnvironmentVariablesResponseBody = {
   /**
    * Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
    */
-  pagination?: Pagination | undefined;
+  pagination: Pagination;
 };
 
 /** @internal */
@@ -34,7 +34,7 @@ export const V2EnvironmentsListEnvironmentVariablesResponseBody$inboundSchema:
   > = z.object({
     meta: Meta$inboundSchema,
     data: z.array(EnvironmentVariable$inboundSchema),
-    pagination: Pagination$inboundSchema.optional(),
+    pagination: Pagination$inboundSchema,
   });
 
 export function v2EnvironmentsListEnvironmentVariablesResponseBodyFromJSON(

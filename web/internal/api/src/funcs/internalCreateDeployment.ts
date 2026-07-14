@@ -38,6 +38,8 @@ import { Result } from "../types/fp.js";
  * **Authentication**: Requires a valid root key with appropriate permissions.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
+ *
+ * @deprecated method: This will be removed in a future release, please migrate away from it as soon as possible.
  */
 export function internalCreateDeployment(
   client: UnkeyCore,

@@ -88,13 +88,13 @@ export type V2EnvironmentsUpdateSettingsRequestBody = {
    */
   port?: number | undefined;
   /**
-   * CPU allocation in millicores. Minimum 250 (1/4 vCPU), in steps of 250.
+   * CPU allocation in vCPUs. Minimum 0.25 (1/4 vCPU), in steps of 0.25.
    *
    * @remarks
    * The upper bound is your workspace's per-instance quota; exceeding it returns 400.
    * Omit to leave unchanged.
    */
-  cpuMillicores?: number | undefined;
+  vCpus?: number | undefined;
   /**
    * Memory allocation in MiB. Minimum 256, in steps of 256.
    *
@@ -166,7 +166,7 @@ export type V2EnvironmentsUpdateSettingsRequestBody$Outbound = {
   watchPaths?: Array<string> | undefined;
   autoDeploy?: boolean | undefined;
   port?: number | undefined;
-  cpuMillicores?: number | undefined;
+  vCpus?: number | undefined;
   memoryMib?: number | undefined;
   storageMib?: number | undefined;
   command?: Array<string> | undefined;
@@ -192,7 +192,7 @@ export const V2EnvironmentsUpdateSettingsRequestBody$outboundSchema: z.ZodType<
   watchPaths: z.array(z.string()).optional(),
   autoDeploy: z.boolean().optional(),
   port: z.number().int().optional(),
-  cpuMillicores: z.number().int().optional(),
+  vCpus: z.number().optional(),
   memoryMib: z.number().int().optional(),
   storageMib: z.number().int().optional(),
   command: z.array(z.string()).optional(),
