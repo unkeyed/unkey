@@ -8,6 +8,8 @@ import "fmt"
 //
 //	workspace
 //	└── projects/{project_id}
+//	    ├── apps/{app_id}
+//	    └── identities/{identity_id}
 //
 // Projects are owned by a workspace.
 type Project struct {
@@ -33,6 +35,11 @@ func (p Project) String() string {
 //	└── apps/{app_id}
 func (p Project) App(appID string) App {
 	return App{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/apps/%s", p.path, appID)}
+}
+
+// Identity returns an identity resource path.
+func (p Project) Identity(identityID string) Identity {
+	return Identity{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/identities/%s", p.path, identityID)}
 }
 
 // Any returns a descendant pattern below this project.
