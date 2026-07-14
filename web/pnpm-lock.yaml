@@ -366,8 +366,8 @@ importers:
         specifier: 8.21.3
         version: 8.21.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@unkey/api':
-        specifier: 2.3.4
-        version: 2.3.4
+        specifier: workspace:*
+        version: link:../../internal/api
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -4185,9 +4185,6 @@ packages:
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
         optional: true
-
-  '@unkey/api@2.3.4':
-    resolution: {integrity: sha512-irQCkLIlGedXU0cON4zbfNjGjxWaBr0XdW7JxHl9Hi4M0kAthQ8ZOLX+EYyKO4SS6kmFkfIlq96nDhaMziqtSw==}
 
   '@unkey/ratelimit@2.1.3':
     resolution: {integrity: sha512-wvEGQVVSm/31wma8IRyT0T4KcutdvzBYGBcU919q1ep8FOLkF9PUHZC34aylu6cblUPfniGjDaSMrx1IiqtH/A==}
@@ -11362,10 +11359,6 @@ snapshots:
   '@ungap/structured-clone@1.3.1': {}
 
   '@unkey/api@2.0.3':
-    dependencies:
-      zod: 4.3.5
-
-  '@unkey/api@2.3.4':
     dependencies:
       zod: 4.3.5
 
