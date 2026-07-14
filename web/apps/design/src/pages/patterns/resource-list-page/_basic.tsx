@@ -6,6 +6,7 @@ import {
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
+  PageHeaderTitle,
   ResourceList,
   ResourceListBody,
   ResourceListContent,
@@ -34,9 +35,7 @@ export function ResourceListPageExample() {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <h2 className="m-0 font-semibold text-[22px] text-accent-12 leading-tight tracking-tight">
-            Identities
-          </h2>
+          <PageHeaderTitle>Identities</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
           <Button
