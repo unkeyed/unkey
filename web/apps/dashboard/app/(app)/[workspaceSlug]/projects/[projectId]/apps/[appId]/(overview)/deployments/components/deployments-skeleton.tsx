@@ -3,25 +3,15 @@
 import { Dots } from "@unkey/icons";
 import { ResourceListBody, ResourceListContent, ResourceListItem } from "@unkey/ui";
 
-const SKELETON_ROWS = [
-  "deployment-1",
-  "deployment-2",
-  "deployment-3",
-  "deployment-4",
-  "deployment-5",
-  "deployment-6",
-  "deployment-7",
-  "deployment-8",
-];
-
 export function DeploymentsSkeleton() {
   return (
     <ResourceListContent aria-busy="true">
       <output className="sr-only">Loading deployments...</output>
       <ResourceListBody aria-hidden="true">
-        {SKELETON_ROWS.map((row) => (
+        {Array.from({ length: 8 }).map((_, index) => (
           <ResourceListItem
-            key={row}
+            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows are static and never reorder
+            key={index}
             className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:gap-0"
           >
             {/* Identity + Status */}
