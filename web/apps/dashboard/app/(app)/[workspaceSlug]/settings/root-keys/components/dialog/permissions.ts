@@ -258,6 +258,10 @@ export const workspacePermissions = {
       description: "Start stopped preview deployments for any environment in this workspace",
       permission: "environment.*.start_deployment",
     },
+    promote_deployment: {
+      description: "Promote deployments to live for any environment in this workspace",
+      permission: "environment.*.promote_deployment",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
@@ -394,6 +398,10 @@ export function environmentPermissions(environmentId: string): {
       start_deployment: {
         description: "Start stopped preview deployments for this environment.",
         permission: `environment.${environmentId}.start_deployment`,
+      },
+      promote_deployment: {
+        description: "Promote deployments to live for this environment.",
+        permission: `environment.${environmentId}.promote_deployment`,
       },
     },
   };
