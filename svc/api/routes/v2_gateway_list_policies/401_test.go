@@ -23,8 +23,6 @@ func TestListPoliciesUnauthorized(t *testing.T) {
 		Project:     "payments",
 		App:         "payments-api",
 		Environment: "env_1234abcd",
-		Cursor:      nil,
-		Limit:       nil,
 	})
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
 }

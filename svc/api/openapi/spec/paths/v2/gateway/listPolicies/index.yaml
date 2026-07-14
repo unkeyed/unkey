@@ -7,10 +7,7 @@ post:
     gateway evaluates them top to bottom and the first rejection
     short-circuits the request.
 
-    Results are paginated in stored order; treat the cursor as an opaque
-    token. Because `gateway.setPolicies` replaces the whole list and
-    regenerates every id, cursors expire whenever the environment's policies
-    change - restart from the beginning when a cursor is rejected.
+    The full policy list is returned in a single response.
 
     **Required Permissions**
 
@@ -33,14 +30,6 @@ post:
               project: payments
               app: payments-api
               environment: production
-          page:
-            summary: Fetch the next page
-            value:
-              project: payments
-              app: payments-api
-              environment: production
-              cursor: pol_2gJbXhAr4
-              limit: 10
     required: true
   responses:
     "200":
@@ -85,11 +74,3 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/InternalServerErrorResponse.yaml"
-  x-speakeasy-pagination:
-    type: cursor
-    inputs:
-      - name: cursor
-        in: requestBody
-        type: cursor
-    outputs:
-      nextCursor: "$.pagination.cursor"

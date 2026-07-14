@@ -1169,42 +1169,17 @@ components:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 environment:
                     "$ref": "#/components/schemas/ResourceIdentifier"
-                cursor:
-                    type: string
-                    maxLength: 1024
-                    description: |
-                        Pagination cursor from a previous response to fetch the next page of
-                        policies. Leave empty or omit this field to start from the beginning.
-
-                        Cursors expire whenever the environment's policies are replaced via
-                        `gateway.setPolicies`, which regenerates every policy id. Requests
-                        with an expired cursor fail with a 400 error - restart from the
-                        beginning when that happens.
-                    example: pol_2gJbXhAr4
-                limit:
-                    type: integer
-                    minimum: 1
-                    maximum: 50
-                    default: 50
-                    description: |-
-                        Maximum number of policies to return in a single response. The bound
-                        matches the 50-policy cap of `gateway.setPolicies`, so the default
-                        returns every policy in one page.
-                    example: 25
             additionalProperties: false
         V2GatewayListPoliciesResponseBody:
             type: object
             required:
                 - meta
                 - data
-                - pagination
             properties:
                 meta:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2GatewayListPoliciesResponseData"
-                pagination:
-                    "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
         V2GatewaySetPoliciesRequestBody:
             type: object
@@ -8673,10 +8648,7 @@ paths:
                 gateway evaluates them top to bottom and the first rejection
                 short-circuits the request.
 
-                Results are paginated in stored order; treat the cursor as an opaque
-                token. Because `gateway.setPolicies` replaces the whole list and
-                regenerates every id, cursors expire whenever the environment's policies
-                change - restart from the beginning when a cursor is rejected.
+                The full policy list is returned in a single response.
 
                 **Required Permissions**
 
@@ -8693,14 +8665,6 @@ paths:
                                 value:
                                     app: payments-api
                                     environment: production
-                                    project: payments
-                            page:
-                                summary: Fetch the next page
-                                value:
-                                    app: payments-api
-                                    cursor: pol_2gJbXhAr4
-                                    environment: production
-                                    limit: 10
                                     project: payments
                         schema:
                             $ref: '#/components/schemas/V2GatewayListPoliciesRequestBody'
@@ -8754,14 +8718,6 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: listPolicies
-            x-speakeasy-pagination:
-                inputs:
-                    - in: requestBody
-                      name: cursor
-                      type: cursor
-                outputs:
-                    nextCursor: $.pagination.cursor
-                type: cursor
     /v2/gateway.setPolicies:
         post:
             description: |

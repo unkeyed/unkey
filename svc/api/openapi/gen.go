@@ -1987,23 +1987,9 @@ type V2GatewayListPoliciesRequestBody struct {
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	App ResourceIdentifier `json:"app"`
 
-	// Cursor Pagination cursor from a previous response to fetch the next page of
-	// policies. Leave empty or omit this field to start from the beginning.
-	//
-	// Cursors expire whenever the environment's policies are replaced via
-	// `gateway.setPolicies`, which regenerates every policy id. Requests
-	// with an expired cursor fail with a 400 error - restart from the
-	// beginning when that happens.
-	Cursor *string `json:"cursor,omitempty"`
-
 	// Environment Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
 	Environment ResourceIdentifier `json:"environment"`
-
-	// Limit Maximum number of policies to return in a single response. The bound
-	// matches the 50-policy cap of `gateway.setPolicies`, so the default
-	// returns every policy in one page.
-	Limit *int `json:"limit,omitempty"`
 
 	// Project Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -2017,9 +2003,6 @@ type V2GatewayListPoliciesResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
-
-	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
-	Pagination Pagination `json:"pagination"`
 }
 
 // V2GatewayListPoliciesResponseData The environment's gateway policies in evaluation order.

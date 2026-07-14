@@ -3,14 +3,12 @@ package handler
 import (
 	"context"
 	"net/http"
-	"slices"
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -82,14 +80,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// A missing settings row means the environment was never configured;
-	// that's an empty policy list, not an error. On NotFound the row is its
-	// zero value, so the blob comes back nil either way.
 	settings, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 		AppID:         env.AppID,
 		EnvironmentID: env.ID,
 	})
-	if err != nil && !db.IsNotFound(err) {
+	if err != nil {
+		if db.IsNotFound(err) {
+			return s.JSON(http.StatusOK, Response{
+				Meta: openapi.Meta{RequestId: s.RequestID()},
+				Data: []openapi.PolicyResponse{},
+			})
+		}
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -97,9 +98,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("We're unable to list the policies."),
 		)
 	}
-	// An undecodable blob is an error: frontline skips broken configs to
-	// keep serving traffic, but a management API must not report "no
-	// policies" for an environment whose config it cannot read.
+	// Frontline tolerates a broken blob by skipping it to stay up, but we
+	// must surface the failure rather than pass an unreadable
+	// config off as "no policies".
 	cfg, err := policyconfig.Parse(settings.AppRuntimeSetting.SentinelConfig)
 	if err != nil {
 		return fault.Wrap(
@@ -115,29 +116,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Policies live in one ordered blob, so pagination is a slice window:
-	// the cursor resolves to its index and the window over-fetches one item,
-	// matching the id >= cursor look-ahead convention of the db-backed lists.
-	p := pagination.Parse(req.Limit, req.Cursor, 50)
-	start := 0
-	if p.Cursor != "" {
-		start = slices.IndexFunc(all, func(policy openapi.PolicyResponse) bool { return policy.Id == p.Cursor })
-		if start < 0 {
-			return fault.New(
-				"cursor not found",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("cursor id not present in stored policies"),
-				fault.Public("The provided cursor is invalid or has expired."),
-			)
-		}
-	}
-
-	window := all[start:min(start+int(p.FetchLimit()), len(all))]
-	page, pg := pagination.Paginate(window, p, func(policy openapi.PolicyResponse) string { return policy.Id })
-
 	return s.JSON(http.StatusOK, Response{
-		Meta:       openapi.Meta{RequestId: s.RequestID()},
-		Data:       page,
-		Pagination: pg,
+		Meta: openapi.Meta{RequestId: s.RequestID()},
+		Data: all,
 	})
 }

@@ -19,8 +19,6 @@ func makeRequest(env seededEnv) handler.Request {
 		Project:     env.projectID,
 		App:         env.appID,
 		Environment: env.environmentID,
-		Cursor:      nil,
-		Limit:       nil,
 	}
 }
 

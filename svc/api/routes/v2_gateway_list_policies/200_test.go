@@ -36,8 +36,6 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		env := seedEnvironment(t, h)
 		res := call(t, makeRequest(env))
 		require.Empty(t, res.Body.Data)
-		require.False(t, res.Body.Pagination.HasMore)
-		require.Nil(t, res.Body.Pagination.Cursor)
 		// data must serialize as [], not null.
 		require.Contains(t, string(res.RawBody), `"data":[]`)
 	})
@@ -47,7 +45,6 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		seedSentinelConfig(t, h, env, `{"policies":[]}`)
 		res := call(t, makeRequest(env))
 		require.Empty(t, res.Body.Data)
-		require.False(t, res.Body.Pagination.HasMore)
 	})
 
 	t.Run("missing runtime settings row returns empty list", func(t *testing.T) {
@@ -59,7 +56,6 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 
 		res := call(t, makeRequest(env))
 		require.Empty(t, res.Body.Data)
-		require.False(t, res.Body.Pagination.HasMore)
 	})
 
 	t.Run("all variants round out of storage with full fidelity", func(t *testing.T) {
@@ -90,8 +86,6 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 
 		res := call(t, makeRequest(env))
 		require.Len(t, res.Body.Data, 4)
-		require.False(t, res.Body.Pagination.HasMore)
-		require.Nil(t, res.Body.Pagination.Cursor)
 
 		keyauth := res.Body.Data[0]
 		require.Equal(t, "pol_keyauth", keyauth.Id)
@@ -182,48 +176,12 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body.Data[3].Ratelimit.Identifier.Path)
 	})
 
-	t.Run("paginates in stored order", func(t *testing.T) {
-		env := seedEnvironment(t, h)
-		ids := seedFirewallPolicies(t, h, env, 5)
-
-		page := func(t *testing.T, cursor *string) testutil.TestResponse[handler.Response] {
-			t.Helper()
-			req := makeRequest(env)
-			req.Limit = ptr.P(2)
-			req.Cursor = cursor
-			return call(t, req)
-		}
-
-		// Cursor convention matches the db-backed lists: the returned cursor
-		// is the first policy of the next page, fetched inclusively.
-		first := page(t, nil)
-		require.Len(t, first.Body.Data, 2)
-		require.Equal(t, ids[0], first.Body.Data[0].Id)
-		require.Equal(t, ids[1], first.Body.Data[1].Id)
-		require.True(t, first.Body.Pagination.HasMore)
-		require.Equal(t, ptr.P(ids[2]), first.Body.Pagination.Cursor)
-
-		second := page(t, first.Body.Pagination.Cursor)
-		require.Len(t, second.Body.Data, 2)
-		require.Equal(t, ids[2], second.Body.Data[0].Id)
-		require.Equal(t, ids[3], second.Body.Data[1].Id)
-		require.True(t, second.Body.Pagination.HasMore)
-		require.Equal(t, ptr.P(ids[4]), second.Body.Pagination.Cursor)
-
-		third := page(t, second.Body.Pagination.Cursor)
-		require.Len(t, third.Body.Data, 1)
-		require.Equal(t, ids[4], third.Body.Data[0].Id)
-		require.False(t, third.Body.Pagination.HasMore)
-		require.Nil(t, third.Body.Pagination.Cursor)
-	})
-
-	t.Run("default limit returns everything", func(t *testing.T) {
+	t.Run("returns every policy in stored order", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		ids := seedFirewallPolicies(t, h, env, 50)
 
 		res := call(t, makeRequest(env))
 		require.Len(t, res.Body.Data, 50)
-		require.False(t, res.Body.Pagination.HasMore)
 		for i, p := range res.Body.Data {
 			require.Equal(t, ids[i], p.Id)
 		}
