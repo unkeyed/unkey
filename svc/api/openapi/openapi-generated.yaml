@@ -8930,8 +8930,8 @@ paths:
                 **Required Permissions**
 
                 Your root key must have one of the following permissions:
-                - `environment.*.set_policies` (for any environment)
-                - `environment.<environment_id>.set_policies` (for a specific environment)
+                - `environment.*.update_policy` (for any environment)
+                - `environment.<environment_id>.update_policy` (for a specific environment)
             operationId: gateway.updatePolicy
             requestBody:
                 content:
@@ -8998,7 +8998,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - Insufficient permissions (requires `environment.*.set_policies`)
+                    description: Forbidden - Insufficient permissions (requires `environment.*.update_policy`)
                 "404":
                     content:
                         application/json:

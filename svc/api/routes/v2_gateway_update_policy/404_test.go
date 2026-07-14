@@ -21,7 +21,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	ids := seedFirewallPolicies(t, h, env, 1)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.set_policies")
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.update_policy")
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) testutil.TestResponse[openapi.NotFoundErrorResponse] {
@@ -85,7 +85,7 @@ func TestUpdatePolicyNotFound(t *testing.T) {
 
 	t.Run("another workspace's environment", func(t *testing.T) {
 		other := h.CreateWorkspace()
-		foreignKey := h.CreateRootKey(other.ID, "environment.*.set_policies")
+		foreignKey := h.CreateRootKey(other.ID, "environment.*.update_policy")
 		req := makeRequest(env, ids[0])
 		req.Name = ptr.P("KEBAP")
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(foreignKey), req)

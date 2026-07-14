@@ -19,7 +19,7 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_policies")
+	rootKey := h.CreateRootKey(workspace.ID, "environment.*.update_policy")
 	headers := authHeaders(rootKey)
 	env := seedEnvironment(t, h)
 	ids := seedFirewallPolicies(t, h, env, 1)

@@ -26,11 +26,12 @@ func TestUpdatePolicyForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard permission", permissions: []string{"environment.*.set_policies"}, shouldPass: true},
-		{name: "specific permission", permissions: []string{fmt.Sprintf("environment.%s.set_policies", env.environmentID)}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.set_policies"}, shouldPass: true},
+		{name: "wildcard permission", permissions: []string{"environment.*.update_policy"}, shouldPass: true},
+		{name: "specific permission", permissions: []string{fmt.Sprintf("environment.%s.update_policy", env.environmentID)}, shouldPass: true},
+		{name: "permission and more", permissions: []string{"some.other.permission", "environment.*.update_policy"}, shouldPass: true},
 		{name: "read action is not enough", permissions: []string{"environment.*.read_policies"}, shouldPass: false},
-		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.set_policies", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
+		{name: "set_policies action is not enough", permissions: []string{"environment.*.set_policies"}, shouldPass: false},
+		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.update_policy", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}

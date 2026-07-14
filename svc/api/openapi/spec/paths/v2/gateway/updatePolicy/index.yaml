@@ -19,8 +19,8 @@ post:
     **Required Permissions**
 
     Your root key must have one of the following permissions:
-    - `environment.*.set_policies` (for any environment)
-    - `environment.<environment_id>.set_policies` (for a specific environment)
+    - `environment.*.update_policy` (for any environment)
+    - `environment.<environment_id>.update_policy` (for a specific environment)
   operationId: gateway.updatePolicy
   x-speakeasy-name-override: updatePolicy
   security:
@@ -86,7 +86,7 @@ post:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
     "403":
-      description: Forbidden - Insufficient permissions (requires `environment.*.set_policies`)
+      description: Forbidden - Insufficient permissions (requires `environment.*.update_policy`)
       content:
         application/json:
           schema:

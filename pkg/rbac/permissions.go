@@ -238,9 +238,12 @@ const (
 	RemoveEnvironmentVariables ActionType = "remove_environment_variables"
 	// ReadEnvironmentVariables permits reading a specific environment's variables
 	ReadEnvironmentVariables ActionType = "read_environment_variables"
-	// SetPolicies permits creating, updating, reordering, and removing a
-	// specific environment's gateway policies
+	// SetPolicies permits replacing a specific environment's entire gateway
+	// policy list in one call
 	SetPolicies ActionType = "set_policies"
+	// UpdatePolicy permits updating a single gateway policy in place within a
+	// specific environment
+	UpdatePolicy ActionType = "update_policy"
 	// ReadPolicies permits reading a specific environment's gateway policies
 	ReadPolicies ActionType = "read_policies"
 )

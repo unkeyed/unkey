@@ -22,7 +22,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 	h.Register(listRoute)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.set_policies", "environment.*.read_policies")
+	rootKey := h.CreateRootKey(workspace.ID, "environment.*.update_policy", "environment.*.read_policies")
 	headers := authHeaders(rootKey)
 
 	call := func(t *testing.T, req handler.Request) {
