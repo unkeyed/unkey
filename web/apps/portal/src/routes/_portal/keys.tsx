@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { canReadKeys } from "~/lib/permissions";
+import { isUnauthorizedError } from "~/lib/portal-api";
 
 export const Route = createFileRoute("/_portal/keys")({
   beforeLoad: ({ context }) => {
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/_portal/keys")({
 });
 
 function KeysPage() {
+  const { portalConfig } = Route.useRouteContext();
   const { keys, isInitialLoading, isError, error, refetch } = useKeysListQuery();
   const reroll = useRerollKey();
 
@@ -37,6 +39,10 @@ function KeysPage() {
     <main className="mx-auto max-w-5xl px-4 pt-8 pb-12 sm:px-8">
       {isInitialLoading ? (
         <KeysLoading />
+      ) : isError && isUnauthorizedError(error) ? (
+        // Expired/invalid session: retrying won't help — point the user back to
+        // the application that launched the portal.
+        <SessionExpired returnUrl={portalConfig?.returnUrl ?? null} />
       ) : isError ? (
         <KeysError message={error instanceof Error ? error.message : undefined} onRetry={refetch} />
       ) : (
@@ -66,6 +72,23 @@ function KeysLoading() {
       aria-busy="true"
     >
       Loading keys…
+    </div>
+  );
+}
+
+function SessionExpired({ returnUrl }: { returnUrl: string | null }) {
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <Alert className="max-w-md">
+        <AlertTriangle />
+        <AlertTitle>Your session has expired</AlertTitle>
+        <AlertDescription>
+          Return to your application to continue managing your API keys.
+        </AlertDescription>
+      </Alert>
+      {returnUrl && (
+        <Button variant="outline" render={<a href={returnUrl}>Back to application</a>} />
+      )}
     </div>
   );
 }

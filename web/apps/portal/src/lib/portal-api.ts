@@ -26,25 +26,39 @@ import { SESSION_COOKIE_NAME } from "./session";
 const REQUEST_TIMEOUT_MS = 10_000;
 
 /**
- * Thrown when a portal API call fails. `unauthorized` is surfaced separately so
- * the UI can show an "expired session" state distinct from a generic error.
+ * Message used for every unauthorized (expired/invalid session) failure. This
+ * doubles as the cross-boundary discriminant: custom error fields do NOT survive
+ * the server-fn boundary (the client receives a plain `Error` with only
+ * `message`), so the UI keys off this exact string via {@link isUnauthorizedError}
+ * to show a distinct expired-session state. Keep the two in sync.
+ */
+export const SESSION_EXPIRED_MESSAGE =
+  "Your session has expired. Please return to the application.";
+
+/**
+ * Thrown when a portal API call fails. Carries only a human-readable `message`,
+ * because that is all that crosses the server-fn boundary intact. Unauthorized
+ * failures use {@link SESSION_EXPIRED_MESSAGE} so the client can detect them.
  */
 export class PortalApiError extends Error {
-  readonly unauthorized: boolean;
-
-  constructor(message: string, options: { unauthorized?: boolean } = {}) {
+  constructor(message: string) {
     super(message);
     this.name = "PortalApiError";
-    this.unauthorized = options.unauthorized ?? false;
   }
+}
+
+/**
+ * Whether an error (as seen on the client, after the server-fn boundary has
+ * flattened it to a plain `Error`) is an expired/invalid-session failure.
+ */
+export function isUnauthorizedError(error: unknown): boolean {
+  return error instanceof Error && error.message === SESSION_EXPIRED_MESSAGE;
 }
 
 async function portalFetch(path: string, body: Record<string, unknown>): Promise<unknown> {
   const token = getCookie(SESSION_COOKIE_NAME);
   if (!token) {
-    throw new PortalApiError("Your session has expired. Please return to the application.", {
-      unauthorized: true,
-    });
+    throw new PortalApiError(SESSION_EXPIRED_MESSAGE);
   }
 
   const controller = new AbortController();
@@ -74,9 +88,7 @@ async function portalFetch(path: string, body: Record<string, unknown>): Promise
   }
 
   if (response.status === 401 || response.status === 403) {
-    throw new PortalApiError("Your session has expired. Please return to the application.", {
-      unauthorized: true,
-    });
+    throw new PortalApiError(SESSION_EXPIRED_MESSAGE);
   }
   if (!response.ok) {
     throw new PortalApiError("Something went wrong. Please try again.");
