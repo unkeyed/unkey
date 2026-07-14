@@ -185,6 +185,10 @@ describe("scrubEventPii", () => {
 
     expect(() => scrubEventPii(event)).not.toThrow();
     expect(event.contexts?.trpc?.input).toEqual({ secret: "[REDACTED]" });
+    // The frozen breadcrumb really did make URL scrubbing throw (fail-open:
+    // the event ships as-is) — otherwise this test would not be exercising
+    // the ordering guarantee at all.
+    expect(event.breadcrumbs?.[0]?.data?.from).toContain(ROOT_KEY);
   });
 
   it("drops the whole tRPC input when scrubbing it throws", () => {
