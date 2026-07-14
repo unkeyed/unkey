@@ -21,6 +21,7 @@ import {
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
+import { getClientIp } from "@/lib/client-ip";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
 import type { Route } from "next";
@@ -30,10 +31,7 @@ import { redirect } from "next/navigation";
 // Helper to extract request metadata for Radar
 async function getRequestMetadata() {
   const headersList = await headers();
-  const ipAddress =
-    headersList.get("x-forwarded-for")?.split(",")[0].trim() ||
-    headersList.get("x-real-ip") ||
-    undefined;
+  const ipAddress = getClientIp(headersList);
   const userAgent = headersList.get("user-agent") || undefined;
 
   return { ipAddress, userAgent };

@@ -10,6 +10,7 @@ import {
   type Invitation as WorkOSInvitation,
   type Organization as WorkOSOrganization,
 } from "@workos-inc/node";
+import { getClientIp } from "../client-ip";
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
 import { getAuthCookieOptions } from "./cookie-security";
@@ -1378,8 +1379,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
         clientId: this.clientId,
         code,
-        ipAddress:
-          callbackRequest.headers.get("x-forwarded-for")?.split(",")[0].trim() || undefined,
+        ipAddress: getClientIp(callbackRequest.headers),
         userAgent: callbackRequest.headers.get("user-agent") || undefined,
         signalsId: parsedState.signalsId,
         session: {
