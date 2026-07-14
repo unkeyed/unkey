@@ -170,10 +170,11 @@ function scrubSearchParams(params: URLSearchParams): void {
 /**
  * Scrubs secrets from a single URL (absolute or relative). Sensitive query
  * params are fully redacted, other param values have broad token-like runs
- * redacted, path segments have digit-bearing token-like runs redacted, and
- * basic-auth userinfo and fragments are dropped. Never throws inside a Sentry
- * hook: if the URL cannot be parsed, the raw string gets a blanket broad-net
- * redaction instead.
+ * redacted, path segments have digit-bearing token-like runs redacted,
+ * basic-auth userinfo and fragments are dropped, and non-http(s) opaque-path
+ * schemes (mailto:, tel:, blob:) are redacted wholesale down to the scheme.
+ * Never throws inside a Sentry hook: if the URL cannot be parsed, the raw
+ * string gets a blanket broad-net redaction instead.
  */
 export function scrubUrl(url: string): string {
   if (typeof url !== "string" || url.length === 0) {
@@ -299,9 +300,12 @@ function scrubBreadcrumbs(event: ErrorEvent | TransactionEvent): void {
  */
 export function scrubEventPii(event: ErrorEvent, _hint?: EventHint): void {
   try {
+    // The credential-bearing tRPC input is scrubbed FIRST (and is internally
+    // fail-closed): if URL scrubbing below throws, the outer catch sends the
+    // event as-is, and by then the input must already be redacted.
+    scrubTrpcInput(event);
     scrubRequest(event.request);
     scrubBreadcrumbs(event);
-    scrubTrpcInput(event);
   } catch {
     // Scrubbing must never prevent an error from being reported. If anything
     // unexpected happens, fall through and let Sentry send the event as-is.
@@ -487,6 +491,20 @@ const TEXT_ATTRIBUTE_KEYS = ["transaction"];
 const SQL_ATTRIBUTE_KEYS = ["db.query.text", "db.statement"];
 
 /**
+ * Every attribute key the span scrubber touches, in one list. The fail-closed
+ * catch in `scrubSpanPii` deletes exactly these keys, so a new key group only
+ * needs to be registered here once, next to its `scrubSpanAttributes`
+ * handling — the scrub list and the fallback deletion list cannot drift.
+ */
+const SCRUBBED_ATTRIBUTE_KEYS = [
+  ...URL_ATTRIBUTE_KEYS,
+  ...QUERY_ATTRIBUTE_KEYS,
+  ...FRAGMENT_ATTRIBUTE_KEYS,
+  ...TEXT_ATTRIBUTE_KEYS,
+  ...SQL_ATTRIBUTE_KEYS,
+];
+
+/**
  * Masks literal values in a SQL statement while keeping its shape: quoted
  * strings and standalone numeric literals become `?`, matching what the
  * instrumentation's `maskStatement` option would produce, so keywords,
@@ -514,7 +532,8 @@ function maskSqlLiterals(sql: string): string {
     body
       .replace(/'(?:[^'\\]|\\.)*'/g, "?")
       .replace(/"(?:[^"\\]|\\.)*"/g, "?")
-      .replace(/\b\d+(?:\.\d+)?\b/g, "?") + trailer
+      // Decimal, hex (0x1a2b), and exponent (1e21) literal forms.
+      .replace(/\b(?:0x[0-9a-fA-F]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g, "?") + trailer
   );
 }
 
@@ -654,7 +673,14 @@ export function scrubTransactionPii(
 ): TransactionEvent | null {
   try {
     if (typeof event.transaction === "string") {
-      event.transaction = scrubUrlsInText(event.transaction);
+      // When a db span is the trace root (a query running outside any request
+      // span), the transaction name IS the raw interpolated SQL statement.
+      event.transaction = isSqlSpan({
+        op: event.contexts?.trace?.op,
+        data: event.contexts?.trace?.data,
+      })
+        ? maskSqlLiterals(event.transaction)
+        : scrubUrlsInText(event.transaction);
     }
     scrubRequest(event.request);
     scrubBreadcrumbs(event);
@@ -692,26 +718,30 @@ export type SpanJson = Parameters<NonNullable<NodeOptions["beforeSendSpan"]>>[0]
  * that double pass is deliberate, so the transaction path's fail-closed
  * guarantee never depends on this hook being registered.
  *
- * Scrubbing works on a shallow copy so read-only span objects cannot make it
- * throw. `beforeSendSpan` offers no drop path (the SDK requires a span back),
- * so if scrubbing still fails the copy is returned with its URL-bearing
- * fields removed rather than forwarded unscrubbed.
+ * Scrubbing works on a shallow copy — built in its own guarded step so even a
+ * span whose property access throws cannot make the hook throw into the SDK —
+ * and `beforeSendSpan` offers no drop path (the SDK requires a span back), so
+ * if scrubbing fails the copy is returned with its scrubbed-surface fields
+ * removed rather than forwarded unscrubbed.
  */
 export function scrubSpanPii(span: SpanJson): SpanJson {
-  const copy: SpanJson = { ...span, data: span.data ? { ...span.data } : span.data };
+  let copy: SpanJson;
+  try {
+    copy = { ...span, data: span.data ? { ...span.data } : span.data };
+  } catch {
+    // Even reading the span's properties threw (an exotic proxy). There is
+    // nothing safer to build, so return the original rather than throw into
+    // envelope processing.
+    return span;
+  }
+
   try {
     scrubSpanFields(copy);
     return copy;
   } catch {
     delete copy.description;
     if (copy.data) {
-      for (const key of [
-        ...URL_ATTRIBUTE_KEYS,
-        ...QUERY_ATTRIBUTE_KEYS,
-        ...FRAGMENT_ATTRIBUTE_KEYS,
-        ...TEXT_ATTRIBUTE_KEYS,
-        ...SQL_ATTRIBUTE_KEYS,
-      ]) {
+      for (const key of SCRUBBED_ATTRIBUTE_KEYS) {
         delete copy.data[key];
       }
     }

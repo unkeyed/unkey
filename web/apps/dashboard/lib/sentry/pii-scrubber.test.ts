@@ -162,6 +162,53 @@ describe("scrubEventPii", () => {
     const event: ErrorEvent = { type: undefined };
     expect(() => scrubEventPii(event)).not.toThrow();
   });
+
+  it("scrubs tRPC input even when URL scrubbing throws afterwards", () => {
+    // The credential surface must be redacted BEFORE the fail-open URL
+    // scrubbing: a throw there sends the event as-is, so running the input
+    // scrub last would ship raw credentials exactly when scrubbing breaks.
+    const event: ErrorEvent = {
+      type: undefined,
+      breadcrumbs: [
+        {
+          category: "navigation",
+          data: Object.freeze({ from: `/login?code=${ROOT_KEY}`, to: "/x" }),
+        },
+      ],
+      contexts: {
+        trpc: {
+          procedure_path: "key.create",
+          input: { secret: "unkey_secret_plaintext_value" },
+        },
+      },
+    };
+
+    expect(() => scrubEventPii(event)).not.toThrow();
+    expect(event.contexts?.trpc?.input).toEqual({ secret: "[REDACTED]" });
+  });
+
+  it("drops the whole tRPC input when scrubbing it throws", () => {
+    // Fail-closed guarantee for the credential-bearing surface: a scrub
+    // failure must never forward the raw input (nor take down the error
+    // report, as an unguarded throw in `beforeSend` previously would).
+    const event: ErrorEvent = {
+      type: undefined,
+      contexts: {
+        trpc: {
+          procedure_path: "key.create",
+          input: {
+            get boom(): string {
+              throw new Error("getter exploded");
+            },
+          },
+        },
+      },
+    };
+
+    scrubEventPii(event);
+
+    expect(event.contexts?.trpc?.input).toBe("[REDACTED]");
+  });
 });
 
 /**
@@ -355,6 +402,30 @@ describe("scrubTransactionPii", () => {
     }
   });
 
+  it("masks SQL literals in transaction names when a db span is the trace root", () => {
+    // A query running outside any request span becomes its own transaction,
+    // named with the raw interpolated statement — URL scrubbing alone would
+    // leave the literals intact.
+    const statement = "SELECT * FROM `keys` WHERE owner_email = 'jo@acme.com'";
+    const event: TransactionEvent = {
+      type: "transaction",
+      transaction: statement,
+      contexts: {
+        trace: {
+          span_id: "aaaaaaaaaaaaaaaa",
+          trace_id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          op: "db",
+          data: { "db.statement": statement },
+        },
+      },
+    };
+
+    scrubTransactionPii(event);
+
+    expect(event.transaction).toBe("SELECT * FROM `keys` WHERE owner_email = ?");
+    expect(JSON.stringify(event.contexts)).not.toContain("jo@acme.com");
+  });
+
   it("scrubs sensitive fields from tRPC input attached to transaction contexts", () => {
     // `attachRpcInput: true` writes raw procedure input to the scope, and
     // scope contexts merge into transaction events too — without this,
@@ -463,6 +534,17 @@ describe("scrubSpanPii", () => {
     expect(returned.data["db.statement"]).toBe(
       "SELECT * FROM `keys` WHERE owner_email = ? AND id = ?",
     );
+  });
+
+  it("masks hex and exponent numeric literal forms", () => {
+    const span = makeSpan({
+      op: "db",
+      description: "SELECT * FROM t WHERE flags = 0x1A2B AND score > 1e21",
+    });
+
+    const returned = scrubSpanPii(span);
+
+    expect(returned.description).toBe("SELECT * FROM t WHERE flags = ? AND score > ?");
   });
 
   it("masks literals even when a value contains a comment opener", () => {
