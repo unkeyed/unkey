@@ -60,7 +60,10 @@ describe("scrubUrl", () => {
     // The opaque-scheme allowlist must not blanket-redact arbitrary `word:`
     // prefixes into `word:[REDACTED]`; unknown schemes fall through to parsing.
     expect(scrubUrl("git://github.com/unkeyed/unkey.git")).not.toContain("[REDACTED]");
-    expect(scrubUrl("custom:hello/world")).not.toBe("custom:[REDACTED]");
+    // Opaque-path schemes outside the wholesale allowlist keep their scheme and
+    // get path-level token redaction rather than being dropped to the bare path.
+    expect(scrubUrl("custom:hello/world")).toBe("custom:hello/world");
+    expect(scrubUrl("custom:token12345678901234567890")).toBe("custom:[REDACTED]");
   });
 
   it("preserves the host for protocol-relative URLs", () => {
@@ -395,6 +398,34 @@ describe("scrubTransactionPii", () => {
     scrubTransactionPii(event);
 
     expect(JSON.stringify(event.contexts)).not.toContain(ROOT_KEY);
+  });
+
+  it("scrubs the Referer carried as an http.request.header trace attribute", () => {
+    // Sentry's Node HTTP instrumentation writes request headers onto the trace
+    // context under `http.request.header.<name>`. It does not treat Referer as
+    // sensitive, so an OAuth code in the Referer of a 100%-sampled
+    // /auth/callback transaction reaches Sentry verbatim unless scrubbed here.
+    const event: TransactionEvent = {
+      type: "transaction",
+      contexts: {
+        trace: {
+          span_id: "aaaaaaaaaaaaaaaa",
+          trace_id: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          data: {
+            "http.request.header.referer": `https://app.unkey.com/auth/callback?code=${ROOT_KEY}`,
+            "http.response.header.location": `https://app.unkey.com/setup?token=${JWT}`,
+          },
+        },
+      },
+    };
+
+    scrubTransactionPii(event);
+
+    const data = event.contexts?.trace?.data;
+    expect(JSON.stringify(data)).not.toContain(ROOT_KEY);
+    expect(JSON.stringify(data)).not.toContain(JWT);
+    // Route structure survives so transactions still group by path.
+    expect(data?.["http.request.header.referer"]).toContain("/auth/callback");
   });
 
   it("scrubs secrets from transaction names without mangling route names", () => {

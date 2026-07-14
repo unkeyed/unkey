@@ -172,7 +172,9 @@ function scrubSearchParams(params: URLSearchParams): void {
  * params are fully redacted, other param values have broad token-like runs
  * redacted, path segments have digit-bearing token-like runs redacted,
  * basic-auth userinfo and fragments are dropped, and non-http(s) opaque-path
- * schemes (mailto:, tel:, blob:, data:) are redacted wholesale down to the scheme.
+ * schemes (mailto:, tel:, blob:, data:) are redacted wholesale down to the
+ * scheme. Any other opaque-path URL (`urn:`, `sms:`, an app deep-link) keeps
+ * its scheme and gets path-level token redaction rather than being dropped.
  * Never throws inside a Sentry hook: if the URL cannot be parsed, the raw
  * string gets a blanket broad-net redaction instead.
  */
@@ -203,6 +205,19 @@ export function scrubUrl(url: string): string {
     parsed.password = "";
 
     scrubSearchParams(parsed.searchParams);
+
+    // Opaque-path URLs outside the wholesale-redaction allowlist above (an
+    // unrecognized `scheme:opaque` such as `urn:`, `sms:`, or an app
+    // deep-link) parse with a scheme but an empty host, and the WHATWG
+    // `pathname` setter is a no-op on them. Reconstruct `scheme:path` manually
+    // so the scheme is preserved and the opaque path still gets token
+    // redaction, instead of falling through to the relative branch below,
+    // which would strip the scheme and skip path scrubbing entirely.
+    const hadScheme = /^[a-z][a-z0-9+.-]*:/i.test(url);
+    if (hadScheme && parsed.host === "" && !url.startsWith("//")) {
+      const scrubbedPath = redactTokenLikeInPath(parsed.pathname);
+      return `${parsed.protocol}${scrubbedPath}${parsed.search}`;
+    }
 
     // Redact token-like segments embedded directly in the path. Next.js static
     // build assets are exempt: their hashed chunk names look token-like but
@@ -548,6 +563,18 @@ function maskSqlLiterals(sql: string): string {
 }
 
 /**
+ * Prefixes under which Sentry's Node HTTP instrumentation writes request and
+ * response headers onto span/trace `data`, as `http.request.header.<name>` /
+ * `http.response.header.<name>` (name lowercased, dashes as underscores). Its
+ * own sensitivity filter redacts auth/token/cookie headers but NOT
+ * `referer`/`referrer`/`location`, so a `Referer` carrying an OAuth code on a
+ * 100%-sampled `/auth/callback` transaction reaches Sentry verbatim unless we
+ * URL-scrub these here. The transaction's root span becomes the trace, so the
+ * attribute surfaces on `event.contexts.trace.data`.
+ */
+const HEADER_ATTRIBUTE_PREFIXES = ["http.request.header.", "http.response.header."];
+
+/**
  * Scrubs URL-carrying attributes on a span's `data` or a trace context's
  * `data` in place. Non-string values are left untouched.
  */
@@ -583,6 +610,20 @@ function scrubSpanAttributes(attributes: Record<string, unknown> | undefined): v
     const value = attributes[key];
     if (typeof value === "string") {
       attributes[key] = maskSqlLiterals(value);
+    }
+  }
+  // URL-bearing request/response headers (Referer/Location) carried as
+  // `http.{request,response}.header.<name>` attributes. The instrumentation
+  // lowercases the header name, so match against the lowercased `URL_HEADERS`
+  // suffix. Iterated over the live keys because the header name is dynamic and
+  // not enumerable ahead of time.
+  for (const [key, value] of Object.entries(attributes)) {
+    if (typeof value !== "string") {
+      continue;
+    }
+    const prefix = HEADER_ATTRIBUTE_PREFIXES.find((p) => key.startsWith(p));
+    if (prefix && URL_HEADERS.has(key.slice(prefix.length))) {
+      attributes[key] = scrubUrl(value);
     }
   }
 }
@@ -753,6 +794,14 @@ export function scrubSpanPii(span: SpanJson): SpanJson {
     if (copy.data) {
       for (const key of SCRUBBED_ATTRIBUTE_KEYS) {
         delete copy.data[key];
+      }
+      // Header-carried URL attributes have dynamic keys the fixed list above
+      // cannot enumerate, so prune them by prefix to keep the fallback aligned
+      // with what `scrubSpanAttributes` touches.
+      for (const key of Object.keys(copy.data)) {
+        if (HEADER_ATTRIBUTE_PREFIXES.some((p) => key.startsWith(p))) {
+          delete copy.data[key];
+        }
       }
     }
     return copy;
