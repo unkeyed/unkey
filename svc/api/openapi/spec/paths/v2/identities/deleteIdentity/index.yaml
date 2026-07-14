@@ -14,7 +14,7 @@ post:
   operationId: identities.deleteIdentity
   x-speakeasy-name-override: deleteIdentity
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:

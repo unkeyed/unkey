@@ -19,7 +19,7 @@ post:
   operationId: deployments.listDeployments
   x-speakeasy-name-override: listDeployments
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     required: true
     content:

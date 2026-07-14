@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	DashboardScopes     = "dashboard.Scopes"
+	BearerScopes        = "bearer.Scopes"
 	PortalSessionScopes = "portalSession.Scopes"
-	RootKeyScopes       = "rootKey.Scopes"
 )
 
 // Defines values for DeploymentStatus.

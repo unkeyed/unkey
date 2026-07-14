@@ -18,7 +18,7 @@ post:
   operationId: environments.updateSettings
   x-speakeasy-name-override: updateSettings
   security:
-    - rootKey: []
+    - bearer: []
   requestBody:
     content:
       application/json:
