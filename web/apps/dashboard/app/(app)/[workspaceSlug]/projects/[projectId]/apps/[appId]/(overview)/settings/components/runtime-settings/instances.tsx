@@ -181,7 +181,7 @@ const SingleMode = () => {
                 setValue("replicasMax", replicasMax, { shouldValidate: true });
               }
             }}
-            onValueCommit={
+            onValueCommitted={
               variant === "onboarding"
                 ? ([replicasMin, replicasMax]) => {
                     if (replicasMin === undefined || replicasMax === undefined) {

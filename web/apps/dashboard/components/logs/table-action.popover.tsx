@@ -103,28 +103,21 @@ export const TableActionPopover = ({
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          {children ?? <TableActionPopoverDefaultTrigger onClick={(e) => e.stopPropagation()} />}
-        </PopoverTrigger>
+        <PopoverTrigger
+          render={
+            (children ?? (
+              <TableActionPopoverDefaultTrigger onClick={(e) => e.stopPropagation()} />
+            )) as React.ReactElement
+          }
+        />
         <PopoverContent
           className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu border-gray-6 rounded-lg p-0"
           align={align}
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
+          initialFocus={() => {
             const firstEnabledIndex = items.findIndex((item) => !isItemDisabled(item));
-            if (firstEnabledIndex >= 0) {
-              menuItems.current[firstEnabledIndex]?.focus();
-            }
+            return firstEnabledIndex >= 0 ? (menuItems.current[firstEnabledIndex] ?? false) : false;
           }}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => {
-            e.preventDefault();
-            setOpen(false);
-          }}
-          onInteractOutside={(e) => {
-            e.preventDefault();
-            setOpen(false);
-          }}
+          finalFocus={false}
         >
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
           <div role="menu" onClick={(e) => e.stopPropagation()} className="py-2">
@@ -137,34 +130,36 @@ export const TableActionPopover = ({
                     {tooltip ? (
                       <TooltipProvider>
                         <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              aria-disabled={disabled}
-                              tabIndex={!disabled && focusIndex === index ? 0 : -1}
-                              className={cn(
-                                "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
-                                !disabled &&
-                                  "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
-                                disabled && "cursor-not-allowed opacity-50",
-                                item.className,
-                              )}
-                              onMouseEnter={() => handleItemHover(item)}
-                              onClick={(e) => {
-                                if (!disabled) {
-                                  item.onClick?.(e);
-                                  setEnabledItem(item.id);
-                                  setOpen(false);
-                                }
-                              }}
-                            >
-                              <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
-                                {item.icon}
-                              </div>
-                              <span className="text-[13px] font-medium">{item.label}</span>
-                            </button>
-                          </TooltipTrigger>
+                          <TooltipTrigger
+                            render={
+                              <button
+                                type="button"
+                                role="menuitem"
+                                aria-disabled={disabled}
+                                tabIndex={!disabled && focusIndex === index ? 0 : -1}
+                                className={cn(
+                                  "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
+                                  !disabled &&
+                                    "cursor-pointer hover:bg-gray-3 data-popup-open:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
+                                  disabled && "cursor-not-allowed opacity-50",
+                                  item.className,
+                                )}
+                                onMouseEnter={() => handleItemHover(item)}
+                                onClick={(e) => {
+                                  if (!disabled) {
+                                    item.onClick?.(e);
+                                    setEnabledItem(item.id);
+                                    setOpen(false);
+                                  }
+                                }}
+                              >
+                                <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
+                                  {item.icon}
+                                </div>
+                                <span className="text-[13px] font-medium">{item.label}</span>
+                              </button>
+                            }
+                          />
                           <TooltipContent className="z-[9998]">{tooltip}</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -177,7 +172,7 @@ export const TableActionPopover = ({
                         className={cn(
                           "flex w-full items-center px-2 py-1.5 gap-3 rounded-lg group",
                           !disabled &&
-                            "cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
+                            "cursor-pointer hover:bg-gray-3 data-popup-open:bg-gray-3 focus:outline-hidden focus:bg-gray-3",
                           disabled && "cursor-not-allowed opacity-50",
                           item.className,
                         )}

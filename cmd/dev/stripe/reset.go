@@ -8,6 +8,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/tui"
 )
 
@@ -35,7 +36,11 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 	workspaceID := cmd.RequireString("workspace")
 	out := tui.New(os.Stdout)
 
-	database, err := db.New(db.Config{PrimaryDSN: cmd.RequireString("database-primary"), ReadOnlyDSN: ""})
+	database, err := db.New(db.Config{
+		PrimaryDSN:  cmd.RequireString("database-primary"),
+		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
+	})
 	if err != nil {
 		return fmt.Errorf("connect to MySQL: %w", err)
 	}

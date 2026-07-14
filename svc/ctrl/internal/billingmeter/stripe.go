@@ -2,11 +2,13 @@ package billingmeter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 
+	restate "github.com/restatedev/sdk-go"
 	stripe "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -21,6 +23,7 @@ const (
 	eventMemory = "memory_gib_seconds"
 	eventEgress = "egress_public_gib"
 	eventDisk   = "disk_gib_seconds"
+	eventKeys   = "active_keys"
 )
 
 // payloadKeyCustomer and payloadKeyValue are the meter's
@@ -80,19 +83,24 @@ func NewStripe(secretKey string) Pusher {
 // rejects a duplicate identifier with a hard 400, turning a harmless re-run
 // into a failure.)
 func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
+	// Values are pre-rendered so each meter formats in its natural
+	// representation: the continuous meters as bounded decimals, the
+	// active-keys count as an exact integer.
 	meters := []struct {
-		name  string
-		value float64
+		name     string
+		value    string
+		positive bool
 	}{
-		{eventCPU, req.Values.CPUSeconds},
-		{eventMemory, req.Values.MemoryGiBSeconds},
-		{eventEgress, req.Values.EgressGiB},
-		{eventDisk, req.Values.DiskGiBSeconds},
+		{eventCPU, formatMeterValue(req.Values.CPUSeconds), req.Values.CPUSeconds > 0},
+		{eventMemory, formatMeterValue(req.Values.MemoryGiBSeconds), req.Values.MemoryGiBSeconds > 0},
+		{eventEgress, formatMeterValue(req.Values.EgressGiB), req.Values.EgressGiB > 0},
+		{eventDisk, formatMeterValue(req.Values.DiskGiBSeconds), req.Values.DiskGiBSeconds > 0},
+		{eventKeys, strconv.FormatInt(req.Values.ActiveKeys, 10), req.Values.ActiveKeys > 0},
 	}
 
 	pushed := 0
 	for _, m := range meters {
-		if m.value <= 0 {
+		if !m.positive {
 			continue
 		}
 		_, err := p.client.V1BillingMeterEvents.Create(ctx, &stripe.BillingMeterEventCreateParams{
@@ -100,15 +108,34 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 			Timestamp: stripe.Int64(req.Timestamp),
 			Payload: map[string]string{
 				payloadKeyCustomer: req.StripeCustomerID,
-				payloadKeyValue:    formatMeterValue(m.value),
+				payloadKeyValue:    m.value,
 			},
 		})
 		if err != nil {
-			return pushed, fault.Wrap(err, fault.Internal("failed to push stripe meter event"))
+			return pushed, wrapMeterEventErr(err)
 		}
 		pushed++
 	}
 	return pushed, nil
+}
+
+// wrapMeterEventErr separates permanent Stripe rejections from transient
+// failures. Push runs inside PushWorkspaceUsage's restate.Run, whose retry
+// window (pushRetryDuration) would otherwise hammer an unfixable rejection —
+// a validation 4xx (unknown customer, malformed value, timestamp outside the
+// meter's ingestion window) fails identically on every attempt, and in the
+// month-end close every backup run would re-enter the same window. Marking it
+// terminal fails the push invocation immediately instead. Rate limits (429),
+// request timeouts (408), and 5xx/network errors stay retryable.
+func wrapMeterEventErr(err error) error {
+	wrapped := fault.Wrap(err, fault.Internal("failed to push stripe meter event"))
+	var sErr *stripe.Error
+	if errors.As(err, &sErr) &&
+		sErr.HTTPStatusCode >= 400 && sErr.HTTPStatusCode < 500 &&
+		sErr.HTTPStatusCode != 408 && sErr.HTTPStatusCode != 429 {
+		return restate.TerminalError(wrapped)
+	}
+	return wrapped
 }
 
 // Stripe enforces two separate limits on a meter event payload value, and a

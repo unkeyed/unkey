@@ -1,34 +1,23 @@
-// Package containers provides lightweight Docker container management for integration tests.
+// Package containers provides Docker Compose-backed containers for integration tests.
 //
-// This package uses the Docker SDK directly to spin up containers dynamically,
-// avoiding the overhead of external tools like docker-compose or testcontainers.
-// Service containers are reused by stable Docker names scoped to the current
-// worktree, so separate Bazel test processes can share the same backing
-// services without colliding with other worktrees.
+// This package manages shared Docker services for integration tests.
+// Containers are reused through one Docker Compose project per worktree, so
+// separate Go test processes share backing services without colliding with
+// other worktrees.
 //
 // # Requirements
 //
-// Tests using this package MUST be run via Bazel:
+// Tests using this package can be run through Rask:
 //
-//	UNKEY_TEST_CONTAINER_SCOPE=$PWD mise exec -- bazel test //pkg/testutil/containers:containers_test --test_env=UNKEY_TEST_CONTAINER_SCOPE
+//	mise exec -- rask ./pkg/testutil/containers
 //
 // Prefer `mise run test` for full-suite runs. It sets the worktree scope that
-// lets Bazel test processes share containers and removes scoped containers when
-// the suite exits. Running via `go test` directly is not supported and will fail
-// with an error.
-//
-// # Key Types
-//
-// The main entry point is through service functions like [Redis], which start
-// containers and return connection information. For lower-level access, [Container]
-// provides metadata about running containers including port mappings.
-//
-// Container readiness is determined by [WaitStrategy] implementations. The package
-// provides [TCPWait] for TCP port-based health checks, created via [NewTCPWait].
+// lets Go test processes share containers and removes the scoped Compose project
+// when the suite exits.
 //
 // # Usage
 //
-// Each service function starts a container and returns connection information:
+// Each service function starts a Compose container and returns connection information:
 //
 //	func TestRedisIntegration(t *testing.T) {
 //	    redisURL := containers.Redis(t)
@@ -36,21 +25,19 @@
 //	    // Later tests attach to the same Redis container.
 //	}
 //
-// Pass [WithDedicatedContainer] when a test must own an isolated container.
-//
 // # Design
 //
-// Service containers are created on demand and reused by later test requests in
-// the same worktree. Each container:
-//   - Uses a stable Docker name derived from its worktree scope and image
-//   - Uses a random host port to avoid conflicts
-//   - Waits for the service to be ready before returning
+// Containers are created on demand by pkg/testutil/docker-compose.test.yaml and
+// reused by later test requests in the same worktree. Compose assigns random
+// host ports to avoid conflicts and waits for container healthchecks before the
+// helpers return connection information.
 //
 // # Available Services
 //
 // Currently supported:
 //   - [MySQL]: MySQL with dev schema preloaded
-//   - [Redis]: Redis 8.0 container
+//   - [Redis]: Redis 8.0
 //   - [S3]: MinIO S3-compatible object storage
 //   - [Restate]: Restate server (ingress + admin)
+//   - [ClickHouse]: ClickHouse with dev schema preloaded
 package containers

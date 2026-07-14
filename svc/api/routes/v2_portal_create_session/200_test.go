@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 )
 
@@ -31,11 +32,22 @@ func TestCreateSessionSuccess(t *testing.T) {
 	portalConfigID := uid.New(uid.PortalConfigPrefix)
 	now := time.Now().UnixMilli()
 
+	// A keyspace-mapped portal config: the session is scoped to this keyspace,
+	// derived from the config rather than the request.
+	keySpaceID := uid.New(uid.KeySpacePrefix)
+	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+		ID:            keySpaceID,
+		WorkspaceID:   workspaceID,
+		CreatedAtM:    now,
+		DefaultPrefix: sql.NullString{Valid: false},
+		DefaultBytes:  sql.NullInt32{Valid: false},
+	}))
+
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
 		ID:          portalConfigID,
 		WorkspaceID: workspaceID,
 		Slug:        "test-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
+		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		Enabled:     true,
 		CreatedAt:   now,
 	})
@@ -52,7 +64,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_123",
-			Permissions: []string{"api.*.read_key"},
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -74,7 +86,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_789",
-			Permissions: []string{"api.*.read_key"},
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 			Preview:     &preview,
 		}
 
@@ -97,7 +109,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 		req := handler.Request{
 			Slug:        "test-portal",
 			ExternalId:  "user_multi",
-			Permissions: []string{"api.*.read_key"},
+			Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 		}
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

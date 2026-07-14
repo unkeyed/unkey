@@ -1,6 +1,8 @@
 syntax = "proto3";
 package ctrl.v1;
 
+import "ctrl/v1/actor.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Deployment status enum
@@ -70,6 +72,11 @@ message CreateDeploymentRequest {
   // Free-form reason. Stored alongside the deployment for audit purposes.
   // Populated mostly by internal tooling (e.g. "rebuild after image loss").
   string trigger_reason = 9;
+
+  // Caller identity for the audit log ctrl writes. Carries actor type, name,
+  // and request origin. When unset, the deployment is attributed to the system
+  // actor. Preferred over triggered_by for attribution.
+  ActorInfo actor = 11;
 }
 
 message GitCommitInfo {

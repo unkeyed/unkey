@@ -20,7 +20,7 @@ function parseShareId(hash: string): string | null {
 
 function ShareCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-6 rounded-2xl border border-gray-5 p-8 text-center">
+    <div className="flex flex-col items-center gap-6 rounded-lg border border-gray-5 p-8 text-center">
       {children}
     </div>
   );

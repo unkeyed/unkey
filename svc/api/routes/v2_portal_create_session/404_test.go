@@ -37,12 +37,14 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	req := handler.Request{
 		Slug:        "nonexistent-portal",
 		ExternalId:  "user_123",
-		Permissions: []string{"api.*.read_key"},
+		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.NotNil(t, res.Body)
+	require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, req.Slug)
+	require.NotContains(t, res.RawBody, req.ExternalId)
 }
 
 func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
@@ -84,10 +86,12 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	req := handler.Request{
 		Slug:        "cross-workspace-portal",
 		ExternalId:  "user_123",
-		Permissions: []string{"api.*.read_key"},
+		Permissions: []openapi.V2PortalCreateSessionRequestBodyPermissions{"keys:read"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.NotNil(t, res.Body)
+	require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, portalConfigID)
+	require.NotContains(t, res.RawBody, workspaceA)
 }

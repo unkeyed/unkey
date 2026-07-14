@@ -1,6 +1,7 @@
 load('ext://namespace', 'namespace_create')
 load('ext://secret', 'secret_create_generic')
 load('ext://helm_remote', 'helm_remote')
+load('ext://restart_process', 'docker_build_with_restart')
 
 config.define_string('topolvm_backing_size')
 cfg = config.parse()
@@ -12,6 +13,15 @@ TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
 has_depot_credentials = os.path.exists('./.env.depot')
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
 has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
+
+# The stripe CLI is "logged in" when it has a configured account. When it is,
+# Tilt writes the shared webhook signing secret into both env files and forwards
+# test events to the dashboard and ctrl-api webhooks; otherwise this is skipped.
+has_stripe_login = str(local(
+    "stripe config --list 2>/dev/null | grep -q account_id && echo yes || echo no",
+    quiet=True,
+    echo_off=True,
+)).strip() == "yes"
 
 local_resource(
   'namespace',
@@ -196,10 +206,36 @@ local_resource(
     allow_parallel=True,
 )
 
+# When the stripe CLI is logged in, capture its signing secret (stable per
+# account) and upsert it into both env files, so ctrl-api and the dashboard
+# verify forwarded events with the same secret. Runs before the consumers below.
+stripe_secret_dep = []
+if has_stripe_login:
+    local_resource(
+        'stripe-webhook-secret',
+        '''
+        set -eu
+        whsec=$(stripe listen --print-secret)
+        for f in ./.env.stripe ../web/apps/dashboard/.env; do
+          touch "$f"
+          if grep -q '^STRIPE_WEBHOOK_SECRET=' "$f"; then
+            sed -i.bak "s|^STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$whsec|" "$f" && rm -f "$f.bak"
+          else
+            printf 'STRIPE_WEBHOOK_SECRET=%s\\n' "$whsec" >> "$f"
+          fi
+        done
+        echo "Wrote STRIPE_WEBHOOK_SECRET to .env.stripe and dashboard .env"
+        ''',
+        resource_deps=['namespace'],
+        labels=['setup'],
+        allow_parallel=True,
+    )
+    stripe_secret_dep = ['stripe-webhook-secret']
+
 local_resource(
     'stripe-credentials',
     'if [ -f ./.env.stripe ]; then kubectl -n unkey create secret generic stripe-credentials --from-env-file=./.env.stripe -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping stripe-credentials (no .env.stripe file)"; fi',
-    resource_deps=['namespace'],
+    resource_deps=['namespace'] + stripe_secret_dep,
     deps=['./.env.stripe'],
     labels=['setup'],
     allow_parallel=True,
@@ -277,62 +313,101 @@ k8s_resource('restate-deploy-billing-push', resource_deps=['restate', 'ctrl-work
 k8s_resource('restate-idle-preview-deployments', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
-# Service images are built by Bazel via the //build/<svc>:load target, the
-# same target the production release workflow uses. Every service watches
-# the same broad directory set; unchanged services hit Bazel's cache.
+# Service binaries are compiled on the host so rebuilds hit the local Go
+# build cache (incremental, shared across all services). The image is only
+# built once; after that, live_update syncs the fresh binary straight into
+# the running container and the restart_process wrapper re-execs it — no
+# image build, no registry push, no pod rollout. Building inside Docker
+# (dev/Dockerfile) recompiles the whole module from scratch on every change,
+# seven times in parallel — that Dockerfile stays around for the dashboard
+# docker-compose setup, but Tilt deliberately avoids it.
 #
-# The trailing `docker tag` step is required because rules_oci's oci_load bakes
-# its `repo_tags` into the tar at build time, so `bazel run :load` always loads
-# the image as unkey/<svc>:dev with no runtime knob to override that.
-# Tilt's custom_build needs the produced image to be tagged at $EXPECTED_REF
-# (a unique per-build ref Tilt generates) so it can rewrite the k8s manifest
-# and force a pod rollout when the same logical tag would otherwise look
-# unchanged. We retag after load to satisfy that contract. When the command
-# runs outside Tilt, $EXPECTED_REF is unset and the fallback makes the
-# retag a no-op.
+# Each service watches only the repo-local packages it actually imports, so
+# editing one service's code re-fires just that compile, not all seven. Edits
+# to a widely-shared package still fan out to every service that imports it,
+# which is correct. GOARCH follows the host because the minikube node runs the
+# same architecture as the machine hosting it.
 
-SERVICE_DEPS = ['../build', '../svc', '../internal', '../pkg', '../gen']
+# Broad fallback: watch all Go sources if the per-service import graph can't be
+# computed (e.g. the service doesn't currently compile).
+GO_SERVICE_DEPS = ['../build', '../svc', '../internal', '../pkg', '../gen', '../go.mod', '../go.sum']
+
+# Scoped deps are absolute repo paths outside dev/, so the test-file ignore is
+# anchored at the repo root (an ignore glob relative to dev/ wouldn't match
+# them). Editing a _test.go then never recompiles or restarts a service.
+REPO_ROOT = os.path.abspath('..')
+GO_TEST_IGNORE = [REPO_ROOT + '/**/*_test.go']
+
+def go_local_deps(name):
+    # Repo-local package dirs this service imports, resolved once at tilt up via
+    # `go list -deps`. We select packages in the main module (.Module.Main) so
+    # the filter is independent of where the repo is checked out; matching on
+    # the filesystem path would only work when the clone happens to live under
+    # a matching directory. Adding a brand-new import needs a Tiltfile reload
+    # before the new edge is watched. `|| true` keeps a broken build from
+    # crashing the Tiltfile; we then fall back to the broad list so a service
+    # never silently stops rebuilding.
+    out = str(local(
+        'cd .. && go list -deps -f "{{if .Module}}{{if .Module.Main}}{{.Dir}}{{end}}{{end}}" ./build/%s 2>/dev/null || true' % name,
+        quiet=True, echo_off=True,
+    )).strip()
+    dirs = [d for d in out.split('\n') if d]
+    if not dirs:
+        return GO_SERVICE_DEPS
+    return dirs + ['../go.mod', '../go.sum']
+
+def go_service_image(ref, name):
+    # The context dir must exist when the Tiltfile is evaluated, before the
+    # compile resource has produced a binary (fresh clone case).
+    local('mkdir -p bin/' + name, quiet=True, echo_off=True)
+    compile_name = name + '-compile'
+    local_resource(
+        compile_name,
+        'cd .. && ' +
+        'CGO_ENABLED=0 GOOS=linux GOARCH=$(go env GOARCH) ' +
+        'go build -o dev/bin/%s/unkey ./build/%s' % (name, name),
+        deps=go_local_deps(name),
+        ignore=GO_TEST_IGNORE,
+        labels=['build'],
+        allow_parallel=True,
+    )
+    docker_build_with_restart(
+        ref=ref,
+        context='bin/' + name,
+        dockerfile='Dockerfile.binary',
+        entrypoint=['/unkey'],
+        live_update=[sync('bin/%s/unkey' % name, '/unkey')],
+    )
+    return compile_name
 
 # ─── Vault ─────────────────────────────────────────────────────────────────
-custom_build(
-    ref='unkey/vault:dev',
-    command='cd .. && bazel run //build/vault:load && docker tag unkey/vault:dev "${EXPECTED_REF:-unkey/vault:dev}"',
-    deps=SERVICE_DEPS,
-)
+go_service_image('unkey/vault:dev', 'vault')
 k8s_yaml('k8s/manifests/vault.yaml')
 k8s_resource(
   'vault',
   port_forwards='8060:8060',
-  resource_deps=['s3'],
+  resource_deps=['s3', 'vault-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ─── API ───────────────────────────────────────────────────────────────────
-custom_build(
-    ref='unkey/api:dev',
-    command='cd .. && bazel run //build/api:load && docker tag unkey/api:dev "${EXPECTED_REF:-unkey/api:dev}"',
-    deps=SERVICE_DEPS,
-)
+go_service_image('unkey/api:dev', 'api')
 k8s_yaml('k8s/manifests/api.yaml')
 k8s_resource(
   'api',
   port_forwards='7070:7070',
-  resource_deps=['mysql', 'clickhouse', 'redis'],
+  resource_deps=['mysql', 'clickhouse', 'redis', 'api-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ─── Ctrl API ──────────────────────────────────────────────────────────────
-custom_build(
-    ref='unkey/control-api:dev',
-    command='cd .. && bazel run //build/control-api:load && docker tag unkey/control-api:dev "${EXPECTED_REF:-unkey/control-api:dev}"',
-    deps=SERVICE_DEPS,
-)
+go_service_image('unkey/control-api:dev', 'control-api')
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'github-credentials', 'domain-connect-credentials', 'stripe-credentials', 'control-api-compile']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
 k8s_resource(
@@ -345,13 +420,9 @@ k8s_resource(
 )
 
 # ─── Ctrl Worker (Restate workflow handlers) ───────────────────────────────
-custom_build(
-    ref='unkey/control-worker:dev',
-    command='cd .. && bazel run //build/control-worker:load && docker tag unkey/control-worker:dev "${EXPECTED_REF:-unkey/control-worker:dev}"',
-    deps=SERVICE_DEPS,
-)
+go_service_image('unkey/control-worker:dev', 'control-worker')
 k8s_yaml('k8s/manifests/ctrl-worker.yaml')
-ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials']
+ctrl_worker_deps = ['mysql', 'clickhouse', 'restate', 'webhooks-config', 'github-credentials', 'stripe-credentials', 'control-worker-compile']
 if has_depot_credentials:
     ctrl_worker_deps.append('depot-credentials')
 k8s_resource(
@@ -376,16 +447,12 @@ if has_github_credentials:
     )
 
 # ─── Frontline (TLS termination proxy for *.unkey.local) ───────────────────
-custom_build(
-    ref='unkey/frontline:dev',
-    command='cd .. && bazel run //build/frontline:load && docker tag unkey/frontline:dev "${EXPECTED_REF:-unkey/frontline:dev}"',
-    deps=SERVICE_DEPS,
-)
+go_service_image('unkey/frontline:dev', 'frontline')
 k8s_yaml('k8s/manifests/frontline.yaml')
 k8s_resource(
   'frontline',
   port_forwards=['9443:7443', '9080:7070'],
-  resource_deps=['mysql', 'ctrl-api', 'vault', 'frontline-certs'],
+  resource_deps=['mysql', 'ctrl-api', 'vault', 'frontline-certs', 'frontline-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO,
@@ -393,31 +460,23 @@ k8s_resource(
 )
 
 # ─── Krane ─────────────────────────────────────────────────────────────────
-custom_build(
-    ref='unkey/krane:dev',
-    command='cd .. && bazel run //build/krane:load && docker tag unkey/krane:dev "${EXPECTED_REF:-unkey/krane:dev}"',
-    deps=SERVICE_DEPS,
-)
+go_service_image('unkey/krane:dev', 'krane')
 k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass'],
+  resource_deps=['ctrl-api', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials', 'topolvm-storageclass', 'krane-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ─── Heimdall (resource metering agent) ────────────────────────────────────
-custom_build(
-    ref='unkey/heimdall:dev',
-    command='cd .. && bazel run //build/heimdall:load && docker tag unkey/heimdall:dev "${EXPECTED_REF:-unkey/heimdall:dev}"',
-    deps=SERVICE_DEPS,
-)
+go_service_image('unkey/heimdall:dev', 'heimdall')
 k8s_yaml('k8s/manifests/heimdall.yaml')
 k8s_resource(
   'heimdall',
-  resource_deps=['clickhouse', 'rbac'],
+  resource_deps=['clickhouse', 'rbac', 'heimdall-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
@@ -459,12 +518,33 @@ local_resource(
       cd ../web && pnpm --filter=@unkey/dashboard dev
     ''',
     deps=[],
-    resource_deps=['mysql', 'clickhouse', 'ctrl-api'],
+    resource_deps=['mysql', 'clickhouse', 'ctrl-api'] + stripe_secret_dep,
     labels=['unkey'],
     auto_init=True,
     readiness_probe=probe(http_get=http_get_action(port=3000, path='/'), period_secs=5, failure_threshold=30),
     links=['http://localhost:3000'],
 )
+
+# ─── Stripe webhook listeners (stripe CLI -> dashboard + ctrl-api) ──────────
+# Forward test-mode events to both webhook endpoints so local billing flows
+# (subscribe, invoice.created close) fire end to end. Only when logged in; the
+# signing secret was written into both env files by stripe-webhook-secret above.
+# --forward-to takes one URL, so one listener per endpoint.
+if has_stripe_login:
+    local_resource(
+        'stripe-listen-dashboard',
+        serve_cmd='stripe listen --forward-to http://localhost:3000/api/webhooks/stripe',
+        resource_deps=['dashboard'],
+        labels=['unkey'],
+        auto_init=True,
+    )
+    local_resource(
+        'stripe-listen-ctrl',
+        serve_cmd='stripe listen --forward-to http://localhost:7091/webhooks/stripe',
+        resource_deps=['ctrl-api'],
+        labels=['unkey'],
+        auto_init=True,
+    )
 
 print("""
 Tilt is ready!

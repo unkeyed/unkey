@@ -2,12 +2,25 @@
 #MISE description="Run unkey CLI (usage: mise run unkey -- dev seed local)"
 set -euo pipefail
 
+# True when the invocation is `unkey dev stripe ...` (clock, reset, invoices, grants).
+needs_stripe_env() {
+  local prev=""
+  for arg in "$@" ${ARGS:-}; do
+    if [[ "$prev" == "dev" && "$arg" == "stripe" ]]; then
+      return 0
+    fi
+    prev="$arg"
+  done
+  return 1
+}
+
 set -a
 [ -f .env ] && . ./.env
+if needs_stripe_env "$@"; then
+  # Match Tilt/ctrl: the shell's `stripe login` key may point at a different
+  # sandbox than dev/.env.stripe, so load it for stripe dev tools only.
+  [ -f dev/.env.stripe ] && . ./dev/.env.stripe
+fi
 set +a
 
-bazel run \
-  --noshow_progress \
-  --show_result=0 \
-  --ui_event_filters=-info,-stdout \
-  //:unkey -- "$@" ${ARGS:-}
+go run . "$@" ${ARGS:-}

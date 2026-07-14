@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -36,15 +37,16 @@ type BufferConfig struct {
 	OnFlushError func(ctx context.Context, table string, rowCount int, err error)
 }
 
-// NewBuffer creates a *batch.BatchProcessor[T] that flushes rows to the given
-// ClickHouse table using the client's connection, retry policy, and circuit breaker.
+// NewBuffer creates a *batch.BatchProcessor[T] that flushes rows to T's
+// ClickHouse table (see schema.Row) using the client's connection, retry
+// policy, and circuit breaker.
 //
 // The caller owns the returned processor and must call Close() on it during shutdown
 // (before closing the Client) to drain any buffered rows.
 //
 // Example:
 //
-//	buf := clickhouse.NewBuffer[schema.FrontlineRequest](client, "default.frontline_requests_raw_v1", clickhouse.BufferConfig{
+//	buf := clickhouse.NewBuffer[schema.FrontlineRequest](client, clickhouse.BufferConfig{
 //	    Name:          "frontline_requests",
 //	    BatchSize:     50_000,
 //	    BufferSize:    50_000,
@@ -52,7 +54,10 @@ type BufferConfig struct {
 //	    Consumers:     2,
 //	})
 //	defer buf.Close()
-func NewBuffer[T any](c *Client, table string, cfg BufferConfig) *batch.BatchProcessor[T] {
+func NewBuffer[T schema.Row](c *Client, cfg BufferConfig) *batch.BatchProcessor[T] {
+	var zero T
+	table := zero.Table()
+
 	onErr := cfg.OnFlushError
 	if onErr == nil {
 		onErr = func(_ context.Context, tbl string, _ int, err error) {
@@ -68,7 +73,7 @@ func NewBuffer[T any](c *Client, table string, cfg BufferConfig) *batch.BatchPro
 		FlushInterval: cfg.FlushInterval,
 		Consumers:     cfg.Consumers,
 		Flush: func(ctx context.Context, rows []T) {
-			if err := flush(c, ctx, table, rows); err != nil {
+			if err := flush(c, ctx, rows); err != nil {
 				onErr(ctx, table, len(rows), err)
 			}
 		},

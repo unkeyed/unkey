@@ -287,7 +287,7 @@ func insertCheckpoints(t *testing.T, ctx context.Context, conn ch.Conn, samples 
 	if len(samples) == 0 {
 		return
 	}
-	batch, err := conn.PrepareBatch(ctx, "INSERT INTO default.instance_checkpoints_v1")
+	batch, err := conn.PrepareBatch(ctx, clickhouse.InsertQuery[schema.InstanceCheckpoint]())
 	require.NoError(t, err)
 	for i := range samples {
 		require.NoError(t, batch.AppendStruct(&samples[i]))

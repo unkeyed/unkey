@@ -52,21 +52,23 @@ export function KeysToolbar({ searchValue, onSearchChange, statusValue, onStatus
         />
       </div>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline">
-            <StatusDot value={statusValue} />
-            {STATUS_LABELS[statusValue]}
-            <ChevronDown />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="outline">
+              <StatusDot value={statusValue} />
+              {STATUS_LABELS[statusValue]}
+              <ChevronDown />
+            </Button>
+          }
+        />
         <DropdownMenuContent align="start" className="min-w-44">
-          <DropdownMenuLabel>Key status</DropdownMenuLabel>
           <DropdownMenuGroup>
+            <DropdownMenuLabel>Key status</DropdownMenuLabel>
             {STATUS_FILTERS.map((value) => (
               <DropdownMenuItem
                 key={value}
-                onSelect={(e) => {
-                  e.preventDefault();
+                closeOnClick={false}
+                onClick={() => {
                   onStatusChange(value);
                 }}
                 className="justify-between"

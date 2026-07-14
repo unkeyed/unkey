@@ -176,6 +176,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 				message:   "key does not exist",
 				session:   sess,
 				region:    s.region,
+				source:    s.source,
 				startTime: startTime,
 			}, nil
 		}
@@ -194,6 +195,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			message:   "key does not exist",
 			session:   sess,
 			region:    s.region,
+			source:    s.source,
 			startTime: startTime,
 		}, nil
 	}
@@ -206,6 +208,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			message:   "workspace not found",
 			session:   sess,
 			region:    s.region,
+			source:    s.source,
 			startTime: startTime,
 		}, nil
 	}
@@ -219,6 +222,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			session:               sess,
 			rBAC:                  s.rbac,
 			region:                s.region,
+			source:                s.source,
 			rateLimiter:           s.rateLimiter,
 			usageLimiter:          s.usageLimiter,
 			AuthorizedWorkspaceID: key.WorkspaceID,
@@ -240,6 +244,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		rBAC:                  s.rbac,
 		session:               sess,
 		region:                s.region,
+		source:                s.source,
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
 		startTime:             startTime,

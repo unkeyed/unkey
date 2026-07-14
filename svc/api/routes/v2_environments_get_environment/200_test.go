@@ -88,7 +88,7 @@ func TestGetEnvironment(t *testing.T) {
 				require.NotNil(t, res.Body.Data.Runtime)
 				runtime := *res.Body.Data.Runtime
 				require.Equal(t, 8080, runtime.Port)
-				require.Equal(t, 100, runtime.CpuMillicores)
+				require.Equal(t, 0.25, runtime.VCpus)
 				require.Equal(t, 128, runtime.MemoryMib)
 				require.Equal(t, 0, runtime.StorageMib)
 				require.EqualValues(t, "SIGTERM", runtime.ShutdownSignal)

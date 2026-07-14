@@ -1,0 +1,10 @@
+version: 2
+
+includes:
+  - from_file:
+      path: .goreleaser.service.yaml
+
+project_name: control-api
+
+monorepo:
+  tag_prefix: control-api/

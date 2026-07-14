@@ -57,15 +57,32 @@ const SENSITIVE_PARAM_KEYS = new Set(
 const TOKEN_LIKE = /[A-Za-z0-9_-]{20,}/g;
 
 /**
+ * Whether a parameter/field name is known to carry secrets or PII. Matched
+ * case-insensitively. Shared with the tRPC input scrubber in error-filter.ts so
+ * both scrub surfaces treat the same names as sensitive.
+ */
+export function isSensitiveKey(name: string): boolean {
+  return SENSITIVE_PARAM_KEYS.has(name.toLowerCase());
+}
+
+/**
+ * Redacts token-like substrings from a value regardless of its field name, as
+ * a fail-closed fallback for opaque secrets under unrecognized names.
+ */
+export function redactTokenLike(value: string): string {
+  return value.replace(TOKEN_LIKE, REDACTED);
+}
+
+/**
  * Redacts the value of a single query parameter when its name is sensitive, and
  * otherwise redacts token-like values regardless of name. Returns the value to
  * store back into the query string.
  */
 function scrubParamValue(name: string, value: string): string {
-  if (SENSITIVE_PARAM_KEYS.has(name.toLowerCase())) {
+  if (isSensitiveKey(name)) {
     return REDACTED;
   }
-  return value.replace(TOKEN_LIKE, REDACTED);
+  return redactTokenLike(value);
 }
 
 /**

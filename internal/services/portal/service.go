@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
@@ -13,8 +14,15 @@ type SessionInfo struct {
 	WorkspaceID    string
 	ExternalID     string
 	PortalConfigID string
-	Permissions    []string
 	Preview        bool
+
+	// KeyspaceIDs scopes the session's key capabilities to a set of keyspaces.
+	KeyspaceIDs []string
+
+	// Permissions is the session's simplified capability verbs (e.g. "keys:reroll",
+	// "analytics:read"). The portal_session resolver expands these into RBAC
+	// permission strings via portalrbac.
+	Permissions []string
 }
 
 // Service defines the interface for portal session operations.
@@ -28,11 +36,13 @@ type Service interface {
 type Config struct {
 	DB           db.Database
 	SessionCache cache.Cache[string, db.PortalSession]
+	Clock        clock.Clock
 }
 
 type service struct {
 	db           db.Database
 	sessionCache cache.Cache[string, db.PortalSession]
+	clock        clock.Clock
 }
 
 // New creates a new portal service instance.
@@ -40,5 +50,6 @@ func New(config Config) Service {
 	return &service{
 		db:           config.DB,
 		sessionCache: config.SessionCache,
+		clock:        config.Clock,
 	}
 }

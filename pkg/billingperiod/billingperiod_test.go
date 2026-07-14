@@ -28,3 +28,24 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestPeriodCloseAllowed(t *testing.T) {
+	p, err := Parse("2026-07")
+	require.NoError(t, err)
+	roll := p.End().Unix()
+
+	require.True(t, p.CloseAllowed(p.End(), 0))
+	require.True(t, p.CloseAllowed(p.End().Add(-time.Second), roll))
+	require.False(t, p.CloseAllowed(p.End().Add(-time.Second), 0))
+	require.False(t, p.CloseAllowed(p.End().Add(-time.Second), roll-1))
+}
+
+func TestPeriodEnd(t *testing.T) {
+	p, err := Parse("2026-06")
+	require.NoError(t, err)
+	require.Equal(t, time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC), p.End())
+
+	dec, err := Parse("2026-12")
+	require.NoError(t, err)
+	require.Equal(t, time.Date(2027, time.January, 1, 0, 0, 0, 0, time.UTC), dec.End())
+}

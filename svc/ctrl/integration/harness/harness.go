@@ -28,13 +28,17 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
@@ -92,17 +96,12 @@ type Harness struct {
 type Option func(*harnessOpts)
 
 type harnessOpts struct {
-	diskMySQL bool
-	timeout   time.Duration
-	clock     clock.Clock
-}
+	timeout time.Duration
+	clock   clock.Clock
 
-// WithDiskMySQL starts MySQL with disk-backed storage instead of the default
-// 256MB tmpfs. Use this for performance tests with large datasets.
-func WithDiskMySQL() Option {
-	return func(o *harnessOpts) {
-		o.diskMySQL = true
-	}
+	billingUsageReader deploybilling.UsageReader
+	billingPusher      billingmeter.Pusher
+	billingCloser      invoicecloser.Closer
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -118,6 +117,23 @@ func WithTimeout(timeout time.Duration) Option {
 func WithClock(c clock.Clock) Option {
 	return func(o *harnessOpts) {
 		o.clock = c
+	}
+}
+
+// WithDeployBilling injects the Deploy billing dependencies into the cron
+// service so tests can drive RunDeployBillingPush / RunDeployBillingClose
+// against fakes instead of real ClickHouse usage and Stripe. The reader feeds
+// usage, the pusher receives the meter totals, and the closer lists and
+// finalizes draft invoices.
+func WithDeployBilling(
+	reader deploybilling.UsageReader,
+	pusher billingmeter.Pusher,
+	closer invoicecloser.Closer,
+) Option {
+	return func(o *harnessOpts) {
+		o.billingUsageReader = reader
+		o.billingPusher = pusher
+		o.billingCloser = closer
 	}
 }
 
@@ -165,11 +181,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	go func() {
 		defer wg.Done()
 		s := time.Now()
-		var mysqlOpts []containers.MySQLOpt
-		if o.diskMySQL {
-			mysqlOpts = append(mysqlOpts, containers.WithDiskStorage())
-		}
-		mysqlCfg = containers.MySQL(t, mysqlOpts...)
+		mysqlCfg = containers.MySQL(t)
 		t.Logf("MySQL started in %s", time.Since(s))
 	}()
 
@@ -191,7 +203,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	t.Logf("All containers started in %s", time.Since(start))
 
 	// Connect to MySQL
-	database, err := db.New(mysqlCfg.DSN)
+	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
@@ -224,17 +236,20 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Clock:                     o.clock,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		SlackQuotaCheckWebhookURL: "",
-		// Deploy billing push disabled in tests: nil reader + empty Stripe key
-		// make the handler a no-op.
-		BillingUsageReader: nil,
+		// Deploy billing is a no-op by default (nil reader + empty Stripe key);
+		// WithDeployBilling injects fakes for tests that exercise the push/close.
+		BillingUsageReader: o.billingUsageReader,
+		BillingPusher:      o.billingPusher,
+		BillingCloser:      o.billingCloser,
 		StripeSecretKey:    "",
 		Heartbeats: cron.Heartbeats{
-			QuotaCheck:        healthcheck.NewNoop(),
-			KeyRefill:         healthcheck.NewNoop(),
-			KeyLastUsedSync:   healthcheck.NewNoop(),
-			AuditLogExport:    healthcheck.NewNoop(),
-			AuditLogCleanup:   healthcheck.NewNoop(),
-			DeployBillingPush: healthcheck.NewNoop(),
+			QuotaCheck:         healthcheck.NewNoop(),
+			KeyRefill:          healthcheck.NewNoop(),
+			KeyLastUsedSync:    healthcheck.NewNoop(),
+			AuditLogExport:     healthcheck.NewNoop(),
+			AuditLogCleanup:    healthcheck.NewNoop(),
+			DeployBillingPush:  healthcheck.NewNoop(),
+			DeployBillingClose: healthcheck.NewNoop(),
 		},
 	})
 	require.NoError(t, err)
@@ -279,6 +294,9 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
 	restateSrv := restateServer.NewRestate()
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc))
+	// The deploy billing orchestrator (push and close) fans out to this per-workspace
+	// push service, so it must be bound for those handlers to route end to end.
+	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()))
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))

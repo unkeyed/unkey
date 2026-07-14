@@ -2,7 +2,6 @@ package portal
 
 import (
 	"context"
-	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -29,7 +28,7 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 	row, hit, err := s.sessionCache.SWR(ctx, token, func(ctx context.Context) (db.PortalSession, error) {
 		return db.Query.FindValidPortalSession(ctx, s.db.RO(), db.FindValidPortalSessionParams{
 			ID:  token,
-			Now: time.Now().UnixMilli(),
+			Now: s.clock.Now().UnixMilli(),
 		})
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
@@ -53,12 +52,22 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 			fault.Public("The portal session is invalid or has expired."),
 		)
 	}
+	if row.ExpiresAt <= s.clock.Now().UnixMilli() {
+		return nil, fault.New("invalid or expired portal session",
+			fault.Code(codes.Portal.Session.SessionNotFound.URN()),
+			fault.Internal("portal session cached after expiry"),
+			fault.Public("The portal session is invalid or has expired."),
+		)
+	}
 
-	permissions, err := db.UnmarshalNullableJSONTo[[]string](row.Permissions)
+	// The permissions column stores the simplified capability model as a JSON
+	// object {keyspaceIds, permissions:[verbs]}, written by portal.createSession.
+	// The resolver expands the verbs into RBAC via portalrbac.
+	grant, err := db.UnmarshalNullableJSONTo[storedGrant](row.Permissions)
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("failed to unmarshal portal session permissions"),
+			fault.Internal("failed to unmarshal portal session grant"),
 			fault.Public("An internal error occurred."),
 		)
 	}
@@ -67,7 +76,16 @@ func (s *service) GetSession(ctx context.Context, token string) (*SessionInfo, e
 		WorkspaceID:    row.WorkspaceID,
 		ExternalID:     row.ExternalID,
 		PortalConfigID: row.PortalConfigID,
-		Permissions:    permissions,
 		Preview:        row.Preview,
+		KeyspaceIDs:    grant.KeyspaceIDs,
+		Permissions:    grant.Permissions,
 	}, nil
+}
+
+// storedGrant is the JSON object shape stored on the portal session's
+// permissions column. It must stay in sync with the shape written by
+// portal.createSession.
+type storedGrant struct {
+	KeyspaceIDs []string `json:"keyspaceIds"`
+	Permissions []string `json:"permissions"`
 }

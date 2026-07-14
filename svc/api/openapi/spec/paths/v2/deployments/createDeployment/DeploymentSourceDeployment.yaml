@@ -1,0 +1,7 @@
+type: object
+required:
+  - deploymentId
+properties:
+  deploymentId:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+description: Re-run an existing deployment.

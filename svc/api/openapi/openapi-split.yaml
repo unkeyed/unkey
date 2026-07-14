@@ -106,6 +106,8 @@ tags:
     description: App management operations
   - name: deploy
     description: Deployment operations
+  - name: deployments
+    description: Deployment operations
   - name: environments
     description: Environment management operations
   - name: identities
@@ -140,7 +142,21 @@ paths:
   /v2/apis.listKeys:
     $ref: "./spec/paths/v2/apis/listKeys/index.yaml"
 
-  # Deploy Endpoints
+  # Deployments Endpoints
+  /v2/deployments.createDeployment:
+    $ref: "./spec/paths/v2/deployments/createDeployment/index.yaml"
+  /v2/deployments.getDeployment:
+    $ref: "./spec/paths/v2/deployments/getDeployment/index.yaml"
+  /v2/deployments.listDeployments:
+    $ref: "./spec/paths/v2/deployments/listDeployments/index.yaml"
+  /v2/deployments.stopDeployment:
+    $ref: "./spec/paths/v2/deployments/stopDeployment/index.yaml"
+  /v2/deployments.startDeployment:
+    $ref: "./spec/paths/v2/deployments/startDeployment/index.yaml"
+  /v2/deployments.promoteDeployment:
+    $ref: "./spec/paths/v2/deployments/promoteDeployment/index.yaml"
+  /v2/deployments.rollbackDeployment:
+    $ref: "./spec/paths/v2/deployments/rollbackDeployment/index.yaml"
   /v2/deploy.createDeployment:
     $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
   /v2/deploy.getDeployment:
@@ -210,6 +226,12 @@ paths:
     $ref: "./spec/paths/v2/portal/createSession/index.yaml"
   /v2/portal.exchangeSession:
     $ref: "./spec/paths/v2/portal/exchangeSession/index.yaml"
+  /v2/portal.listKeys:
+    $ref: "./spec/paths/v2/portal/listKeys/index.yaml"
+  /v2/portal.rerollKey:
+    $ref: "./spec/paths/v2/portal/rerollKey/index.yaml"
+  /v2/portal.getVerifications:
+    $ref: "./spec/paths/v2/portal/getVerifications/index.yaml"
 
   # Project Endpoints
   /v2/projects.createProject:
@@ -293,3 +315,12 @@ components:
       description: |-
         Short-lived bearer token used by the Unkey dashboard when it calls api.unkey.com.
         Browser clients should call the dashboard `/proxy/...` route without an Authorization header. The dashboard server mints and attaches this token upstream.
+    portalSession:
+      type: apiKey
+      in: cookie
+      name: portal_session
+      description: |-
+        Browser session cookie for the Customer Portal. Set by `portal.exchangeSession`
+        and sent automatically by the browser on `portal.*` requests. Portal sessions
+        are scoped to a single end user (external identity) and can only access the
+        `portal.*` routes.

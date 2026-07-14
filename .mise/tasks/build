@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-#MISE description="Build all artifacts (binaries land in ./bin)"
-#MISE depends=["install-web"]
+#MISE description="Build Go packages and ./bin/unkey"
+#MISE depends=["lint"]
 #MISE outputs=["./bin/unkey"]
 set -euo pipefail
 
-bazel build //...
+go build ./...
 mkdir -p bin
-cp -f "$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey
-chmod +w bin/unkey
+go build -o bin/unkey .

@@ -5,6 +5,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 )
 
 type database struct {
@@ -14,8 +15,8 @@ type database struct {
 }
 
 // New creates a control plane database from a single read-write MySQL DSN.
-func New(dsn string) (*database, error) {
-	primary, err := mysql.NewReplica(dsn, "rw")
+func New(dsn string, tags sqlcomment.Static) (*database, error) {
+	primary, err := mysql.NewReplica(dsn, "rw", tags)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open control plane database"))
 	}

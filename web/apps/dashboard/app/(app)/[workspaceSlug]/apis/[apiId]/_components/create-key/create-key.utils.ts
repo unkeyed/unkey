@@ -7,6 +7,7 @@ import {
   expirationSchema,
   generalSchema,
   ratelimitSchema,
+  rbacSchema,
 } from "./create-key.schema";
 import type { SectionName } from "./types";
 
@@ -60,6 +61,12 @@ export const formValuesToCreateKeyRequest = (
       autoApply: ratelimit.autoApply,
     }));
   }
+  if (formValues.roleNames.length > 0) {
+    request.roles = formValues.roleNames;
+  }
+  if (formValues.directPermissionSlugs.length > 0) {
+    request.permissions = formValues.directPermissionSlugs;
+  }
 
   return request;
 };
@@ -74,6 +81,8 @@ export const isFeatureEnabled = (sectionId: SectionName, values: FormValues): bo
       return values.limit?.enabled || false;
     case "expiration":
       return values.expiration?.enabled || false;
+    case "rbac":
+      return values.roleNames.length > 0 || values.directPermissionSlugs.length > 0;
     case "general":
       return true;
     default:
@@ -86,8 +95,9 @@ export const sectionSchemaMap = {
   ratelimit: ratelimitSchema,
   credits: creditsSchema,
   expiration: expirationSchema,
+  rbac: rbacSchema,
   metadata: metadataSchema,
-};
+} satisfies Record<SectionName, unknown>;
 
 export const getFieldsFromSchema = (schema: unknown, prefix = ""): string[] => {
   if (!schema || typeof schema !== "object" || !("shape" in schema)) {
@@ -150,6 +160,8 @@ export const getDefaultValues = (overrides?: Partial<FormValues> | null): Partia
     expiration: {
       enabled: false,
     },
+    roleNames: [],
+    directPermissionSlugs: [],
   };
 
   if (!overrides) {

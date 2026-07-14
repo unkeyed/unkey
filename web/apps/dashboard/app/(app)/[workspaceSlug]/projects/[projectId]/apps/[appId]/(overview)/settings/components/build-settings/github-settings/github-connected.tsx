@@ -64,7 +64,7 @@ export const GitHubConnected = ({
   };
 
   const expandable = (
-    <div className="px-6 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-xl">
+    <div className="px-6 py-4 flex flex-col gap-3 bg-grayA-2 rounded-b-lg">
       <span className="text-gray-9 text-[13px]">
         Pushes to this repository will trigger deployments.
       </span>

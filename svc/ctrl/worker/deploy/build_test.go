@@ -91,6 +91,14 @@ func TestValidateGitBuildParams(t *testing.T) {
 			params: gitBuildParams{Repository: "acme/app", PrNumber: 42},
 		},
 		{
+			name:   "valid context subdir",
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeefdeadbeef", ContextPath: "services/api.v1"},
+		},
+		{
+			name:   "valid root context dot",
+			params: gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeefdeadbeef", ContextPath: "."},
+		},
+		{
 			name:    "empty repository",
 			params:  gitBuildParams{CommitSHA: "deadbeef"},
 			wantErr: true,
@@ -103,6 +111,16 @@ func TestValidateGitBuildParams(t *testing.T) {
 		{
 			name:    "repository with path traversal",
 			params:  gitBuildParams{Repository: "acme/app/../evil", CommitSHA: "deadbeef"},
+			wantErr: true,
+		},
+		{
+			name:    "repository owner dot segment",
+			params:  gitBuildParams{Repository: "./app", CommitSHA: "deadbeef"},
+			wantErr: true,
+		},
+		{
+			name:    "repository repo dot dot segment",
+			params:  gitBuildParams{Repository: "acme/..", CommitSHA: "deadbeef"},
 			wantErr: true,
 		},
 		{
@@ -128,6 +146,41 @@ func TestValidateGitBuildParams(t *testing.T) {
 		{
 			name:    "commit sha non-hex",
 			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "zzzzzzz"},
+			wantErr: true,
+		},
+		{
+			name:    "context path traversal segment",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/../api"},
+			wantErr: true,
+		},
+		{
+			name:    "context path absolute",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "/services/api"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with url fragment",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api#main"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with ref separator",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services:api"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with whitespace",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api v1"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with control character",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: "services/api\n"},
+			wantErr: true,
+		},
+		{
+			name:    "context path with backslash",
+			params:  gitBuildParams{Repository: "acme/app", CommitSHA: "deadbeef", ContextPath: `services\api`},
 			wantErr: true,
 		},
 	}

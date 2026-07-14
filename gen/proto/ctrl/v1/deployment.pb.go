@@ -197,6 +197,10 @@ type CreateDeploymentRequest struct {
 	// Free-form reason. Stored alongside the deployment for audit purposes.
 	// Populated mostly by internal tooling (e.g. "rebuild after image loss").
 	TriggerReason string `protobuf:"bytes,9,opt,name=trigger_reason,json=triggerReason,proto3" json:"trigger_reason,omitempty"`
+	// Caller identity for the audit log ctrl writes. Carries actor type, name,
+	// and request origin. When unset, the deployment is attributed to the system
+	// actor. Preferred over triggered_by for attribution.
+	Actor         *ActorInfo `protobuf:"bytes,11,opt,name=actor,proto3" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -299,6 +303,13 @@ func (x *CreateDeploymentRequest) GetTriggerReason() string {
 		return x.TriggerReason
 	}
 	return ""
+}
+
+func (x *CreateDeploymentRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
 }
 
 type GitCommitInfo struct {
@@ -1510,7 +1521,7 @@ var File_ctrl_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\"\xb8\x03\n" +
+	"\x18ctrl/v1/deployment.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\xe2\x03\n" +
 	"\x17CreateDeploymentRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12)\n" +
@@ -1525,7 +1536,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\atrigger\x18\b \x01(\x0e2\x1a.ctrl.v1.DeploymentTriggerR\atrigger\x12!\n" +
 	"\ftriggered_by\x18\n" +
 	" \x01(\tR\vtriggeredBy\x12%\n" +
-	"\x0etrigger_reason\x18\t \x01(\tR\rtriggerReasonB\r\n" +
+	"\x0etrigger_reason\x18\t \x01(\tR\rtriggerReason\x12(\n" +
+	"\x05actor\x18\v \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actorB\r\n" +
 	"\v_git_commitB\x0e\n" +
 	"\f_keyspace_id\"\x85\x02\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
@@ -1692,39 +1704,41 @@ var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(*WakeDeploymentRequest)(nil),       // 22: ctrl.v1.WakeDeploymentRequest
 	(*WakeDeploymentResponse)(nil),      // 23: ctrl.v1.WakeDeploymentResponse
 	nil,                                 // 24: ctrl.v1.Deployment.EnvironmentVariablesEntry
+	(*ActorInfo)(nil),                   // 25: ctrl.v1.ActorInfo
 }
 var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	3,  // 0: ctrl.v1.CreateDeploymentRequest.git_commit:type_name -> ctrl.v1.GitCommitInfo
 	1,  // 1: ctrl.v1.CreateDeploymentRequest.trigger:type_name -> ctrl.v1.DeploymentTrigger
-	0,  // 2: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
-	7,  // 3: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
-	0,  // 4: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
-	24, // 5: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
-	9,  // 6: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
-	8,  // 7: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
-	11, // 8: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
-	10, // 9: ctrl.v1.Topology.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	2,  // 10: ctrl.v1.DeployService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
-	5,  // 11: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
-	12, // 12: ctrl.v1.DeployService.Rollback:input_type -> ctrl.v1.RollbackRequest
-	14, // 13: ctrl.v1.DeployService.Promote:input_type -> ctrl.v1.PromoteRequest
-	16, // 14: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
-	18, // 15: ctrl.v1.DeployService.CancelDeployment:input_type -> ctrl.v1.CancelDeploymentRequest
-	20, // 16: ctrl.v1.DeployService.StopDeployment:input_type -> ctrl.v1.StopDeploymentRequest
-	22, // 17: ctrl.v1.DeployService.WakeDeployment:input_type -> ctrl.v1.WakeDeploymentRequest
-	4,  // 18: ctrl.v1.DeployService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
-	6,  // 19: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	13, // 20: ctrl.v1.DeployService.Rollback:output_type -> ctrl.v1.RollbackResponse
-	15, // 21: ctrl.v1.DeployService.Promote:output_type -> ctrl.v1.PromoteResponse
-	17, // 22: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
-	19, // 23: ctrl.v1.DeployService.CancelDeployment:output_type -> ctrl.v1.CancelDeploymentResponse
-	21, // 24: ctrl.v1.DeployService.StopDeployment:output_type -> ctrl.v1.StopDeploymentResponse
-	23, // 25: ctrl.v1.DeployService.WakeDeployment:output_type -> ctrl.v1.WakeDeploymentResponse
-	18, // [18:26] is the sub-list for method output_type
-	10, // [10:18] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	25, // 2: ctrl.v1.CreateDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0,  // 3: ctrl.v1.CreateDeploymentResponse.status:type_name -> ctrl.v1.DeploymentStatus
+	7,  // 4: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
+	0,  // 5: ctrl.v1.Deployment.status:type_name -> ctrl.v1.DeploymentStatus
+	24, // 6: ctrl.v1.Deployment.environment_variables:type_name -> ctrl.v1.Deployment.EnvironmentVariablesEntry
+	9,  // 7: ctrl.v1.Deployment.topology:type_name -> ctrl.v1.Topology
+	8,  // 8: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
+	11, // 9: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
+	10, // 10: ctrl.v1.Topology.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
+	2,  // 11: ctrl.v1.DeployService.CreateDeployment:input_type -> ctrl.v1.CreateDeploymentRequest
+	5,  // 12: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
+	12, // 13: ctrl.v1.DeployService.Rollback:input_type -> ctrl.v1.RollbackRequest
+	14, // 14: ctrl.v1.DeployService.Promote:input_type -> ctrl.v1.PromoteRequest
+	16, // 15: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
+	18, // 16: ctrl.v1.DeployService.CancelDeployment:input_type -> ctrl.v1.CancelDeploymentRequest
+	20, // 17: ctrl.v1.DeployService.StopDeployment:input_type -> ctrl.v1.StopDeploymentRequest
+	22, // 18: ctrl.v1.DeployService.WakeDeployment:input_type -> ctrl.v1.WakeDeploymentRequest
+	4,  // 19: ctrl.v1.DeployService.CreateDeployment:output_type -> ctrl.v1.CreateDeploymentResponse
+	6,  // 20: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	13, // 21: ctrl.v1.DeployService.Rollback:output_type -> ctrl.v1.RollbackResponse
+	15, // 22: ctrl.v1.DeployService.Promote:output_type -> ctrl.v1.PromoteResponse
+	17, // 23: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
+	19, // 24: ctrl.v1.DeployService.CancelDeployment:output_type -> ctrl.v1.CancelDeploymentResponse
+	21, // 25: ctrl.v1.DeployService.StopDeployment:output_type -> ctrl.v1.StopDeploymentResponse
+	23, // 26: ctrl.v1.DeployService.WakeDeployment:output_type -> ctrl.v1.WakeDeploymentResponse
+	19, // [19:27] is the sub-list for method output_type
+	11, // [11:19] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_deployment_proto_init() }
@@ -1732,6 +1746,7 @@ func file_ctrl_v1_deployment_proto_init() {
 	if File_ctrl_v1_deployment_proto != nil {
 		return
 	}
+	file_ctrl_v1_actor_proto_init()
 	file_ctrl_v1_deployment_proto_msgTypes[0].OneofWrappers = []any{}
 	file_ctrl_v1_deployment_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}

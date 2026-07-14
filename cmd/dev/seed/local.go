@@ -12,9 +12,11 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -37,6 +39,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -48,6 +51,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		RBAC:         nil,
 		Region:       "local",
 		UsageLimiter: nil,
+		Source:       schema.SourceAPI,
 		KeyCache:     nil,
 	})
 	if err != nil {
@@ -454,6 +458,8 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			"ratelimit.*.read_override",
 			"ratelimit.*.set_override",
 			"workspace.*.read_workspace",
+			"environment.*.create_deployment",
+			"environment.*.read_deployment",
 			"project.*.generate_upload_url",
 			"project.*.create_deployment",
 			"project.*.read_deployment",

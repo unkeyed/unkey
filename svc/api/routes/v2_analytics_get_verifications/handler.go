@@ -62,7 +62,7 @@ func (h *Handler) Path() string {
 	return "/v2/analytics.getVerifications"
 }
 
-// Handle processes the HTTP request
+// Handle processes the HTTP request.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -84,38 +84,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	securityFilters, err := h.buildSecurityFilters(ctx, principal)
 	if err != nil {
 		return err
-	}
-
-	// Portal sessions are scoped to a single external identity and may only see
-	// verification events attributed to that identity.
-	//
-	// Identity scoping is intentionally separate from the RBAC permission system.
-	// Permissions gate which APIs/key_spaces a portal session may surface at all;
-	// identity scoping restricts that to the one identity's events. Both layers
-	// are injected as security filters so neither can be bypassed by the request
-	// query, and they are ANDed together.
-	//
-	// We filter on external_id, which is denormalized onto each verification event
-	// at write time. This scopes by attribution-at-event-time (no dependency on
-	// current key ownership) and, since a portal session always carries a
-	// non-empty external identity, avoids any DB lookup or empty-filter edge case.
-	switch src := principal.Source.(type) {
-	case authprincipal.PortalSessionSource:
-		// An empty externalId is a broken invariant: a portal session should
-		// always carry an identity. Surface it as an internal error to match the
-		// sibling key handlers, rather than silently returning unscoped data.
-		if src.ExternalID == "" {
-			return fault.New("portal session missing identity",
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("portal session externalId is empty"),
-				fault.Public("An internal error occurred."),
-			)
-		}
-
-		securityFilters = append(securityFilters, chquery.SecurityFilter{
-			Column:        "external_id",
-			AllowedValues: []string{src.ExternalID},
-		})
 	}
 
 	parser := chquery.NewParser(chquery.Config{

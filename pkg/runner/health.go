@@ -151,7 +151,8 @@ func (r *Runner) handleReady(w http.ResponseWriter, req *http.Request) {
 	allPassed := true
 	for _, result := range results {
 		if result.err != nil {
-			response.Checks[result.name] = result.err.Error()
+			logger.Error("readiness check failed", "check", result.name, "error", result.err)
+			response.Checks[result.name] = "fail"
 			allPassed = false
 		} else {
 			response.Checks[result.name] = "ok"

@@ -118,13 +118,24 @@ export function SentinelPolicyRow({
       className={cn(!isLast && "border-b border-grayA-4", isDragOver && "bg-grayA-3")}
     >
       <div className={cn(!isActiveAnywhere && "opacity-55")}>
-        <button
-          type="button"
+        {/* biome-ignore lint/a11y/useSemanticElements: intentionally a div (not a native button) so the nested drag-handle and action buttons remain valid HTML */}
+        <div
+          role="button"
+          tabIndex={0}
           className="group flex items-center hover:bg-grayA-2 transition-colors cursor-pointer w-full text-left"
           onClick={() => {
             const target = policy.envA ?? policy.envB;
             if (target) {
               onEdit(target);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              const target = policy.envA ?? policy.envB;
+              if (target) {
+                onEdit(target);
+              }
             }
           }}
         >
@@ -216,7 +227,7 @@ export function SentinelPolicyRow({
               variant="danger"
             />
           </div>
-        </button>
+        </div>
       </div>
     </div>
   );

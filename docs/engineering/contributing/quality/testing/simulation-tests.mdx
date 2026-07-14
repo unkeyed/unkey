@@ -89,6 +89,7 @@ Name events and validators after domain behavior. `rejectExpiredKeyValidator` is
 
 Use simulations for caches, rate limiters, and state machines with many valid transitions. Skip them for simple stateless logic.
 
-## Bazel configuration
+## Test placement
 
-Simulation tests are regular Go tests and usually `size = "small"`.
+Simulation tests are regular Go tests. Keep them near the package under test
+unless the simulation covers a cross-package contract.

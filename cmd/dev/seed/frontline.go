@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -36,6 +37,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
+		Tags:        sqlcomment.Disabled(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -54,7 +56,7 @@ func seedFrontline(ctx context.Context, cmd *cli.Command) error {
 
 	log.Printf("Buffer config: batch-size=%d, buffer-size=%d, consumers=%d", batchSize, bufferSize, consumers)
 
-	frontlineRequests := clickhouse.NewBuffer[schema.FrontlineRequest](ch, "default.frontline_requests_raw_v1", clickhouse.BufferConfig{
+	frontlineRequests := clickhouse.NewBuffer[schema.FrontlineRequest](ch, clickhouse.BufferConfig{
 		Name:          "seed-frontline-requests",
 		BatchSize:     batchSize,
 		BufferSize:    bufferSize,

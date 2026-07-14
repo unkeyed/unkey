@@ -1,0 +1,75 @@
+post:
+  tags:
+    - portal
+  summary: List portal keys
+  description: |
+    Retrieve a paginated list of API keys owned by the authenticated portal
+    session's end user.
+
+    This is the portal-scoped variant of `apis.listKeys`. It authenticates only
+    with a portal session cookie and always restricts results to the keys owned
+    by the session's external identity, within the keyspaces configured on the
+    portal configuration. Both the identity and the keyspaces come from the
+    session, so the request body has no `externalId` or `apiId` field.
+  operationId: portal.listKeys
+  x-speakeasy-name-override: listKeys
+  security:
+    - portalSession: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalListKeysRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalListKeysResponseBody.yaml"
+      description: |
+        Successfully retrieved paginated keys. Use the pagination cursor for additional results when `hasMore: true`.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/InternalServerErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

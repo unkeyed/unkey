@@ -412,6 +412,17 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (FindAppRuntimeSettingsByAppAndEnvRow, error)
+	// Returns the sentinel_config of an app's current deployment, scoped to the
+	// workspace. Used by portal.createSession to resolve the keyspaces an
+	// app-mapped portal config grants access to (the keyauth policies carry the
+	// keySpaceIds verified at the gateway).
+	//
+	//  SELECT d.sentinel_config
+	//  FROM apps a
+	//  JOIN deployments d ON d.id = a.current_deployment_id
+	//  WHERE a.id = ?
+	//    AND a.workspace_id = ?
+	FindAppSentinelConfigByID(ctx context.Context, db DBTX, arg FindAppSentinelConfigByIDParams) ([]byte, error)
 	//FindAppWithSettings
 	//
 	//  SELECT
@@ -564,6 +575,13 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
+	//FindDeploymentWithEnvironment
+	//
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug
+	//  FROM deployments d
+	//  JOIN environments e ON e.id = d.environment_id
+	//  WHERE d.id = ?
+	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
@@ -845,7 +863,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -943,7 +961,7 @@ type Querier interface {
 	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//      a.pk, a.id, a.name, a.workspace_id, a.ip_whitelist, a.auth_type, a.key_auth_id, a.created_at_m, a.updated_at_m, a.deleted_at_m, a.delete_protection,
 	//      ka.pk, ka.id, ka.workspace_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at,
-	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
+	//      ws.pk, ws.id, ws.org_id, ws.name, ws.slug, ws.k8s_namespace, ws.tier, ws.stripe_customer_id, ws.stripe_subscription_id, ws.deploy_plan, ws.deploy_plan_override, ws.deploy_spend_budget_cents, ws.deploy_spend_budget_stop, ws.beta_features, ws.subscriptions, ws.enabled, ws.delete_protection, ws.created_at_m, ws.updated_at_m, ws.deleted_at_m,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
 	//      i.meta as identity_meta,
@@ -1319,12 +1337,12 @@ type Querier interface {
 	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, db DBTX, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
 	//FindWorkspaceByID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
 	//FindWorkspaceByOrgID
 	//
-	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, deploy_plan, deploy_plan_override, deploy_spend_budget_cents, deploy_spend_budget_stop, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE org_id = ?
 	//  AND deleted_at_m IS NULL
 	FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error)
@@ -2285,6 +2303,8 @@ type Querier interface {
 	//  FROM apps
 	//  WHERE project_id = ?
 	//    AND id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]App, error)
@@ -2314,6 +2334,22 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
+	// has_status_filter gates the status clause; without it sqlc renders an empty
+	// status set as IN (NULL), which matches nothing.
+	//
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
+	//  WHERE d.workspace_id = ?
+	//    AND (? = '' OR d.project_id = ?)
+	//    AND (? = '' OR d.app_id = ?)
+	//    AND (? = '' OR d.environment_id = ?)
+	//    AND (? = FALSE OR d.status IN (/*SLICE:statuses*/?))
+	//    AND (
+	//      ? = ''
+	//      OR d.pk < (SELECT c.pk FROM `deployments` c WHERE c.id = ?)
+	//    )
+	//  ORDER BY d.pk DESC
+	//  LIMIT ?
+	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]Deployment, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments`
@@ -2407,7 +2443,11 @@ type Querier interface {
 	//  WHERE installation_id = ?
 	//    AND repository_id = ?
 	ListGithubRepoConnections(ctx context.Context, db DBTX, arg ListGithubRepoConnectionsParams) ([]GithubRepoConnection, error)
-	//ListIdentities
+	// ListIdentities returns one page of a workspace's identities with their
+	// ratelimits aggregated into a JSON array (empty array when none exist).
+	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
+	// pages deterministic, and the empty-string cursor starts from the first row.
+	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT
 	//      i.id,
@@ -2436,6 +2476,7 @@ type Querier interface {
 	//  WHERE i.workspace_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
+	//  AND (? IS NULL OR i.id LIKE ? OR i.external_id LIKE ?)
 	//  ORDER BY i.id ASC
 	//  LIMIT ?
 	ListIdentities(ctx context.Context, db DBTX, arg ListIdentitiesParams) ([]ListIdentitiesRow, error)
@@ -2593,6 +2634,98 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
+	//ListLiveKeysByKeySpaceIDs
+	//
+	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
+	//         i.id                 as identity_table_id,
+	//         i.external_id        as identity_external_id,
+	//         i.meta               as identity_meta,
+	//         ek.encrypted         as encrypted_key,
+	//         ek.encryption_key_id as encryption_key_id,
+	//         -- Roles with both IDs and names (sorted by name)
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(
+	//                                 JSON_OBJECT(
+	//                                         'id', r.id,
+	//                                         'name', r.name,
+	//                                         'description', r.description
+	//                                 )
+	//                         )
+	//                  FROM keys_roles kr
+	//                           JOIN roles r ON r.id = kr.role_id
+	//                  WHERE kr.key_id = k.id
+	//                  ORDER BY r.name),
+	//                 JSON_ARRAY()
+	//         )                    as roles,
+	//         -- Direct permissions attached to the key (sorted by slug)
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(
+	//                                 JSON_OBJECT(
+	//                                         'id', p.id,
+	//                                         'name', p.name,
+	//                                         'slug', p.slug,
+	//                                         'description', p.description
+	//                                 )
+	//                         )
+	//                  FROM keys_permissions kp
+	//                           JOIN permissions p ON kp.permission_id = p.id
+	//                  WHERE kp.key_id = k.id
+	//                  ORDER BY p.slug),
+	//                 JSON_ARRAY()
+	//         )                    as permissions,
+	//         -- Permissions from roles (sorted by slug)
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(
+	//                                 JSON_OBJECT(
+	//                                         'id', p.id,
+	//                                         'name', p.name,
+	//                                         'slug', p.slug,
+	//                                         'description', p.description
+	//                                 )
+	//                         )
+	//                  FROM keys_roles kr
+	//                           JOIN roles_permissions rp ON kr.role_id = rp.role_id
+	//                           JOIN permissions p ON rp.permission_id = p.id
+	//                  WHERE kr.key_id = k.id
+	//                  ORDER BY p.slug),
+	//                 JSON_ARRAY()
+	//         )                    as role_permissions,
+	//         -- Rate limits
+	//         COALESCE(
+	//                 (SELECT JSON_ARRAYAGG(
+	//                                 JSON_OBJECT(
+	//                                         'id', id,
+	//                                         'name', name,
+	//                                         'key_id', key_id,
+	//                                         'identity_id', identity_id,
+	//                                         'limit', `limit`,
+	//                                         'duration', duration,
+	//                                         'auto_apply', auto_apply = 1
+	//                                 )
+	//                         )
+	//                  FROM (
+	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//                      FROM ratelimits rl
+	//                      WHERE rl.key_id = k.id
+	//                      UNION ALL
+	//                      SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//                      FROM ratelimits rl
+	//                      WHERE rl.identity_id = i.id
+	//                  ) AS combined_rl),
+	//                 JSON_ARRAY()
+	//         )                    AS ratelimits
+	//  FROM `keys` k
+	//           STRAIGHT_JOIN key_auth ka ON ka.id = k.key_auth_id
+	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+	//           LEFT JOIN encrypted_keys ek ON ek.key_id = k.id
+	//  WHERE k.key_auth_id IN (/*SLICE:key_space_ids*/?)
+	//    AND k.id >= ?
+	//    AND (? IS NULL OR k.identity_id = ?)
+	//    AND k.deleted_at_m IS NULL
+	//    AND ka.deleted_at_m IS NULL
+	//  ORDER BY k.id ASC
+	//  LIMIT ?
+	ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error)
 	// Only deployments still in the queue (haven't acquired a build slot yet)
 	// are eligible for supersession. Once a deployment transitions to `starting`
 	// (after slot acquisition) it's committed — we don't cancel work that's
@@ -2614,6 +2747,11 @@ type Querier interface {
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
 	//    AND p.id >= ?
+	//    -- search and description_search carry the same pre-escaped LIKE pattern built
+	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
+	//    -- because sqlc types each param after the compared column, and description's
+	//    -- dbtype.NullString override conflicts with the plain string columns.
+	//    AND (? IS NULL OR p.id LIKE ? OR p.name LIKE ? OR p.slug LIKE ? OR p.description LIKE ?)
 	//  ORDER BY p.id
 	//  LIMIT ?
 	ListPermissions(ctx context.Context, db DBTX, arg ListPermissionsParams) ([]Permission, error)
@@ -2682,6 +2820,8 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE workspace_id = ?
 	//    AND id >= ?
+	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
+	//    AND (? IS NULL OR id LIKE ? OR name LIKE ? OR slug LIKE ?)
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListProjectsByWorkspaceId(ctx context.Context, db DBTX, arg ListProjectsByWorkspaceIdParams) ([]ListProjectsByWorkspaceIdRow, error)
@@ -2748,7 +2888,7 @@ type Querier interface {
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
 	ListRepoConnectionDeployContexts(ctx context.Context, db DBTX, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
-	//ListRoles
+	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -2768,6 +2908,7 @@ type Querier interface {
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
 	//  AND r.id >= ?
+	//  AND (? IS NULL OR r.id LIKE ? OR r.name LIKE ? OR r.description LIKE ?)
 	//  ORDER BY r.id
 	//  LIMIT ?
 	ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error)
@@ -2812,7 +2953,7 @@ type Querier interface {
 	//ListWorkspaces
 	//
 	//  SELECT
-	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.deploy_plan, w.deploy_plan_override, w.deploy_spend_budget_cents, w.deploy_spend_budget_stop, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
@@ -2987,6 +3128,37 @@ type Querier interface {
 	//      tier = 'Free'
 	//  WHERE id = ?
 	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
+	// Resolves a project (required) + optional app/environment, each an id or slug, to
+	// their ids in one query. app/environment LEFT JOIN on the parent id, so a value that
+	// doesn't match yields NULL for that level (caller reads NULL as not-found).
+	// Project uses UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which
+	// can't use both indexes and would scan the workspace. app/environment keep the OR
+	// since the parent-id join already narrows them to a few rows.
+	//
+	//  SELECT
+	//      p.id AS project_id,
+	//      a.id AS app_id,
+	//      e.id AS environment_id
+	//  FROM (
+	//      SELECT p1.id, p1.workspace_id
+	//      FROM projects p1
+	//      WHERE p1.workspace_id = ? AND p1.id = ?
+	//      UNION ALL
+	//      SELECT p2.id, p2.workspace_id
+	//      FROM projects p2
+	//      WHERE p2.workspace_id = ? AND p2.slug = ?
+	//      LIMIT 1
+	//  ) p
+	//  LEFT JOIN apps a
+	//      ON a.project_id = p.id
+	//      AND a.workspace_id = p.workspace_id
+	//      AND (a.id = ? OR a.slug = ?)
+	//  LEFT JOIN environments e
+	//      ON e.app_id = a.id
+	//      AND e.workspace_id = a.workspace_id
+	//      AND (e.id = ? OR e.slug = ?)
+	//  LIMIT 1
+	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)
 	//SetWorkspaceK8sNamespace
 	//
 	//  UPDATE `workspaces`

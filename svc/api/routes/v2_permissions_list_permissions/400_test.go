@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -39,6 +40,26 @@ func TestValidationErrors(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+			h,
+			route,
+			headers,
+			req,
+		)
+
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Error)
+		require.Contains(t, res.Body.Error.Detail, "validate schema")
+	})
+
+	// Test case for search exceeding the schema's max length
+	t.Run("search exceeding max length", func(t *testing.T) {
+		tooLongSearch := strings.Repeat("a", 257)
+		req := handler.Request{
+			Search: &tooLongSearch,
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,

@@ -149,13 +149,11 @@ export function usePermissionSheet({
   );
 
   const handleAppPermissionChange = useCallback(
-    (appId: string, environmentIds: string[], permissions: UnkeyPermission[]) => {
+    (appId: string, permissions: UnkeyPermission[]) => {
       if (!onChange) {
         return;
       }
-      onChange(
-        rebuildScopedPerms({ appSkipId: appId, environmentSkipIds: environmentIds }, permissions),
-      );
+      onChange(rebuildScopedPerms({ appSkipId: appId }, permissions));
     },
     [onChange, rebuildScopedPerms],
   );

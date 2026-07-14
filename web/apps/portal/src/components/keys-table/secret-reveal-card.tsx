@@ -92,18 +92,20 @@ export function SecretRevealCard({
             </span>
 
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label={revealed ? "Hide secret" : "Reveal secret"}
-                  onClick={() => setRevealed((v) => !v)}
-                  className="size-7 text-gray-11 shadow-none hover:bg-gray-3 [&_svg]:size-3.5"
-                >
-                  {revealed ? <EyeOff /> : <Eye />}
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={revealed ? "Hide secret" : "Reveal secret"}
+                    onClick={() => setRevealed((v) => !v)}
+                    className="size-7 text-gray-11 shadow-none hover:bg-gray-3 [&_svg]:size-3.5"
+                  >
+                    {revealed ? <EyeOff /> : <Eye />}
+                  </Button>
+                }
+              />
               <TooltipContent>{revealed ? "Hide secret" : "Reveal secret"}</TooltipContent>
             </Tooltip>
 

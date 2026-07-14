@@ -72,7 +72,11 @@ services:
       - default
     container_name: vault
     image: unkey/vault:dev
-    pull_policy: never
+    build:
+      context: ../../../..
+      dockerfile: dev/Dockerfile
+      args:
+        PACKAGE: ./build/vault
     command: ["--config", "/etc/unkey/vault.toml"]
     ports:
       - "8060:8060"
@@ -93,7 +97,11 @@ services:
     networks:
       - default
     image: unkey/control-api:dev
-    pull_policy: never
+    build:
+      context: ../../../..
+      dockerfile: dev/Dockerfile
+      args:
+        PACKAGE: ./build/control-api
     container_name: ctrl-api
     command: ["--config", "/etc/unkey/ctrl-api.toml"]
     ports:
@@ -112,7 +120,11 @@ services:
     networks:
       - default
     image: unkey/control-worker:dev
-    pull_policy: never
+    build:
+      context: ../../../..
+      dockerfile: dev/Dockerfile
+      args:
+        PACKAGE: ./build/control-worker
     container_name: ctrl-worker
     command: ["--config", "/etc/unkey/ctrl-worker.toml"]
     ports:
@@ -135,7 +147,11 @@ services:
       - default
     container_name: api
     image: unkey/api:dev
-    pull_policy: never
+    build:
+      context: ../../../..
+      dockerfile: dev/Dockerfile
+      args:
+        PACKAGE: ./build/api
     command: ["--config", "/etc/unkey/api.toml"]
     ports:
       - 7070:7070

@@ -92,25 +92,28 @@ export function OutcomePopoverCell({
   return (
     <div className="flex flex-wrap gap-1 items-center">
       <Popover>
-        <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              containerStyle,
-              "text-accent-11 bg-gray-4 hover:bg-gray-5 [&_svg]:size-3",
-              isSelected ? SELECTED_BADGE : DEFAULT_BADGE,
-            )}
-            title="View all outcomes"
-          >
-            <div className="flex justify-between w-full items-center">
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-1 max-w-[90px]">
-                +{nonValidOutcomes.length} Outcomes
-              </span>
-              <ChevronRight iconSize="sm-regular" className="shrink-0" />
-            </div>
-          </Button>
-        </PopoverTrigger>
+        <PopoverTrigger
+          onClick={(e) => e.stopPropagation()}
+          render={
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                containerStyle,
+                "text-accent-11 bg-gray-4 hover:bg-gray-5 [&_svg]:size-3",
+                isSelected ? SELECTED_BADGE : DEFAULT_BADGE,
+              )}
+              title="View all outcomes"
+            >
+              <div className="flex justify-between w-full items-center">
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-1 max-w-[90px]">
+                  +{nonValidOutcomes.length} Outcomes
+                </span>
+                <ChevronRight iconSize="sm-regular" className="shrink-0" />
+              </div>
+            </Button>
+          }
+        />
         <PopoverContent
           className="min-w-64 bg-gray-1 dark:bg-black shadow-2xl p-0 border border-gray-6 rounded-lg overflow-hidden"
           align="start"
