@@ -2,14 +2,17 @@ package handler
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"net/http"
 )
 
 type Request = openapi.V2IdentitiesGetIdentityRequestBody
@@ -44,6 +47,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	collectionAuthErr := principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Identity,
+			ResourceID:   "*",
+			Action:       rbac.ReadIdentity,
+		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Identity("*"),
+			permissions.ReadIdentity{},
+		),
+	))
+
 	identity, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
 		WorkspaceID: principal.WorkspaceID,
 		Identity:    req.Identity,
@@ -51,6 +66,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
+			if collectionAuthErr != nil {
+				return collectionAuthErr
+			}
 			return fault.New("identity not found",
 				fault.Code(codes.Data.Identity.NotFound.URN()),
 				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
@@ -63,6 +81,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	if collectionAuthErr != nil {
+		err = principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   "*",
+				Action:       rbac.ReadIdentity,
+			}),
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   identity.ID,
+				Action:       rbac.ReadIdentity,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Identity(identity.ID),
+				permissions.ReadIdentity{},
+			),
+		))
+		if err != nil {
+			// Return the wildcard failure so the response never exposes the resolved internal ID.
+			return collectionAuthErr
+		}
+	}
+
 	// Parse ratelimits JSON
 	ratelimits, err := db.UnmarshalNullableJSONTo[[]db.RatelimitInfo](identity.Ratelimits)
 	if err != nil {
@@ -70,23 +111,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			"identityId", identity.ID,
 			"error", err,
 		)
-	}
-
-	// Check permissions using either wildcard or the specific identity ID
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   "*",
-			Action:       rbac.ReadIdentity,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   identity.ID,
-			Action:       rbac.ReadIdentity,
-		}),
-	))
-	if err != nil {
-		return err
 	}
 
 	metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)

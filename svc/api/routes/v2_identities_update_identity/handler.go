@@ -15,7 +15,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -46,6 +48,44 @@ func (h *Handler) Path() string {
 	return "/v2/identities.updateIdentity"
 }
 
+func validateRequest(req Request) ([]byte, error) {
+	if req.Ratelimits != nil {
+		nameSet := make(map[string]bool)
+		for _, ratelimit := range *req.Ratelimits {
+			if _, exists := nameSet[ratelimit.Name]; exists {
+				return nil, fault.New("duplicate ratelimit name",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal("duplicate ratelimit name"),
+					fault.Public(fmt.Sprintf("Ratelimit with name '%s' is already defined in the request", ratelimit.Name)),
+				)
+			}
+			nameSet[ratelimit.Name] = true
+		}
+	}
+
+	if req.Meta == nil {
+		return nil, nil
+	}
+
+	metaBytes, err := json.Marshal(*req.Meta)
+	if err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("unable to marshal metadata"), fault.Public("We're unable to marshal the meta object."),
+		)
+	}
+
+	sizeInMB := float64(len(metaBytes)) / 1024 / 1024
+	if sizeInMB > maxMetaLengthMB {
+		return nil, fault.New("metadata is too large",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("metadata is too large"), fault.Public(fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", maxMetaLengthMB, sizeInMB)),
+		)
+	}
+
+	return metaBytes, nil
+}
+
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Mint a correlation ID so the identity.update audit event plus any
@@ -64,50 +104,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.Or(
+	collectionAuthErr := principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
 			Action:       rbac.UpdateIdentity,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.WorkspaceID).Identity("*"),
+			permissions.UpdateIdentity{},
+		),
 	))
-	if err != nil {
-		return err
-	}
-
-	// Check ratelimits for unique names
-	if req.Ratelimits != nil {
-		nameSet := make(map[string]bool)
-		for _, ratelimit := range *req.Ratelimits {
-			if _, exists := nameSet[ratelimit.Name]; exists {
-				return fault.New("duplicate ratelimit name",
-					fault.Code(codes.App.Validation.InvalidInput.URN()),
-					fault.Internal("duplicate ratelimit name"),
-					fault.Public(fmt.Sprintf("Ratelimit with name '%s' is already defined in the request", ratelimit.Name)),
-				)
-			}
-			nameSet[ratelimit.Name] = true
-		}
-	}
-
-	// Check metadata size
 	var metaBytes []byte
-	if req.Meta != nil {
-		var metaErr error
-		metaBytes, metaErr = json.Marshal(*req.Meta)
-		if metaErr != nil {
-			return fault.Wrap(metaErr,
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("unable to marshal metadata"), fault.Public("We're unable to marshal the meta object."),
-			)
-		}
-
-		sizeInMB := float64(len(metaBytes)) / 1024 / 1024
-		if sizeInMB > maxMetaLengthMB {
-			return fault.New("metadata is too large",
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Internal("metadata is too large"), fault.Public(fmt.Sprintf("Metadata is too large, it must be less than %dMB, got: %.2f", maxMetaLengthMB, sizeInMB)),
-			)
+	if collectionAuthErr == nil {
+		metaBytes, err = validateRequest(req)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -118,6 +130,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
+			if collectionAuthErr != nil {
+				return collectionAuthErr
+			}
 			return fault.New("identity not found",
 				fault.Code(codes.Data.Identity.NotFound.URN()),
 				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
@@ -128,6 +143,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Internal("unable to find identity"),
 			fault.Public("We're unable to retrieve the identity."),
 		)
+	}
+
+	if collectionAuthErr != nil {
+		err = principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   "*",
+				Action:       rbac.UpdateIdentity,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.WorkspaceID).Identity(identityRow.ID),
+				permissions.UpdateIdentity{},
+			),
+		))
+		if err != nil {
+			// Return the wildcard failure so the response never exposes the resolved internal ID.
+			return collectionAuthErr
+		}
+
+		metaBytes, err = validateRequest(req)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Parse existing ratelimits from JSON

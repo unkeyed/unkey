@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_update_identity"
 )
@@ -25,43 +26,47 @@ func TestForbidden(t *testing.T) {
 	}
 
 	h.Register(route)
+	workspaceID := h.Resources().UserWorkspace.ID
+	forbiddenIdentity := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspaceID,
+		ExternalID:  uid.New(uid.TestPrefix),
+	})
 
 	t.Run("no permission to update identity", func(t *testing.T) {
 		// Create root key without permissions
-		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID)
+		rootKeyID := h.CreateRootKey(workspaceID)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			Identity: externalID,
+			Identity: forbiddenIdentity.ExternalID,
 			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
 		require.Contains(t, res.Body.Error.Detail, "permission")
+		require.NotContains(t, res.Body.Error.Detail, forbiddenIdentity.ID)
 	})
 
 	t.Run("wrong permission type", func(t *testing.T) {
 		// Create root key with wrong permission
-		rootKeyID := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity")
+		rootKeyID := h.CreateRootKey(workspaceID, "identity.*.create_identity")
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
 		}
 
-		externalID := uid.New(uid.TestPrefix)
 		meta := map[string]interface{}{
 			"test": "value",
 		}
 		req := handler.Request{
-			Identity: externalID,
+			Identity: forbiddenIdentity.ExternalID,
 			Meta:     &meta,
 		}
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
@@ -80,7 +85,6 @@ func TestForbidden(t *testing.T) {
 			require.True(t, err == nil || errors.Is(err, sql.ErrTxDone), "unexpected rollback error: %v", err)
 		}()
 
-		workspaceID := h.Resources().UserWorkspace.ID
 		identityID := uid.New(uid.IdentityPrefix)
 		externalID := "test_user_403"
 
@@ -114,5 +118,22 @@ func TestForbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, got: %d, response: %s", res.Status, res.RawBody)
 		require.Equal(t, externalID, res.Body.Data.ExternalId)
+	})
+
+	t.Run("missing identity does not reveal existence without permission", func(t *testing.T) {
+		rootKeyID := h.CreateRootKey(workspaceID)
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKeyID)},
+		}
+		meta := map[string]any{"test": "value"}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			h,
+			route,
+			headers,
+			handler.Request{Identity: uid.New(uid.TestPrefix), Meta: &meta},
+		)
+		require.Equal(t, http.StatusForbidden, res.Status)
 	})
 }

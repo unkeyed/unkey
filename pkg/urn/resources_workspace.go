@@ -16,8 +16,8 @@ import "fmt"
 //	├── projects/{project_id}
 //	└── portals/{portal_id}
 //
-// Children with their own descendants return another typed builder. Leaf
-// resources return V1 directly.
+// Children with descendants return typed builders. Leaf resources return typed
+// resource values.
 type workspace struct {
 	workspaceID string
 
@@ -49,8 +49,8 @@ func (w workspace) Keyspace(keyspaceID string) Keyspace {
 }
 
 // Identity returns an identity resource path.
-func (w workspace) Identity(identityID string) V1 {
-	return w.v1(fmt.Sprintf("identities/%s", identityID))
+func (w workspace) Identity(identityID string) Identity {
+	return Identity{workspaceID: w.workspaceID, path: fmt.Sprintf("identities/%s", identityID)}
 }
 
 // RatelimitNamespace returns builders for rate limit namespace resource paths.
@@ -81,12 +81,4 @@ func (w workspace) Project(projectID string) Project {
 //	└── portals/{portal_id}
 func (w workspace) Portal(portalID string) Portal {
 	return Portal{workspaceID: w.workspaceID, path: fmt.Sprintf("portals/%s", portalID)}
-}
-
-// v1 wraps a resource path in a [V1] for this workspace.
-func (w workspace) v1(path string) V1 {
-	return V1{
-		WorkspaceID: w.workspaceID,
-		Resource:    path,
-	}
 }

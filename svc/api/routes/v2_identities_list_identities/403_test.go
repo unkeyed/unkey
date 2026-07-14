@@ -92,6 +92,19 @@ func TestForbidden(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
 	})
 
+	t.Run("no permission in an empty workspace", func(t *testing.T) {
+		emptyWorkspace := h.CreateWorkspace()
+		emptyRootKey := h.CreateRootKey(emptyWorkspace.ID)
+		emptyHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", emptyRootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, emptyHeaders, handler.Request{})
+		require.Equal(t, http.StatusForbidden, res.Status)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
+	})
+
 	// Create a new key with specific permissions for certain environments
 	t.Run("with permission for only specific environment", func(t *testing.T) {
 		// Create a new key with production environment permissions
@@ -158,5 +171,24 @@ func TestForbidden(t *testing.T) {
 		require.True(t, foundDefault, "Should find default environment identity")
 		require.True(t, foundProd, "Should find production environment identity")
 		require.True(t, foundStaging, "Should find staging environment identity")
+	})
+
+	t.Run("with exact legacy permission and targeted search", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspaceID, "identity."+prodIdentityID+".read_identity")
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}
+		search := "test_user_prod"
+
+		res := testutil.CallRoute[handler.Request, handler.Response](
+			h,
+			route,
+			headers,
+			handler.Request{Search: &search},
+		)
+		require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
+		require.Len(t, res.Body.Data, 1)
+		require.Equal(t, prodIdentityID, res.Body.Data[0].Id)
 	})
 }
