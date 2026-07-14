@@ -267,6 +267,48 @@ func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
 }
 
+type ClustersState string
+
+const (
+	ClustersStateActive   ClustersState = "active"
+	ClustersStateDisabled ClustersState = "disabled"
+)
+
+func (e *ClustersState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ClustersState(s)
+	case string:
+		*e = ClustersState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ClustersState: %T", src)
+	}
+	return nil
+}
+
+type NullClustersState struct {
+	ClustersState ClustersState
+	Valid         bool // Valid is true if ClustersState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullClustersState) Scan(value interface{}) error {
+	if value == nil {
+		ns.ClustersState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ClustersState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullClustersState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ClustersState), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -1007,10 +1049,13 @@ type ClickhouseWorkspaceSetting struct {
 }
 
 type Cluster struct {
-	Pk              uint64 `db:"pk"`
-	ID              string `db:"id"`
-	RegionID        string `db:"region_id"`
-	LastHeartbeatAt uint64 `db:"last_heartbeat_at"`
+	Pk              uint64        `db:"pk"`
+	ID              string        `db:"id"`
+	RegionID        string        `db:"region_id"`
+	Platform        string        `db:"platform"`
+	Region          string        `db:"region"`
+	State           ClustersState `db:"state"`
+	LastHeartbeatAt uint64        `db:"last_heartbeat_at"`
 }
 
 type CustomDomain struct {

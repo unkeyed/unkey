@@ -9,8 +9,10 @@ import (
 )
 
 // bulkUpsertCluster is the base query for bulk insert
-const bulkUpsertCluster = `INSERT INTO clusters ( id, region_id, last_heartbeat_at ) VALUES %s ON DUPLICATE KEY UPDATE
-	last_heartbeat_at = ?`
+const bulkUpsertCluster = `INSERT INTO clusters ( id, region_id, platform, region, state, last_heartbeat_at ) VALUES %s ON DUPLICATE KEY UPDATE
+	platform = VALUES(platform),
+	region = VALUES(region),
+	last_heartbeat_at = VALUES(last_heartbeat_at)`
 
 // UpsertCluster performs bulk insert in a single query
 
@@ -23,7 +25,7 @@ func (q *BulkQueries) UpsertCluster(ctx context.Context, args []UpsertClusterPar
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertCluster, strings.Join(valueClauses, ", "))
@@ -33,12 +35,10 @@ func (q *BulkQueries) UpsertCluster(ctx context.Context, args []UpsertClusterPar
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.RegionID)
+		allArgs = append(allArgs, arg.Platform)
+		allArgs = append(allArgs, arg.Region)
+		allArgs = append(allArgs, arg.State)
 		allArgs = append(allArgs, arg.LastHeartbeatAt)
-	}
-
-	// Add ON DUPLICATE KEY UPDATE parameters (only once, not per row)
-	if len(args) > 0 {
-		allArgs = append(allArgs, args[0].LastHeartbeatAt)
 	}
 
 	// Execute the bulk insert

@@ -17,8 +17,9 @@ import (
 // regions are available.
 //
 // The method upserts into regions (keyed by the (platform, name) unique index)
-// and clusters (keyed by region_id), updating the heartbeat timestamp on each
-// call.
+// and clusters (keyed by region_id). New clusters inherit the region's
+// scheduling state; later heartbeats refresh metadata and timestamps without
+// reactivating clusters that operators disabled.
 func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.HeartbeatRequest]) (*connect.Response[ctrlv1.HeartbeatResponse], error) {
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
@@ -47,13 +48,21 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 		Name:     regionName,
 	})
 	if err != nil {
-		logger.Error("failed to find region", "error", err, "region_id", region.ID)
+		logger.Error("failed to find region", "error", err, "platform", platform, "region_name", regionName)
 		return nil, err
+	}
+
+	clusterState := db.ClustersStateDisabled
+	if region.CanSchedule {
+		clusterState = db.ClustersStateActive
 	}
 
 	err = s.db.UpsertCluster(ctx, db.UpsertClusterParams{
 		ID:              uid.New(uid.ClusterPrefix),
 		RegionID:        region.ID,
+		Platform:        platform,
+		Region:          regionName,
+		State:           clusterState,
 		LastHeartbeatAt: uint64(now),
 	})
 	if err != nil {
