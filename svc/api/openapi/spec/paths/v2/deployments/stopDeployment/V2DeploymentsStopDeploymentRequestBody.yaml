@@ -1,0 +1,8 @@
+type: object
+required:
+  - deploymentId
+properties:
+  deploymentId:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+description: Stop a running preview deployment to free up resources.
