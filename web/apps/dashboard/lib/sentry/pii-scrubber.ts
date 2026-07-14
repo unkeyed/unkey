@@ -16,7 +16,7 @@
 
 import type { ErrorEvent, EventHint } from "@sentry/nextjs";
 
-const REDACTED = "[REDACTED]";
+export const REDACTED = "[REDACTED]";
 
 /**
  * Query/path parameter names whose values are always secrets or PII. Matched
@@ -34,6 +34,7 @@ const SENSITIVE_PARAM_KEYS = new Set(
     "access_token",
     "refresh_token",
     "id_token",
+    "invitation_token",
     "secret",
     "client_secret",
     "password",
@@ -87,9 +88,10 @@ function scrubParamValue(name: string, value: string): string {
 
 /**
  * Scrubs secrets from a single URL (absolute or relative). Sensitive query
- * params are fully redacted, other params and the path have token-like segments
- * redacted. Returns the original string unchanged if it cannot be parsed so we
- * never throw inside a Sentry hook.
+ * params are fully redacted, other params and the path have token-like
+ * segments redacted, and basic-auth userinfo is dropped. Falls back to
+ * token-shape redaction if the URL cannot be parsed, so we never throw
+ * inside a Sentry hook.
  */
 export function scrubUrl(url: string): string {
   if (typeof url !== "string" || url.length === 0) {
@@ -100,6 +102,11 @@ export function scrubUrl(url: string): string {
     // Use a dummy base so relative URLs (the common case in breadcrumbs) parse.
     const base = "http://scrub.local";
     const parsed = new URL(url, base);
+
+    // Drop basic-auth userinfo: short credentials (user:pass@host) evade the
+    // token-shape net.
+    parsed.username = "";
+    parsed.password = "";
 
     for (const [name, value] of parsed.searchParams.entries()) {
       parsed.searchParams.set(name, scrubParamValue(name, value));
