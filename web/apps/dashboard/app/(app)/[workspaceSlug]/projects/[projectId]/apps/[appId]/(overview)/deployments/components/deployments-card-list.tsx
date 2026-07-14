@@ -5,7 +5,7 @@ import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { BookBookmark } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { Button, Empty, ResourceListContent } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
 import { useDeployments } from "../hooks/use-deployments";
@@ -14,8 +14,8 @@ import { DeploymentsSkeleton } from "./deployments-skeleton";
 
 function ListHeader({ title, action }: { title: string; action?: ReactNode }) {
   return (
-    <div className="px-4 py-3 border-b border-grayA-4 flex items-center justify-between gap-2">
-      <h2 className="text-sm font-medium text-accent-12">{title}</h2>
+    <div className="flex items-center justify-between gap-2 border-grayA-4 border-b px-4 py-3">
+      <h2 className="font-medium text-accent-12 text-sm">{title}</h2>
       {action}
     </div>
   );
@@ -50,9 +50,9 @@ export function DeploymentsCardList({ limit, title, headerAction }: DeploymentsC
 
   if (data.length === 0) {
     return (
-      <div className="border border-grayA-4 rounded-lg overflow-hidden">
-        {title && <ListHeader title={title} action={headerAction} />}
-        <div className="w-full flex justify-center items-center py-16 px-4">
+      <ResourceListContent>
+        {title ? <ListHeader title={title} action={headerAction} /> : null}
+        <div className="flex w-full items-center justify-center px-4 py-16">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
             <Empty.Title>No Deployments Found</Empty.Title>
@@ -74,14 +74,14 @@ export function DeploymentsCardList({ limit, title, headerAction }: DeploymentsC
             </Empty.Actions>
           </Empty>
         </div>
-      </div>
+      </ResourceListContent>
     );
   }
 
   return (
-    <div className="border border-grayA-4 rounded-lg overflow-hidden">
-      {title && <ListHeader title={title} action={headerAction} />}
-      <div className="divide-y divide-grayA-4">
+    <ResourceListContent>
+      {title ? <ListHeader title={title} action={headerAction} /> : null}
+      <ul className="divide-y divide-grayA-4">
         {data.map(({ deployment, environment }) => {
           const isCurrent = currentDeploymentId === deployment.id;
           return (
@@ -100,7 +100,7 @@ export function DeploymentsCardList({ limit, title, headerAction }: DeploymentsC
             />
           );
         })}
-      </div>
-    </div>
+      </ul>
+    </ResourceListContent>
   );
 }

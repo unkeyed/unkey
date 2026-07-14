@@ -1,45 +1,62 @@
 "use client";
 
 import { Dots } from "@unkey/icons";
+import { ResourceListContent } from "@unkey/ui";
+
+const SKELETON_ROWS = [
+  "deployment-1",
+  "deployment-2",
+  "deployment-3",
+  "deployment-4",
+  "deployment-5",
+  "deployment-6",
+  "deployment-7",
+  "deployment-8",
+];
 
 export function DeploymentsSkeleton() {
   return (
-    <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
-      {Array.from({ length: 8 }).map((_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-        <div key={i} className="flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0">
-          {/* Identity + Status */}
-          <div className="flex items-center justify-between md:contents">
-            <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
-              <div className="h-[14px] w-20 bg-grayA-3 rounded-sm animate-pulse" />
-              <div className="h-3 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+    <ResourceListContent aria-busy="true">
+      <output className="sr-only">Loading deployments...</output>
+      <ul className="divide-y divide-grayA-4" aria-hidden="true">
+        {SKELETON_ROWS.map((row) => (
+          <li
+            key={row}
+            className="relative flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:gap-0"
+          >
+            {/* Identity + Status */}
+            <div className="flex items-center justify-between md:contents">
+              <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
+                <div className="h-[14px] w-20 bg-grayA-3 rounded-sm animate-pulse" />
+                <div className="h-3 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+              </div>
+              <div className="md:w-[20%] md:shrink-0">
+                <div className="h-5.5 w-20 bg-grayA-3 rounded-md animate-pulse" />
+              </div>
             </div>
-            <div className="md:w-[20%] md:shrink-0">
-              <div className="h-5.5 w-20 bg-grayA-3 rounded-md animate-pulse" />
-            </div>
-          </div>
 
-          {/* Source */}
-          <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
-              <div className="h-[14px] w-20 bg-grayA-3 rounded-sm animate-pulse" />
-              <div className="h-[14px] w-14 bg-grayA-3 rounded-sm animate-pulse" />
+            {/* Source */}
+            <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
+                <div className="h-[14px] w-20 bg-grayA-3 rounded-sm animate-pulse" />
+                <div className="h-[14px] w-14 bg-grayA-3 rounded-sm animate-pulse" />
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
+                <div className="h-3 w-32 bg-grayA-3 rounded-sm animate-pulse" />
+              </div>
             </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
-              <div className="h-3 w-32 bg-grayA-3 rounded-sm animate-pulse" />
-            </div>
-          </div>
 
-          {/* Meta */}
-          <div className="md:w-[30%] md:shrink-0 flex items-center md:justify-end gap-3">
-            <div className="h-[14px] w-12 bg-grayA-3 rounded-sm animate-pulse" />
-            <div className="size-5 bg-grayA-3 rounded-full animate-pulse" />
-            <Dots iconSize="sm-regular" className="text-gray-11 opacity-50" />
-          </div>
-        </div>
-      ))}
-    </div>
+            {/* Meta */}
+            <div className="md:w-[30%] md:shrink-0 flex items-center md:justify-end gap-3">
+              <div className="h-[14px] w-12 bg-grayA-3 rounded-sm animate-pulse" />
+              <div className="size-5 bg-grayA-3 rounded-full animate-pulse" />
+              <Dots iconSize="sm-regular" className="text-gray-11 opacity-50" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </ResourceListContent>
   );
 }
