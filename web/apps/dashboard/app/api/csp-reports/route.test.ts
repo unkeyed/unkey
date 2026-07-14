@@ -1,9 +1,11 @@
 import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getClientMock = vi.fn();
+const captureMessageMock = vi.fn();
 
 vi.mock("@sentry/nextjs", () => ({
   getClient: () => getClientMock(),
+  captureMessage: (message: string, level: string) => captureMessageMock(message, level),
 }));
 
 // The route defers the Sentry forward with after(); run the task immediately
@@ -28,11 +30,26 @@ const SENTRY_DSN = {
   projectId: "456",
 };
 
-function reportRequest(body: string): Request {
+function reportRequest(body: string, headers?: Record<string, string>): Request {
   return new Request("http://dashboard.test/api/csp-reports", {
     method: "POST",
-    headers: { "Content-Type": "application/csp-report" },
+    headers: headers ?? { "Content-Type": "application/csp-report" },
     body,
+  });
+}
+
+/**
+ * A report whose violation signature (directive + blocked origin) is unique to
+ * `index`, so a sequence of them exercises the global forward budget rather
+ * than the per-signature one.
+ */
+function distinctViolation(index: number): string {
+  return JSON.stringify({
+    "csp-report": {
+      "document-uri": "https://app.unkey.com/",
+      "effective-directive": "script-src",
+      "blocked-uri": `https://blocked-${index}.example/x.js`,
+    },
   });
 }
 
@@ -213,6 +230,44 @@ describe("POST /api/csp-reports", () => {
     expect(forwarded["document-uri"]).toContain("/join");
   });
 
+  it("strips userinfo credentials from non-http(s) URL fields", async () => {
+    const response = await post(
+      reportRequest(
+        JSON.stringify({
+          "csp-report": {
+            "blocked-uri": "wss://alice:hunter2@app.unkey.com/ws",
+          },
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(204);
+    const forwarded = forwardedReport(fetchMock);
+    expect(forwarded["blocked-uri"]).not.toContain("alice");
+    expect(forwarded["blocked-uri"]).not.toContain("hunter2");
+    expect(forwarded["blocked-uri"]).toBe("wss://app.unkey.com/ws");
+  });
+
+  it("strips userinfo credentials from https-prefixed values that fail URL parsing", async () => {
+    const response = await post(
+      reportRequest(
+        JSON.stringify({
+          "csp-report": {
+            // Space in the host makes new URL() throw, forcing the opaque
+            // fallback — credentials must not survive it either.
+            "document-uri": "https://alice:hunter2@exa mple.com/path",
+          },
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(204);
+    const forwarded = forwardedReport(fetchMock);
+    expect(forwarded["document-uri"]).not.toContain("alice");
+    expect(forwarded["document-uri"]).not.toContain("hunter2");
+    expect(forwarded["document-uri"]).toBe("https://exa mple.com/path");
+  });
+
   it("strips userinfo credentials from http(s) URL fields", async () => {
     const response = await post(
       reportRequest(
@@ -276,8 +331,11 @@ describe("POST /api/csp-reports", () => {
 
   it("drops non-finite numbers and truncates oversized string fields", async () => {
     // Raw JSON so the wire payload carries 1e999 — JSON.parse turns it into
-    // Infinity, which must not pass the number allowlist.
-    const body = `{"csp-report":{"document-uri":"https://app.unkey.com/","status-code":1e999,"violated-directive":"${"x".repeat(10_000)}"}}`;
+    // Infinity, which must not pass the number allowlist. The padding is
+    // "x." repeated so no 20+ char run is token-shaped: this asserts the
+    // length cap itself, not the redaction that would otherwise collapse it.
+    const padding = "x.".repeat(5_000);
+    const body = `{"csp-report":{"document-uri":"https://app.unkey.com/","status-code":1e999,"violated-directive":"${padding}"}}`;
     const response = await post(reportRequest(body));
 
     expect(response.status).toBe(204);
@@ -288,6 +346,115 @@ describe("POST /api/csp-reports", () => {
       throw new Error("expected violated-directive to be forwarded as a string");
     }
     expect(directive.length).toBe(2_048);
+  });
+
+  // Rejecting a content type a real browser sends is invisible — those users'
+  // violations silently never reach Sentry — so each browser's media type is
+  // pinned as its own case. The accepted types are all non-simple, which is
+  // what makes the check load-bearing: a cross-site no-cors flood can only set
+  // the simple types below, and this route answers no CORS preflight.
+  it.each([
+    { contentType: "application/csp-report", sender: "Chrome/Firefox report-uri" },
+    { contentType: "application/csp-report; charset=utf-8", sender: "report-uri with a parameter" },
+    { contentType: "application/json", sender: "WebKit/Safari report-uri" },
+  ])("forwards reports sent as $contentType ($sender)", async ({ contentType }) => {
+    const body = JSON.stringify({ "csp-report": { "document-uri": "http://x.test/" } });
+
+    const response = await post(reportRequest(body, { "Content-Type": contentType }));
+
+    expect(response.status).toBe(204);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { contentType: "application/x-www-form-urlencoded" },
+    { contentType: "text/plain" },
+    { contentType: "multipart/form-data" },
+  ])("rejects $contentType, which no browser uses for reports", async ({ contentType }) => {
+    const body = JSON.stringify({ "csp-report": { "document-uri": "http://x.test/" } });
+
+    const response = await post(reportRequest(body, { "Content-Type": contentType }));
+
+    expect(response.status).toBe(415);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The Reporting API (`report-to`) is not configured, and its payload is an
+   * array of `{type, body}` envelopes that the parser here cannot read. Pin the
+   * rejection so nobody mistakes the media type for working support: enabling
+   * report-to means teaching the parser that shape, not just widening the
+   * content-type gate.
+   */
+  it("rejects Reporting API payloads, which it does not know how to parse", async () => {
+    const reportToBody = JSON.stringify([
+      {
+        type: "csp-violation",
+        body: { documentURL: "https://app.unkey.com/", effectiveDirective: "script-src" },
+      },
+    ]);
+
+    const response = await post(
+      reportRequest(reportToBody, { "Content-Type": "application/reports+json" }),
+    );
+
+    expect(response.status).toBe(415);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects cross-site requests by Fetch Metadata", async () => {
+    const response = await post(
+      reportRequest(JSON.stringify({ "csp-report": { "document-uri": "http://x.test/" } }), {
+        "Content-Type": "application/csp-report",
+        "Sec-Fetch-Site": "cross-site",
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // A genuine report POST can carry any of these — "none" when there is no
+  // document initiator, "same-site" when the violating page is on a sibling
+  // subdomain — and older browsers send no Fetch Metadata at all (covered by
+  // every other test here, which omits the header). Dropping any of them would
+  // make the rollout silently blind for those users.
+  it.each([{ site: "same-origin" }, { site: "same-site" }, { site: "none" }])(
+    "forwards reports labelled Sec-Fetch-Site: $site",
+    async ({ site }) => {
+      const response = await post(
+        reportRequest(JSON.stringify({ "csp-report": { "document-uri": "http://x.test/" } }), {
+          "Content-Type": "application/csp-report",
+          "Sec-Fetch-Site": site,
+        }),
+      );
+
+      expect(response.status).toBe(204);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("redacts token-shaped secrets from non-URL string fields", async () => {
+    const nonce = "abcdefghijklmnopqrstuvwx123";
+    const response = await post(
+      reportRequest(
+        JSON.stringify({
+          "csp-report": {
+            "document-uri": "https://app.unkey.com/",
+            "original-policy": `script-src 'nonce-${nonce}'; report-uri /api/csp-reports`,
+          },
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(204);
+    const forwarded = forwardedReport(fetchMock);
+    const policy = forwarded["original-policy"];
+    if (typeof policy !== "string") {
+      throw new Error("expected original-policy to be forwarded as a string");
+    }
+    expect(policy).not.toContain(nonce);
+    expect(policy).toContain("script-src");
   });
 
   it("rejects bodies that are not csp-report objects", async () => {
@@ -341,15 +508,14 @@ describe("POST /api/csp-reports", () => {
     expect(response.status).toBe(204);
   });
 
-  it("stops forwarding after the per-window rate limit", async () => {
-    const body = JSON.stringify({ "csp-report": { "document-uri": "http://x.test/" } });
+  it("stops forwarding after the global per-window rate limit", async () => {
     for (let i = 0; i < 60; i++) {
-      const response = await post(reportRequest(body));
+      const response = await post(reportRequest(distinctViolation(i)));
       expect(response.status).toBe(204);
     }
     expect(fetchMock).toHaveBeenCalledTimes(60);
 
-    const throttled = await post(reportRequest(body));
+    const throttled = await post(reportRequest(distinctViolation(60)));
     expect(throttled.status).toBe(204);
     expect(fetchMock).toHaveBeenCalledTimes(60);
   });
@@ -358,15 +524,13 @@ describe("POST /api/csp-reports", () => {
     // Fake only Date so async promise plumbing keeps running on real timers.
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
-      const body = JSON.stringify({ "csp-report": { "document-uri": "http://x.test/" } });
-
       vi.setSystemTime(0);
       for (let i = 0; i < 30; i++) {
-        await post(reportRequest(body));
+        await post(reportRequest(distinctViolation(i)));
       }
       vi.setSystemTime(50_000);
-      for (let i = 0; i < 30; i++) {
-        await post(reportRequest(body));
+      for (let i = 30; i < 60; i++) {
+        await post(reportRequest(distinctViolation(i)));
       }
       expect(fetchMock).toHaveBeenCalledTimes(60);
 
@@ -375,12 +539,100 @@ describe("POST /api/csp-reports", () => {
       // resets to zero at t=60s would allow 60 here — 90 forwards within
       // the span [50s, 62s].
       vi.setSystemTime(62_000);
-      for (let i = 0; i < 31; i++) {
-        await post(reportRequest(body));
+      for (let i = 60; i < 91; i++) {
+        await post(reportRequest(distinctViolation(i)));
       }
       expect(fetchMock).toHaveBeenCalledTimes(90);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  /**
+   * The rollout-critical guarantee: one page repeating a single violation must
+   * not spend the global budget and bury the rare violation that would break
+   * users once the report-only policy is enforced.
+   */
+  it("keeps one repeated violation from starving a distinct rare one", async () => {
+    const noisy = JSON.stringify({
+      "csp-report": {
+        "document-uri": "https://app.unkey.com/apis",
+        "effective-directive": "script-src",
+        "blocked-uri": "https://noisy.example/analytics.js",
+      },
+    });
+
+    // Far more than the global budget, all one violation.
+    for (let i = 0; i < 200; i++) {
+      expect((await post(reportRequest(noisy))).status).toBe(204);
+    }
+    // Capped at the per-signature limit, so the global budget is barely touched.
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+
+    const rare = JSON.stringify({
+      "csp-report": {
+        "document-uri": "https://app.unkey.com/settings",
+        "effective-directive": "connect-src",
+        "blocked-uri": "https://rare.example/api",
+      },
+    });
+    await post(reportRequest(rare));
+
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    const [, init] = fetchMock.mock.calls[5];
+    expect(String(init?.body)).toContain("rare.example");
+  });
+
+  it("collapses one violation reported from many paths on the same origin", async () => {
+    for (let i = 0; i < 20; i++) {
+      const body = JSON.stringify({
+        "csp-report": {
+          "document-uri": "https://app.unkey.com/apis",
+          "effective-directive": "script-src",
+          // Same origin, different path: one violation to fix, not twenty.
+          "blocked-uri": `https://cdn.example/bundle-${i}.js`,
+        },
+      });
+      await post(reportRequest(body));
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+  });
+
+  /**
+   * A dropped report is answered 204 exactly like a forwarded one, so without
+   * this alarm a saturated limiter is indistinguishable from a clean policy —
+   * and "the report stream is quiet" is what promotes the policy to enforced.
+   */
+  it("reports global-budget saturation to Sentry, at most once per window", async () => {
+    for (let i = 0; i < 60; i++) {
+      await post(reportRequest(distinctViolation(i)));
+    }
+    expect(captureMessageMock).not.toHaveBeenCalled();
+
+    for (let i = 60; i < 70; i++) {
+      await post(reportRequest(distinctViolation(i)));
+    }
+
+    expect(captureMessageMock).toHaveBeenCalledTimes(1);
+    const [message, level] = captureMessageMock.mock.calls[0];
+    expect(message).toContain("saturated");
+    expect(level).toBe("warning");
+  });
+
+  it("does not alarm on per-signature deduplication, which is not lost signal", async () => {
+    const body = JSON.stringify({
+      "csp-report": {
+        "document-uri": "https://app.unkey.com/apis",
+        "effective-directive": "script-src",
+        "blocked-uri": "https://noisy.example/a.js",
+      },
+    });
+    for (let i = 0; i < 50; i++) {
+      await post(reportRequest(body));
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(captureMessageMock).not.toHaveBeenCalled();
   });
 });

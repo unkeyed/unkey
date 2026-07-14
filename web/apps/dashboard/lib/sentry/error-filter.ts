@@ -16,7 +16,7 @@ import {
 } from "../logging/structured-logger";
 import type { Router } from "../trpc/routers";
 import { classifyError } from "../utils/error-classification";
-import { isSensitiveKey, redactTokenLike, scrubEventPii } from "./pii-scrubber";
+import { REDACTED, isSensitiveKey, redactTokenLike, scrubEventPii } from "./pii-scrubber";
 
 /**
  * Type definitions for Sentry event processing
@@ -61,8 +61,6 @@ type ShareProcedurePath = `share.${Extract<keyof Router["share"]["_def"]["record
 const CREDENTIAL_INPUT_PROCEDURES: ReadonlySet<string> = new Set<ShareProcedurePath>([
   "share.reveal",
 ]);
-
-const REDACTED = "[REDACTED]";
 
 /**
  * Recursively replaces the values of sensitive keys with a redaction marker.

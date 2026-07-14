@@ -1,4 +1,7 @@
 const isDev = process.env.NODE_ENV === "development";
+// Not `!isDev`: NODE_ENV is also "test", which is neither, and HSTS must only
+// ever be sent by a real production build.
+const isProd = process.env.NODE_ENV === "production";
 
 // The Vercel toolbar is injected on preview deployments and rendered manually
 // in development (app/layout.tsx); production never loads it, so production
@@ -101,7 +104,7 @@ const securityHeaders = [
   // includeSubDomains pins every subdomain of the deployment host to https
   // for the max-age — remove it if plain-http services live under the
   // dashboard's hostname.
-  ...(process.env.NODE_ENV === "production"
+  ...(isProd
     ? [
         {
           key: "Strict-Transport-Security",
