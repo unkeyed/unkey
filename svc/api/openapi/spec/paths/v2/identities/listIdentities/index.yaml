@@ -8,7 +8,7 @@ post:
     Perfect for building management dashboards, auditing configurations, or browsing your identities.
 
     > **Important**
-    > Requires `identity.*.read_identity` or `unkey:v1:<workspaceId>:projects/*/identities/*#read_identity` permission
+    > Requires `identity.*.read_identity` permission
   operationId: identities.listIdentities
   x-speakeasy-name-override: listIdentities
   security:

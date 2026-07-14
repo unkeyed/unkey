@@ -8,7 +8,7 @@ post:
     Use this for data cleanup, compliance requirements, or when removing entities from your system.
 
     > **Important**
-    > Requires `identity.*.delete_identity` or `unkey:v1:<workspaceId>:projects/*/identities/*#delete_identity` permission
+    > Requires `identity.*.delete_identity` permission
     > Associated API keys remain functional but lose shared resources
     > External ID becomes available for reuse immediately
   operationId: identities.deleteIdentity

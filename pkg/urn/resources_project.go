@@ -17,6 +17,12 @@ type Project struct {
 	path        string
 }
 
+// ProjectIdentity is an identity resource path beneath a project.
+type ProjectIdentity struct {
+	workspaceID string
+	path        string
+}
+
 // String returns this project resource path.
 //
 // Subresource:
@@ -38,8 +44,13 @@ func (p Project) App(appID string) App {
 }
 
 // Identity returns an identity resource path.
-func (p Project) Identity(identityID string) Identity {
-	return Identity{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/identities/%s", p.path, identityID)}
+func (p Project) Identity(identityID string) ProjectIdentity {
+	return ProjectIdentity{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/identities/%s", p.path, identityID)}
+}
+
+// String returns this project identity resource path.
+func (i ProjectIdentity) String() string {
+	return V1{WorkspaceID: i.workspaceID, Resource: i.path}.String()
 }
 
 // Any returns a descendant pattern below this project.

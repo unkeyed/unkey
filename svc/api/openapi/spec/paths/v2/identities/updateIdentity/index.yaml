@@ -8,7 +8,7 @@ post:
     Perfect for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
 
     > **Important**
-    > Requires `identity.*.update_identity` or `unkey:v1:<workspaceId>:projects/*/identities/*#update_identity` permission
+    > Requires `identity.*.update_identity` permission
     > Rate limit changes propagate within 30 seconds
   operationId: identities.updateIdentity
   x-speakeasy-name-override: updateIdentity
