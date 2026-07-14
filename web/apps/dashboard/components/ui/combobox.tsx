@@ -15,7 +15,7 @@ import { cva } from "class-variance-authority";
 import * as React from "react";
 
 const comboboxTriggerVariants = cva(
-  "flex h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 items-center justify-between",
+  "flex w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 justify-between",
   {
     variants: {
       variant: {
@@ -139,6 +139,8 @@ export function Combobox({
     return !effectiveOptions.some((o) => o.value === search.trim());
   }, [creatable, search, effectiveOptions]);
 
+  const isMultiSelect = !closeOnSelect;
+
   return (
     <Popover
       open={open}
@@ -171,10 +173,11 @@ export function Combobox({
               aria-required={ariaRequired}
               className={cn(
                 comboboxTriggerVariants({ variant }),
-                "px-3 py-0",
+                isMultiSelect ? "min-h-9 h-auto items-start py-1.5 whitespace-normal" : "h-9 items-center py-0",
+                "px-3",
                 leftIcon && "pl-9",
                 !hideChevron && "pr-9", // Space for the chevron icon when visible
-                "justify-between font-normal w-full [&_svg]:size-3",
+                "font-normal w-full [&_svg]:size-3",
                 className,
               )}
               {...otherProps}
@@ -189,7 +192,10 @@ export function Combobox({
                 <div className="text-left w-full">{placeholder}</div>
               )}
               {!hideChevron && (
-                <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />
+                <ChevronExpandY
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  iconSize="sm-regular"
+                />
               )}
             </Button>
           }
