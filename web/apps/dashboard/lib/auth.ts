@@ -1,3 +1,4 @@
+import { switchOrg } from "@/app/auth/actions";
 import { getAuth as getBaseAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
 import type { AuthenticatedUser } from "@/lib/auth/types";
@@ -86,32 +87,31 @@ export async function getCurrentUser(): Promise<AuthenticatedUser> {
  * @returns Promise that resolves when the invitation is accepted and org is switched
  * @throws Error if invitation acceptance or org switching fails
  */
-export async function acceptInvitationAndSwitchOrg(
+async function acceptInvitationAndSwitchOrg(
   invitationId: string,
   organizationId: string,
 ): Promise<void> {
-  try {
-    // Verify we have a valid session before proceeding
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      throw new Error("User not authenticated - cannot accept invitation");
-    }
+  // acceptInvitation is a session-independent API-key call that irreversibly
+  // consumes the invitation, so repair-or-reject the session first: the
+  // request-less getBaseAuth performs a real refresh when needed (writing the
+  // new cookie via cookies().set, which the switchOrg call below then reads)
+  // and reports a null userId when the session cannot be made usable —
+  // failing here leaves the invitation pending and retryable. (The
+  // redirecting getCurrentUser/getAuth helpers must not be used here:
+  // callers' catch blocks would swallow the thrown NEXT_REDIRECT.)
+  const { userId } = await getBaseAuth();
+  if (!userId) {
+    throw new Error("No valid session - cannot accept invitation");
+  }
 
-    // Accept the invitation first
-    await auth.acceptInvitation(invitationId);
+  // Accept the invitation first
+  await auth.acceptInvitation(invitationId);
 
-    // Then switch to the organization
-    const { switchOrg } = await import("@/app/auth/actions");
-    const result = await switchOrg(organizationId);
+  // Then switch to the organization
+  const result = await switchOrg(organizationId);
 
-    if (!result.success) {
-      throw new Error(result.error || "Failed to switch organization");
-    }
-  } catch (error) {
-    console.error("Failed to accept invitation and switch org:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-    throw error;
+  if (!result.success) {
+    throw new Error(result.error || "Failed to switch organization");
   }
 }
 

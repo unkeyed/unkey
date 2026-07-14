@@ -433,42 +433,6 @@ export async function switchOrg(orgId: string): Promise<{ success: boolean; erro
 }
 
 /**
- * Accept an invitation and switch to the organization in one secure server action
- * This replaces the inline HTML approach with proper server-side cookie handling
- */
-export async function acceptInvitationAndJoin(
-  invitationId: string,
-  organizationId: string,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Accept invitation first
-    await auth.acceptInvitation(invitationId);
-
-    // Switch organization and get the new session token
-    const { newToken, expiresAt } = await auth.switchOrg(organizationId);
-
-    if (!newToken || !expiresAt) {
-      throw new Error("Invalid session data returned from auth provider");
-    }
-
-    // Set the session cookie securely on the server side
-    await setSessionCookie({ token: newToken, expiresAt });
-    try {
-      await setLastUsedOrgCookie({ orgId: organizationId });
-    } catch (_error) {
-      // Ignore cookie setting errors
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to join organization",
-    };
-  }
-}
-
-/**
  * Returns the type of in-flight auth challenge (MFA or Radar), if any. The
  * challenge cookies are HttpOnly, so the client uses this to decide which
  * challenge UI to render.
