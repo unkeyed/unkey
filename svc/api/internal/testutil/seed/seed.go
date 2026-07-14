@@ -716,7 +716,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		GitCommitTimestamp:            sql.NullInt64{Int64: req.GitCommitTimestamp, Valid: req.GitCommitTimestamp != 0},
 		EncryptedEnvironmentVariables: []byte{},
 		Command:                       nil,
-		Status:                        db.DeploymentsStatusPending,
+		Status:                        status,
 		CpuMillicores:                 250,
 		MemoryMib:                     128,
 		StorageMib:                    0,
