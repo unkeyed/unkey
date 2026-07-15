@@ -21,8 +21,11 @@ region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
-ctrl_addr = "${UNKEY_CTRL_ADDR}"
 prometheus_port = 9090
+
+[control]
+url = "${UNKEY_CONTROL_URL}"
+token = "${UNKEY_CONTROL_TOKEN}"
 
 [database]
 primary = "${UNKEY_DATABASE_PRIMARY}"
@@ -61,8 +64,16 @@ token = "${UNKEY_VAULT_TOKEN}"
   Maximum number of routing hops.
 </ResponseField>
 
-<ResponseField name="ctrl_addr" type="string" default="localhost:8080">
-  Control API address.
+<ResponseField name="control" type="object" required>
+  Control API connection settings.
+  <Expandable title="Fields">
+    <ResponseField name="control.url" type="string" required>
+      Control API address.
+    </ResponseField>
+    <ResponseField name="control.token" type="string" required>
+      Preshared bearer token for authenticated Control API requests.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 <ResponseField name="prometheus_port" type="int">
@@ -181,8 +192,12 @@ The Helm chart provides these variables for the default config template:
   Apex domain for routing.
 </ResponseField>
 
-<ResponseField name="UNKEY_CTRL_ADDR" type="env">
+<ResponseField name="UNKEY_CONTROL_URL" type="env" required>
   Control API address.
+</ResponseField>
+
+<ResponseField name="UNKEY_CONTROL_TOKEN" type="env" required>
+  Preshared bearer token for authenticated Control API requests.
 </ResponseField>
 
 <ResponseField name="UNKEY_VAULT_URL" type="env">
@@ -219,9 +234,12 @@ region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
-ctrl_addr = "${UNKEY_CTRL_ADDR}"
 prometheus_port = 9090
 request_timeout = "15m"
+
+[control]
+url = "${UNKEY_CONTROL_URL}"
+token = "${UNKEY_CONTROL_TOKEN}"
 
 [database]
 primary = "${UNKEY_DATABASE_PRIMARY}"

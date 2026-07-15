@@ -89,7 +89,14 @@ export const Client: React.FC = () => {
       ["active", "trialing", "past_due"].includes(subscription.status),
   );
   const isFreeTier = !hasPaidSubscription;
-  const allowCancel = subscription && subscription.status === "active" && !subscription.cancelAt;
+  // Cancelling here means the API plan, so it also needs an API product on the
+  // subscription — a Compute-only subscription has nothing to cancel on this
+  // page (Compute cancels from its own card).
+  const allowCancel =
+    subscription &&
+    subscription.status === "active" &&
+    !subscription.cancelAt &&
+    Boolean(currentProductId);
   const currentProduct = hasPaidSubscription
     ? products.find((p) => p.id === currentProductId)
     : undefined;

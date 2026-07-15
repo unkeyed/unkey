@@ -10,7 +10,6 @@ import "fmt"
 //	├── team
 //	├── billing
 //	├── keyspaces/{keyspace_id}
-//	├── identities/{identity_id}
 //	├── ratelimits/namespaces/{namespace_id}
 //	├── rbac
 //	├── projects/{project_id}
@@ -48,11 +47,6 @@ func (w workspace) Keyspace(keyspaceID string) Keyspace {
 	return Keyspace{workspaceID: w.workspaceID, path: fmt.Sprintf("keyspaces/%s", keyspaceID)}
 }
 
-// Identity returns an identity resource path.
-func (w workspace) Identity(identityID string) V1 {
-	return w.v1(fmt.Sprintf("identities/%s", identityID))
-}
-
 // RatelimitNamespace returns builders for rate limit namespace resource paths.
 //
 // Subresource:
@@ -81,12 +75,4 @@ func (w workspace) Project(projectID string) Project {
 //	└── portals/{portal_id}
 func (w workspace) Portal(portalID string) Portal {
 	return Portal{workspaceID: w.workspaceID, path: fmt.Sprintf("portals/%s", portalID)}
-}
-
-// v1 wraps a resource path in a [V1] for this workspace.
-func (w workspace) v1(path string) V1 {
-	return V1{
-		WorkspaceID: w.workspaceID,
-		Resource:    path,
-	}
 }

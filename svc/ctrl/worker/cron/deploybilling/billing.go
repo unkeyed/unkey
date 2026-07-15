@@ -10,6 +10,7 @@ import (
 // UsageReader is the one ClickHouse query the handler needs.
 type UsageReader interface {
 	GetInstanceMeterUsage(ctx context.Context, req clickhouse.GetInstanceMeterUsageRequest) ([]clickhouse.InstanceMeterUsage, error)
+	GetActiveKeysUsage(ctx context.Context, req clickhouse.GetActiveKeysUsageRequest) ([]clickhouse.ActiveKeysUsage, error)
 }
 
 const (
@@ -47,7 +48,23 @@ func aggregateUsage(rows []clickhouse.InstanceMeterUsage) map[string]billingmete
 			MemoryGiBSeconds: a.memoryGiBHours * secondsPerHour,
 			EgressGiB:        float64(a.egressBytes) / bytesPerGiB,
 			DiskGiBSeconds:   a.diskGiBHours * secondsPerHour,
+			ActiveKeys:       0, // merged in from the active-keys query below
 		}
 	}
 	return out
+}
+
+// mergeActiveKeys folds the per-workspace active-key counts into the meter
+// values, adding entries for workspaces that have key activity but no
+// instance usage (possible: a deployment can be scaled to zero while its
+// keys keep verifying through the gateway).
+func mergeActiveKeys(
+	values map[string]billingmeter.MeterValues,
+	rows []clickhouse.ActiveKeysUsage,
+) {
+	for _, r := range rows {
+		v := values[r.WorkspaceID] // zero value when instance usage is absent
+		v.ActiveKeys = r.ActiveKeys
+		values[r.WorkspaceID] = v
+	}
 }

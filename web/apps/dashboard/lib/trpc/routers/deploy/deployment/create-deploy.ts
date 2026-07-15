@@ -1,6 +1,6 @@
-import { insertAuditLogs } from "@/lib/audit";
 import { createCtrlClient } from "@/lib/ctrl-client";
 
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
 import { DeployService, DeploymentTrigger } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { and, db, eq } from "@/lib/db";
@@ -110,6 +110,12 @@ export const createDeploy = workspaceProcedure
           environmentSlug: input.environmentSlug,
           trigger: DeploymentTrigger.DASHBOARD,
           triggeredBy: ctx.user.id,
+          actor: {
+            id: ctx.user.id,
+            type: ActorType.USER,
+            remoteIp: ctx.audit.location,
+            userAgent: ctx.audit.userAgent ?? "",
+          },
           ...(gitCommit ? { gitCommit } : {}),
           ...(input.source === "image" ? { dockerImage: input.image } : {}),
         })
@@ -120,21 +126,6 @@ export const createDeploy = workspaceProcedure
             message: err,
           });
         });
-
-      await insertAuditLogs(db, {
-        workspaceId: ctx.workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "deployment.create",
-        description: `Triggered initial deployment for ${project.name}`,
-        resources: [
-          {
-            type: "deployment",
-            id: result.deploymentId,
-            name: project.name,
-          },
-        ],
-        context: ctx.audit,
-      });
 
       return { deploymentId: result.deploymentId };
     } catch (error) {

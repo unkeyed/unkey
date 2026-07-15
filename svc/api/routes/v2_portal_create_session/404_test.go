@@ -42,7 +42,9 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.NotNil(t, res.Body)
+	require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, req.Slug)
+	require.NotContains(t, res.RawBody, req.ExternalId)
 }
 
 func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
@@ -89,5 +91,7 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.NotNil(t, res.Body)
+	require.Equal(t, "Portal configuration not found.", res.Body.Error.Detail)
+	require.NotContains(t, res.RawBody, portalConfigID)
+	require.NotContains(t, res.RawBody, workspaceA)
 }

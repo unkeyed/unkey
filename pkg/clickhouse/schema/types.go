@@ -26,14 +26,9 @@ type KeyVerification struct {
 	ExternalID  string `ch:"external_id" json:"external_id"`
 	KeyID       string `ch:"key_id" json:"key_id"`
 	Region      string `ch:"region" json:"region"`
-	// Source is temporarily excluded from ClickHouse inserts (ch:"-"): the
-	// 20260612000000 migration ran before every writer binary knew the
-	// column, and binaries predating it dropped every verification batch
-	// ("missing destination name"). Excluding the column makes inserts work
-	// against both migrated and unmigrated tables; omitted values fall back
-	// to the column DEFAULT 'api'. To re-enable, restore ch:"source" once
-	// the column exists in every environment this binary writes to.
-	Source       string   `ch:"-" json:"source"`
+	// Source distinguishes verification origin (e.g. api vs gateway). Column
+	// DEFAULTs to 'api' for rows written before it existed.
+	Source       string   `ch:"source" json:"source"`
 	Outcome      string   `ch:"outcome" json:"outcome"`
 	Tags         []string `ch:"tags" json:"tags"`
 	SpentCredits int64    `ch:"spent_credits" json:"spent_credits"`

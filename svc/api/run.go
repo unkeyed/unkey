@@ -321,6 +321,7 @@ func Run(ctx context.Context, cfg Config) error {
 	portalSvc := portal.New(portal.Config{
 		DB:           database,
 		SessionCache: caches.PortalSession,
+		Clock:        cfg.Clock,
 	})
 
 	// JWT resolvers hit this lookup on every authenticated request, so the

@@ -120,3 +120,5 @@ formatters:
       - builtin$
       - examples$
       - \.claude/
+run:
+  allow-parallel-runners: true

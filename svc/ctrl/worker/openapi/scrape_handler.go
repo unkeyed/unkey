@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+const maxOpenAPISpecBytes = 10 * 1024 * 1024
+
+var errOpenAPISpecTooLarge = errors.New("openapi spec exceeds maximum size")
 
 // ScrapeSpec fetches the OpenAPI spec from a running deployment and persists it
 // in the database. It uses the deployment's runtime settings to locate the spec
@@ -128,20 +133,26 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 			return nil, fmt.Errorf("fetching openapi spec: %w", doErr)
 		}
 
-		body, readErr := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusNotFound {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				return nil, fmt.Errorf("closing openapi response body: %w", closeErr)
+			}
+			return nil, nil
+		}
+		if resp.StatusCode != http.StatusOK {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				return nil, fmt.Errorf("closing openapi response body: %w", closeErr)
+			}
+			return nil, fmt.Errorf("unexpected status %d from %q endpoint", resp.StatusCode, specURL)
+		}
+
+		body, readErr := readOpenAPISpecBody(resp.Body)
 		closeErr := resp.Body.Close()
 		if readErr != nil {
 			return nil, fmt.Errorf("reading openapi response body: %w", readErr)
 		}
 		if closeErr != nil {
 			return nil, fmt.Errorf("closing openapi response body: %w", closeErr)
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, nil
-		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("unexpected status %d from %q endpoint", resp.StatusCode, specURL)
 		}
 
 		return body, nil
@@ -172,6 +183,21 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 
 	logger.Info("openapi spec scraped and persisted", "deployment_id", deploymentID)
 	return &hydrav1.ScrapeSpecResponse{}, nil
+}
+
+// readOpenAPISpecBody caps the response reader before buffering it. Reading one
+// byte past the limit lets us distinguish an exactly-max-sized spec from an
+// oversized one without loading the full tenant-controlled response.
+func readOpenAPISpecBody(body io.Reader) ([]byte, error) {
+	cappedBody := io.LimitReader(body, maxOpenAPISpecBytes+1)
+	spec, err := io.ReadAll(cappedBody)
+	if err != nil {
+		return nil, err
+	}
+	if len(spec) > maxOpenAPISpecBytes {
+		return nil, errOpenAPISpecTooLarge
+	}
+	return spec, nil
 }
 
 // validateSpecPath checks that path is a clean, absolute path suitable for resolving

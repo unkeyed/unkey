@@ -1,5 +1,5 @@
+import { ActorType } from "@/gen/proto/ctrl/v1/actor_pb";
 import { DeployService, DeploymentTrigger } from "@/gen/proto/ctrl/v1/deployment_pb";
-import { insertAuditLogs } from "@/lib/audit";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -62,6 +62,12 @@ export const redeploy = workspaceProcedure
           environmentSlug: deployment.environment?.slug ?? "",
           trigger: DeploymentTrigger.DASHBOARD,
           triggeredBy: ctx.user.id,
+          actor: {
+            id: ctx.user.id,
+            type: ActorType.USER,
+            remoteIp: ctx.audit.location,
+            userAgent: ctx.audit.userAgent ?? "",
+          },
           ...(isGitSourced
             ? {
                 gitCommit: {
@@ -82,21 +88,6 @@ export const redeploy = workspaceProcedure
             message: err,
           });
         });
-
-      await insertAuditLogs(db, {
-        workspaceId: ctx.workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "deployment.redeploy",
-        description: `Triggered redeploy for ${deployment.project.name} (deployment ${deployment.id})`,
-        resources: [
-          {
-            type: "deployment",
-            id: input.deploymentId,
-            name: deployment.project.name,
-          },
-        ],
-        context: ctx.audit,
-      });
 
       return { deploymentId: result.deploymentId };
     } catch (error) {

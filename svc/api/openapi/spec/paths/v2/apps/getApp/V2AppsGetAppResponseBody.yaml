@@ -20,7 +20,7 @@ examples:
         name: Payments API
         slug: payments-api
         defaultBranch: main
-        currentDeploymentId: dep_1234abcd
+        currentDeploymentId: d_1234abcd
         isRolledBack: false
         deleteProtection: false
         createdAt: 1704067200000

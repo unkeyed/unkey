@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -114,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	hasBuild := req.Dockerfile.IsSpecified() || req.RootDirectory != nil ||
 		req.BuildCommand.IsSpecified() || req.WatchPaths != nil || req.AutoDeploy != nil
-	hasRuntime := req.Port != nil || req.CpuMillicores != nil || req.MemoryMib != nil ||
+	hasRuntime := req.Port != nil || req.VCpus != nil || req.MemoryMib != nil ||
 		req.StorageMib != nil || req.Command != nil || req.Healthcheck.IsSpecified() ||
 		req.ShutdownSignal != nil || req.UpstreamProtocol != nil || req.OpenapiSpecPath.IsSpecified()
 
@@ -299,9 +300,9 @@ func (h *Handler) applyRuntimeSettings(ctx context.Context, tx db.DBTX, workspac
 		params.PortSpecified = 1
 		params.Port = int32(*req.Port)
 	}
-	if req.CpuMillicores != nil {
+	if req.VCpus != nil {
 		params.CpuMillicoresSpecified = 1
-		params.CpuMillicores = int32(*req.CpuMillicores)
+		params.CpuMillicores = int32(math.Round(*req.VCpus * 1000))
 	}
 	if req.MemoryMib != nil {
 		params.MemoryMibSpecified = 1
@@ -373,8 +374,8 @@ func (h *Handler) validateResourceQuota(ctx context.Context, workspaceID string,
 	maxMemory := quota.MaxMemoryMibPerInstance
 	maxStorage := quota.MaxStorageMibPerInstance
 
-	if req.CpuMillicores != nil && *req.CpuMillicores > int(maxCPU) {
-		return quotaExceeded(fmt.Sprintf("CPU per instance cannot exceed %d millicores. Contact support@unkey.com to increase it.", maxCPU))
+	if req.VCpus != nil && int(math.Round(*req.VCpus*1000)) > int(maxCPU) {
+		return quotaExceeded(fmt.Sprintf("CPU per instance cannot exceed %g vCPU. Contact support@unkey.com to increase it.", float64(maxCPU)/1000))
 	}
 	if req.MemoryMib != nil && *req.MemoryMib > int(maxMemory) {
 		return quotaExceeded(fmt.Sprintf("Memory per instance cannot exceed %d MiB. Contact support@unkey.com to increase it.", maxMemory))
