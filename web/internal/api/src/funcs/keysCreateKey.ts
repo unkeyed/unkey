@@ -43,11 +43,12 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- * Your credential needs one of:
+ * Your credential needs one create permission:
  * - `api.*.create_key` (create keys in any API)
  * - `api.<api_id>.create_key` (create keys in specific API)
- * - `unkey:v1:<workspace_id>:keyspaces/*#create_key` (create keys in any keyspace)
- * - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>#create_key` (create keys in a specific keyspace)
+ *
+ * Recoverable keys also need one encrypt permission:
+ * - `api.*.encrypt_key` or `api.<api_id>.encrypt_key`
  */
 export function keysCreateKey(
   client: UnkeyCore,

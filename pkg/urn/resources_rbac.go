@@ -6,7 +6,7 @@ import "fmt"
 //
 // Hierarchy:
 //
-//	workspace
+//	projects/{project_id}
 //	└── rbac
 type rbac struct {
 	workspaceID string

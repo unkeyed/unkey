@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.ReadKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			urn.New().Workspace(principal.WorkspaceID).Project("*").Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
 			permissions.ReadKey{},
 		),
 	))

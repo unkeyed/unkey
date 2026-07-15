@@ -84,8 +84,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyReadChecks := make([]rbac.PermissionQuery, 0, len(keyspaceIDs))
 	for _, ks := range keyspaceIDs {
 		keyReadChecks = append(keyReadChecks, rbac.And(
-			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(ks).Key("*"), permissions.ReadKey{}),
-			rbac.U(urn.New().Workspace(principal.WorkspaceID).Keyspace(ks), permissions.ReadKeyspace{}),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Project("*").Keyspace(ks).Key("*"), permissions.ReadKey{}),
+			rbac.U(urn.New().Workspace(principal.WorkspaceID).Project("*").Keyspace(ks), permissions.ReadKeyspace{}),
 		))
 	}
 	if err := principal.Authorize(rbac.And(keyReadChecks...)); err != nil {

@@ -137,7 +137,7 @@ func (h *Handler) RerollKey(ctx context.Context, s *zen.Session, req Request, ke
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID),
+			urn.New().Workspace(principal.WorkspaceID).Project("*").Keyspace(key.KeyAuthID),
 			permissions.CreateKey{},
 		),
 	)
@@ -157,7 +157,7 @@ func (h *Handler) RerollKey(ctx context.Context, s *zen.Session, req Request, ke
 					Action:       rbac.EncryptKey,
 				}),
 				rbac.U(
-					urn.New().Workspace(principal.WorkspaceID).Keyspace(key.KeyAuthID).Key("*"),
+					urn.New().Workspace(principal.WorkspaceID).Project("*").Keyspace(key.KeyAuthID).Key("*"),
 					permissions.EncryptKey{},
 				),
 			),

@@ -99,15 +99,15 @@ func (g Grant) Expand() []string {
 			// on the keyspace itself.
 			for _, ks := range g.KeyspaceIDs {
 				granted = append(granted,
-					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Keyspace(ks).Key("*"), permissions.ReadKey{}),
-					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Keyspace(ks), permissions.ReadKeyspace{}),
+					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Project("*").Keyspace(ks).Key("*"), permissions.ReadKey{}),
+					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Project("*").Keyspace(ks), permissions.ReadKeyspace{}),
 				)
 			}
 
 		case CapKeysCreate:
 			for _, ks := range g.KeyspaceIDs {
 				granted = append(granted,
-					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Keyspace(ks), permissions.CreateKey{}),
+					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Project("*").Keyspace(ks), permissions.CreateKey{}),
 				)
 			}
 
@@ -117,8 +117,8 @@ func (g Grant) Expand() []string {
 			// own RBAC action, only this arm changes.
 			for _, ks := range g.KeyspaceIDs {
 				granted = append(granted,
-					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Keyspace(ks), permissions.CreateKey{}),
-					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Keyspace(ks).Key("*"), permissions.EncryptKey{}),
+					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Project("*").Keyspace(ks), permissions.CreateKey{}),
+					unkeyPerm(urn.New().Workspace(g.WorkspaceID).Project("*").Keyspace(ks).Key("*"), permissions.EncryptKey{}),
 				)
 			}
 

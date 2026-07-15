@@ -34,10 +34,42 @@ func TestParseV1_AllowsResourcePatterns(t *testing.T) {
 	}{
 		{
 			name:  "segment wildcard",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/*",
+			value: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/*",
 			want: V1{
 				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/namespaces/*/overrides/*",
+				Resource:    "projects/*/ratelimits/namespaces/*/overrides/*",
+			},
+		},
+		{
+			name:  "unknown project with concrete keyspace",
+			value: "unkey:v1:ws_123:projects/*/keyspaces/ks_123/keys/key_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/keyspaces/ks_123/keys/key_123",
+			},
+		},
+		{
+			name:  "unknown project with concrete identity",
+			value: "unkey:v1:ws_123:projects/*/identities/id_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/identities/id_123",
+			},
+		},
+		{
+			name:  "unknown project with concrete portal",
+			value: "unkey:v1:ws_123:projects/*/portals/portal_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/portals/portal_123",
+			},
+		},
+		{
+			name:  "unknown project with concrete role",
+			value: "unkey:v1:ws_123:projects/*/rbac/roles/role_123",
+			want: V1{
+				WorkspaceID: "ws_123",
+				Resource:    "projects/*/rbac/roles/role_123",
 			},
 		},
 		{
@@ -58,26 +90,26 @@ func TestParseV1_AllowsResourcePatterns(t *testing.T) {
 		},
 		{
 			name:  "wildcard keyspace keys descendant scope",
-			value: "unkey:v1:ws_123:keyspaces/*/keys/**",
+			value: "unkey:v1:ws_123:projects/*/keyspaces/*/keys/**",
 			want: V1{
 				WorkspaceID: "ws_123",
-				Resource:    "keyspaces/*/keys/**",
+				Resource:    "projects/*/keyspaces/*/keys/**",
 			},
 		},
 		{
 			name:  "wildcard ratelimit overrides descendant scope",
-			value: "unkey:v1:ws_123:ratelimits/namespaces/*/overrides/**",
+			value: "unkey:v1:ws_123:projects/*/ratelimits/namespaces/*/overrides/**",
 			want: V1{
 				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/namespaces/*/overrides/**",
+				Resource:    "projects/*/ratelimits/namespaces/*/overrides/**",
 			},
 		},
 		{
 			name:  "descendant wildcard",
-			value: "unkey:v1:ws_123:ratelimits/**",
+			value: "unkey:v1:ws_123:projects/proj_123/ratelimits/**",
 			want: V1{
 				WorkspaceID: "ws_123",
-				Resource:    "ratelimits/**",
+				Resource:    "projects/proj_123/ratelimits/**",
 			},
 		},
 		{
@@ -116,14 +148,19 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 
 	for _, value := range []string{
 		"",
-		"urn:unkey:v1:ws_123:keyspaces/ks_123",
+		"urn:unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123",
 		"unkey:v1:ws_123",
-		"unkey:v2:ws_123:keyspaces/ks_123",
-		"unkey:v1::keyspaces/ks_123",
-		"unkey:v1:ws_123:keyspaces/ks_123#read_keyspace",
-		"unkey:v1:ws_123:/keyspaces/ks_123",
-		"unkey:v1:ws_123:keyspaces/ks_123/",
-		"unkey:v1:ws_123:keyspaces//ks_123",
+		"unkey:v2:ws_123:projects/proj_123/keyspaces/ks_123",
+		"unkey:v1::projects/proj_123/keyspaces/ks_123",
+		"unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123#read_keyspace",
+		"unkey:v1:ws_123:/projects/proj_123/keyspaces/ks_123",
+		"unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/",
+		"unkey:v1:ws_123:projects//keyspaces/ks_123",
+		"unkey:v1:ws_123:keyspaces/ks_123",
+		"unkey:v1:ws_123:identities/id_123",
+		"unkey:v1:ws_123:ratelimits/namespaces/ns_123",
+		"unkey:v1:ws_123:portals/portal_123",
+		"unkey:v1:ws_123:rbac/roles/role_123",
 	} {
 		_, err := ParseV1(value)
 		require.ErrorIs(t, err, ErrInvalidResourceName, value)
@@ -136,15 +173,15 @@ func TestParseV1_RejectsAmbiguousPatterns(t *testing.T) {
 	t.Parallel()
 
 	for _, value := range []string{
-		"unkey:v1:ws_123:ratelimits/**/overrides/*",
-		"unkey:v1:ws_123:ratelimits/namespaces/ns_*",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/**/overrides/*",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_*",
 		"unkey:v1:ws_123:projects/*/apps/app_123",
 		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
 		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/*/deployments/dep_123",
-		"unkey:v1:ws_123:ratelimits/namespaces/*/overrides/override_123",
-		"unkey:v1:ws_123:/ratelimits/*",
-		"unkey:v1:ws_123:ratelimits//namespaces/*",
-		"unkey:v1:ws_123:ratelimits/*/",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/*/overrides/override_123",
+		"unkey:v1:ws_123:/projects/proj_123/ratelimits/*",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits//namespaces/*",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/*/",
 	} {
 		_, err := ParseV1(value)
 		require.ErrorIs(t, err, ErrInvalidResourceName, value)
@@ -157,22 +194,23 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	t.Parallel()
 
 	workspace := New().Workspace("ws_123")
+	project := workspace.Project("proj_123")
 	require.Equal(t, "unkey:v1:ws_123:team/memberships/mbr_123", workspace.Team.Membership("mbr_123").String())
 	require.Equal(t, "unkey:v1:ws_123:team/invitations/inv_123", workspace.Team.Invitation("inv_123").String())
 	require.Equal(t, "unkey:v1:ws_123:billing/invoices/inv_123", workspace.Billing().Invoice("inv_123").String())
 	require.Equal(t, "unkey:v1:ws_123:billing/quotas", workspace.Billing().Quotas().String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123", workspace.Keyspace("ks_123").String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/keys/key_123", workspace.Keyspace("ks_123").Key("key_123").String())
-	require.Equal(t, "unkey:v1:ws_123:keyspaces/ks_123/**", workspace.Keyspace("ks_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/overrides/ov_123", workspace.RatelimitNamespace("ns_123").Override("ov_123").String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123", workspace.RatelimitNamespace("ns_123").String())
-	require.Equal(t, "unkey:v1:ws_123:ratelimits/namespaces/ns_123/**", workspace.RatelimitNamespace("ns_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:rbac/roles/role_123", workspace.RBAC.Role("role_123").String())
-	require.Equal(t, "unkey:v1:ws_123:rbac/permissions/perm_123", workspace.RBAC.Permission("perm_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123", workspace.Project("proj_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/**", workspace.Project("proj_123").Any().String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/identities/id_123", workspace.Project("proj_123").Identity("id_123").String())
-	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123", workspace.Project("proj_123").App("app_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123", project.String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/**", project.Any().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123", project.Keyspace("ks_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/keys/key_123", project.Keyspace("ks_123").Key("key_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/keyspaces/ks_123/**", project.Keyspace("ks_123").Any().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123", project.RatelimitNamespace("ns_123").Override("ov_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123", project.RatelimitNamespace("ns_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/**", project.RatelimitNamespace("ns_123").Any().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123", project.RBAC.Role("role_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/rbac/permissions/perm_123", project.RBAC.Permission("perm_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/identities/id_123", project.Identity("id_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123", project.App("app_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/**", workspace.Project("proj_123").App("app_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123", workspace.Project("proj_123").App("app_123").Environment("env_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/**", workspace.Project("proj_123").App("app_123").Environment("env_123").Any().String())
@@ -181,11 +219,11 @@ func TestResourceCatalogHelpers(t *testing.T) {
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/deployments/dep_123/**", workspace.Project("proj_123").App("app_123").Environment("env_123").Deployment("dep_123").Any().String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/domains/dom_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Domain("dom_123").String())
 	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/variables/var_123", workspace.Project("proj_123").App("app_123").Environment("env_123").Variable("var_123").String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/session_tokens/token_123", workspace.Portal("portal_123").SessionToken("token_123").String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/sessions/session_123", workspace.Portal("portal_123").Session("session_123").String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/branding", workspace.Portal("portal_123").Branding().String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123", workspace.Portal("portal_123").String())
-	require.Equal(t, "unkey:v1:ws_123:portals/portal_123/**", workspace.Portal("portal_123").Any().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/session_tokens/token_123", project.Portal("portal_123").SessionToken("token_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/session_123", project.Portal("portal_123").Session("session_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/branding", project.Portal("portal_123").Branding().String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/portals/portal_123", project.Portal("portal_123").String())
+	require.Equal(t, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/**", project.Portal("portal_123").Any().String())
 }
 
 // TestV1Covers_OnlySupportedWildcardsExpandScope guarantees "*" matches one
@@ -200,19 +238,21 @@ func TestV1Covers_OnlySupportedWildcardsExpandScope(t *testing.T) {
 		target  string
 		want    bool
 	}{
-		{name: "global wildcard", pattern: "**", target: "ratelimits/namespaces/ns_123", want: true},
+		{name: "global wildcard", pattern: "**", target: "projects/proj_123/ratelimits/namespaces/ns_123", want: true},
 		{name: "global wildcard covers single segment", pattern: "**", target: "settings", want: true},
 		{name: "single segment wildcard matches one segment", pattern: "*", target: "settings", want: true},
 		{name: "single segment wildcard does not match nested paths", pattern: "*", target: "ratelimits/namespaces/ns_123", want: false},
-		{name: "exact", pattern: "ratelimits/namespaces/ns_123", target: "ratelimits/namespaces/ns_123", want: true},
-		{name: "segment wildcard", pattern: "ratelimits/namespaces/*", target: "ratelimits/namespaces/ns_123", want: true},
-		{name: "descendant wildcard", pattern: "ratelimits/**", target: "ratelimits/namespaces/ns_123", want: true},
-		{name: "descendant wildcard covers base", pattern: "ratelimits/**", target: "ratelimits", want: true},
-		{name: "descendant wildcard target shorter than base", pattern: "ratelimits/namespaces/**", target: "ratelimits", want: false},
-		{name: "descendant wildcard wrong prefix", pattern: "identities/**", target: "ratelimits/namespaces/ns_123", want: false},
-		{name: "segment wildcard does not cross segments", pattern: "ratelimits/*", target: "ratelimits/namespaces/ns_123", want: false},
-		{name: "exact shorter", pattern: "ratelimits", target: "ratelimits/namespaces/ns_123", want: false},
-		{name: "exact longer", pattern: "ratelimits/namespaces/ns_123", target: "ratelimits", want: false},
+		{name: "exact", pattern: "projects/proj_123/ratelimits/namespaces/ns_123", target: "projects/proj_123/ratelimits/namespaces/ns_123", want: true},
+		{name: "segment wildcard", pattern: "projects/*/ratelimits/namespaces/*", target: "projects/proj_123/ratelimits/namespaces/ns_123", want: true},
+		{name: "descendant wildcard", pattern: "projects/proj_123/ratelimits/**", target: "projects/proj_123/ratelimits/namespaces/ns_123", want: true},
+		{name: "descendant wildcard covers base", pattern: "projects/proj_123/ratelimits/**", target: "projects/proj_123/ratelimits", want: true},
+		{name: "descendant wildcard target shorter than base", pattern: "projects/proj_123/ratelimits/namespaces/**", target: "projects/proj_123/ratelimits", want: false},
+		{name: "descendant wildcard wrong prefix", pattern: "projects/proj_123/identities/**", target: "projects/proj_123/ratelimits/namespaces/ns_123", want: false},
+		{name: "segment wildcard does not cross segments", pattern: "projects/proj_123/ratelimits/*", target: "projects/proj_123/ratelimits/namespaces/ns_123", want: false},
+		{name: "exact shorter", pattern: "projects/proj_123/ratelimits", target: "projects/proj_123/ratelimits/namespaces/ns_123", want: false},
+		{name: "exact longer", pattern: "projects/proj_123/ratelimits/namespaces/ns_123", target: "projects/proj_123/ratelimits", want: false},
+		{name: "project wildcard", pattern: "projects/*/**", target: "projects/proj_123/keyspaces/ks_123", want: true},
+		{name: "sibling project", pattern: "projects/proj_123/**", target: "projects/proj_456/keyspaces/ks_123", want: false},
 	}
 
 	for _, tt := range tests {
@@ -232,7 +272,7 @@ func TestV1Covers_RequiresMatchingWorkspace(t *testing.T) {
 	t.Parallel()
 
 	pattern := V1{WorkspaceID: "ws_123", Resource: "**"}
-	target := V1{WorkspaceID: "ws_456", Resource: "ratelimits/namespaces/ns_123"}
+	target := V1{WorkspaceID: "ws_456", Resource: "projects/proj_123/ratelimits/namespaces/ns_123"}
 	require.False(t, pattern.Covers(target))
 }
 
@@ -244,10 +284,10 @@ func FuzzV1Covers_ExactAndGlobalWildcardInvariants(f *testing.F) {
 		pattern string
 		target  string
 	}{
-		{pattern: "**", target: "ratelimits/namespaces/ns_123"},
-		{pattern: "ratelimits/**", target: "ratelimits/namespaces/ns_123/overrides/ov_123"},
-		{pattern: "ratelimits/namespaces/*", target: "ratelimits/namespaces/ns_123"},
-		{pattern: "ratelimits/namespaces/ns_123", target: "ratelimits/namespaces/ns_123"},
+		{pattern: "**", target: "projects/proj_123/ratelimits/namespaces/ns_123"},
+		{pattern: "projects/proj_123/ratelimits/**", target: "projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
+		{pattern: "projects/proj_123/ratelimits/namespaces/*", target: "projects/proj_123/ratelimits/namespaces/ns_123"},
+		{pattern: "projects/proj_123/ratelimits/namespaces/ns_123", target: "projects/proj_123/ratelimits/namespaces/ns_123"},
 	} {
 		f.Add(fuzzStringSeed(seed.pattern, seed.target))
 	}

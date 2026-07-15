@@ -33,19 +33,19 @@ func (v V1) String() string {
 // resource in the workspace; the standalone path "*" covers only resources
 // with single-segment paths.
 //
-// These patterns cover unkey:v1:ws_1:keyspaces/ks_1/keys/k_1:
+// These patterns cover unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/keys/k_1:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1/keys/k_1   (itself)
-//	unkey:v1:ws_1:keyspaces/*/keys/*
-//	unkey:v1:ws_1:keyspaces/ks_1/**
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/keys/k_1   (itself)
+//	unkey:v1:ws_1:projects/*/keyspaces/*/keys/*
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1/**
 //	unkey:v1:ws_1:**
 //
 // and these do not:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1            (concrete name, not the same resource)
-//	unkey:v1:ws_1:keyspaces/*               ("*" does not cross into keys/k_1)
-//	unkey:v1:ws_1:*                         ("*" is one segment, not a global wildcard)
-//	unkey:v1:ws_2:**                        (different workspace)
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1   (concrete name, not the same resource)
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/*      ("*" does not cross into keys/k_1)
+//	unkey:v1:ws_1:*                                ("*" is one segment, not a global wildcard)
+//	unkey:v1:ws_2:**                               (different workspace)
 func (v V1) Covers(target V1) bool {
 	if v.WorkspaceID != target.WorkspaceID {
 		return false
@@ -85,18 +85,18 @@ func segmentsMatch(pattern []string, target []string) bool {
 //
 // Accepted:
 //
-//	unkey:v1:ws_123:keyspaces/ks_1/keys/k_1    concrete resource name
-//	unkey:v1:ws_123:keyspaces/*/keys/*         one wildcard per segment
-//	unkey:v1:ws_123:ratelimits/**              descendant scope
-//	unkey:v1:ws_123:**                         everything in the workspace
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1/keys/k_1    concrete resource name
+//	unkey:v1:ws_123:projects/*/keyspaces/*/keys/*              one wildcard per segment
+//	unkey:v1:ws_123:projects/proj_1/ratelimits/**               descendant scope
+//	unkey:v1:ws_123:**                                           everything in the workspace
 //
 // Rejected with [ErrInvalidResourceName]:
 //
 //	unkey:v1:ws_123                            missing resource path
-//	unkey:v1:ws_123:keyspaces/ks_1#read_key    "#" belongs to permissions, not URNs
-//	unkey:v1:ws_123:keyspaces/ks_*             "*" must be a whole segment
-//	unkey:v1:ws_123:ratelimits/**/overrides    "**" must be the last segment
-//	unkey:v1:ws_123:projects/*/apps/app_123    specific selector nested under "*"
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1#read_key    "#" belongs to permissions, not URNs
+//	unkey:v1:ws_123:projects/proj_1/keyspaces/ks_*             "*" must be a whole segment
+//	unkey:v1:ws_123:projects/proj_1/ratelimits/**/overrides    "**" must be the last segment
+//	unkey:v1:ws_123:projects/*/apps/app_123                    specific selector nested under "*"
 func ParseV1(value string) (V1, error) {
 	parts := strings.SplitN(value, ":", 4)
 	if len(parts) != 4 {
@@ -151,9 +151,14 @@ func validateWorkspaceID(value string) error {
 //     trailing "**" descendant scope. A path may continue through concrete
 //     collection labels, such as "projects/*/apps/*" or "projects/*/apps/**",
 //     but it cannot narrow again to a specific child like
-//     "projects/*/apps/app_123".
+//     "projects/*/apps/app_123". The project selector is temporarily exempt for
+//     resources whose persisted rows do not yet expose their owning project.
 func validateResourcePath(path string) error {
 	segments := strings.Split(path, "/")
+	if isLegacyWorkspaceResource(segments[0]) {
+		return errors.New("project-owned resources must be nested under a project")
+	}
+
 	seenWildcardSelector := false
 	for i, segment := range segments {
 		isLastSegment := i == len(segments)-1
@@ -164,7 +169,9 @@ func validateResourcePath(path string) error {
 		case strings.ContainsAny(segment, ":#"):
 			return errors.New(`must not contain ":" or "#"`)
 		case segment == "*":
-			seenWildcardSelector = true
+			if !isUnknownProjectPlaceholder(segments, i) {
+				seenWildcardSelector = true
+			}
 		case segment == "**":
 			if !isLastSegment {
 				return errors.New(`"**" must be the last segment`)
@@ -178,4 +185,30 @@ func validateResourcePath(path string) error {
 		}
 	}
 	return nil
+}
+
+// isUnknownProjectPlaceholder reports whether a wildcard is the unknown owner
+// of a project resource whose persisted row does not expose its project yet.
+func isUnknownProjectPlaceholder(segments []string, index int) bool {
+	if index != 1 || len(segments) < 3 || segments[0] != "projects" {
+		return false
+	}
+
+	switch segments[2] {
+	case "identities", "keyspaces", "portals", "ratelimits", "rbac":
+		return true
+	default:
+		return false
+	}
+}
+
+// isLegacyWorkspaceResource reports whether a path starts with a resource that
+// moved below projects in the v1 grammar.
+func isLegacyWorkspaceResource(segment string) bool {
+	switch segment {
+	case "identities", "keyspaces", "portals", "ratelimits", "rbac":
+		return true
+	default:
+		return false
+	}
 }

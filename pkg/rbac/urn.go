@@ -31,9 +31,10 @@ func (u UnkeyPermission) String() string {
 
 // U creates a leaf query for a typed action on a canonical resource name.
 //
-// Handlers should pass the exact resource being accessed. Broader grants such
-// as "unkey:v1:ws_123:ratelimits/**#read_override" are matched during
-// evaluation, not by writing wildcard-heavy queries at call sites.
+// Handlers should pass the exact resource being accessed when ownership is
+// available. Project-owned rows without stored ownership use Project("*") until
+// they can provide a concrete project. Broader grants are matched during
+// evaluation, not by writing other wildcard-heavy queries at call sites.
 func U[R fmt.Stringer, A permissions.Action[R]](resource R, action A) PermissionQuery {
 	return PermissionQuery{
 		Operation:            OperatorNil,
@@ -77,16 +78,16 @@ func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 //
 // Accepted:
 //
-//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read_override
-//	unkey:v1:ws_1:keyspaces/*/keys/*#read_key    wildcard grant
-//	unkey:v1:ws_1:**#*                           admin grant (translated from admin:*)
+//	unkey:v1:ws_1:projects/proj_1/ratelimits/namespaces/ns_1/overrides/ov_1#read_override
+//	unkey:v1:ws_1:projects/*/keyspaces/*/keys/*#read_key    wildcard grant
+//	unkey:v1:ws_1:**#*                                        admin grant (translated from admin:*)
 //
 // Rejected with errInvalidURNPermission:
 //
-//	unkey:v1:ws_1:keyspaces/ks_1                 missing "#action"
-//	unkey:v1:ws_1:keyspaces/ks_1#read#key        more than one "#"
-//	unkey:v1:ws_1:keyspaces/ks_1#*               action wildcard off the global resource
-//	api.api_1.read_api                           legacy tuple, not a URN permission
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1                 missing "#action"
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1#read#key        more than one "#"
+//	unkey:v1:ws_1:projects/proj_1/keyspaces/ks_1#*               action wildcard off the global resource
+//	api.api_1.read_api                                            legacy tuple, not a URN permission
 func parseUrnPermission(value string) (UnkeyPermission, error) {
 	var zero UnkeyPermission
 
@@ -139,6 +140,23 @@ func validatePermissionAction(action string) error {
 	}
 	if strings.HasPrefix(action, "_") || strings.HasSuffix(action, "_") {
 		return errors.New(`must not start or end with "_"`)
+	}
+
+	previousUnderscore := false
+	for _, character := range action {
+		switch {
+		case character == '_':
+			if previousUnderscore {
+				return errors.New(`must not contain consecutive "_" characters`)
+			}
+			previousUnderscore = true
+		case character >= 'a' && character <= 'z':
+			previousUnderscore = false
+		case character >= '0' && character <= '9':
+			previousUnderscore = false
+		default:
+			return errors.New("must contain only lowercase ASCII letters, digits, and underscores")
+		}
 	}
 	return nil
 }

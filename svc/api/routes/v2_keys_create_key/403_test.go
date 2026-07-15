@@ -100,7 +100,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	})
 
 	t.Run("wrong action", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:keyspaces/%s#read_keyspace", h.Resources().UserWorkspace.ID, keySpaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/%s#read_keyspace", h.Resources().UserWorkspace.ID, keySpaceID))
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

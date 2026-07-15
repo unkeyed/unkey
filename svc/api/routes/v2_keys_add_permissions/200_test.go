@@ -52,7 +52,7 @@ func TestSuccess(t *testing.T) {
 			Slug:        "documents.write.urn.add",
 		})
 
-		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
 		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
 		urnHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -81,8 +81,8 @@ func TestSuccess(t *testing.T) {
 			Name:        ptr.P("urn-create-permission-key"),
 		})
 
-		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
-		createPermissionPermission := fmt.Sprintf("unkey:v1:%s:rbac/permissions/*#create_permission", workspace.ID)
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		createPermissionPermission := fmt.Sprintf("unkey:v1:%s:projects/*#create_permission", workspace.ID)
 		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission, createPermissionPermission)
 		urnHeaders := http.Header{
 			"Content-Type":  {"application/json"},

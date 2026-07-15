@@ -55,7 +55,7 @@ func TestSuccess(t *testing.T) {
 			Slug:        "documents.write.urn.set",
 		})
 
-		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
 		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
 		urnHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -72,6 +72,36 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body.Data)
 		require.Len(t, res.Body.Data, 1)
 		require.Equal(t, permission.ID, res.Body.Data[0].Id)
+	})
+
+	t.Run("urn create_permission can create missing permission while setting", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{
+			WorkspaceID: workspace.ID,
+		})
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			Name:        ptr.P("urn-create-permission-key"),
+		})
+
+		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/%s/keys/%s#update_key", workspace.ID, api.KeyAuthID.String, key.KeyID)
+		createPermissionPermission := fmt.Sprintf("unkey:v1:%s:projects/*#create_permission", workspace.ID)
+		urnRootKey := h.CreateRootKey(workspace.ID, updateKeyPermission, createPermissionPermission)
+		urnHeaders := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", urnRootKey)},
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, urnHeaders, handler.Request{
+			KeyId:       key.KeyID,
+			Permissions: []string{"documents.write.urn.create.set"},
+		})
+
+		require.Equal(t, http.StatusOK, res.Status)
+		require.NotNil(t, res.Body)
+		require.NotNil(t, res.Body.Data)
+		require.Len(t, res.Body.Data, 1)
+		require.Equal(t, "documents.write.urn.create.set", res.Body.Data[0].Name)
 	})
 
 	t.Run("set permissions using permission IDs", func(t *testing.T) {
