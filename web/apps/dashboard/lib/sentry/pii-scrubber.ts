@@ -16,7 +16,7 @@
 
 import type { ErrorEvent, EventHint } from "@sentry/nextjs";
 
-export const REDACTED = "[REDACTED]";
+const REDACTED = "[REDACTED]";
 
 /**
  * Query/path parameter names whose values are always secrets or PII. Matched
@@ -34,7 +34,6 @@ const SENSITIVE_PARAM_KEYS = new Set(
     "access_token",
     "refresh_token",
     "id_token",
-    "invitation_token",
     "secret",
     "client_secret",
     "password",
@@ -75,31 +74,6 @@ export function redactTokenLike(value: string): string {
 }
 
 /**
- * Redaction for values that cannot go through scrubUrl's name-aware param
- * scrubbing (non-http(s) schemes, input `new URL()` rejects). Everything
- * from the first "?" or "#" is dropped wholesale, and userinfo credentials
- * ("user:pass@host") are stripped — short named secrets (password=, email=)
- * and short credentials both evade the 20+ char token net. The rest gets
- * token-shape redaction, which leaves short plain values (CSP keywords,
- * hostnames) untouched.
- */
-export function redactOpaqueValue(value: string): string {
-  // Userinfo is matched only in authority position: an optional scheme and
-  // "//" followed by anything up to "@". The authority ends at the first
-  // "/", "?" or "#" (RFC 3986), so those must all bound the match — letting
-  // it run past a "?" would swallow the real host of an authority-only URI
-  // whose query contains an "@" ("wss://host?email=a@b.com" → "wss://b.com",
-  // reporting a host that was never blocked).
-  const withoutUserinfo = value.replace(/^([a-z][a-z0-9+.-]*:)?(\/\/)?[^/?#]*@/i, "$1$2");
-  const cutAt = withoutUserinfo.search(/[?#]/);
-  const cut =
-    cutAt === -1
-      ? withoutUserinfo
-      : `${withoutUserinfo.slice(0, cutAt)}${withoutUserinfo[cutAt]}${REDACTED}`;
-  return redactTokenLike(cut);
-}
-
-/**
  * Redacts the value of a single query parameter when its name is sensitive, and
  * otherwise redacts token-like values regardless of name. Returns the value to
  * store back into the query string.
@@ -113,10 +87,9 @@ function scrubParamValue(name: string, value: string): string {
 
 /**
  * Scrubs secrets from a single URL (absolute or relative). Sensitive query
- * params are fully redacted, other params and the path have token-like
- * segments redacted, and basic-auth userinfo is dropped. Falls back to
- * wholesale opaque redaction if the URL cannot be parsed, so we never throw
- * inside a Sentry hook.
+ * params are fully redacted, other params and the path have token-like segments
+ * redacted. Returns the original string unchanged if it cannot be parsed so we
+ * never throw inside a Sentry hook.
  */
 export function scrubUrl(url: string): string {
   if (typeof url !== "string" || url.length === 0) {
@@ -127,11 +100,6 @@ export function scrubUrl(url: string): string {
     // Use a dummy base so relative URLs (the common case in breadcrumbs) parse.
     const base = "http://scrub.local";
     const parsed = new URL(url, base);
-
-    // Drop basic-auth userinfo: short credentials (user:pass@host) evade the
-    // token-shape net.
-    parsed.username = "";
-    parsed.password = "";
 
     for (const [name, value] of parsed.searchParams.entries()) {
       parsed.searchParams.set(name, scrubParamValue(name, value));
@@ -151,10 +119,8 @@ export function scrubUrl(url: string): string {
     }
     return parsed.toString();
   } catch {
-    // Unparseable input never reaches the name-aware param scrubbing above,
-    // so short named secrets (?password=hunter2) would survive a token-shape
-    // pass. Drop query/fragment/userinfo wholesale instead.
-    return redactOpaqueValue(url);
+    // Fall back to a blanket token redaction if URL parsing fails.
+    return url.replace(TOKEN_LIKE, REDACTED);
   }
 }
 

@@ -8,24 +8,12 @@ const isProd = process.env.NODE_ENV === "production";
 // must not whitelist its origins.
 const allowVercelToolbar = isDev || process.env.VERCEL_ENV === "preview";
 
-// Single literal so both policies always report to the same endpoint.
-const cspReportDirective = "report-uri /api/csp-reports";
-
 // Enforced policy: only directives that cannot break the app. These are
-// deliberately NOT repeated in the report-only policy — a directive present
-// in both headers makes the browser send two reports per violation,
-// double-counting against the forward budget and duplicating Sentry events.
-// (One residual overlap is accepted: an <object> violation also trips the
-// report-only default-src fallback, so it double-reports. Nothing in the app
-// embeds objects, so any such report is signal, not noise.)
-// `frame-ancestors` mirrors X-Frame-Options; the spec forbids it in
-// report-only policies anyway.
-const cspEnforced = [
-  "object-src 'none'",
-  "base-uri 'self'",
-  "frame-ancestors 'self'",
-  cspReportDirective,
-].join("; ");
+// deliberately NOT repeated in the report-only policy below — keeping each
+// directive in exactly one header avoids duplicate console reports per
+// violation. `frame-ancestors` mirrors X-Frame-Options; the spec forbids it
+// in report-only policies anyway.
+const cspEnforced = ["object-src 'none'", "base-uri 'self'", "frame-ancestors 'self'"].join("; ");
 
 const scriptSrc = [
   "'self'",
@@ -34,8 +22,8 @@ const scriptSrc = [
   // rendering).
   "'unsafe-inline'",
   // Webpack/react-refresh eval only exists in dev; keeping it out of the
-  // production policy means any real eval usage shows up in the report
-  // stream instead of being silently allowed.
+  // production policy means any real eval usage shows up as a report-only
+  // violation instead of being silently allowed.
   ...(isDev ? ["'unsafe-eval'"] : []),
   ...(allowVercelToolbar ? ["https://vercel.live"] : []),
 ].join(" ");
@@ -47,7 +35,7 @@ const connectSrc = [
   // intentionally hardcoded (this file has no DSN to derive it from): if the
   // Sentry org ever migrates regions, update this alongside the DSNs in the
   // three sentry.*.config/instrumentation files — drift shows up as
-  // connect-src violations in the report stream.
+  // connect-src report-only violations.
   "https://*.ingest.us.sentry.io",
   // The preview toolbar talks to vercel.live and Pusher websockets.
   ...(allowVercelToolbar ? ["https://vercel.live", "wss://*.pusher.com"] : []),
@@ -55,8 +43,8 @@ const connectSrc = [
 
 // Tailwind/inline style attributes and the chart theme <style> tag; the
 // preview toolbar additionally loads its stylesheet and fonts from
-// vercel.live, and without these allowances previews would flood the report
-// stream with self-inflicted violations.
+// vercel.live, and without these allowances previews would flood the console
+// with self-inflicted violations.
 const styleSrc = [
   "'self'",
   "'unsafe-inline'",
@@ -69,12 +57,12 @@ const fontSrc = [
   ...(allowVercelToolbar ? ["https://vercel.live/fonts"] : []),
 ].join(" ");
 
-// Full policy runs in report-only mode: violations are POSTed to
-// /api/csp-reports (which scrubs URLs and forwards to Sentry when the SDK is
-// enabled) but nothing is blocked. Once the report stream is quiet, fold
-// these directives into the enforced Content-Security-Policy header. The
-// already-enforced directives (object-src, base-uri, frame-ancestors) are
-// deliberately absent — see cspEnforced above.
+// Full policy runs in report-only mode: violations are reported to the
+// browser console (devtools) but nothing is blocked. There is no report-uri:
+// collection is deliberately console-only, so exercise the app in dev/preview
+// and watch for violations before folding these directives into the enforced
+// Content-Security-Policy header. The already-enforced directives (object-src,
+// base-uri, frame-ancestors) are deliberately absent — see cspEnforced above.
 const cspReportOnly = [
   "default-src 'self'",
   `script-src ${scriptSrc}`,
@@ -88,7 +76,6 @@ const cspReportOnly = [
   "worker-src 'self' blob:",
   ...(allowVercelToolbar ? ["frame-src https://vercel.live"] : []),
   "form-action 'self'",
-  cspReportDirective,
 ].join("; ");
 
 const securityHeaders = [

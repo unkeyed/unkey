@@ -51,13 +51,7 @@ export {
 export { createTracesSampler } from "./trace-sampler";
 
 // Export PII/URL scrubbing utilities
-export {
-  scrubUrl,
-  scrubEventPii,
-  redactOpaqueValue,
-  redactTokenLike,
-  REDACTED,
-} from "./pii-scrubber";
+export { scrubUrl, scrubEventPii } from "./pii-scrubber";
 
 // Export Replay privacy config and noise filters
 export { replayPrivacyOptions } from "./replay-privacy";

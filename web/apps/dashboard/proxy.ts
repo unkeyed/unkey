@@ -39,12 +39,6 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/api/webhooks/workos",
     "/api/v1/github/verify",
     "/api/auth/refresh",
-    // CSP violation reports are browser-generated, credentialed same-origin
-    // POSTs (see app/api/csp-reports/route.ts — unauthenticated by design).
-    // Running them through authMiddleware would race the single-use WorkOS
-    // refresh-token rotation against the user's real requests and pay a
-    // session validation per report.
-    "/api/csp-reports",
     "/success",
     // Public one-time key reveal page. Recipients are unauthenticated; the share
     // id is the bearer credential. The reveal itself runs through the public
