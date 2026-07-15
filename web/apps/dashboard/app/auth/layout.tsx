@@ -15,7 +15,7 @@ export default function AuthenticatedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <FullScreenLayout className="overflow-x-hidden bg-gray-2">
+    <FullScreenLayout className="overflow-x-hidden bg-gray-2 dark:bg-background">
       <nav className="flex items-center justify-between h-16 w-full shrink-0 px-6">
         <Link href="/">
           <Logo />
@@ -23,6 +23,10 @@ export default function AuthenticatedLayout({
         <AuthSwitchButton />
       </nav>
       <FullScreenContent className="px-4 py-8">
+        {/* WarnBanner/ErrorBanner (banners.tsx) portal in here to sit above
+            the card. Banners carry their own mb-4 so an empty slot adds no
+            height and the card stays centered. */}
+        <div id="auth-banner-slot" className="w-full max-w-[440px]" />
         <Card className="w-full max-w-[440px] rounded-xl border-gray-5 bg-gray-1 px-6 py-10 sm:px-12 shadow-xs">
           <div className="flex w-full flex-col gap-10">
             <RadarProvider>{children}</RadarProvider>
