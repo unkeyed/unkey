@@ -111,7 +111,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
           type="text"
           autoCapitalize="none"
           autoCorrect="off"
-          className="w-1/2 [&_label]:text-sm [&_input]:text-sm"
+          className="w-1/2"
           onChange={(e) => {
             setFirstName(e.target.value);
             validationError && setValidationError("");
@@ -124,7 +124,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
           type="text"
           autoCapitalize="none"
           autoCorrect="off"
-          className="w-1/2 [&_label]:text-sm [&_input]:text-sm"
+          className="w-1/2"
           onChange={(e) => {
             setLastName(e.target.value);
             validationError && setValidationError("");
@@ -140,7 +140,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
         autoCapitalize="none"
         autoComplete="email"
         autoCorrect="off"
-        className="w-full [&_label]:text-sm [&_input]:text-sm"
+        className="w-full"
         onChange={(e) => {
           setEmail(e.target.value);
           validationError && setValidationError("");

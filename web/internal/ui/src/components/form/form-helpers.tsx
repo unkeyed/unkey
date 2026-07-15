@@ -94,7 +94,7 @@ export const FormLabel = ({
     <label
       id={`${htmlFor}-label`}
       htmlFor={htmlFor}
-      className="text-gray-11 text-[13px] flex items-center"
+      className="text-gray-11 text-sm flex items-center"
     >
       {label}
       {requirement === "required" && <RequiredTag hasError={hasError} />}
